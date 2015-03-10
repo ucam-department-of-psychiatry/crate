@@ -24,7 +24,7 @@ e)  Ensure that the data dictionary has been created, and then updated and
     Use "anonymise.py -d <configfile>" to generate a draft config.
     Edit it with any TSV editor (e.g. Excel, LibreOffice Calc).
 
-f)  Install GATE
+f)  Install GATE:
     - Download GATE Developer
     - java -jar gate-8.0-build4825-installer.jar
     - Read the documentation; it's quite good.
