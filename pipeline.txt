@@ -1,0 +1,289 @@
+PIPELINE
+
+===============================================================================
+0. BEFORE FIRST USE
+===============================================================================
+
+a)  Software prerequisites
+
+    i)  MySQL 5.6 or later
+
+        sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
+            mysql-client-5.6 mysql-client-core-5.6
+
+b)  Ensure that all source database(s) are accessible to the Processing
+    Computer.
+
+c)  Write a draft config file, giving connection details for all source
+    databases.
+
+d)  Ensure that the PYTHONPATH is pointing to necessary Python support files.
+
+e)  Ensure that the data dictionary has been created, and then updated and
+    verified by a human.
+    Use "anonymise.py -d <configfile>" to generate a draft config.
+    Edit it with any TSV editor (e.g. Excel, LibreOffice Calc).
+
+f)  Install GATE
+    - Download GATE Developer
+    - java -jar gate-8.0-build4825-installer.jar
+    - Read the documentation; it's quite good.
+
+===============================================================================
+1. PRE-PROCESSING
+===============================================================================
+
+a)  Ensure that the databases are copied and ready.
+
+b)  Add in any additional data. For example, if you want to process a postcode
+    field to geographical output areas, such as
+        http://en.wikipedia.org/wiki/ONS_coding_system
+    then do it now; add in the new fields. Don't remove the old (raw) postcodes;
+    they'll be necessary for anonymisation.
+
+c)  UNCOMMON OPTION: anonymise using NLP to find names. See below.
+    If you want to anonymise using NLP to find names, rather than just use the
+    name information in your source database, run nlp_manager.py now, using
+    (for example) the Person annotation from GATE's
+        plugins/ANNIE/ANNIE_with_defaults.gapp
+    application, and send the output back into your database. You'll need to
+    ensure the resulting data has patient IDs attached, probably with a view
+    (see (d) below).
+
+d)  Ensure every table that relates to a patient has a common field with the
+    patient ID that's used across the database(s) to be anonymised.
+    Create views if necessary. The data dictionary should reflect this work.
+
+e)  Strongly consider using a row_id (e.g. integer primary key) field for each
+    table. This will make natural language batch processing simpler (see
+    below).
+
+f)  For extracting text from other things (DOC, DOCX, ODT, PDF):
+        extract_text.py
+    This script sends its output to stdout, but is easily modifiable to send
+    it elsewhere, or you can redirect its output in a calling script; it's also
+    easily parallelized.
+
+===============================================================================
+2. ANONYMISATION (AND FULL-TEXT INDEXING) USING A DATA DICTIONARY
+===============================================================================
+
+OBJECTIVES:
+    - Make a record-by-record copy of tables in the source database(s).
+      Handle tables that do and tables that don't contain patient-identifiable
+      information.
+    - Collect patient-identifiable information and use it to "scrub" free-text
+      fields; for example, with forename=John, surname=Smith, and spouse=Jane,
+      one can convert freetext="I saw John in clinic with Sheila present" to
+      "I saw XXX in clinic with YYY present" in the output. Deal with date,
+      numerical, textual, and number-as-text information sensibly.
+    - Allow other aspects of information restriction, e.g. truncating dates of
+      birth to the first of the month.
+    - Apply one-way encryption to patient ID numbers (storing a secure copy for
+      superuser re-identification).
+    - Enable linking of data from multiple source databases with a common
+      identifier (such as the NHS number), similarly encrypted.
+    - For performance reasons, enable parallel processing and incremental
+      updates.
+
+    For help: anonymise.py --help
+
+a)  METHOD 1: THREAD-BASED. THIS IS SLOWER.
+        anonymise.py <configfile> [--threads=<n>]
+
+b)  METHOD 2: PROCESS-BASED. THIS IS FASTER.
+    See example in launch_multiprocess.sh
+
+    ---------------------------------------------------------------------------
+    Work distribution
+    ---------------------------------------------------------------------------
+    - Best performance from multiprocess (not multithreaded) operation.
+    - Drop/rebuild tables: single-process operation only.
+    - Non-patient tables: split by table (in sequence of all tables).
+    - Patient tables: split by patient ID.
+      (You have to process all scrubbing information from a patient
+      simultaneously, so that's the unit of work. Patient IDs need to be
+      integer for this method, though for no other reason.)
+    - Indexes: split by table (in sequence of all tables requiring indexing).
+      (Indexing a whole table at a time is fastest, not index by index.)
+
+    ---------------------------------------------------------------------------
+    Incremental updates
+    ---------------------------------------------------------------------------
+    - Supported via the --incremental option.
+    - The problems include:
+        - aspects of patient data (e.g. address/phone number) might, in a
+          very less than ideal world, change rather than being added to. How
+          to detect such a change?
+        - If a new phone number is added (even in a sensible way) -- or, more
+          importantly, a new alias (following an anonymisation failure),
+          should re-scrub all records for that patient, even records previously
+          scrubbed.
+    - Solution:
+        - Only tables with a suitable PK can be processed incrementally.
+          The PK must appear in the destination database (and therefore can't
+          be sensitive, but should be an uninformative integer).
+          This is so that if a row is deleted from the source, one can check
+          by looking at the destination.
+        - For a table with a src_pk, one can set the add_src_hash flag.
+          If set, then a hash of all source fields (more specifically: all that
+          are not omitted from the destination, plus any that are used for
+          scrubbing, i.e. scrubsrc_patient or scrubsrc_thirdparty) is created
+          and stored in the destination database.
+        - Let's call tables that use the src_pk/add_src_hash system "hashed"
+          tables.
+        - During incremental processing:
+            1. Non-hashed tables are dropped and rebuilt entirely.
+               Any records in a hashed destination table that don't have a
+               matching PK in their source table are deleted.
+            2. For each patient, the scrubber is calculated. If the
+               *scrubber's* hash has changed (stored in the secret_map table),
+               then all destination records for that patient are reworked
+               in full (i.e. the incremental option is disabled for that
+               patient).
+            3. During processing of a table (either per-table for non-patient
+               tables, or per-patient then per-table for patient tables), each
+               row has its source hash recalculated. For a non-hashed table,
+               this is then reprocessed normally. For a hashed table, if there
+               is a record with a matching PK and a matching source hash, that
+               record is skipped.
+
+===============================================================================
+3. NATURAL LANGUAGE PROCESSING
+===============================================================================
+
+OBJECTIVES: Send free-text content to natural language processing (NLP) tools,
+storing the results in structured form in a relational database -- for example,
+to find references to people, drugs/doses, cognitive examination scores, or
+symptoms.
+
+    - For help: nlp_manager.py --help
+    - The Java element needs building; use buildjava.sh
+
+    - STRUCTURE: see nlp_manager.py; CamAnonGatePipeline.java
+
+    - Run the Python script in parallel; see launch_multiprocess_nlp.sh
+
+    ---------------------------------------------------------------------------
+    Work distribution
+    ---------------------------------------------------------------------------
+    - Parallelize by source_pk.
+
+    ---------------------------------------------------------------------------
+    Incremental updates
+    ---------------------------------------------------------------------------
+    - Here, incremental updates are simpler, as the NLP just requires a record
+      taken on its own.
+    - Nonetheless, still need to deal with the conceptual problem of source
+      record modification; how would we detect that?
+        - One method would be to hash the source record, and store that with
+          the destination...
+    - Solution:
+        1. Delete any destination records without a corresponding source.
+        2. For each record, hash the source.
+           If a destination exists with the matching hash, skip.
+
+===============================================================================
+EXTRA: ANONYMISATION USING NLP.
+===============================================================================
+
+OBJECTIVE: remove other names not properly tagged in the source database.
+
+Here, we have a preliminary stage. Instead of the usual:
+
+                        free text
+    source database -------------------------------------> anonymiser
+                |                                           ^
+                |                                           | scrubbing
+                +-------------------------------------------+ information
+
+
+we have:
+
+                        free text
+    source database -------------------------------------> anonymiser
+          |     |                                           ^  ^
+          |     |                                           |  | scrubbing
+          |     +-------------------------------------------+  | information
+          |                                                    |
+          +---> NLP software ---> list of names ---------------+
+                                  (stored in source DB
+                                   or separate DB)
+
+For example, you could:
+
+    a) run the NLP processor to find names, feeding its output back into a new
+       table in the source database, e.g. with these options:
+
+            inputfielddefs =
+                SOME_FIELD_DEF
+            outputtypemap =
+                person SOME_OUTPUT_DEF
+            progenvsection = SOME_ENV_SECTION
+            progargs = java
+                -classpath {NLPPROGDIR}:{GATEDIR}/bin/gate.jar:{GATEDIR}/lib/*
+                CamAnonGatePipeline
+                -g {GATEDIR}/plugins/ANNIE/ANNIE_with_defaults.gapp
+                -a Person
+                -it END_OF_TEXT_FOR_NLP
+                -ot END_OF_NLP_OUTPUT_RECORD
+                -lt {NLPLOGTAG}
+            input_terminator = END_OF_TEXT_FOR_NLP
+            output_terminator = END_OF_NLP_OUTPUT_RECORD
+
+            # ...
+
+    b) add a view to include patient numbers, e.g.
+
+            CREATE VIEW patient_nlp_names
+            AS SELECT
+                notes.patient_id,
+                nlp_person_from_notes._content AS nlp_name
+            FROM notes
+            INNER JOIN nlp_person_from_notes
+                ON notes.note_id = nlp_person_from_notes._srcpkval
+            ;
+
+    c) feed that lot to the anonymiser, including the NLP-generated names as
+       scrubsrc_* field(s).
+
+
+===============================================================================
+4. SQL ACCESS
+===============================================================================
+
+OBJECTIVE: research access to the anonymised database(s).
+
+a)  Grant READ-ONLY access to the output database for any relevant user.
+
+b)  Don't grant any access to the secret mapping database! This is for
+    trusted superusers only.
+
+c)  You're all set.
+
+===============================================================================
+5. FRONT END (SQL BUILDER) FOR NON-SQL AFICIONADOS
+===============================================================================
+
+??? Python web site script, reading from data dictionary, etc.
+
+    - Script knows field type, from data dictionary.
+    - Collapsible list. Comments.
+    - Possible operators include:
+
+        <   <=  =   =>  >
+                !=
+
+    - For strings: =    LIKE / MATCH(x) AGAINST (...)
+
+    - SELECT outputfields WHERE constraints
+    - preview with COUNT(*) as output
+
+    - automatic joins on patient
+      (NOT: separate query)
+
+    - SQL preview
+    - ??raw SQL option - danger of SQL injection
+
+... all too much effort for what you get? Everyone doing it seriously will use
+SQL.
