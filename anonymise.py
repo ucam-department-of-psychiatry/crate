@@ -2110,7 +2110,7 @@ def main():
 Database anonymiser. {version}. By Rudolf Cardinal.
 
 Sample usage:
-    export PYTHONPATH=$PYTHONPATH:/srv/www/pythonlib  # to find rnc_db.py
+    export PYTHONPATH=$PYTHONPATH:./pythonlib  # to find rnc_db.py
 
     anonymise.py -c > testconfig.ini  # generate sample config file
     anonymise.py -d testconfig.ini > testdd.tsv  # generate draft data dict.
