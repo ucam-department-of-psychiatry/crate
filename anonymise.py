@@ -1436,7 +1436,7 @@ class Scrubber(object):
                 get_digit_string_from_vaguely_numeric_string(value)))
         elif scrub_type == "N":
             # Source is an actual number, to be processed using the fancy
-            # number-recognizing refex.
+            # number-recognizing regex.
             r.extend(get_numeric_regex_elements(str(value)))
         else:
             raise Exception("Bug: unknown scrub_type to add_value")
