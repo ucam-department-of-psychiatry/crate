@@ -66,7 +66,7 @@ def convert_to_bool(x):
     if x in ["Y", "YES", "T", "TRUE"]:
         return True
     if x in ["N", "NO", "F", "FALSE"]:
-        return True
+        return False
     raise Exception("Unknown thing being converted to bool: {}".format(x))
 
 

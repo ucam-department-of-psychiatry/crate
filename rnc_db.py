@@ -226,6 +226,7 @@ def get_sql_insert(table, fieldlist, delims=("", "")):
         ",".join(["?"] * len(fieldlist)) + \
         ")"
 
+
 def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
     """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
     """
@@ -243,6 +244,7 @@ def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
              for x in fieldlist]
         ),
     )
+
 
 def get_sql_insert_without_first_field(table, fieldlist, delims=("", "")):
     """Returns ?-marked SQL for an INSERT statement, ignoring the first field
@@ -947,6 +949,17 @@ class DatabaseSupporter:
             logger.exception("db_exec_literal: SQL was: " + sql)
             raise
 
+    def get_literal_sql_with_arguments(self, query, *args):
+        query = self.localize_sql(query)
+        # Now into the back end:
+        # See cursors.py, connections.py in MySQLdb source.
+        charset = self.db.character_set_name()
+        if isinstance(query, unicode):
+            query = query.encode(charset)
+        if args is not None:
+            query = query % self.db.literal(args)
+        return query
+
     def fetchvalue(self, sql, *args):
         """Executes SQL; returns the first value of the first row, or None."""
         row = self.fetchone(sql, *args)
@@ -1011,6 +1024,17 @@ class DatabaseSupporter:
         """Executes SQL; returns list of first values of each row."""
         rows = self.fetchall(sql, *args)
         return [row[0] for row in rows]
+
+    def fetch_fieldnames(self, sql, *args):
+        """Executes SQL; returns just the output fieldnames."""
+        self.ensure_db_open()
+        cursor = self.db.cursor()
+        self.db_exec_with_cursor(cursor, sql, *args)
+        try:
+            return [i[0] for i in cursor.description]
+        except:
+            logger.exception("fetch_fieldnames: SQL was: " + sql)
+            raise
 
     def localize_sql(self, sql):
         """Translates ?-placeholder SQL to appropriate dialect.
