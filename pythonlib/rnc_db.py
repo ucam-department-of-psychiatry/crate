@@ -226,6 +226,23 @@ def get_sql_insert(table, fieldlist, delims=("", "")):
         ",".join(["?"] * len(fieldlist)) + \
         ")"
 
+def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
+    """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
+    """
+    # http://stackoverflow.com/questions/4205181
+    return """
+        INSERT INTO {table} ({fields})
+        VALUES ({placeholders})
+        ON DUPLICATE KEY UPDATE {updatelist}
+    """.format(
+        table=delimit(table, delims),
+        fields=",".join([delimit(x, delims) for x in fieldlist]),
+        placeholders=",".join(["?"] * len(fieldlist)),
+        updatelist=",".join(
+            ["{field}=VALUES({field})".format(field=delimit(x, delims))
+             for x in fieldlist]
+        ),
+    )
 
 def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
     """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
