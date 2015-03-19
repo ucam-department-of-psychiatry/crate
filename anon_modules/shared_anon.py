@@ -1276,17 +1276,14 @@ AUDIT_FIELDSPECS = [
     dict(name="user", sqltype="VARCHAR(255)",
          comment="User name, where applicable"),
     dict(name="query", sqltype="TEXT",
-         comment="SQL query"),
-    dict(name="args", sqltype="TEXT",
-         comment="Arguments to SQL query"),
+         comment="SQL query (with arguments)"),
     dict(name="details", sqltype="TEXT",
          comment="Details of the access"),
 ]
 
 
-def audit(details, patient_server_pk=None, table=None, server_pk=None,
-          device=None, remote_addr=None, user=None,
-          from_console=False, from_dbclient=False):
+def audit(details,
+          from_console=False, remote_addr=None, user=None, query=None):
     """Write an entry to the audit log."""
     if not remote_addr:
         remote_addr = config.session.ip_address if config.session else None
@@ -1294,26 +1291,19 @@ def audit(details, patient_server_pk=None, table=None, server_pk=None,
         user = config.session.user if config.session else None
     if from_console:
         source = "console"
-    elif from_dbclient:
-        source = "tablet"
     else:
         source = "webviewer"
     config.admindb.db_exec(
         """
             INSERT INTO {table}
-                (when_access_utc, source, remote_addr, user, device,
-                patient_server_pk, table_name, server_pk, details)
+                (when_access_utc, source, remote_addr, user, query, details)
             VALUES
-                (?,?,?,?,?,
-                ?,?,?,?)
+                (?,?,?,?,?,?)
         """.format(table=AUDIT_TABLE),
         config.NOW_UTC_NO_TZ,  # when_access_utc
         source,
         remote_addr,
         user,
-        device,  # device
-        patient_server_pk,
-        table,
-        server_pk,
+        query,
         details
     )
