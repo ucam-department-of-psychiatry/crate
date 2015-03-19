@@ -17,7 +17,7 @@ OPTIONS:
     -v              Verbose (repeat for extra verbosity)
     -s NLPMANAGER   Specify the path to the NLP manager script.
     -c CONFIG       Specify the config file.
-    -n NLPNAME      Specify the NLP processing name (from the config file).
+    -a NLPNAME      Specify the NLP processing name (from the config file).
     -p PYTHONPATH   Set the PYTHONPATH before calling.
     -i              Incremental mode (not full). } MUST SPECIFY ONE.
     -f              Full mode (not incremental). }
@@ -36,7 +36,7 @@ export PYTHONPATH=$PYTHONPATH:$DIR/pythonlib
 VERBOSITY=
 METHOD_INCREMENTAL=false
 METHOD_FULL=false
-while getopts “hvs:p:ifn:” OPTION; do
+while getopts “hvs:c:a:p:ifn:” OPTION; do
     case $OPTION in
         h)
             usage
@@ -51,7 +51,7 @@ while getopts “hvs:p:ifn:” OPTION; do
         c)
             CONFIG=$OPTARG
             ;;
-        n)
+        a)
             NLPNAME=$OPTARG
             ;;
         p)
