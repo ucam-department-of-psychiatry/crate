@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2013
-Last update: 22 Feb 2015
+Last update: 19 Mar 2015
 
 Copyright/licensing:
 
@@ -60,10 +60,14 @@ def convert_to_bool(x):
         return float(x) != 0
     except:
         pass
-    if not isinstance(x, str):
+    if not (isinstance(x, str) or isinstance(x, unicode)):
         raise Exception("Unknown thing being converted to bool: {}".format(x))
     x = x.upper()
-    return x in ["Y", "YES", "T", "TRUE"]
+    if x in ["Y", "YES", "T", "TRUE"]:
+        return True
+    if x in ["N", "NO", "F", "FALSE"]:
+        return True
+    raise Exception("Unknown thing being converted to bool: {}".format(x))
 
 
 def convert_attrs_to_bool(obj, attrs):
