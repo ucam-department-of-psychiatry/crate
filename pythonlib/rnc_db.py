@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 22 Feb 2015
+Last update: 19 Mar 2015
 
 Copyright/licensing:
 
@@ -226,6 +226,23 @@ def get_sql_insert(table, fieldlist, delims=("", "")):
         ",".join(["?"] * len(fieldlist)) + \
         ")"
 
+def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
+    """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
+    """
+    # http://stackoverflow.com/questions/4205181
+    return """
+        INSERT INTO {table} ({fields})
+        VALUES ({placeholders})
+        ON DUPLICATE KEY UPDATE {updatelist}
+    """.format(
+        table=delimit(table, delims),
+        fields=",".join([delimit(x, delims) for x in fieldlist]),
+        placeholders=",".join(["?"] * len(fieldlist)),
+        updatelist=",".join(
+            ["{field}=VALUES({field})".format(field=delimit(x, delims))
+             for x in fieldlist]
+        ),
+    )
 
 def get_sql_insert_without_first_field(table, fieldlist, delims=("", "")):
     """Returns ?-marked SQL for an INSERT statement, ignoring the first field
@@ -796,13 +813,18 @@ class DatabaseSupporter:
         self.db.rollback()
         logger.debug("rollback")
 
-    def insert_record(self, table, fields, values):
+    def insert_record(self, table, fields, values,
+                      update_on_duplicate_key=False):
         """Inserts a record into database, table "table", using the list of
         fieldnames and the list of values. Returns the new PK (or None)."""
         self.ensure_db_open()
         if len(fields) != len(values):
             raise AssertionError("Field/value mismatch")
-        sql = self.localize_sql(get_sql_insert(table, fields, self.delims))
+        if update_on_duplicate_key:
+            sql = get_sql_insert_or_update(table, fields, self.delims)
+        else:
+            sql = get_sql_insert(table, fields, self.delims)
+        sql = self.localize_sql(sql)
         new_pk = None
         logger.debug("About to insert_record with SQL template: " + sql)
         try:

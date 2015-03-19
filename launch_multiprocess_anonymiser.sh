@@ -36,11 +36,11 @@ NPROCESSES_PATIENT=$CPUCOUNT
 NPROCESSES_INDEX=$CPUCOUNT
 NPROCESSES_NONPATIENT=$CPUCOUNT
 ANONYMISER=$DIR/anonymise.py
-PYTHONPATH=$PYTHONPATH:$DIR/pythonlib
+export PYTHONPATH=$PYTHONPATH:$DIR/pythonlib
 VERBOSITY=
 METHOD_INCREMENTAL=false
 METHOD_FULL=false
-while getopts “hvs:p:ifn:” OPTION; do
+while getopts “hvs:c:p:ifn:” OPTION; do
     case $OPTION in
         h)
             usage

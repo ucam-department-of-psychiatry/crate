@@ -144,10 +144,30 @@ Encryption/hashing
 
 NOT YET IMPLEMENTED:
 
-    - Incremental updates (with incremental data dictionary changes).
-    - Date scrubber doesn't scrub ISO8601 format dates (e.g. 1980-10-01T0000),
-      because the word boundary condition isn't met, or even more stripped-down
-      date formats like 19801001.
+- Incremental updates following small data dictionary changes, e.g. field
+  addition. Currently, these require a full re-run.
+
+CHANGE LOG:
+
+- v0.03, 2015-03-19
+  - Bug fix for incremental update (previous version inserted rather than
+    updating when the source content had changed); search for
+    update_on_duplicate_key.
+  - Checks for missing/extra fields in destination.
+  - "No separator" allowed for get_date_regex_elements(), allowing
+    anonymisation of e.g. 19Mar2015, 19800101.
+  - New default at_word_boundaries_only=False for get_date_regex_elements(),
+    allowing anonymisation of ISO8601-format dates (e.g. 1980-10-01T0000), etc.
+  - Similar option for get_numeric_regex_elements().
+  - Similar option for get_string_regex_elements().
+  - Options in config to control these.
+  - Fuzzy matching for get_string_regex_elements(); string_max_regex_errors
+    option in config. The downside is the potential for greedy matching; for
+    example, if you anonymise "Ronald MacDonald" with "Ronald" and "MacDonald",
+    you can end up with "XXX MacXXX", as the regex greedy-matches "Donald" to
+    "Ronald" with a typo, and therefore fails to process the whole "MacDonald".
+    On the other hand, this protects against simple typos, which are probably
+    more common.
 
 """
 
@@ -164,7 +184,8 @@ import csv
 import itertools
 import logging
 import multiprocessing
-import re
+#import re
+import regex  # sudo apt-get install python-regex
 import signal
 import sys
 import threading
@@ -208,8 +229,8 @@ from shared_anon import (
 # Global constants
 # =============================================================================
 
-VERSION = 0.02
-VERSION_DATE = "2015-03-03"
+VERSION = 0.03
+VERSION_DATE = "2015-03-19"
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
 
 logging.basicConfig()  # just in case nobody else has done this
@@ -296,15 +317,20 @@ DEMO_CONFIG = """
 #   dest_datatype
 #       SQL data type in destination database.
 #   add_src_hash
-#       Boolean. May only be set for src_pk fields. If set, a field is added to
-#       the destination table, with field name as set by the config's
-#       source_hash_fieldname variable, containing a hash of the contents of
-#       the source record (all fields that are not omitted, OR contain
-#       scrubbing information [scrubsrc_patient or scrubsrc_thirdparty]).
-#       The field is of type {SQLTYPE_ENCRYPTED_PID}.
-#       This table is then capable of incremental updates.
+#       - Boolean.
+#       - May only be set for src_pk fields (which cannot then be omitted in
+#         the destination, and which require the 'index' and 'indexunique'
+#         flags, so that a unique index is created for this field).
+#       - If set, a field is added to the destination table, with field name as
+#         set by the config's source_hash_fieldname variable, containing a hash
+#         of the contents of the source record (all fields that are not
+#         omitted, OR contain scrubbing information [scrubsrc_patient or
+#         scrubsrc_thirdparty]). The field is of type {SQLTYPE_ENCRYPTED_PID}.
+#       - This table is then capable of incremental updates.
 #   index
 #       Boolean. Index this field?
+#   indexunique
+#       Boolean. Make this index a UNIQUE one? Mandatory for src_pk fields.
 #   indexlen
 #       Integer. Can be blank. If not, sets the prefix length of the index.
 #       Mandatory in MySQL if you apply a normal index to a TEXT or BLOB field.
@@ -358,6 +384,18 @@ replace_third_party_info_with = YYY
 
 scrub_string_suffixes =
     s
+
+# Specify maximum number of errors (insertions, deletions, substitutions) in
+# string regex matching. Beware using a high number! Suggest 1-2.
+
+string_max_regex_errors = 1
+
+# Anonymise at word boundaries? True is more conservative; False is more
+# liberal and will deal with accidental word concatenation.
+
+anonymise_dates_at_word_boundaries_only = False
+anonymise_numbers_at_word_boundaries_only = True
+anonymise_strings_at_word_boundaries_only = False
 
 # -----------------------------------------------------------------------------
 # Output fields and formatting
@@ -460,16 +498,20 @@ db = XXX
 # =============================================================================
 # Anonymisation regexes
 # =============================================================================
+# Note, for strings, several typo-detecting methods:
+#   http://en.wikipedia.org/wiki/Levenshtein_distance
+#   http://mwh.geek.nz/2009/04/26/python-damerau-levenshtein-distance/
+#   http://en.wikipedia.org/wiki/TRE_(computing)
+#   https://pypi.python.org/pypi/regex
+# ... let's go with the fuzzy regex method (Python regex module).
 
-def get_date_regex_elements(dt):
+def get_date_regex_elements(dt, at_word_boundaries_only=False):
     """Takes a datetime object and returns a list of regex strings with which
     to scrub."""
     # Reminders: ? zero or one, + one or more, * zero or more
     # Non-capturing groups: (?:...)
     # ... https://docs.python.org/2/howto/regex.html
     # ... http://stackoverflow.com/questions/3512471/non-capturing-group
-    wb = r"\b"  # word boundary; escape the slash if not using a raw string
-    ws = r"\s"  # whitespace; includes newlines
     # Day, allowing leading zeroes and e.g. "1st, 2nd"
     day = "0*" + str(dt.day) + "(?:st|nd|rd|th)?"
     # Month, allowing leading zeroes for numeric and e.g. Feb/February
@@ -482,8 +524,9 @@ def get_date_regex_elements(dt):
     if len(year) == 4:
         year = "(?:" + year[0:2] + ")?" + year[2:4]
         # ... makes e.g. (19)?86, to match 1986 or 86
-    # Separator: one or more of: whitespace, /, -, comma
-    SEP = "[" + ws + "/,-]+"
+    # Separator: one or more of: whitespace, /, -, comma, nothing
+    ws = r"\s"  # whitespace; includes newlines
+    SEP = "[" + ws + "/,-]*"
     # ... note that the hyphen has to be at the start or end, otherwise it
     #     denotes a range.
     # Regexes
@@ -492,10 +535,14 @@ def get_date_regex_elements(dt):
         month + SEP + day + SEP + year,  # e.g. Sep 13, 2014
         year + SEP + month + SEP + day,  # e.g. 2014/09/13
     ]
-    return [wb + x + wb for x in basic_regexes]
+    if at_word_boundaries_only:
+        wb = r"\b"  # word boundary; escape the slash if not using a raw string
+        return [wb + x + wb for x in basic_regexes]
+    else:
+        return basic_regexes
 
 
-def get_numeric_regex_elements(s, liberal=True):
+def get_numeric_regex_elements(s, liberal=True, at_word_boundaries_only=False):
     """Takes a STRING representation of a number, which may include leading
     zeros (as for phone numbers), and produces a list of regex strings for
     scrubbing.
@@ -506,12 +553,15 @@ def get_numeric_regex_elements(s, liberal=True):
         01234-56789
         0123.456.789
     """
-    wb = ur"\b"  # word boundary
-    s = s.replace(".", r"\.")  # escape any decimal points
+    s = escape_literal_string_for_regex(s)  # escape any decimal points, etc.
     if liberal:
         separators = "[\W]*"  # zero or more non-alphanumeric characters...
         s = separators.join([c for c in s])  # ... can appear anywhere
-    return [wb + s + wb]
+    if at_word_boundaries_only:
+        wb = ur"\b"  # word boundary
+        return [wb + s + wb]
+    else:
+        return [s]
 
 
 REGEX_METACHARS = ["\\", "^", "$", ".",
@@ -537,7 +587,7 @@ def remove_whitespace(s):
     return ''.join(s.split())
 
 
-NON_WHITESPACE_SPLITTERS = re.compile("['’-]+", re.UNICODE)
+NON_WHITESPACE_SPLITTERS = regex.compile("['’-]+", regex.UNICODE)
 
 
 def get_anon_fragments_from_string(s):
@@ -572,11 +622,13 @@ def get_anon_fragments_from_string(s):
 # get_anon_fragments_from_string("47 Russell Square")
 
 
-def get_string_regex_elements(s, suffixes=None):
+def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=False,
+                              max_errors=2):
     """Takes a string (+/- suffixes, typically ["s"], and returns a list of
     regex strings with which to scrub."""
-    wb = ur"\b"  # word boundary
     s = escape_literal_string_for_regex(s)
+    if max_errors > 0:
+        s = "(" + s + "){e<" + str(max_errors + 1) + "}"
     if suffixes:
         suffixstr = (
             "(?:"
@@ -586,9 +638,11 @@ def get_string_regex_elements(s, suffixes=None):
         )
     else:
         suffixstr = ""
-    return [
-        wb + s + suffixstr + wb
-    ]
+    if at_word_boundaries_only:
+        wb = ur"\b"  # word boundary
+        return [wb + s + suffixstr + wb]
+    else:
+        return [s + suffixstr]
 
 
 def get_regex_string_from_elements(elementlist):
@@ -608,7 +662,7 @@ def get_regex_from_elements(elementlist):
         return None
     try:
         s = get_regex_string_from_elements(elementlist)
-        return re.compile(s, re.IGNORECASE | re.UNICODE)
+        return regex.compile(s, regex.IGNORECASE | regex.UNICODE)
     except:
         logger.exception(u"Failed regex: {}".format(s))
         raise
@@ -619,7 +673,11 @@ if False:
     TEST_REGEXES = '''
 from __future__ import print_function
 import dateutil.parser
-import re
+import regex
+
+import logging
+logging.basicConfig()  # just in case nobody else has done this
+logger = logging.getLogger("anonymise")
 
 testnumber = 34
 testnumber_as_text = "123456"
@@ -635,10 +693,14 @@ s = u"""
    or Jan 7th 13
    or a host of other variations.
 
+   And ISO-8601 formats like 20130107T0123, or just 20130107.
+
    BUT NOT 8 Jan 2013, or 2013/02/07, or 2013
    Jan 17, or just a number like 7, or a month
    like January, or a nonspecific date like
    Jan 2013 or 7 January.
+
+   But not ISO-8601 formats like 20130108T0123, or just 20130108.
 
    I am 34 years old. My mother was 348, or 834, or perhaps 8348.
    Was she 34.6? Don't think so.
@@ -648,6 +710,7 @@ s = u"""
    I am 34 years old. My mother was 348, or 834, or perhaps 8348.
    She wasn't my step-mother, or my grandmother, or my mother-in-law.
    She was my MOTHER!
+   A typo is mther.
 
    Unicode apostrophe: the thread’s possession
 """
@@ -707,6 +770,7 @@ class DataDictionaryRow(object):
         "dest_datatype",
         "add_src_hash",
         "index",
+        "indexunique",
         "indexlen",
         "fulltextindex",
         "comment",
@@ -747,6 +811,7 @@ class DataDictionaryRow(object):
 
             "add_src_hash",
             "index",
+            "indexunique",
             "fulltextindex",
         ])
         convert_attrs_to_uppercase(self, [
@@ -932,6 +997,9 @@ class DataDictionaryRow(object):
                     "add_src_hash can only be set on src_pk fields")
             if self.omit:
                 raise Exception("Do not set omit on add_src_hash fields")
+            if not (self.index and self.indexunique):
+                raise Exception("add_src_hash fields require index, "
+                                "indexunique")
 
 
 class DataDictionary(object):
@@ -1251,6 +1319,10 @@ class Config(object):
             "replace_patient_info_with",
             "replace_third_party_info_with",
             "scrub_string_suffixes",
+            "string_max_regex_errors",
+            "anonymise_dates_at_word_boundaries_only",
+            "anonymise_numbers_at_word_boundaries_only",
+            "anonymise_strings_at_word_boundaries_only",
             "research_id_fieldname",
             "source_hash_fieldname",
             "date_to_text_format",
@@ -1265,6 +1337,12 @@ class Config(object):
             x.strip() for x in self.scrub_string_suffixes.splitlines()]
         self.scrub_string_suffixes = [x for x in self.scrub_string_suffixes
                                       if x]
+        self.string_max_regex_errors = int(self.string_max_regex_errors)
+        convert_attrs_to_bool(self, [
+            "anonymise_dates_at_word_boundaries_only",
+            "anonymise_numbers_at_word_boundaries_only",
+            "anonymise_strings_at_word_boundaries_only",
+        ])
         # Databases
         self.destdb_config = DatabaseConfig(parser, "destination_database")
         self.destdb = get_database(self.destdb_config)
@@ -1332,6 +1410,10 @@ class Config(object):
                 self.replace_third_party_info_with):
             raise Exception("Inadvisable: replace_patient_info_with == "
                             "replace_third_party_info_with")
+
+        # Regex
+        if self.string_max_regex_errors < 0:
+            raise Exception("string_max_regex_errors < 0, nonsensical")
 
         # Test date conversions
         testtime = get_now_utc_notz()
@@ -1420,24 +1502,35 @@ class Scrubber(object):
 
         if scrub_type == "D":
             # Source is a date.
-            r.extend(get_date_regex_elements(value))
+            wbo = config.anonymise_dates_at_word_boundaries_only
+            r.extend(
+                get_date_regex_elements(value, at_word_boundaries_only=wbo))
         elif scrub_type == "T":
             # Source is text.
             value = unicode(value)
             strings = get_anon_fragments_from_string(value)
+            wbo = config.anonymise_strings_at_word_boundaries_only
             for s in strings:
                 r.extend(get_string_regex_elements(
-                    s, config.scrub_string_suffixes))
+                    s,
+                    config.scrub_string_suffixes,
+                    max_errors=config.string_max_regex_errors,
+                    at_word_boundaries_only=wbo))
         elif scrub_type == "t":
             # Source is a text field containing a number.
             # Remove everything but the digits
             # Particular examples: phone numbers, e.g. "(01223) 123456".
+            wbo = config.anonymise_numbers_at_word_boundaries_only
             r.extend(get_numeric_regex_elements(
-                get_digit_string_from_vaguely_numeric_string(value)))
+                get_digit_string_from_vaguely_numeric_string(value),
+                at_word_boundaries_only=wbo))
         elif scrub_type == "N":
             # Source is an actual number, to be processed using the fancy
             # number-recognizing regex.
-            r.extend(get_numeric_regex_elements(str(value)))
+            wbo = config.anonymise_numbers_at_word_boundaries_only
+            r.extend(get_numeric_regex_elements(
+                str(value),
+                at_word_boundaries_only=wbo))
         else:
             raise Exception("Bug: unknown scrub_type to add_value")
 
@@ -1590,10 +1683,12 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
         # Recreate
         ddr = dd.get_rows_for_dest_table(t)
         fieldspecs = []
+        dest_fieldnames = []
         for r in ddr:
             if r.omit:
                 continue
             fs = r.dest_field + " " + r.dest_datatype
+            dest_fieldnames.append(r.dest_field)
             if r.comment:
                 fs += " COMMENT " + rnc_db.sql_quote_string(r.comment)
             fieldspecs.append(fs)
@@ -1603,6 +1698,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
                     config.source_hash_fieldname + " " +
                     SQLTYPE_ENCRYPTED_PID +
                     " COMMENT 'Hashed amalgamation of all source fields'")
+                dest_fieldnames.append(config.source_hash_fieldname)
         logger.debug("creating table {}".format(t))
         sql = """
             CREATE TABLE IF NOT EXISTS {table} (
@@ -1619,6 +1715,25 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
             compressed="ROW_FORMAT=COMPRESSED" if compressed else "",
         )
         destdb.db_exec_literal(sql)
+        resulting_fieldnames = destdb.fetch_column_names(t)
+        target_set = set(dest_fieldnames)
+        outcome_set = set(resulting_fieldnames)
+        missing = list(target_set - outcome_set)
+        extra = list(outcome_set - target_set)
+        if missing:
+            raise Exception(
+                "Missing fields in destination table {t}: {l}".format(
+                    t=t,
+                    l=missing,
+                )
+            )
+        if extra:
+            logger.warning(
+                "Extra fields in destination table {t}: {l}".format(
+                    t=t,
+                    l=extra,
+                )
+            )
 
 
 def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
@@ -1857,7 +1972,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             destvalues.append(value)
         if addhash:
             destvalues.append(srchash)
-        destdb.insert_record(dest_table, destfields, destvalues)
+        destdb.insert_record(dest_table, destfields, destvalues,
+                             update_on_duplicate_key=True)
 
 
 def create_indexes(tasknum=0, ntasks=1):
@@ -1870,6 +1986,7 @@ def create_indexes(tasknum=0, ntasks=1):
         for tr in tablerows:
             column = tr.dest_field
             length = tr.indexlen
+            is_unique = tr.indexunique
             if tr.fulltextindex:
                 idxname = "_idxft_{}".format(column)
                 sqlbit = "ADD FULLTEXT INDEX {name} ({column})".format(
@@ -1878,10 +1995,11 @@ def create_indexes(tasknum=0, ntasks=1):
                 )
             else:
                 idxname = "_idx_{}".format(column)
-                sqlbit = "ADD INDEX {name} ({column}{length})".format(
+                sqlbit = "ADD {unique} INDEX {name} ({column}{length})".format(
                     name=idxname,
                     column=column,
                     length="" if length is None else "({})".format(length),
+                    unique="UNIQUE" if is_unique else "",
                 )
             if config.destdb.index_exists(table, idxname):
                 continue  # because it will crash if you add it again!

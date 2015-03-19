@@ -46,17 +46,26 @@ parser.add_argument("--db", default="test",
                     help="MySQL database name (default: test)")
 parser.add_argument("--user", default="root",
                     help="MySQL user (default: root)")
-parser.add_argument("--small", action="store_true",
-                    help="Make a small database instead")
+parser.add_argument("--size", type=int, default=0, choices=[0, 1, 2],
+                    help="Make small (0), medium (1), or large (2) database")
 args = parser.parse_args()
 
 password = getpass.getpass("MySQL password: ")
 
-# With these (non-args.small) settings: total database size about 1.9 Gb.
 NWORDS = 10000
-PATIENTS = 20 if args.small else 1000
-NOTES_PER_PATIENT = 1 if args.small else 100
-WORDS_PER_NOTE = 100 if args.small else 1000
+if args.size == 0:
+    PATIENTS = 20
+    NOTES_PER_PATIENT = 1
+    WORDS_PER_NOTE = 100
+elif args.size == 1:
+    PATIENTS = 100
+    NOTES_PER_PATIENT = 5
+    WORDS_PER_NOTE = 100
+else:
+    # about 1.9 Gb
+    PATIENTS = 1000
+    NOTES_PER_PATIENT = 100
+    WORDS_PER_NOTE = 1000
 
 REPORT_EVERY = 50
 
@@ -137,7 +146,8 @@ print("Aiming for a total of {} words in notes.".format(
     PATIENTS * NOTES_PER_PATIENT * WORDS_PER_NOTE))
 
 
-def insert_patient(patient_id, forename, surname, dob, nhsnum, phone, postcode):
+def insert_patient(patient_id, forename, surname, dob, nhsnum, phone,
+                   postcode):
     db.db_exec("""
         INSERT INTO patients
             (patient_id, forename, surname, dob, nullfield, nhsnum, phone,
@@ -199,7 +209,8 @@ See also:
 
 After anonymisation, check with:
 
-    SELECT * FROM anonymous_output.notes WHERE brcid IN (SELECT brcid FROM anonymous_mapping.secret_map WHERE patient_id < 2);
+    SELECT * FROM anonymous_output.notes WHERE brcid IN (
+        SELECT brcid FROM anonymous_mapping.secret_map WHERE patient_id < 2);
     SELECT * FROM test.patients WHERE patient_id < 2;
 """
 
