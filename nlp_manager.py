@@ -53,6 +53,9 @@ speed_mb_per_s = test_size_mb / time_s
         mysqld about 18% [from top]
         nlp_manager.py about 4-5% * 8 [from top]
 
+TO DO:
+    - comments for NLP output fields (in table definition, destfields)
+
 """
 
 

@@ -226,23 +226,6 @@ def get_sql_insert(table, fieldlist, delims=("", "")):
         ",".join(["?"] * len(fieldlist)) + \
         ")"
 
-def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
-    """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
-    """
-    # http://stackoverflow.com/questions/4205181
-    return """
-        INSERT INTO {table} ({fields})
-        VALUES ({placeholders})
-        ON DUPLICATE KEY UPDATE {updatelist}
-    """.format(
-        table=delimit(table, delims),
-        fields=",".join([delimit(x, delims) for x in fieldlist]),
-        placeholders=",".join(["?"] * len(fieldlist)),
-        updatelist=",".join(
-            ["{field}=VALUES({field})".format(field=delimit(x, delims))
-             for x in fieldlist]
-        ),
-    )
 
 def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
     """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
@@ -1605,7 +1588,7 @@ class DatabaseSupporter:
         return c
 
     def get_datatype(self, table, column):
-        """Returns database SQL datatype for a column."""
+        """Returns database SQL datatype for a column: e.g. varchar."""
         if (self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER
                 or self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL):
             # ISO standard for INFORMATION_SCHEMA, I think.
@@ -1621,7 +1604,26 @@ class DatabaseSupporter:
             raise AssertionError("Don't know how to get datatype in Access")
         else:
             raise AssertionError("Unknown database flavour")
-        return c
+        return c.upper()
+
+    def get_column_type(self, table, column):
+        """Returns database SQL datatype for a column, e.g. varchar(50)."""
+        if (self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER
+                or self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL):
+            # ISO standard for INFORMATION_SCHEMA, I think.
+            # SQL Server carries a warning but the warning may be incorrect:
+            # https://msdn.microsoft.com/en-us/library/ms188348.aspx
+            # http://stackoverflow.com/questions/917431
+            # http://sqlblog.com/blogs/aaron_bertrand/archive/2011/11/03/the-case-against-information-schema-views.aspx  # noqa
+            c = self.fetchvalue(
+                "SELECT column_type FROM information_schema.columns "
+                "WHERE table_schema=? AND table_name=? AND column_name=?",
+                self.schema, table, column)
+        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
+            raise AssertionError("Don't know how to get datatype in Access")
+        else:
+            raise AssertionError("Unknown database flavour")
+        return c.upper()
 
     def get_comment(self, table, column):
         """Returns database SQL datatype for a column."""

@@ -252,6 +252,10 @@ date_to_text_format = %Y-%m-%d
 datetime_to_text_format = %Y-%m-%dT%H:%M:%S
 # ... ISO-8601, e.g. 2013-07-24T20:04:07
 
+# Append source table/field to the comment? Boolean.
+
+append_source_info_to_comment = True
+
 # -----------------------------------------------------------------------------
 # List of source databases (each of which is defined in its own section).
 # -----------------------------------------------------------------------------
@@ -631,7 +635,6 @@ class DataDictionary(object):
         self.check_valid(check_against_source_db)
 
     def read_from_source_databases(self):
-        self.rows = []
         logger.info("Reading information for draft data dictionary")
         for pretty_dbname, db in config.sources.iteritems():
             schema = db.get_schema()
@@ -662,7 +665,15 @@ class DataDictionary(object):
                 dd = DataDictionaryRow()
                 dd.set_from_src_db_info(pretty_dbname, t, f, datatype_short,
                                         datatype_full, c)
-                self.rows.append(dd)
+                already_exists = False
+                for other in self.rows:
+                    if (dd.src_db == other.src_db
+                            and dd.src_table == other.src_table
+                            and dd.src_field == other.src_field):
+                        already_exists = True
+                        break
+                if not already_exists:
+                    self.rows.append(dd)
 
     def cache_stuff(self):
         logger.debug("Caching data dictionary information...")
@@ -677,7 +688,7 @@ class DataDictionary(object):
                 self._get_src_tables_with_patient_info(d)
             )
             self.cached_patient_src_tables_with_active_destination[d] = (
-                self._get_patient_src_tables_with_active_destination(d)
+                self._get_patient_src_tables_with_active_dest(d)
             )
         self.cached_scrub_from_rows = self._get_scrub_from_rows()
 
@@ -806,7 +817,7 @@ class DataDictionary(object):
     def get_src_tables(self, src_db):
         return self.cached_src_tables[src_db]
 
-    def _get_patient_src_tables_with_active_destination(self, src_db):
+    def _get_patient_src_tables_with_active_dest(self, src_db):
         potential_tables = self._get_src_tables_with_patient_info(
             src_db)
         tables = []
@@ -816,7 +827,7 @@ class DataDictionary(object):
                 tables.append(t)
         return tables
 
-    def get_patient_src_tables_with_active_destination(self, src_db):
+    def get_patient_src_tables_with_active_dest(self, src_db):
         return self.cached_patient_src_tables_with_active_destination[
             src_db]
 
@@ -991,6 +1002,23 @@ def ensure_valid_table_name(f):
 
 
 # =============================================================================
+# DestinationFieldInfo
+# =============================================================================
+
+class DestinationFieldInfo(object):
+    def __init__(self, table, field, fieldtype, comment):
+        self.table = table
+        self.field = field
+        self.fieldtype = fieldtype
+        self.comment = comment
+
+    def __str__(self):
+        return "table={}, field={}, fieldtype={}, comment={}".format(
+            self.table, self.field, self.fieldtype, self.comment
+        )
+
+
+# =============================================================================
 # Config
 # =============================================================================
 
@@ -1013,6 +1041,7 @@ class Config(object):
         "source_hash_fieldname",
         "date_to_text_format",
         "datetime_to_text_format",
+        "append_source_info_to_comment",
         "source_databases",
     ]
 
@@ -1022,15 +1051,19 @@ class Config(object):
             setattr(self, x, None)
         self.report_every_n_rows = 100
         self.PERSISTENT_CONSTANTS_INITIALIZED = False
+        self.DESTINATION_FIELDS_LOADED = False
+        self.destfieldinfo = []
 
     def set(self, filename=None, environ=None, include_sources=True,
-            load_dd=True):
+            load_dd=True, load_destfields=True):
         """Set up process-local storage from the incoming environment (which
         may be very fast if already cached) and ensure we have an active
         database connection."""
         # 1. Set up process-local storage
         self.set_internal(filename, environ, include_sources=include_sources,
                           load_dd=load_dd)
+        if load_destfields:
+            self.load_destination_fields()
         # 2. Ping MySQL connection, to reconnect if it's timed out.
         self.admindb.ping()
         self.destdb.ping()
@@ -1052,9 +1085,9 @@ class Config(object):
             self.config_filename = filename
         self.read_config(include_sources=include_sources)
         self.check_valid(include_sources=include_sources)
+        self.dd = DataDictionary()
         if load_dd:
             logger.info(SEP + "Loading data dictionary")
-            self.dd = DataDictionary()
             self.dd.read_from_file(config.data_dictionary_filename,
                                    check_against_source_db=include_sources)
         self.PERSISTENT_CONSTANTS_INITIALIZED = True
@@ -1112,6 +1145,7 @@ class Config(object):
             "anonymise_dates_at_word_boundaries_only",
             "anonymise_numbers_at_word_boundaries_only",
             "anonymise_strings_at_word_boundaries_only",
+            "append_source_info_to_comment",
         ])
         # Databases
         self.destdb_config = DatabaseConfig(parser, "destination_database")
@@ -1233,6 +1267,20 @@ class Config(object):
 
     def hash_scrubber(self, scrubber):
         return self.change_detection_hasher.hash(scrubber.get_hash_string())
+
+    def load_destination_fields(self, force=False):
+        if self.DESTINATION_FIELDS_LOADED and not force:
+            return
+        # Everything that was in the data dictionary should now be in the
+        # destination, commented... so just process actual destination fields,
+        # which will encompass all oddities including NLP fields.
+        for t in self.destdb.get_all_table_names():
+            for c in self.destdb.fetch_column_names(t):
+                fieldtype = self.destdb.get_column_type(t, c)
+                comment = self.destdb.get_comment(t, c)
+                dfi = DestinationFieldInfo(t, c, fieldtype, comment)
+                self.destfieldinfo.append(dfi)
+        self.DESTINATION_FIELDS_LOADED = True
 
 
 # =============================================================================

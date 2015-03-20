@@ -169,6 +169,8 @@ CHANGE LOG:
     On the other hand, this protects against simple typos, which are probably
     more common.
   - Audit database/table.
+  - Create an incremental update to the data dictionary (i.e. existing DD plus
+    any new fields in the source, with safe draft entries).
 
 """
 
@@ -201,7 +203,6 @@ from shared_anon import (
     AUDIT_FIELDSPECS,
     AUDIT_TABLE,
     config,
-    DataDictionary,
     DEMO_CONFIG,
     escape_literal_string_for_regex,
     get_database,
@@ -695,8 +696,14 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
                 continue
             fs = r.dest_field + " " + r.dest_datatype
             dest_fieldnames.append(r.dest_field)
-            if r.comment:
-                fs += " COMMENT " + rnc_db.sql_quote_string(r.comment)
+            if r.comment or config.append_source_info_to_comment:
+                comment = r.comment or ""
+                if config.append_source_info_to_comment:
+                    comment += " [from {t}.{f}]".format(
+                        t=r.src_table,
+                        f=r.src_field,
+                    )
+                fs += " COMMENT " + rnc_db.sql_quote_string(comment)
             fieldspecs.append(fs)
             if r.add_src_hash:
                 # append a special field
@@ -749,8 +756,8 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
     #   DELETE WHERE NOT IN.
     if not config.dd.has_active_destination(srcdbname, src_table):
         return
-    (src_pk, src_hash, dest_table, dest_pk) = config.dd.get_srchash_info(srcdbname,
-                                                                  src_table)
+    (src_pk, src_hash, dest_table, dest_pk) = config.dd.get_srchash_info(
+        srcdbname, src_table)
     logger.debug("delete_dest_rows_with_no_src_row: source table {}, "
                  "destination table {}".format(src_table, dest_table))
     pks = []
@@ -902,12 +909,6 @@ def gen_nonpatient_tables(tasknum=0, ntasks=1):
 # - For multithreaded use, the patients are divvied up across the threads.
 # - KEY THREADING RULE: ALL THREADS MUST HAVE FULLY INDEPENDENT DATABASE
 #   CONNECTIONS.
-
-def print_draft_data_dictionary():
-    dd = DataDictionary()
-    config.dd.read_from_source_databases()
-    print(dd.get_tsv())
-
 
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                   pid=None, scrubber=None, incremental=False):
@@ -1087,7 +1088,7 @@ def patient_processing_fn(sources, destdb, admindb,
         # For each source database/table...
         for d in config.dd.get_source_databases():
             db = sources[d]
-            for t in config.dd.get_patient_src_tables_with_active_destination(d):
+            for t in config.dd.get_patient_src_tables_with_active_dest(d):
                 logger.debug(
                     threadprefix + "Patient {}, processing table {}.{}".format(
                         pid, d, t))
@@ -1266,10 +1267,12 @@ Sample usage:
                              "which this is to be one)")
     parser.add_argument("--processcluster", default="",
                         help="Process cluster name")
-    parser.add_argument("-c", "--democonfig", action="store_true",
+    parser.add_argument("--democonfig", action="store_true",
                         help="Print a demo config file")
-    parser.add_argument("-d", "--draftdd", action="store_true",
+    parser.add_argument("--draftdd", action="store_true",
                         help="Print a draft data dictionary")
+    parser.add_argument("--incrementaldd", action="store_true",
+                        help="Print an INCREMENTAL draft data dictionary")
     parser.add_argument("--dropremake", action="store_true",
                         help="Drop/remake destination tables only")
     parser.add_argument("--nonpatienttables", action="store_true",
@@ -1278,7 +1281,7 @@ Sample usage:
                         help="Process patient tables only")
     parser.add_argument("--index", action="store_true",
                         help="Create indexes only")
-    parser.add_argument("--incremental", action="store_true",
+    parser.add_argument("-i", "--incremental", action="store_true",
                         help="Process only new/changed information, where "
                              "possible")
     args = parser.parse_args()
@@ -1316,6 +1319,9 @@ Sample usage:
     if args.nprocesses > 1 and args.dropremake:
         logger.error("Can't use nprocesses > 1 with --dropremake")
         fail()
+    if args.incrementaldd and args.draftdd:
+        logger.error("Can't use --incrementaldd and --draftdd")
+        fail()
 
     everything = not any([args.dropremake, args.nonpatienttables,
                           args.patienttables, args.index])
@@ -1336,11 +1342,16 @@ Sample usage:
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
 
     # Load/validate config
-    config.set(filename=args.configfile, load_dd=(not args.draftdd))
+    config.set(filename=args.configfile, load_dd=(not args.draftdd),
+               load_destfields=False)
     config.report_every_n_rows = args.report
 
-    if args.draftdd:
-        print_draft_data_dictionary()
+    if args.draftdd or args.incrementaldd:
+        # Note: the difference is that for incrementaldd, the data dictionary
+        # will have been loaded from disk; for draftdd, it won't (so a
+        # completely fresh one will be generated).
+        config.dd.read_from_source_databases()
+        print(config.dd.get_tsv())
         return
 
     # -------------------------------------------------------------------------

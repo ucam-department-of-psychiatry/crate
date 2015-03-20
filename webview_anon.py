@@ -32,7 +32,9 @@ IN PROGRESS
     - WSGI framework drafted
 
     - needs safe SQL creation framework
+        - easy to make something too fiddly: http://www.ajaxquerybuilder.com/
     - needs session, security/users, main menu, audit
+    - user accessing the destination database must be READ ONLY here
 """
 
 from __future__ import division
@@ -107,9 +109,9 @@ HTML_START = u"""
         <meta charset="utf-8">
         <style type="text/css">
 
-/******************************************************************************
+/*=============================================================================
 CSS start
-******************************************************************************/
+=============================================================================*/
 
 body {
     font-size: small;
@@ -139,15 +141,19 @@ td {
 .detail {
 }
 
+.indent {
+    margin-left: 50px;
+}
+
 .highlight {
     background-color: #0F0;
     /* yellow and red are typically used by browsers for all-instances
        and instance-at-the-cursor with Ctrl-F */
 }
 
-/******************************************************************************
+/*=============================================================================
 CSS end
-******************************************************************************/
+=============================================================================*/
 
         </style>
         <script>
@@ -336,6 +342,28 @@ def small_menu():
         | export as TSV ]
     """
 
+
+def collapsible_div(tag, contents, extradivclasses=[]):
+    classes = ["detail"] + extradivclasses
+    return u"""
+        <div class="expandcollapse"
+                onclick="toggle('{elementname}', '{imgname}');">
+            <img class="plusminus_image" id="{imgname}" alt=""
+                src="{plusimage}">
+        </div>
+        <div class="{classes}" id="{elementname}" style="display:none">
+            {contents}
+        </div>
+        <!-- pre-hide, rather than use an onload method -->
+    """.format(
+        elementname="elem_{}".format(tag),
+        classes=" ".join(classes),
+        imgname="img_{}".format(tag),
+        plusimage=PLUS_IMAGE,
+        contents=contents,
+    )
+
+
 # =============================================================================
 # Convert query to HTML in a user-friendly way, with highlighting and
 # collapsible big bits
@@ -383,25 +411,7 @@ def make_html_element(x, elementnum,
             regex = get_regex_from_highlights(highlights)
             x = regex.sub(HIGHLIGHTER, x)
         if collapse_at and xlen >= collapse_at:
-            elementname = "elem_{}".format(elementnum)
-            imgname = "img_{}".format(elementnum)
-            x = u"""
-                <div class="expandcollapse"
-                        onclick="toggle('{elementname}', '{imgname}');">
-                    <img class="plusminus_image" id="{imgname}" alt=""
-                        src="{plusimage}">
-                </div>
-                <div class="detail" id="{elementname}" style="display:none">
-                    {x}
-                </div>
-                <!-- pre-hide, rather than use an onload method -->
-            """.format(
-                elementname=elementname,
-                imgname=imgname,
-                plusimage=PLUS_IMAGE,
-                x=x,
-            )
-        return x
+            return collapsible_div(elementnum, x)
     return str(x)  # ***
 
 
@@ -409,14 +419,11 @@ def make_html_row(row, elementnum,
                   highlights=[], collapse_at=None, line_length=None):
     elements = []
     for e in row:
-        elements.append(
-            u"""
-                <td>{}</td>""".format(
-                make_html_element(e, elementnum,
-                                  highlights=highlights,
-                                  collapse_at=collapse_at,
-                                  line_length=line_length)
-            )
+        x = make_html_element(e, elementnum, highlights=highlights,
+                              collapse_at=collapse_at, line_length=line_length)
+        elements.append(u"""
+                <td>{}</td>
+            """.format(x)
         )
         elementnum += 1
     return (
@@ -427,9 +434,9 @@ def make_html_row(row, elementnum,
     )
 
 
-def make_html_table(db, sql, args, fieldnames,
-                    firstrow=0, lastrow=None,
-                    highlights=[], collapse_at=None, line_length=None):
+def make_html_results_table(db, sql, args, fieldnames,
+                            firstrow=0, lastrow=None,
+                            highlights=[], collapse_at=None, line_length=None):
     elementnum = 0
     header_elements = [
         u"""
@@ -489,21 +496,19 @@ def expand_collapse_buttons():
     """
 
 
-def make_html_page(db, sql, args, firstrow=0, highlights=[], collapse_at=None,
-                   line_length=None, rows_per_page=25):
+def make_html_results_page(db, sql, args, firstrow=0, highlights=[],
+                           collapse_at=None, line_length=None,
+                           rows_per_page=25):
     cursor = db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)
-    substituted_sql = db.get_literal_sql_with_arguments(sql, *args)
     rowcount = cursor.rowcount
     fieldnames = [i[0] for i in cursor.description]
-    nav = navigation(firstrow, rowcount, rows_per_page)
     lastrow = firstrow + rows_per_page - 1
-    table = make_html_table(db, sql, args, fieldnames,
-                            firstrow=firstrow, lastrow=lastrow,
-                            highlights=highlights, collapse_at=collapse_at,
-                            line_length=line_length)
-    expandcollapse = expand_collapse_buttons()
-    smallmenu = small_menu()
+    table = make_html_results_table(
+        db, sql, args, fieldnames,
+        firstrow=firstrow, lastrow=lastrow,
+        highlights=highlights, collapse_at=collapse_at,
+        line_length=line_length)
     return HTML_START + u"""
         {smallmenu}
         <h1>SQL</h1>
@@ -516,12 +521,12 @@ def make_html_page(db, sql, args, firstrow=0, highlights=[], collapse_at=None,
         {table}
         {nav}
     """.format(
-        smallmenu=smallmenu,
-        sql=substituted_sql,
+        smallmenu=small_menu(),
+        sql=db.get_literal_sql_with_arguments(sql, *args),
         args=args,
         highlights=u", ".join(highlights),
-        nav=nav,
-        expandcollapse=expandcollapse,
+        nav=navigation(firstrow, rowcount, rows_per_page),
+        expandcollapse=expand_collapse_buttons(),
         table=table,
     ) + HTML_END
 
@@ -563,10 +568,53 @@ def test_query_output(session=None, form=None):
     rows_per_page = 10
     line_length = 60
     collapse_at = 5 * line_length
-    return make_html_page(db, sql, args, firstrow=firstrow,
-                          highlights=highlights, collapse_at=collapse_at,
-                          rows_per_page=rows_per_page,
-                          line_length=line_length)
+    return make_html_results_page(
+        db, sql, args, firstrow=firstrow, highlights=highlights,
+        collapse_at=collapse_at, rows_per_page=rows_per_page,
+        line_length=line_length)
+
+
+def test_show_fields(session=None, form=None):
+    tables = set([dfi.table for dfi in config.destfieldinfo])
+    table_elements = []
+    for t in tables:
+        field_elements = []
+        for dfi in [dfi for dfi in config.destfieldinfo if dfi.table == t]:
+            field_elements.append(u"""
+                <div>{table}.<b>{field}</b>, {fieldtype}{sep}{comment}</div>
+            """.format(
+                table=t,
+                field=dfi.field,
+                fieldtype=dfi.fieldtype,
+                sep="; " if dfi.comment else "",
+                comment=dfi.comment,
+            ))
+        fields = collapsible_div("table_{}".format(t),
+                                 "\n".join(field_elements),
+                                 extradivclasses=["indent"])
+        contents = u"""
+            <div>
+                <b>{table}</b>
+                {fields}
+            </div>
+        """.format(
+            table=t,
+            fields=fields
+        )
+        table_elements.append(contents)
+    tree = u"""
+        <div>
+        {}
+        </div>
+    """.format("\n".join(table_elements))
+    return HTML_START + u"""
+        <h1>Available fields</h1>
+        {expandcollapse}
+        {tree}
+    """.format(
+        expandcollapse=expand_collapse_buttons(),
+        tree=tree,
+    ) + HTML_END
 
 
 # =============================================================================
@@ -605,7 +653,9 @@ def cli_main():
         fail()
 
     config.set(filename=args.configfilename, include_sources=False)
-    print(test_query_output())
+
+    #print(test_query_output())
+    print(test_show_fields())
 
 
 # =============================================================================
@@ -684,6 +734,7 @@ def main_http_processor(env):
     if not fn:
         return fail_unknown_action(action)
     return fn(config.session, form)
+
 
 # =============================================================================
 # WSGI application
