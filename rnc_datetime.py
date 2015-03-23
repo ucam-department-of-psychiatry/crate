@@ -25,6 +25,7 @@ Copyright/licensing:
 """
 
 import datetime
+import dateutil.parser
 import pytz
 
 
@@ -50,4 +51,16 @@ def get_now_utc_notz():
 
 
 def truncate_date_to_first_of_month(dt):
+    """Change the day to the first of the month."""
+    if dt is None:
+        return None
     return dt.replace(day=1)
+
+
+def coerce_to_date(x):
+    """Ensure an object is a datetime, or coerce to one, or raise."""
+    if x is None:
+        return None
+    if isinstance(x, datetime.datetime):
+        return x
+    return dateutil.parser.parse(x)  # may raise

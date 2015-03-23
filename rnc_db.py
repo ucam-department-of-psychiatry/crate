@@ -990,6 +990,20 @@ class DatabaseSupporter:
             logger.exception("fetchall: SQL was: " + sql)
             raise
 
+    def gen_fetchall(self, sql, *args):
+        """fetchall() as a generator."""
+        self.ensure_db_open()
+        cursor = self.db.cursor()
+        self.db_exec_with_cursor(cursor, sql, *args)
+        try:
+            row = cursor.fetchone()
+            while row is not None:
+                yield row
+                row = cursor.fetchone()
+        except:
+            logger.exception("gen_fetchall: SQL was: " + sql)
+            raise
+
     def fetchall_with_fieldnames(self, sql, *args):
         """Executes SQL; returns (rows, fieldnames)."""
         self.ensure_db_open()
