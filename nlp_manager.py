@@ -94,7 +94,6 @@ from shared_anon import (
     ensure_valid_table_name,
     read_config_string_options,
     DatabaseConfig,
-    get_database
 )
 
 # =============================================================================
@@ -452,6 +451,7 @@ class Config(object):
     def __init__(self, filename, nlpname, logtag=""):
         """Read config from file."""
 
+        self.config_filename = filename
         parser = ConfigParser.RawConfigParser()
         parser.optionxform = str  # make it case-sensitive
         parser.readfp(codecs.open(filename, "r", "utf8"))
@@ -497,8 +497,7 @@ class Config(object):
             self.inputfieldmap[x] = c
             dbname = c.srcdb
             if dbname not in self.databases.keys():
-                self.databases[dbname] = get_database(DatabaseConfig(parser,
-                                                                     dbname))
+                self.databases[dbname] = self.get_database(dbname)
 
         # outputtypemap, databases
         typepairs = self.outputtypemap.split()
@@ -514,8 +513,7 @@ class Config(object):
             self.outputtypemap[annottype] = c
             dbname = c.destdb
             if dbname not in self.databases.keys():
-                self.databases[dbname] = get_database(DatabaseConfig(parser,
-                                                                     dbname))
+                self.databases[dbname] = self.get_database(dbname)
 
         # progenvsection, env, progargs, logtag
         self.env = os.environ.copy()
@@ -536,12 +534,26 @@ class Config(object):
             self.max_external_prog_uses = int(self.max_external_prog_uses)
 
         # progressdb, progresstable, hashphrase
-        self.progdb = get_database(DatabaseConfig(parser, self.progressdb))
+        self.progdb = self.get_database(self.progressdb)
         ensure_valid_field_name(self.progresstable)
         self.hasher = MD5Hasher(self.hashphrase)
 
         # other
         self.now = get_now_utc_notz()
+
+    def get_database(self, section):
+        parser = ConfigParser.RawConfigParser()
+        parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
+        try:  # guard this bit to prevent any password leakage
+            dbc = DatabaseConfig(parser, section)
+            db = dbc.get_database()
+            return db
+        except:
+            raise rnc_db.NoDatabaseError(
+                "Problem opening or reading from database {}; details "
+                "concealed for security reasons".format(section))
+        finally:
+            dbc = None
 
     def hash(self, text):
         # Needs to handle Unicode

@@ -148,6 +148,25 @@ b)  METHOD 2: PROCESS-BASED. THIS IS FASTER.
                is a record with a matching PK and a matching source hash, that
                record is skipped.
 
+    ---------------------------------------------------------------------------
+    Multiple databases
+    ---------------------------------------------------------------------------
+    - The intention is that if you anonymise multiple databases together,
+      then they must share a patient numbering (ID) system. For example, you
+      might have two databases using RiO numbers; you can anonymise them
+      together. If they also have an NHS number, that can be hashed as a master
+      PID, for linking to other databases (anonymised separately). (If you used
+      the NHS number as the primary PID, the practical difference would be that
+      you would ditch any patients who have a RiO number but no NHS number
+      recorded.)
+    - The databases must each use a consistent name for this field, across all
+      tables.
+    - This field, which must be an integer, must fit into a BIGINT UNSIGNED
+      field (see wipe_and_recreate_mapping_table() in anonymise.py).
+    - However, the databases don't have to use the same *name* for the field.
+      For example, RiO might use "id" to mean "RiO number", while CamCOPS might
+      use "_patient_idnum1".
+
 ===============================================================================
 3. NATURAL LANGUAGE PROCESSING
 ===============================================================================

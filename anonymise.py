@@ -171,6 +171,7 @@ CHANGE LOG:
   - Audit database/table.
   - Create an incremental update to the data dictionary (i.e. existing DD plus
     any new fields in the source, with safe draft entries).
+  - Data dictionary optimizations.
 
 """
 
@@ -184,6 +185,7 @@ import argparse
 import itertools
 import logging
 import multiprocessing
+from operator import attrgetter
 #import re
 import regex  # sudo apt-get install python-regex
 import signal
@@ -191,6 +193,7 @@ import sys
 import threading
 
 from rnc_datetime import (
+    coerce_to_date,
     get_now_utc,
     truncate_date_to_first_of_month
 )
@@ -200,14 +203,26 @@ from rnc_db import (
     is_sqltype_text_over_one_char,
 )
 from shared_anon import (
+    ALTERMETHOD_SCRUBIN,
+    ALTERMETHOD_TRUNCATEDATE,
     AUDIT_FIELDSPECS,
     AUDIT_TABLE,
     config,
     DEMO_CONFIG,
     escape_literal_string_for_regex,
-    get_database,
+    INDEX_UNIQUE,
+    INDEX_FULLTEXT,
     reset_logformat,
+    SCRUBSRC_PATIENT,
+    SCRUBMETHOD_DATE,
+    SCRUBMETHOD_TEXT,
+    SCRUBMETHOD_NUMERIC,
     SEP,
+    SRCFLAG_PK,
+    SRCFLAG_ADDSRCHASH,
+    SRCFLAG_PRIMARYPID,
+    SRCFLAG_DEFINESPRIMARYPIDS,
+    SRCFLAG_MASTERPID,
     SQLTYPE_ENCRYPTED_PID
 )
 
@@ -460,99 +475,111 @@ print(get_regex_string_from_elements(all_elements))
 
 class Scrubber(object):
     def __init__(self, sources, pid):
+        self.pid = pid
+        self.mpid = None
         self.re_patient = None  # re: regular expression
         self.re_tp = None
-        self.re_patient_elements = []
-        self.re_tp_elements = []
+        self.re_patient_elements = set()
+        self.re_tp_elements = set()
         logger.debug("building scrubber")
         for ddr in config.dd.get_scrub_from_rows():
-            scrub_type = self.get_scrub_type(ddr.src_datatype,
-                                             ddr.scrubsrc_numeric)
-            is_patient = ddr.scrubsrc_patient
+            scrub_method = self.get_scrub_method(ddr.src_datatype,
+                                                 ddr.scrub_method)
+            is_patient = ddr.scrub_src == SCRUBSRC_PATIENT
             for v in gen_all_values_for_patient(sources,
                                                 ddr.src_db,
                                                 ddr.src_table,
                                                 ddr.src_field, pid):
-                self.add_value(v, scrub_type, is_patient)
+                self.add_value(v, scrub_method, is_patient)
+                if self.mpid is None and SRCFLAG_MASTERPID in ddr.src_flags:
+                    # We've come across the master ID.
+                    self.mpid = v
         self.finished_adding()
 
     @staticmethod
-    def get_scrub_type(datatype_long, scrubsrc_numeric):
-        if is_sqltype_date(datatype_long):
-            return "D"
+    def get_scrub_method(datatype_long, scrub_method):
+        if scrub_method:
+            return scrub_method
+        elif is_sqltype_date(datatype_long):
+            return SCRUBMETHOD_DATE
         elif is_sqltype_text_over_one_char(datatype_long):
-            if scrubsrc_numeric:
-                return "t"
-            else:
-                return "T"
+            return SCRUBMETHOD_TEXT
         else:
-            return "N"
+            return SCRUBMETHOD_NUMERIC
 
-    def add_value(self, value, scrub_type, patient=True):
+    def add_value(self, value, scrub_method, patient=True):
         if value is None:
             return
 
         # Note: object reference
         r = self.re_patient_elements if patient else self.re_tp_elements
 
-        if scrub_type == "D":
+        if scrub_method == SCRUBMETHOD_DATE:
             # Source is a date.
+            try:
+                value = coerce_to_date(value)
+            except Exception as e:
+                logger.warning(
+                    "Invalid date received to Scrubber.add_value(): value={}, "
+                    "exception={}".format(
+                        value, e))
+                return
             wbo = config.anonymise_dates_at_word_boundaries_only
-            r.extend(
-                get_date_regex_elements(value, at_word_boundaries_only=wbo))
-        elif scrub_type == "T":
+            elements = get_date_regex_elements(
+                value, at_word_boundaries_only=wbo)
+        elif scrub_method == SCRUBMETHOD_TEXT:
             # Source is text.
             value = unicode(value)
             strings = get_anon_fragments_from_string(value)
             wbo = config.anonymise_strings_at_word_boundaries_only
+            elements = []
             for s in strings:
-                r.extend(get_string_regex_elements(
+                elements.extend(get_string_regex_elements(
                     s,
                     config.scrub_string_suffixes,
                     max_errors=config.string_max_regex_errors,
                     at_word_boundaries_only=wbo))
-        elif scrub_type == "t":
-            # Source is a text field containing a number.
+        elif scrub_method == SCRUBMETHOD_NUMERIC:
+            # Source is a text field containing a number, or an actual number.
             # Remove everything but the digits
             # Particular examples: phone numbers, e.g. "(01223) 123456".
             wbo = config.anonymise_numbers_at_word_boundaries_only
-            r.extend(get_numeric_regex_elements(
-                get_digit_string_from_vaguely_numeric_string(value),
-                at_word_boundaries_only=wbo))
-        elif scrub_type == "N":
-            # Source is an actual number, to be processed using the fancy
-            # number-recognizing regex.
-            wbo = config.anonymise_numbers_at_word_boundaries_only
-            r.extend(get_numeric_regex_elements(
-                str(value),
-                at_word_boundaries_only=wbo))
+            elements = get_numeric_regex_elements(
+                get_digit_string_from_vaguely_numeric_string(str(value)),
+                at_word_boundaries_only=wbo)
         else:
-            raise Exception("Bug: unknown scrub_type to add_value")
+            raise Exception("Bug: unknown scrub_method to add_value")
+        for element in elements:
+            r.add(element)
 
     def finished_adding(self):
-        #print("PATIENT REGEX PARTS:\n"
-        #      + "\n".join(self.re_patient_elements)
-        #      + "\n")
-        #print("THIRD PARTY REGEX PARTS:\n"
-        #      + "\n".join(self.re_tp_elements)
-        #      + "\n")
-        # Remove duplicates
-        self.re_patient_elements = list(set(self.re_patient_elements))
-        self.re_tp_elements = list(set(self.re_tp_elements))
         # Create regexes:
-        self.re_patient = get_regex_from_elements(self.re_patient_elements)
-        self.re_tp = get_regex_from_elements(self.re_tp_elements)
+        self.re_patient = get_regex_from_elements(
+            list(self.re_patient_elements))
+        self.re_tp = get_regex_from_elements(
+            list(self.re_tp_elements))
+        # Announce pointlessly
+        #logger.debug("Scrubber: {}".format(self.get_hash_string()))
 
     def get_hash_string(self):
-        return repr(self.re_patient_elements + self.re_tp_elements)
+        return repr(self.re_patient_elements | self.re_tp_elements)
+        # | for union
 
     def scrub(self, text):
         # logger.debug("scrubbing")
+        if text is None:
+            return None
         if self.re_patient:
             text = self.re_patient.sub(config.replace_patient_info_with, text)
         if self.re_tp:
             text = self.re_tp.sub(config.replace_third_party_info_with, text)
         return text
+
+    def get_pid(self):
+        return self.pid
+
+    def get_mpid(self):
+        return self.mpid
 
 
 # =============================================================================
@@ -568,7 +595,7 @@ def patient_scrubber_unchanged(admindb, patient_id, scrubber):
         AND {scrubber_hash} = ?
     """.format(
         table=MAPPING_TABLE,
-        patient_id=config.per_table_patient_id_field,
+        patient_id=config.mapping_patient_id_fieldname,
         scrubber_hash=config.source_hash_fieldname,
     )
     row = admindb.fetchone(sql, patient_id, new_scrub_hash)
@@ -582,7 +609,7 @@ def patient_in_map(admindb, patient_id):
         WHERE {patient_id} = ?
     """.format(
         table=MAPPING_TABLE,
-        patient_id=config.per_table_patient_id_field,
+        patient_id=config.mapping_patient_id_fieldname,
     )
     row = admindb.fetchone(sql, patient_id)
     return True if row is not None and row[0] == 1 else False
@@ -620,31 +647,46 @@ def recreate_audit_table(db):
         db.mysql_convert_table_to_barracuda(AUDIT_TABLE, compressed=False)
 
 
-def insert_into_mapping_db(admindb, pid, rid, scrubber):
+def insert_into_mapping_db(admindb, scrubber):
+    pid = scrubber.get_pid()
+    rid = config.encrypt_primary_pid(pid)
+    mpid = scrubber.get_mpid()
+    mrid = config.encrypt_master_pid(mpid)
     scrubber_hash = config.hash_scrubber(scrubber)
     if patient_in_map(admindb, pid):
         sql = """
             UPDATE {table}
-            SET {scrubber_hash} = ?
+            SET {master_id} = ?, {master_research_id} = ?, {scrubber_hash} = ?
             WHERE {patient_id} = ?
         """.format(
             table=MAPPING_TABLE,
+            master_id=config.mapping_master_id_fieldname,
+            master_research_id=config.master_research_id_fieldname,
             scrubber_hash=config.source_hash_fieldname,
-            patient_id=config.per_table_patient_id_field,
+            patient_id=config.mapping_patient_id_fieldname,
         )
-        args = [scrubber_hash, pid]
+        args = [mpid, mrid, scrubber_hash, pid]
     else:
         sql = """
-            INSERT INTO {table}
-                ({patient_id}, {research_id}, {scrubber_hash})
-            VALUES (?, ?, ?)
+            INSERT INTO {table} (
+                {patient_id}, {research_id},
+                {master_id}, {master_research_id},
+                {scrubber_hash}
+            )
+            VALUES (
+                ?, ?,
+                ?, ?,
+                ?
+            )
         """.format(
             table=MAPPING_TABLE,
-            patient_id=config.per_table_patient_id_field,
+            patient_id=config.mapping_patient_id_fieldname,
             research_id=config.research_id_fieldname,
+            master_id=config.mapping_master_id_fieldname,
+            master_research_id=config.master_research_id_fieldname,
             scrubber_hash=config.source_hash_fieldname,
         )
-        args = [pid, rid, scrubber_hash]
+        args = [pid, rid, mpid, mrid, scrubber_hash]
     admindb.db_exec(sql, *args)
     admindb.commit()
     # Commit immediately, because other processes may need this table promptly.
@@ -658,15 +700,19 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
         admindb.drop_table(MAPPING_TABLE)
     sql = """
         CREATE TABLE IF NOT EXISTS {table} (
-            {patient_id} INT PRIMARY KEY,
-            {research_id} {hash_type} NOT NULL UNIQUE,
+            {patient_id} BIGINT UNSIGNED PRIMARY KEY,
+            {research_id} {hash_type} NOT NULL,
+            {master_id} BIGINT UNSIGNED,
+            {master_research_id} {hash_type},
             {scrubber_hash} {hash_type}
         )
     """.format(
         table=MAPPING_TABLE,
         hash_type=SQLTYPE_ENCRYPTED_PID,
-        patient_id=config.per_table_patient_id_field,
+        patient_id=config.mapping_patient_id_fieldname,
         research_id=config.research_id_fieldname,
+        master_id=config.mapping_master_id_fieldname,
+        master_research_id=config.master_research_id_fieldname,
         scrubber_hash=config.source_hash_fieldname,
     )
     admindb.db_exec(sql)
@@ -689,6 +735,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
 
         # Recreate
         ddr = config.dd.get_rows_for_dest_table(t)
+        ddr = sorted(ddr, key=attrgetter("dest_field"))
         fieldspecs = []
         dest_fieldnames = []
         for r in ddr:
@@ -705,7 +752,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
                     )
                 fs += " COMMENT " + rnc_db.sql_quote_string(comment)
             fieldspecs.append(fs)
-            if r.add_src_hash:
+            if SRCFLAG_ADDSRCHASH in r.src_flags:
                 # append a special field
                 fieldspecs.append(
                     config.source_hash_fieldname + " " +
@@ -797,8 +844,16 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     if ntasks > 1 and tasknum >= ntasks:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
+    # If we're going to define based on >1 table, we need to keep track of
+    # what we've processed. However, if we only have one table, we don't.
+    # We can't use the mapping table easily (*), because it leads to thread/
+    # process locking for database access. So we use a set.
+    # (*) if not patient_id_exists_in_mapping_db(admindb, patient_id): ...
+    keeping_track = config.dd.n_definers > 1
+    if keeping_track:
+        processed_ids = set()
     for ddr in config.dd.rows:
-        if not ddr.defines_primary_pids:
+        if not SRCFLAG_DEFINESPRIMARYPIDS in ddr.src_flags:
             continue
         threadcondition = ""
         if ntasks > 1:
@@ -826,10 +881,12 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
         row = cursor.fetchone()
         while row is not None:
             patient_id = row[0]
+            if keeping_track:
+                if patient_id in processed_ids:
+                    row = cursor.fetchone()
+                    continue
+                processed_ids.add(patient_id)
             logger.debug("Found patient id: {}".format(patient_id))
-            # Check that we haven't processed that patient_id already.
-            # -- NO, SKIP: (a) was redundant, and (b) breaks for incremental.
-            #if not patient_id_exists_in_mapping_db(admindb, patient_id):
             yield patient_id
             row = cursor.fetchone()
 
@@ -845,7 +902,7 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
     """.format(
         field=field,
         table=table,
-        patient_id_field=config.per_table_patient_id_field
+        patient_id_field=config.srccfg[dbname].per_table_pid_field
     )
     args = [pid]
     cursor = db.cursor()
@@ -856,7 +913,7 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
         row = cursor.fetchone()
 
 
-def gen_rows(sourcedb, sourcetable, sourcefields, pid=None):
+def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None):
     """ Generates a series of lists of values, each value corresponding to a
     field in sourcefields.
     """
@@ -865,7 +922,8 @@ def gen_rows(sourcedb, sourcetable, sourcefields, pid=None):
         where = ""
     else:
         args = [pid]
-        where = "WHERE {}=?".format(config.per_table_patient_id_field)
+        where = "WHERE {}=?".format(
+            config.srccfg[sourcedbname].per_table_pid_field)
     sql = """
         SELECT {fields}
         FROM {table}
@@ -885,7 +943,7 @@ def gen_rows(sourcedb, sourcetable, sourcefields, pid=None):
 
 def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
     indexrows = [ddr for ddr in config.dd.rows
-                 if not ddr.omit and (ddr.index or ddr.fulltextindex)]
+                 if ddr.index and not ddr.omit]
     tables = list(set([r.dest_table for r in indexrows]))
     for i in xrange(len(tables)):
         if i % ntasks != tasknum:
@@ -916,13 +974,12 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         "process_table: {}.{}, pid={}, incremental={}".format(
             sourcedbname, sourcetable, pid, incremental))
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
-    addhash = any([ddr.add_src_hash for ddr in ddrows])
+    addhash = any([SRCFLAG_ADDSRCHASH in ddr.src_flags for ddr in ddrows])
     # If addhash is true, there will also be at least one non-omitted row,
     # namely the source PK (by the data dictionary's validation process).
     ddrows = [ddr
               for ddr in ddrows
-              if (not ddr.omit) or (addhash and (ddr.scrubsrc_patient
-                                                 or ddr.scrubsrc_thirdparty))]
+              if (not ddr.omit) or (addhash and ddr.scrub_src)]
     if not ddrows:
         return
     dest_table = ddrows[0].dest_table
@@ -931,7 +988,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     pkfield_index = None
     for i in xrange(len(ddrows)):
         ddr = ddrows[i]
-        if ddr.src_pk:
+        if SRCFLAG_PK in ddr.src_flags:
             pkfield_index = i
         sourcefields.append(ddr.src_field)
         if not ddr.omit:
@@ -939,12 +996,13 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     if addhash:
         destfields.append(config.source_hash_fieldname)
     n = 0
-    for row in gen_rows(sourcedb, sourcetable, sourcefields, pid):
+    for row in gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields,
+                        pid):
         n += 1
         if n % config.report_every_n_rows == 0:
             logger.info("... processing row {}".format(n))
-        else:
-            logger.debug("... processing row {}".format(n))
+        #else:
+        #    logger.debug("... processing row {}".format(n))
         if addhash:
             srchash = config.hash_list(row)
             if incremental and record_exists_by_hash(
@@ -967,15 +1025,23 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if ddrows[i].omit:
                 continue
             value = row[i]
-            if ddrows[i].scrub_in:
+            if ddrows[i].alter_method == ALTERMETHOD_SCRUBIN:
                 # Main point of anonymisation!
                 value = scrubber.scrub(value)
-            elif ddrows[i].primary_pid:
+            elif SRCFLAG_PRIMARYPID in ddrows[i].src_flags:
                 value = config.encrypt_primary_pid(value)
-            elif ddrows[i].master_pid:
+            elif SRCFLAG_MASTERPID in ddrows[i].src_flags:
                 value = config.encrypt_master_pid(value)
-            elif ddrows[i].truncate_date:
-                value = truncate_date_to_first_of_month(value)
+            elif ddrows[i].alter_method == ALTERMETHOD_TRUNCATEDATE:
+                try:
+                    value = coerce_to_date(value)
+                    value = truncate_date_to_first_of_month(value)
+                except:
+                    logger.warning(
+                        "Invalid date received to ALTERMETHOD_TRUNCATEDATE "
+                        "method: {}".format(
+                            value))
+                    value = None
             destvalues.append(value)
         if addhash:
             destvalues.append(srchash)
@@ -989,12 +1055,14 @@ def create_indexes(tasknum=0, ntasks=1):
                                                           ntasks=ntasks):
         # Process a table as a unit; this makes index creation faster.
         # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
-        sqlbits = []
+        sqlbits_normal = []
+        sqlbits_fulltext = []
         for tr in tablerows:
             column = tr.dest_field
             length = tr.indexlen
-            is_unique = tr.indexunique
-            if tr.fulltextindex:
+            is_unique = tr.index == INDEX_UNIQUE
+            is_fulltext = tr.index == INDEX_FULLTEXT
+            if is_fulltext:
                 idxname = "_idxft_{}".format(column)
                 sqlbit = "ADD FULLTEXT INDEX {name} ({column})".format(
                     name=idxname,
@@ -1010,15 +1078,25 @@ def create_indexes(tasknum=0, ntasks=1):
                 )
             if config.destdb.index_exists(table, idxname):
                 continue  # because it will crash if you add it again!
-            sqlbits.append(sqlbit)
-        if not sqlbits:
-            continue
-        sql = "ALTER TABLE {table} {add_indexes}".format(
-            table=table,
-            add_indexes=", ".join(sqlbits),
-        )
-        logger.debug(sql)
-        config.destdb.db_exec(sql)
+            if is_fulltext:
+                sqlbits_fulltext.append(sqlbit)
+            else:
+                sqlbits_normal.append(sqlbit)
+
+        if sqlbits_normal:
+            sql = "ALTER TABLE {table} {add_indexes}".format(
+                table=table,
+                add_indexes=", ".join(sqlbits_normal),
+            )
+            logger.info(sql)
+            config.destdb.db_exec(sql)
+        for sqlbit in sqlbits_fulltext:  # must add one by one
+            sql = "ALTER TABLE {table} {add_indexes}".format(
+                table=table,
+                add_indexes=sqlbit,
+            )
+            logger.info(sql)
+            config.destdb.db_exec(sql)
         # Index creation doesn't require a commit.
 
 
@@ -1087,6 +1165,7 @@ def patient_processing_fn(sources, destdb, admindb,
 
         # For each source database/table...
         for d in config.dd.get_source_databases():
+            logger.debug("Processing database: {}".format(d))
             db = sources[d]
             for t in config.dd.get_patient_src_tables_with_active_dest(d):
                 logger.debug(
@@ -1096,8 +1175,7 @@ def patient_processing_fn(sources, destdb, admindb,
                               incremental=(incremental and scrubber_unchanged))
 
         # Insert into mapping db
-        rid = config.encrypt_primary_pid(pid)
-        insert_into_mapping_db(admindb, pid, rid, scrubber)
+        insert_into_mapping_db(admindb, scrubber)
 
     logger.info(SEP + threadprefix + "Commit")
     destdb.commit()
@@ -1163,12 +1241,12 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
         subthread_error_event = threading.Event()
         subthread_error_event.clear()
         for threadnum in range(nthreads):
-            destdb = get_database(config.destdb_config)
-            admindb = get_database(config.admindb_config)
+            destdb = config.get_database("destination_database")
+            admindb = config.get_database("admin_database")
             sources = {}
             for i in xrange(len(config.src_db_names)):
-                sources[config.src_db_names[i]] = get_database(
-                    config.src_db_configs[i])
+                sources[config.src_db_names[i]] = config.get_database(
+                    config.src_db_names[i])
             thread = PatientThread(sources, destdb, admindb,
                                    nthreads, threadnum,
                                    abort_event, subthread_error_event,
@@ -1273,6 +1351,10 @@ Sample usage:
                         help="Print a draft data dictionary")
     parser.add_argument("--incrementaldd", action="store_true",
                         help="Print an INCREMENTAL draft data dictionary")
+    parser.add_argument("--makeddpermitbydefaultdangerous",
+                        action="store_true",
+                        help="When creating or adding to a data dictionary, "
+                             "set the 'omit' flag to False. DANGEROUS.")
     parser.add_argument("--dropremake", action="store_true",
                         help="Drop/remake destination tables only")
     parser.add_argument("--nonpatienttables", action="store_true",
@@ -1350,7 +1432,8 @@ Sample usage:
         # Note: the difference is that for incrementaldd, the data dictionary
         # will have been loaded from disk; for draftdd, it won't (so a
         # completely fresh one will be generated).
-        config.dd.read_from_source_databases()
+        config.dd.read_from_source_databases(
+            default_omit=(not args.makeddpermitbydefaultdangerous))
         print(config.dd.get_tsv())
         return
 

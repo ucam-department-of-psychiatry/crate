@@ -76,6 +76,26 @@ DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
 SEP = "=" * 20 + " "
 
+SCRUBSRC_PATIENT = "patient"
+SCRUBSRC_THIRDPARTY = "thirdparty"
+
+INDEX_NORMAL = "I"
+INDEX_UNIQUE = "U"
+INDEX_FULLTEXT = "F"
+
+SCRUBMETHOD_TEXT = "text"
+SCRUBMETHOD_NUMERIC = "number"
+SCRUBMETHOD_DATE = "date"
+
+ALTERMETHOD_TRUNCATEDATE = "truncatedate"
+ALTERMETHOD_SCRUBIN = "scrub"
+
+SRCFLAG_PK = "K"
+SRCFLAG_ADDSRCHASH = "H"
+SRCFLAG_PRIMARYPID = "P"
+SRCFLAG_DEFINESPRIMARYPIDS = "*"
+SRCFLAG_MASTERPID = "M"
+
 # =============================================================================
 # Demo config
 # =============================================================================
@@ -106,45 +126,66 @@ DEMO_CONFIG = """
 #       Field name in source database.
 #   src_datatype
 #       SQL data type in source database, e.g. INT, VARCHAR(50).
-#   src_pk
-#       Boolean. Is this field the primary key for the table it's in?
+#   src_flags
+#       One or more of the following characters:
+#       {SRCFLAG_PK}:  This field is the primary key (PK) for the table it's
+#           in.
+#       {SRCFLAG_ADDSRCHASH}:  Add source hash, for incremental updates?
+#           - May only be set for src_pk fields (which cannot then be omitted
+#             in the destination, and which require the index={INDEX_UNIQUE}
+#             setting, so that a unique index is created for this field).
+#           - If set, a field is added to the destination table, with field
+#             name as set by the config's source_hash_fieldname variable,
+#             containing a hash of the contents of the source record (all
+#             fields that are not omitted, OR contain scrubbing information
+#             (scrub_src). The field is of type {SQLTYPE_ENCRYPTED_PID}.
+#           - This table is then capable of incremental updates.
+#       {SRCFLAG_PRIMARYPID}:  Primary patient ID field.
+#           If set,
+#           (a) This field will be used to link records for the same patient
+#               across all tables. It must therefore be present, and marked in
+#               the data dictionary, for ALL tables that contain patient-
+#               identifiable information.
+#           (b) If the field is not omitted: the field will be hashed as the
+#               primary ID (database patient primary key) in the destination.
+#       {SRCFLAG_DEFINESPRIMARYPIDS}:  This field *defines* primary PIDs.
+#           If set, this row will be used to search for all patient IDs, and
+#           will define them for this database. Only those patients will be
+#           processed (for all tables containing patient info). Typically, this
+#           flag is applied to a SINGLE field in a SINGLE table, usually the
+#           principal patient registration/demographics table.
+#       {SRCFLAG_MASTERPID}:  Master ID (e.g. NHS number). The field will be
+#           hashed with the master PID hasher.
 #
-#   primary_pid
-#       Boolean. If set:
-#       (a) This field will be used to link records for the same patient across
-#           all tables. It must therefore be present, and marked in the data
-#           dictionary, for ALL tables that contain patient-identifiable
-#           information,
-#       (b) If the field is not omitted: the field will be hashed as the
-#           primary ID (database patient primary key) in the destination.
-#   defines_primary_pids
-#       Boolean. This row should be used to search for all patient IDs, and
-#       will define them for this database. Only those patients will be
-#       processed (for all tables containing patient info). Typically, this
-#       flag is applied to a SINGLE field in a SINGLE table, the master patient
-#       ID.
-#
-#   scrubsrc_patient
-#       Boolean. If true, contains patient-identifiable information that must
-#       be removed from "scrub_in" fields.
-#   scrubsrc_thirdparty
-#       Boolean. If true, contains identifiable information about carer/family/
-#       other third party, which must be removed from "scrub_in" fields.
-#       (tp = third party)
-#   scrubsrc_numeric
-#       Boolean. If true, this field (even if textual) is treated as a number
-#       for the purposes of scrubbing. Use this for ID numbers, phone numbers,
-#       and the like.
+#   scrub_src
+#       Either "{SCRUBSRC_PATIENT}", "{SCRUBSRC_THIRDPARTY}", or blank.
+#       - If "{SCRUBSRC_PATIENT}", contains patient-identifiable information
+#         that must be removed from "scrub_in" fields.
+#       - If "{SCRUBSRC_THIRDPARTY}", contains identifiable information about
+#         carer/family/other third party, which must be removed from
+#         "scrub_in" fields.
+#   scrub_method
+#       Applicable to scrub_src fields. Manner in which this field should be
+#       treated for scrubbing.
+#       Options:
+#       - "{SCRUBMETHOD_TEXT}": treat as text
+#         This is the default for all textual fields (e. CHAR, VARCHAR, TEXT).
+#       - "{SCRUBMETHOD_NUMERIC}": treat as number
+#         This is the default for all numeric fields (e.g. INTEGER, FLOAT).
+#         If you have a phone number in a text field, mark it as
+#         "{SCRUBMETHOD_NUMERIC}" here.
+#       - "{SCRUBMETHOD_DATE}": treat as date.
+#         This is the default for all DATE/DATETIME fields.
 #
 #   omit
 #       Boolean. Omit from output entirely?
-#   scrub_in
-#       Boolean. Applies to text fields only. If true, the field will have its
-#       contents anonymised (using information from other fields).
-#   truncate_date
-#       Boolean. For date fields; truncate to first of month?
-#   master_pid
-#       Boolean. Hash this field as the master ID (e.g. NHS number)?
+#   alter_method
+#       Manner in which to alter the data. Blank, or one of:
+#       - "{ALTERMETHOD_SCRUBIN}": scrub in. Applies to text fields only. The
+#         field will have its contents anonymised (using information from other
+#         fields).
+#       - "{ALTERMETHOD_TRUNCATEDATE}": truncate date to first of the month.
+#         Applicable to text or date-as-text fields.
 #
 #   dest_table
 #       Table name in destination database.
@@ -152,44 +193,21 @@ DEMO_CONFIG = """
 #       Field name in destination database.
 #   dest_datatype
 #       SQL data type in destination database.
-#   add_src_hash
-#       - Boolean.
-#       - May only be set for src_pk fields (which cannot then be omitted in
-#         the destination, and which require the 'index' and 'indexunique'
-#         flags, so that a unique index is created for this field).
-#       - If set, a field is added to the destination table, with field name as
-#         set by the config's source_hash_fieldname variable, containing a hash
-#         of the contents of the source record (all fields that are not
-#         omitted, OR contain scrubbing information [scrubsrc_patient or
-#         scrubsrc_thirdparty]). The field is of type {SQLTYPE_ENCRYPTED_PID}.
-#       - This table is then capable of incremental updates.
 #   index
-#       Boolean. Index this field?
-#   indexunique
-#       Boolean. Make this index a UNIQUE one? Mandatory for src_pk fields.
+#       One of:
+#       - blank: no index.
+#       - "{INDEX_NORMAL}": normal index on destination.
+#       - "{INDEX_UNIQUE}": unique index on destination.
+#       - "{INDEX_FULLTEXT}": create a FULLTEXT index, for rapid searching
+#         within long text fields. Only applicable to one field per table.
 #   indexlen
 #       Integer. Can be blank. If not, sets the prefix length of the index.
-#       Mandatory in MySQL if you apply a normal index to a TEXT or BLOB field.
-#   fulltextindex
-#       Boolean. Create a FULLTEXT index, for rapid searching within long text
-#       fields. (Does not require indexlen.)
+#       Mandatory in MySQL if you apply a normal (+/- unique) index to a TEXT
+#       or BLOB field. Not required for FULLTEXT indexes.
 #   comment
 #       Field comment, stored in destination database.
 
 data_dictionary_filename = testdd.tsv
-
-# -----------------------------------------------------------------------------
-# Input fields
-# -----------------------------------------------------------------------------
-
-# Specify the (typically integer) patient identifier present in EVERY table.
-# It will be replaced by the research ID in the destination database.
-
-per_table_patient_id_field = patient_id
-
-# Master patient ID fieldname. Used for e.g. NHS numbers.
-
-master_pid_fieldname = nhsnum
 
 # -----------------------------------------------------------------------------
 # Encryption phrases/passwords
@@ -237,9 +255,22 @@ anonymise_strings_at_word_boundaries_only = False
 # Output fields and formatting
 # -----------------------------------------------------------------------------
 
+# Name used for the primary patient ID in the mapping table.
+
+mapping_patient_id_fieldname = patient_id
+
 # Research ID field name. This will be a {SQLTYPE_ENCRYPTED_PID}.
+# Used to replace per_table_patient_id_field.
 
 research_id_fieldname = brcid
+
+# Name used for the master patient ID in the mapping table.
+
+mapping_master_id_fieldname = nhsnum
+
+# Similarly, used to replace master_pid_fieldname:
+
+master_research_id_fieldname = nhshash
 
 # Change-detection hash fieldname. This will be a {SQLTYPE_ENCRYPTED_PID}.
 
@@ -305,12 +336,51 @@ db = XXX
 
 [mysourcedb1]
 
+# CONNECTION DETAILS
+
 engine = mysql
 host = localhost
 port = 3306
 user = XXX
 password = XXX
 db = XXX
+
+# INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
+
+#   Specify the (typically integer) patient identifier present in EVERY
+#   table. It will be replaced by the research ID in the destination
+#   database.
+per_table_pid_field = patient_id
+
+#   Master patient ID fieldname. Used for e.g. NHS numbers.
+master_pid_fieldname = nhsnum
+
+#   Blacklist any tables when creating new data dictionaries?
+table_blacklist =
+
+#   Blacklist any fields (regardless of their table) when creating new data
+#   dictionaries?
+field_blacklist =
+
+#   Fieldnames assumed to be their table's PK:
+possible_pk_fields =
+
+#   Predefine field(s) that define the existence of patient IDs? UNUSUAL.
+pid_defining_fieldnames =
+
+#   Default fields to scrub from
+scrubsrc_patient_fields =
+scrubsrc_thirdparty_fields =
+
+#   Override default scrubbing methods
+scrubmethod_date_fields =
+scrubmethod_number_fields =
+
+#   Known safe fields, exempt from scrubbing
+safe_fields_exempt_from_scrubbing =
+
+#   Other default manipulations
+truncate_date_fields =
 
 [mysourcedb2]
 
@@ -321,7 +391,36 @@ user = XXX
 password = XXX
 db = XXX
 
-""".format(SQLTYPE_ENCRYPTED_PID=SQLTYPE_ENCRYPTED_PID)
+per_table_pid_field = patient_id
+master_pid_fieldname = nhsnum
+table_blacklist =
+field_blacklist =
+possible_pk_fields =
+scrubsrc_patient_fields =
+scrubsrc_thirdparty_fields =
+scrubmethod_date_fields =
+scrubmethod_number_fields =
+safe_fields_exempt_from_scrubbing =
+truncate_date_fields =
+
+""".format(
+    SQLTYPE_ENCRYPTED_PID=SQLTYPE_ENCRYPTED_PID,
+    SCRUBSRC_PATIENT=SCRUBSRC_PATIENT,
+    SCRUBSRC_THIRDPARTY=SCRUBSRC_THIRDPARTY,
+    INDEX_NORMAL=INDEX_NORMAL,
+    INDEX_UNIQUE=INDEX_UNIQUE,
+    INDEX_FULLTEXT=INDEX_FULLTEXT,
+    SCRUBMETHOD_TEXT=SCRUBMETHOD_TEXT,
+    SCRUBMETHOD_NUMERIC=SCRUBMETHOD_NUMERIC,
+    SCRUBMETHOD_DATE=SCRUBMETHOD_DATE,
+    ALTERMETHOD_TRUNCATEDATE=ALTERMETHOD_TRUNCATEDATE,
+    ALTERMETHOD_SCRUBIN=ALTERMETHOD_SCRUBIN,
+    SRCFLAG_PK=SRCFLAG_PK,
+    SRCFLAG_ADDSRCHASH=SRCFLAG_ADDSRCHASH,
+    SRCFLAG_PRIMARYPID=SRCFLAG_PRIMARYPID,
+    SRCFLAG_DEFINESPRIMARYPIDS=SRCFLAG_DEFINESPRIMARYPIDS,
+    SRCFLAG_MASTERPID=SRCFLAG_MASTERPID,
+)
 
 # For the style:
 #       [source_databases]
@@ -361,68 +460,48 @@ class DataDictionaryRow(object):
         "src_table",
         "src_field",
         "src_datatype",
-        "src_pk",
+        "src_flags",
 
-        "primary_pid",
-        "defines_primary_pids",
-
-        "scrubsrc_patient",
-        "scrubsrc_thirdparty",
-        "scrubsrc_numeric",
+        "scrub_src",
+        "scrub_method",
 
         "omit",
-        "scrub_in",
-        "truncate_date",
-        "master_pid",
+        "alter_method",
 
         "dest_table",
         "dest_field",
         "dest_datatype",
-        "add_src_hash",
         "index",
-        "indexunique",
         "indexlen",
-        "fulltextindex",
         "comment",
     ]
 
     def __init__(self):
         self.blank()
+        self._from_file = False
 
     def blank(self):
         for x in DataDictionaryRow.ROWNAMES:
             setattr(self, x, None)
+        self._signature = None
 
     def __str__(self):
         return ", ".join(["{}: {}".format(a, getattr(self, a))
                           for a in DataDictionaryRow.ROWNAMES])
 
+    def get_signature(self):
+        return "{}.{}.{}".format(self.src_db,
+                                 self.src_table,
+                                 self.src_field)
+
     def set_from_elements(self, elements):
-        self.blank()
         if len(elements) != len(DataDictionaryRow.ROWNAMES):
             raise Exception("Bad data dictionary row. Values:\n" +
                             "\n".join(elements))
         for i in xrange(len(elements)):
             setattr(self, DataDictionaryRow.ROWNAMES[i], elements[i])
         convert_attrs_to_bool(self, [
-            "src_pk",
-
-            "primary_pid",
-            "defines_primary_pids",
-
-            "scrubsrc_patient",
-            "scrubsrc_thirdparty",
-            "scrubsrc_numeric",
-
             "omit",
-            "scrub_in",
-            "truncate_date",
-            "master_pid",
-
-            "add_src_hash",
-            "index",
-            "indexunique",
-            "fulltextindex",
         ])
         convert_attrs_to_uppercase(self, [
             "src_datatype",
@@ -431,52 +510,100 @@ class DataDictionaryRow(object):
         convert_attrs_to_int_or_none(self, [
             "indexlen"
         ])
+        self._from_file = True
         self.check_valid()
 
     def set_from_src_db_info(self, db, table, field, datatype_short,
-                             datatype_full, comment=None):
+                             datatype_full, cfg, comment=None,
+                             default_omit=True):
         self.blank()
 
         self.src_db = db
         self.src_table = table
         self.src_field = field
         self.src_datatype = datatype_full
-        self.src_pk = False
 
-        self.primary_pid = (
-            self.src_field == config.per_table_patient_id_field)
-        self.defines_primary_pids = False
+        self.src_flags = ""
+        if self.src_field in cfg.possible_pk_fields:
+            self.src_flags += SRCFLAG_PK
+            self.src_flags += SRCFLAG_ADDSRCHASH
+        if self.src_field == cfg.per_table_pid_field:
+            self.src_flags += SRCFLAG_PRIMARYPID
+        if self.src_field == cfg.master_pid_fieldname:
+            self.src_flags += SRCFLAG_MASTERPID
+        if self.src_field in cfg.pid_defining_fieldnames:  # unusual!
+            self.src_flags += SRCFLAG_DEFINESPRIMARYPIDS
 
-        self.scrubsrc_patient = False
-        self.scrubsrc_thirdparty = False
-        self.scrubsrc_numeric = (
-            is_sqltype_numeric(datatype_full)
-            or self.src_field == config.per_table_patient_id_field
-            or self.src_field == config.master_pid_fieldname)
+        if self.src_field in cfg.scrubsrc_patient_fields:
+            self.scrub_src = SCRUBSRC_PATIENT
+        elif self.src_field in cfg.scrubsrc_thirdparty_fields:
+            self.scrub_src = SCRUBSRC_THIRDPARTY
+        else:
+            self.scrub_src = ""
 
-        self.omit = True  # for extra safety
-        self.scrub_in = is_sqltype_text_over_one_char(datatype_full)
-        # ... for safety
-        self.truncate_date = False
-        self.master_pid = (
-            self.src_field == config.master_pid_fieldname)
+        if not self.scrub_src:
+            self.scrub_method = ""
+        elif (is_sqltype_numeric(datatype_full)
+                or self.src_field == cfg.per_table_pid_field
+                or self.src_field == cfg.master_pid_fieldname
+                or self.src_field in cfg.scrubmethod_number_fields):
+            self.scrub_method = SCRUBMETHOD_NUMERIC
+        elif (is_sqltype_date(datatype_full)
+              or self.src_field in cfg.scrubmethod_date_fields):
+            self.scrub_method = SCRUBMETHOD_DATE
+        else:
+            self.scrub_method = SCRUBMETHOD_TEXT
+
+        self.omit = (
+            (default_omit or bool(self.scrub_src))
+            and not (SRCFLAG_PK in self.src_flags)
+            and not (SRCFLAG_PRIMARYPID in self.src_flags)
+            and not (SRCFLAG_MASTERPID in self.src_flags)
+        )
+
+        if (is_sqltype_text_over_one_char(datatype_full)
+                and not self.omit
+                and not self.src_field in
+                cfg.safe_fields_exempt_from_scrubbing):
+            self.alter_method = ALTERMETHOD_SCRUBIN
+        elif self.src_field in cfg.truncate_date_fields:
+            self.alter_method = ALTERMETHOD_TRUNCATEDATE
+        else:
+            self.alter_method = ""
 
         self.dest_table = table
-        self.dest_field = (config.research_id_fieldname
-                           if self.primary_pid else field)
-        self.dest_datatype = (SQLTYPE_ENCRYPTED_PID
-                              if self.primary_pid or self.master_pid
-                              else datatype_full)
-        self.add_src_hash = False
-        self.index = (self.dest_field ==
-                      config.research_id_fieldname)
+
+        if SRCFLAG_PRIMARYPID in self.src_flags:
+            self.dest_field = config.research_id_fieldname
+        elif SRCFLAG_MASTERPID in self.src_flags:
+            self.dest_field = config.master_research_id_fieldname
+        else:
+            self.dest_field = field
+
+        self.dest_datatype = (
+            SQLTYPE_ENCRYPTED_PID
+            if (SRCFLAG_PRIMARYPID in self.src_flags
+                or SRCFLAG_MASTERPID in self.src_flags)
+            else datatype_full)
+
+        if SRCFLAG_PK in self.src_flags:
+            self.index = INDEX_UNIQUE
+        elif self.dest_field == config.research_id_fieldname:
+            self.index = INDEX_NORMAL
+        elif does_sqltype_merit_fulltext_index(self.dest_datatype):
+            self.index = INDEX_FULLTEXT
+        else:
+            self.index = ""
+
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if does_sqltype_require_index_len(self.dest_datatype)
-            else None)
-        self.fulltextindex = does_sqltype_merit_fulltext_index(
-            self.dest_datatype)
+            if (does_sqltype_require_index_len(self.dest_datatype)
+                and self.index != INDEX_FULLTEXT)
+            else None
+        )
         self.comment = comment
+        self._from_file = False
+        self.check_valid()
 
     def get_tsv(self):
         values = []
@@ -489,10 +616,15 @@ class DataDictionaryRow(object):
         return "\t".join(values)
 
     def check_valid(self):
+        offenderdest = "" if not self.omit else " -> {}.{}".format(
+            self.dest_table, self.dest_field)
+        offender = "{}.{}.{}{}".format(
+            self.src_db, self.src_table, self.src_field, offenderdest)
         try:
             self._check_valid()
         except:
-            logger.exception("Offending DD row: {}".format(str(self)))
+            logger.exception(
+                "Offending DD row [{}]: {}".format(offender, str(self)))
             raise
 
     def _check_valid(self):
@@ -512,39 +644,52 @@ class DataDictionaryRow(object):
         if self.src_db not in config.src_db_names:
             raise Exception(
                 "Data dictionary row references non-existent source "
-                "database: {}".format(self.src_db))
+                "database")
+        srccfg = config.srccfg[self.src_db]
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
         if not is_sqltype_valid(self.src_datatype):
             raise Exception(
-                "Source field {db}.{t} has invalid data type: {dt}".format(
-                    db=self.src_db,
-                    t=self.src_table,
-                    dt=self.src_datatype,
-                )
-            )
+                "Field has invalid source data type: {}".format(
+                    self.src_datatype))
 
-        if (self.src_field == config.per_table_patient_id_field
+        if (self.src_field == srccfg.per_table_pid_field
                 and not is_sqltype_integer(self.src_datatype)):
             raise Exception(
-                "All fields with src_field = {} should be "
-                "integer, for work distribution purposes".format(
-                    self.src_field
-                )
-            )
+                "All fields with src_field = {} should be integer, for work "
+                "distribution purposes".format(self.src_field))
 
-        if self.defines_primary_pids and not self.primary_pid:
-            raise Exception("All fields with defines_primary_pids set must "
-                            "have primary_pid set")
-
-        if self.scrubsrc_patient and self.scrubsrc_thirdparty:
-            raise Exception("Can't treat as both patient and third-party info")
-
-        if count_bool([self.primary_pid, self.master_pid,
-                       self.truncate_date, self.scrub_in]) > 1:
+        if (SRCFLAG_DEFINESPRIMARYPIDS in self.src_flags
+                and not SRCFLAG_PRIMARYPID in self.src_flags):
             raise Exception(
-                "Field can be any ONE of: primary_pid, master_pid, "
-                "truncate_date, scrub_in.")
+                "All fields with src_flags={} set must have src_flags={} "
+                "set".format(
+                    SRCFLAG_DEFINESPRIMARYPIDS,
+                    SRCFLAG_PRIMARYPID
+                ))
+
+        if count_bool([SRCFLAG_PRIMARYPID in self.src_flags,
+                       SRCFLAG_MASTERPID in self.src_flags,
+                       bool(self.alter_method)]) > 1:
+            raise Exception(
+                "Field can be any ONE of: src_flags={}, src_flags={}, "
+                "alter_method".format(
+                    SRCFLAG_PRIMARYPID,
+                    SRCFLAG_MASTERPID
+                ))
+
+        valid_scrubsrc = [SCRUBSRC_PATIENT, SCRUBSRC_THIRDPARTY, ""]
+        if self.scrub_src not in valid_scrubsrc:
+            raise Exception(
+                "Invalid scrub_src - must be one of [{}]".format(
+                    ",".join(valid_scrubsrc)))
+
+        valid_scrubmethods = [SCRUBMETHOD_DATE, SCRUBMETHOD_NUMERIC,
+                              SCRUBMETHOD_TEXT, ""]
+        if self.scrub_src and self.scrub_method not in valid_scrubmethods:
+            raise Exception(
+                "Invalid scrub_method - must be one of [{}]".format(
+                    ",".join(valid_scrubmethods)))
 
         if not self.omit:
             ensure_valid_table_name(self.dest_table)
@@ -556,60 +701,74 @@ class DataDictionaryRow(object):
                     "variable".format(config.source_hash_fieldname))
             if not is_sqltype_valid(self.dest_datatype):
                 raise Exception(
-                    "Source field {db}.{t} has invalid data type: {dt}".format(
-                        db=self.destination_database,
-                        t=self.dest_table,
-                        dt=self.dest_datatype,
-                    )
-                )
-            if self.src_field == config.per_table_patient_id_field:
-                if not self.primary_pid:
+                    "Field has invalid destination data type: "
+                    "{}".format(self.dest_datatype))
+            if self.src_field == srccfg.per_table_pid_field:
+                if not SRCFLAG_PRIMARYPID in self.src_flags:
                     raise Exception(
-                        "All fields with src_field = {} used in output should "
-                        "have primary_pid set.".format(self.src_field))
+                        "All fields with src_field={} used in output should "
+                        "have src_flag={} set".format(self.src_field,
+                                                      SRCFLAG_PRIMARYPID))
                 if self.dest_field != config.research_id_fieldname:
                     raise Exception(
-                        "All fields with src_field = {} used in output should "
-                        "have dest_field = {}".format(
-                            config.per_table_patient_id_field,
+                        "Primary PID field should have "
+                        "dest_field = {}".format(
                             config.research_id_fieldname))
-            if (self.src_field == config.master_pid_fieldname
-                    and not self.master_pid):
+            if (self.src_field == srccfg.master_pid_fieldname
+                    and not SRCFLAG_MASTERPID in self.src_flags):
                 raise Exception(
                     "All fields with src_field = {} used in output should have"
-                    " master_pid set.".format(config.master_pid_fieldname))
+                    " src_flags={} set".format(srccfg.master_pid_fieldname,
+                                               SRCFLAG_MASTERPID))
 
-            if self.truncate_date and not is_sqltype_date(self.src_datatype):
-                raise Exception("Can't set truncate_date for non-date field")
-            if (self.scrub_in
+            if (self.alter_method == ALTERMETHOD_TRUNCATEDATE
+                    and not (
+                        is_sqltype_date(self.src_datatype)
+                        or is_sqltype_text_over_one_char(self.src_datatype))):
+                raise Exception("Can't set truncate_date for non-date/"
+                                "non-text field")
+            if (self.alter_method == ALTERMETHOD_SCRUBIN
                     and not is_sqltype_text_over_one_char(self.src_datatype)):
                 raise Exception("Can't scrub in non-text field or "
                                 "single-character text field")
 
-            if ((self.primary_pid or self.master_pid) and
+            if ((SRCFLAG_PRIMARYPID in self.src_flags
+                 or SRCFLAG_MASTERPID in self.src_flags) and
                     self.dest_datatype != SQLTYPE_ENCRYPTED_PID):
                 raise Exception(
-                    "All primary_pid/master_pid fields used in output must "
+                    "All src_flags={}/src_flags={} fields used in output must "
                     "have destination_datatype = {}".format(
+                        SRCFLAG_PRIMARYPID,
+                        SRCFLAG_MASTERPID,
                         SQLTYPE_ENCRYPTED_PID))
 
-            if self.index and self.fulltextindex:
-                raise Exception("Choose either normal or full-text index, "
-                                "not both.")
-            if (self.index and self.indexlen is None
+            valid_index = [INDEX_NORMAL, INDEX_UNIQUE, INDEX_FULLTEXT, ""]
+            if self.index not in valid_index:
+                raise Exception("Index must be one of: [{}]".format(
+                    ",".join(valid_index)))
+
+            if (self.index in [INDEX_NORMAL, INDEX_UNIQUE]
+                    and self.indexlen is None
                     and does_sqltype_require_index_len(self.dest_datatype)):
                 raise Exception(
-                    "Must specify indexlen to index a TEXT or BLOB field.")
+                    "Must specify indexlen to index a TEXT or BLOB field")
 
-        if self.add_src_hash:
-            if not self.src_pk:
+        if SRCFLAG_ADDSRCHASH in self.src_flags:
+            if SRCFLAG_PK not in self.src_flags:
                 raise Exception(
-                    "add_src_hash can only be set on src_pk fields")
+                    "src_flags={} can only be set on "
+                    "src_flags={} fields".format(
+                        SRCFLAG_ADDSRCHASH,
+                        SRCFLAG_PK))
             if self.omit:
-                raise Exception("Do not set omit on add_src_hash fields")
-            if not (self.index and self.indexunique):
-                raise Exception("add_src_hash fields require index, "
-                                "indexunique")
+                raise Exception(
+                    "Do not set omit on src_flags={} fields".format(
+                        SRCFLAG_ADDSRCHASH))
+            if self.index != INDEX_UNIQUE:
+                raise Exception(
+                    "src_flags={} fields require index=={}".format(
+                        SRCFLAG_ADDSRCHASH,
+                        INDEX_UNIQUE))
 
 
 class DataDictionary(object):
@@ -627,16 +786,21 @@ class DataDictionary(object):
                     "(TSV) file with the following row headings:\n" +
                     "\n".join(DataDictionaryRow.ROWNAMES)
                 )
-            logger.debug("Data dictionary has correct header.")
+            logger.debug("Data dictionary has correct header. "
+                         "Loading content...")
             for rowelements in tsv:
                 ddr = DataDictionaryRow()
                 ddr.set_from_elements(rowelements)
                 self.rows.append(ddr)
+            logger.debug("... content loaded.")
+        self.cache_stuff()
         self.check_valid(check_against_source_db)
 
-    def read_from_source_databases(self):
+    def read_from_source_databases(self, report_every=100,
+                                   default_omit=True):
         logger.info("Reading information for draft data dictionary")
         for pretty_dbname, db in config.sources.iteritems():
+            cfg = config.srccfg[pretty_dbname]
             schema = db.get_schema()
             logger.info("... database nice name = {}, schema = {}".format(
                 pretty_dbname, schema))
@@ -655,65 +819,171 @@ class DataDictionary(object):
                     WHERE table_schema=?
                 """
             args = [schema]
-            rows = db.fetchall(sql, *args)
-            for r in rows:
+            i = 0
+            signatures = []
+            for r in db.gen_fetchall(sql, *args):
+                i += 1
+                if report_every and i % report_every == 0:
+                    logger.debug("... reading source field {}".format(i))
                 t = r[0]
+                if t in cfg.table_blacklist:
+                    continue
                 f = r[1]
+                if f in cfg.field_blacklist:
+                    continue
                 datatype_short = r[2].upper()
                 datatype_full = r[3].upper()
                 c = r[4]
-                dd = DataDictionaryRow()
-                dd.set_from_src_db_info(pretty_dbname, t, f, datatype_short,
-                                        datatype_full, c)
-                already_exists = False
-                for other in self.rows:
-                    if (dd.src_db == other.src_db
-                            and dd.src_table == other.src_table
-                            and dd.src_field == other.src_field):
-                        already_exists = True
-                        break
-                if not already_exists:
-                    self.rows.append(dd)
+                ddr = DataDictionaryRow()
+                ddr.set_from_src_db_info(
+                    pretty_dbname, t, f, datatype_short,
+                    datatype_full,
+                    cfg=cfg,
+                    comment=c,
+                    default_omit=default_omit)
+                sig = ddr.get_signature()
+                if sig not in signatures:
+                    self.rows.append(ddr)
+                    signatures.append(sig)
+        logger.info("... done")
+        self.cache_stuff()
+        logger.info("Revising draft data dictionary")
+        for ddr in self.rows:
+            if ddr._from_file:
+                continue
+            # Don't scrub_in non-patient tables
+            if (ddr.src_table
+                    not in self.cached_src_tables_w_pt_info[ddr.src_db]):
+                if ddr.alter_method == ALTERMETHOD_SCRUBIN:
+                    ddr.alter_method = ""
+        logger.info("... done")
 
     def cache_stuff(self):
         logger.debug("Caching data dictionary information...")
-        self.cached_dest_tables = self._get_dest_tables()
-        self.cached_source_databases = self._get_source_databases()
+        self.cached_dest_tables = set()
+        self.cached_source_databases = set()
+        self.cached_srcdb_table_pairs = set()
+        self.cached_srcdb_table_pairs_w_pt_info = set()  # w = with
+        self.cached_scrub_from_rows = []
         self.cached_src_tables = {}
-        self.cached_src_tables_with_patient_info = {}
-        self.cached_patient_src_tables_with_active_destination = {}
-        for d in self.cached_source_databases:
-            self.cached_src_tables[d] = self._get_src_tables(d)
-            self.cached_src_tables_with_patient_info[d] = (
-                self._get_src_tables_with_patient_info(d)
+        self.cached_src_tables_w_pt_info = {}  # w = with
+        src_tables_with_dest = {}
+        self.cached_pt_src_tables_w_dest = {}
+        self.cached_rows_for_src_table = {}
+        self.cached_rows_for_dest_table = {}
+        self.cached_fieldnames_for_src_table = {}
+        self.cached_src_dbtables_for_dest_table = {}
+        self.cached_srchash_info = {}
+        self.cached_has_active_destination = {}
+        self.cached_dest_tables_for_src_db_table = {}
+        for ddr in self.rows:
+
+            # Database-oriented maps
+            if ddr.src_db not in self.cached_src_tables:
+                self.cached_src_tables[ddr.src_db] = set()
+            if ddr.src_db not in self.cached_pt_src_tables_w_dest:
+                self.cached_pt_src_tables_w_dest[ddr.src_db] = set()
+            if ddr.src_db not in self.cached_src_tables_w_pt_info:
+                self.cached_src_tables_w_pt_info[ddr.src_db] = set()
+            if ddr.src_db not in src_tables_with_dest:
+                src_tables_with_dest[ddr.src_db] = set()
+
+            # (Database + table)-oriented maps
+            db_t_key = (ddr.src_db, ddr.src_table)
+            if db_t_key not in self.cached_rows_for_src_table:
+                self.cached_rows_for_src_table[db_t_key] = set()
+            if db_t_key not in self.cached_fieldnames_for_src_table:
+                self.cached_fieldnames_for_src_table[db_t_key] = set()
+            if db_t_key not in self.cached_dest_tables_for_src_db_table:
+                self.cached_dest_tables_for_src_db_table[db_t_key] = set()
+            if db_t_key not in self.cached_srchash_info:
+                self.cached_srchash_info[db_t_key] = (
+                    None, False, ddr.dest_table, None
+                )
+
+            # Destination table-oriented maps
+            if ddr.dest_table not in self.cached_src_dbtables_for_dest_table:
+                self.cached_src_dbtables_for_dest_table[ddr.dest_table] = set()
+            if ddr.dest_table not in self.cached_rows_for_dest_table:
+                self.cached_rows_for_dest_table[ddr.dest_table] = set()
+
+            # Regardless...
+            self.cached_rows_for_src_table[db_t_key].add(ddr)
+            self.cached_fieldnames_for_src_table[db_t_key].add(ddr.src_field)
+            self.cached_srcdb_table_pairs.add(db_t_key)
+            self.cached_src_dbtables_for_dest_table[ddr.dest_table].add(
+                db_t_key)
+            self.cached_rows_for_dest_table[ddr.dest_table].add(ddr)
+
+            if db_t_key not in self.cached_has_active_destination:
+                self.cached_has_active_destination[db_t_key] = False
+
+            # Is it a scrub-from row?
+            if ddr.scrub_src:
+                self.cached_scrub_from_rows.append(ddr)
+                # ... even if omit flag set
+
+            # Is it a src_pk row, contributing to src_hash info?
+            if SRCFLAG_PK in ddr.src_flags:
+                self.cached_srchash_info[db_t_key] = (
+                    ddr.src_field,
+                    SRCFLAG_ADDSRCHASH in ddr.src_flags,
+                    ddr.dest_table,
+                    ddr.dest_field
+                )
+
+            # Is it a relevant contribution from a source table?
+            pt_info = bool(ddr.scrub_src)
+            omit = ddr.omit
+            if pt_info or not omit:
+                # Ensure our source lists contain that table.
+                self.cached_source_databases.add(ddr.src_db)
+                self.cached_src_tables[ddr.src_db].add(ddr.src_table)
+
+            # Does it indicate that the table contains patient info?
+            if pt_info:
+                self.cached_src_tables_w_pt_info[ddr.src_db].add(
+                    ddr.src_table)
+                self.cached_srcdb_table_pairs_w_pt_info.add(db_t_key)
+
+            # Does it contribute to our destination?
+            if not omit:
+                self.cached_dest_tables.add(ddr.dest_table)
+                self.cached_has_active_destination[db_t_key] = True
+                src_tables_with_dest[ddr.src_db].add(ddr.dest_table)
+                self.cached_dest_tables_for_src_db_table[db_t_key].add(
+                    ddr.dest_table
+                )
+
+        # A subtraction...
+        self.cached_srcdb_table_pairs_wo_pt_info = (
+            self.cached_srcdb_table_pairs
+            - self.cached_srcdb_table_pairs_w_pt_info
+        )
+
+        # An intersection...
+        for src_db in self.cached_source_databases:
+            self.cached_pt_src_tables_w_dest[src_db] = (
+                self.cached_src_tables_w_pt_info[src_db]
+                & src_tables_with_dest[src_db]  # & is intersection
             )
-            self.cached_patient_src_tables_with_active_destination[d] = (
-                self._get_patient_src_tables_with_active_dest(d)
-            )
-        self.cached_scrub_from_rows = self._get_scrub_from_rows()
+
+        # Now convert things to lists
+        self.cached_srcdb_table_pairs_wo_pt_info = list(
+            self.cached_srcdb_table_pairs_wo_pt_info
+        )
 
     def check_valid(self, check_against_source_db):
-        logger.debug("Checking data dictionary...")
+        logger.info("Checking data dictionary...")
         if not self.rows:
             raise Exception("Empty data dictionary")
-
-        # Remove tables that are entirely redundant
-        skiptables = []
-        for t in self._get_dest_tables():
-            ddr = self.get_rows_for_dest_table(t)
-            if all([(r.omit and not r.scrubsrc_patient
-                     and not r.scrubsrc_thirdparty) for r in ddr]):
-                skiptables.append(t)
-        self.rows = [r for r in self.rows
-                     if not r.dest_table in skiptables]
-        if not self.rows:
+        if not self.cached_dest_tables:
             raise Exception("Empty data dictionary after removing "
                             "redundant tables")
-        self.cache_stuff()
 
-        # Check individual rows
-        for r in self.rows:
-            r.check_valid()
+        # Individual rows will already have been checked
+        #for r in self.rows:
+        #    r.check_valid()
         # Now check collective consistency
 
         logger.debug("Checking DD: destination tables...")
@@ -746,23 +1016,28 @@ class DataDictionary(object):
                         )
 
                     rows = self.get_rows_for_src_table(d, t)
-                    if any([r.scrub_in or r.master_pid
+                    if any([r.alter_method == ALTERMETHOD_SCRUBIN
+                            or SRCFLAG_MASTERPID in r.src_flags
                             for r in rows if not r.omit]):
                         fieldnames = self.get_fieldnames_for_src_table(d, t)
-                        if not config.per_table_patient_id_field in fieldnames:
+                        if not config.srccfg[d].per_table_pid_field \
+                                in fieldnames:
                             raise Exception(
                                 "Source table {d}.{t} has a scrub_in or "
-                                "master_pid field but no {p} field".format(
+                                "src_flags={f} field but no {p} field".format(
                                     d=d,
                                     t=t,
-                                    p=config.per_table_patient_id_field,
+                                    f=SRCFLAG_MASTERPID,
+                                    p=config.srccfg[d].per_table_pid_field,
                                 )
                             )
 
-                    n_pks = sum([1 if x.src_pk else 0 for x in rows])
+                    n_pks = sum([1 if SRCFLAG_PK in x.src_flags else 0
+                                 for x in rows])
                     if n_pks > 1:
                         raise Exception(
-                            "Table {d}.{t} has >1 src_pk set".format(d=d, t=t))
+                            "Table {d}.{t} has >1 source PK set".format(
+                                d=d, t=t))
 
                     if not db.table_exists(t):
                         raise Exception(
@@ -774,106 +1049,47 @@ class DataDictionary(object):
                         )
 
         logger.debug("Checking DD: global checks...")
-        n_definers = sum([1 if x.defines_primary_pids else 0
-                          for x in self.rows])
-        if n_definers == 0:
-            raise Exception("Must have at least one field with "
-                            "'defines_primary_pids' set.")
-        if n_definers > 1:
-            logger.warning("Unusual: >1 field with "
-                           "defines_primary_pids set.")
-
-    def _get_dest_tables(self):
-        return list(set([ddr.dest_table for ddr in self.rows
-                         if ddr.dest_table
-                         and not ddr.omit]))
+        self.n_definers = sum(
+            [1 if SRCFLAG_DEFINESPRIMARYPIDS in x.src_flags else 0
+             for x in self.rows])
+        if self.n_definers == 0:
+            raise Exception(
+                "Must have at least one field with src_flags={} set.".format(
+                    SRCFLAG_DEFINESPRIMARYPIDS))
+        if self.n_definers > 1:
+            logger.warning(
+                "Unusual: >1 field with src_flags={} set.".format(
+                    SRCFLAG_DEFINESPRIMARYPIDS))
 
     def get_dest_tables(self):
         return self.cached_dest_tables
 
     def get_dest_tables_for_src_db_table(self, src_db, src_table):
-        return list(set([ddr.dest_table for ddr in self.rows
-                         if ddr.src_db == src_db
-                         and ddr.src_table == src_table
-                         and not ddr.omit]))
-
-    def _get_source_databases(self):
-        return list(set([ddr.src_db for ddr in self.rows]))
+        return self.cached_dest_tables_for_src_db_table[(src_db, src_table)]
 
     def get_source_databases(self):
         return self.cached_source_databases
 
     def get_src_dbs_tables_for_dest_table(self, dest_table):
-        return list(set([
-            (ddr.src_db, ddr.src_table)
-            for ddr in self.rows
-            if ddr.dest_table == dest_table
-        ]))
-
-    def _get_src_tables(self, src_db):
-        return list(set([ddr.src_table for ddr in self.rows
-                         if ddr.src_db == src_db]))
+        return self.cached_src_dbtables_for_dest_table[dest_table]
 
     def get_src_tables(self, src_db):
         return self.cached_src_tables[src_db]
 
-    def _get_patient_src_tables_with_active_dest(self, src_db):
-        potential_tables = self._get_src_tables_with_patient_info(
-            src_db)
-        tables = []
-        for t in potential_tables:
-            ddrows = self.get_rows_for_src_table(src_db, t)
-            if any(not ddr.omit for ddr in ddrows):
-                tables.append(t)
-        return tables
-
     def get_patient_src_tables_with_active_dest(self, src_db):
-        return self.cached_patient_src_tables_with_active_destination[
-            src_db]
-
-    def get_src_tables_with_no_patient_info(self, src_db):
-        potential_tables = self.get_src_tables(src_db)
-        tables = []
-        for t in potential_tables:
-            if any([ddr.primary_pid or ddr.master_pid
-                    for ddr in self.get_rows_for_src_table(src_db, t)]):
-                continue
-            tables.append(t)
-        return tables
-
-    def _get_src_tables_with_patient_info(self, src_db):
-        potential_tables = self.get_src_tables(src_db)
-        tables = []
-        for t in potential_tables:
-            if not any([ddr.primary_pid or ddr.master_pid
-                        for ddr in self.get_rows_for_src_table(
-                            src_db, t)]):
-                continue
-            tables.append(t)
-        return tables
+        return self.cached_pt_src_tables_w_dest[src_db]
 
     def get_src_tables_with_patient_info(self, src_db):
-        return self.cached_src_tables_with_patient_info[src_db]
+        return self.cached_src_tables_w_pt_info[src_db]
 
     def get_rows_for_src_table(self, src_db, src_table):
-        return [ddr for ddr in self.rows
-                if ddr.src_db == src_db
-                and ddr.src_table == src_table]
+        return self.cached_rows_for_src_table[(src_db, src_table)]
 
     def get_rows_for_dest_table(self, dest_table):
-        return [ddr for ddr in self.rows
-                if ddr.dest_table == dest_table]
+        return self.cached_rows_for_dest_table[dest_table]
 
     def get_fieldnames_for_src_table(self, src_db, src_table):
-        return [ddr.src_field for ddr in self.rows
-                if ddr.src_db == src_db
-                and ddr.src_table == src_table]
-
-    def _get_scrub_from_rows(self):
-        return [ddr for ddr in self.rows
-                if (ddr.scrubsrc_patient
-                    or ddr.scrubsrc_thirdparty)]
-        # ... even if omit flag set
+        return self.cached_fieldnames_for_src_table[(src_db, src_table)]
 
     def get_scrub_from_rows(self):
         return self.cached_scrub_from_rows
@@ -885,33 +1101,13 @@ class DataDictionary(object):
         )
 
     def get_src_dbs_tables_with_no_patient_info(self):
-        db_table_tuple_list = []
-        for db in self.get_source_databases():
-            for t in self.get_src_tables(db):
-                if any([ddr.primary_pid or ddr.master_pid
-                        for ddr in self.get_rows_for_src_table(db, t)]):
-                    continue
-            db_table_tuple_list.append((db, t))
-        return db_table_tuple_list
+        return self.cached_srcdb_table_pairs_wo_pt_info
 
     def get_srchash_info(self, src_db, src_table):
-        dest_table = None
-        src_pk = None
-        dest_pk = None
-        src_hash = False
-        ddrows = self.get_rows_for_src_table(src_db, src_table)
-        for ddr in ddrows:
-            if not dest_table:
-                dest_table = ddr.dest_table
-            if ddr.src_pk:
-                src_pk = ddr.src_field
-                dest_pk = ddr.dest_field
-                src_hash = ddr.add_src_hash
-        return (src_pk, src_hash, dest_table, dest_pk)
+        return self.cached_srchash_info[(src_db, src_table)]
 
     def has_active_destination(self, src_db, src_table):
-        ddrows = self.get_rows_for_src_table(src_db, src_table)
-        return any([not x.omit for x in ddrows])
+        return self.cached_has_active_destination[(src_db, src_table)]
 
 
 # =============================================================================
@@ -925,15 +1121,27 @@ def read_config_string_options(obj, parser, section, options,
     for o in options:
         if parser.has_option(section, o):
             value = parser.get(section, o)
-            enforce_str
             setattr(obj, o, str(value) if enforce_str else value)
         else:
             setattr(obj, o, None)
 
 
+def read_config_multiline_options(obj, parser, section, options):
+    if not parser.has_section(section):
+        raise Exception("config missing section: " + section)
+    for o in options:
+        if parser.has_option(section, o):
+            multiline = parser.get(section, o)
+            values = [x.strip() for x in multiline.splitlines() if x.strip()]
+            setattr(obj, o, values)
+        else:
+            setattr(obj, o, [])
+
+
 class DatabaseConfig(object):
     def __init__(self, parser, section):
         read_config_string_options(self, parser, section, [
+            # Connection
             "engine",
             "host",
             "port",
@@ -960,35 +1168,54 @@ class DatabaseConfig(object):
                     self.password or not self.db):
                 raise Exception("Missing SQL Server details")
 
+    def get_database(self):
+        db = rnc_db.DatabaseSupporter()
+        logger.info(
+            "Opening database: host={h}, port={p}, db={d}, user={u}".format(
+                h=self.host,
+                p=self.port,
+                d=self.db,
+                u=self.user,
+            )
+        )
+        if self.engine == "mysql":
+            db.connect_to_database_mysql(
+                server=self.host,
+                port=self.port,
+                database=self.db,
+                user=self.user,
+                password=self.password,
+                autocommit=False  # NB therefore need to commit
+            )
+        elif self.engine == "sqlserver":
+            db.connect_to_database_odbc_sqlserver(
+                database=self.db,
+                user=self.user,
+                password=self.password,
+                server=self.host,
+                autocommit=False
+            )
+        return db
 
-def get_database(dbc):
-    db = rnc_db.DatabaseSupporter()
-    logger.info(
-        "Opening database: host={h}, port={p}, db={d}, user={u}".format(
-            h=dbc.host,
-            p=dbc.port,
-            d=dbc.db,
-            u=dbc.user,
-        )
-    )
-    if dbc.engine == "mysql":
-        db.connect_to_database_mysql(
-            server=dbc.host,
-            port=dbc.port,
-            database=dbc.db,
-            user=dbc.user,
-            password=dbc.password,
-            autocommit=False  # NB therefore need to commit
-        )
-    elif dbc.engine == "sqlserver":
-        db.connect_to_database_odbc_sqlserver(
-            database=dbc.db,
-            user=dbc.user,
-            password=dbc.password,
-            server=dbc.host,
-            autocommit=False
-        )
-    return db
+
+class DatabaseSafeConfig(object):
+    def __init__(self, parser, section):
+        read_config_string_options(self, parser, section, [
+            "per_table_pid_field",
+            "master_pid_fieldname",
+        ])
+        read_config_multiline_options(self, parser, section, [
+            "possible_pk_fields",
+            "pid_defining_fieldnames",
+            "table_blacklist",
+            "field_blacklist",
+            "scrubsrc_patient_fields",
+            "scrubsrc_thirdparty_fields",
+            "scrubmethod_date_fields",
+            "scrubmethod_number_fields",
+            "truncate_date_fields",
+            "safe_fields_exempt_from_scrubbing",
+        ])
 
 
 def ensure_valid_field_name(f):
@@ -1025,23 +1252,27 @@ class DestinationFieldInfo(object):
 class Config(object):
     MAIN_HEADINGS = [
         "data_dictionary_filename",
-        "per_table_patient_id_field",
         "master_pid_fieldname",
         "per_table_patient_id_encryption_phrase",
         "master_patient_id_encryption_phrase",
         "change_detection_encryption_phrase",
         "replace_patient_info_with",
         "replace_third_party_info_with",
-        "scrub_string_suffixes",
         "string_max_regex_errors",
         "anonymise_dates_at_word_boundaries_only",
         "anonymise_numbers_at_word_boundaries_only",
         "anonymise_strings_at_word_boundaries_only",
+        "mapping_patient_id_fieldname",
         "research_id_fieldname",
+        "mapping_master_id_fieldname",
+        "master_research_id_fieldname",
         "source_hash_fieldname",
         "date_to_text_format",
         "datetime_to_text_format",
         "append_source_info_to_comment",
+    ]
+    MAIN_MULTILINE_HEADINGS = [
+        "scrub_string_suffixes",
         "source_databases",
     ]
 
@@ -1133,13 +1364,9 @@ class Config(object):
         parser = ConfigParser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         read_config_string_options(self, parser, "main", Config.MAIN_HEADINGS)
+        read_config_multiline_options(self, parser, "main",
+                                      Config.MAIN_MULTILINE_HEADINGS)
         # Processing of parameters
-        if self.scrub_string_suffixes is None:
-            self.scrub_string_suffixes = ""
-        self.scrub_string_suffixes = [
-            x.strip() for x in self.scrub_string_suffixes.splitlines()]
-        self.scrub_string_suffixes = [x for x in self.scrub_string_suffixes
-                                      if x]
         self.string_max_regex_errors = int(self.string_max_regex_errors)
         convert_attrs_to_bool(self, [
             "anonymise_dates_at_word_boundaries_only",
@@ -1147,70 +1374,68 @@ class Config(object):
             "anonymise_strings_at_word_boundaries_only",
             "append_source_info_to_comment",
         ])
+
         # Databases
-        self.destdb_config = DatabaseConfig(parser, "destination_database")
-        self.destdb = get_database(self.destdb_config)
-        self.admindb_config = DatabaseConfig(parser, "admin_database")
-        self.admindb = get_database(self.admindb_config)
-        self.src_db_configs = []
+        self.destdb = self.get_database("destination_database")
+        self.admindb = self.get_database("admin_database")
         self.sources = {}
+        self.srccfg = {}
         self.src_db_names = []
-        for sourcedb_name in [x.strip()
-                              for x in self.source_databases.splitlines()]:
-            if not sourcedb_name:
-                continue
+        for sourcedb_name in self.source_databases:
             self.src_db_names.append(sourcedb_name)
             if not include_sources:
                 continue
-            try:  # guard this bit to prevent any password leakage
-                dbc = DatabaseConfig(parser, sourcedb_name)
-                self.src_db_configs.append(dbc)
-                db = get_database(dbc)
-                self.sources[sourcedb_name] = db
-            except:
-                raise rnc_db.NoDatabaseError(
-                    "Problem opening or reading from database {}; details "
-                    "concealed for security reasons".format(sourcedb_name))
-            finally:
-                dbc = None
+            self.sources[sourcedb_name] = self.get_database(sourcedb_name)
+            self.srccfg[sourcedb_name] = DatabaseSafeConfig(
+                parser, sourcedb_name)
         # Hashers
         self.primary_pid_hasher = None
         self.master_pid_hasher = None
         self.change_detection_hasher = None
 
+    def get_database(self, section):
+        parser = ConfigParser.RawConfigParser()
+        parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
+        try:  # guard this bit to prevent any password leakage
+            dbc = DatabaseConfig(parser, section)
+            db = dbc.get_database()
+            return db
+        except:
+            raise rnc_db.NoDatabaseError(
+                "Problem opening or reading from database {}; details "
+                "concealed for security reasons".format(section))
+        finally:
+            dbc = None
+
     def check_valid(self, include_sources=False):
         """Raise exception if config is invalid."""
 
-        # Test databases
-        if include_sources:
-            if not self.sources:
-                raise Exception("No source databases specified.")
+        # Destination databases
         if not self.destdb:
             raise Exception("No destination database specified.")
         if not self.admindb:
             raise Exception("No admin database specified.")
 
         # Test field names
-        if not self.per_table_patient_id_field:
-            raise Exception("Blank fieldname: per_table_patient_id_field")
-        ensure_valid_field_name(self.per_table_patient_id_field)
+        def validate_fieldattr(name):
+            if not getattr(self, name):
+                raise Exception("Blank fieldname: " + name)
+            ensure_valid_field_name(getattr(self, name))
 
-        if not self.research_id_fieldname:
-            raise Exception("Blank fieldname: research_id_fieldname")
-        ensure_valid_field_name(self.research_id_fieldname)
-
-        if self.master_pid_fieldname:
-            ensure_valid_field_name(self.master_pid_fieldname)
-
-        if self.source_hash_fieldname:
-            ensure_valid_field_name(self.source_hash_fieldname)
-
-        if self.per_table_patient_id_field == self.source_hash_fieldname:
-            raise Exception("Config: per_table_patient_id_field can't be the "
-                            "same as source_hash_fieldname")
-        if self.research_id_fieldname == self.source_hash_fieldname:
-            raise Exception("Config: research_id_fieldname can't be the "
-                            "same as source_hash_fieldname")
+        specialfieldlist = [
+            "mapping_patient_id_fieldname",
+            "research_id_fieldname",
+            "master_research_id_fieldname",
+            "mapping_master_id_fieldname",
+            "source_hash_fieldname",
+        ]
+        fieldset = set()
+        for attrname in specialfieldlist:
+            validate_fieldattr(attrname)
+            fieldset.add(getattr(self, attrname))
+        if len(fieldset) != len(specialfieldlist):
+            raise Exception("Config: these must all be DIFFERENT fieldnames: "
+                            + ",".join(specialfieldlist))
 
         # Test strings
         if not self.replace_patient_info_with:
@@ -1246,6 +1471,23 @@ class Config(object):
         self.change_detection_hasher = MD5Hasher(
             self.change_detection_encryption_phrase)
 
+        # Source databases
+        if not include_sources:
+            return
+        if not self.sources:
+            raise Exception("No source databases specified.")
+        for dbname, cfg in self.srccfg.iteritems():
+            if not cfg.per_table_pid_field:
+                raise Exception(
+                    "Missing per_table_pid_field in config for database "
+                    "{}".format(dbname))
+            ensure_valid_field_name(cfg.per_table_pid_field)
+            if cfg.per_table_pid_field == self.source_hash_fieldname:
+                raise Exception("Config: per_table_pid_field can't be the "
+                                "same as source_hash_fieldname")
+            if cfg.master_pid_fieldname:
+                ensure_valid_field_name(cfg.master_pid_fieldname)
+
         # OK!
         logger.debug("Config validated.")
 
@@ -1253,6 +1495,8 @@ class Config(object):
         return self.primary_pid_hasher.hash(pid)
 
     def encrypt_master_pid(self, pid):
+        if pid is None:
+            return None  # or risk of revealing the hash?
         return self.master_pid_hasher.hash(pid)
 
     def hash_list(self, l):
