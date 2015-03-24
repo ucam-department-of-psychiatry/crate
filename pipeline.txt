@@ -308,3 +308,25 @@ c)  You're all set.
 
 ... all too much effort for what you get? Everyone doing it seriously will use
 SQL.
+
+===============================================================================
+X. TROUBLESHOOTING
+===============================================================================
+
+Q.  Error: [Microsoft][SQL Server Native Client 11.0]Connection is busy with
+    results for another command.
+A.  In /etc/odbc.ini, for that DSN, set
+        MARS_Connection = yes
+    - https://msdn.microsoft.com/en-us/library/cfa084cz(v=vs.110).aspx
+    - https://msdn.microsoft.com/en-us/library/h32h3abf(v=vs.110).aspx
+    - Rationale: We use gen_patient_ids() to iterate through patients, but then
+     we fetch data for that patient via the same connection to the source
+     database(s). Therefore, we're operating multiple result sets through one
+     connection.
+
+Q.  How to convert from SQL Server to MySQL?
+A.  MySQL Workbench.
+    Use the "ODBC via connection string" option if others aren't working:
+        DSN=XXX;UID=YYY;PWD=ZZZ
+    If the schema definitions are not seen, it's a permissions issue:
+        http://stackoverflow.com/questions/17038716

@@ -1295,83 +1295,6 @@ def read_config_multiline_options(obj, parser, section, options):
             setattr(obj, o, [])
 
 
-class DatabaseConfig(object):
-    def __init__(self, parser, section):
-        read_config_string_options(self, parser, section, [
-            # Connection
-            "engine",
-
-            # Various ways:
-            "host",
-            "port",
-            "db",
-
-            "dsn",
-
-            # Then regardless:
-            "user",
-            "password",
-        ])
-        self.port = int(self.port) if self.port else None
-        self.check_valid(section)
-
-    def check_valid(self, section):
-        if not self.engine:
-            raise Exception(
-                "Database {} doesn't specify engine".format(section))
-        self.engine = self.engine.lower()
-        if self.engine not in ["mysql", "sqlserver"]:
-            raise Exception("Unknown database engine: {}".format(self.engine))
-        if self.engine == "mysql":
-            if (not self.host or not self.port or not self.user or not
-                    self.password or not self.db):
-                raise Exception("Missing MySQL details")
-        elif self.engine == "sqlserver":
-            if not self.dsn:
-                if (not self.host or not self.user or not
-                        self.password or not self.db):
-                    raise Exception("Missing SQL Server details")
-
-    def get_database(self):
-        db = rnc_db.DatabaseSupporter()
-        logger.info(
-            "Opening database: host={h}, port={p}, db={d}, user={u}".format(
-                h=self.host,
-                p=self.port,
-                d=self.db,
-                u=self.user,
-            )
-        )
-        if self.engine == "mysql":
-            db.connect_to_database_mysql(
-                server=self.host,
-                port=self.port,
-                database=self.db,
-                user=self.user,
-                password=self.password,
-                autocommit=False  # NB therefore need to commit
-            )
-        elif self.engine == "sqlserver":
-            if self.dsn:
-                db.connect_to_database_odbc_sqlserver_dsn(
-                    dsn=self.dsn,
-                    user=self.user,
-                    password=self.password,
-                    autocommit=False
-                )
-            else:
-                db.connect_to_database_odbc_sqlserver(
-                    database=self.db,
-                    user=self.user,
-                    password=self.password,
-                    server=self.host,
-                    autocommit=False
-                )
-        else:
-            raise Exception("Unknown 'engine' parameter in DatabaseConfig")
-        return db
-
-
 class DatabaseSafeConfig(object):
     def __init__(self, parser, section):
         read_config_string_options(self, parser, section, [
@@ -1576,19 +1499,8 @@ class Config(object):
     def get_database(self, section):
         parser = ConfigParser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
-        try:  # guard this bit to prevent any password leakage
-            dbc = DatabaseConfig(parser, section)
-            db = dbc.get_database()
-            return db
-        except:
-            if self.open_databases_securely:
-                raise rnc_db.NoDatabaseError(
-                    "Problem opening or reading from database {}; details "
-                    "concealed for security reasons".format(section))
-            else:
-                raise
-        finally:
-            dbc = None
+        return rnc_db.get_database_from_configparser(
+            parser, section, securely=self.open_databases_securely)
 
     def check_valid(self, include_sources=False):
         """Raise exception if config is invalid."""
