@@ -392,7 +392,6 @@ SQLTYPES_NUMERIC = (
 )
 
 
-
 def split_long_sqltype(datatype_long):
     datatype_short = datatype_long.split("(")[0].strip()
     find_open = datatype_long.find("(")
@@ -530,6 +529,9 @@ class DatabaseSupporter:
          END)
     """
     ACCESS_COLUMN_TYPE_EXPR = "NULL"  # don't know how
+    MYSQL_CURRENT_SCHEMA_EXPR = "DATABASE()"
+    SQLSERVER_CURRENT_SCHEMA_EXPR = "SCHEMA_NAME()"
+    ACCESS_CURRENT_SCHEMA_EXPR = "NULL"  # don't know how
 
     def __init__(self):
         self.db = None
@@ -618,8 +620,8 @@ class DatabaseSupporter:
             # http://stackoverflow.com/questions/6001104
 
             self.schema = database
-            self.delims = ("`", "`")
-            self.coltype_expr = DatabaseSupporter.MYSQL_COLUMN_TYPE_EXPR
+            self.set_for_engine()
+            return True
         except Exception as e:
             err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
                 f=FUNCNAME,
@@ -683,8 +685,7 @@ class DatabaseSupporter:
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
             self.schema = database
-            self.delims = ("`", "`")
-            self.coltype_expr = DatabaseSupporter.MYSQL_COLUMN_TYPE_EXPR
+            self.set_for_engine()
             return True
         except Exception as e:
             err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
@@ -719,8 +720,7 @@ class DatabaseSupporter:
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
             self.schema = database
-            self.delims = ("[", "]")
-            self.coltype_expr = DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR
+            self.set_for_engine()
             return True
         except Exception as e:
             err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
@@ -750,8 +750,7 @@ class DatabaseSupporter:
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
             self.schema = "dbo"  # default for SQL server
-            self.delims = ("[", "]")
-            self.coltype_expr = DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR
+            self.set_for_engine()
             return True
         except Exception as e:
             err = (
@@ -783,8 +782,7 @@ class DatabaseSupporter:
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
             self.schema = "dbo"  # default for SQL server
-            self.delims = ("[", "]")
-            self.coltype_expr = DatabaseSupporter.ACCESS_COLUMN_TYPE_EXPR
+            self.set_for_engine()
             return True
         except Exception as e:
             err = (
@@ -798,6 +796,26 @@ class DatabaseSupporter:
             )
             logger.error(err)
             raise NoDatabaseError(err)
+
+    # -------------------------------------------------------------------------
+    # Engine configurations
+    # -------------------------------------------------------------------------
+
+    def set_for_engine(self):
+        if self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
+            self.delims = ("`", "`")
+            self.coltype_expr = DatabaseSupporter.MYSQL_COLUMN_TYPE_EXPR
+            self.schema_expr = DatabaseSupporter.MYSQL_CURRENT_SCHEMA_EXPR
+        elif self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
+            self.delims = ("[", "]")
+            self.coltype_expr = DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR
+            self.schema_expr = DatabaseSupporter.SQLSERVER_CURRENT_SCHEMA_EXPR
+        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
+            self.delims = ("[", "]")
+            self.coltype_expr = DatabaseSupporter.ACCESS_COLUMN_TYPE_EXPR
+            self.schema_expr = DatabaseSupporter.ACCESS_CURRENT_SCHEMA_EXPR
+        else:
+            pass
 
     # -------------------------------------------------------------------------
     # Generic SQL and database operations
@@ -1368,8 +1386,8 @@ class DatabaseSupporter:
             SELECT COUNT(*)
             FROM information_schema.tables
             WHERE table_name=?
-            AND table_schema=DATABASE()
-        """
+            AND table_schema={}
+        """.format(self.schema_expr)
         row = self.fetchone(sql, tablename)
         return True if row[0] >= 1 else False
 
@@ -1380,8 +1398,8 @@ class DatabaseSupporter:
             FROM information_schema.columns
             WHERE table_name=?
             AND column_name=?
-            AND table_schema=DATABASE()
-        """
+            AND table_schema={}
+        """.format(self.schema_expr)
         row = self.fetchone(sql, tablename, column)
         return True if row[0] >= 1 else False
 
@@ -1689,9 +1707,9 @@ class DatabaseSupporter:
             SELECT COUNT(*)
             FROM information_schema.table_constraints
             WHERE table_name=?
-            AND table_schema=database()
+            AND table_schema={}
             AND constraint_name='PRIMARY'
-        """
+        """.format(self.schema_expr)
         # http://forums.mysql.com/read.php?10,114742,114748#msg-114748
         row = self.fetchone(sql, table)
         has_pk_already = True if row[0] >= 1 else False
@@ -1727,8 +1745,8 @@ class DatabaseSupporter:
             SELECT engine, row_format
             FROM information_schema.tables
             WHERE table_name = ?
-            AND table_schema=database()
-        """
+            AND table_schema={}
+        """.format(self.schema_expr)
         args = [tablename]
         row = self.fetchone(sql, *args)
         if not row:
@@ -1764,7 +1782,4 @@ class DatabaseSupporter:
         return self.get_mysql_variable("max_allowed_packet")
 
     def get_schema(self):
-        if self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
-            return self.fetchvalue("SELECT DATABASE()")
-        else:  # certainly for SQL server...
-            return self.fetchvalue("SELECT SCHEMA_NAME()")
+        return self.fetchvalue("SELECT {}".format(self.schema_expr))
