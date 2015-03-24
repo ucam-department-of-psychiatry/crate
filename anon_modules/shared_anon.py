@@ -210,6 +210,14 @@ DEMO_CONFIG = """
 data_dictionary_filename = testdd.tsv
 
 # -----------------------------------------------------------------------------
+# Database password security
+# -----------------------------------------------------------------------------
+
+# Set this to True. Only set it to False to debug database opening failures,
+# under supervision, then set it back to True again afterwards.
+open_databases_securely = True
+
+# -----------------------------------------------------------------------------
 # Encryption phrases/passwords
 # -----------------------------------------------------------------------------
 
@@ -1339,6 +1347,8 @@ class DatabaseConfig(object):
                     server=self.host,
                     autocommit=False
                 )
+        else:
+            raise Exception("Unknown 'engine' parameter in DatabaseConfig")
         return db
 
 
@@ -1414,6 +1424,7 @@ class Config(object):
         "date_to_text_format",
         "datetime_to_text_format",
         "append_source_info_to_comment",
+        "open_databases_securely",
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
@@ -1517,6 +1528,7 @@ class Config(object):
             "anonymise_numbers_at_word_boundaries_only",
             "anonymise_strings_at_word_boundaries_only",
             "append_source_info_to_comment",
+            "open_databases_securely",
         ])
 
         # Databases
@@ -1545,9 +1557,12 @@ class Config(object):
             db = dbc.get_database()
             return db
         except:
-            raise rnc_db.NoDatabaseError(
-                "Problem opening or reading from database {}; details "
-                "concealed for security reasons".format(section))
+            if self.open_databases_securely:
+                raise rnc_db.NoDatabaseError(
+                    "Problem opening or reading from database {}; details "
+                    "concealed for security reasons".format(section))
+            else:
+                raise
         finally:
             dbc = None
 
