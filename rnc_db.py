@@ -522,9 +522,13 @@ class DatabaseSupporter:
     PYTHONLIB_MYSQLDB = "mysqldb"
     PYTHONLIB_PYODBC = "pyodbc"
     MYSQL_COLUMN_TYPE_EXPR = "column_type"
-    SQLSERVER_COLUMN_TYPE_EXPR = (
-        "data_type + '(' + "
-        "CAST(character_maximum_length AS VARCHAR(20)) + ')'")
+    SQLSERVER_COLUMN_TYPE_EXPR = """
+        (CASE WHEN character_maximum_length IS NOT NULL
+         THEN data_type + '(' +
+            CAST(character_maximum_length AS VARCHAR(20)) + ')'
+         ELSE data_type
+         END)
+    """
     ACCESS_COLUMN_TYPE_EXPR = "NULL"  # don't know how
 
     def __init__(self):
