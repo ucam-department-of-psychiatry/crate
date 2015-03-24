@@ -951,7 +951,10 @@ class DataDictionary(object):
                 """
             else:
                 sql = """
-                    SELECT table_name, column_name, data_type, column_type,
+                    SELECT table_name, column_name, data_type,
+                        data_type + '(' +
+                            CAST(character_maximum_length AS VARCHAR(20)) +
+                            ')',
                         NULL
                     FROM information_schema.columns
                     WHERE table_schema=?
