@@ -1308,9 +1308,10 @@ class DatabaseConfig(object):
                     self.password or not self.db):
                 raise Exception("Missing MySQL details")
         elif self.engine == "sqlserver":
-            if (not self.host or not self.user or not
-                    self.password or not self.db):
-                raise Exception("Missing SQL Server details")
+            if not dsn:
+                if (not self.host or not self.user or not
+                        self.password or not self.db):
+                    raise Exception("Missing SQL Server details")
 
     def get_database(self):
         db = rnc_db.DatabaseSupporter()
