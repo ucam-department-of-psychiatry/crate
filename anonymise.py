@@ -185,7 +185,7 @@ import argparse
 import itertools
 import logging
 import multiprocessing
-from operator import attrgetter
+import operator
 #import re
 import regex  # sudo apt-get install python-regex
 import signal
@@ -735,7 +735,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
 
         # Recreate
         ddr = config.dd.get_rows_for_dest_table(t)
-        ddr = sorted(ddr, key=attrgetter("dest_field"))
+        ddr = sorted(ddr, key=operator.attrgetter("dest_field"))
         fieldspecs = []
         dest_fieldnames = []
         for r in ddr:

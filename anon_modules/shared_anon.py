@@ -36,6 +36,7 @@ import dateutil.tz
 import logging
 logging.basicConfig()  # just in case nobody else has done this
 logger = logging.getLogger("anonymise")
+import operator
 import os
 import pytz
 import urllib
@@ -1002,6 +1003,11 @@ class DataDictionary(object):
                     not in self.cached_src_tables_w_pt_info[ddr.src_db]):
                 if ddr.alter_method == ALTERMETHOD_SCRUBIN:
                     ddr.alter_method = ""
+        logger.info("... done")
+        logger.info("Sorting draft data dictionary")
+        self.rows = sorted(self.rows,
+                           key=operator.attrgetter("src_db", "src_table",
+                                                   "src_field"))
         logger.info("... done")
 
     def cache_stuff(self):
