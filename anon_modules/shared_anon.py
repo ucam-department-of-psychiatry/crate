@@ -951,14 +951,10 @@ class DataDictionary(object):
                 """
             else:
                 sql = """
-                    SELECT table_name, column_name, data_type,
-                        data_type + '(' +
-                            CAST(character_maximum_length AS VARCHAR(20)) +
-                            ')',
-                        NULL
+                    SELECT table_name, column_name, data_type, {}, NULL
                     FROM information_schema.columns
                     WHERE table_schema=?
-                """
+                """.format(rnc_db.DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR)
             args = [schema]
             i = 0
             signatures = []
