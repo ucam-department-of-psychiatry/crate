@@ -392,6 +392,7 @@ SQLTYPES_NUMERIC = (
 )
 
 
+
 def split_long_sqltype(datatype_long):
     datatype_short = datatype_long.split("(")[0].strip()
     find_open = datatype_long.find("(")
@@ -520,6 +521,11 @@ class DatabaseSupporter:
     FLAVOUR_ACCESS = "access"
     PYTHONLIB_MYSQLDB = "mysqldb"
     PYTHONLIB_PYODBC = "pyodbc"
+    MYSQL_COLUMN_TYPE_EXPR = "column_type"
+    SQLSERVER_COLUMN_TYPE_EXPR = (
+        "data_type + '(' + "
+        "CAST(character_maximum_length AS VARCHAR(20)) + ')'")
+    ACCESS_COLUMN_TYPE_EXPR = "NULL"  # don't know how
 
     def __init__(self):
         self.db = None
@@ -528,6 +534,7 @@ class DatabaseSupporter:
         self.schema = None
         self.delims = ("", "")
         self.autocommit = None
+        self.coltype_expr = ""
         # http://stackoverflow.com/questions/2901453
         # http://stackoverflow.com/questions/7311990
 
@@ -608,6 +615,7 @@ class DatabaseSupporter:
 
             self.schema = database
             self.delims = ("`", "`")
+            self.coltype_expr = DatabaseSupporter.MYSQL_COLUMN_TYPE_EXPR
         except Exception as e:
             err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
                 f=FUNCNAME,
@@ -672,6 +680,7 @@ class DatabaseSupporter:
             # http://stackoverflow.com/questions/1063770
             self.schema = database
             self.delims = ("`", "`")
+            self.coltype_expr = DatabaseSupporter.MYSQL_COLUMN_TYPE_EXPR
             return True
         except Exception as e:
             err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
@@ -707,6 +716,7 @@ class DatabaseSupporter:
             # http://stackoverflow.com/questions/1063770
             self.schema = database
             self.delims = ("[", "]")
+            self.coltype_expr = DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR
             return True
         except Exception as e:
             err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
@@ -737,6 +747,7 @@ class DatabaseSupporter:
             # http://stackoverflow.com/questions/1063770
             self.schema = "dbo"  # default for SQL server
             self.delims = ("[", "]")
+            self.coltype_expr = DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR
             return True
         except Exception as e:
             err = (
@@ -769,6 +780,7 @@ class DatabaseSupporter:
             # http://stackoverflow.com/questions/1063770
             self.schema = "dbo"  # default for SQL server
             self.delims = ("[", "]")
+            self.coltype_expr = DatabaseSupporter.ACCESS_COLUMN_TYPE_EXPR
             return True
         except Exception as e:
             err = (
@@ -1629,10 +1641,12 @@ class DatabaseSupporter:
             # https://msdn.microsoft.com/en-us/library/ms188348.aspx
             # http://stackoverflow.com/questions/917431
             # http://sqlblog.com/blogs/aaron_bertrand/archive/2011/11/03/the-case-against-information-schema-views.aspx  # noqa
-            c = self.fetchvalue(
-                "SELECT column_type FROM information_schema.columns "
-                "WHERE table_schema=? AND table_name=? AND column_name=?",
-                self.schema, table, column)
+            sql = """
+                SELECT {}
+                FROM information_schema.columns
+                WHERE table_schema=? AND table_name=? AND column_name=?
+            """.format(self.coltype_expr)
+            c = self.fetchvalue(sql, self.schema, table, column)
         elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
             raise AssertionError("Don't know how to get datatype in Access")
         else:
