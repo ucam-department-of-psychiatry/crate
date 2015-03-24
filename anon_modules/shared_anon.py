@@ -1005,9 +1005,12 @@ class DataDictionary(object):
                     ddr.alter_method = ""
         logger.info("... done")
         logger.info("Sorting draft data dictionary")
-        self.rows = sorted(self.rows,
-                           key=operator.attrgetter("src_db", "src_table",
-                                                   "src_field"))
+        self.rows = sorted(
+            self.rows,
+            key=operator.attrgetter(
+                "src_db",
+                "src_table",
+                "src_field"))
         logger.info("... done")
 
     def cache_stuff(self):
