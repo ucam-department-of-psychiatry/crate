@@ -355,6 +355,9 @@ db = XXX
 
 # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
 
+#   Force all tables/fields to lower case? Generally a good idea. Boolean
+force_lower_case = True
+
 #   Specify the (typically integer) patient identifier present in EVERY
 #   table. It will be replaced by the research ID in the destination
 #   database.
@@ -399,6 +402,7 @@ user = XXX
 password = XXX
 db = XXX
 
+force_lower_case = True
 per_table_pid_field = patient_id
 master_pid_fieldname = nhsnum
 table_blacklist =
@@ -423,6 +427,7 @@ db = XXX
 db = camcops_anon_staging
 
 # FOR EXAMPLE:
+force_lower_case = True
 per_table_pid_field = _patient_idnum1
 pid_defining_fieldnames = _patient_idnum1
 master_pid_fieldname = _patient_idnum2
@@ -963,9 +968,13 @@ class DataDictionary(object):
                 if report_every and i % report_every == 0:
                     logger.debug("... reading source field {}".format(i))
                 t = r[0]
+                if cfg.force_lower_case:
+                    t = t.lower()
                 if t in cfg.table_blacklist:
                     continue
                 f = r[1]
+                if cfg.force_lower_case:
+                    f = f.lower()
                 if f in cfg.field_blacklist:
                     continue
                 datatype_short = r[2].upper()
@@ -1355,6 +1364,7 @@ class DatabaseConfig(object):
 class DatabaseSafeConfig(object):
     def __init__(self, parser, section):
         read_config_string_options(self, parser, section, [
+            "force_lower_case",
             "per_table_pid_field",
             "master_pid_fieldname",
         ])
@@ -1369,6 +1379,9 @@ class DatabaseSafeConfig(object):
             "scrubmethod_number_fields",
             "truncate_date_fields",
             "safe_fields_exempt_from_scrubbing",
+        ])
+        convert_attrs_to_bool(self, [
+            "force_lower_case",
         ])
 
 
