@@ -707,8 +707,10 @@ class DataDictionaryRow(object):
 
         if (is_sqltype_text_over_one_char(datatype_full)
                 and not self.omit
+                and not SRCFLAG_PRIMARYPID in self.src_flags
+                and not SRCFLAG_MASTERPID in self.src_flags
                 and not self.src_field in
-                cfg.safe_fields_exempt_from_scrubbing):
+                    cfg.safe_fields_exempt_from_scrubbing):
             self.alter_method = ALTERMETHOD_SCRUBIN
         elif self.src_field in cfg.truncate_date_fields:
             self.alter_method = ALTERMETHOD_TRUNCATEDATE
