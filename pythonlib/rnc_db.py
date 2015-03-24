@@ -1746,4 +1746,7 @@ class DatabaseSupporter:
         return self.get_mysql_variable("max_allowed_packet")
 
     def get_schema(self):
-        return self.fetchvalue("SELECT DATABASE()")
+        if self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
+            return self.fetchvalue("SELECT DATABASE()")
+        else:  # certainly for SQL server...
+            return self.fetchvalue("SELECT SCHEMA_NAME()")
