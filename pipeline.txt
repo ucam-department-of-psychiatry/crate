@@ -159,13 +159,15 @@ b)  METHOD 2: PROCESS-BASED. THIS IS FASTER.
       the NHS number as the primary PID, the practical difference would be that
       you would ditch any patients who have a RiO number but no NHS number
       recorded.)
-    - The databases must each use a consistent name for this field, across all
-      tables.
+    - Each databases must each use a consistent name for this field, across all
+      tables, WITHIN that database..
     - This field, which must be an integer, must fit into a BIGINT UNSIGNED
       field (see wipe_and_recreate_mapping_table() in anonymise.py).
     - However, the databases don't have to use the same *name* for the field.
       For example, RiO might use "id" to mean "RiO number", while CamCOPS might
       use "_patient_idnum1".
+    - A scrubber will be built across all source databases, which may improve
+      anonymisation.
 
 ===============================================================================
 3. NATURAL LANGUAGE PROCESSING

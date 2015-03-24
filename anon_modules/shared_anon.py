@@ -403,6 +403,136 @@ scrubmethod_number_fields =
 safe_fields_exempt_from_scrubbing =
 truncate_date_fields =
 
+[camcops]
+# Example for the CamCOPS anonymisation staging database
+
+engine = mysql
+host = localhost
+port = 3306
+user = XXX
+password = XXX
+db = XXX
+db = camcops_anon_staging
+
+# FOR EXAMPLE:
+per_table_pid_field = _patient_idnum1
+pid_defining_fieldnames = _patient_idnum1
+master_pid_fieldname = _patient_idnum2
+
+table_blacklist =
+
+field_blacklist = _patient_iddesc1
+    _patient_idshortdesc1
+    _patient_iddesc2
+    _patient_idshortdesc2
+    _patient_iddesc3
+    _patient_idshortdesc3
+    _patient_iddesc4
+    _patient_idshortdesc4
+    _patient_iddesc5
+    _patient_idshortdesc5
+    _patient_iddesc6
+    _patient_idshortdesc6
+    _patient_iddesc7
+    _patient_idshortdesc7
+    _patient_iddesc8
+    _patient_idshortdesc8
+    id
+    patient_id
+    _device
+    _era
+    _current
+    _when_removed_exact
+    _when_removed_batch_utc
+    _removing_user
+    _preserving_user
+    _forcibly_preserved
+    _predecessor_pk
+    _successor_pk
+    _manually_erased
+    _manually_erased_at
+    _manually_erasing_user
+    _addition_pending
+    _removal_pending
+    _move_off_tablet
+
+possible_pk_fields = _pk
+
+scrubsrc_patient_fields = _patient_forename
+    _patient_surname
+    _patient_dob
+    _patient_idnum1
+    _patient_idnum2
+    _patient_idnum3
+    _patient_idnum4
+    _patient_idnum5
+    _patient_idnum6
+    _patient_idnum7
+    _patient_idnum8
+
+scrubsrc_thirdparty_fields =
+
+scrubmethod_date_fields = _patient_dob
+
+scrubmethod_number_fields =
+
+safe_fields_exempt_from_scrubbing = _device
+    _era
+    _when_added_exact
+    _adding_user
+    _when_removed_exact
+    _removing_user
+    _preserving_user
+    _manually_erased_at
+    _manually_erasing_user
+    when_last_modified
+    when_created
+    when_firstexit
+    clinician_specialty
+    clinician_name
+    clinician_post
+    clinician_professional_registration
+    clinician_contact_details
+# ... now some task-specific ones
+    bdi_scale
+    pause_start_time
+    pause_end_time
+    trial_start_time
+    cue_start_time
+    target_start_time
+    detection_start_time
+    iti_start_time
+    iti_end_time
+    trial_end_time
+    response_time
+    target_time
+    choice_time
+    discharge_date
+    discharge_reason_code
+    diagnosis_psych_1_icd10code
+    diagnosis_psych_1_description
+    diagnosis_psych_2_icd10code
+    diagnosis_psych_2_description
+    diagnosis_psych_3_icd10code
+    diagnosis_psych_3_description
+    diagnosis_psych_4_icd10code
+    diagnosis_psych_4_description
+    diagnosis_medical_1
+    diagnosis_medical_2
+    diagnosis_medical_3
+    diagnosis_medical_4
+    category_start_time
+    category_response_time
+    category_chosen
+    gamble_fixed_option
+    gamble_lottery_option_p
+    gamble_lottery_option_q
+    gamble_start_time
+    gamble_response_time
+    likelihood
+
+truncate_date_fields = _patient_dob
+
 """.format(
     SQLTYPE_ENCRYPTED_PID=SQLTYPE_ENCRYPTED_PID,
     SCRUBSRC_PATIENT=SCRUBSRC_PATIENT,
@@ -1143,13 +1273,19 @@ class DatabaseConfig(object):
         read_config_string_options(self, parser, section, [
             # Connection
             "engine",
+
+            # Various ways:
             "host",
             "port",
+            "db",
+
+            "dsn",
+
+            # Then regardless:
             "user",
             "password",
-            "db",
         ])
-        self.port = int(self.port)
+        self.port = int(self.port) if self.port else None
         self.check_valid(section)
 
     def check_valid(self, section):
@@ -1188,13 +1324,21 @@ class DatabaseConfig(object):
                 autocommit=False  # NB therefore need to commit
             )
         elif self.engine == "sqlserver":
-            db.connect_to_database_odbc_sqlserver(
-                database=self.db,
-                user=self.user,
-                password=self.password,
-                server=self.host,
-                autocommit=False
-            )
+            if self.dsn:
+                db.connect_to_database_odbc_sqlserver_dsn(
+                    dsn=self.dsn,
+                    user=self.user,
+                    password=self.password,
+                    autocommit=False
+                )
+            else:
+                db.connect_to_database_odbc_sqlserver(
+                    database=self.db,
+                    user=self.user,
+                    password=self.password,
+                    server=self.host,
+                    autocommit=False
+                )
         return db
 
 

@@ -1346,7 +1346,7 @@ Sample usage:
     parser.add_argument("--processcluster", default="",
                         help="Process cluster name")
     parser.add_argument("--democonfig", action="store_true",
-                        help="Print a demo config file")
+                        help="Print a demo config file (INCLUDES MORE HELP)")
     parser.add_argument("--draftdd", action="store_true",
                         help="Print a draft data dictionary")
     parser.add_argument("--incrementaldd", action="store_true",
