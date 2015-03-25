@@ -735,7 +735,7 @@ class DataDictionaryRow(object):
             SQLTYPE_ENCRYPTED_PID
             if (SRCFLAG_PRIMARYPID in self.src_flags
                 or SRCFLAG_MASTERPID in self.src_flags)
-            else datatype_full)
+            else rnc_db.full_datatype_to_mysql(datatype_full))
 
         if SRCFLAG_PK in self.src_flags:
             self.index = INDEX_UNIQUE
