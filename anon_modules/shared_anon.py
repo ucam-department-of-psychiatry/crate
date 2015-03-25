@@ -1215,7 +1215,8 @@ class DataDictionary(object):
             [1 if SRCFLAG_DEFINESPRIMARYPIDS in x.src_flags else 0
              for x in self.rows])
         if self.n_definers == 0:
-            if all([x.allow_no_patient_info for x in config.srccfg]):
+            if all([x.allow_no_patient_info
+                    for x in config.srccfg.itervalues()]):
                 logger.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
                                "BE COPIED, NOT ANONYMISED.")
             else:
