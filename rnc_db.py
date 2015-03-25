@@ -407,7 +407,10 @@ def split_long_sqltype(datatype_long):
     find_open = datatype_long.find("(")
     find_close = datatype_long.find(")")
     if find_open >= 0 and find_close > find_open:
-        length = int(datatype_long[find_open + 1:find_close])
+        try:
+            length = int(datatype_long[find_open + 1:find_close])
+        except:  # e.g. for "VARCHAR(MAX)"
+            length = None
     else:
         length = None
     return (datatype_short, length)
