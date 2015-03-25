@@ -356,8 +356,13 @@ db = XXX
 
 # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
 
-#   Force all tables/fields to lower case? Generally a good idea. Boolean
+#   Force all tables/fields to lower case? Generally a good idea. Boolean;
+#   default is True.
 force_lower_case = True
+
+#   Allow the absence of patient info? Used to copy databases; WILL NOT
+#   ANONYMISE. Boolean; default is False.
+allow_no_patient_info = False
 
 #   Specify the (typically integer) patient identifier present in EVERY
 #   table. It will be replaced by the research ID in the destination
@@ -710,7 +715,7 @@ class DataDictionaryRow(object):
                 and not SRCFLAG_PRIMARYPID in self.src_flags
                 and not SRCFLAG_MASTERPID in self.src_flags
                 and not self.src_field in
-                    cfg.safe_fields_exempt_from_scrubbing):
+                cfg.safe_fields_exempt_from_scrubbing):
             self.alter_method = ALTERMETHOD_SCRUBIN
         elif self.src_field in cfg.truncate_date_fields:
             self.alter_method = ALTERMETHOD_TRUNCATEDATE
@@ -1210,9 +1215,13 @@ class DataDictionary(object):
             [1 if SRCFLAG_DEFINESPRIMARYPIDS in x.src_flags else 0
              for x in self.rows])
         if self.n_definers == 0:
-            raise Exception(
-                "Must have at least one field with src_flags={} set.".format(
-                    SRCFLAG_DEFINESPRIMARYPIDS))
+            if config.allow_no_patient_info:
+                logger.warning("NO PATIENT-DEFINING FIELD! DATABASE WILL BE "
+                               "COPIED, NOT ANONYMISED.")
+            else:
+                raise Exception(
+                    "Must have at least one field with "
+                    "src_flags={} set.".format(SRCFLAG_DEFINESPRIMARYPIDS))
         if self.n_definers > 1:
             logger.warning(
                 "Unusual: >1 field with src_flags={} set.".format(
@@ -1299,6 +1308,7 @@ class DatabaseSafeConfig(object):
     def __init__(self, parser, section):
         read_config_string_options(self, parser, section, [
             "force_lower_case",
+            "allow_no_patient_info",
             "per_table_pid_field",
             "master_pid_fieldname",
         ])
@@ -1316,7 +1326,10 @@ class DatabaseSafeConfig(object):
         ])
         convert_attrs_to_bool(self, [
             "force_lower_case",
-        ])
+        ], default=True)
+        convert_attrs_to_bool(self, [
+            "allow_no_patient_info",
+        ], default=False)
 
 
 def ensure_valid_field_name(f):
