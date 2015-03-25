@@ -285,7 +285,11 @@ def full_datatype_to_mysql(d):
     MySQL equivalent."""
     d = d.upper()
     if d == "VARCHAR(MAX)":
-        return "TEXT"
+        # http://wiki.ispirer.com/sqlways/mysql/data-types/longtext
+        return "LONGTEXT"
+    elif d == "VARBINARY(MAX)":
+        # http://wiki.ispirer.com/sqlways/mysql/data-types/varbinary
+        return "LONGBLOB"
     else:
         return d
 
@@ -644,8 +648,8 @@ class DatabaseSupporter:
             WHEN character_maximum_length > 0
                 THEN data_type + '(' +
                     CAST(character_maximum_length AS VARCHAR(20)) + ')'
-            WHEN (character_maximum_length = -1 AND data_type = 'varchar')
-                THEN 'VARCHAR(MAX)'
+            WHEN character_maximum_length = -1
+                THEN data_type + '(MAX)'
             ELSE data_type
          END)
     """
