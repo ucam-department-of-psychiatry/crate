@@ -280,6 +280,16 @@ def DateTime2literal_RNC(d, c):
     return _mysql.string_literal(d.strftime("%Y-%m-%d %H:%M:%S"), c)
 
 
+def full_datatype_to_mysql(d):
+    """Converts a full datatype, e.g. INT, VARCHAR(10), VARCHAR(MAX), to a
+    MySQL equivalent."""
+    d = d.upper()
+    if d == "VARCHAR(MAX)":
+        return "TEXT"
+    else:
+        return d
+
+
 # =============================================================================
 # Generic routines for objects with database fields
 # =============================================================================
@@ -627,10 +637,13 @@ class DatabaseSupporter:
     PYTHONLIB_PYODBC = "pyodbc"
     MYSQL_COLUMN_TYPE_EXPR = "column_type"
     SQLSERVER_COLUMN_TYPE_EXPR = """
-        (CASE WHEN character_maximum_length > 0
-         THEN data_type + '(' +
-            CAST(character_maximum_length AS VARCHAR(20)) + ')'
-         ELSE data_type
+        (CASE
+            WHEN character_maximum_length > 0
+                THEN data_type + '(' +
+                    CAST(character_maximum_length AS VARCHAR(20)) + ')'
+            WHEN (character_maximum_length = -1 AND data_type = 'varchar')
+                THEN 'VARCHAR(MAX)'
+            ELSE data_type
          END)
     """
     ACCESS_COLUMN_TYPE_EXPR = "NULL"  # don't know how
