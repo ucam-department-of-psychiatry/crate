@@ -545,6 +545,8 @@ class DatabaseConfig(object):
 
             "dsn",
 
+            "odbc_connection_string",
+
             # Then regardless:
             "user",
             "password",
@@ -570,18 +572,31 @@ class DatabaseConfig(object):
                     self.password or not self.db):
                 raise Exception("Missing MySQL details")
         elif self.engine == "sqlserver":
-            if not self.dsn:
+            if self.odbc_connection_string:
+                pass  # this is OK
+            elif self.dsn:
+                if (not self.user or not self.password):
+                    raise Exception(
+                        "Missing SQL Server details: user or password")
+            else:
                 if (not self.host or not self.user or not
                         self.password or not self.db):
-                    raise Exception("Missing SQL Server details")
+                    raise Exception(
+                        "Missing SQL Server details: host, user, "
+                        "password, or db")
 
     def get_database(self):
         db = DatabaseSupporter()
         logger.info(
-            "Opening database: host={h}, port={p}, db={d}, user={u}".format(
+            "Opening database: engine={e}, host={h}, port={p}, db={d}, "
+            "dsn={dsn}, odbc_connection_string={c}, user={u}".format(
+                e=self.engine,
                 h=self.host,
                 p=self.port,
                 d=self.db,
+                dsn=self.dsn,
+                c=("[POTENTIALLY SECRET]"
+                   if self.odbc_connection_string else None),
                 u=self.user,
             )
         )
@@ -595,21 +610,15 @@ class DatabaseConfig(object):
                 autocommit=False  # NB therefore need to commit
             )
         elif self.engine == "sqlserver":
-            if self.dsn:
-                db.connect_to_database_odbc_sqlserver_dsn(
-                    dsn=self.dsn,
-                    user=self.user,
-                    password=self.password,
-                    autocommit=False
-                )
-            else:
-                db.connect_to_database_odbc_sqlserver(
-                    database=self.db,
-                    user=self.user,
-                    password=self.password,
-                    server=self.host,
-                    autocommit=False
-                )
+            db.connect_to_database_odbc_sqlserver(
+                odbc_connection_string=self.odbc_connection_string,
+                dsn=self.dsn,
+                database=self.db,
+                user=self.user,
+                password=self.password,
+                server=self.host,
+                autocommit=False
+            )
         else:
             raise Exception("Unknown 'engine' parameter in DatabaseConfig")
         return db
@@ -823,9 +832,11 @@ class DatabaseSupporter:
             raise NoDatabaseError(err)
 
     def connect_to_database_odbc_sqlserver(self,
-                                           database,
-                                           user,
-                                           password,
+                                           odbc_connection_string=None,
+                                           dsn=None,
+                                           database=None,
+                                           user=None,
+                                           password=None,
                                            server="localhost",
                                            driver="{SQL Server}",
                                            autocommit=True):
@@ -838,52 +849,32 @@ class DatabaseSupporter:
         try:
             self.db_flavour = DatabaseSupporter.FLAVOUR_SQLSERVER
             self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
-            dsn = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={}".format(
-                driver, server, database, user, password)
-            self.db = pyodbc.connect(dsn)
+            if odbc_connection_string:
+                connectstring = odbc_connection_string
+            elif dsn:
+                connectstring = "DSN={};UID={};PWD={}".format(dsn, user,
+                                                              password)
+            else:
+                connectstring = (
+                    "DRIVER={};SERVER={};DATABASE={};UID={};PWD={}".format(
+                        driver, server, database, user, password)
+                )
+            self.db = pyodbc.connect(connectstring, unicode_results=True)
             self.autocommit = autocommit
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
-            self.schema = database
-            self.set_for_engine()
-            return True
-        except Exception as e:
-            err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
-                f=FUNCNAME,
-                d=database,
-                ex=type(e).__name__,
-                msg=str(e),
-            )
-            logger.error(err)
-            raise NoDatabaseError(err)
-
-    def connect_to_database_odbc_sqlserver_dsn(self, dsn, user, password,
-                                               autocommit=True):
-        """Connects to an SQL Server database via ODBC, with the DSN
-        prespecified."""
-        # SQL Server: http://code.google.com/p/pyodbc/wiki/ConnectionStrings
-        FUNCNAME = "connect_to_database_odbc_sqlserver_dsn: "
-        if not PYODBC_AVAILABLE:
-            logger.error(FUNCNAME + MSG_PYODBC_UNAVAILABLE)
-            return False
-        try:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_SQLSERVER
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
-            full_dsn = "DSN={};UID={};PWD={}".format(dsn, user, password)
-            self.db = pyodbc.connect(full_dsn, unicode_results=True)
-            self.autocommit = autocommit
-            self.db.autocommit = autocommit
-            # http://stackoverflow.com/questions/1063770
-            self.schema = "dbo"  # default for SQL server
+            if database:
+                self.schema = database
+            else:
+                self.schema = "dbo"  # default for SQL server
             self.set_for_engine()
             return True
         except Exception as e:
             err = (
-                "{f} Failed to connect to database; DSN={dsn}, user={u}. "
-                "{ex}: {msg}".format(
+                "{f} Failed to connect to database with connection string {c}."
+                " {ex}: {msg}".format(
                     f=FUNCNAME,
-                    dsn=dsn,
-                    u=user,
+                    c=connectstring,
                     ex=type(e).__name__,
                     msg=str(e),
                 )
