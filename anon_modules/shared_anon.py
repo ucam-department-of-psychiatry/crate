@@ -1215,9 +1215,9 @@ class DataDictionary(object):
             [1 if SRCFLAG_DEFINESPRIMARYPIDS in x.src_flags else 0
              for x in self.rows])
         if self.n_definers == 0:
-            if config.allow_no_patient_info:
-                logger.warning("NO PATIENT-DEFINING FIELD! DATABASE WILL BE "
-                               "COPIED, NOT ANONYMISED.")
+            if all([x.allow_no_patient_info for x in config.srccfg]):
+                logger.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
+                               "BE COPIED, NOT ANONYMISED.")
             else:
                 raise Exception(
                     "Must have at least one field with "
@@ -1585,14 +1585,15 @@ class Config(object):
         if not self.sources:
             raise Exception("No source databases specified.")
         for dbname, cfg in self.srccfg.iteritems():
-            if not cfg.per_table_pid_field:
-                raise Exception(
-                    "Missing per_table_pid_field in config for database "
-                    "{}".format(dbname))
-            ensure_valid_field_name(cfg.per_table_pid_field)
-            if cfg.per_table_pid_field == self.source_hash_fieldname:
-                raise Exception("Config: per_table_pid_field can't be the "
-                                "same as source_hash_fieldname")
+            if not cfg.allow_no_patient_info:
+                if not cfg.per_table_pid_field:
+                    raise Exception(
+                        "Missing per_table_pid_field in config for database "
+                        "{}".format(dbname))
+                ensure_valid_field_name(cfg.per_table_pid_field)
+                if cfg.per_table_pid_field == self.source_hash_fieldname:
+                    raise Exception("Config: per_table_pid_field can't be the "
+                                    "same as source_hash_fieldname")
             if cfg.master_pid_fieldname:
                 ensure_valid_field_name(cfg.master_pid_fieldname)
 

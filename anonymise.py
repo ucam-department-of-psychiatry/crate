@@ -892,6 +892,10 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
 
 
 def gen_all_values_for_patient(sources, dbname, table, field, pid):
+    cfg = config.srccfg[dbname]
+    if not cfg.per_table_pid_field:
+        return
+        # http://stackoverflow.com/questions/13243766
     logger.debug("gen_all_values_for_patient: {d}.{t}.{f} for PID {p}".format(
         d=dbname, t=table, f=field, p=pid))
     db = sources[dbname]
@@ -902,7 +906,7 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
     """.format(
         field=field,
         table=table,
-        patient_id_field=config.srccfg[dbname].per_table_pid_field
+        patient_id_field=cfg.per_table_pid_field
     )
     args = [pid]
     cursor = db.cursor()
