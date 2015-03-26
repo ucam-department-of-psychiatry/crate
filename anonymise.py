@@ -1040,8 +1040,11 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                     value = None
             elif ddr._extract_text:
                 if ddr._extract_from_filename:
+                    filename = value
+                    logger.debug(
+                        "document_to_text: filename={}".format(filename))
                     try:
-                        value = document_to_text(filename=value)
+                        value = document_to_text(filename=filename)
                     except Exception as e:
                         logger.error(
                             "Exception from document_to_text: {}".format(e))
@@ -1056,6 +1059,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                             "Bug: missing extension field for "
                             "alter_method={}".format(ddr.alter_method))
                     extension = row[extindex]
+                    logger.debug(
+                        "document_to_text: extension={}".format(extension))
                     try:
                         value = document_to_text(blob=value,
                                                  extension=extension)

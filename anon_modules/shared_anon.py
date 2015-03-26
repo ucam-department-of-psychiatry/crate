@@ -820,6 +820,7 @@ class DataDictionaryRow(object):
             self._extract_text = True
             self._extract_from_filename = False
             self._extract_ext_field = cfg.bin2text_dict[self.src_field]
+            self.dest_datatype = LONGTEXT
             if not self.src_field in cfg.safe_fields_exempt_from_scrubbing:
                 self._scrub = True
         elif (is_sqltype_text_over_one_char(datatype_full)
