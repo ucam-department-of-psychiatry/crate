@@ -1322,9 +1322,7 @@ def main():
     description = """
 Database anonymiser. {version}. By Rudolf Cardinal.
 
-Sample usage:
-    export PYTHONPATH=$PYTHONPATH:./pythonlib  # to find rnc_db.py
-
+Sample usage (having set PYTHONPATH):
     anonymise.py -c > testconfig.ini  # generate sample config file
     anonymise.py -d testconfig.ini > testdd.tsv  # generate draft data dict.
     anonymise.py testconfig.ini  # run""".format(version=version)

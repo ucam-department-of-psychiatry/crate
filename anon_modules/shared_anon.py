@@ -697,7 +697,7 @@ class DataDictionaryRow(object):
             self._extract_from_filename = True
             self._scrub = True
 
-    def components_to_alter_method(self):
+    def get_alter_method(self):
         if self._truncate_date:
             return ALTERMETHOD.TRUNCATEDATE
         if self._extract_text:
@@ -715,6 +715,9 @@ class DataDictionaryRow(object):
         if self._scrub:
             return ALTERMETHOD.SCRUBIN
         return ""
+
+    def components_to_alter_method(self):
+        self.alter_method = self.get_alter_method()
 
     def __str__(self):
         self.components_to_alter_method()
@@ -859,6 +862,7 @@ class DataDictionaryRow(object):
         return "\t".join(values)
 
     def check_valid(self):
+        self.components_to_alter_method()
         offenderdest = "" if not self.omit else " -> {}.{}".format(
             self.dest_table, self.dest_field)
         offender = "{}.{}.{}{}".format(
@@ -871,7 +875,6 @@ class DataDictionaryRow(object):
             raise
 
     def _check_valid(self):
-        self.components_to_alter_method()
         raise_if_attr_blank(self, [
             "src_db",
             "src_table",
@@ -1463,10 +1466,10 @@ class DatabaseSafeConfig(object):
             "scrubsrc_thirdparty_fields",
             "scrubmethod_date_fields",
             "scrubmethod_number_fields",
+            "safe_fields_exempt_from_scrubbing",
             "truncate_date_fields",
             "filename_to_text_fields",
             "binary_to_text_field_pairs",
-            "safe_fields_exempt_from_scrubbing",
         ])
         convert_attrs_to_bool(self, [
             "force_lower_case",
