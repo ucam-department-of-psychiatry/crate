@@ -1126,8 +1126,8 @@ class DataDictionary(object):
             # Don't scrub_in non-patient tables
             if (ddr.src_table
                     not in self.cached_src_tables_w_pt_info[ddr.src_db]):
-                if ddr.alter_method == ALTERMETHOD.SCRUBIN:
-                    ddr.alter_method = ""
+                ddr._scrub = False
+                ddr.components_to_alter_method()
         logger.info("... done")
         logger.info("Sorting draft data dictionary")
         self.rows = sorted(
@@ -1298,8 +1298,7 @@ class DataDictionary(object):
                     rows = self.get_rows_for_src_table(d, t)
                     fieldnames = self.get_fieldnames_for_src_table(d, t)
 
-                    if any([r.alter_method == ALTERMETHOD.SCRUBIN
-                            or SRCFLAG.MASTERPID in r.src_flags
+                    if any([r._scrub or SRCFLAG.MASTERPID in r.src_flags
                             for r in rows if not r.omit]):
                         if not config.srccfg[d].per_table_pid_field \
                                 in fieldnames:
@@ -1481,7 +1480,8 @@ class DatabaseSafeConfig(object):
         for pair in self.binary_to_text_field_pairs:
             items = [item.strip() for item in pair.split(",")]
             if len(items) != 2:
-                raise ValueError("binary_to_text_field_pairs: specify fields in pairs")
+                raise ValueError(
+                    "binary_to_text_field_pairs: specify fields in pairs")
             self.bin2text_dict[items[0]] = items[1]
 
 
