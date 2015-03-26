@@ -335,7 +335,7 @@ A.  MySQL Workbench.
 
 Q.  MySQL server has gone away... ?
 A.  Probably: processing a big binary field, and MySQL's max_allowed_packet
-    parameter is too small. Try increasing it (e.g. from 16M to 64M).
+    parameter is too small. Try increasing it (e.g. from 16M to 32M).
     See also http://www.camcops.org/documentation/server.html
 
 Q.  What settings do I need in /etc/mysql/my.cnf?
@@ -349,7 +349,15 @@ A.  Probably these:
     innodb_file_format = Barracuda
 
     # Only for MySQL prior to 5.7.5 (http://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-20.html):
-    # innodb_log_file_size = 512M
+    innodb_log_file_size = 512M
 
     [mysqldump]
     max_allowed_packet = 32M
+
+Q.  _mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126).
+    Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or
+    ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768
+    bytes is stored inline.')
+A.  See above.
+    If you need to change the log file size, FOLLOW THIS PROCEDURE:
+        https://dev.mysql.com/doc/refman/5.0/en/innodb-data-log-reconfiguration.html

@@ -712,7 +712,7 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
     admindb.commit()
 
 
-def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
+def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
                                      incremental=False):
     logger.debug("wipe_and_recreate_destination_db, incremental={}".format(
         incremental))
