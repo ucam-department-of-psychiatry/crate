@@ -988,7 +988,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     destfields = []
     pkfield_index = None
     for i, ddr in enumerate(ddrows):
-        logger.debug("DDROW: {}".format(str(ddr)))
+        logger.debug("DD row: {}".format(str(ddr)))
         if SRCFLAG.PK in ddr.src_flags:
             pkfield_index = i
         sourcefields.append(ddr.src_field)
