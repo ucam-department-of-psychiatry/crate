@@ -9,7 +9,7 @@ pythonpathadd() {
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-if [ "$0" != "bash" ]; then
+if [ "$0" != "bash" ] && [ "$0" != "-bash" ]; then
     echo "Execute this as 'source $0' or '. $0' or it will do nothing"
     exit 1
 fi
