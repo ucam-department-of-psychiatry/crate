@@ -27,6 +27,7 @@ MODULES = {
     "csv": "",
     "datetime": "",
     "dateutil": "sudo apt-get install python-dateutil",
+    "docx": "sudo pip install docx",
     "email": "",
     "errno": "",
     "getpass": "",
@@ -42,6 +43,7 @@ MODULES = {
     "numpy": "sudo apt-get install python-numpy",
     "optparse": "",
     "os": "",
+    "pdfminer": "sudo pip install pdfminer",
     "pypyodbc": "",  # non-standard ***; better for iffy Windows setups
     # "pyodbc": "sudo apt-get install python-pyodbc",
     # ... NEEDS SPECIFIC COMPILER SUPPORT UNDER WINDOWS (use pypyodbc instead)
