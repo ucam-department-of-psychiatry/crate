@@ -439,6 +439,11 @@ def is_sqltype_text_over_one_char(datatype_long):
     )
 
 
+def is_sqltype_binary(datatype_long):
+    (datatype_short, length) = split_long_sqltype(datatype_long)
+    return datatype_short in SQLTYPES_BINARY
+
+
 def is_sqltype_numeric(datatype_long):
     (datatype_short, length) = split_long_sqltype(datatype_long)
     return datatype_short in SQLTYPES_NUMERIC

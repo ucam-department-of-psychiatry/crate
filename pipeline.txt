@@ -330,3 +330,10 @@ A.  MySQL Workbench.
         DSN=XXX;UID=YYY;PWD=ZZZ
     If the schema definitions are not seen, it's a permissions issue:
         http://stackoverflow.com/questions/17038716
+    ... but you can copy the database using anonymise.py, treating all tables
+    as non-patient tables (i.e. doing no actual anonymisation).
+
+Q.  MySQL server has gone away... ?
+A.  Probably: processing a big binary field, and MySQL's max_allowed_packet
+    parameter is too small. Try increasing it (e.g. from 16M to 64M).
+    See also http://www.camcops.org/documentation/server.html

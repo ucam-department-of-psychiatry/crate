@@ -202,27 +202,20 @@ from rnc_db import (
     is_sqltype_date,
     is_sqltype_text_over_one_char,
 )
+from rnc_extract_text import document_to_text
 from shared_anon import (
-    ALTERMETHOD_SCRUBIN,
-    ALTERMETHOD_TRUNCATEDATE,
+    ALTERMETHOD,
     AUDIT_FIELDSPECS,
     AUDIT_TABLE,
     config,
     DEMO_CONFIG,
     escape_literal_string_for_regex,
-    INDEX_UNIQUE,
-    INDEX_FULLTEXT,
+    INDEX,
     reset_logformat,
-    SCRUBSRC_PATIENT,
-    SCRUBMETHOD_DATE,
-    SCRUBMETHOD_TEXT,
-    SCRUBMETHOD_NUMERIC,
+    SCRUBSRC,
+    SCRUBMETHOD,
     SEP,
-    SRCFLAG_PK,
-    SRCFLAG_ADDSRCHASH,
-    SRCFLAG_PRIMARYPID,
-    SRCFLAG_DEFINESPRIMARYPIDS,
-    SRCFLAG_MASTERPID,
+    SRCFLAG,
     SQLTYPE_ENCRYPTED_PID
 )
 
@@ -485,13 +478,13 @@ class Scrubber(object):
         for ddr in config.dd.get_scrub_from_rows():
             scrub_method = self.get_scrub_method(ddr.src_datatype,
                                                  ddr.scrub_method)
-            is_patient = ddr.scrub_src == SCRUBSRC_PATIENT
+            is_patient = ddr.scrub_src == SCRUBSRC.PATIENT
             for v in gen_all_values_for_patient(sources,
                                                 ddr.src_db,
                                                 ddr.src_table,
                                                 ddr.src_field, pid):
                 self.add_value(v, scrub_method, is_patient)
-                if self.mpid is None and SRCFLAG_MASTERPID in ddr.src_flags:
+                if self.mpid is None and SRCFLAG.MASTERPID in ddr.src_flags:
                     # We've come across the master ID.
                     self.mpid = v
         self.finished_adding()
@@ -501,11 +494,11 @@ class Scrubber(object):
         if scrub_method:
             return scrub_method
         elif is_sqltype_date(datatype_long):
-            return SCRUBMETHOD_DATE
+            return SCRUBMETHOD.DATE
         elif is_sqltype_text_over_one_char(datatype_long):
-            return SCRUBMETHOD_TEXT
+            return SCRUBMETHOD.TEXT
         else:
-            return SCRUBMETHOD_NUMERIC
+            return SCRUBMETHOD.NUMERIC
 
     def add_value(self, value, scrub_method, patient=True):
         if value is None:
@@ -514,7 +507,7 @@ class Scrubber(object):
         # Note: object reference
         r = self.re_patient_elements if patient else self.re_tp_elements
 
-        if scrub_method == SCRUBMETHOD_DATE:
+        if scrub_method == SCRUBMETHOD.DATE:
             # Source is a date.
             try:
                 value = coerce_to_date(value)
@@ -527,7 +520,7 @@ class Scrubber(object):
             wbo = config.anonymise_dates_at_word_boundaries_only
             elements = get_date_regex_elements(
                 value, at_word_boundaries_only=wbo)
-        elif scrub_method == SCRUBMETHOD_TEXT:
+        elif scrub_method == SCRUBMETHOD.TEXT:
             # Source is text.
             value = unicode(value)
             strings = get_anon_fragments_from_string(value)
@@ -539,7 +532,7 @@ class Scrubber(object):
                     config.scrub_string_suffixes,
                     max_errors=config.string_max_regex_errors,
                     at_word_boundaries_only=wbo))
-        elif scrub_method == SCRUBMETHOD_NUMERIC:
+        elif scrub_method == SCRUBMETHOD.NUMERIC:
             # Source is a text field containing a number, or an actual number.
             # Remove everything but the digits
             # Particular examples: phone numbers, e.g. "(01223) 123456".
@@ -548,7 +541,7 @@ class Scrubber(object):
                 get_digit_string_from_vaguely_numeric_string(str(value)),
                 at_word_boundaries_only=wbo)
         else:
-            raise Exception("Bug: unknown scrub_method to add_value")
+            raise ValueError("Bug: unknown scrub_method to add_value")
         for element in elements:
             r.add(element)
 
@@ -752,7 +745,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=False, compressed=False,
                     )
                 fs += " COMMENT " + rnc_db.sql_quote_string(comment)
             fieldspecs.append(fs)
-            if SRCFLAG_ADDSRCHASH in r.src_flags:
+            if SRCFLAG.ADDSRCHASH in r.src_flags:
                 # append a special field
                 fieldspecs.append(
                     config.source_hash_fieldname + " " +
@@ -853,7 +846,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     if keeping_track:
         processed_ids = set()
     for ddr in config.dd.rows:
-        if not SRCFLAG_DEFINESPRIMARYPIDS in ddr.src_flags:
+        if not SRCFLAG.DEFINESPRIMARYPIDS in ddr.src_flags:
             continue
         threadcondition = ""
         if ntasks > 1:
@@ -949,20 +942,19 @@ def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
     indexrows = [ddr for ddr in config.dd.rows
                  if ddr.index and not ddr.omit]
     tables = list(set([r.dest_table for r in indexrows]))
-    for i in xrange(len(tables)):
+    for i, t in enumerate(tables):
         if i % ntasks != tasknum:
             continue
-        t = tables[i]
         tablerows = [r for r in indexrows if r.dest_table == t]
         yield (t, tablerows)
 
 
 def gen_nonpatient_tables(tasknum=0, ntasks=1):
     db_table_pairs = config.dd.get_src_dbs_tables_with_no_patient_info()
-    for i in xrange(len(db_table_pairs)):
+    for i, pair in enumerate(db_table_pairs):
         if i % ntasks != tasknum:
             continue
-        yield db_table_pairs[i]  # will be a (dbname, table) tuple
+        yield pair  # will be a (dbname, table) tuple
 
 
 # =============================================================================
@@ -978,7 +970,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         "process_table: {}.{}, pid={}, incremental={}".format(
             sourcedbname, sourcetable, pid, incremental))
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
-    addhash = any([SRCFLAG_ADDSRCHASH in ddr.src_flags for ddr in ddrows])
+    addhash = any([SRCFLAG.ADDSRCHASH in ddr.src_flags for ddr in ddrows])
     # If addhash is true, there will also be at least one non-omitted row,
     # namely the source PK (by the data dictionary's validation process).
     ddrows = [ddr
@@ -990,9 +982,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     sourcefields = []
     destfields = []
     pkfield_index = None
-    for i in xrange(len(ddrows)):
-        ddr = ddrows[i]
-        if SRCFLAG_PK in ddr.src_flags:
+    for i, ddr in enumerate(ddrows):
+        if SRCFLAG.PK in ddr.src_flags:
             pkfield_index = i
         sourcefields.append(ddr.src_field)
         if not ddr.omit:
@@ -1025,27 +1016,42 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                 )
                 continue
         destvalues = []
-        for i in xrange(len(ddrows)):
-            if ddrows[i].omit:
+        for i, ddr in enumerate(ddrows):
+            if ddr.omit:
                 continue
             value = row[i]
-            if ddrows[i].alter_method == ALTERMETHOD_SCRUBIN:
-                # Main point of anonymisation!
-                value = scrubber.scrub(value)
-            elif SRCFLAG_PRIMARYPID in ddrows[i].src_flags:
+            if SRCFLAG.PRIMARYPID in ddr.src_flags:
                 value = config.encrypt_primary_pid(value)
-            elif SRCFLAG_MASTERPID in ddrows[i].src_flags:
+            elif SRCFLAG.MASTERPID in ddr.src_flags:
                 value = config.encrypt_master_pid(value)
-            elif ddrows[i].alter_method == ALTERMETHOD_TRUNCATEDATE:
+            elif ddr._truncate_date:
                 try:
                     value = coerce_to_date(value)
                     value = truncate_date_to_first_of_month(value)
                 except:
                     logger.warning(
-                        "Invalid date received to ALTERMETHOD_TRUNCATEDATE "
-                        "method: {}".format(
-                            value))
+                        "Invalid date received to {ALTERMETHOD.TRUNCATEDATE} "
+                        "method: {v}".format(ALTERMETHOD=ALTERMETHOD, v=value))
                     value = None
+            elif ddr._extract_text:
+                if ddr._extract_from_filename:
+                    value = document_to_text(filename=value)
+                else:
+                    extindex = next(
+                        (i for i, x in enumerate(ddrows)
+                            if x.src_field == ddr._extract_ext_field),
+                        None)
+                    if extindex is None:
+                        raise ValueError(
+                            "Bug: missing extension field for "
+                            "alter_method={}".format(ddr.alter_method))
+                    extension = row[extindex]
+                    value = document_to_text(blob=value, extension=extension)
+
+            if ddr._scrub:
+                # Main point of anonymisation!
+                value = scrubber.scrub(value)
+
             destvalues.append(value)
         if addhash:
             destvalues.append(srchash)
@@ -1064,8 +1070,8 @@ def create_indexes(tasknum=0, ntasks=1):
         for tr in tablerows:
             column = tr.dest_field
             length = tr.indexlen
-            is_unique = tr.index == INDEX_UNIQUE
-            is_fulltext = tr.index == INDEX_FULLTEXT
+            is_unique = tr.index == INDEX.UNIQUE
+            is_fulltext = tr.index == INDEX.FULLTEXT
             if is_fulltext:
                 idxname = "_idxft_{}".format(column)
                 sqlbit = "ADD FULLTEXT INDEX {name} ({column})".format(
@@ -1248,9 +1254,8 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
             destdb = config.get_database("destination_database")
             admindb = config.get_database("admin_database")
             sources = {}
-            for i in xrange(len(config.src_db_names)):
-                sources[config.src_db_names[i]] = config.get_database(
-                    config.src_db_names[i])
+            for srcname in config.src_db_names:
+                sources[srcname] = config.get_database(srcname)
             thread = PatientThread(sources, destdb, admindb,
                                    nthreads, threadnum,
                                    abort_event, subthread_error_event,

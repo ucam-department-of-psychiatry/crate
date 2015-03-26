@@ -47,6 +47,7 @@ import rnc_db
 from rnc_db import (
     does_sqltype_merit_fulltext_index,
     does_sqltype_require_index_len,
+    is_sqltype_binary,
     is_sqltype_date,
     is_sqltype_integer,
     is_sqltype_numeric,
@@ -56,6 +57,7 @@ from rnc_db import (
     is_valid_table_name
 )
 from rnc_lang import (
+    AttrDict,
     convert_attrs_to_bool,
     convert_attrs_to_int_or_none,
     convert_attrs_to_uppercase,
@@ -76,26 +78,37 @@ SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
 DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
 SEP = "=" * 20 + " "
+LONGTEXT = "LONGTEXT"
 
-SCRUBSRC_PATIENT = "patient"
-SCRUBSRC_THIRDPARTY = "thirdparty"
-
-INDEX_NORMAL = "I"
-INDEX_UNIQUE = "U"
-INDEX_FULLTEXT = "F"
-
-SCRUBMETHOD_TEXT = "text"
-SCRUBMETHOD_NUMERIC = "number"
-SCRUBMETHOD_DATE = "date"
-
-ALTERMETHOD_TRUNCATEDATE = "truncatedate"
-ALTERMETHOD_SCRUBIN = "scrub"
-
-SRCFLAG_PK = "K"
-SRCFLAG_ADDSRCHASH = "H"
-SRCFLAG_PRIMARYPID = "P"
-SRCFLAG_DEFINESPRIMARYPIDS = "*"
-SRCFLAG_MASTERPID = "M"
+SCRUBSRC = AttrDict(
+    PATIENT="patient",
+    THIRDPARTY="thirdparty"
+)
+INDEX = AttrDict(
+    NORMAL="I",
+    UNIQUE="U",
+    FULLTEXT="F"
+)
+SCRUBMETHOD = AttrDict(
+    TEXT="text",
+    NUMERIC="number",
+    DATE="date"
+)
+ALTERMETHOD = AttrDict(
+    TRUNCATEDATE="truncatedate",
+    SCRUBIN="scrub",
+    BIN2TEXT="binary_to_text",
+    BIN2TEXT_SCRUB="binary_to_text_scrub",
+    FILENAME2TEXT="filename_to_text",
+    FILENAME2TEXT_SCRUB="filename_to_text_scrub"
+)
+SRCFLAG = AttrDict(
+    PK="K",
+    ADDSRCHASH="H",
+    PRIMARYPID="P",
+    DEFINESPRIMARYPIDS="*",
+    MASTERPID="M"
+)
 
 # =============================================================================
 # Demo config
@@ -129,11 +142,11 @@ DEMO_CONFIG = """
 #       SQL data type in source database, e.g. INT, VARCHAR(50).
 #   src_flags
 #       One or more of the following characters:
-#       {SRCFLAG_PK}:  This field is the primary key (PK) for the table it's
+#       {SRCFLAG.PK}:  This field is the primary key (PK) for the table it's
 #           in.
-#       {SRCFLAG_ADDSRCHASH}:  Add source hash, for incremental updates?
+#       {SRCFLAG.ADDSRCHASH}:  Add source hash, for incremental updates?
 #           - May only be set for src_pk fields (which cannot then be omitted
-#             in the destination, and which require the index={INDEX_UNIQUE}
+#             in the destination, and which require the index={INDEX.UNIQUE}
 #             setting, so that a unique index is created for this field).
 #           - If set, a field is added to the destination table, with field
 #             name as set by the config's source_hash_fieldname variable,
@@ -141,7 +154,7 @@ DEMO_CONFIG = """
 #             fields that are not omitted, OR contain scrubbing information
 #             (scrub_src). The field is of type {SQLTYPE_ENCRYPTED_PID}.
 #           - This table is then capable of incremental updates.
-#       {SRCFLAG_PRIMARYPID}:  Primary patient ID field.
+#       {SRCFLAG.PRIMARYPID}:  Primary patient ID field.
 #           If set,
 #           (a) This field will be used to link records for the same patient
 #               across all tables. It must therefore be present, and marked in
@@ -149,44 +162,55 @@ DEMO_CONFIG = """
 #               identifiable information.
 #           (b) If the field is not omitted: the field will be hashed as the
 #               primary ID (database patient primary key) in the destination.
-#       {SRCFLAG_DEFINESPRIMARYPIDS}:  This field *defines* primary PIDs.
+#       {SRCFLAG.DEFINESPRIMARYPIDS}:  This field *defines* primary PIDs.
 #           If set, this row will be used to search for all patient IDs, and
 #           will define them for this database. Only those patients will be
 #           processed (for all tables containing patient info). Typically, this
 #           flag is applied to a SINGLE field in a SINGLE table, usually the
 #           principal patient registration/demographics table.
-#       {SRCFLAG_MASTERPID}:  Master ID (e.g. NHS number). The field will be
+#       {SRCFLAG.MASTERPID}:  Master ID (e.g. NHS number). The field will be
 #           hashed with the master PID hasher.
 #
 #   scrub_src
-#       Either "{SCRUBSRC_PATIENT}", "{SCRUBSRC_THIRDPARTY}", or blank.
-#       - If "{SCRUBSRC_PATIENT}", contains patient-identifiable information
+#       Either "{SCRUBSRC.PATIENT}", "{SCRUBSRC.THIRDPARTY}", or blank.
+#       - If "{SCRUBSRC.PATIENT}", contains patient-identifiable information
 #         that must be removed from "scrub_in" fields.
-#       - If "{SCRUBSRC_THIRDPARTY}", contains identifiable information about
+#       - If "{SCRUBSRC.THIRDPARTY}", contains identifiable information about
 #         carer/family/other third party, which must be removed from
 #         "scrub_in" fields.
 #   scrub_method
 #       Applicable to scrub_src fields. Manner in which this field should be
 #       treated for scrubbing.
 #       Options:
-#       - "{SCRUBMETHOD_TEXT}": treat as text
+#       - "{SCRUBMETHOD.TEXT}": treat as text
 #         This is the default for all textual fields (e. CHAR, VARCHAR, TEXT).
-#       - "{SCRUBMETHOD_NUMERIC}": treat as number
+#       - "{SCRUBMETHOD.NUMERIC}": treat as number
 #         This is the default for all numeric fields (e.g. INTEGER, FLOAT).
 #         If you have a phone number in a text field, mark it as
-#         "{SCRUBMETHOD_NUMERIC}" here.
-#       - "{SCRUBMETHOD_DATE}": treat as date.
+#         "{SCRUBMETHOD.NUMERIC}" here.
+#       - "{SCRUBMETHOD.DATE}": treat as date.
 #         This is the default for all DATE/DATETIME fields.
 #
 #   omit
 #       Boolean. Omit from output entirely?
 #   alter_method
 #       Manner in which to alter the data. Blank, or one of:
-#       - "{ALTERMETHOD_SCRUBIN}": scrub in. Applies to text fields only. The
+#       - "{ALTERMETHOD.SCRUBIN}": scrub in. Applies to text fields only. The
 #         field will have its contents anonymised (using information from other
 #         fields).
-#       - "{ALTERMETHOD_TRUNCATEDATE}": truncate date to first of the month.
+#       - "{ALTERMETHOD.TRUNCATEDATE}": truncate date to first of the month.
 #         Applicable to text or date-as-text fields.
+#       - "{ALTERMETHOD.BIN2TEXT}=EXTFIELDNAME": convert a binary field (e.g.
+#         VARBINARY, BLOB) to text (e.g. {LONGTEXT}). The field EXTFIELDNAME,
+#         which must be in the same source table, must contain the file
+#         extension (e.g. "pdf", ".pdf") or a filename with that extension
+#         (e.g. "/some/path/mything.pdf").
+#       - "{ALTERMETHOD.BIN2TEXT_SCRUB}=EXTFIELDNAME": ditto, but also scrub
+#         in.
+#       - "{ALTERMETHOD.FILENAME2TEXT}": as for {ALTERMETHOD.BIN2TEXT}, but
+#         the field contains a filename (the contents of which is converted
+#         to text), rather than binary file contents directly.
+#       - "{ALTERMETHOD.FILENAME2TEXT_SCRUB}": ditto, but also scrub in.
 #
 #   dest_table
 #       Table name in destination database.
@@ -197,9 +221,9 @@ DEMO_CONFIG = """
 #   index
 #       One of:
 #       - blank: no index.
-#       - "{INDEX_NORMAL}": normal index on destination.
-#       - "{INDEX_UNIQUE}": unique index on destination.
-#       - "{INDEX_FULLTEXT}": create a FULLTEXT index, for rapid searching
+#       - "{INDEX.NORMAL}": normal index on destination.
+#       - "{INDEX.UNIQUE}": unique index on destination.
+#       - "{INDEX.FULLTEXT}": create a FULLTEXT index, for rapid searching
 #         within long text fields. Only applicable to one field per table.
 #   indexlen
 #       Integer. Can be blank. If not, sets the prefix length of the index.
@@ -399,6 +423,19 @@ safe_fields_exempt_from_scrubbing =
 #   Other default manipulations
 truncate_date_fields =
 
+#   Fields containing filenames, which files should be converted to text
+filename_to_text_fields =
+
+#   Fields containing raw binary data from files (binary large objects; BLOBs),
+#   whose contents should be converted to text -- paired with fields in the
+#   same table containing their file extension (e.g. "pdf", ".PDF") or a
+#   filename having that extension.
+#   Specify it as a list of comma-joined pairs, e.g.
+#       binary_to_text_field_pairs = binary1field, ext1field
+#           binary2field, ext2field
+#           ...
+binary_to_text_field_pairs =
+
 [mysourcedb2]
 
 engine = mysql
@@ -420,6 +457,8 @@ scrubmethod_date_fields =
 scrubmethod_number_fields =
 safe_fields_exempt_from_scrubbing =
 truncate_date_fields =
+filename_to_text_fields =
+binary_to_text_field_pairs =
 
 [camcops]
 # Example for the CamCOPS anonymisation staging database
@@ -551,24 +590,17 @@ safe_fields_exempt_from_scrubbing = _device
     likelihood
 
 truncate_date_fields = _patient_dob
+filename_to_text_fields =
+binary_to_text_field_pairs =
 
 """.format(
     SQLTYPE_ENCRYPTED_PID=SQLTYPE_ENCRYPTED_PID,
-    SCRUBSRC_PATIENT=SCRUBSRC_PATIENT,
-    SCRUBSRC_THIRDPARTY=SCRUBSRC_THIRDPARTY,
-    INDEX_NORMAL=INDEX_NORMAL,
-    INDEX_UNIQUE=INDEX_UNIQUE,
-    INDEX_FULLTEXT=INDEX_FULLTEXT,
-    SCRUBMETHOD_TEXT=SCRUBMETHOD_TEXT,
-    SCRUBMETHOD_NUMERIC=SCRUBMETHOD_NUMERIC,
-    SCRUBMETHOD_DATE=SCRUBMETHOD_DATE,
-    ALTERMETHOD_TRUNCATEDATE=ALTERMETHOD_TRUNCATEDATE,
-    ALTERMETHOD_SCRUBIN=ALTERMETHOD_SCRUBIN,
-    SRCFLAG_PK=SRCFLAG_PK,
-    SRCFLAG_ADDSRCHASH=SRCFLAG_ADDSRCHASH,
-    SRCFLAG_PRIMARYPID=SRCFLAG_PRIMARYPID,
-    SRCFLAG_DEFINESPRIMARYPIDS=SRCFLAG_DEFINESPRIMARYPIDS,
-    SRCFLAG_MASTERPID=SRCFLAG_MASTERPID,
+    SCRUBSRC=SCRUBSRC,
+    INDEX=INDEX,
+    SCRUBMETHOD=SCRUBMETHOD,
+    ALTERMETHOD=ALTERMETHOD,
+    SRCFLAG=SRCFLAG,
+    LONGTEXT=LONGTEXT,
 )
 
 # For the style:
@@ -626,15 +658,66 @@ class DataDictionaryRow(object):
     ]
 
     def __init__(self):
-        self.blank()
-        self._from_file = False
-
-    def blank(self):
         for x in DataDictionaryRow.ROWNAMES:
             setattr(self, x, None)
         self._signature = None
+        self._from_file = False
+        # For alter_method:
+        self._scrub = False
+        self._truncate_date = False
+        self._extract_text = False
+        self._extract_from_filename = False
+        self._extract_ext_field = ""
+
+    def alter_method_to_components(self):
+        self._scrub = False
+        self._truncate_date = False
+        self._extract_text = False
+        self._extract_from_filename = False
+        self._extract_ext_field = ""
+        secondhalf = ""
+        if "=" in self.alter_method:
+            secondhalf = self.alter_method[self.alter_method.index("=") + 1:]
+        if self.alter_method == ALTERMETHOD.TRUNCATEDATE:
+            self._truncate_date = True
+        elif self.alter_method.startswith(ALTERMETHOD.SCRUBIN):
+            self._scrub = True
+        elif self.alter_method.startswith(ALTERMETHOD.BIN2TEXT):
+            self._extract_text = True
+            self._extract_ext_field = secondhalf
+        elif self.alter_method.startswith(ALTERMETHOD.BIN2TEXT_SCRUB):
+            self._extract_text = True
+            self._extract_ext_field = secondhalf
+            self._scrub = True
+        elif self.alter_method.startswith(ALTERMETHOD.FILENAME2TEXT):
+            self._extract_text = True
+            self._extract_from_filename = True
+        elif self.alter_method.startswith(ALTERMETHOD.FILENAME2TEXT_SCRUB):
+            self._extract_text = True
+            self._extract_from_filename = True
+            self._scrub = True
+
+    def components_to_alter_method(self):
+        if self._truncate_date:
+            return ALTERMETHOD.TRUNCATEDATE
+        if self._extract_text:
+            if self._extract_ext_field:
+                if self._scrub:
+                    return (ALTERMETHOD.BIN2TEXT_SCRUB + "=" +
+                            self._extract_ext_field)
+                else:
+                    return ALTERMETHOD.BIN2TEXT + "=" + self._extract_ext_field
+            else:
+                if self._scrub:
+                    return ALTERMETHOD.FILENAME2TEXT_SCRUB
+                else:
+                    return ALTERMETHOD.FILENAME2TEXT
+        if self._scrub:
+            return ALTERMETHOD.SCRUBIN
+        return ""
 
     def __str__(self):
+        self.components_to_alter_method()
         return ", ".join(["{}: {}".format(a, getattr(self, a))
                           for a in DataDictionaryRow.ROWNAMES])
 
@@ -645,8 +728,8 @@ class DataDictionaryRow(object):
 
     def set_from_elements(self, elements):
         if len(elements) != len(DataDictionaryRow.ROWNAMES):
-            raise Exception("Bad data dictionary row. Values:\n" +
-                            "\n".join(elements))
+            raise ValueError("Bad data dictionary row. Values:\n" +
+                             "\n".join(elements))
         for i in xrange(len(elements)):
             setattr(self, DataDictionaryRow.ROWNAMES[i], elements[i])
         convert_attrs_to_bool(self, [
@@ -660,13 +743,12 @@ class DataDictionaryRow(object):
             "indexlen"
         ])
         self._from_file = True
+        self.alter_method_to_components()
         self.check_valid()
 
     def set_from_src_db_info(self, db, table, field, datatype_short,
                              datatype_full, cfg, comment=None,
                              default_omit=True):
-        self.blank()
-
         self.src_db = db
         self.src_table = table
         self.src_field = field
@@ -674,19 +756,19 @@ class DataDictionaryRow(object):
 
         self.src_flags = ""
         if self.src_field in cfg.possible_pk_fields:
-            self.src_flags += SRCFLAG_PK
-            self.src_flags += SRCFLAG_ADDSRCHASH
+            self.src_flags += SRCFLAG.PK
+            self.src_flags += SRCFLAG.ADDSRCHASH
         if self.src_field == cfg.per_table_pid_field:
-            self.src_flags += SRCFLAG_PRIMARYPID
+            self.src_flags += SRCFLAG.PRIMARYPID
         if self.src_field == cfg.master_pid_fieldname:
-            self.src_flags += SRCFLAG_MASTERPID
+            self.src_flags += SRCFLAG.MASTERPID
         if self.src_field in cfg.pid_defining_fieldnames:  # unusual!
-            self.src_flags += SRCFLAG_DEFINESPRIMARYPIDS
+            self.src_flags += SRCFLAG.DEFINESPRIMARYPIDS
 
         if self.src_field in cfg.scrubsrc_patient_fields:
-            self.scrub_src = SCRUBSRC_PATIENT
+            self.scrub_src = SCRUBSRC.PATIENT
         elif self.src_field in cfg.scrubsrc_thirdparty_fields:
-            self.scrub_src = SCRUBSRC_THIRDPARTY
+            self.scrub_src = SCRUBSRC.THIRDPARTY
         else:
             self.scrub_src = ""
 
@@ -696,60 +778,70 @@ class DataDictionaryRow(object):
                 or self.src_field == cfg.per_table_pid_field
                 or self.src_field == cfg.master_pid_fieldname
                 or self.src_field in cfg.scrubmethod_number_fields):
-            self.scrub_method = SCRUBMETHOD_NUMERIC
+            self.scrub_method = SCRUBMETHOD.NUMERIC
         elif (is_sqltype_date(datatype_full)
               or self.src_field in cfg.scrubmethod_date_fields):
-            self.scrub_method = SCRUBMETHOD_DATE
+            self.scrub_method = SCRUBMETHOD.DATE
         else:
-            self.scrub_method = SCRUBMETHOD_TEXT
+            self.scrub_method = SCRUBMETHOD.TEXT
 
         self.omit = (
             (default_omit or bool(self.scrub_src))
-            and not (SRCFLAG_PK in self.src_flags)
-            and not (SRCFLAG_PRIMARYPID in self.src_flags)
-            and not (SRCFLAG_MASTERPID in self.src_flags)
+            and not (SRCFLAG.PK in self.src_flags)
+            and not (SRCFLAG.PRIMARYPID in self.src_flags)
+            and not (SRCFLAG.MASTERPID in self.src_flags)
         )
 
-        if (is_sqltype_text_over_one_char(datatype_full)
-                and not self.omit
-                and not SRCFLAG_PRIMARYPID in self.src_flags
-                and not SRCFLAG_MASTERPID in self.src_flags
-                and not self.src_field in
-                cfg.safe_fields_exempt_from_scrubbing):
-            self.alter_method = ALTERMETHOD_SCRUBIN
-        elif self.src_field in cfg.truncate_date_fields:
-            self.alter_method = ALTERMETHOD_TRUNCATEDATE
-        else:
-            self.alter_method = ""
-
-        self.dest_table = table
-
-        if SRCFLAG_PRIMARYPID in self.src_flags:
+        if SRCFLAG.PRIMARYPID in self.src_flags:
             self.dest_field = config.research_id_fieldname
-        elif SRCFLAG_MASTERPID in self.src_flags:
+        elif SRCFLAG.MASTERPID in self.src_flags:
             self.dest_field = config.master_research_id_fieldname
         else:
             self.dest_field = field
 
         self.dest_datatype = (
             SQLTYPE_ENCRYPTED_PID
-            if (SRCFLAG_PRIMARYPID in self.src_flags
-                or SRCFLAG_MASTERPID in self.src_flags)
+            if (SRCFLAG.PRIMARYPID in self.src_flags
+                or SRCFLAG.MASTERPID in self.src_flags)
             else rnc_db.full_datatype_to_mysql(datatype_full))
 
-        if SRCFLAG_PK in self.src_flags:
-            self.index = INDEX_UNIQUE
+        if self.src_field in cfg.truncate_date_fields:
+            self._truncate_date = True
+        elif self.src_field in cfg.filename_to_text_fields:
+            self._extract_text = True
+            self._extract_from_filename = True
+            self.dest_datatype = LONGTEXT
+            if not self.src_field in cfg.safe_fields_exempt_from_scrubbing:
+                self._scrub = True
+        elif self.src_field in cfg.bin2text_dict.keys():
+            self._extract_text = True
+            self._extract_from_filename = False
+            self._extract_ext_field = cfg.bin2text_dict[self.src_field]
+            if not self.src_field in cfg.safe_fields_exempt_from_scrubbing:
+                self._scrub = True
+        elif (is_sqltype_text_over_one_char(datatype_full)
+                and not self.omit
+                and not SRCFLAG.PRIMARYPID in self.src_flags
+                and not SRCFLAG.MASTERPID in self.src_flags
+                and not self.src_field in
+                cfg.safe_fields_exempt_from_scrubbing):
+            self._scrub = True
+
+        self.dest_table = table
+
+        if SRCFLAG.PK in self.src_flags:
+            self.index = INDEX.UNIQUE
         elif self.dest_field == config.research_id_fieldname:
-            self.index = INDEX_NORMAL
+            self.index = INDEX.NORMAL
         elif does_sqltype_merit_fulltext_index(self.dest_datatype):
-            self.index = INDEX_FULLTEXT
+            self.index = INDEX.FULLTEXT
         else:
             self.index = ""
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
             if (does_sqltype_require_index_len(self.dest_datatype)
-                and self.index != INDEX_FULLTEXT)
+                and self.index != INDEX.FULLTEXT)
             else None
         )
         self.comment = comment
@@ -779,6 +871,7 @@ class DataDictionaryRow(object):
             raise
 
     def _check_valid(self):
+        self.components_to_alter_method()
         raise_if_attr_blank(self, [
             "src_db",
             "src_table",
@@ -793,52 +886,52 @@ class DataDictionaryRow(object):
             ])
 
         if self.src_db not in config.src_db_names:
-            raise Exception(
+            raise ValueError(
                 "Data dictionary row references non-existent source "
                 "database")
         srccfg = config.srccfg[self.src_db]
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
         if not is_sqltype_valid(self.src_datatype):
-            raise Exception(
+            raise ValueError(
                 "Field has invalid source data type: {}".format(
                     self.src_datatype))
 
         if (self.src_field == srccfg.per_table_pid_field
                 and not is_sqltype_integer(self.src_datatype)):
-            raise Exception(
+            raise ValueError(
                 "All fields with src_field = {} should be integer, for work "
                 "distribution purposes".format(self.src_field))
 
-        if (SRCFLAG_DEFINESPRIMARYPIDS in self.src_flags
-                and not SRCFLAG_PRIMARYPID in self.src_flags):
-            raise Exception(
+        if (SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags
+                and not SRCFLAG.PRIMARYPID in self.src_flags):
+            raise ValueError(
                 "All fields with src_flags={} set must have src_flags={} "
                 "set".format(
-                    SRCFLAG_DEFINESPRIMARYPIDS,
-                    SRCFLAG_PRIMARYPID
+                    SRCFLAG.DEFINESPRIMARYPIDS,
+                    SRCFLAG.PRIMARYPID
                 ))
 
-        if count_bool([SRCFLAG_PRIMARYPID in self.src_flags,
-                       SRCFLAG_MASTERPID in self.src_flags,
+        if count_bool([SRCFLAG.PRIMARYPID in self.src_flags,
+                       SRCFLAG.MASTERPID in self.src_flags,
                        bool(self.alter_method)]) > 1:
-            raise Exception(
+            raise ValueError(
                 "Field can be any ONE of: src_flags={}, src_flags={}, "
                 "alter_method".format(
-                    SRCFLAG_PRIMARYPID,
-                    SRCFLAG_MASTERPID
+                    SRCFLAG.PRIMARYPID,
+                    SRCFLAG.MASTERPID
                 ))
 
-        valid_scrubsrc = [SCRUBSRC_PATIENT, SCRUBSRC_THIRDPARTY, ""]
+        valid_scrubsrc = [SCRUBSRC.PATIENT, SCRUBSRC.THIRDPARTY, ""]
         if self.scrub_src not in valid_scrubsrc:
-            raise Exception(
+            raise ValueError(
                 "Invalid scrub_src - must be one of [{}]".format(
                     ",".join(valid_scrubsrc)))
 
-        valid_scrubmethods = [SCRUBMETHOD_DATE, SCRUBMETHOD_NUMERIC,
-                              SCRUBMETHOD_TEXT, ""]
+        valid_scrubmethods = [SCRUBMETHOD.DATE, SCRUBMETHOD.NUMERIC,
+                              SCRUBMETHOD.TEXT, ""]
         if self.scrub_src and self.scrub_method not in valid_scrubmethods:
-            raise Exception(
+            raise ValueError(
                 "Invalid scrub_method - must be one of [{}]".format(
                     ",".join(valid_scrubmethods)))
 
@@ -846,80 +939,102 @@ class DataDictionaryRow(object):
             ensure_valid_table_name(self.dest_table)
             ensure_valid_field_name(self.dest_field)
             if self.dest_field == config.source_hash_fieldname:
-                raise Exception(
+                raise ValueError(
                     "Destination fields can't be named {f}, as that's the "
                     "name set in the config's source_hash_fieldname "
                     "variable".format(config.source_hash_fieldname))
             if not is_sqltype_valid(self.dest_datatype):
-                raise Exception(
+                raise ValueError(
                     "Field has invalid destination data type: "
                     "{}".format(self.dest_datatype))
             if self.src_field == srccfg.per_table_pid_field:
-                if not SRCFLAG_PRIMARYPID in self.src_flags:
-                    raise Exception(
+                if not SRCFLAG.PRIMARYPID in self.src_flags:
+                    raise ValueError(
                         "All fields with src_field={} used in output should "
                         "have src_flag={} set".format(self.src_field,
-                                                      SRCFLAG_PRIMARYPID))
+                                                      SRCFLAG.PRIMARYPID))
                 if self.dest_field != config.research_id_fieldname:
-                    raise Exception(
+                    raise ValueError(
                         "Primary PID field should have "
                         "dest_field = {}".format(
                             config.research_id_fieldname))
             if (self.src_field == srccfg.master_pid_fieldname
-                    and not SRCFLAG_MASTERPID in self.src_flags):
-                raise Exception(
+                    and not SRCFLAG.MASTERPID in self.src_flags):
+                raise ValueError(
                     "All fields with src_field = {} used in output should have"
                     " src_flags={} set".format(srccfg.master_pid_fieldname,
-                                               SRCFLAG_MASTERPID))
+                                               SRCFLAG.MASTERPID))
 
-            if (self.alter_method == ALTERMETHOD_TRUNCATEDATE
-                    and not (
-                        is_sqltype_date(self.src_datatype)
-                        or is_sqltype_text_over_one_char(self.src_datatype))):
-                raise Exception("Can't set truncate_date for non-date/"
-                                "non-text field")
-            if (self.alter_method == ALTERMETHOD_SCRUBIN
-                    and not is_sqltype_text_over_one_char(self.src_datatype)):
-                raise Exception("Can't scrub in non-text field or "
-                                "single-character text field")
+            if self._truncate_date:
+                if not (is_sqltype_date(self.src_datatype)
+                        or is_sqltype_text_over_one_char(self.src_datatype)):
+                    raise ValueError("Can't set truncate_date for non-date/"
+                                     "non-text field")
+            if self._extract_text:
+                if self._extract_from_filename:
+                    if not is_sqltype_text_over_one_char(self.src_datatype):
+                        raise ValueError(
+                            "For alter_method = {ALTERMETHOD.FILENAME2TEXT} or"
+                            " {ALTERMETHOD.FILENAME2TEXT_SCRUB}, source field "
+                            "must contain filename and therefore must be text "
+                            "type of >1 character".format(
+                                ALTERMETHOD=ALTERMETHOD))
+                else:
+                    if not is_sqltype_binary(self.src_datatype):
+                        raise ValueError(
+                            "For alter_method = {ALTERMETHOD.BIN2TEXT} or "
+                            "{ALTERMETHOD.BIN2TEXT_SCRUB}, source field "
+                            "must be of binary type".format(
+                                ALTERMETHOD=ALTERMETHOD))
+                    if not self._extract_from_filename:
+                        raise ValueError(
+                            "For alter_method = {ALTERMETHOD.BIN2TEXT} or "
+                            "{ALTERMETHOD.BIN2TEXT_SCRUB}, must also specify "
+                            "field containing extension (or filename with "
+                            "extension) in the alter_method parameter".format(
+                                ALTERMETHOD=ALTERMETHOD))
+            if self._scrub and not self._extract_text:
+                if not is_sqltype_text_over_one_char(self.src_datatype):
+                    raise ValueError("Can't scrub in non-text field or "
+                                     "single-character text field")
 
-            if ((SRCFLAG_PRIMARYPID in self.src_flags
-                 or SRCFLAG_MASTERPID in self.src_flags) and
+            if ((SRCFLAG.PRIMARYPID in self.src_flags
+                 or SRCFLAG.MASTERPID in self.src_flags) and
                     self.dest_datatype != SQLTYPE_ENCRYPTED_PID):
-                raise Exception(
+                raise ValueError(
                     "All src_flags={}/src_flags={} fields used in output must "
                     "have destination_datatype = {}".format(
-                        SRCFLAG_PRIMARYPID,
-                        SRCFLAG_MASTERPID,
+                        SRCFLAG.PRIMARYPID,
+                        SRCFLAG.MASTERPID,
                         SQLTYPE_ENCRYPTED_PID))
 
-            valid_index = [INDEX_NORMAL, INDEX_UNIQUE, INDEX_FULLTEXT, ""]
+            valid_index = [INDEX.NORMAL, INDEX.UNIQUE, INDEX.FULLTEXT, ""]
             if self.index not in valid_index:
-                raise Exception("Index must be one of: [{}]".format(
+                raise ValueError("Index must be one of: [{}]".format(
                     ",".join(valid_index)))
 
-            if (self.index in [INDEX_NORMAL, INDEX_UNIQUE]
+            if (self.index in [INDEX.NORMAL, INDEX.UNIQUE]
                     and self.indexlen is None
                     and does_sqltype_require_index_len(self.dest_datatype)):
-                raise Exception(
+                raise ValueError(
                     "Must specify indexlen to index a TEXT or BLOB field")
 
-        if SRCFLAG_ADDSRCHASH in self.src_flags:
-            if SRCFLAG_PK not in self.src_flags:
-                raise Exception(
+        if SRCFLAG.ADDSRCHASH in self.src_flags:
+            if SRCFLAG.PK not in self.src_flags:
+                raise ValueError(
                     "src_flags={} can only be set on "
                     "src_flags={} fields".format(
-                        SRCFLAG_ADDSRCHASH,
-                        SRCFLAG_PK))
+                        SRCFLAG.ADDSRCHASH,
+                        SRCFLAG.PK))
             if self.omit:
-                raise Exception(
+                raise ValueError(
                     "Do not set omit on src_flags={} fields".format(
-                        SRCFLAG_ADDSRCHASH))
-            if self.index != INDEX_UNIQUE:
-                raise Exception(
+                        SRCFLAG.ADDSRCHASH))
+            if self.index != INDEX.UNIQUE:
+                raise ValueError(
                     "src_flags={} fields require index=={}".format(
-                        SRCFLAG_ADDSRCHASH,
-                        INDEX_UNIQUE))
+                        SRCFLAG.ADDSRCHASH,
+                        INDEX.UNIQUE))
 
 
 class DataDictionary(object):
@@ -932,7 +1047,7 @@ class DataDictionary(object):
             tsv = csv.reader(tsvfile, delimiter='\t')
             headerlist = tsv.next()
             if headerlist != DataDictionaryRow.ROWNAMES:
-                raise Exception(
+                raise ValueError(
                     "Bad data dictionary file. Must be a tab-separated value "
                     "(TSV) file with the following row headings:\n" +
                     "\n".join(DataDictionaryRow.ROWNAMES)
@@ -1008,7 +1123,7 @@ class DataDictionary(object):
             # Don't scrub_in non-patient tables
             if (ddr.src_table
                     not in self.cached_src_tables_w_pt_info[ddr.src_db]):
-                if ddr.alter_method == ALTERMETHOD_SCRUBIN:
+                if ddr.alter_method == ALTERMETHOD.SCRUBIN:
                     ddr.alter_method = ""
         logger.info("... done")
         logger.info("Sorting draft data dictionary")
@@ -1086,10 +1201,10 @@ class DataDictionary(object):
                 # ... even if omit flag set
 
             # Is it a src_pk row, contributing to src_hash info?
-            if SRCFLAG_PK in ddr.src_flags:
+            if SRCFLAG.PK in ddr.src_flags:
                 self.cached_srchash_info[db_t_key] = (
                     ddr.src_field,
-                    SRCFLAG_ADDSRCHASH in ddr.src_flags,
+                    SRCFLAG.ADDSRCHASH in ddr.src_flags,
                     ddr.dest_table,
                     ddr.dest_field
                 )
@@ -1138,10 +1253,10 @@ class DataDictionary(object):
     def check_valid(self, check_against_source_db):
         logger.info("Checking data dictionary...")
         if not self.rows:
-            raise Exception("Empty data dictionary")
+            raise ValueError("Empty data dictionary")
         if not self.cached_dest_tables:
-            raise Exception("Empty data dictionary after removing "
-                            "redundant tables")
+            raise ValueError("Empty data dictionary after removing "
+                             "redundant tables")
 
         # Individual rows will already have been checked
         #for r in self.rows:
@@ -1152,7 +1267,7 @@ class DataDictionary(object):
         for t in self.get_dest_tables():
             sdt = self.get_src_dbs_tables_for_dest_table(t)
             if len(sdt) > 1:
-                raise Exception(
+                raise ValueError(
                     "Destination table {t} is mapped to by multiple "
                     "source databases: {s}".format(
                         t=t,
@@ -1168,7 +1283,7 @@ class DataDictionary(object):
 
                     dt = self.get_dest_tables_for_src_db_table(d, t)
                     if len(dt) > 1:
-                        raise Exception(
+                        raise ValueError(
                             "Source table {d}.{t} maps to >1 destination "
                             "table: {dt}".format(
                                 d=d,
@@ -1178,31 +1293,57 @@ class DataDictionary(object):
                         )
 
                     rows = self.get_rows_for_src_table(d, t)
-                    if any([r.alter_method == ALTERMETHOD_SCRUBIN
-                            or SRCFLAG_MASTERPID in r.src_flags
+                    fieldnames = self.get_fieldnames_for_src_table(d, t)
+
+                    if any([r.alter_method == ALTERMETHOD.SCRUBIN
+                            or SRCFLAG.MASTERPID in r.src_flags
                             for r in rows if not r.omit]):
-                        fieldnames = self.get_fieldnames_for_src_table(d, t)
                         if not config.srccfg[d].per_table_pid_field \
                                 in fieldnames:
-                            raise Exception(
+                            raise ValueError(
                                 "Source table {d}.{t} has a scrub_in or "
                                 "src_flags={f} field but no {p} field".format(
                                     d=d,
                                     t=t,
-                                    f=SRCFLAG_MASTERPID,
+                                    f=SRCFLAG.MASTERPID,
                                     p=config.srccfg[d].per_table_pid_field,
                                 )
                             )
 
-                    n_pks = sum([1 if SRCFLAG_PK in x.src_flags else 0
+                    for r in rows:
+                        if r._extract_text and not r._extract_from_filename:
+                            extrow = next(
+                                (r2 for r2 in rows
+                                    if r2.src_field == r._extract_ext_field),
+                                None)
+                            if extrow is None:
+                                raise ValueError(
+                                    "alter_method = {am}, but field {f} not "
+                                    "found in the same table".format(
+                                        am=r.alter_method,
+                                        f=r._extract_ext_field
+                                    )
+                                )
+                            if not is_sqltype_text_over_one_char(
+                                    extrow.src_datatype):
+                                raise ValueError(
+                                    "alter_method = {am}, but field {f}, which"
+                                    " should contain an extension or filename,"
+                                    " is not text of >1 character".format(
+                                        am=r.alter_method,
+                                        f=r._extract_ext_field
+                                    )
+                                )
+
+                    n_pks = sum([1 if SRCFLAG.PK in x.src_flags else 0
                                  for x in rows])
                     if n_pks > 1:
-                        raise Exception(
+                        raise ValueError(
                             "Table {d}.{t} has >1 source PK set".format(
                                 d=d, t=t))
 
                     if not db.table_exists(t):
-                        raise Exception(
+                        raise ValueError(
                             "Table {t} missing from source database "
                             "{d}".format(
                                 t=t,
@@ -1212,7 +1353,7 @@ class DataDictionary(object):
 
         logger.debug("Checking DD: global checks...")
         self.n_definers = sum(
-            [1 if SRCFLAG_DEFINESPRIMARYPIDS in x.src_flags else 0
+            [1 if SRCFLAG.DEFINESPRIMARYPIDS in x.src_flags else 0
              for x in self.rows])
         if self.n_definers == 0:
             if all([x.allow_no_patient_info
@@ -1220,13 +1361,13 @@ class DataDictionary(object):
                 logger.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
                                "BE COPIED, NOT ANONYMISED.")
             else:
-                raise Exception(
+                raise ValueError(
                     "Must have at least one field with "
-                    "src_flags={} set.".format(SRCFLAG_DEFINESPRIMARYPIDS))
+                    "src_flags={} set.".format(SRCFLAG.DEFINESPRIMARYPIDS))
         if self.n_definers > 1:
             logger.warning(
                 "Unusual: >1 field with src_flags={} set.".format(
-                    SRCFLAG_DEFINESPRIMARYPIDS))
+                    SRCFLAG.DEFINESPRIMARYPIDS))
 
     def get_dest_tables(self):
         return self.cached_dest_tables
@@ -1284,7 +1425,7 @@ class DataDictionary(object):
 def read_config_string_options(obj, parser, section, options,
                                enforce_str=False):
     if not parser.has_section(section):
-        raise Exception("config missing section: " + section)
+        raise ValueError("config missing section: " + section)
     for o in options:
         if parser.has_option(section, o):
             value = parser.get(section, o)
@@ -1295,7 +1436,7 @@ def read_config_string_options(obj, parser, section, options,
 
 def read_config_multiline_options(obj, parser, section, options):
     if not parser.has_section(section):
-        raise Exception("config missing section: " + section)
+        raise ValueError("config missing section: " + section)
     for o in options:
         if parser.has_option(section, o):
             multiline = parser.get(section, o)
@@ -1323,6 +1464,8 @@ class DatabaseSafeConfig(object):
             "scrubmethod_date_fields",
             "scrubmethod_number_fields",
             "truncate_date_fields",
+            "filename_to_text_fields",
+            "binary_to_text_field_pairs",
             "safe_fields_exempt_from_scrubbing",
         ])
         convert_attrs_to_bool(self, [
@@ -1331,16 +1474,22 @@ class DatabaseSafeConfig(object):
         convert_attrs_to_bool(self, [
             "allow_no_patient_info",
         ], default=False)
+        self.bin2text_dict = {}
+        for pair in self.binary_to_text_field_pairs:
+            items = [item.strip() for item in pair.split(",")]
+            if len(items) != 2:
+                raise ValueError("binary_to_text_field_pairs: specify fields in pairs")
+            self.bin2text_dict[items[0]] = items[1]
 
 
 def ensure_valid_field_name(f):
     if not is_valid_field_name(f):
-        raise Exception("Field name invalid: {}".format(f))
+        raise ValueError("Field name invalid: {}".format(f))
 
 
 def ensure_valid_table_name(f):
     if not is_valid_table_name(f):
-        raise Exception("Table name invalid: {}".format(f))
+        raise ValueError("Table name invalid: {}".format(f))
 
 
 # =============================================================================
@@ -1424,7 +1573,7 @@ class Config(object):
             return
         logger.info(SEP + "Loading config")
         if filename and environ:
-            raise Exception("Config.set(): mis-called")
+            raise ValueError("Config.set(): mis-called")
         if environ:
             self.read_environ(environ)
         else:
@@ -1521,14 +1670,14 @@ class Config(object):
 
         # Destination databases
         if not self.destdb:
-            raise Exception("No destination database specified.")
+            raise ValueError("No destination database specified.")
         if not self.admindb:
-            raise Exception("No admin database specified.")
+            raise ValueError("No admin database specified.")
 
         # Test field names
         def validate_fieldattr(name):
             if not getattr(self, name):
-                raise Exception("Blank fieldname: " + name)
+                raise ValueError("Blank fieldname: " + name)
             ensure_valid_field_name(getattr(self, name))
 
         specialfieldlist = [
@@ -1543,22 +1692,22 @@ class Config(object):
             validate_fieldattr(attrname)
             fieldset.add(getattr(self, attrname))
         if len(fieldset) != len(specialfieldlist):
-            raise Exception("Config: these must all be DIFFERENT fieldnames: "
-                            + ",".join(specialfieldlist))
+            raise ValueError("Config: these must all be DIFFERENT fieldnames: "
+                             + ",".join(specialfieldlist))
 
         # Test strings
         if not self.replace_patient_info_with:
-            raise Exception("Blank replace_patient_info_with")
+            raise ValueError("Blank replace_patient_info_with")
         if not self.replace_third_party_info_with:
-            raise Exception("Blank replace_third_party_info_with")
+            raise ValueError("Blank replace_third_party_info_with")
         if (self.replace_patient_info_with ==
                 self.replace_third_party_info_with):
-            raise Exception("Inadvisable: replace_patient_info_with == "
-                            "replace_third_party_info_with")
+            raise ValueError("Inadvisable: replace_patient_info_with == "
+                             "replace_third_party_info_with")
 
         # Regex
         if self.string_max_regex_errors < 0:
-            raise Exception("string_max_regex_errors < 0, nonsensical")
+            raise ValueError("string_max_regex_errors < 0, nonsensical")
 
         # Test date conversions
         format_datetime(self.NOW_UTC_NO_TZ, self.date_to_text_format)
@@ -1566,17 +1715,17 @@ class Config(object):
 
         # Load encryption keys
         if not self.per_table_patient_id_encryption_phrase:
-            raise Exception("Missing per_table_patient_id_encryption_phrase")
+            raise ValueError("Missing per_table_patient_id_encryption_phrase")
         self.primary_pid_hasher = MD5Hasher(
             self.per_table_patient_id_encryption_phrase)
 
         if not self.master_patient_id_encryption_phrase:
-            raise Exception("Missing master_patient_id_encryption_phrase")
+            raise ValueError("Missing master_patient_id_encryption_phrase")
         self.master_pid_hasher = MD5Hasher(
             self.master_patient_id_encryption_phrase)
 
         if not self.change_detection_encryption_phrase:
-            raise Exception("Missing change_detection_encryption_phrase")
+            raise ValueError("Missing change_detection_encryption_phrase")
         self.change_detection_hasher = MD5Hasher(
             self.change_detection_encryption_phrase)
 
@@ -1584,17 +1733,17 @@ class Config(object):
         if not include_sources:
             return
         if not self.sources:
-            raise Exception("No source databases specified.")
+            raise ValueError("No source databases specified.")
         for dbname, cfg in self.srccfg.iteritems():
             if not cfg.allow_no_patient_info:
                 if not cfg.per_table_pid_field:
-                    raise Exception(
+                    raise ValueError(
                         "Missing per_table_pid_field in config for database "
                         "{}".format(dbname))
                 ensure_valid_field_name(cfg.per_table_pid_field)
                 if cfg.per_table_pid_field == self.source_hash_fieldname:
-                    raise Exception("Config: per_table_pid_field can't be the "
-                                    "same as source_hash_fieldname")
+                    raise ValueError("Config: per_table_pid_field can't be the"
+                                     " same as source_hash_fieldname")
             if cfg.master_pid_fieldname:
                 ensure_valid_field_name(cfg.master_pid_fieldname)
 

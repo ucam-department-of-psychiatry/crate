@@ -7,7 +7,7 @@ binary objects (BLOBs).
 Prerequisites:
 
     sudo apt-get install antiword
-    sudo easy_install docx pdfminer
+    sudo pip install docx pdfminer
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: Feb 2015
@@ -47,15 +47,17 @@ See also:
 from __future__ import print_function
 import argparse
 import cStringIO
-import docx
+import docx  # sudo pip install docx
 import io
 import os
-from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
-from pdfminer.converter import TextConverter
-from pdfminer.layout import LAParams
-from pdfminer.pdfpage import PDFPage
+from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter  # sudo pip install pdfminer  # noqa
+from pdfminer.converter import TextConverter  # sudo pip install pdfminer  # noqa
+from pdfminer.layout import LAParams  # sudo pip install pdfminer  # noqa
+from pdfminer.pdfpage import PDFPage  # sudo pip install pdfminer  # noqa
 from subprocess import Popen, PIPE
-
+import sys
+from xml.etree import cElementTree as ElementTree
+import zipfile
 
 ENCODING = "utf-8"
 
@@ -101,7 +103,9 @@ def convert_docx_to_text(filename=None, blob=None):
 
 def convert_odt_to_text(filename=None, blob=None):
     """Pass either a filename or a binary object."""
-***
+    # We can't use exactly the same method as for DOCX files, using docx:
+    # sometimes that works, but sometimes it falls over with:
+    # KeyError: "There is no item named 'word/document.xml' in the archive"
     if filename:
         fp = filename
         # docx.opendocx(file) uses zipfile.ZipFile, which can take either a
@@ -110,9 +114,14 @@ def convert_odt_to_text(filename=None, blob=None):
         #   https://docs.python.org/2/library/zipfile.html
     else:
         fp = io.BytesIO(blob)
-    document = docx.opendocx(fp)
-    paratextlist = docx.getdocumenttext(document)
-    return '\n\n'.join(paratextlist)
+    z = zipfile.ZipFile(fp)
+    tree = ElementTree.fromstring(z.read('content.xml'))
+    # ... may raise zipfile.BadZipfile
+    textlist = []
+    for element in tree.iter():
+        if element.text:
+            textlist.append(element.text.strip())
+    return '\n\n'.join(textlist)
 
 
 def get_cmd_output(*args):
@@ -128,13 +137,17 @@ def get_cmd_output_from_stdin(stdin_content, *args):
 
 
 def document_to_text(filename=None, blob=None, extension=None):
-    """Pass either a filename or a binary object."""
+    """Pass either a filename or a binary object.
+    - Raises an exception for malformed arguments, missing files, bad
+      filetypes, etc.
+    - Returns a string if the file was processed (potentially an empty string).
+    """
     if not filename and not blob:
-        raise Exception("document_to_text: no filename and no blob")
+        raise ValueError("document_to_text: no filename and no blob")
     if filename and blob:
-        raise Exception("document_to_text: specify either filename or blob")
+        raise ValueError("document_to_text: specify either filename or blob")
     if blob and not extension:
-        raise Exception("document_to_text: need extension hint for blob")
+        raise ValueError("document_to_text: need extension hint for blob")
     if filename:
         stub, extension = os.path.splitext(filename)
     else:
@@ -143,15 +156,18 @@ def document_to_text(filename=None, blob=None, extension=None):
     extension = extension.lower()
     if extension == ".doc":
         if filename:
-            return get_cmd_output('antiword', filename)
+            return get_cmd_output('antiword', filename)  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
         else:
-            return get_cmd_output_from_stdin(blob, 'antiword', '-')
+            return get_cmd_output_from_stdin(blob, 'antiword', '-')  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
     elif extension == ".docx":
         return convert_docx_to_text(filename=filename, blob=blob)
     elif extension == ".odt":
         return convert_odt_to_text(filename=filename, blob=blob)
     elif extension == ".pdf":
         return convert_pdf_to_txt(filename=filename, blob=blob)
+    else:
+        return ValueError(
+            "document_to_text: Unknown filetype: {}".format(extension))
 
 
 def main():
@@ -160,10 +176,11 @@ def main():
                         help="Input file name")
     args = parser.parse_args()
     if not args.inputfile:
-        parser.print_help()
+        parser.print_help(sys.stderr)
         return
     result = document_to_text(filename=args.inputfile)
-    print(result.encode(ENCODING))
+    if result:
+        print(result.encode(ENCODING))
 
 
 if __name__ == '__main__':
