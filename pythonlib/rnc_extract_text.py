@@ -55,10 +55,10 @@ import cStringIO
 import docx  # sudo pip install docx
 import io
 import os
-import pdfminer.pdfinterp  # sudo pip install pdfminer  # noqa
-import pdfminer.converter  # sudo pip install pdfminer  # noqa
-import pdfminer.layout  # sudo pip install pdfminer  # noqa
-import pdfminer.pdfpage   # sudo pip install pdfminer  # noqa
+import pdfminer.pdfinterp  # sudo pip install pdfminer
+import pdfminer.converter  # sudo pip install pdfminer
+import pdfminer.layout  # sudo pip install pdfminer
+import pdfminer.pdfpage   # sudo pip install pdfminer
 import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
 import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
 import subprocess
@@ -77,24 +77,14 @@ ENCODING = "utf-8"
 # Support functions
 # =============================================================================
 
-def get_filename_or_filelikeobject(filename=None, blob=None):
-    if not filename and not blob:
-        raise ValueError("no filename and no blob")
-    if filename and blob:
-        raise ValueError("specify either filename or blob")
-    if filename:
-        return filename
-    else:
-        return io.BytesIO(blob)
-
-
 def get_filelikeobject(filename=None, blob=None):
+    """Guard the use of this function with 'with'."""
     if not filename and not blob:
         raise ValueError("no filename and no blob")
     if filename and blob:
         raise ValueError("specify either filename or blob")
     if filename:
-        return file(filename, 'r')
+        return open(filename, 'r')
     else:
         return io.BytesIO(blob)
 
@@ -104,11 +94,10 @@ def get_file_contents(filename=None, blob=None):
         raise ValueError("no filename and no blob")
     if filename and blob:
         raise ValueError("specify either filename or blob")
-    if filename:
-        f = file(filename, 'r')
-    else:
-        f = io.BytesIO(blob)
-    return f.read()
+    if blob:
+        return blob
+    with open(filename, 'r') as f:
+        return f.read()
 
 
 def get_cmd_output(*args):
@@ -129,26 +118,23 @@ def get_cmd_output_from_stdin(stdin_content, *args):
 
 def convert_pdf_to_txt(filename=None, blob=None):
     """Pass either a filename or a binary object."""
-    if filename:
-        fp = file(filename, 'rb')
-    else:
-        fp = io.BytesIO(blob)
-    rsrcmgr = pdfminer.pdfinterp.PDFResourceManager()
-    retstr = cStringIO.StringIO()
-    codec = ENCODING
-    laparams = pdfminer.layout.LAParams()
-    device = pdfminer.converter.TextConverter(rsrcmgr, retstr, codec=codec,
-                                              laparams=laparams)
-    interpreter = pdfminer.pdfinterp.PDFPageInterpreter(rsrcmgr, device)
-    password = ""
-    maxpages = 0
-    caching = True
-    pagenos = set()
-    for page in pdfminer.pdfpage.PDFPage.get_pages(
-            fp, pagenos, maxpages=maxpages, password=password,
-            caching=caching, check_extractable=True):
-        interpreter.process_page(page)
-    text = retstr.getvalue().decode(ENCODING)
+    with get_filelikeobject(filename, blob) as fp:
+        rsrcmgr = pdfminer.pdfinterp.PDFResourceManager()
+        retstr = cStringIO.StringIO()
+        codec = ENCODING
+        laparams = pdfminer.layout.LAParams()
+        device = pdfminer.converter.TextConverter(rsrcmgr, retstr, codec=codec,
+                                                  laparams=laparams)
+        interpreter = pdfminer.pdfinterp.PDFPageInterpreter(rsrcmgr, device)
+        password = ""
+        maxpages = 0
+        caching = True
+        pagenos = set()
+        for page in pdfminer.pdfpage.PDFPage.get_pages(
+                fp, pagenos, maxpages=maxpages, password=password,
+                caching=caching, check_extractable=True):
+            interpreter.process_page(page)
+        text = retstr.getvalue().decode(ENCODING)
     return text
 
 
@@ -158,9 +144,9 @@ def convert_docx_to_text(filename=None, blob=None):
     # filename or a file-like object
     #   https://github.com/mikemaccana/python-docx/blob/master/docx.py
     #   https://docs.python.org/2/library/zipfile.html
-    fp = get_filename_or_filelikeobject(filename, blob)
-    document = docx.opendocx(fp)
-    paratextlist = docx.getdocumenttext(document)
+    with get_filelikeobject(filename, blob) as fp:
+        document = docx.opendocx(fp)
+        paratextlist = docx.getdocumenttext(document)
     return '\n\n'.join(paratextlist)
 
 
@@ -169,32 +155,33 @@ def convert_odt_to_text(filename=None, blob=None):
     # We can't use exactly the same method as for DOCX files, using docx:
     # sometimes that works, but sometimes it falls over with:
     # KeyError: "There is no item named 'word/document.xml' in the archive"
-    fp = get_filename_or_filelikeobject(filename, blob)
-    z = zipfile.ZipFile(fp)
-    tree = xml.etree.cElementTree.fromstring(z.read('content.xml'))
-    # ... may raise zipfile.BadZipfile
-    textlist = []
-    for element in tree.iter():
-        if element.text:
-            textlist.append(element.text.strip())
+    with get_filelikeobject(filename, blob) as fp:
+        z = zipfile.ZipFile(fp)
+        tree = xml.etree.cElementTree.fromstring(z.read('content.xml'))
+        # ... may raise zipfile.BadZipfile
+        textlist = []
+        for element in tree.iter():
+            if element.text:
+                textlist.append(element.text.strip())
     return '\n\n'.join(textlist)
 
 
 def convert_html_to_text(filename=None, blob=None):
-    fp = get_filename_or_filelikeobject(filename, blob)
-    soup = bs4.BeautifulSoup(fp)
-    return soup.get_text()
+    with get_filelikeobject(filename, blob) as fp:
+        soup = bs4.BeautifulSoup(fp)
+        return soup.get_text()
 
 
 def convert_xml_to_text(filename=None, blob=None):
-    fp = get_filename_or_filelikeobject(filename, blob)
-    soup = bs4.BeautifulStoneSoup(fp)
-    return soup.get_text()
+    with get_filelikeobject(filename, blob) as fp:
+        soup = bs4.BeautifulStoneSoup(fp)
+        return soup.get_text()
 
 
 def convert_rtf_to_text(filename=None, blob=None):
-    fp = get_filelikeobject(filename, blob)
-    doc = pyth.plugins.rtf15.reader.Rtf15Reader.read(fp)
+    with get_filelikeobject(filename, blob) as fp:
+        doc = pyth.plugins.rtf15.reader.Rtf15Reader.read(fp)
+    # https://github.com/brendonh/pyth/blob/master/pyth/plugins/rtf15/reader.py
     return pyth.plugins.plaintext.writer.PlaintextWriter.write(doc).getvalue()
 
 

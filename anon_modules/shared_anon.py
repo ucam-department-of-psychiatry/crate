@@ -38,6 +38,7 @@ logging.basicConfig()  # just in case nobody else has done this
 logger = logging.getLogger("anonymise")
 import operator
 import os
+from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
 import pytz
 import urllib
 
@@ -1141,10 +1142,10 @@ class DataDictionary(object):
 
     def cache_stuff(self):
         logger.debug("Caching data dictionary information...")
-        self.cached_dest_tables = set()
-        self.cached_source_databases = set()
-        self.cached_srcdb_table_pairs = set()
-        self.cached_srcdb_table_pairs_w_pt_info = set()  # w = with
+        self.cached_dest_tables = SortedSet()
+        self.cached_source_databases = SortedSet()
+        self.cached_srcdb_table_pairs = SortedSet()
+        self.cached_srcdb_table_pairs_w_pt_info = SortedSet()  # w = with
         self.cached_scrub_from_rows = []
         self.cached_src_tables = {}
         self.cached_src_tables_w_pt_info = {}  # w = with
@@ -1161,22 +1162,23 @@ class DataDictionary(object):
 
             # Database-oriented maps
             if ddr.src_db not in self.cached_src_tables:
-                self.cached_src_tables[ddr.src_db] = set()
+                self.cached_src_tables[ddr.src_db] = SortedSet()
             if ddr.src_db not in self.cached_pt_src_tables_w_dest:
-                self.cached_pt_src_tables_w_dest[ddr.src_db] = set()
+                self.cached_pt_src_tables_w_dest[ddr.src_db] = SortedSet()
             if ddr.src_db not in self.cached_src_tables_w_pt_info:
-                self.cached_src_tables_w_pt_info[ddr.src_db] = set()
+                self.cached_src_tables_w_pt_info[ddr.src_db] = SortedSet()
             if ddr.src_db not in src_tables_with_dest:
-                src_tables_with_dest[ddr.src_db] = set()
+                src_tables_with_dest[ddr.src_db] = SortedSet()
 
             # (Database + table)-oriented maps
             db_t_key = (ddr.src_db, ddr.src_table)
             if db_t_key not in self.cached_rows_for_src_table:
-                self.cached_rows_for_src_table[db_t_key] = set()
+                self.cached_rows_for_src_table[db_t_key] = SortedSet()
             if db_t_key not in self.cached_fieldnames_for_src_table:
-                self.cached_fieldnames_for_src_table[db_t_key] = set()
+                self.cached_fieldnames_for_src_table[db_t_key] = SortedSet()
             if db_t_key not in self.cached_dest_tables_for_src_db_table:
-                self.cached_dest_tables_for_src_db_table[db_t_key] = set()
+                self.cached_dest_tables_for_src_db_table[db_t_key] = \
+                    SortedSet()
             if db_t_key not in self.cached_srchash_info:
                 self.cached_srchash_info[db_t_key] = (
                     None, False, ddr.dest_table, None
@@ -1184,9 +1186,10 @@ class DataDictionary(object):
 
             # Destination table-oriented maps
             if ddr.dest_table not in self.cached_src_dbtables_for_dest_table:
-                self.cached_src_dbtables_for_dest_table[ddr.dest_table] = set()
+                self.cached_src_dbtables_for_dest_table[ddr.dest_table] = \
+                    SortedSet()
             if ddr.dest_table not in self.cached_rows_for_dest_table:
-                self.cached_rows_for_dest_table[ddr.dest_table] = set()
+                self.cached_rows_for_dest_table[ddr.dest_table] = SortedSet()
 
             # Regardless...
             self.cached_rows_for_src_table[db_t_key].add(ddr)
@@ -1237,22 +1240,17 @@ class DataDictionary(object):
                 )
 
         # A subtraction...
-        self.cached_srcdb_table_pairs_wo_pt_info = (
+        self.cached_srcdb_table_pairs_wo_pt_info = sorted(
             self.cached_srcdb_table_pairs
             - self.cached_srcdb_table_pairs_w_pt_info
         )
 
-        # An intersection...
-        for src_db in self.cached_source_databases:
-            self.cached_pt_src_tables_w_dest[src_db] = (
-                self.cached_src_tables_w_pt_info[src_db]
-                & src_tables_with_dest[src_db]  # & is intersection
+        # An intersection, and some sorting/conversion to lists
+        for s in self.cached_source_databases:
+            self.cached_pt_src_tables_w_dest[s] = sorted(
+                self.cached_src_tables_w_pt_info[s]
+                & src_tables_with_dest[s]  # & is intersection
             )
-
-        # Now convert things to lists
-        self.cached_srcdb_table_pairs_wo_pt_info = list(
-            self.cached_srcdb_table_pairs_wo_pt_info
-        )
 
     def check_valid(self, check_against_source_db):
         logger.info("Checking data dictionary...")
