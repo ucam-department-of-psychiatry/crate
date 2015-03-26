@@ -282,7 +282,7 @@ def DateTime2literal_RNC(d, c):
     #   ValueError: year=1850 is before 1900; the datetime strftime() methods
     #   require year >= 1900
     # http://stackoverflow.com/questions/10263956
-    dt = d.isoformat(" ").split(".")[0]
+    dt = d.isoformat(" ")
     return _mysql.string_literal(dt, c)
 
 
