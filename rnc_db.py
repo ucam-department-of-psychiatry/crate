@@ -277,7 +277,7 @@ def sql_dequote_string(s):
 
 def DateTime2literal_RNC(d, c):
     """Format a DateTime object as something MySQL will actually accept."""
-    dt = d.strftime("%Y-%m-%d %H:%M:%S")
+    #dt = d.strftime("%Y-%m-%d %H:%M:%S")
     # ... can fail with e.g.
     #   ValueError: year=1850 is before 1900; the datetime strftime() methods
     #   require year >= 1900
