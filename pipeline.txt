@@ -337,3 +337,19 @@ Q.  MySQL server has gone away... ?
 A.  Probably: processing a big binary field, and MySQL's max_allowed_packet
     parameter is too small. Try increasing it (e.g. from 16M to 64M).
     See also http://www.camcops.org/documentation/server.html
+
+Q.  What settings do I need in /etc/mysql/my.cnf?
+A.  Probably these:
+
+    [mysqld]
+    max_allowed_packet = 32M
+
+    innodb_strict_mode = 1
+    innodb_file_per_table = 1
+    innodb_file_format = Barracuda
+
+    # Only for MySQL prior to 5.7.5 (http://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-20.html):
+    # innodb_log_file_size = 512M
+
+    [mysqldump]
+    max_allowed_packet = 32M

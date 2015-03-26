@@ -910,7 +910,8 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
         row = cursor.fetchone()
 
 
-def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None):
+def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
+             debuglimit=0):
     """ Generates a series of lists of values, each value corresponding to a
     field in sourcefields.
     """
@@ -933,9 +934,13 @@ def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None):
     cursor = sourcedb.cursor()
     sourcedb.db_exec_with_cursor(cursor, sql, *args)
     row = cursor.fetchone()
+    nrows = 1
     while row is not None:
+        if debuglimit > 0 and nrows > debuglimit:
+            return
         yield list(row)  # convert from tuple to list so we can modify it
         row = cursor.fetchone()
+        nrows += 1
 
 
 def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
@@ -965,7 +970,7 @@ def gen_nonpatient_tables(tasknum=0, ntasks=1):
 #   CONNECTIONS.
 
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
-                  pid=None, scrubber=None, incremental=False):
+                  pid=None, scrubber=None, incremental=False, debuglimit=0):
     logger.debug(
         "process_table: {}.{}, pid={}, incremental={}".format(
             sourcedbname, sourcetable, pid, incremental))
@@ -992,7 +997,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         destfields.append(config.source_hash_fieldname)
     n = 0
     for row in gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields,
-                        pid):
+                        pid, debuglimit=debuglimit):
         n += 1
         if n % config.report_every_n_rows == 0:
             logger.info("... processing row {}".format(n))
@@ -1035,7 +1040,12 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                     value = None
             elif ddr._extract_text:
                 if ddr._extract_from_filename:
-                    value = document_to_text(filename=value)
+                    try:
+                        value = document_to_text(filename=value)
+                    except Exception as e:
+                        logger.error(
+                            "Exception from document_to_text: {}".format(e))
+                        value = None
                 else:
                     extindex = next(
                         (i for i, x in enumerate(ddrows)
@@ -1046,7 +1056,13 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                             "Bug: missing extension field for "
                             "alter_method={}".format(ddr.alter_method))
                     extension = row[extindex]
-                    value = document_to_text(blob=value, extension=extension)
+                    try:
+                        value = document_to_text(blob=value,
+                                                 extension=extension)
+                    except Exception as e:
+                        logger.error(
+                            "Exception from document_to_text: {}".format(e))
+                        value = None
 
             if ddr._scrub:
                 # Main point of anonymisation!
@@ -1147,7 +1163,7 @@ class PatientThread(threading.Thread):
 def patient_processing_fn(sources, destdb, admindb,
                           tasknum=0, ntasks=1,
                           abort_event=None, multiprocess=False,
-                          incremental=False):
+                          incremental=False, debuglimit=0):
     threadprefix = ""
     if ntasks > 1 and not multiprocess:
         threadprefix = "Thread {}: ".format(tasknum)
@@ -1182,7 +1198,8 @@ def patient_processing_fn(sources, destdb, admindb,
                     threadprefix + "Patient {}, processing table {}.{}".format(
                         pid, d, t))
                 process_table(db, d, t, destdb, pid=pid, scrubber=scrubber,
-                              incremental=(incremental and scrubber_unchanged))
+                              incremental=(incremental and scrubber_unchanged),
+                              debuglimit=debuglimit)
 
         # Insert into mapping db
         insert_into_mapping_db(admindb, scrubber)
@@ -1202,21 +1219,22 @@ def drop_remake(incremental=False):
                 delete_dest_rows_with_no_src_row(db, d, t)
 
 
-def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
+def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False,
+                              debuglimit=0):
     logger.info(SEP + "Non-patient tables")
     # Processing tables as chunks, so probably best to commit after each.
     for (d, t) in gen_nonpatient_tables(tasknum=tasknum, ntasks=ntasks):
         db = config.sources[d]
         logger.info("Processing non-patient table {}.{}...".format(d, t))
         process_table(db, d, t, config.destdb, pid=None, scrubber=None,
-                      incremental=incremental)
+                      incremental=incremental, debuglimit=debuglimit)
         logger.info("... committing")
         config.destdb.commit()
         logger.info("... done")
 
 
 def process_patient_tables(nthreads=1, process=0, nprocesses=1,
-                           incremental=False):
+                           incremental=False, debuglimit=0):
     # We'll use multiple destination tables, so commit right at the end.
 
     def ctrl_c_handler(signum, frame):
@@ -1239,7 +1257,7 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
         patient_processing_fn(
             config.sources, config.destdb, config.admindb,
             tasknum=process, ntasks=nprocesses, multiprocess=True,
-            incremental=incremental)
+            incremental=incremental, debuglimit=debuglimit)
     else:
         logger.info(SEP + "ENTERING SINGLE-PROCESS, MULTITHREADING MODE")
         signal.signal(signal.SIGINT, ctrl_c_handler)
@@ -1370,6 +1388,8 @@ Sample usage (having set PYTHONPATH):
                         help="Process patient tables only")
     parser.add_argument("--index", action="store_true",
                         help="Create indexes only")
+    parser.add_argument("--debuglimitpertable", nargs="?", type=int, default=0,
+                        help="DEBUG OPTION: limit to this many rows per table")
     parser.add_argument("-i", "--incremental", action="store_true",
                         help="Process only new/changed information, where "
                              "possible")
@@ -1457,7 +1477,8 @@ Sample usage (having set PYTHONPATH):
     if args.nonpatienttables or everything:
         process_nonpatient_tables(tasknum=args.process,
                                   ntasks=args.nprocesses,
-                                  incremental=args.incremental)
+                                  incremental=args.incremental,
+                                  debuglimit=args.debuglimitpertable)
 
     # 3. Tables with patient info. (This bit supports multithreading.)
     #    Process PER PATIENT, across all tables, because we have to synthesize
@@ -1466,7 +1487,8 @@ Sample usage (having set PYTHONPATH):
         process_patient_tables(nthreads=args.threads,
                                process=args.process,
                                nprocesses=args.nprocesses,
-                               incremental=args.incremental)
+                               incremental=args.incremental,
+                               debuglimit=args.debuglimitpertable)
 
     # 4. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
     if args.index or everything:
