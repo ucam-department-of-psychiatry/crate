@@ -989,7 +989,7 @@ class DataDictionaryRow(object):
                             "{ALTERMETHOD.BIN2TEXT_SCRUB}, source field "
                             "must be of binary type".format(
                                 ALTERMETHOD=ALTERMETHOD))
-                    if not self._extract_from_filename:
+                    if not self._extract_ext_field:
                         raise ValueError(
                             "For alter_method = {ALTERMETHOD.BIN2TEXT} or "
                             "{ALTERMETHOD.BIN2TEXT_SCRUB}, must also specify "
