@@ -349,7 +349,14 @@ A.  Probably these:
     innodb_file_format = Barracuda
 
     # Only for MySQL prior to 5.7.5 (http://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-20.html):
-    innodb_log_file_size = 512M
+    innodb_log_file_size = 320M
+
+    # For more performance, less safety:
+    innodb_flush_log_at_trx_commit = 2
+
+    # To save memory?
+    # Default is 8; suggestion is ncores * 2
+    # innodb_thread_concurrency = ...
 
     [mysqldump]
     max_allowed_packet = 32M
@@ -361,3 +368,31 @@ Q.  _mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126).
 A.  See above.
     If you need to change the log file size, FOLLOW THIS PROCEDURE:
         https://dev.mysql.com/doc/refman/5.0/en/innodb-data-log-reconfiguration.html
+
+Q.  Segmentation fault (core dumped)... ?
+A.  Examine the core with gdb anonymise.py ~/core
+    ... then it tells you which program generated the core
+    ... then gdb PROGRAM ~/core
+    ... but actually the likely reason is being out of RAM
+    ... monitor memory use with
+            htop
+            top (press M)
+            watch free -m
+                http://www.linuxatemyram.com/
+    ... tried: reduce the innodb_thread_concurrency variable as above, and
+        restart MySQL (under Ubuntu/Debian, with: sudo service mysql restart).
+        - didn't fix it
+    ... for 32M max_allowed_packet, use 320M (not 512M) for the logfile
+        - did significantly reduce memory usage, but still crashed, and not
+          while processing a large record
+        - longest BLOB in this data set is
+    So, systematic method:
+    (1) What's the biggest packet needed? Estimate with:
+            SELECT MAX(LEN(giantbinaryfield)) FROM relevanttable;
+        ... in our case (CRS/CDL test): 39,294,299 = 37.47 MiB.
+        So with a bit of margin, let's use
+            max_allowed_packet = 40M
+            innodb_log_file_size = 400M
+    (2) Then set max number of rows and bytes, e.g. to 1000 rows and 80 MiB.
+
+    *** crashing at careplangoal / 90000 rows approx.

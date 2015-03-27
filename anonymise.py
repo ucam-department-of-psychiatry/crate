@@ -1080,6 +1080,23 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         destdb.insert_record(dest_table, destfields, destvalues,
                              update_on_duplicate_key=True)
 
+        # Trigger an early commit?
+        early_commit = False
+        if config.max_rows_before_commit is not None:
+            config._rows_in_transaction += 1
+            if config._rows_in_transaction >= config.max_rows_before_commit:
+                early_commit = True
+        if config.max_bytes_before_commit is not None:
+            config._bytes_in_transaction += sys.getsizeof(destvalues)
+            # ... approximate!
+            # Quicker than e.g. len(repr(...)), as judged by a timeit() call.
+            if config._bytes_in_transaction >= config.max_bytes_before_commit:
+                early_commit = True
+        if early_commit:
+            destdb.commit()
+            config._rows_in_transaction = 0
+            config._bytes_in_transaction = 0
+
 
 def create_indexes(tasknum=0, ntasks=1):
     logger.info(SEP + "Create indexes")

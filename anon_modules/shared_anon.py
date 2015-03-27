@@ -80,6 +80,8 @@ DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
 SEP = "=" * 20 + " "
 LONGTEXT = "LONGTEXT"
+DEFAULT_MAX_ROWS_BEFORE_COMMIT = 1000
+DEFAULT_MAX_BYTES_BEFORE_COMMIT = 80 * 1024 * 1024
 
 SCRUBSRC = AttrDict(
     PATIENT="patient",
@@ -236,14 +238,6 @@ DEMO_CONFIG = """
 data_dictionary_filename = testdd.tsv
 
 # -----------------------------------------------------------------------------
-# Database password security
-# -----------------------------------------------------------------------------
-
-# Set this to True. Only set it to False to debug database opening failures,
-# under supervision, then set it back to True again afterwards.
-open_databases_securely = True
-
-# -----------------------------------------------------------------------------
 # Encryption phrases/passwords
 # -----------------------------------------------------------------------------
 
@@ -320,6 +314,34 @@ datetime_to_text_format = %Y-%m-%dT%H:%M:%S
 # Append source table/field to the comment? Boolean.
 
 append_source_info_to_comment = True
+
+# -----------------------------------------------------------------------------
+# Database password security
+# -----------------------------------------------------------------------------
+
+# Set this to True. Only set it to False to debug database opening failures,
+# under supervision, then set it back to True again afterwards.
+
+open_databases_securely = True
+
+# -----------------------------------------------------------------------------
+# Destination database configuration
+# -----------------------------------------------------------------------------
+
+# Specify the maximum number of rows to be processed before a COMMIT is issued
+# on the database transaction. This prevents the transaction growing too large.
+# Default is None (no limit).
+
+max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
+
+# Specify the maximum number of source-record bytes (approximately!) that are
+# processed before a COMMIT is issued on the database transaction. This
+# prevents the transaction growing too large. The COMMIT will be issued *after*
+# this limit has been met/exceeded, so it may be exceeded if the transaction
+# just before the limit takes the cumulative total over the limit.
+# Default is None (no limit).
+
+max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
 # -----------------------------------------------------------------------------
 # List of source databases (each of which is defined in its own section).
@@ -602,6 +624,8 @@ binary_to_text_field_pairs =
     ALTERMETHOD=ALTERMETHOD,
     SRCFLAG=SRCFLAG,
     LONGTEXT=LONGTEXT,
+    DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
+    DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT
 )
 
 # For the style:
@@ -1537,6 +1561,8 @@ class Config(object):
         "datetime_to_text_format",
         "append_source_info_to_comment",
         "open_databases_securely",
+        "max_rows_before_commit",
+        "max_bytes_before_commit",
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
@@ -1551,6 +1577,8 @@ class Config(object):
         self.PERSISTENT_CONSTANTS_INITIALIZED = False
         self.DESTINATION_FIELDS_LOADED = False
         self.destfieldinfo = []
+        self._rows_in_transaction = 0
+        self._bytes_in_transaction = 0
 
     def set(self, filename=None, environ=None, include_sources=True,
             load_dd=True, load_destfields=True):
@@ -1641,6 +1669,10 @@ class Config(object):
             "anonymise_strings_at_word_boundaries_only",
             "append_source_info_to_comment",
             "open_databases_securely",
+        ])
+        convert_attrs_to_int_or_none(self, [
+            "max_rows_before_commit",
+            "max_bytes_before_commit",
         ])
 
         # Databases
