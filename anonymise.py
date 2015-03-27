@@ -1093,7 +1093,9 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if config._bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True
         if early_commit:
+            logger.info("Triggering early commit...")
             destdb.commit()
+            logger.info("... done")
             config._rows_in_transaction = 0
             config._bytes_in_transaction = 0
 
