@@ -394,5 +394,31 @@ A.  Examine the core with gdb anonymise.py ~/core
             max_allowed_packet = 40M
             innodb_log_file_size = 400M
     (2) Then set max number of rows and bytes, e.g. to 1000 rows and 80 MiB.
+    OK, actually relates to a single specific record -- found using MySQL
+    log with
+            SET GLOBAL general_log = 'ON';
+            SHOW VARIABLES LIKE 'general_log_file';
+    ... but actually not relating to insertion at all, but to retrieval
+    ... nrows=90060 then crash in gen_rows at the point of cursor.fetchone()
+    ... This?
+        http://stackoverflow.com/questions/11657958
+        https://code.google.com/p/pyodbc/issues/detail?id=346
+        https://msdn.microsoft.com/en-us/library/hh568448.aspx
+        https://code.google.com/p/pyodbc/issues/detail?id=188
+    ... changing rnc_db to use pypyodbc rather than pyodbc:
+            sudo pip install pypyodbc
+            import pypyodbc as pyodbc
+        ... crashed at the same point (segfault).
+        ... so back to pyodbc
+    ... git clone https://github.com/mkleehammer/pyodbc
+        # ... getdata.cpp, as one bughunt above suggested, already has that fix
+    ... sudo pip install pyodbc --upgrade  # from 3.0.6 to 3.0.7
+        ... no change
+    ... try the query using Perl and DBI::ODBC -- also crashes.
+        So probably a bug in the SQL Server Native Client 11.0 for Linux.
+    ... can't use FreeTDS because the SQL Server won't let us login (another
+        Microsoft bug).
+    ... removing the VARCHAR(MAX) fields from the data dictionary makes it happy again.
+    ... random: http://www.saltycrane.com/blog/2011/09/notes-sqlalchemy-w-pyodbc-freetds-ubuntu/
 
     *** crashing at careplangoal / 90000 rows approx.
