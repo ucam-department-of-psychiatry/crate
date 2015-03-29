@@ -660,6 +660,7 @@ class DatabaseConfig(object):
             password=self.password,
             autocommit=False  # NB therefore need to commit
         )
+        return db
 
 
 def get_database_from_configparser(parser, section, securely=True):
