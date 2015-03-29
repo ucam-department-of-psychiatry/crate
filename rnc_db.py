@@ -935,21 +935,21 @@ class DatabaseSupporter:
             # jar tvf sqljdbc41.jar
             # https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx
             jclassname = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-            db_element = ";databaseName={database}" if database else ""
+            db_elem = ";databaseName={}".format(database) if database else ""
             url = (
-                "jdbc:sqlserver://{host}:{port}{db_element}"
+                "jdbc:sqlserver://{host}:{port}{db_elem}"
                 ";user={user};password={password}".format(
-                    host=host, port=port, db_element=db_element,
+                    host=host, port=port, db_elem=db_elem,
                     user=user, password=password)
             )
             logger.info(
                 "jdbc connect: jclassname={jclassname}, url = "
-                "jdbc:sqlserver://{host}:{port}{db_element}"
+                "jdbc:sqlserver://{host}:{port}{db_elem}"
                 ";user={user};password=[censored]".format(
                     jclassname=jclassname,
                     host=host,
                     port=port,
-                    db_element=db_element,
+                    db_elem=db_elem,
                     user=user)
             )
             driver_args = [url]
