@@ -370,7 +370,12 @@ A.  See above.
         https://dev.mysql.com/doc/refman/5.0/en/innodb-data-log-reconfiguration.html
 
 Q.  Segmentation fault (core dumped)... ?
-A.  Examine the core with gdb anonymise.py ~/core
+A.  Short answer: use the Microsoft JDBC driver instead of the Microsoft ODBC
+    driver for Linux, which is buggy.
+
+    Long answer, i.e. working this out:
+
+    Examine the core with gdb anonymise.py ~/core
     ... then it tells you which program generated the core
     ... then gdb PROGRAM ~/core
     ... but actually the likely reason is being out of RAM
@@ -411,7 +416,7 @@ A.  Examine the core with gdb anonymise.py ~/core
         ... crashed at the same point (segfault).
         ... so back to pyodbc
     ... git clone https://github.com/mkleehammer/pyodbc
-        # ... getdata.cpp, as one bughunt above suggested, already has that fix
+        ... getdata.cpp, as one bughunt above suggested, already has that fix
     ... sudo pip install pyodbc --upgrade  # from 3.0.6 to 3.0.7
         ... no change
     ... try the query using Perl and DBI::ODBC -- also crashes.
@@ -421,4 +426,7 @@ A.  Examine the core with gdb anonymise.py ~/core
     ... removing the VARCHAR(MAX) fields from the data dictionary makes it happy again.
     ... random: http://www.saltycrane.com/blog/2011/09/notes-sqlalchemy-w-pyodbc-freetds-ubuntu/
 
-    *** crashing at careplangoal / 90000 rows approx.
+    [Full details in private log.]
+
+    Switched to the JDBC driver.
+    Problem went away.
