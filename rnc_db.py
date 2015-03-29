@@ -170,6 +170,12 @@ MYSQL_JDBC_ERROR_HELP = """
     (1) sudo apt-get install libmysql-java
     (2) export CLASSPATH=$CLASSPATH:/usr/share/java/mysql.jar
 
+    If you get:
+        Failed to connect. OSError: [Errno 2] No such file or directory:
+        '/usr/lib/jvm'
+    ... under 64-bit Ubuntu, then:
+        sudo apt-get install default-jre libc6-i386
+
 """
 SQLSERVER_JDBC_ERROR_HELP = """
 
@@ -749,6 +755,13 @@ class DatabaseSupporter:
             else:
                 interface = INTERFACE_ODBC
 
+        # Default port
+        if port is None:
+            if engine == ENGINE_MYSQL:
+                port = 3306
+            elif engine == ENGINE_SQLSERVER:
+                port = 1433
+
         # Default driver
         if driver is None:
             if engine == ENGINE_MYSQL and interface == INTERFACE_ODBC:
@@ -877,6 +890,14 @@ class DatabaseSupporter:
             driver_args = [url, user, password]
             jars = None
             libs = None
+            logger.info(
+                "jdbc connect: jclassname={jclassname}, "
+                "url={url}, user={user}, password=[censored]".format(
+                    jclassname=jclassname,
+                    url=url,
+                    user=user,
+                )
+            )
             try:
                 self.jdbc_connect(jclassname, driver_args, jars, libs,
                                   autocommit)
@@ -913,10 +934,25 @@ class DatabaseSupporter:
 
         elif engine == ENGINE_SQLSERVER and interface == INTERFACE_JDBC:
             # jar tvf sqljdbc41.jar
+            # https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx
             jclassname = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-            url = "jdbc:sqlserver://{host}:{port}/{database}".format(
-                host=host, port=port, database=database)
-            driver_args = [url, user, password]
+            url = (
+                "jdbc:sqlserver://{host}:{port};databaseName={database};"
+                "user={user};password={password}".format(
+                    host=host, port=port, database=database,
+                    user=user, password=password)
+            )
+            logger.info(
+                "jdbc connect: jclassname={jclassname}, url = "
+                "jdbc:sqlserver://{host}:{port};databaseName={database};"
+                "user={user};password=[censored]".format(
+                    jclassname=jclassname,
+                    host=host,
+                    port=port,
+                    database=database,
+                    user=user)
+            )
+            driver_args = [url]
             jars = None
             libs = None
             self.jdbc_connect(jclassname, driver_args, jars, libs,
@@ -962,17 +998,6 @@ class DatabaseSupporter:
 
     def jdbc_connect(self, jclassname, driver_args, jars, libs,
                      autocommit):
-        logger.info(
-            "jdbc connect: jclassname={jclassname}, "
-            "driver_args[0]={d0}, driver_args[1]={d1}, "
-            "jars={jars}, libs={libs}".format(
-                jclassname=jclassname,
-                d0=driver_args[0],
-                d1=driver_args[1],
-                jars=jars,
-                libs=libs,
-            )
-        )
         try:
             self.db = jdbc.connect(jclassname, driver_args, jars=jars,
                                    libs=libs)
