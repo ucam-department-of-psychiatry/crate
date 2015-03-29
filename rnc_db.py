@@ -642,10 +642,9 @@ class DatabaseConfig(object):
                         "Missing SQL Server details: user or password")
             else:
                 if (not self.host or not self.user or not
-                        self.password or not self.db):
+                        self.password):
                     raise ValueError(
-                        "Missing SQL Server details: host, user, "
-                        "password, or db")
+                        "Missing SQL Server details: host, user, or password")
 
     def get_database(self):
         db = DatabaseSupporter()
@@ -801,8 +800,8 @@ class DatabaseSupporter:
                 raise ValueError("Missing host parameter")
             if port is None:
                 raise ValueError("Missing port parameter")
-            if database is None:
-                raise ValueError("Missing database parameter")
+            #if database is None:
+            #    raise ValueError("Missing database parameter")
             if user is None:
                 raise ValueError("Missing user parameter")
         else:
