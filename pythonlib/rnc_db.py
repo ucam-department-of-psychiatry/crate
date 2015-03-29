@@ -699,6 +699,7 @@ class DatabaseSupporter:
     MYSQL_CURRENT_SCHEMA_EXPR = "DATABASE()"
     SQLSERVER_CURRENT_SCHEMA_EXPR = "SCHEMA_NAME()"
     ACCESS_CURRENT_SCHEMA_EXPR = "NULL"  # don't know how
+    CONNECTION_ERROR_MSG = "Failed to connect. {ex}: {msg}"
 
     def __init__(self):
         self.db = None
@@ -714,6 +715,15 @@ class DatabaseSupporter:
     # -------------------------------------------------------------------------
     # Generic connection method
     # -------------------------------------------------------------------------
+
+    @staticmethod
+    def reraise_connection_exception(e):
+        err = "Failed to connect. {ex}: {msg}".format(
+            ex=type(e).__name__,
+            msg=str(e),
+        )
+        logger.error(err)
+        raise NoDatabaseError(err)
 
     def connect(self,
                 engine=None, interface=None,
@@ -756,21 +766,9 @@ class DatabaseSupporter:
         self.autocommit = autocommit
 
         # Report intent
-        logger.info(
-            "Opening database: engine={e}, host={h}, port={p}, db={d}, "
-            "driver={driver}, dsn={dsn}, odbc_connection_string={c}, "
-            "user={u}".format(
-                e=engine,
-                h=host,
-                p=port,
-                d=database,
-                driver=driver,
-                dsn=dsn,
-                c=("[POTENTIALLY SECRET]"
-                   if odbc_connection_string else None),
-                u=user,
-            )
-        )
+        logger.info("Opening database: engine={e}, interface={i}, "
+                    "use_unicode={u}, autocommit={a}".format(
+                        e=engine, i=interface, u=use_unicode, a=autocommit))
 
         # ---------------------------------------------------------------------
         # Interface-specific tasks:
@@ -816,6 +814,10 @@ class DatabaseSupporter:
             converters[DateTimeType] = DateTime2literal_RNC
             # See also:
             #   http://stackoverflow.com/questions/11053941
+            logger.info(
+                "mysqldb connect: host={h}, port={p}, user={u}, "
+                "database={d}".format(
+                    h=host, p=port, u=user, d=database))
             try:
                 self.db = MySQLdb.connect(
                     host=host,
@@ -828,15 +830,7 @@ class DatabaseSupporter:
                     conv=converters
                 )
             except Exception as e:
-                err = (
-                    "Failed to connect to database {d}. {ex}: {msg}".format(
-                        d=database,
-                        ex=type(e).__name__,
-                        msg=str(e),
-                    )
-                )
-                logger.error(err)
-                raise NoDatabaseError(err)
+                self.reraise_connection_exception(e)
             self.db.autocommit(autocommit)
             # http://mysql-python.sourceforge.net/MySQLdb.html
             # http://dev.mysql.com/doc/refman/5.0/en/mysql-autocommit.html
@@ -858,6 +852,10 @@ class DatabaseSupporter:
             # http://stackoverflow.com/questions/6001104
 
         elif engine == ENGINE_MYSQL and interface == INTERFACE_ODBC:
+            logger.info(
+                "ODBC connect: DRIVER={dr};SERVER={s};PORT={p};"
+                "DATABASE={db};USER={u};PASSWORD=[censored]".format(
+                    dr=driver, s=host, p=port, u=user, d=database))
             dsn = (
                 "DRIVER={0};SERVER={1};PORT={2};DATABASE={3};"
                 "USER={4};PASSWORD={5}".format(driver, host, port,
@@ -866,15 +864,7 @@ class DatabaseSupporter:
             try:
                 self.db = pyodbc.connect(dsn)
             except Exception as e:
-                err = (
-                    "Failed to connect to database {d}. {ex}: {msg}".format(
-                        d=database,
-                        ex=type(e).__name__,
-                        msg=str(e),
-                    )
-                )
-                logger.error(err)
-                raise NoDatabaseError(err)
+                self.reraise_connection_exception(e)
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
 
@@ -900,9 +890,16 @@ class DatabaseSupporter:
             if odbc_connection_string:
                 connectstring = odbc_connection_string
             elif dsn:
+                logger.info(
+                    "ODBC connect: DSN={dsn};UID={u};PWD=[censored]".format(
+                        dsn=dsn, u=user))
                 connectstring = "DSN={};UID={};PWD={}".format(dsn, user,
                                                               password)
             else:
+                logger.info(
+                    "ODBC connect: DRIVER={dr};SERVER={s};DATABASE={db};"
+                    "UID={u};PWD=[censored]".format(
+                        dr=driver, s=host, db=database, u=user))
                 connectstring = (
                     "DRIVER={};SERVER={};DATABASE={};UID={};PWD={}".format(
                         driver, host, database, user, password)
@@ -910,16 +907,7 @@ class DatabaseSupporter:
             try:
                 self.db = pyodbc.connect(connectstring, unicode_results=True)
             except Exception as e:
-                err = (
-                    "Failed to connect to database with connection "
-                    "string {c}. {ex}: {msg}".format(
-                        c=connectstring,
-                        ex=type(e).__name__,
-                        msg=str(e),
-                    )
-                )
-                logger.error(err)
-                raise NoDatabaseError(err)
+                self.reraise_connection_exception(e)
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
 
@@ -936,19 +924,11 @@ class DatabaseSupporter:
 
         elif engine == ENGINE_ACCESS and interface == INTERFACE_ODBC:
             dsn = "DSN={}".format(dsn)
+            logger.info("ODBC connect: DSN={}".format(dsn))
             try:
                 self.db = pyodbc.connect(dsn)
             except Exception as e:
-                err = (
-                    "Failed to connect to database; DSN={dsn}. "
-                    "{ex}: {msg}".format(
-                        dsn=dsn,
-                        ex=type(e).__name__,
-                        msg=str(e),
-                    )
-                )
-                logger.error(err)
-                raise NoDatabaseError(err)
+                self.reraise_connection_exception(e)
             self.db.autocommit = autocommit
             # http://stackoverflow.com/questions/1063770
 
@@ -982,26 +962,22 @@ class DatabaseSupporter:
 
     def jdbc_connect(self, jclassname, driver_args, jars, libs,
                      autocommit):
+        logger.info(
+            "jdbc connect: jclassname={jclassname}, "
+            "driver_args[0]={d0}, driver_args[1]={d1}, "
+            "jars={jars}, libs={libs}".format(
+                jclassname=jclassname,
+                d0=driver_args[0],
+                d1=driver_args[1],
+                jars=jars,
+                libs=libs,
+            )
+        )
         try:
             self.db = jdbc.connect(jclassname, driver_args, jars=jars,
                                    libs=libs)
         except Exception as e:
-            err = (
-                "Failed to connect to JDBC database: "
-                "jclassname={jclassname}, "
-                "driver_args[0]={d0}, driver_args[1]={d1}, "
-                "jars={jars}, libs={libs}. {ex}: {msg}".format(
-                    jclassname=jclassname,
-                    d0=driver_args[0],
-                    d1=driver_args[1],
-                    jars=jars,
-                    libs=libs,
-                    ex=type(e).__name__,
-                    msg=str(e),
-                )
-            )
-            logger.error(err)
-            raise NoDatabaseError(err)
+            self.reraise_connection_exception(e)
         # http://almostflan.com/2012/03/01/turning-off-autocommit-in-jaydebeapi/  # noqa
         self.db.jconn.setAutoCommit(autocommit)
 
