@@ -66,6 +66,11 @@ import sys
 import xml.etree
 import zipfile
 
+import logging
+logging.basicConfig()
+logger = logging.getLogger("rnc_extract_text")
+logger.setLevel(logging.DEBUG)
+
 # =============================================================================
 # Constants
 # =============================================================================
@@ -185,6 +190,20 @@ def convert_rtf_to_text(filename=None, blob=None):
     return pyth.plugins.plaintext.writer.PlaintextWriter.write(doc).getvalue()
 
 
+def convert_doc_to_text(filename=None, blob=None):
+    if filename:
+        return get_cmd_output('antiword', filename)  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
+    else:
+        return get_cmd_output_from_stdin(blob, 'antiword', '-')  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
+
+
+def convert_anything_to_text(filename=None, blob=None):
+    # strings is a standard Unix command to get text from any old rubbish
+    if filename:
+        return get_cmd_output('strings', filename)
+    else:
+        return get_cmd_output_from_stdin(blob, 'strings')
+
 # =============================================================================
 # Decider
 # =============================================================================
@@ -208,11 +227,12 @@ def document_to_text(filename=None, blob=None, extension=None):
             extension = "." + extension
     extension = extension.lower()
 
+    # Ensure blob is an appropriate type
+    logger.debug("filename: {}, blob: {}".format(type(filename), type(blob)))
+    
+    # Choose method
     if extension in [".doc", ".dot"]:
-        if filename:
-            return get_cmd_output('antiword', filename)  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
-        else:
-            return get_cmd_output_from_stdin(blob, 'antiword', '-')  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
+        return convert_doc_to_text(filename, blob)
     elif extension in [".docx", ".docm"]:
         return convert_docx_to_text(filename, blob)
     elif extension in [".odt"]:
@@ -227,12 +247,6 @@ def document_to_text(filename=None, blob=None, extension=None):
         return get_file_contents(filename, blob)
     elif extension in [".rtf"]:
         return convert_rtf_to_text(filename, blob)
-    #else:
-    #    # strings is a standard Unix command to get text from any old rubbish
-    #    if filename:
-    #        return get_cmd_output('strings', filename)
-    #    else:
-    #        return get_cmd_output_from_stdin(blob, 'strings')
     else:
         raise ValueError(
             "document_to_text: Unknown filetype: {}".format(extension))
