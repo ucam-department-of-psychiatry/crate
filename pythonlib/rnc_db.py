@@ -559,10 +559,10 @@ def reconfigure_jaydebeapi():
         return
     # http://stackoverflow.com/questions/26899595
     from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
-
     _DEFAULT_CONVERTERS.update({
         'BIGINT': _java_to_py('longValue'),
         # RNC experimental:
+        'BINARY': _rnc_to_binary,  # overrides an existing one
         'BLOB': _rnc_to_binary,
         'LONGVARBINARY': _rnc_to_binary,
         'VARBINARY': _rnc_to_binary,
