@@ -121,8 +121,7 @@ def get_plain_blob(blob):
     # From jaydebeapi, may get: <class 'jpype._jarray.byte[]'>
     if blob is None:
         return None
-    return str(blob)
-    
+    return bytes(blob)
 
 
 # =============================================================================
@@ -207,7 +206,7 @@ def convert_doc_to_text(filename=None, blob=None):
         return get_cmd_output_from_stdin(
             get_plain_blob(blob),
             'antiword',  # IN CASE OF FAILURE: sudo apt-get install antiword
-            '-')  
+            '-')
 
 
 def convert_anything_to_text(filename=None, blob=None):
@@ -216,6 +215,7 @@ def convert_anything_to_text(filename=None, blob=None):
         return get_cmd_output('strings', filename)
     else:
         return get_cmd_output_from_stdin(blob, 'strings')
+
 
 # =============================================================================
 # Decider
@@ -242,7 +242,7 @@ def document_to_text(filename=None, blob=None, extension=None):
 
     # Ensure blob is an appropriate type
     logger.debug("filename: {}, blob: {}".format(type(filename), type(blob)))
-    
+
     # Choose method
     if extension in [".doc", ".dot"]:
         return convert_doc_to_text(filename, blob)
