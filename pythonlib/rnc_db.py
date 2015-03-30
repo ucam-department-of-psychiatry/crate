@@ -546,9 +546,11 @@ def _rnc_to_binary(rs, col):
     java_val = rs.getObject(col)
     if java_val is None:
         return
-    logger.info("rnc_to_binary: typeof={}".format(type(java_val)))
-    if str(type(java_val)) == "<class 'jpype._jarray.byte[]>":
+    t = str(type(java_val))
+    #logger.info("rnc_to_binary: typeof={}".format(t))
+    if t == "<class 'jpype._jarray.byte[]'>":
         return ''.join(map(lambda x: chr(x % 256), java_val))
+    logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
     return java_val  # unsure
 
 
