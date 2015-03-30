@@ -547,9 +547,9 @@ def _rnc_to_binary(rs, col):
     if java_val is None:
         return
     logger.info("rnc_to_binary: typeof={}".format(type(java_val)))
-    if type(java_val) == "java.XXX":
+    if str(type(java_val)) == "<class 'jpype._jarray.byte[]>":
         return ''.join(map(lambda x: chr(x % 256), java_val))
-    return bytearray(java_val)
+    return java_val  # unsure
 
 
 def reconfigure_jaydebeapi():
