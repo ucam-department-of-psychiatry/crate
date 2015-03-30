@@ -159,7 +159,6 @@ except:
 
 try:
     import jaydebeapi  # sudo pip install jaydebeapi
-    import jpype
     JDBC_AVAILABLE = True
 except:
     JDBC_AVAILABLE = False
@@ -545,13 +544,20 @@ def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
     # http://stackoverflow.com/questions/26899595
-    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py, _to_binary
+    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
+
+    def rnc_to_binary(rs, col):
+        java_val = rs.getObject(col)
+        if java_val is None:
+            return
+        return str(java_val)
+
     _DEFAULT_CONVERTERS.update({
         'BIGINT': _java_to_py('longValue'),
         # RNC experimental:
-        'BLOB': _to_binary,
-        'LONGVARBINARY': _to_binary,
-        'VARBINARY': _to_binary,
+        'BLOB': rnc_to_binary,
+        'LONGVARBINARY': rnc_to_binary,
+        'VARBINARY': rnc_to_binary,
     })
 
 

@@ -121,7 +121,9 @@ def get_plain_blob(blob):
     # From jaydebeapi, may get: <class 'jpype._jarray.byte[]'>
     if blob is None:
         return None
-    return bytes(blob)
+    if not isinstance(blob, bytearray):
+        return bytearray(blob)
+    return blob  # not sure
 
 
 # =============================================================================
