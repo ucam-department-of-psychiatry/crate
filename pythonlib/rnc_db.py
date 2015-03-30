@@ -551,7 +551,7 @@ def reconfigure_jaydebeapi():
         if java_val is None:
             return
         logger.debug("rnc_to_binary: typeof={}, value={}".format(
-                        typeof(java_val),
+                        type(java_val),
                         java_val))
         return bytearray(java_val)
 
