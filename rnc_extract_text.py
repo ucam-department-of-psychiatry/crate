@@ -117,15 +117,6 @@ def get_cmd_output_from_stdin(stdin_content, *args):
     return stdout.decode(ENCODING, errors='ignore')
 
 
-def get_plain_blob(blob):
-    # From jaydebeapi, may get: <class 'jpype._jarray.byte[]'>
-    if blob is None:
-        return None
-    if not isinstance(blob, bytearray):
-        return bytearray(blob)
-    return blob  # not sure
-
-
 # =============================================================================
 # Converters
 # =============================================================================
@@ -206,7 +197,7 @@ def convert_doc_to_text(filename=None, blob=None):
             filename)
     else:
         return get_cmd_output_from_stdin(
-            get_plain_blob(blob),
+            blob,
             'antiword',  # IN CASE OF FAILURE: sudo apt-get install antiword
             '-')
 
