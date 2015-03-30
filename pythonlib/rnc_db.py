@@ -550,7 +550,7 @@ def reconfigure_jaydebeapi():
         java_val = rs.getObject(col)
         if java_val is None:
             return
-        return str(java_val)
+        return bytearray(java_val)
 
     _DEFAULT_CONVERTERS.update({
         'BIGINT': _java_to_py('longValue'),
