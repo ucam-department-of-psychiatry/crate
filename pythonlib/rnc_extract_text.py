@@ -243,7 +243,9 @@ def document_to_text(filename=None, blob=None, extension=None):
     extension = extension.lower()
 
     # Ensure blob is an appropriate type
-    logger.debug("filename: {}, blob: {}".format(type(filename), type(blob)))
+    logger.debug(
+        "filename: {}, blob type: {}, extension: {}".format(
+            filename, type(blob), extension))
 
     # Choose method
     if extension in [".doc", ".dot"]:
