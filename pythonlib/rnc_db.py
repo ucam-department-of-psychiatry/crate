@@ -545,9 +545,13 @@ def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
     # http://stackoverflow.com/questions/26899595
-    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
+    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py, _to_binary
     _DEFAULT_CONVERTERS.update({
         'BIGINT': _java_to_py('longValue'),
+        # RNC experimental:
+        'BLOB': _to_binary,
+        'LONGVARBINARY': _to_binary,
+        'VARBINARY': _to_binary,
     })
 
 
