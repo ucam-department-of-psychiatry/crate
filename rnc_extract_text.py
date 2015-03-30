@@ -117,6 +117,14 @@ def get_cmd_output_from_stdin(stdin_content, *args):
     return stdout.decode(ENCODING, errors='ignore')
 
 
+def get_plain_blob(blob):
+    # From jaydebeapi, may get: <class 'jpype._jarray.byte[]'>
+    if blob is None:
+        return None
+    return str(blob)
+    
+
+
 # =============================================================================
 # Converters
 # =============================================================================
@@ -192,9 +200,14 @@ def convert_rtf_to_text(filename=None, blob=None):
 
 def convert_doc_to_text(filename=None, blob=None):
     if filename:
-        return get_cmd_output('antiword', filename)  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
+        return get_cmd_output(
+            'antiword',  # IN CASE OF FAILURE: sudo apt-get install antiword
+            filename)
     else:
-        return get_cmd_output_from_stdin(blob, 'antiword', '-')  # IN CASE OF FAILURE: sudo apt-get install antiword  # noqa
+        return get_cmd_output_from_stdin(
+            get_plain_blob(blob),
+            'antiword',  # IN CASE OF FAILURE: sudo apt-get install antiword
+            '-')  
 
 
 def convert_anything_to_text(filename=None, blob=None):
