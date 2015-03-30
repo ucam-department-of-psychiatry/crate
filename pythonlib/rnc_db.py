@@ -547,7 +547,7 @@ def _rnc_to_binary(rs, col):
     logger.info(
         "rnc_to_binary: typeof={}, value={}".format(
             type(java_val),
-            java_val))
+            java_val.encode("utf8")))
     return bytearray(java_val)
 
 
