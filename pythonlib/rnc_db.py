@@ -540,27 +540,29 @@ def does_sqltype_merit_fulltext_index(datatype_long):
 # Reconfiguring jaydebeapi
 # =============================================================================
 
+def _rnc_to_binary(rs, col):
+    java_val = rs.getObject(col)
+    if java_val is None:
+        return
+    logger.info(
+        "rnc_to_binary: typeof={}, value={}".format(
+            type(java_val),
+            java_val))
+    return bytearray(java_val)
+
+
 def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
     # http://stackoverflow.com/questions/26899595
     from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
 
-    def rnc_to_binary(rs, col):
-        java_val = rs.getObject(col)
-        if java_val is None:
-            return
-        logger.debug("rnc_to_binary: typeof={}, value={}".format(
-                        type(java_val),
-                        java_val))
-        return bytearray(java_val)
-
     _DEFAULT_CONVERTERS.update({
         'BIGINT': _java_to_py('longValue'),
         # RNC experimental:
-        'BLOB': rnc_to_binary,
-        'LONGVARBINARY': rnc_to_binary,
-        'VARBINARY': rnc_to_binary,
+        'BLOB': _rnc_to_binary,
+        'LONGVARBINARY': _rnc_to_binary,
+        'VARBINARY': _rnc_to_binary,
     })
 
 
