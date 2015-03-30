@@ -49,6 +49,31 @@ General note about PyODBC:
     cursor.execute("SELECT * FROM mytable WHERE myfield=?", None)
     # Fine; will return no rows
     cursor.execute("SELECT * FROM mytable WHERE myfield IS NULL")
+
+JDBC types:
+
+    # http://webcache.googleusercontent.com/search?q=cache:WoMF0RGkqwgJ:www.tagwith.com/question_439319_jpype-and-jaydebeapi-returns-jpype-jclass-java-lang-long  # noqa
+
+    The object returned by JPype is a Python version of Java's java.lang.Long
+    class. To get the value out of it, use the value attribute:
+
+        >>> n = java.lang.Long(44)
+        >>> n
+        <jpype._jclass.java.lang.Long object at 0x2377390>
+        >>> n.value
+        44L
+
+    JayDeBeApi contains a dict (_DEFAULT_CONVERTERS) that maps types it
+    recognises to functions that convert the Java values to Python values. This
+    dict can be found at the bottom of the dbapi2.pysource code. BIGINT is not
+    included in this dict, so objects of that database type don't get mapped
+    out of Java objects into Python values.
+
+    It's fairly easy to modify JayDeBeApi to add support for BIGINTs. Edit the
+    dbapi2.py file that contains most of the JayDeBeApi code and add the line
+
+        'BIGINT': _java_to_py('longValue'),
+    to the _DEFAULT_CONVERTERS dict.
 """
 
 # =============================================================================
@@ -133,7 +158,8 @@ except:
     MYSQLDB_AVAILABLE = False
 
 try:
-    import jaydebeapi as jdbc  # sudo pip install jaydebeapi
+    import jaydebeapi  # sudo pip install jaydebeapi
+    import jpype
     JDBC_AVAILABLE = True
 except:
     JDBC_AVAILABLE = False
@@ -509,6 +535,23 @@ def does_sqltype_require_index_len(datatype_long):
 
 def does_sqltype_merit_fulltext_index(datatype_long):
     return datatype_long in ["TEXT"]
+
+
+# =============================================================================
+# Reconfiguring jaydebeapi
+# =============================================================================
+
+def reconfigure_jaydebeapi():
+    if not JDBC_AVAILABLE:
+        return
+    # http://stackoverflow.com/questions/26899595
+    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
+    _DEFAULT_CONVERTERS.update({
+        'BIGINT': _java_to_py('longValue'),
+    })
+
+
+reconfigure_jaydebeapi()
 
 
 # =============================================================================
@@ -1000,8 +1043,10 @@ class DatabaseSupporter:
     def jdbc_connect(self, jclassname, driver_args, jars, libs,
                      autocommit):
         try:
-            self.db = jdbc.connect(jclassname, driver_args, jars=jars,
-                                   libs=libs)
+            self.db = jaydebeapi.connect(jclassname, driver_args, jars=jars,
+                                         libs=libs)
+            # ... which should have had its connectors altered by
+            #     reconfigure_jaydebeapi()
         except Exception as e:
             self.reraise_connection_exception(e)
         # http://almostflan.com/2012/03/01/turning-off-autocommit-in-jaydebeapi/  # noqa
