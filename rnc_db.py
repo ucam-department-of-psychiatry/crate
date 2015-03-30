@@ -550,6 +550,9 @@ def reconfigure_jaydebeapi():
         java_val = rs.getObject(col)
         if java_val is None:
             return
+        logger.debug("rnc_to_binary: typeof={}, value={}".format(
+                        typeof(java_val),
+                        java_val))
         return bytearray(java_val)
 
     _DEFAULT_CONVERTERS.update({
