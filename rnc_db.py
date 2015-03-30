@@ -541,13 +541,14 @@ def does_sqltype_merit_fulltext_index(datatype_long):
 # =============================================================================
 
 def _rnc_to_binary(rs, col):
+    # https://github.com/originell/jpype/issues/71
+    # http://stackoverflow.com/questions/5088671
     java_val = rs.getObject(col)
     if java_val is None:
         return
-    logger.info(
-        "rnc_to_binary: typeof={}, value={}".format(
-            type(java_val),
-            java_val.encode("utf8")))
+    logger.info("rnc_to_binary: typeof={}".format(type(java_val)))
+    if type(java_val) == "java.XXX":
+        return ''.join(map(lambda x: chr(x % 256), java_val))
     return bytearray(java_val)
 
 
