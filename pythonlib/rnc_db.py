@@ -49,6 +49,31 @@ General note about Python None/NULL handling:
     cursor.execute("SELECT * FROM mytable WHERE myfield=?", None)
     # Fine
     cursor.execute("SELECT * FROM mytable WHERE myfield IS NULL")
+
+JDBC types:
+
+    # http://webcache.googleusercontent.com/search?q=cache:WoMF0RGkqwgJ:www.tagwith.com/question_439319_jpype-and-jaydebeapi-returns-jpype-jclass-java-lang-long  # noqa
+
+    The object returned by JPype is a Python version of Java's java.lang.Long
+    class. To get the value out of it, use the value attribute:
+
+        >>> n = java.lang.Long(44)
+        >>> n
+        <jpype._jclass.java.lang.Long object at 0x2377390>
+        >>> n.value
+        44L
+
+    JayDeBeApi contains a dict (_DEFAULT_CONVERTERS) that maps types it
+    recognises to functions that convert the Java values to Python values. This
+    dict can be found at the bottom of the dbapi2.pysource code. BIGINT is not
+    included in this dict, so objects of that database type don't get mapped
+    out of Java objects into Python values.
+
+    It's fairly easy to modify JayDeBeApi to add support for BIGINTs. Edit the
+    dbapi2.py file that contains most of the JayDeBeApi code and add the line
+
+        'BIGINT': _java_to_py('longValue'),
+    to the _DEFAULT_CONVERTERS dict.
 """
 
 # =============================================================================
