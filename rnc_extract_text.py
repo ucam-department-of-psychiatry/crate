@@ -36,14 +36,13 @@ See also:
     PDF
         http://stackoverflow.com/questions/25665
         https://pypi.python.org/pypi/slate
+        http://stackoverflow.com/questions/5725278
     RTF
         unrtf
         http://superuser.com/questions/243084/rtf-to-txt-on-unix
-
-    http://stackoverflow.com/questions/5725278
-
-    https://pypi.python.org/pypi/fulltext/
-    https://media.readthedocs.org/pdf/textract/latest/textract.pdf
+    Multi-purpose:
+        https://pypi.python.org/pypi/fulltext/
+        https://media.readthedocs.org/pdf/textract/latest/textract.pdf
 """
 
 
@@ -54,16 +53,16 @@ See also:
 from __future__ import print_function
 import argparse
 import bs4  # sudo apt-get install python-bs4
-import cStringIO
+# import cStringIO
 import docx  # sudo pip install docx
 import io
 import os
-import pdfminer.pdfinterp  # sudo pip install pdfminer
-import pdfminer.converter  # sudo pip install pdfminer
-import pdfminer.layout  # sudo pip install pdfminer
-import pdfminer.pdfpage   # sudo pip install pdfminer
-#import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
-#import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
+# import pdfminer.pdfinterp  # sudo pip install pdfminer
+# import pdfminer.converter  # sudo pip install pdfminer
+# import pdfminer.layout  # sudo pip install pdfminer
+# import pdfminer.pdfpage   # sudo pip install pdfminer
+# import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
+# import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
 import subprocess
 import sys
 import xml.etree
@@ -126,24 +125,39 @@ def get_cmd_output_from_stdin(stdin_content, *args):
 
 def convert_pdf_to_txt(filename=None, blob=None):
     """Pass either a filename or a binary object."""
-    with get_filelikeobject(filename, blob) as fp:
-        rsrcmgr = pdfminer.pdfinterp.PDFResourceManager()
-        retstr = cStringIO.StringIO()
-        codec = ENCODING
-        laparams = pdfminer.layout.LAParams()
-        device = pdfminer.converter.TextConverter(rsrcmgr, retstr, codec=codec,
-                                                  laparams=laparams)
-        interpreter = pdfminer.pdfinterp.PDFPageInterpreter(rsrcmgr, device)
-        password = ""
-        maxpages = 0
-        caching = True
-        pagenos = set()
-        for page in pdfminer.pdfpage.PDFPage.get_pages(
-                fp, pagenos, maxpages=maxpages, password=password,
-                caching=caching, check_extractable=True):
-            interpreter.process_page(page)
-        text = retstr.getvalue().decode(ENCODING)
-    return text
+    # Memory-hogging method:
+
+    # with get_filelikeobject(filename, blob) as fp:
+    #     rsrcmgr = pdfminer.pdfinterp.PDFResourceManager()
+    #     retstr = cStringIO.StringIO()
+    #     codec = ENCODING
+    #     laparams = pdfminer.layout.LAParams()
+    #     device = pdfminer.converter.TextConverter(
+    #         rsrcmgr, retstr, codec=codec, laparams=laparams)
+    #     interpreter = pdfminer.pdfinterp.PDFPageInterpreter(rsrcmgr, device)
+    #     password = ""
+    #     maxpages = 0
+    #     caching = True
+    #     pagenos = set()
+    #     for page in pdfminer.pdfpage.PDFPage.get_pages(
+    #             fp, pagenos, maxpages=maxpages, password=password,
+    #             caching=caching, check_extractable=True):
+    #         interpreter.process_page(page)
+    #     text = retstr.getvalue().decode(ENCODING)
+    # return text
+
+    # External command method:
+    if filename:
+        return get_cmd_output(
+            'pdftotext',  # Core part of Linux?
+            filename,
+            '-')
+    else:
+        return get_cmd_output_from_stdin(
+            blob,
+            'pdftotext',  # Core part of Linux?
+            '-',
+            '-')
 
 
 def convert_docx_to_text(filename=None, blob=None):
@@ -188,11 +202,13 @@ def convert_xml_to_text(filename=None, blob=None):
 
 def convert_rtf_to_text(filename=None, blob=None):
     # Very memory-consuming:
+    # https://github.com/brendonh/pyth/blob/master/pyth/plugins/rtf15/reader.py
 
-    #with get_filelikeobject(filename, blob) as fp:
-    #    doc = pyth.plugins.rtf15.reader.Rtf15Reader.read(fp)
-    ## https://github.com/brendonh/pyth/blob/master/pyth/plugins/rtf15/reader.py
-    #return pyth.plugins.plaintext.writer.PlaintextWriter.write(doc).getvalue()
+    # with get_filelikeobject(filename, blob) as fp:
+    #     doc = pyth.plugins.rtf15.reader.Rtf15Reader.read(fp)
+    # return (
+    #     pyth.plugins.plaintext.writer.PlaintextWriter.write(doc).getvalue()
+    # )
 
     # Better:
     if filename:
