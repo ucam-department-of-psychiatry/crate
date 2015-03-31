@@ -34,8 +34,6 @@ import datetime
 import dateutil
 import dateutil.tz
 import logging
-logging.basicConfig()  # just in case nobody else has done this
-logger = logging.getLogger("anonymise")
 import operator
 import os
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
@@ -67,6 +65,14 @@ from rnc_lang import (
 )
 import rnc_log
 
+
+# =============================================================================
+# Logging
+# =============================================================================
+
+logging.basicConfig()  # just in case nobody else has done this
+logger = logging.getLogger("anonymise")
+rnc_log.reset_logformat_timestamped(logger)
 
 # =============================================================================
 # Constants

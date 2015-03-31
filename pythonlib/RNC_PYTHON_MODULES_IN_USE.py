@@ -15,6 +15,7 @@ MODULES = {
     "base64": "",
     "bcrypt": "sudo apt-get install python-bcrypt",
     "binascii": "",
+    "bs64": "sudo apt-get install python-bs4",
     "cgi": "",
     "cgitb": "",
     "codecs": "",
@@ -48,15 +49,18 @@ MODULES = {
     # "pyodbc": "sudo apt-get install python-pyodbc",
     # ... NEEDS SPECIFIC COMPILER SUPPORT UNDER WINDOWS (use pypyodbc instead)
     "pyPdf": "sudo apt-get install python-pypdf",
+    "pyth": "sudo apt-get install python-pyth",
     "pytz": "sudo apt-get install python-tz",
     "re": "",
+    "regex": "sudo apt-get install python-regex",
     "scipy": "sudo apt-get install python-scipy",
     "sgmllib": "",  # non-standard ***
     "shlex": "",
     "shutil": "",
     "smtplib": "",
     "socket": "",
-    "sqlalchemy": NEED_PIP + "sudo pip install SQLAlchemy",
+    "sortedcontainers": "sudo pip install sortedcontainers",
+    # "sqlalchemy": NEED_PIP + "sudo pip install SQLAlchemy",
     # ... don't use apt-get (old version)
     "string": "",
     "StringIO": "",

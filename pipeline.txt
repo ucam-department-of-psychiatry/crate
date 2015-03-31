@@ -430,3 +430,81 @@ A.  Short answer: use the Microsoft JDBC driver instead of the Microsoft ODBC
 
     Switched to the JDBC driver.
     Problem went away.
+
+Q.  "Killed."
+A.  Out of memory.
+    Testing on a rather small machine (0.5 Gb RAM, 1 Gb swap).
+    Inspect what was running:
+
+        # cat /var/log/syslog
+
+    Remove memory-hogging things:
+
+        # apt-get purge modemmanager
+        - change the report_crashes parameter to false in the /etc/default/whoopsie file.
+        # service whoopsie stop
+        # apt-get remove unity unity-asset-pool unity-control-center unity-control-center-signon unity-gtk-module-common unity-lens* unity-services unity-settings-daemon unity-webapps* unity-voice-service
+        ... NOT YET REMOVED: network-manager
+
+    Inspect it:
+
+        # pmap -x <process_id>
+
+    Leaks?
+    - http://www.lshift.net/blog/2008/11/14/tracing-python-memory-leaks/
+
+        $ python -m pdb ./anonymise.py
+        (Pdb) run crs_cdl_anon.ini -v
+        (Pdb) c
+
+    Use openDBcopy to copy the database: http://opendbcopy.sourceforge.net/
+
+        Prerequisites
+            export JAVA_HOME=/usr/lib/jvm/default-java
+            cd ~/openDBcopy/bin
+            ./start.sh &
+
+        Plugin chain:
+
+            - Migrate database schema (DDL)
+
+                0.  Configuration
+
+                1.  Database connections
+                    SOURCE
+                        Driver name = Microsoft MSSQL Server JDBC Driver
+                        Driver class = com.microsoft.sqlserver.jdbc.SQLServerDriver
+                        URL = jdbc:sqlserver://XXX:1433;databaseName=XXX
+                        User name = XXX
+                        Password = XXX
+                    DESTINATION
+                        Driver name = MySQL Driver
+                        Driver class = com.mysql.jdbc.Driver
+                        URL = jdbc:mysql://localhost:3306/DATABASENAME
+                        User name = XXX
+                        Password = XXX
+                    TEST BOTH.
+
+                2.  Source model
+                        Catalog = [DATABASE NAME]
+                        Schema = dbo
+                        Table pattern = %
+                    CAPTURE SOURCE MODEL.
+
+                3.  Tables to migrate
+                        = all by default
+
+                4.  Columns to migrate
+                        = all by default
+
+            - Copy data from a source into a destination database
+
+        ... not working
+
+    - http://stackoverflow.com/questions/27068092/jpype-java-initialize-with-or-get-remaining-heap-space
+
+    - http://stackoverflow.com/questions/1178736/mysql-maximum-memory-usage
+    - SHOW ENGINE INNODB STATUS
+    - see  estimate_mysql_memory_usage.sh
+    - changed innodb_buffer_pool_size from 128M to 16M
+        ... big improvement; mysqld %MEM (in top) went from ~30% to ~10%

@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 26 Feb 2015
-Last update: 26 Feb 2015
+Last update: 31 Mar 2015
 
 Copyright/licensing:
 
@@ -28,17 +28,28 @@ import logging
 
 
 def remove_all_logger_handlers(logger):
+    """Remove all handlers from a logger."""
     while logger.handlers:
         h = logger.handlers[0]
         logger.removeHandler(h)
 
 
-def reset_logformat(logger, fmt):
+def reset_logformat(logger, fmt, datefmt='%Y-%m-%d %H:%M:%S'):
+    """Create a new formatter and apply it to the logger."""
     # logging.basicConfig() won't reset the formatter if another module
     # has called it, so always set the formatter like this.
     handler = logging.StreamHandler()
-    formatter = logging.Formatter(fmt=fmt)
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     handler.setFormatter(formatter)
     remove_all_logger_handlers(logger)
     logger.addHandler(handler)
     logger.propagate = False
+
+
+def reset_logformat_timestamped(logger, extraname="", debug=False):
+    """Apply a simple time-stamped log format to an existing logger, and set
+    its loglevel to either DEBUG or INFO."""
+    namebit = extraname + ":" if extraname else ""
+    fmt = "%(levelname)s:%(name)s:" + namebit + "%(message)s"
+    reset_logformat(logger, fmt=fmt)
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
