@@ -42,12 +42,12 @@ Possible keys are:
     indexed (optional): should the field be specifically indexed?
     index_nchar (optional): specify if the field needs an index key length
 
-General note about PyODBC:
+General note about Python None/NULL handling:
     # Fine:
     cursor.execute("SELECT * FROM mytable WHERE myfield=?", 1)
     # NOT fine; will return no rows:
     cursor.execute("SELECT * FROM mytable WHERE myfield=?", None)
-    # Fine; will return no rows
+    # Fine
     cursor.execute("SELECT * FROM mytable WHERE myfield IS NULL")
 """
 
@@ -123,6 +123,7 @@ try:
     PYODBC_AVAILABLE = True
 except:
     PYODBC_AVAILABLE = False
+
 try:
     import MySQLdb  # sudo apt-get install python-mysqldb
     import MySQLdb.converters
@@ -130,6 +131,12 @@ try:
     MYSQLDB_AVAILABLE = True
 except:
     MYSQLDB_AVAILABLE = False
+
+try:
+    import jaydebeapi  # sudo pip install jaydebeapi
+    JDBC_AVAILABLE = True
+except:
+    JDBC_AVAILABLE = False
 
 import datetime
 import re
@@ -148,6 +155,41 @@ _PERCENT_REGEX = re.compile("%", re.MULTILINE)
 LINE_EQUALS = "=" * 79
 MSG_PYODBC_UNAVAILABLE = "Python pyodbc module not available"
 MSG_MYSQLDB_UNAVAILABLE = "Python MySQLdb module not available"
+MSG_JDBC_UNAVAILABLE = "Python jaydebeapi module not available"
+ENGINE_MYSQL = "mysql"
+ENGINE_SQLSERVER = "sqlserver"
+ENGINE_ACCESS = "access"
+INTERFACE_MYSQLDB = "mysqldb"
+INTERFACE_ODBC = "odbc"
+INTERFACE_JDBC = "jdbc"
+MYSQL_JDBC_ERROR_HELP = """
+
+    If you get:
+        java.lang.RuntimeException: Class com.mysql.jdbc.Driver not found
+    ... then, under Ubuntu/Debian, try:
+    (1) sudo apt-get install libmysql-java
+    (2) export CLASSPATH=$CLASSPATH:/usr/share/java/mysql.jar
+
+    If you get:
+        Failed to connect. OSError: [Errno 2] No such file or directory:
+        '/usr/lib/jvm'
+    ... under 64-bit Ubuntu, then:
+        sudo apt-get install default-jre libc6-i386
+
+"""
+SQLSERVER_JDBC_ERROR_HELP = """
+
+    If you get:
+        java.lang.RuntimeException: Class
+            com.microsoft.sqlserver.jdbc.SQLServerDriver not found
+    ... then, under Ubuntu/Debian, try:
+    (1) Download the driver from
+        http://www.microsoft.com/en-us/download/details.aspx?id=11774
+        ... it's sqljdbc_4.1.5605.100_enu.tar.gz
+    (2) [sudo] tar xvzf sqljdbc_4.1.5605.100_enu.tar.gz [-C destdir]
+    (3) export CLASSPATH=$CLASSPATH:/wherever/sqljdbc_4.1/enu/sqljdbc41.jar
+
+"""
 
 
 # =============================================================================
@@ -226,23 +268,6 @@ def get_sql_insert(table, fieldlist, delims=("", "")):
         ",".join(["?"] * len(fieldlist)) + \
         ")"
 
-def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
-    """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
-    """
-    # http://stackoverflow.com/questions/4205181
-    return """
-        INSERT INTO {table} ({fields})
-        VALUES ({placeholders})
-        ON DUPLICATE KEY UPDATE {updatelist}
-    """.format(
-        table=delimit(table, delims),
-        fields=",".join([delimit(x, delims) for x in fieldlist]),
-        placeholders=",".join(["?"] * len(fieldlist)),
-        updatelist=",".join(
-            ["{field}=VALUES({field})".format(field=delimit(x, delims))
-             for x in fieldlist]
-        ),
-    )
 
 def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
     """Returns ?-marked SQL for an INSERT-or-if-duplicate-key-UPDATE statement.
@@ -294,7 +319,27 @@ def sql_dequote_string(s):
 
 def DateTime2literal_RNC(d, c):
     """Format a DateTime object as something MySQL will actually accept."""
-    return _mysql.string_literal(d.strftime("%Y-%m-%d %H:%M:%S"), c)
+    #dt = d.strftime("%Y-%m-%d %H:%M:%S")
+    # ... can fail with e.g.
+    #   ValueError: year=1850 is before 1900; the datetime strftime() methods
+    #   require year >= 1900
+    # http://stackoverflow.com/questions/10263956
+    dt = d.isoformat(" ")
+    return _mysql.string_literal(dt, c)
+
+
+def full_datatype_to_mysql(d):
+    """Converts a full datatype, e.g. INT, VARCHAR(10), VARCHAR(MAX), to a
+    MySQL equivalent."""
+    d = d.upper()
+    if d == "VARCHAR(MAX)":
+        # http://wiki.ispirer.com/sqlways/mysql/data-types/longtext
+        return "LONGTEXT"
+    elif d == "VARBINARY(MAX)":
+        # http://wiki.ispirer.com/sqlways/mysql/data-types/varbinary
+        return "LONGBLOB"
+    else:
+        return d
 
 
 # =============================================================================
@@ -375,7 +420,7 @@ SQLTYPES_TEXT = [
     "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT",
 ]
 SQLTYPES_BINARY = [
-    "BINARY", "BLOB", "LONGBLOB",
+    "BINARY", "BLOB", "LONGBLOB", "VARBINARY",
 ]
 
 SQLTYPES_WITH_DATE = [
@@ -414,7 +459,10 @@ def split_long_sqltype(datatype_long):
     find_open = datatype_long.find("(")
     find_close = datatype_long.find(")")
     if find_open >= 0 and find_close > find_open:
-        length = int(datatype_long[find_open + 1:find_close])
+        try:
+            length = int(datatype_long[find_open + 1:find_close])
+        except:  # e.g. for "VARCHAR(MAX)"
+            length = None
     else:
         length = None
     return (datatype_short, length)
@@ -439,6 +487,11 @@ def is_sqltype_text_over_one_char(datatype_long):
     )
 
 
+def is_sqltype_binary(datatype_long):
+    (datatype_short, length) = split_long_sqltype(datatype_long)
+    return datatype_short in SQLTYPES_BINARY
+
+
 def is_sqltype_numeric(datatype_long):
     (datatype_short, length) = split_long_sqltype(datatype_long)
     return datatype_short in SQLTYPES_NUMERIC
@@ -456,6 +509,42 @@ def does_sqltype_require_index_len(datatype_long):
 
 def does_sqltype_merit_fulltext_index(datatype_long):
     return datatype_long in ["TEXT"]
+
+
+# =============================================================================
+# Reconfiguring jaydebeapi
+# =============================================================================
+
+def _rnc_to_binary(rs, col):
+    # https://github.com/originell/jpype/issues/71
+    # http://stackoverflow.com/questions/5088671
+    java_val = rs.getObject(col)
+    if java_val is None:
+        return
+    t = str(type(java_val))
+    #logger.info("rnc_to_binary: typeof={}".format(t))
+    if t == "<class 'jpype._jarray.byte[]'>":
+        return ''.join(map(lambda x: chr(x % 256), java_val))
+    logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
+    return java_val  # unsure
+
+
+def reconfigure_jaydebeapi():
+    if not JDBC_AVAILABLE:
+        return
+    # http://stackoverflow.com/questions/26899595
+    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
+    _DEFAULT_CONVERTERS.update({
+        'BIGINT': _java_to_py('longValue'),
+        # RNC experimental:
+        'BINARY': _rnc_to_binary,  # overrides an existing one
+        'BLOB': _rnc_to_binary,
+        'LONGVARBINARY': _rnc_to_binary,
+        'VARBINARY': _rnc_to_binary,
+    })
+
+
+reconfigure_jaydebeapi()
 
 
 # =============================================================================
@@ -527,6 +616,106 @@ def add_master_user_mysql(database,
 
 
 # =============================================================================
+# Database config class
+# =============================================================================
+
+class DatabaseConfig(object):
+    def __init__(self, parser, section):
+        if not parser.has_section(section):
+            raise ValueError("config missing section: " + section)
+        options = [
+            # Connection
+            "engine",
+            "interface",
+
+            # Various ways:
+            "host",
+            "port",
+            "db",
+
+            "dsn",
+
+            "odbc_connection_string",
+
+            # Then regardless:
+            "user",
+            "password",
+        ]
+        for o in options:
+            if parser.has_option(section, o):
+                value = parser.get(section, o)
+                setattr(self, o, value)
+            else:
+                setattr(self, o, None)
+        self.port = int(self.port) if self.port else None
+        self.check_valid(section)
+
+    def check_valid(self, section):
+        if not self.engine:
+            raise ValueError(
+                "Database {} doesn't specify engine".format(section))
+        self.engine = self.engine.lower()
+        if self.engine not in [ENGINE_MYSQL, ENGINE_SQLSERVER]:
+            raise ValueError("Unknown database engine: {}".format(self.engine))
+        if not self.interface:
+            self.interface = (INTERFACE_MYSQLDB
+                              if self.engine == ENGINE_MYSQL
+                              else INTERFACE_ODBC)
+        if self.interface not in [INTERFACE_MYSQLDB,
+                                  INTERFACE_ODBC,
+                                  INTERFACE_JDBC]:
+            raise ValueError("Unknown interface: {}".format(self.interface))
+        if self.engine == ENGINE_MYSQL:
+            if (not self.host or not self.port or not self.user or not
+                    self.password or not self.db):
+                raise ValueError("Missing MySQL details")
+        elif self.engine == ENGINE_SQLSERVER:
+            if self.odbc_connection_string:
+                pass  # this is OK
+            elif self.dsn:
+                if (not self.user or not self.password):
+                    raise ValueError(
+                        "Missing SQL Server details: user or password")
+            else:
+                if (not self.host or not self.user or not
+                        self.password):
+                    raise ValueError(
+                        "Missing SQL Server details: host, user, or password")
+
+    def get_database(self):
+        db = DatabaseSupporter()
+        db.connect(
+            engine=self.engine,
+            interface=self.interface,
+            host=self.host,
+            port=self.port,
+            database=self.db,
+            dsn=self.dsn,
+            odbc_connection_string=self.odbc_connection_string,
+            user=self.user,
+            password=self.password,
+            autocommit=False  # NB therefore need to commit
+        )
+        return db
+
+
+def get_database_from_configparser(parser, section, securely=True):
+    try:  # guard this bit to prevent any password leakage
+        dbc = DatabaseConfig(parser, section)
+        db = dbc.get_database()
+        return db
+    except:
+        if securely:
+            raise NoDatabaseError(
+                "Problem opening or reading from database {}; details "
+                "concealed for security reasons".format(section))
+        else:
+            raise
+    finally:
+        dbc = None
+
+
+# =============================================================================
 # Database support class. ODBC via pyodbc or MySQLdb.
 # =============================================================================
 
@@ -537,6 +726,22 @@ class DatabaseSupporter:
     FLAVOUR_ACCESS = "access"
     PYTHONLIB_MYSQLDB = "mysqldb"
     PYTHONLIB_PYODBC = "pyodbc"
+    MYSQL_COLUMN_TYPE_EXPR = "column_type"
+    SQLSERVER_COLUMN_TYPE_EXPR = """
+        (CASE
+            WHEN character_maximum_length > 0
+                THEN data_type + '(' +
+                    CAST(character_maximum_length AS VARCHAR(20)) + ')'
+            WHEN character_maximum_length = -1
+                THEN data_type + '(MAX)'
+            ELSE data_type
+         END)
+    """
+    ACCESS_COLUMN_TYPE_EXPR = "NULL"  # don't know how
+    MYSQL_CURRENT_SCHEMA_EXPR = "DATABASE()"
+    SQLSERVER_CURRENT_SCHEMA_EXPR = "SCHEMA_NAME()"
+    ACCESS_CURRENT_SCHEMA_EXPR = "NULL"  # don't know how
+    CONNECTION_ERROR_MSG = "Failed to connect. {ex}: {msg}"
 
     def __init__(self):
         self.db = None
@@ -545,32 +750,108 @@ class DatabaseSupporter:
         self.schema = None
         self.delims = ("", "")
         self.autocommit = None
+        self.coltype_expr = ""
         # http://stackoverflow.com/questions/2901453
         # http://stackoverflow.com/questions/7311990
 
     # -------------------------------------------------------------------------
-    # MySQLdb
+    # Generic connection method
     # -------------------------------------------------------------------------
 
-    def connect_to_database_mysql(self,
-                                  database,
-                                  user,
-                                  password,
-                                  server="localhost",
-                                  port=3306,
-                                  charset="utf8",
-                                  use_unicode=True,
-                                  autocommit=True):
-        """Connects to a MySQL database via MySQLdb."""
-        # MySQL:
-        # http://dev.mysql.com/doc/refman/5.1/en/
-        #        connector-odbc-configuration-connection-parameters.html
-        # http://code.google.com/p/pyodbc/wiki/ConnectionStrings
-        FUNCNAME = "connect_to_database_mysql: "
-        if not MYSQLDB_AVAILABLE:
-            logger.error(FUNCNAME + MSG_MYSQLDB_UNAVAILABLE)
-            return False
-        try:
+    @staticmethod
+    def reraise_connection_exception(e):
+        err = "Failed to connect. {ex}: {msg}".format(
+            ex=type(e).__name__,
+            msg=str(e),
+        )
+        logger.error(err)
+        raise NoDatabaseError(err)
+
+    def connect(self,
+                engine=None, interface=None,
+                host=None, port=None, database=None,
+                driver=None, dsn=None, odbc_connection_string=None,
+                user=None, password=None,
+                autocommit=True, charset="utf8", use_unicode=True):
+        """
+            engine: mysql, sqlserver
+            interface: mysqldb, odbc, jdbc
+        """
+
+        # Catch all exceptions, so the error-catcher never shows a password.
+
+        # Check engine
+        if engine not in [ENGINE_MYSQL, ENGINE_SQLSERVER, ENGINE_ACCESS]:
+            raise ValueError("Unknown engine")
+
+        # Default interface
+        if interface is None:
+            if engine == ENGINE_MYSQL:
+                interface = INTERFACE_MYSQLDB
+            else:
+                interface = INTERFACE_ODBC
+
+        # Default port
+        if port is None:
+            if engine == ENGINE_MYSQL:
+                port = 3306
+            elif engine == ENGINE_SQLSERVER:
+                port = 1433
+
+        # Default driver
+        if driver is None:
+            if engine == ENGINE_MYSQL and interface == INTERFACE_ODBC:
+                driver = "{MySQL ODBC 5.1 Driver}"
+
+        self._engine = engine
+        self._interface = interface
+        self._server = host
+        self._port = port
+        self._database = database
+        self._user = user
+        self._password = password
+        self._charset = charset
+        self._use_unicode = use_unicode
+        self.autocommit = autocommit
+
+        # Report intent
+        logger.info("Opening database: engine={e}, interface={i}, "
+                    "use_unicode={u}, autocommit={a}".format(
+                        e=engine, i=interface, u=use_unicode, a=autocommit))
+
+        # ---------------------------------------------------------------------
+        # Interface-specific tasks:
+        # ---------------------------------------------------------------------
+        if interface == INTERFACE_MYSQLDB:
+            if not MYSQLDB_AVAILABLE:
+                raise ImportError(MSG_MYSQLDB_UNAVAILABLE)
+            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_MYSQLDB
+        elif interface == INTERFACE_ODBC:
+            if not PYODBC_AVAILABLE:
+                raise ImportError(MSG_PYODBC_UNAVAILABLE)
+            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
+        elif interface == INTERFACE_JDBC:
+            if not JDBC_AVAILABLE:
+                raise ImportError(MSG_JDBC_UNAVAILABLE)
+            if host is None:
+                raise ValueError("Missing host parameter")
+            if port is None:
+                raise ValueError("Missing port parameter")
+            #if database is None:
+            #    raise ValueError("Missing database parameter")
+            if user is None:
+                raise ValueError("Missing user parameter")
+        else:
+            raise ValueError("Unknown interface")
+
+        # ---------------------------------------------------------------------
+        # Connect
+        # ---------------------------------------------------------------------
+        if engine == ENGINE_MYSQL and interface == INTERFACE_MYSQLDB:
+            # Connects to a MySQL database via MySQLdb.
+            # http://dev.mysql.com/doc/refman/5.1/en/connector-odbc-configuration-connection-parameters.html  # noqa
+            # http://code.google.com/p/pyodbc/wiki/ConnectionStrings
+
             # Between MySQLdb 1.2.3 and 1.2.5, the DateTime2literal function
             # stops producing e.g.
             #   '2014-01-03 18:15:51'
@@ -582,27 +863,23 @@ class DatabaseSupporter:
             converters[DateTimeType] = DateTime2literal_RNC
             # See also:
             #   http://stackoverflow.com/questions/11053941
-
-            self.db_flavour = DatabaseSupporter.FLAVOUR_MYSQL
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_MYSQLDB
-            self.db = MySQLdb.connect(
-                host=server,
-                port=port,
-                user=user,
-                passwd=password,
-                db=database,
-                charset=charset,
-                use_unicode=use_unicode,
-                conv=converters
-            )
-            self._database = database
-            self._user = user
-            self._password = password
-            self._server = server
-            self._port = port
-            self._charset = charset
-            self._use_unicode = use_unicode
-            self.autocommit = autocommit
+            logger.info(
+                "mysqldb connect: host={h}, port={p}, user={u}, "
+                "database={d}".format(
+                    h=host, p=port, u=user, d=database))
+            try:
+                self.db = MySQLdb.connect(
+                    host=host,
+                    port=port,
+                    user=user,
+                    passwd=password,
+                    db=database,
+                    charset=charset,
+                    use_unicode=use_unicode,
+                    conv=converters
+                )
+            except Exception as e:
+                self.reraise_connection_exception(e)
             self.db.autocommit(autocommit)
             # http://mysql-python.sourceforge.net/MySQLdb.html
             # http://dev.mysql.com/doc/refman/5.0/en/mysql-autocommit.html
@@ -623,17 +900,168 @@ class DatabaseSupporter:
             # http://www.harelmalka.com/?p=81
             # http://stackoverflow.com/questions/6001104
 
-            self.schema = database
-            self.delims = ("`", "`")
-        except Exception as e:
-            err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
-                f=FUNCNAME,
-                d=database,
-                ex=type(e).__name__,
-                msg=str(e),
+        elif engine == ENGINE_MYSQL and interface == INTERFACE_ODBC:
+            logger.info(
+                "ODBC connect: DRIVER={dr};SERVER={s};PORT={p};"
+                "DATABASE={db};USER={u};PASSWORD=[censored]".format(
+                    dr=driver, s=host, p=port, u=user, d=database))
+            dsn = (
+                "DRIVER={0};SERVER={1};PORT={2};DATABASE={3};"
+                "USER={4};PASSWORD={5}".format(driver, host, port,
+                                               database, user, password)
             )
-            logger.error(err)
-            raise NoDatabaseError(err)
+            try:
+                self.db = pyodbc.connect(dsn)
+            except Exception as e:
+                self.reraise_connection_exception(e)
+            self.db.autocommit = autocommit
+            # http://stackoverflow.com/questions/1063770
+
+        elif engine == ENGINE_MYSQL and interface == INTERFACE_JDBC:
+            # https://help.ubuntu.com/community/JDBCAndMySQL
+            # https://github.com/baztian/jaydebeapi/issues/1
+            jclassname = "com.mysql.jdbc.Driver"
+            url = "jdbc:mysql://{host}:{port}/{database}".format(
+                host=host, port=port, database=database)
+            driver_args = [url, user, password]
+            jars = None
+            libs = None
+            logger.info(
+                "jdbc connect: jclassname={jclassname}, "
+                "url={url}, user={user}, password=[censored]".format(
+                    jclassname=jclassname,
+                    url=url,
+                    user=user,
+                )
+            )
+            try:
+                self.jdbc_connect(jclassname, driver_args, jars, libs,
+                                  autocommit)
+            except:
+                logger.error(MYSQL_JDBC_ERROR_HELP)
+                raise
+
+        elif engine == ENGINE_SQLSERVER and interface == INTERFACE_ODBC:
+            # SQL Server:
+            # http://code.google.com/p/pyodbc/wiki/ConnectionStrings
+            if odbc_connection_string:
+                connectstring = odbc_connection_string
+            elif dsn:
+                logger.info(
+                    "ODBC connect: DSN={dsn};UID={u};PWD=[censored]".format(
+                        dsn=dsn, u=user))
+                connectstring = "DSN={};UID={};PWD={}".format(dsn, user,
+                                                              password)
+            else:
+                logger.info(
+                    "ODBC connect: DRIVER={dr};SERVER={s};DATABASE={db};"
+                    "UID={u};PWD=[censored]".format(
+                        dr=driver, s=host, db=database, u=user))
+                connectstring = (
+                    "DRIVER={};SERVER={};DATABASE={};UID={};PWD={}".format(
+                        driver, host, database, user, password)
+                )
+            try:
+                self.db = pyodbc.connect(connectstring, unicode_results=True)
+            except Exception as e:
+                self.reraise_connection_exception(e)
+            self.db.autocommit = autocommit
+            # http://stackoverflow.com/questions/1063770
+
+        elif engine == ENGINE_SQLSERVER and interface == INTERFACE_JDBC:
+            # jar tvf sqljdbc41.jar
+            # https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx
+            jclassname = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+            db_elem = ";databaseName={}".format(database) if database else ""
+            url = (
+                "jdbc:sqlserver://{host}:{port}{db_elem}"
+                ";user={user};password={password}".format(
+                    host=host, port=port, db_elem=db_elem,
+                    user=user, password=password)
+            )
+            logger.info(
+                "jdbc connect: jclassname={jclassname}, url = "
+                "jdbc:sqlserver://{host}:{port}{db_elem}"
+                ";user={user};password=[censored]".format(
+                    jclassname=jclassname,
+                    host=host,
+                    port=port,
+                    db_elem=db_elem,
+                    user=user)
+            )
+            driver_args = [url]
+            jars = None
+            libs = None
+            self.jdbc_connect(jclassname, driver_args, jars, libs,
+                              autocommit)
+
+        elif engine == ENGINE_ACCESS and interface == INTERFACE_ODBC:
+            dsn = "DSN={}".format(dsn)
+            logger.info("ODBC connect: DSN={}".format(dsn))
+            try:
+                self.db = pyodbc.connect(dsn)
+            except Exception as e:
+                self.reraise_connection_exception(e)
+            self.db.autocommit = autocommit
+            # http://stackoverflow.com/questions/1063770
+
+        else:
+            raise ValueError(
+                "Unknown 'engine'/'interface' combination: {}/{}".format(
+                    engine, interface
+                )
+            )
+
+        # ---------------------------------------------------------------------
+        # Engine-specific tasks
+        # ---------------------------------------------------------------------
+        if engine == ENGINE_MYSQL:
+            self.db_flavour = DatabaseSupporter.FLAVOUR_MYSQL
+            self.schema = database
+        elif engine == ENGINE_SQLSERVER:
+            self.db_flavour = DatabaseSupporter.FLAVOUR_SQLSERVER
+            if database:
+                self.schema = database
+            else:
+                self.schema = "dbo"  # default for SQL server
+        elif engine == ENGINE_ACCESS:
+            self.db_flavour = DatabaseSupporter.FLAVOUR_ACCESS
+            self.schema = "dbo"  # default for SQL server
+        else:
+            raise Exception("bug")
+        self.set_for_engine()
+
+        return True
+
+    def jdbc_connect(self, jclassname, driver_args, jars, libs,
+                     autocommit):
+        try:
+            self.db = jaydebeapi.connect(jclassname, driver_args, jars=jars,
+                                         libs=libs)
+            # ... which should have had its connectors altered by
+            #     reconfigure_jaydebeapi()
+        except Exception as e:
+            self.reraise_connection_exception(e)
+        # http://almostflan.com/2012/03/01/turning-off-autocommit-in-jaydebeapi/  # noqa
+        self.db.jconn.setAutoCommit(autocommit)
+
+    # -------------------------------------------------------------------------
+    # MySQLdb
+    # -------------------------------------------------------------------------
+
+    def connect_to_database_mysql(self,
+                                  database,
+                                  user,
+                                  password,
+                                  server="localhost",
+                                  port=3306,
+                                  charset="utf8",
+                                  use_unicode=True,
+                                  autocommit=True):
+        self.connect(engine=ENGINE_MYSQL, interface=INTERFACE_MYSQLDB,
+                     database=database, user=user, password=password,
+                     host=server, port=port, charset=charset,
+                     use_unicode=use_unicode, autocommit=autocommit)
 
     def ping(self):
         """Pings a database connection, reconnecting if necessary."""
@@ -668,137 +1096,53 @@ class DatabaseSupporter:
                                        driver="{MySQL ODBC 5.1 Driver}",
                                        autocommit=True):
         """Connects to a MySQL database via ODBC."""
-        # MySQL:
-        # http://dev.mysql.com/doc/refman/5.1/en/
-        #        connector-odbc-configuration-connection-parameters.html
-        # http://code.google.com/p/pyodbc/wiki/ConnectionStrings
-        # Catch all exceptions, so the error-catcher never shows a password.
-        FUNCNAME = "connect_to_database_odbc_mysql: "
-        if not PYODBC_AVAILABLE:
-            logger.error(FUNCNAME + MSG_PYODBC_UNAVAILABLE)
-            return False
-        try:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_MYSQL
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
-            dsn = ("DRIVER={0};SERVER={1};PORT={2};DATABASE={3};"
-                   "USER={4};PASSWORD={5}").format(driver, server, port,
-                                                   database, user, password)
-            self.db = pyodbc.connect(dsn)
-            self.autocommit = autocommit
-            self.db.autocommit = autocommit
-            # http://stackoverflow.com/questions/1063770
-            self.schema = database
-            self.delims = ("`", "`")
-            return True
-        except Exception as e:
-            err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
-                f=FUNCNAME,
-                d=database,
-                ex=type(e).__name__,
-                msg=str(e),
-            )
-            logger.error(err)
-            raise NoDatabaseError(err)
+        self.connect(engine=ENGINE_MYSQL, interface=INTERFACE_ODBC,
+                     database=database, user=user, password=password,
+                     host=server, port=port, driver=driver,
+                     autocommit=autocommit)
 
     def connect_to_database_odbc_sqlserver(self,
-                                           database,
-                                           user,
-                                           password,
+                                           odbc_connection_string=None,
+                                           dsn=None,
+                                           database=None,
+                                           user=None,
+                                           password=None,
                                            server="localhost",
                                            driver="{SQL Server}",
                                            autocommit=True):
         """Connects to an SQL Server database via ODBC."""
-        # SQL Server: http://code.google.com/p/pyodbc/wiki/ConnectionStrings
-        FUNCNAME = "connect_to_database_odbc_sqlserver: "
-        if not PYODBC_AVAILABLE:
-            logger.error(FUNCNAME + MSG_PYODBC_UNAVAILABLE)
-            return False
-        try:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_SQLSERVER
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
-            dsn = "DRIVER={};SERVER={};DATABASE={};UID={};PWD={}".format(
-                driver, server, database, user, password)
-            self.db = pyodbc.connect(dsn)
-            self.autocommit = autocommit
-            self.db.autocommit = autocommit
-            # http://stackoverflow.com/questions/1063770
-            self.schema = database
-            self.delims = ("[", "]")
-            return True
-        except Exception as e:
-            err = "{f} Failed to connect to database {d}. {ex}: {msg}".format(
-                f=FUNCNAME,
-                d=database,
-                ex=type(e).__name__,
-                msg=str(e),
-            )
-            logger.error(err)
-            raise NoDatabaseError(err)
-
-    def connect_to_database_odbc_sqlserver_dsn(self, dsn, user, password,
-                                               autocommit=True):
-        """Connects to an SQL Server database via ODBC, with the DSN
-        prespecified."""
-        # SQL Server: http://code.google.com/p/pyodbc/wiki/ConnectionStrings
-        FUNCNAME = "connect_to_database_odbc_sqlserver_dsn: "
-        if not PYODBC_AVAILABLE:
-            logger.error(FUNCNAME + MSG_PYODBC_UNAVAILABLE)
-            return False
-        try:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_SQLSERVER
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
-            full_dsn = "DSN={};UID={};PWD={}".format(dsn, user, password)
-            self.db = pyodbc.connect(full_dsn, unicode_results=True)
-            self.autocommit = autocommit
-            self.db.autocommit = autocommit
-            # http://stackoverflow.com/questions/1063770
-            self.schema = "dbo"  # default for SQL server
-            self.delims = ("[", "]")
-            return True
-        except Exception as e:
-            err = (
-                "{f} Failed to connect to database; DSN={dsn}, user={u}. "
-                "{ex}: {msg}".format(
-                    f=FUNCNAME,
-                    dsn=dsn,
-                    u=user,
-                    ex=type(e).__name__,
-                    msg=str(e),
-                )
-            )
-            logger.error(err)
-            raise NoDatabaseError(err)
+        self.connect(engine=ENGINE_SQLSERVER, interface=INTERFACE_ODBC,
+                     odbc_connection_string=odbc_connection_string,
+                     dsn=dsn,
+                     database=database, user=user, password=password,
+                     host=server, driver=driver,
+                     autocommit=autocommit)
 
     def connect_to_database_odbc_access(self, dsn, autocommit=True):
         """Connects to an Access database via ODBC, with the DSN
         prespecified."""
-        FUNCNAME = "connect_to_database_odbc_access: "
-        if not PYODBC_AVAILABLE:
-            logger.error(FUNCNAME + MSG_PYODBC_UNAVAILABLE)
-            return False
-        try:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_ACCESS
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
-            dsn = "DSN={}".format(dsn)
-            self.db = pyodbc.connect(dsn)
-            self.autocommit = autocommit
-            self.db.autocommit = autocommit
-            # http://stackoverflow.com/questions/1063770
-            self.schema = "dbo"  # default for SQL server
+        self.connect(engine=ENGINE_ACCESS, interface=INTERFACE_ODBC,
+                     dsn=dsn, autocommit=autocommit)
+
+    # -------------------------------------------------------------------------
+    # Engine configurations
+    # -------------------------------------------------------------------------
+
+    def set_for_engine(self):
+        if self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
+            self.delims = ("`", "`")
+            self.coltype_expr = DatabaseSupporter.MYSQL_COLUMN_TYPE_EXPR
+            self.schema_expr = DatabaseSupporter.MYSQL_CURRENT_SCHEMA_EXPR
+        elif self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
             self.delims = ("[", "]")
-            return True
-        except Exception as e:
-            err = (
-                "{f} Failed to connect to database; DSN={dsn}. "
-                "{ex}: {msg}".format(
-                    f=FUNCNAME,
-                    dsn=dsn,
-                    ex=type(e).__name__,
-                    msg=str(e),
-                )
-            )
-            logger.error(err)
-            raise NoDatabaseError(err)
+            self.coltype_expr = DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR
+            self.schema_expr = DatabaseSupporter.SQLSERVER_CURRENT_SCHEMA_EXPR
+        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
+            self.delims = ("[", "]")
+            self.coltype_expr = DatabaseSupporter.ACCESS_COLUMN_TYPE_EXPR
+            self.schema_expr = DatabaseSupporter.ACCESS_CURRENT_SCHEMA_EXPR
+        else:
+            pass
 
     # -------------------------------------------------------------------------
     # Generic SQL and database operations
@@ -1005,6 +1349,20 @@ class DatabaseSupporter:
             return rows
         except:
             logger.exception("fetchall: SQL was: " + sql)
+            raise
+
+    def gen_fetchall(self, sql, *args):
+        """fetchall() as a generator."""
+        self.ensure_db_open()
+        cursor = self.db.cursor()
+        self.db_exec_with_cursor(cursor, sql, *args)
+        try:
+            row = cursor.fetchone()
+            while row is not None:
+                yield row
+                row = cursor.fetchone()
+        except:
+            logger.exception("gen_fetchall: SQL was: " + sql)
             raise
 
     def fetchall_with_fieldnames(self, sql, *args):
@@ -1355,8 +1713,8 @@ class DatabaseSupporter:
             SELECT COUNT(*)
             FROM information_schema.tables
             WHERE table_name=?
-            AND table_schema=DATABASE()
-        """
+            AND table_schema={}
+        """.format(self.schema_expr)
         row = self.fetchone(sql, tablename)
         return True if row[0] >= 1 else False
 
@@ -1367,8 +1725,8 @@ class DatabaseSupporter:
             FROM information_schema.columns
             WHERE table_name=?
             AND column_name=?
-            AND table_schema=DATABASE()
-        """
+            AND table_schema={}
+        """.format(self.schema_expr)
         row = self.fetchone(sql, tablename, column)
         return True if row[0] >= 1 else False
 
@@ -1605,7 +1963,7 @@ class DatabaseSupporter:
         return c
 
     def get_datatype(self, table, column):
-        """Returns database SQL datatype for a column."""
+        """Returns database SQL datatype for a column: e.g. varchar."""
         if (self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER
                 or self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL):
             # ISO standard for INFORMATION_SCHEMA, I think.
@@ -1621,7 +1979,28 @@ class DatabaseSupporter:
             raise AssertionError("Don't know how to get datatype in Access")
         else:
             raise AssertionError("Unknown database flavour")
-        return c
+        return c.upper()
+
+    def get_column_type(self, table, column):
+        """Returns database SQL datatype for a column, e.g. varchar(50)."""
+        if (self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER
+                or self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL):
+            # ISO standard for INFORMATION_SCHEMA, I think.
+            # SQL Server carries a warning but the warning may be incorrect:
+            # https://msdn.microsoft.com/en-us/library/ms188348.aspx
+            # http://stackoverflow.com/questions/917431
+            # http://sqlblog.com/blogs/aaron_bertrand/archive/2011/11/03/the-case-against-information-schema-views.aspx  # noqa
+            sql = """
+                SELECT {}
+                FROM information_schema.columns
+                WHERE table_schema=? AND table_name=? AND column_name=?
+            """.format(self.coltype_expr)
+            c = self.fetchvalue(sql, self.schema, table, column)
+        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
+            raise AssertionError("Don't know how to get datatype in Access")
+        else:
+            raise AssertionError("Unknown database flavour")
+        return c.upper()
 
     def get_comment(self, table, column):
         """Returns database SQL datatype for a column."""
@@ -1655,9 +2034,9 @@ class DatabaseSupporter:
             SELECT COUNT(*)
             FROM information_schema.table_constraints
             WHERE table_name=?
-            AND table_schema=database()
+            AND table_schema={}
             AND constraint_name='PRIMARY'
-        """
+        """.format(self.schema_expr)
         # http://forums.mysql.com/read.php?10,114742,114748#msg-114748
         row = self.fetchone(sql, table)
         has_pk_already = True if row[0] >= 1 else False
@@ -1693,8 +2072,8 @@ class DatabaseSupporter:
             SELECT engine, row_format
             FROM information_schema.tables
             WHERE table_name = ?
-            AND table_schema=database()
-        """
+            AND table_schema={}
+        """.format(self.schema_expr)
         args = [tablename]
         row = self.fetchone(sql, *args)
         if not row:
@@ -1730,4 +2109,4 @@ class DatabaseSupporter:
         return self.get_mysql_variable("max_allowed_packet")
 
     def get_schema(self):
-        return self.fetchvalue("SELECT DATABASE()")
+        return self.fetchvalue("SELECT {}".format(self.schema_expr))

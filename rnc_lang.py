@@ -49,9 +49,9 @@ class AttrDict(dict):
 # Helper functions
 # =============================================================================
 
-def convert_to_bool(x):
+def convert_to_bool(x, default=None):
     if not x:  # None, zero, blank string...
-        return False
+        return default
     try:
         return int(x) != 0
     except:
@@ -70,9 +70,9 @@ def convert_to_bool(x):
     raise Exception("Unknown thing being converted to bool: {}".format(x))
 
 
-def convert_attrs_to_bool(obj, attrs):
+def convert_attrs_to_bool(obj, attrs, default=None):
     for a in attrs:
-        setattr(obj, a, convert_to_bool(getattr(obj, a)))
+        setattr(obj, a, convert_to_bool(getattr(obj, a), default=default))
 
 
 def convert_attrs_to_uppercase(obj, attrs):
