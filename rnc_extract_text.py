@@ -36,6 +36,9 @@ See also:
     PDF
         http://stackoverflow.com/questions/25665
         https://pypi.python.org/pypi/slate
+    RTF
+        unrtf
+        http://superuser.com/questions/243084/rtf-to-txt-on-unix
 
     http://stackoverflow.com/questions/5725278
 
@@ -59,8 +62,8 @@ import pdfminer.pdfinterp  # sudo pip install pdfminer
 import pdfminer.converter  # sudo pip install pdfminer
 import pdfminer.layout  # sudo pip install pdfminer
 import pdfminer.pdfpage   # sudo pip install pdfminer
-import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
-import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
+#import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
+#import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
 import subprocess
 import sys
 import xml.etree
@@ -184,10 +187,28 @@ def convert_xml_to_text(filename=None, blob=None):
 
 
 def convert_rtf_to_text(filename=None, blob=None):
-    with get_filelikeobject(filename, blob) as fp:
-        doc = pyth.plugins.rtf15.reader.Rtf15Reader.read(fp)
-    # https://github.com/brendonh/pyth/blob/master/pyth/plugins/rtf15/reader.py
-    return pyth.plugins.plaintext.writer.PlaintextWriter.write(doc).getvalue()
+    # Very memory-consuming:
+
+    #with get_filelikeobject(filename, blob) as fp:
+    #    doc = pyth.plugins.rtf15.reader.Rtf15Reader.read(fp)
+    ## https://github.com/brendonh/pyth/blob/master/pyth/plugins/rtf15/reader.py
+    #return pyth.plugins.plaintext.writer.PlaintextWriter.write(doc).getvalue()
+
+    # Better:
+    if filename:
+        return get_cmd_output(
+            'unrtf',  # IN CASE OF FAILURE: sudo apt-get install unrtf
+            '--text',
+            '--nopict',
+            '--quiet',
+            filename)
+    else:
+        return get_cmd_output_from_stdin(
+            blob,
+            'unrtf',  # IN CASE OF FAILURE: sudo apt-get install unrtf
+            '--text',
+            '--nopict',
+            '--quiet')
 
 
 def convert_doc_to_text(filename=None, blob=None):
