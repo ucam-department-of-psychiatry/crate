@@ -508,3 +508,6 @@ A.  Out of memory.
     - see  estimate_mysql_memory_usage.sh
     - changed innodb_buffer_pool_size from 128M to 16M
         ... big improvement; mysqld %MEM (in top) went from ~30% to ~10%
+
+    - RTF processing takes lots of memory, using pyth
+        - 
