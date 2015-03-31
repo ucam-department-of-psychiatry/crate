@@ -11,7 +11,7 @@ Prerequisites:
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: Feb 2015
-Last update: 25 Mar 2015
+Last update: 31 Mar 2015
 
 Copyright/licensing:
 
@@ -235,8 +235,11 @@ def document_to_text(filename=None, blob=None, extension=None):
 
     # Ensure blob is an appropriate type
     logger.debug(
-        "filename: {}, blob type: {}, extension: {}".format(
-            filename, type(blob), extension))
+        "filename: {}, blob type: {}, blob length: {}, extension: {}".format(
+            filename,
+            type(blob),
+            len(blob) if blob is not None else None,
+            extension))
 
     # Choose method
     if extension in [".doc", ".dot"]:
