@@ -1040,15 +1040,13 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                         "method: {v}".format(ALTERMETHOD=ALTERMETHOD, v=value))
                     value = None
             elif ddr._extract_text:
+                filename = None
+                blob = None
+                extension = None
                 if ddr._extract_from_filename:
                     filename = value
-                    try:
-                        value = document_to_text(filename=filename)
-                    except Exception as e:
-                        logger.error(
-                            "Exception from document_to_text: {}".format(e))
-                        value = None
                 else:
+                    blob = value
                     extindex = next(
                         (i for i, x in enumerate(ddrows)
                             if x.src_field == ddr._extract_ext_field),
@@ -1058,13 +1056,14 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                             "Bug: missing extension field for "
                             "alter_method={}".format(ddr.alter_method))
                     extension = row[extindex]
-                    try:
-                        value = document_to_text(blob=value,
-                                                 extension=extension)
-                    except Exception as e:
-                        logger.error(
-                            "Exception from document_to_text: {}".format(e))
-                        value = None
+                try:
+                    value = document_to_text(filename=filename,
+                                             blob=blob,
+                                             extension=extension)
+                except Exception as e:
+                    logger.error(
+                        "Exception from document_to_text: {}".format(e))
+                    value = None
 
             if ddr._scrub:
                 # Main point of anonymisation!

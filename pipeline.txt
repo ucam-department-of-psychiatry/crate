@@ -509,5 +509,6 @@ A.  Out of memory.
     - changed innodb_buffer_pool_size from 128M to 16M
         ... big improvement; mysqld %MEM (in top) went from ~30% to ~10%
 
-    - RTF processing takes lots of memory, using pyth
-        - 
+    - RTF processing takes lots of memory, using Python/pyth
+        ... significant improvement after switching to Linux/unrtf
+        ... similarly, using Linux/pdftotext rather than Python/pdfminer
