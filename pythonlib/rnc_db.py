@@ -344,7 +344,7 @@ def sql_dequote_string(s):
 
 def DateTime2literal_RNC(d, c):
     """Format a DateTime object as something MySQL will actually accept."""
-    #dt = d.strftime("%Y-%m-%d %H:%M:%S")
+    # dt = d.strftime("%Y-%m-%d %H:%M:%S")
     # ... can fail with e.g.
     #   ValueError: year=1850 is before 1900; the datetime strftime() methods
     #   require year >= 1900
@@ -547,14 +547,14 @@ def _rnc_to_binary(rs, col):
     if java_val is None:
         return
     t = str(type(java_val))
-    #logger.info("rnc_to_binary: typeof={}".format(t))
+    # logger.info("rnc_to_binary: typeof={}".format(t))
     if t == "<class 'jpype._jarray.byte[]'>":
         logger.debug("Converting Java byte[] to Python str...")
         # x = ''.join(map(lambda x: chr(x % 256), java_val))
         l = len(java_val)
-        x = bytearray()
+        x = bytearray(l)
         for i in xrange(l):
-            x[l] = java_val[l] % 256
+            x[i] = java_val[i] % 256
         logger.debug("... done")
         return x
     logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
@@ -869,8 +869,8 @@ class DatabaseSupporter:
                 raise ValueError("Missing host parameter")
             if port is None:
                 raise ValueError("Missing port parameter")
-            #if database is None:
-            #    raise ValueError("Missing database parameter")
+            # if database is None:
+            #     raise ValueError("Missing database parameter")
             if user is None:
                 raise ValueError("Missing user parameter")
         else:
