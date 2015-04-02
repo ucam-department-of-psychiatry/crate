@@ -166,8 +166,8 @@ except:
 import datetime
 import re
 import logging
-logging.basicConfig()
-logger = logging.getLogger("rnc_db")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
 
 

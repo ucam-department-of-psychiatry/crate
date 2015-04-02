@@ -181,9 +181,15 @@ CHANGE LOG:
 
 from __future__ import division
 from __future__ import print_function
+
+import logging
+LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT)
+logger = logging.getLogger("anonymise")
+
 import argparse
 import itertools
-import logging
 import multiprocessing
 import operator
 #import re
@@ -203,6 +209,8 @@ from rnc_db import (
     is_sqltype_text_over_one_char,
 )
 from rnc_extract_text import document_to_text
+import rnc_log
+import shared_anon
 from shared_anon import (
     ALTERMETHOD,
     AUDIT_FIELDSPECS,
@@ -211,7 +219,6 @@ from shared_anon import (
     DEMO_CONFIG,
     escape_literal_string_for_regex,
     INDEX,
-    reset_logformat,
     SCRUBSRC,
     SCRUBMETHOD,
     SEP,
@@ -225,9 +232,6 @@ from shared_anon import (
 
 VERSION = 0.03
 VERSION_DATE = "2015-03-19"
-
-logging.basicConfig()  # just in case nobody else has done this
-logger = logging.getLogger("anonymise")
 
 MAPPING_TABLE = "secret_map"
 
@@ -796,14 +800,15 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
     #   DELETE WHERE NOT IN.
     if not config.dd.has_active_destination(srcdbname, src_table):
         return
-    (src_pk, src_hash, dest_table, dest_pk) = config.dd.get_srchash_info(
-        srcdbname, src_table)
+    dest_table = config.dd.get_dest_table_for_src_db_table(srcdbname,
+                                                           src_table)
+    pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
     logger.debug("delete_dest_rows_with_no_src_row: source table {}, "
                  "destination table {}".format(src_table, dest_table))
     pks = []
-    if src_pk:
+    if pkddr:
         sql = "SELECT {src_pk} FROM {src_table}".format(
-            src_pk=src_pk,
+            src_pk=pkddr.src_field,
             src_table=src_table,
         )
         pks = srcdb.fetchallfirstvalues(sql)
@@ -813,13 +818,20 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
         config.destdb.db_exec(sql)
     else:
         logger.debug("... deleting selectively")
+
+        # The PKs may be translated:
+        if SRCFLAG.PRIMARYPID in pkddr.src_flags:
+            pks = [config.encrypt_primary_pid(x) for x in pks]
+        elif SRCFLAG.MASTERPID in pkddr.src_flags:
+            pks = [config.encrypt_master_pid(x) for x in pks]
+
         value_string = ','.join(['?'] * len(pks))
         sql = """
             DELETE FROM {dest_table}
             WHERE {dest_pk} NOT IN ({value_string})
         """.format(
-            dest_table=dest_table,
-            dest_pk=dest_pk,
+            dest_table=pkddr.dest_table,
+            dest_pk=pkddr.dest_field,
             value_string=value_string
         )
         config.destdb.db_exec(sql, *pks)
@@ -911,17 +923,30 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
 
 
 def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
-             debuglimit=0):
+             pkname=None, tasknum=None, ntasks=None, debuglimit=0):
     """ Generates a series of lists of values, each value corresponding to a
     field in sourcefields.
     """
-    if pid is None:
-        args = []
-        where = ""
-    else:
-        args = [pid]
-        where = "WHERE {}=?".format(
-            config.srccfg[sourcedbname].per_table_pid_field)
+    args = []
+    whereconds = []
+
+    # Restrict to one patient?
+    if pid is not None:
+        whereconds.append("{}=?".format(
+            config.srccfg[sourcedbname].per_table_pid_field))
+        args.append(pid)
+
+    # Divide up rows across tasks?
+    if pkname is not None and tasknum is not None and ntasks is not None:
+        whereconds.append("{pk} % {ntasks} = {tasknum}".format(
+            pk=pkname,
+            ntasks=ntasks,
+            tasknum=tasknum,
+        ))
+
+    where = ""
+    if whereconds:
+        where = " WHERE " + " AND ".join(whereconds)
     sql = """
         SELECT {fields}
         FROM {table}
@@ -954,12 +979,21 @@ def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
         yield (t, tablerows)
 
 
-def gen_nonpatient_tables(tasknum=0, ntasks=1):
-    db_table_pairs = config.dd.get_src_dbs_tables_with_no_patient_info()
+def gen_nonpatient_tables_without_int_pk(tasknum=0, ntasks=1):
+    db_table_pairs = config.dd.get_src_dbs_tables_with_no_pt_info_no_pk()
     for i, pair in enumerate(db_table_pairs):
         if i % ntasks != tasknum:
             continue
         yield pair  # will be a (dbname, table) tuple
+
+
+def gen_nonpatient_tables_with_int_pk():
+    db_table_pairs = config.dd.get_src_dbs_tables_with_no_pt_info_int_pk()
+    for pair in db_table_pairs:
+        db = pair[0]
+        table = pair[1]
+        pkname = config.dd.get_int_pk_name(db, table)
+        yield (db, table, pkname)
 
 
 # =============================================================================
@@ -970,7 +1004,8 @@ def gen_nonpatient_tables(tasknum=0, ntasks=1):
 #   CONNECTIONS.
 
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
-                  pid=None, scrubber=None, incremental=False, debuglimit=0):
+                  pid=None, scrubber=None, incremental=False, debuglimit=0,
+                  pkname=None, tasknum=None, ntasks=None):
     logger.debug(
         "process_table: {}.{}, pid={}, incremental={}".format(
             sourcedbname, sourcetable, pid, incremental))
@@ -998,12 +1033,11 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         destfields.append(config.source_hash_fieldname)
     n = 0
     for row in gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields,
-                        pid, debuglimit=debuglimit):
+                        pid, debuglimit=debuglimit,
+                        pkname=pkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
-            logger.info("... processing row {}".format(n))
-        #else:
-        #    logger.debug("... processing row {}".format(n))
+            logger.info("... processing row {} of task set".format(n))
         if addhash:
             srchash = config.hash_list(row)
             if incremental and record_exists_by_hash(
@@ -1241,13 +1275,25 @@ def drop_remake(incremental=False):
 
 def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False,
                               debuglimit=0):
-    logger.info(SEP + "Non-patient tables")
-    # Processing tables as chunks, so probably best to commit after each.
-    for (d, t) in gen_nonpatient_tables(tasknum=tasknum, ntasks=ntasks):
+    logger.info(SEP + "Non-patient tables: (a) with integer PK")
+    for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
+        db = config.sources[d]
+        logger.info("Processing non-patient table {}.{} (PK: {})...".format(
+            d, t, pkname))
+        process_table(db, d, t, config.destdb, pid=None, scrubber=None,
+                      incremental=incremental, debuglimit=debuglimit,
+                      pkname=pkname, tasknum=tasknum, ntasks=ntasks)
+        logger.info("... committing")
+        config.destdb.commit()
+        logger.info("... done")
+    logger.info(SEP + "Non-patient tables: (b) without integer PK")
+    for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
+                                                       ntasks=ntasks):
         db = config.sources[d]
         logger.info("Processing non-patient table {}.{}...".format(d, t))
         process_table(db, d, t, config.destdb, pid=None, scrubber=None,
-                      incremental=incremental, debuglimit=debuglimit)
+                      incremental=incremental, debuglimit=debuglimit,
+                      pkname=None, tasknum=None, ntasks=None)
         logger.info("... committing")
         config.destdb.commit()
         logger.info("... done")
@@ -1463,9 +1509,14 @@ Sample usage (having set PYTHONPATH):
         mynames.append(args.processcluster)
     if args.nprocesses > 1:
         mynames.append("process {}".format(args.process))
-    reset_logformat(
+    rnc_log.reset_logformat_timestamped(
         logger,
-        name=" ".join(mynames),
+        extraname=" ".join(mynames),
+        debug=(args.verbose >= 1)
+    )
+    rnc_log.reset_logformat_timestamped(
+        shared_anon.logger,
+        extraname=" ".join(mynames),
         debug=(args.verbose >= 1)
     )
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)

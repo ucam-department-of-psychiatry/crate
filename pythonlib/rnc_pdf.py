@@ -27,8 +27,8 @@ Copyright/licensing:
 
 import io
 import logging
-logging.basicConfig()
-logger = logging.getLogger("rnc_pdf")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
 import pyPdf  # sudo apt-get install python-pypdf
 import sys

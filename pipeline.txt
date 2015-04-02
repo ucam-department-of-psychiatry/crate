@@ -99,7 +99,9 @@ b)  METHOD 2: PROCESS-BASED. THIS IS FASTER.
     ---------------------------------------------------------------------------
     - Best performance from multiprocess (not multithreaded) operation.
     - Drop/rebuild tables: single-process operation only.
-    - Non-patient tables: split by table (in sequence of all tables).
+    - Non-patient tables:
+        - if there's an integer PK, split by row
+        - if there's no integer PK, split by table (in sequence of all tables).
     - Patient tables: split by patient ID.
       (You have to process all scrubbing information from a patient
       simultaneously, so that's the unit of work. Patient IDs need to be
@@ -313,8 +315,10 @@ SQL.
 X. TROUBLESHOOTING
 ===============================================================================
 
+-------------------------------------------------------------------------------
 Q.  Error: [Microsoft][SQL Server Native Client 11.0]Connection is busy with
     results for another command.
+-------------------------------------------------------------------------------
 A.  In /etc/odbc.ini, for that DSN, set
         MARS_Connection = yes
     - https://msdn.microsoft.com/en-us/library/cfa084cz(v=vs.110).aspx
@@ -324,7 +328,9 @@ A.  In /etc/odbc.ini, for that DSN, set
      database(s). Therefore, we're operating multiple result sets through one
      connection.
 
+-------------------------------------------------------------------------------
 Q.  How to convert from SQL Server to MySQL?
+-------------------------------------------------------------------------------
 A.  MySQL Workbench.
     Use the "ODBC via connection string" option if others aren't working:
         DSN=XXX;UID=YYY;PWD=ZZZ
@@ -333,12 +339,16 @@ A.  MySQL Workbench.
     ... but you can copy the database using anonymise.py, treating all tables
     as non-patient tables (i.e. doing no actual anonymisation).
 
+-------------------------------------------------------------------------------
 Q.  MySQL server has gone away... ?
+-------------------------------------------------------------------------------
 A.  Probably: processing a big binary field, and MySQL's max_allowed_packet
     parameter is too small. Try increasing it (e.g. from 16M to 32M).
     See also http://www.camcops.org/documentation/server.html
 
+-------------------------------------------------------------------------------
 Q.  What settings do I need in /etc/mysql/my.cnf?
+-------------------------------------------------------------------------------
 A.  Probably these:
 
     [mysqld]
@@ -361,15 +371,19 @@ A.  Probably these:
     [mysqldump]
     max_allowed_packet = 32M
 
+-------------------------------------------------------------------------------
 Q.  _mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126).
     Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or
     ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768
     bytes is stored inline.')
+-------------------------------------------------------------------------------
 A.  See above.
     If you need to change the log file size, FOLLOW THIS PROCEDURE:
         https://dev.mysql.com/doc/refman/5.0/en/innodb-data-log-reconfiguration.html
 
+-------------------------------------------------------------------------------
 Q.  Segmentation fault (core dumped)... ?
+-------------------------------------------------------------------------------
 A.  Short answer: use the Microsoft JDBC driver instead of the Microsoft ODBC
     driver for Linux, which is buggy.
 
@@ -431,7 +445,9 @@ A.  Short answer: use the Microsoft JDBC driver instead of the Microsoft ODBC
     Switched to the JDBC driver.
     Problem went away.
 
+-------------------------------------------------------------------------------
 Q.  "Killed."
+-------------------------------------------------------------------------------
 A.  Out of memory.
     Testing on a rather small machine (0.5 Gb RAM, 1 Gb swap).
     Inspect what was running:
@@ -499,16 +515,36 @@ A.  Out of memory.
 
             - Copy data from a source into a destination database
 
-        ... not working
+        ... NOT WORKING.
 
     - http://stackoverflow.com/questions/27068092/jpype-java-initialize-with-or-get-remaining-heap-space
 
     - http://stackoverflow.com/questions/1178736/mysql-maximum-memory-usage
     - SHOW ENGINE INNODB STATUS
-    - see  estimate_mysql_memory_usage.sh
+
+    USEFUL THINGS:
+    - see estimate_mysql_memory_usage.sh
     - changed innodb_buffer_pool_size from 128M to 16M
         ... big improvement; mysqld %MEM (in top) went from ~30% to ~10%
-
     - RTF processing takes lots of memory, using Python/pyth
         ... significant improvement after switching to Linux/unrtf
         ... similarly, using Linux/pdftotext rather than Python/pdfminer
+
+    AFTERWARDS:
+    - Show table size and number of rows in MySQL:
+
+        SELECT table_name AS "Table",
+            ROUND(((data_length + index_length) / 1024 / 1024), 2) AS "Size in MiB",
+            table_rows
+        FROM information_schema.TABLES
+        WHERE table_schema = DATABASE()
+        ORDER BY (data_length + index_length) DESC;
+
+      or:
+
+        SELECT table_name AS "Table",
+            ROUND(((data_length + index_length) / 1024 / 1024), 2) AS "Size in MiB",
+            table_rows
+        FROM information_schema.TABLES
+        WHERE table_schema = DATABASE()
+        ORDER BY table_name;

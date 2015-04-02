@@ -63,16 +63,14 @@ from rnc_lang import (
     count_bool,
     raise_if_attr_blank
 )
-import rnc_log
 
 
 # =============================================================================
 # Logging
 # =============================================================================
 
-logging.basicConfig()  # just in case nobody else has done this
-logger = logging.getLogger("anonymise")
-rnc_log.reset_logformat_timestamped(logger)
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 # =============================================================================
 # Constants
@@ -1078,6 +1076,7 @@ class DataDictionary(object):
 
     def read_from_file(self, filename, check_against_source_db=True):
         self.rows = []
+        logger.debug("Opening data dictionary: {}".format(filename))
         with open(filename, 'rb') as tsvfile:
             tsv = csv.reader(tsvfile, delimiter='\t')
             headerlist = tsv.next()
@@ -1185,9 +1184,10 @@ class DataDictionary(object):
         self.cached_rows_for_dest_table = {}
         self.cached_fieldnames_for_src_table = {}
         self.cached_src_dbtables_for_dest_table = {}
-        self.cached_srchash_info = {}
+        self.cached_pk_ddr = {}
         self.cached_has_active_destination = {}
         self.cached_dest_tables_for_src_db_table = {}
+        self.cached_srcdb_table_pairs_to_int_pk = {}  # (db, table): pkname
         for ddr in self.rows:
 
             # Database-oriented maps
@@ -1209,10 +1209,6 @@ class DataDictionary(object):
             if db_t_key not in self.cached_dest_tables_for_src_db_table:
                 self.cached_dest_tables_for_src_db_table[db_t_key] = \
                     SortedSet()
-            if db_t_key not in self.cached_srchash_info:
-                self.cached_srchash_info[db_t_key] = (
-                    None, False, ddr.dest_table, None
-                )
 
             # Destination table-oriented maps
             if ddr.dest_table not in self.cached_src_dbtables_for_dest_table:
@@ -1239,12 +1235,11 @@ class DataDictionary(object):
 
             # Is it a src_pk row, contributing to src_hash info?
             if SRCFLAG.PK in ddr.src_flags:
-                self.cached_srchash_info[db_t_key] = (
-                    ddr.src_field,
-                    SRCFLAG.ADDSRCHASH in ddr.src_flags,
-                    ddr.dest_table,
-                    ddr.dest_field
-                )
+                logger.debug("SRCFLAG.PK found: {}".format(ddr))
+                self.cached_pk_ddr[db_t_key] = ddr
+                if rnc_db.is_sqltype_integer(ddr.src_datatype):
+                    self.cached_srcdb_table_pairs_to_int_pk[db_t_key] = \
+                        ddr.src_field
 
             # Is it a relevant contribution from a source table?
             pt_info = bool(ddr.scrub_src)
@@ -1269,18 +1264,34 @@ class DataDictionary(object):
                     ddr.dest_table
                 )
 
-        # A subtraction...
-        self.cached_srcdb_table_pairs_wo_pt_info = sorted(
-            self.cached_srcdb_table_pairs
-            - self.cached_srcdb_table_pairs_w_pt_info
+        db_table_pairs_w_int_pk = set(
+            self.cached_srcdb_table_pairs_to_int_pk.keys()
         )
 
-        # An intersection, and some sorting/conversion to lists
+        # Set calculations...
+        self.cached_srcdb_table_pairs_wo_pt_info_no_pk = sorted(
+            self.cached_srcdb_table_pairs
+            - self.cached_srcdb_table_pairs_w_pt_info
+            - db_table_pairs_w_int_pk
+        )
+        self.cached_srcdb_table_pairs_wo_pt_info_int_pk = sorted(
+            (self.cached_srcdb_table_pairs
+                - self.cached_srcdb_table_pairs_w_pt_info)
+            & db_table_pairs_w_int_pk
+        )
         for s in self.cached_source_databases:
             self.cached_pt_src_tables_w_dest[s] = sorted(
                 self.cached_src_tables_w_pt_info[s]
                 & src_tables_with_dest[s]  # & is intersection
             )
+
+        # Debugging
+        logger.debug("cached_srcdb_table_pairs_w_pt_info: {}".format(
+            list(self.cached_srcdb_table_pairs_w_pt_info)))
+        logger.debug("cached_srcdb_table_pairs_wo_pt_info_no_pk: {}".format(
+            self.cached_srcdb_table_pairs_wo_pt_info_no_pk))
+        logger.debug("cached_srcdb_table_pairs_wo_pt_info_int_pk: {}".format(
+            self.cached_srcdb_table_pairs_wo_pt_info_int_pk))
 
     def check_valid(self, check_against_source_db):
         logger.info("Checking data dictionary...")
@@ -1406,6 +1417,9 @@ class DataDictionary(object):
     def get_dest_tables_for_src_db_table(self, src_db, src_table):
         return self.cached_dest_tables_for_src_db_table[(src_db, src_table)]
 
+    def get_dest_table_for_src_db_table(self, src_db, src_table):
+        return self.cached_dest_tables_for_src_db_table[(src_db, src_table)][0]
+
     def get_source_databases(self):
         return self.cached_source_databases
 
@@ -1439,11 +1453,18 @@ class DataDictionary(object):
             + [r.get_tsv() for r in self.rows]
         )
 
-    def get_src_dbs_tables_with_no_patient_info(self):
-        return self.cached_srcdb_table_pairs_wo_pt_info
+    def get_src_dbs_tables_with_no_pt_info_no_pk(self):
+        return self.cached_srcdb_table_pairs_wo_pt_info_no_pk
 
-    def get_srchash_info(self, src_db, src_table):
-        return self.cached_srchash_info[(src_db, src_table)]
+    def get_src_dbs_tables_with_no_pt_info_int_pk(self):
+        return self.cached_srcdb_table_pairs_wo_pt_info_int_pk
+
+    def get_int_pk_name(self, src_db, src_table):
+        return self.cached_srcdb_table_pairs_to_int_pk[(src_db, src_table)]
+
+    def get_pk_ddr(self, src_db, src_table):
+        # Will return None if no such data dictionary row
+        return self.cached_pk_ddr.get((src_db, src_table), None)
 
     def has_active_destination(self, src_db, src_table):
         return self.cached_has_active_destination[(src_db, src_table)]
@@ -1662,6 +1683,7 @@ class Config(object):
 
     def read_config(self, include_sources=False):
         """Read config from file."""
+        logger.debug("Opening config: {}".format(self.config_filename))
         parser = ConfigParser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         read_config_string_options(self, parser, "main", Config.MAIN_HEADINGS)
@@ -1831,22 +1853,6 @@ class Config(object):
 # =============================================================================
 
 config = Config()
-
-
-# =============================================================================
-# Logger manipulation
-# =============================================================================
-
-def reset_logformat(logger, name="", debug=False):
-    # logging.basicConfig() won't reset the formatter if another module
-    # has called it, so always set the formatter like this.
-    if name:
-        namebit = name + ":"
-    else:
-        namebit = ""
-    fmt = "%(levelname)s:%(name)s:" + namebit + "%(message)s"
-    rnc_log.reset_logformat(logger, fmt=fmt)
-    logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
 
 # =============================================================================

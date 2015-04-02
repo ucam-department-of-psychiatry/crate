@@ -26,8 +26,8 @@ Copyright/licensing:
 
 import re
 import logging
-logging.basicConfig()
-logger = logging.getLogger("rnc_nhs")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
 
 WHITESPACE_REGEX = re.compile('\s')

@@ -65,6 +65,13 @@ TO DO:
 
 from __future__ import division
 from __future__ import print_function
+
+import logging
+LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT)
+logger = logging.getLogger("nlp_manager")
+
 import argparse
 import codecs
 import ConfigParser
@@ -86,10 +93,11 @@ from rnc_lang import (
     chunks,
     raise_if_attr_blank
 )
+import rnc_log
 
+import shared_anon
 from shared_anon import (
     SQLTYPE_ENCRYPTED_PID,
-    reset_logformat,
     ensure_valid_field_name,
     ensure_valid_table_name,
     read_config_string_options,
@@ -104,9 +112,6 @@ VERSION = 0.01
 VERSION_DATE = "2015-03-03"
 FIELDNAME_LEN = 50
 SEP = "=" * 20 + " "
-
-logging.basicConfig()  # just in case nobody else has done this
-logger = logging.getLogger("nlp_manager")
 
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
@@ -1157,9 +1162,14 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         mynames.append(args.processcluster)
     if args.nprocesses > 1:
         mynames.append("process {}".format(args.process))
-    reset_logformat(
+    rnc_log.reset_logformat_timestamped(
         logger,
-        name=" ".join(mynames),
+        extraname=" ".join(mynames),
+        debug=(args.verbose >= 1)
+    )
+    rnc_log.reset_logformat_timestamped(
+        shared_anon.logger,
+        extraname=" ".join(mynames),
         debug=(args.verbose >= 1)
     )
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
