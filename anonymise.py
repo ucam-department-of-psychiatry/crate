@@ -612,7 +612,8 @@ def patient_in_map(admindb, patient_id):
     return True if row is not None and row[0] == 1 else False
 
 
-def record_exists_by_hash(destdb, dest_table, pkfield, pkvalue, hashvalue):
+def identical_record_exists_by_hash(destdb, dest_table, pkfield, pkvalue,
+                                    hashvalue):
     sql = """
         SELECT 1
         FROM {table}
@@ -625,7 +626,21 @@ def record_exists_by_hash(destdb, dest_table, pkfield, pkvalue, hashvalue):
     )
     args = [pkvalue, hashvalue]
     row = destdb.fetchone(sql, *args)
-    return True if row is not None and row[0] == 1 else False
+    return (row is not None and row[0] == 1)
+
+
+def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
+    sql = """
+        SELECT 1
+        FROM {table}
+        WHERE {pkfield}=?
+    """.format(
+        table=dest_table,
+        pkfield=pkfield,
+    )
+    args = [pkvalue]
+    row = destdb.fetchone(sql, *args)
+    return (row is not None and row[0] == 1)
 
 
 # =============================================================================
@@ -1011,8 +1026,10 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             sourcedbname, sourcetable, pid, incremental))
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
     addhash = any([SRCFLAG.ADDSRCHASH in ddr.src_flags for ddr in ddrows])
-    # If addhash is true, there will also be at least one non-omitted row,
-    # namely the source PK (by the data dictionary's validation process).
+    constant = any([SRCFLAG.CONSTANT in ddr.src_flags for ddr in ddrows])
+    # If addhash or constant is true, there will also be at least one non-
+    # omitted row, namely the source PK (by the data dictionary's validation
+    # process).
     ddrows = [ddr
               for ddr in ddrows
               if (not ddr.omit) or (addhash and ddr.scrub_src)]
@@ -1040,11 +1057,29 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             logger.info("... processing row {} of task set".format(n))
         if addhash:
             srchash = config.hash_list(row)
-            if incremental and record_exists_by_hash(
+            if incremental and identical_record_exists_by_hash(
                     destdb, dest_table, ddrows[pkfield_index].dest_field,
                     row[pkfield_index], srchash):
                 logger.debug(
-                    "... ... skipping unchanged record: {sd}.{st}.{spkf} = "
+                    "... ... skipping unchanged record (identical by hash): "
+                    "{sd}.{st}.{spkf} = "
+                    "(destination) {dt}.{dpkf} = {pkv}".format(
+                        sd=sourcedbname,
+                        st=sourcetable,
+                        spkf=ddrows[pkfield_index].src_field,
+                        dt=dest_table,
+                        dpkf=ddrows[pkfield_index].dest_field,
+                        pkv=row[pkfield_index],
+                    )
+                )
+                continue
+        if constant:
+            if incremental and identical_record_exists_by_pk(
+                    destdb, dest_table, ddrows[pkfield_index].dest_field,
+                    row[pkfield_index]):
+                logger.debug(
+                    "... ... skipping unchanged record (identical by PK and "
+                    "marked as constant): {sd}.{st}.{spkf} = "
                     "(destination) {dt}.{dpkf} = {pkv}".format(
                         sd=sourcedbname,
                         st=sourcetable,

@@ -114,7 +114,8 @@ SRCFLAG = AttrDict(
     ADDSRCHASH="H",
     PRIMARYPID="P",
     DEFINESPRIMARYPIDS="*",
-    MASTERPID="M"
+    MASTERPID="M",
+    CONSTANT="C"
 )
 
 # =============================================================================
@@ -161,6 +162,19 @@ DEMO_CONFIG = """
 #             fields that are not omitted, OR contain scrubbing information
 #             (scrub_src). The field is of type {SQLTYPE_ENCRYPTED_PID}.
 #           - This table is then capable of incremental updates.
+#       {SRCFLAG.CONSTANT}:  Contents are constant (will not change) for a given
+#           PK.
+#           - An alternative to '{SRCFLAG.ADDSRCHASH}'. Can't be used with it.
+#           - Applicable only to src_pk fields, which can't be ommited in the
+#             destination, and which have the same index requirements as
+#             the '{SRCFLAG.ADDSRCHASH}' flag.
+#           - If set, no hash is added to the destination, but the destination
+#             contents are assumed to exist and not to have changed.
+#           - Be CAUTIOUS with this flag, i.e. certain that the contents will
+#             not change.
+#           - Intended for very data-intensive fields, such as BLOB fields
+#             containing binary documents, where hashing would be quite slow
+#             over many gigabytes of data.
 #       {SRCFLAG.PRIMARYPID}:  Primary patient ID field.
 #           If set,
 #           (a) This field will be used to link records for the same patient
@@ -1067,6 +1081,28 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     "src_flags={} fields require index=={}".format(
                         SRCFLAG.ADDSRCHASH,
+                        INDEX.UNIQUE))
+            if SRCFLAG.CONSTANT in self.src_flags:
+                raise ValueError(
+                    "cannot mix {} flag with {} flag".format(
+                        SRCFLAG.ADDSRCHASH,
+                        SRCFLAG.CONSTANT))
+
+        if SRCFLAG.CONSTANT in self.src_flags:
+            if SRCFLAG.PK not in self.src_flags:
+                raise ValueError(
+                    "src_flags={} can only be set on "
+                    "src_flags={} fields".format(
+                        SRCFLAG.CONSTANT,
+                        SRCFLAG.PK))
+            if self.omit:
+                raise ValueError(
+                    "Do not set omit on src_flags={} fields".format(
+                        SRCFLAG.CONSTANT))
+            if self.index != INDEX.UNIQUE:
+                raise ValueError(
+                    "src_flags={} fields require index=={}".format(
+                        SRCFLAG.CONSTANT,
                         INDEX.UNIQUE))
 
 
