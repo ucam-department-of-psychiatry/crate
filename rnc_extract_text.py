@@ -69,8 +69,8 @@ import xml.etree
 import zipfile
 
 import logging
-logging.basicConfig()
-logger = logging.getLogger("rnc_extract_text")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.DEBUG)
 
 # =============================================================================

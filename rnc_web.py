@@ -31,8 +31,8 @@ import cgi
 import dateutil.parser
 import dateutil.tz
 import logging
-logging.basicConfig()
-logger = logging.getLogger("rnc_web")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.DEBUG)
 import os
 import re

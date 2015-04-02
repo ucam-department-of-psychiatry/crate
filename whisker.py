@@ -66,8 +66,8 @@ from twisted.protocols.basic import LineReceiver
 # Module-level variables
 # =============================================================================
 
-logging.basicConfig()
-logger = logging.getLogger("whisker")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.DEBUG)
 
 EVENT_PREFIX = "Event: "

@@ -32,8 +32,8 @@ import email.mime.multipart
 import email.header
 import email.utils
 import logging
-logging.basicConfig()
-logger = logging.getLogger("send_email")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.DEBUG)
 import os
 import re

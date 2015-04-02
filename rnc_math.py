@@ -29,8 +29,8 @@ Copyright/licensing:
 # =============================================================================
 
 import logging
-logging.basicConfig()
-logger = logging.getLogger("rnc_math")
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.WARNING)
 import numpy as np
 import sys

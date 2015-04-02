@@ -22,6 +22,11 @@ Copyright/licensing:
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
+MOST OF THIS IS REDUNDANT.
+SEE BETTER ADVICE AT:
+    http://pieces.openpolitics.com/2012/04/python-logging-best-practices/
+
 """
 
 import logging
@@ -50,6 +55,9 @@ def reset_logformat_timestamped(logger, extraname="", debug=False):
     """Apply a simple time-stamped log format to an existing logger, and set
     its loglevel to either DEBUG or INFO."""
     namebit = extraname + ":" if extraname else ""
-    fmt = "%(levelname)s:%(name)s:" + namebit + "%(message)s"
+    fmt = ("%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:" + namebit +
+           "%(message)s")
+    logger.info(fmt)
     reset_logformat(logger, fmt=fmt)
+    logger.info(fmt)
     logger.setLevel(logging.DEBUG if debug else logging.INFO)
