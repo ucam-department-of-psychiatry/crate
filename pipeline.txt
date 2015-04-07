@@ -384,6 +384,24 @@ A.  See above.
 -------------------------------------------------------------------------------
 Q.  Segmentation fault (core dumped)... ?
 -------------------------------------------------------------------------------
+A.  Use the Microsoft JDBC driver instead of the Microsoft ODBC driver for
+    Linux, which is buggy.
+
+-------------------------------------------------------------------------------
+Q.  "Killed."
+-------------------------------------------------------------------------------
+A.  Out of memory.
+    Suggest reduce MySQL memory footprint; see notes below.
+    Steps already taken to reduce memory usage by the anonymise program itself.
+
+
+===============================================================================
+Z. NOTES
+===============================================================================
+
+-------------------------------------------------------------------------------
+Q.  Segmentation fault (core dumped)... ?
+-------------------------------------------------------------------------------
 A.  Short answer: use the Microsoft JDBC driver instead of the Microsoft ODBC
     driver for Linux, which is buggy.
 
@@ -445,10 +463,13 @@ A.  Short answer: use the Microsoft JDBC driver instead of the Microsoft ODBC
     Switched to the JDBC driver.
     Problem went away.
 
+
 -------------------------------------------------------------------------------
 Q.  "Killed."
 -------------------------------------------------------------------------------
 A.  Out of memory.
+    Suggest
+    - Reduce MySQL memory footprint; see notes below.
     Testing on a rather small machine (0.5 Gb RAM, 1 Gb swap).
     Inspect what was running:
 
@@ -538,15 +559,6 @@ A.  Out of memory.
             table_rows
         FROM information_schema.TABLES
         WHERE table_schema = DATABASE()
-        ORDER BY (data_length + index_length) DESC;
-
-      or:
-
-        SELECT table_name AS "Table",
-            ROUND(((data_length + index_length) / 1024 / 1024), 2) AS "Size in MiB",
-            table_rows
-        FROM information_schema.TABLES
-        WHERE table_schema = DATABASE()
         ORDER BY table_name;
 
     TEMPORARY HOLDUP: not enough disk space (~9.2 Gb on CPFT test machine):
@@ -588,3 +600,7 @@ A.  Out of memory.
         ... THEN OUT OF DISK SPACE:
 
         _mysql_exceptions.OperationalError: (1114, "The table 'documentlibrary' is full")
+
+        Since we want to test with all patients being processed but only a
+        subset of documents (to make sure all documents are anonymised), let's
+        add the debug_row_limit and debug_limited_tables options in the config.
