@@ -58,7 +58,7 @@ from rnc_db import (
 from rnc_lang import (
     AttrDict,
     convert_attrs_to_bool,
-    convert_attrs_to_int_or_none,
+    convert_attrs_to_int,
     convert_attrs_to_uppercase,
     count_bool,
     raise_if_attr_blank
@@ -162,8 +162,8 @@ DEMO_CONFIG = """
 #             fields that are not omitted, OR contain scrubbing information
 #             (scrub_src). The field is of type {SQLTYPE_ENCRYPTED_PID}.
 #           - This table is then capable of incremental updates.
-#       {SRCFLAG.CONSTANT}:  Contents are constant (will not change) for a given
-#           PK.
+#       {SRCFLAG.CONSTANT}:  Contents are constant (will not change) for a
+#           given PK.
 #           - An alternative to '{SRCFLAG.ADDSRCHASH}'. Can't be used with it.
 #           - Applicable only to src_pk fields, which can't be ommited in the
 #             destination, and which have the same index requirements as
@@ -477,6 +477,16 @@ filename_to_text_fields =
 #           ...
 binary_to_text_field_pairs =
 
+# PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
+
+#   Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to
+#   apply to any tables listed in debug_limited_tables. For those tables, only
+#   this many rows will be taken from the source database.
+debug_row_limit =
+
+#   List of tables to which to apply debug_row_limit (see above).
+debug_limited_tables =
+
 [mysourcedb2]
 
 engine = mysql
@@ -785,7 +795,7 @@ class DataDictionaryRow(object):
             "src_datatype",
             "dest_datatype",
         ])
-        convert_attrs_to_int_or_none(self, [
+        convert_attrs_to_int(self, [
             "indexlen"
         ])
         self._from_file = True
@@ -857,20 +867,20 @@ class DataDictionaryRow(object):
             self._extract_text = True
             self._extract_from_filename = True
             self.dest_datatype = LONGTEXT
-            if not self.src_field in cfg.safe_fields_exempt_from_scrubbing:
+            if self.src_field not in cfg.safe_fields_exempt_from_scrubbing:
                 self._scrub = True
         elif self.src_field in cfg.bin2text_dict.keys():
             self._extract_text = True
             self._extract_from_filename = False
             self._extract_ext_field = cfg.bin2text_dict[self.src_field]
             self.dest_datatype = LONGTEXT
-            if not self.src_field in cfg.safe_fields_exempt_from_scrubbing:
+            if self.src_field not in cfg.safe_fields_exempt_from_scrubbing:
                 self._scrub = True
         elif (is_sqltype_text_over_one_char(datatype_full)
                 and not self.omit
-                and not SRCFLAG.PRIMARYPID in self.src_flags
-                and not SRCFLAG.MASTERPID in self.src_flags
-                and not self.src_field in
+                and SRCFLAG.PRIMARYPID not in self.src_flags
+                and SRCFLAG.MASTERPID not in self.src_flags
+                and self.src_field not in
                 cfg.safe_fields_exempt_from_scrubbing):
             self._scrub = True
 
@@ -951,7 +961,7 @@ class DataDictionaryRow(object):
                 "distribution purposes".format(self.src_field))
 
         if (SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags
-                and not SRCFLAG.PRIMARYPID in self.src_flags):
+                and SRCFLAG.PRIMARYPID not in self.src_flags):
             raise ValueError(
                 "All fields with src_flags={} set must have src_flags={} "
                 "set".format(
@@ -995,7 +1005,7 @@ class DataDictionaryRow(object):
                     "Field has invalid destination data type: "
                     "{}".format(self.dest_datatype))
             if self.src_field == srccfg.per_table_pid_field:
-                if not SRCFLAG.PRIMARYPID in self.src_flags:
+                if SRCFLAG.PRIMARYPID not in self.src_flags:
                     raise ValueError(
                         "All fields with src_field={} used in output should "
                         "have src_flag={} set".format(self.src_field,
@@ -1006,7 +1016,7 @@ class DataDictionaryRow(object):
                         "dest_field = {}".format(
                             config.research_id_fieldname))
             if (self.src_field == srccfg.master_pid_fieldname
-                    and not SRCFLAG.MASTERPID in self.src_flags):
+                    and SRCFLAG.MASTERPID not in self.src_flags):
                 raise ValueError(
                     "All fields with src_field = {} used in output should have"
                     " src_flags={} set".format(srccfg.master_pid_fieldname,
@@ -1338,7 +1348,7 @@ class DataDictionary(object):
                              "redundant tables")
 
         # Individual rows will already have been checked
-        #for r in self.rows:
+        # for r in self.rows:
         #    r.check_valid()
         # Now check collective consistency
 
@@ -1541,6 +1551,7 @@ class DatabaseSafeConfig(object):
             "allow_no_patient_info",
             "per_table_pid_field",
             "master_pid_fieldname",
+            "debug_row_limit",
         ])
         read_config_multiline_options(self, parser, section, [
             "possible_pk_fields",
@@ -1555,6 +1566,7 @@ class DatabaseSafeConfig(object):
             "truncate_date_fields",
             "filename_to_text_fields",
             "binary_to_text_field_pairs",
+            "debug_limited_tables",
         ])
         convert_attrs_to_bool(self, [
             "force_lower_case",
@@ -1562,6 +1574,9 @@ class DatabaseSafeConfig(object):
         convert_attrs_to_bool(self, [
             "allow_no_patient_info",
         ], default=False)
+        convert_attrs_to_int(self, [
+            "debug_row_limit",
+        ], default=0)
         self.bin2text_dict = {}
         for pair in self.binary_to_text_field_pairs:
             items = [item.strip() for item in pair.split(",")]
@@ -1734,7 +1749,7 @@ class Config(object):
             "append_source_info_to_comment",
             "open_databases_securely",
         ])
-        convert_attrs_to_int_or_none(self, [
+        convert_attrs_to_int(self, [
             "max_rows_before_commit",
             "max_bytes_before_commit",
         ])

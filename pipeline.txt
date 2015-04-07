@@ -548,3 +548,43 @@ A.  Out of memory.
         FROM information_schema.TABLES
         WHERE table_schema = DATABASE()
         ORDER BY table_name;
+
+    TEMPORARY HOLDUP: not enough disk space (~9.2 Gb on CPFT test machine):
+
+        +---------------------+-------------+------------+
+        | Table               | Size in MiB | table_rows |
+        +---------------------+-------------+------------+
+        | address             |       63.61 |     431262 |
+        | alias               |        5.52 |      58468 |
+        | assessment          |      256.63 |       9725 |
+        | careplan            |      191.64 |      16801 |
+        | careplangoal        |       98.64 |     187922 |
+        | cdlinternalreferral |        2.52 |       4679 |
+        | cdlpatient          |        2.52 |      14014 |
+        | cgas                |        1.52 |       2571 |
+        | dependant           |        0.13 |       1001 |
+        | diagnosis           |        8.52 |      76361 |
+        | documentlibrary     |     3795.00 |     474874 |
+        | employment_status   |        0.02 |          0 |
+        | exclude             |        0.02 |          0 |
+        | honos               |        0.02 |          0 |
+        | honos_65            |        0.02 |          0 |
+        | honos_ca            |        0.02 |          0 |
+        | honos_ld            |        0.02 |          0 |
+        | honos_secure        |        0.02 |          0 |
+        | living_arrangements |        0.02 |          0 |
+        | mpi                 |        0.02 |          0 |
+        | personal_carers     |        0.02 |          0 |
+        | practicegp          |        0.02 |          0 |
+        | procedures          |        0.02 |          0 |
+        | referral            |        0.02 |          0 |
+        | schedules           |        0.02 |          0 |
+        | team_episodes       |        0.02 |          0 |
+        | telephone           |        0.02 |          0 |
+        | ward_stays          |        0.02 |          0 |
+        +---------------------+-------------+------------+
+        28 rows in set (0.42 sec)
+
+        ... THEN OUT OF DISK SPACE:
+
+        _mysql_exceptions.OperationalError: (1114, "The table 'documentlibrary' is full")

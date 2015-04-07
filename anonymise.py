@@ -192,7 +192,6 @@ import argparse
 import itertools
 import multiprocessing
 import operator
-#import re
 import regex  # sudo apt-get install python-regex
 import signal
 import sys
@@ -327,11 +326,9 @@ def get_anon_fragments_from_string(s):
       TREATS APOSTROPHES AND HYPHENS AS WORD BOUNDARIES.
       Therefore, we don't need the largest-level chunks, like D'Souza.
     """
-    #bigfragments = []
     smallfragments = []
     combinedsmallfragments = []
     for chunk in s.split():  # split on whitespace
-        #bigfragments.append(chunk)
         for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
             smallfragments.append(smallchunk)
             # OVERLAP here, but we need it for the combination bit, and
@@ -556,7 +553,7 @@ class Scrubber(object):
         self.re_tp = get_regex_from_elements(
             list(self.re_tp_elements))
         # Announce pointlessly
-        #logger.debug("Scrubber: {}".format(self.get_hash_string()))
+        # logger.debug("Scrubber: {}".format(self.get_hash_string()))
 
     def get_hash_string(self):
         return repr(self.re_patient_elements | self.re_tp_elements)
@@ -873,7 +870,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     if keeping_track:
         processed_ids = set()
     for ddr in config.dd.rows:
-        if not SRCFLAG.DEFINESPRIMARYPIDS in ddr.src_flags:
+        if SRCFLAG.DEFINESPRIMARYPIDS not in ddr.src_flags:
             continue
         threadcondition = ""
         if ntasks > 1:
@@ -1019,11 +1016,19 @@ def gen_nonpatient_tables_with_int_pk():
 #   CONNECTIONS.
 
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
-                  pid=None, scrubber=None, incremental=False, debuglimit=0,
+                  pid=None, scrubber=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
     logger.debug(
         "process_table: {}.{}, pid={}, incremental={}".format(
             sourcedbname, sourcetable, pid, incremental))
+
+    # Limit the data quantity for debugging?
+    srccfg = config.srccfg[sourcedbname]
+    if sourcetable in srccfg.debug_limited_tables:
+        debuglimit = srccfg.debug_row_limit
+    else:
+        debuglimit = 0
+
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
     addhash = any([SRCFLAG.ADDSRCHASH in ddr.src_flags for ddr in ddrows])
     constant = any([SRCFLAG.CONSTANT in ddr.src_flags for ddr in ddrows])
@@ -1252,7 +1257,7 @@ class PatientThread(threading.Thread):
 def patient_processing_fn(sources, destdb, admindb,
                           tasknum=0, ntasks=1,
                           abort_event=None, multiprocess=False,
-                          incremental=False, debuglimit=0):
+                          incremental=False):
     threadprefix = ""
     if ntasks > 1 and not multiprocess:
         threadprefix = "Thread {}: ".format(tasknum)
@@ -1287,8 +1292,7 @@ def patient_processing_fn(sources, destdb, admindb,
                     threadprefix + "Patient {}, processing table {}.{}".format(
                         pid, d, t))
                 process_table(db, d, t, destdb, pid=pid, scrubber=scrubber,
-                              incremental=(incremental and scrubber_unchanged),
-                              debuglimit=debuglimit)
+                              incremental=(incremental and scrubber_unchanged))
 
         # Insert into mapping db
         insert_into_mapping_db(admindb, scrubber)
@@ -1308,15 +1312,14 @@ def drop_remake(incremental=False):
                 delete_dest_rows_with_no_src_row(db, d, t)
 
 
-def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False,
-                              debuglimit=0):
+def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
     logger.info(SEP + "Non-patient tables: (a) with integer PK")
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
         db = config.sources[d]
         logger.info("Processing non-patient table {}.{} (PK: {})...".format(
             d, t, pkname))
         process_table(db, d, t, config.destdb, pid=None, scrubber=None,
-                      incremental=incremental, debuglimit=debuglimit,
+                      incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
         logger.info("... committing")
         config.destdb.commit()
@@ -1327,7 +1330,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False,
         db = config.sources[d]
         logger.info("Processing non-patient table {}.{}...".format(d, t))
         process_table(db, d, t, config.destdb, pid=None, scrubber=None,
-                      incremental=incremental, debuglimit=debuglimit,
+                      incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)
         logger.info("... committing")
         config.destdb.commit()
@@ -1335,7 +1338,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False,
 
 
 def process_patient_tables(nthreads=1, process=0, nprocesses=1,
-                           incremental=False, debuglimit=0):
+                           incremental=False):
     # We'll use multiple destination tables, so commit right at the end.
 
     def ctrl_c_handler(signum, frame):
@@ -1358,7 +1361,7 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
         patient_processing_fn(
             config.sources, config.destdb, config.admindb,
             tasknum=process, ntasks=nprocesses, multiprocess=True,
-            incremental=incremental, debuglimit=debuglimit)
+            incremental=incremental)
     else:
         logger.info(SEP + "ENTERING SINGLE-PROCESS, MULTITHREADING MODE")
         signal.signal(signal.SIGINT, ctrl_c_handler)
@@ -1489,8 +1492,6 @@ Sample usage (having set PYTHONPATH):
                         help="Process patient tables only")
     parser.add_argument("--index", action="store_true",
                         help="Create indexes only")
-    parser.add_argument("--debuglimitpertable", nargs="?", type=int, default=0,
-                        help="DEBUG OPTION: limit to this many rows per table")
     parser.add_argument("-i", "--incremental", action="store_true",
                         help="Process only new/changed information, where "
                              "possible")
@@ -1583,8 +1584,7 @@ Sample usage (having set PYTHONPATH):
     if args.nonpatienttables or everything:
         process_nonpatient_tables(tasknum=args.process,
                                   ntasks=args.nprocesses,
-                                  incremental=args.incremental,
-                                  debuglimit=args.debuglimitpertable)
+                                  incremental=args.incremental)
 
     # 3. Tables with patient info. (This bit supports multithreading.)
     #    Process PER PATIENT, across all tables, because we have to synthesize
