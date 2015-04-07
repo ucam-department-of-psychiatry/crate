@@ -482,6 +482,8 @@ binary_to_text_field_pairs =
 #   Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to
 #   apply to any tables listed in debug_limited_tables. For those tables, only
 #   this many rows will be taken from the source database.
+#   If you run a multiprocess/multithreaded anonymisation, this limit applies
+#   per *process* (or task), not overall.
 debug_row_limit =
 
 #   List of tables to which to apply debug_row_limit (see above).

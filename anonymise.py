@@ -850,6 +850,14 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
         # http://stackoverflow.com/questions/589284
 
 
+def commit(destdb):
+    logger.info("Committing...")
+    destdb.commit()
+    logger.info("... done")
+    config._rows_in_transaction = 0
+    config._bytes_in_transaction = 0
+
+
 # =============================================================================
 # Generators. Anything reading the main database should use a generator, so the
 # script can scale to databases of arbitrary size.
@@ -1165,11 +1173,12 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if config._bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True
         if early_commit:
-            logger.info("Triggering early commit...")
-            destdb.commit()
-            logger.info("... done")
-            config._rows_in_transaction = 0
-            config._bytes_in_transaction = 0
+            logger.info("Triggering early commit")
+            commit(destdb)
+
+    logger.debug("process_table finished: {}.{}, pid={}".format(
+        sourcedbname, sourcetable, pid))
+    commit(destdb)
 
 
 def create_indexes(tasknum=0, ntasks=1):

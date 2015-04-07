@@ -552,7 +552,7 @@ A.  Out of memory.
         ... similarly, using Linux/pdftotext rather than Python/pdfminer
 
     AFTERWARDS:
-    - Show table size and number of rows in MySQL:
+    - Show table size and number of rows in MySQL (note: APPROXIMATE):
 
         SELECT table_name AS "Table",
             ROUND(((data_length + index_length) / 1024 / 1024), 2) AS "Size in MiB",
