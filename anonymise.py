@@ -1310,7 +1310,7 @@ def patient_processing_fn(sources, destdb, admindb,
         insert_into_mapping_db(admindb, scrubber)
 
     logger.info(SEP + threadprefix + "Commit")
-    destdb.commit()
+    commit(destdb)
 
 
 def drop_remake(incremental=False):
@@ -1333,9 +1333,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
         process_table(db, d, t, config.destdb, pid=None, scrubber=None,
                       incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
-        logger.info("... committing")
-        config.destdb.commit()
-        logger.info("... done")
+        commit(config.destdb)
     logger.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
                                                        ntasks=ntasks):
@@ -1344,9 +1342,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
         process_table(db, d, t, config.destdb, pid=None, scrubber=None,
                       incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)
-        logger.info("... committing")
-        config.destdb.commit()
-        logger.info("... done")
+        commit(config.destdb)
 
 
 def process_patient_tables(nthreads=1, process=0, nprocesses=1,
@@ -1440,7 +1436,7 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
         logger.info("FINISHED ANONYMISATION")
 
     # Main-thread commit (should be redundant)
-    config.destdb.commit()
+    commit(config.destdb)
 
 
 # =============================================================================
