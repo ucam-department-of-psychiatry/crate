@@ -567,6 +567,9 @@ def reconfigure_jaydebeapi():
     # http://stackoverflow.com/questions/26899595
     from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
     _DEFAULT_CONVERTERS.update({
+        # BIGINT. WARNING: may lose information if used with giant ints;
+        # https://github.com/baztian/jaydebeapi/issues/6
+        # *** Could be improved; ?toString then convert to Python int.
         'BIGINT': _java_to_py('longValue'),
         # RNC experimental:
         'BINARY': _rnc_to_binary,  # overrides an existing one
