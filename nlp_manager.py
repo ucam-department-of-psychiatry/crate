@@ -87,6 +87,7 @@ from rnc_datetime import (
 )
 import rnc_db
 from rnc_db import (
+    DatabaseConfig,
     is_sqltype_valid
 )
 from rnc_lang import (
@@ -95,13 +96,11 @@ from rnc_lang import (
 )
 import rnc_log
 
-import shared_anon
 from shared_anon import (
-    SQLTYPE_ENCRYPTED_PID,
     ensure_valid_field_name,
     ensure_valid_table_name,
     read_config_string_options,
-    DatabaseConfig,
+    SQLTYPE_ENCRYPTED_PID,
 )
 
 # =============================================================================
@@ -1164,11 +1163,6 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         mynames.append("process {}".format(args.process))
     rnc_log.reset_logformat_timestamped(
         logger,
-        extraname=" ".join(mynames),
-        debug=(args.verbose >= 1)
-    )
-    rnc_log.reset_logformat_timestamped(
-        shared_anon.logger,
         extraname=" ".join(mynames),
         debug=(args.verbose >= 1)
     )
