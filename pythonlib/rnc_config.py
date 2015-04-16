@@ -1,17 +1,15 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 # -*- encoding: utf8 -*-
 
-"""
-Shared functions for anonymiser.py, nlp_manager.py, webview_anon.py
+"""Support functions for config (.INI) file reading
 
-Author: Rudolf Cardinal
-Created at: 26 Feb 2015
-Last update: 19 Mar 2015
+Author: Rudolf Cardinal (rudolf@pobox.com)
+Created: 16 Apr 2015
+Last update: 16 Apr 2015
 
 Copyright/licensing:
 
     Copyright (C) 2015-2015 Rudolf Cardinal (rudolf@pobox.com).
-    Department of Psychiatry, University of Cambridge.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -25,37 +23,6 @@ Copyright/licensing:
     See the License for the specific language governing permissions and
     limitations under the License.
 """
-
-from rnc_crypto import MD5Hasher
-from rnc_db import (
-    is_valid_field_name,
-    is_valid_table_name,
-)
-
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
-ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
-SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
-# ... in practice: VARCHAR(32)
-
-
-# =============================================================================
-# Validation
-# =============================================================================
-
-def ensure_valid_field_name(f):
-    if not is_valid_field_name(f):
-        raise ValueError("Field name invalid: {}".format(f))
-
-
-def ensure_valid_table_name(f):
-    if not is_valid_table_name(f):
-        raise ValueError("Table name invalid: {}".format(f))
-
 
 # =============================================================================
 # Config

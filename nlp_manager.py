@@ -80,6 +80,7 @@ import os
 import subprocess
 import sys
 
+from rnc_config import read_config_string_options
 from rnc_crypto import MD5Hasher
 from rnc_datetime import (
     get_now_utc,
@@ -88,6 +89,8 @@ from rnc_datetime import (
 import rnc_db
 from rnc_db import (
     DatabaseConfig,
+    ensure_valid_field_name,
+    ensure_valid_table_name,
     is_sqltype_valid
 )
 from rnc_lang import (
@@ -96,12 +99,6 @@ from rnc_lang import (
 )
 import rnc_log
 
-from shared_anon import (
-    ensure_valid_field_name,
-    ensure_valid_table_name,
-    read_config_string_options,
-    SQLTYPE_ENCRYPTED_PID,
-)
 
 # =============================================================================
 # Global constants
@@ -109,6 +106,12 @@ from shared_anon import (
 
 VERSION = 0.01
 VERSION_DATE = "2015-03-03"
+
+MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
+ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
+SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
+# ... in practice: VARCHAR(32)
+
 FIELDNAME_LEN = 50
 SEP = "=" * 20 + " "
 

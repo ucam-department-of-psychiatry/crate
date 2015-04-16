@@ -209,18 +209,23 @@ import sys
 import threading
 import urllib
 
+from rnc_config import (
+    read_config_multiline_options,
+    read_config_string_options,
+)
+from rnc_crypto import MD5Hasher
 from rnc_datetime import (
     coerce_to_date,
     format_datetime,
     get_now_utc,
     truncate_date_to_first_of_month,
 )
-
-from rnc_crypto import MD5Hasher
 import rnc_db
 from rnc_db import (
     does_sqltype_merit_fulltext_index,
     does_sqltype_require_index_len,
+    ensure_valid_field_name,
+    ensure_valid_table_name,
     is_sqltype_binary,
     is_sqltype_date,
     is_sqltype_integer,
@@ -238,13 +243,6 @@ from rnc_lang import (
     raise_if_attr_blank,
 )
 import rnc_log
-from shared_anon import (
-    ensure_valid_field_name,
-    ensure_valid_table_name,
-    read_config_multiline_options,
-    read_config_string_options,
-    SQLTYPE_ENCRYPTED_PID,
-)
 
 # =============================================================================
 # Global constants
@@ -252,6 +250,11 @@ from shared_anon import (
 
 VERSION = 0.03
 VERSION_DATE = "2015-03-19"
+
+MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
+ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
+SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
+# ... in practice: VARCHAR(32)
 
 MAPPING_TABLE = "secret_map"
 
