@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 19 Mar 2015
+Last update: 16 Apr 2015
 
 Copyright/licensing:
 
@@ -430,6 +430,16 @@ def is_valid_table_name(t):
     return is_valid_field_name(t)
 
 
+def ensure_valid_field_name(f):
+    if not is_valid_field_name(f):
+        raise ValueError("Field name invalid: {}".format(f))
+
+
+def ensure_valid_table_name(f):
+    if not is_valid_table_name(f):
+        raise ValueError("Table name invalid: {}".format(f))
+
+
 SQLTYPES_INTEGER = [
     "INT", "INTEGER",
     "TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT",
@@ -571,6 +581,9 @@ def reconfigure_jaydebeapi():
     # http://stackoverflow.com/questions/26899595
     from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
     _DEFAULT_CONVERTERS.update({
+        # BIGINT. WARNING: may lose information if used with giant ints;
+        # https://github.com/baztian/jaydebeapi/issues/6
+        # *** Could be improved; ?toString then convert to Python int.
         'BIGINT': _java_to_py('longValue'),
         # RNC experimental:
         'BINARY': _rnc_to_binary,  # overrides an existing one

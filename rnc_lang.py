@@ -91,13 +91,13 @@ def convert_attrs_to_lowercase(obj, attrs):
         setattr(obj, a, value.lower())
 
 
-def convert_attrs_to_int_or_none(obj, attrs):
+def convert_attrs_to_int(obj, attrs, default=None):
     for a in attrs:
         value = getattr(obj, a)
         try:
             value = int(value)
         except:
-            value = None
+            value = default
         setattr(obj, a, value)
 
 
