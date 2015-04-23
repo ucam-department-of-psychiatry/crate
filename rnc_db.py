@@ -395,7 +395,7 @@ def assign_from_list(obj, fieldlist, valuelist):
     if len(fieldlist) != len(valuelist):
         raise AssertionError("assign_from_list: fieldlist and valuelist of "
                              "different length")
-    for i in range(len(valuelist)):
+    for i in xrange(len(valuelist)):
         setattr(obj, fieldlist[i], valuelist[i])
 
 
@@ -408,7 +408,7 @@ def blank_object(obj, fieldlist):
 def debug_query_result(rows):
     """Writes a query result to the logger."""
     logger.info("Retrieved {} rows".format(len(rows)))
-    for i in range(len(rows)):
+    for i in xrange(len(rows)):
         logger.info("Row {}: {}".format(i, rows[i]))
 
 
@@ -554,6 +554,7 @@ def does_sqltype_merit_fulltext_index(datatype_long):
 def _rnc_to_binary(rs, col):
     # https://github.com/originell/jpype/issues/71
     # http://stackoverflow.com/questions/5088671
+    # https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
     java_val = rs.getObject(col)
     if java_val is None:
         return
@@ -564,26 +565,29 @@ def _rnc_to_binary(rs, col):
         logger.debug(
             "Converting Java byte[] to Python str (length: {})...".format(l))
         time1 = time.time()
+
         # ---------------------------------------------------------------------
-        # Method 1:
+        # Method 1: 3578880 bytes in 21.7430660725 seconds = 165 kB/s
         # ---------------------------------------------------------------------
-        v = ''.join(map(lambda x: chr(x % 256), java_val))
+        # v = ''.join(map(lambda x: chr(x % 256), java_val))
         # ---------------------------------------------------------------------
         # Method 2: 3578880 bytes in 8.07930088043 seconds = 442 kB/s
         # ---------------------------------------------------------------------
-        # l = len(java_val)
-        # v = bytearray(l)
-        # for i in xrange(l):
-        #     v[i] = java_val[i] % 256
+        l = len(java_val)
+        v = bytearray(l)
+        for i in xrange(l):
+            v[i] = java_val[i] % 256
         # ---------------------------------------------------------------------
         # Method 3: 3578880 bytes in 20.1435189247 seconds = 177 kB/s
         # ---------------------------------------------------------------------
         # v = bytearray(map(lambda x: x % 256, java_val))
+
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
         return v
-    logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
-    return java_val  # unsure
+    else:
+        logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
+        return java_val  # unsure
 
 
 def reconfigure_jaydebeapi():
