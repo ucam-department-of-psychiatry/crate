@@ -625,6 +625,9 @@ ddgen_field_blacklist =
 #   Fieldnames assumed to be their table's PK:
 ddgen_pk_fields =
 
+#   Assume that content stays constant?
+ddgen_constant_content = False
+
 #   Predefine field(s) that define the existence of patient IDs? UNUSUAL.
 ddgen_pid_defining_fieldnames =
 
@@ -682,6 +685,7 @@ ddgen_master_pid_fieldname = nhsnum
 ddgen_table_blacklist =
 ddgen_field_blacklist =
 ddgen_pk_fields =
+ddgen_constant_content = False
 ddgen_scrubsrc_patient_fields =
 ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubmethod_date_fields =
@@ -746,6 +750,7 @@ ddgen_field_blacklist = _patient_iddesc1
     _move_off_tablet
 
 ddgen_pk_fields = _pk
+ddgen_constant_content = False
 
 ddgen_scrubsrc_patient_fields = _patient_forename
     _patient_surname
@@ -975,7 +980,10 @@ class DataDictionaryRow(object):
         self.src_flags = ""
         if self.src_field in cfg.ddgen_pk_fields:
             self.src_flags += SRCFLAG.PK
-            self.src_flags += SRCFLAG.ADDSRCHASH
+            if cfg.ddgen_constant_content:
+                self.src_flags += SRCFLAG.CONSTANT
+            else:
+                self.src_flags += SRCFLAG.ADDSRCHASH
         if self.src_field == cfg.ddgen_per_table_pid_field:
             self.src_flags += SRCFLAG.PRIMARYPID
         if self.src_field == cfg.ddgen_master_pid_fieldname:
@@ -1695,6 +1703,7 @@ class DatabaseSafeConfig(object):
             "ddgen_allow_no_patient_info",
             "ddgen_per_table_pid_field",
             "ddgen_master_pid_fieldname",
+            "ddgen_constant_content",
             "debug_row_limit",
         ])
         read_config_multiline_options(self, parser, section, [
@@ -1717,6 +1726,7 @@ class DatabaseSafeConfig(object):
         ], default=True)
         convert_attrs_to_bool(self, [
             "ddgen_allow_no_patient_info",
+            "ddgen_constant_content",
         ], default=False)
         convert_attrs_to_int(self, [
             "debug_row_limit",
