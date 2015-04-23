@@ -620,3 +620,7 @@ A.  ps aux
            from /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/libnet.so
         #3  0x00007fbfc10989a1 in ?? ()
         #4  0x0000000000000000 in ?? ()
+
+    Related to this bug?
+        https://bugs.openjdk.java.net/browse/JDK-8049846
+        
