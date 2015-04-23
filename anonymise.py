@@ -3253,7 +3253,7 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
         abort_event.clear()
         subthread_error_event = threading.Event()
         subthread_error_event.clear()
-        for threadnum in range(nthreads):
+        for threadnum in xrange(nthreads):
             destdb = config.get_database("destination_database")
             admindb = config.get_database("admin_database")
             sources = {}
