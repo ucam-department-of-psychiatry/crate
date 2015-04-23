@@ -169,6 +169,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
+import time
 
 
 # =============================================================================
@@ -562,6 +563,7 @@ def _rnc_to_binary(rs, col):
         l = len(java_val)
         logger.debug(
             "Converting Java byte[] to Python str (length: {})...".format(l))
+        time1 = time.time()
         # Method 1 ------------------------------------------------------------
         # v = ''.join(map(lambda x: chr(x % 256), java_val))
         # Method 2 ------------------------------------------------------------
@@ -571,7 +573,8 @@ def _rnc_to_binary(rs, col):
         #     v[i] = java_val[i] % 256
         # Method 3 ------------------------------------------------------------
         v = bytearray(map(lambda x: x % 256, java_val))
-        logger.debug("... done")
+        time2 = time.time()
+        logger.debug("... done (in {} seconds)".format(time2 - time1))
         return v
     logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
     return java_val  # unsure
