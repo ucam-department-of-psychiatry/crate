@@ -550,13 +550,17 @@ def _rnc_to_binary(rs, col):
     # logger.info("rnc_to_binary: typeof={}".format(t))
     if t == "<class 'jpype._jarray.byte[]'>":
         logger.debug("Converting Java byte[] to Python str...")
-        # x = ''.join(map(lambda x: chr(x % 256), java_val))
+        # Method 1 ------------------------------------------------------------
+        # v = ''.join(map(lambda x: chr(x % 256), java_val))
+        # Method 2 ------------------------------------------------------------
         l = len(java_val)
-        x = bytearray(l)
+        v = bytearray(l)
         for i in xrange(l):
-            x[i] = java_val[i] % 256
+            v[i] = java_val[i] % 256
+        # Method 3 ------------------------------------------------------------
+        # v = bytearray(map(lambda x: x % 256, java_val))
         logger.debug("... done")
-        return x
+        return v
     logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
     return java_val  # unsure
 
