@@ -1344,18 +1344,20 @@ class DataDictionary(object):
                 if report_every and i % report_every == 0:
                     logger.debug("... reading source field {}".format(i))
                 t = r[0]
-                if cfg.ddgen_force_lower_case:
-                    t = t.lower()
-                if t in cfg.ddgen_table_blacklist:
-                    continue
                 f = r[1]
-                if cfg.ddgen_force_lower_case:
-                    f = f.lower()
-                if f in cfg.ddgen_field_blacklist:
-                    continue
                 datatype_short = r[2].upper()
                 datatype_full = r[3].upper()
                 c = r[4]
+                if cfg.ddgen_force_lower_case:
+                    t = t.lower()
+                    f = f.lower()
+                if t == "exclude":
+                    logger.warning("t={}, t={}, t_blacklist={}, t_blacklist={}".format(
+                        t, f, cfg.ddgen_table_blacklist, cfg.ddgen_field_blacklist
+                    ))
+                if (t in cfg.ddgen_table_blacklist
+                        or f in cfg.ddgen_field_blacklist):
+                    continue
                 ddr = DataDictionaryRow()
                 ddr.set_from_src_db_info(
                     pretty_dbname, t, f, datatype_short,
@@ -1380,12 +1382,10 @@ class DataDictionary(object):
                 ddr.components_to_alter_method()
         logger.info("... done")
         logger.info("Sorting draft data dictionary")
-        self.rows = sorted(
-            self.rows,
-            key=operator.attrgetter(
-                "src_db",
-                "src_table",
-                "src_field"))
+        self.rows = sorted(self.rows,
+                           key=operator.attrgetter("src_db",
+                                                   "src_table",
+                                                   "src_field"))
         logger.info("... done")
 
     def cache_stuff(self):
