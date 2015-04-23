@@ -1351,10 +1351,6 @@ class DataDictionary(object):
                 if cfg.ddgen_force_lower_case:
                     t = t.lower()
                     f = f.lower()
-                if t == "exclude":
-                    logger.warning("t={}, t={}, t_blacklist={}, t_blacklist={}".format(
-                        t, f, cfg.ddgen_table_blacklist, cfg.ddgen_field_blacklist
-                    ))
                 if (t in cfg.ddgen_table_blacklist
                         or f in cfg.ddgen_field_blacklist):
                     continue
