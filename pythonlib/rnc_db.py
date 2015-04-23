@@ -564,15 +564,21 @@ def _rnc_to_binary(rs, col):
         logger.debug(
             "Converting Java byte[] to Python str (length: {})...".format(l))
         time1 = time.time()
-        # Method 1 ------------------------------------------------------------
+        # ---------------------------------------------------------------------
+        # Method 1:
+        # ---------------------------------------------------------------------
         # v = ''.join(map(lambda x: chr(x % 256), java_val))
-        # Method 2 ------------------------------------------------------------
-        # l = len(java_val)
-        # v = bytearray(l)
-        # for i in xrange(l):
-        #     v[i] = java_val[i] % 256
-        # Method 3 ------------------------------------------------------------
-        v = bytearray(map(lambda x: x % 256, java_val))
+        # ---------------------------------------------------------------------
+        # Method 2:
+        # ---------------------------------------------------------------------
+        l = len(java_val)
+        v = bytearray(l)
+        for i in xrange(l):
+            v[i] = java_val[i] % 256
+        # ---------------------------------------------------------------------
+        # Method 3: 3578880 bytes in 20.1435189247 seconds = 177 kB/s
+        # ---------------------------------------------------------------------
+        # v = bytearray(map(lambda x: x % 256, java_val))
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
         return v
