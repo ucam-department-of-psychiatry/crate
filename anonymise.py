@@ -2858,10 +2858,11 @@ def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
             logger.warning(
                 "Table {}: stopping at {} rows due to debugging limits".format(
                     sourcetable, debuglimit))
-            return
-        yield list(row)  # convert from tuple to list so we can modify it
-        row = cursor.fetchone()
-        nrows += 1
+            row = None
+        else:
+            yield list(row)  # convert from tuple to list so we can modify it
+            row = cursor.fetchone()
+            nrows += 1
     cursor.close()
 
 
