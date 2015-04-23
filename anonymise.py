@@ -2862,6 +2862,7 @@ def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
         yield list(row)  # convert from tuple to list so we can modify it
         row = cursor.fetchone()
         nrows += 1
+    cursor.close()
 
 
 def gen_index_row_sets_by_table(tasknum=0, ntasks=1):

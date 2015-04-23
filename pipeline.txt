@@ -604,3 +604,19 @@ A.  Out of memory.
         Since we want to test with all patients being processed but only a
         subset of documents (to make sure all documents are anonymised), let's
         add the debug_row_limit and debug_limited_tables options in the config.
+
+-------------------------------------------------------------------------------
+Q.  Stuck.
+-------------------------------------------------------------------------------
+A.  ps aux
+    gdb -p 28896
+    backtrace
+
+        #0  0x00007fbfd1b3f14b in __libc_recv (fd=21, buf=0x7fff06f5a300, n=8,
+            flags=-1) at ../sysdeps/unix/sysv/linux/x86_64/recv.c:33
+        #1  0x00007fbfc09ece1d in ?? ()
+           from /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/libnet.so
+        #2  0x00007fbfc09e8bd0 in Java_java_net_SocketInputStream_socketRead0 ()
+           from /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/libnet.so
+        #3  0x00007fbfc10989a1 in ?? ()
+        #4  0x0000000000000000 in ?? ()
