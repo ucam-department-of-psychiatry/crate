@@ -2676,7 +2676,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table, +/- PK translation
-    insert_sql = rnc_db.get_sql_insert(config.temporary_tablename, "srcpk")
+    insert_sql = rnc_db.get_sql_insert(config.temporary_tablename, ["srcpk"])
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
         if SRCFLAG.PRIMARYPID in pkddr.src_flags:
             pk = config.encrypt_primary_pid(pk)
