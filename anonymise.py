@@ -2644,7 +2644,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
 
 
 def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
-                                     report_every=1000, chunksize=1000):
+                                     report_every=1000, chunksize=10000):
     # - Can't do this in a single SQL command, since the engine can't
     #   necessarily see both databases.
     # - Can't do this in a multiprocess way, because we're trying to do a
