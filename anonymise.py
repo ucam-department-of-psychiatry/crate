@@ -2722,11 +2722,11 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     commit(config.destdb)
 
     # 4. Index
-    logger.debug("... creating index on temporary table")
+    logger.debug(START + "... creating index on temporary table")
     config.destdb.create_index(config.temporary_tablename, PKFIELD)
 
     # 5. DELETE FROM ... WHERE NOT IN ...
-    logger.debug("... deleting from destination table where appropriate")
+    logger.debug(START + "... deleting from destination where appropriate")
     delete_sql = """
         DELETE FROM {dest_table}
         WHERE {dest_pk} NOT IN (
@@ -2741,7 +2741,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     config.destdb.db_exec(delete_sql)
 
     # 6. Drop temporary table
-    logger.debug("... dropping temporary table")
+    logger.debug(START + "... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
 
     # 6. Commit
