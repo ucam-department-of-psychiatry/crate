@@ -594,7 +594,7 @@ def _convert_java_binary(rs, col):
         # ---------------------------------------------------------------------
         # Method 4:
         # ---------------------------------------------------------------------
-        v = str(rs.getBinaryStream(col))
+        v = str(rs.getString(col))  # getBinaryStream
         if rs.wasNull():
             v = None
         else:
