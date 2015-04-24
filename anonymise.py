@@ -2692,7 +2692,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 3. Populate temporary table, +/- PK translation
     def insert(records):
-        logger.debug(START + "... inserting records")
+        logger.debug(START + "... inserting {} records".format(len(records)))
         config.destdb.insert_multiple_records(
             config.temporary_tablename,
             [PKFIELD],
@@ -2700,14 +2700,13 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         )
 
     n = srcdb.count_where(src_table)
-    logger.debug(START + "... populating temporary table; target number of "
-                 "records: {}".format(n))
+    logger.debug(START + "... populating temporary table")
     i = 0
     records = []
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
         i += 1
         if report_every and i % report_every == 0:
-            logger.debug("... row# {}".format(i))
+            logger.debug(START + "... src row# {} / {}".format(i, n))
         if SRCFLAG.PRIMARYPID in pkddr.src_flags:
             pk = config.encrypt_primary_pid(pk)
         elif SRCFLAG.MASTERPID in pkddr.src_flags:
