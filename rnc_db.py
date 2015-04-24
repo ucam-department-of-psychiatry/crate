@@ -1073,28 +1073,32 @@ class DatabaseSupporter:
 
         elif engine == ENGINE_SQLSERVER and interface == INTERFACE_JDBC:
             # jar tvf sqljdbc41.jar
+            # https://msdn.microsoft.com/en-us/sqlserver/aa937724.aspx
             # https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx
             # https://msdn.microsoft.com/en-us/library/ms378988(v=sql.110).aspx
-            jclassname = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-            urlstem = "jdbc:sqlserver://{host}:{port};".format(
+            jclassname = 'com.microsoft.sqlserver.jdbc.SQLServerDriver'
+            urlstem = 'jdbc:sqlserver://{host}:{port};'.format(
                 host=host,
                 port=port
             )
             nvp = {}
             if database:
-                nvp["databaseName"] = database
-            nvp["user"] = user
-            nvp["password"] = password
-            nvp["responseBuffering"] = "adaptive"  # default
-            nvp["selectMethod"] = "cursor"  # trying this; default is "direct"
-            url = urlstem + ";".join(
-                "{}={}".format(x, y) for x, y in nvp.iteritems())
+                nvp['databaseName'] = database
+            nvp['user'] = user
+            nvp['password'] = password
+            nvp['responseBuffering'] = 'adaptive'  # default is 'full'
+            # ... THIS CHANGE (responseBuffering = adaptive) stops the JDBC
+            # driver crashing on cursor close [in a socket recv() call] when
+            # it's fetched a VARBINARY(MAX) field.
+            nvp['selectMethod'] = 'cursor'  # trying this; default is 'direct'
+            url = urlstem + ';'.join(
+                '{}={}'.format(x, y) for x, y in nvp.iteritems())
 
-            nvp["password"] = "[censored]"
-            url_censored = urlstem + ";".join(
-                "{}={}".format(x, y) for x, y in nvp.iteritems())
+            nvp['password'] = '[censored]'
+            url_censored = urlstem + ';'.join(
+                '{}={}'.format(x, y) for x, y in nvp.iteritems())
             logger.info(
-                "jdbc connect: jclassname={jclassname}, url = {url}".format(
+                'jdbc connect: jclassname={jclassname}, url = {url}'.format(
                     jclassname=jclassname,
                     url=url_censored
                 )
@@ -1474,6 +1478,20 @@ class DatabaseSupporter:
                 row = cursor.fetchone()
         except:
             logger.exception("gen_fetchall: SQL was: " + sql)
+            raise
+
+    def gen_fetchfirst(self, sql, *args):
+        """fetch first values, as a generator."""
+        self.ensure_db_open()
+        cursor = self.db.cursor()
+        self.db_exec_with_cursor(cursor, sql, *args)
+        try:
+            row = cursor.fetchone()
+            while row is not None:
+                yield row[0]
+                row = cursor.fetchone()
+        except:
+            logger.exception("gen_fetchfirst: SQL was: " + sql)
             raise
 
     def fetchall_with_fieldnames(self, sql, *args):
