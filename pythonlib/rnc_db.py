@@ -595,16 +595,20 @@ def _convert_java_binary(rs, col):
         # ---------------------------------------------------------------------
         # Method 4:
         # ---------------------------------------------------------------------
-        v = bytearray(rs.getBytes(col))
+        java_val = rs.getBytes(col)
         if rs.wasNull():
+            logger.debug("... NULL detected")
             v = None
+        else:
+            logger.debug("java_val: type={}".format(type(java_val)))
+            v = bytearray(java_val)
 
     finally:
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
         if v:
             logger.debug("_convert_java_binary: type={}, length={}".format(
-                str(type(v)), len(v)))
+                type(v), len(v)))
             # logger.debug("_convert_java_binary: value={}".format(v))
         return v
 
