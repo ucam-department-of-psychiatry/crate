@@ -560,6 +560,7 @@ def _convert_java_binary(rs, col):
     # http://stackoverflow.com/questions/2920364/checking-for-a-null-int-value-from-a-java-resultset  # noqa
 
     v = None
+    logger.debug("_convert_java_binary: converting...")
     time1 = time.time()
     try:
         # ---------------------------------------------------------------------
