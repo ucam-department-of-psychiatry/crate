@@ -606,7 +606,8 @@ A.  Out of memory.
         add the debug_row_limit and debug_limited_tables options in the config.
 
 -------------------------------------------------------------------------------
-Q.  Stuck.
+Q.  Crash when closing cursor after reading VARBINARY(MAX) field (via SQL
+    Server JDBC interface, via jpype, via jaydebeapi).
 -------------------------------------------------------------------------------
 A.  ps aux
     gdb -p 28896
@@ -627,6 +628,8 @@ A.  ps aux
     Occurs when you call cursor.close() of jaydebeapi:
         https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
 
+    Unrelated to any conversion that I was doing.
+
     sudo apt-get remove openjdk-7-jre  # though didn't get rid of java
 
     sudo add-apt-repository ppa:webupd8team/java
@@ -635,11 +638,45 @@ A.  ps aux
 
     ... no help
 
-    *** try this?
-    https://code.google.com/p/jyjdbc/source/browse/jyjdbc/__init__.py
+    Thoughts:
+        https://code.google.com/p/jyjdbc/source/browse/jyjdbc/__init__.py
+        https://social.technet.microsoft.com/Forums/en-US/430b4352-92c9-4a5c-98b5-f96643009453/jdbc-driver-thread-stuck-infinite-while-closing-result-set-locked?forum=sqldataaccess
+        https://bugs.mysql.com/bug.php?id=74739
 
-    ***
-    https://social.technet.microsoft.com/Forums/en-US/430b4352-92c9-4a5c-98b5-f96643009453/jdbc-driver-thread-stuck-infinite-while-closing-result-set-locked?forum=sqldataaccess
+    Nasty workaround:
+        don't close the cursors?
 
-    ***
-    https://bugs.mysql.com/bug.php?id=74739
+    ---------------------------------------------------------------------------
+    Enabling JDBC logging
+    ---------------------------------------------------------------------------
+        https://msdn.microsoft.com/en-us/library/ms378517(v=sql.110).aspx
+    $ find /usr -name "logging.properties"
+        /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/logging.properties
+        /usr/lib/jvm/java-8-oracle/jre/lib/logging.properties
+            ... this one (check with: java -version)
+    Default handler is the console. Unchanged line:
+        # handlers = java.util.logging.ConsoleHandler
+        handlers = java.util.logging.ConsoleHandler, java.util.logging.FileHandler
+    Add line:
+        com.microsoft.sqlserver.jdbc.level=FINEST
+    Change logger level:
+        java.util.logging.ConsoleHandler.level = FINEST
+    OR configure file handler:
+        java.util.logging.FileHandler.pattern = %h/java%u.log
+        java.util.logging.FileHandler.limit = 5000000
+        java.util.logging.FileHandler.count = 20
+        java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter
+        java.util.logging.FileHandler.level = FINEST
+
+
+Python 3 changes
+
+    $ sudo apt-get install python3-pip
+
+    import bcrypt  # sudo apt-get install python3-bcrypt
+    import configparser  # was: import ConfigParser
+    import dateutil  # sudo apt-get install python3-dateutil
+    import M2Crypto  # sudo apt-get install swig; sudo pip3 install M2Crypto  # *** INSTALLS BUT FAILS TO IMPORT
+    import pytz  # sudo pip3 install pytz
+    import regex  # sudo apt-get install python3-regex
+    import sortedcontainers  # sudo pip3 install sortedcontainers

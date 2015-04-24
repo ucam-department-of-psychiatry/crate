@@ -1915,8 +1915,18 @@ class Config(object):
     def get_database(self, section):
         parser = ConfigParser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
-        return rnc_db.get_database_from_configparser(
+        db = rnc_db.get_database_from_configparser(
             parser, section, securely=self.open_databases_securely)
+        # Now, a hacky workaround to avoid closing cursors
+        db.cursor1 = db.cursor()
+        db.cursor2 = db.cursor()
+        db.cursor3 = db.cursor()
+        logger.debug("Database {}: cursor 1: {}".format(section,
+                                                        hex(id(db.cursor1))))
+        logger.debug("Database {}: cursor 2: {}".format(section,
+                                                        hex(id(db.cursor2))))
+        logger.debug("Database {}: cursor 3: {}".format(section,
+                                                        hex(id(db.cursor3))))
 
     def check_valid(self, include_sources=False):
         """Raise exception if config is invalid."""
@@ -2774,7 +2784,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             threadcondition=threadcondition,
         )
         db = sources[ddr.src_db]
-        cursor = db.cursor()
+        cursor = db.cursor1  # hack; was db.cursor()
         db.db_exec_with_cursor(cursor, sql)
         row = cursor.fetchone()
         while row is not None:
@@ -2807,7 +2817,7 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
         patient_id_field=cfg.ddgen_per_table_pid_field
     )
     args = [pid]
-    cursor = db.cursor()
+    cursor = db.cursor2  # hack; was db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)
     row = cursor.fetchone()
     while row is not None:
@@ -2815,7 +2825,7 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
         row = cursor.fetchone()
 
 
-def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
+def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
              pkname=None, tasknum=None, ntasks=None, debuglimit=0):
     """ Generates a series of lists of values, each value corresponding to a
     field in sourcefields.
@@ -2826,7 +2836,7 @@ def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
     # Restrict to one patient?
     if pid is not None:
         whereconds.append("{}=?".format(
-            config.srccfg[sourcedbname].ddgen_per_table_pid_field))
+            config.srccfg[dbname].ddgen_per_table_pid_field))
         args.append(pid)
 
     # Divide up rows across tasks?
@@ -2849,8 +2859,8 @@ def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
         table=sourcetable,
         where=where,
     )
-    cursor = sourcedb.cursor()
-    sourcedb.db_exec_with_cursor(cursor, sql, *args)
+    cursor = db.cursor3  # hack; was db.cursor()
+    db.db_exec_with_cursor(cursor, sql, *args)
     row = cursor.fetchone()
     nrows = 1
     while row is not None:
@@ -2863,10 +2873,10 @@ def gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields, pid=None,
             yield list(row)  # convert from tuple to list so we can modify it
             row = cursor.fetchone()
             nrows += 1
-    logger.debug("About to close cursor...")
-    cursor.close()
-    logger.debug("... cursor closed")
-    rnc_db.java_garbage_collect()  # ***
+    # logger.debug("About to close cursor...")
+    # cursor.close()
+    # logger.debug("... cursor closed")
+    rnc_db.java_garbage_collect()  # for testing
 
 
 def gen_index_row_sets_by_table(tasknum=0, ntasks=1):

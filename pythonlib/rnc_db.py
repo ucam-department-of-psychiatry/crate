@@ -549,10 +549,10 @@ def does_sqltype_merit_fulltext_index(datatype_long):
 
 
 # =============================================================================
-# Reconfiguring jaydebeapi
+# Reconfiguring jaydebeapi to do sensible type conversions
 # =============================================================================
 
-def _rnc_to_binary(rs, col):
+def _convert_java_binary(rs, col):
     # https://github.com/originell/jpype/issues/71
     # http://stackoverflow.com/questions/5088671
     # https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
@@ -587,26 +587,36 @@ def _rnc_to_binary(rs, col):
         logger.debug("... done (in {} seconds)".format(time2 - time1))
         return v
     else:
-        logger.warning("Unknown type to _rnc_to_binary: {}".format(t))
+        logger.warning("Unknown type to _convert_java_binary: {}".format(t))
         return java_val  # unsure
+
+
+def _convert_java_bigint(rs, col):
+    # https://github.com/baztian/jaydebeapi/issues/6
+    # https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
+    # https://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html
+    # http://docs.oracle.com/javase/7/docs/api/java/sql/ResultSet.html
+    java_val = rs.getObject(col)
+    if java_val is None:
+        return
+    v = getattr(java_val, 'toString')()  # Java call: java_val.toString()
+    return int(v)
 
 
 def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
-    return # ***
     # http://stackoverflow.com/questions/26899595
-    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
+    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS  # , _java_to_py
     _DEFAULT_CONVERTERS.update({
-        # BIGINT. WARNING: may lose information if used with giant ints;
-        # https://github.com/baztian/jaydebeapi/issues/6
-        # *** Could be improved; ?toString then convert to Python int.
-        'BIGINT': _java_to_py('longValue'),
-        # RNC experimental:
-        'BINARY': _rnc_to_binary,  # overrides an existing one
-        'BLOB': _rnc_to_binary,
-        'LONGVARBINARY': _rnc_to_binary,
-        'VARBINARY': _rnc_to_binary,
+        # BIGINT. https://github.com/baztian/jaydebeapi/issues/6
+        # 'BIGINT': _java_to_py('longValue'),
+        'BIGINT': _convert_java_bigint,
+
+        'BINARY': _convert_java_binary,  # overrides an existing one
+        'BLOB': _convert_java_binary,
+        'LONGVARBINARY': _convert_java_binary,
+        'VARBINARY': _convert_java_binary,
     })
 
 
