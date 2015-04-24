@@ -623,4 +623,23 @@ A.  ps aux
 
     Related to this bug?
         https://bugs.openjdk.java.net/browse/JDK-8049846
-        
+
+    Occurs when you call cursor.close() of jaydebeapi:
+        https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
+
+    sudo apt-get remove openjdk-7-jre  # though didn't get rid of java
+
+    sudo add-apt-repository ppa:webupd8team/java
+    sudo apt-get update
+    sudo apt-get install oracle-java8-installer
+
+    ... no help
+
+    *** try this?
+    https://code.google.com/p/jyjdbc/source/browse/jyjdbc/__init__.py
+
+    ***
+    https://social.technet.microsoft.com/Forums/en-US/430b4352-92c9-4a5c-98b5-f96643009453/jdbc-driver-thread-stuck-infinite-while-closing-result-set-locked?forum=sqldataaccess
+
+    ***
+    https://bugs.mysql.com/bug.php?id=74739
