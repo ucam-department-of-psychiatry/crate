@@ -2643,7 +2643,8 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
             )
 
 
-def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
+def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
+                                     report_every=1000):
     # - Can't do this in a single SQL command, since the engine can't
     #   necessarily see both databases.
     # - Can't do this in a multiprocess way, because we're trying to do a
@@ -2663,9 +2664,11 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
             src_table, dest_table))
 
     # 1. Drop temporary table
+    logger.debug("... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
 
     # 2. Make temporary table
+    logger.debug("... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
             srcpk BIGINT UNSIGNED PRIMARY KEY
@@ -2676,8 +2679,13 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table, +/- PK translation
+    logger.debug("... populating temporary table")
     insert_sql = rnc_db.get_sql_insert(config.temporary_tablename, ["srcpk"])
+    i = 0
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
+        i += 1
+        if report_every and i % report_every == 0:
+            logger.debug("... row# {}".format(i))
         if SRCFLAG.PRIMARYPID in pkddr.src_flags:
             pk = config.encrypt_primary_pid(pk)
         elif SRCFLAG.MASTERPID in pkddr.src_flags:
@@ -2685,6 +2693,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
         config.destdb.db_exec(insert_sql, pk)
 
     # 4. DELETE FROM ... WHERE NOT IN ...
+    logger.debug("... deleting from destination table where appropriate")
     delete_sql = """
         DELETE FROM {dest_table}
         WHERE {dest_pk} NOT IN (
@@ -2698,6 +2707,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
     config.destdb.db_exec(delete_sql)
 
     # 5. Drop temporary table
+    logger.debug("... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
 
     # 6. Commit
