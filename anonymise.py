@@ -2680,6 +2680,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 3. Populate temporary table, +/- PK translation
     def insert(records):
+        logger.debug("... inserting records")
         config.destdb.insert_multiple_records(
             config.temporary_tablename,
             ["srcpk"],
