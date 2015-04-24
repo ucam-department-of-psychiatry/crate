@@ -565,7 +565,7 @@ def _convert_java_binary(rs, col):
     time1 = time.time()
     try:
         # ---------------------------------------------------------------------
-        # Method 1: 3578880 bytes in 21.7430660725 seconds = 165 kB/s
+        # Method 1: 3578880 bytes in 21.7430660725 seconds =   165 kB/s
         # ---------------------------------------------------------------------
         # java_val = rs.getObject(col)
         # if java_val is None:
@@ -575,7 +575,7 @@ def _convert_java_binary(rs, col):
         # v = ''.join(map(lambda x: chr(x % 256), java_val))
 
         # ---------------------------------------------------------------------
-        # Method 2: 3578880 bytes in 8.07930088043 seconds = 442 kB/s
+        # Method 2: 3578880 bytes in 8.07930088043 seconds =   442 kB/s
         # ---------------------------------------------------------------------
         # java_val = rs.getObject(col)
         # if java_val is None:
@@ -586,7 +586,7 @@ def _convert_java_binary(rs, col):
         #     v[i] = java_val[i] % 256
 
         # ---------------------------------------------------------------------
-        # Method 3: 3578880 bytes in 20.1435189247 seconds = 177 kB/s
+        # Method 3: 3578880 bytes in 20.1435189247 seconds =   177 kB/s
         # ---------------------------------------------------------------------
         # java_val = rs.getObject(col)
         # if java_val is None:
@@ -594,7 +594,7 @@ def _convert_java_binary(rs, col):
         # v = bytearray(map(lambda x: x % 256, java_val))
 
         # ---------------------------------------------------------------------
-        # Method 4:
+        # Method 4: 3578880 bytes in 0.48352599144 seconds = 7,402 kB/s
         # ---------------------------------------------------------------------
         j_hexstr = rs.getString(col)
         if rs.wasNull():
@@ -604,10 +604,9 @@ def _convert_java_binary(rs, col):
     finally:
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
-        if v:
-            logger.debug("_convert_java_binary: type={}, length={}".format(
-                type(v), len(v)))
-        #    # logger.debug("_convert_java_binary: value={}".format(v))
+        # if v:
+        #     logger.debug("_convert_java_binary: type={}, length={}".format(
+        #         type(v), len(v)))
         return v
 
 
@@ -1075,24 +1074,32 @@ class DatabaseSupporter:
         elif engine == ENGINE_SQLSERVER and interface == INTERFACE_JDBC:
             # jar tvf sqljdbc41.jar
             # https://msdn.microsoft.com/en-us/library/ms378428(v=sql.110).aspx
+            # https://msdn.microsoft.com/en-us/library/ms378988(v=sql.110).aspx
             jclassname = "com.microsoft.sqlserver.jdbc.SQLServerDriver"
-            db_elem = ";databaseName={}".format(database) if database else ""
-            url = (
-                "jdbc:sqlserver://{host}:{port}{db_elem}"
-                ";user={user};password={password}".format(
-                    host=host, port=port, db_elem=db_elem,
-                    user=user, password=password)
+            urlstem = "jdbc:sqlserver://{host}:{port};".format(
+                host=host,
+                port=port
             )
+            nvp = {}
+            if database:
+                nvp["databaseName"] = database
+            nvp["user"] = user
+            nvp["password"] = password
+            nvp["responseBuffering"] = "adaptive"  # default
+            nvp["selectMethod"] = "cursor"  # trying this; default is "direct"
+            url = urlstem + ";".join(
+                "{}={}".format(x, y) for x, y in nvp.iteritems())
+
+            nvp["password"] = "[censored]"
+            url_censored = urlstem + ";".join(
+                "{}={}".format(x, y) for x, y in nvp.iteritems())
             logger.info(
-                "jdbc connect: jclassname={jclassname}, url = "
-                "jdbc:sqlserver://{host}:{port}{db_elem}"
-                ";user={user};password=[censored]".format(
+                "jdbc connect: jclassname={jclassname}, url = {url}".format(
                     jclassname=jclassname,
-                    host=host,
-                    port=port,
-                    db_elem=db_elem,
-                    user=user)
+                    url=url_censored
+                )
             )
+
             driver_args = [url]
             jars = None
             libs = None
