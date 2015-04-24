@@ -556,42 +556,66 @@ def _convert_java_binary(rs, col):
     # https://github.com/originell/jpype/issues/71
     # http://stackoverflow.com/questions/5088671
     # https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
-    java_val = rs.getObject(col)
-    if java_val is None:
-        return
-    t = str(type(java_val))
-    # logger.info("rnc_to_binary: typeof={}".format(t))
-    if t == "<class 'jpype._jarray.byte[]'>":
-        l = len(java_val)
-        logger.debug(
-            "Converting Java byte[] to Python str (length: {})...".format(l))
-        time1 = time.time()
+    # https://msdn.microsoft.com/en-us/library/ms378813(v=sql.110).aspx
+    # http://stackoverflow.com/questions/2920364/checking-for-a-null-int-value-from-a-java-resultset  # noqa
 
+    v = None
+    time1 = time.time()
+    try:
         # ---------------------------------------------------------------------
         # Method 1: 3578880 bytes in 21.7430660725 seconds = 165 kB/s
         # ---------------------------------------------------------------------
+        # java_val = rs.getObject(col)
+        # if java_val is None:
+        #     return
+        # t = str(type(java_val))
+        # if t == "<class 'jpype._jarray.byte[]'>": ...
         # v = ''.join(map(lambda x: chr(x % 256), java_val))
+
         # ---------------------------------------------------------------------
         # Method 2: 3578880 bytes in 8.07930088043 seconds = 442 kB/s
         # ---------------------------------------------------------------------
-        l = len(java_val)
-        v = bytearray(l)
-        for i in xrange(l):
-            v[i] = java_val[i] % 256
+        # java_val = rs.getObject(col)
+        # if java_val is None:
+        #     return
+        # l = len(java_val)
+        # v = bytearray(l)
+        # for i in xrange(l):
+        #     v[i] = java_val[i] % 256
+
         # ---------------------------------------------------------------------
         # Method 3: 3578880 bytes in 20.1435189247 seconds = 177 kB/s
         # ---------------------------------------------------------------------
+        # java_val = rs.getObject(col)
+        # if java_val is None:
+        #     return
         # v = bytearray(map(lambda x: x % 256, java_val))
 
+        # ---------------------------------------------------------------------
+        # Method 4:
+        # ---------------------------------------------------------------------
+        v = str(rs.getBinaryStream(col))
+        if rs.wasNull():
+            v = None
+        else:
+            logger.debug("_convert_java_binary: type: {}", str(type(v)))
+
+    finally:
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
         return v
-    else:
-        logger.warning("Unknown type to _convert_java_binary: {}".format(t))
-        return java_val  # unsure
+
+
+def _convert_java_bigstring(rs, col):
+    v = str(rs.getCharacterStream(col))
+    if rs.wasNull():
+        return None
+    return v
+
 
 
 def _convert_java_bigint(rs, col):
+    # http://stackoverflow.com/questions/26899595
     # https://github.com/baztian/jaydebeapi/issues/6
     # https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
     # https://docs.oracle.com/javase/7/docs/api/java/math/BigInteger.html
@@ -606,17 +630,17 @@ def _convert_java_bigint(rs, col):
 def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
-    # http://stackoverflow.com/questions/26899595
     from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS  # , _java_to_py
     _DEFAULT_CONVERTERS.update({
-        # BIGINT. https://github.com/baztian/jaydebeapi/issues/6
-        # 'BIGINT': _java_to_py('longValue'),
         'BIGINT': _convert_java_bigint,
 
         'BINARY': _convert_java_binary,  # overrides an existing one
         'BLOB': _convert_java_binary,
         'LONGVARBINARY': _convert_java_binary,
         'VARBINARY': _convert_java_binary,
+
+        'LONGVARCHAR': _convert_java_bigstring,
+        'LONGNVARCHAR': _convert_java_bigstring,
     })
 
 

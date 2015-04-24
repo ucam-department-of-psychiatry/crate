@@ -1915,19 +1915,8 @@ class Config(object):
     def get_database(self, section):
         parser = ConfigParser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
-        db = rnc_db.get_database_from_configparser(
+        return rnc_db.get_database_from_configparser(
             parser, section, securely=self.open_databases_securely)
-        # Now, a hacky workaround to avoid closing cursors
-        db.cursor1 = db.cursor()
-        db.cursor2 = db.cursor()
-        db.cursor3 = db.cursor()
-        logger.debug("Database {}: cursor 1: {}".format(section,
-                                                        hex(id(db.cursor1))))
-        logger.debug("Database {}: cursor 2: {}".format(section,
-                                                        hex(id(db.cursor2))))
-        logger.debug("Database {}: cursor 3: {}".format(section,
-                                                        hex(id(db.cursor3))))
-        return db
 
     def check_valid(self, include_sources=False):
         """Raise exception if config is invalid."""
@@ -2785,7 +2774,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             threadcondition=threadcondition,
         )
         db = sources[ddr.src_db]
-        cursor = db.cursor1  # hack; was db.cursor()
+        cursor = db.cursor()
         db.db_exec_with_cursor(cursor, sql)
         row = cursor.fetchone()
         while row is not None:
@@ -2818,7 +2807,7 @@ def gen_all_values_for_patient(sources, dbname, table, field, pid):
         patient_id_field=cfg.ddgen_per_table_pid_field
     )
     args = [pid]
-    cursor = db.cursor2  # hack; was db.cursor()
+    cursor = db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)
     row = cursor.fetchone()
     while row is not None:
@@ -2860,7 +2849,7 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
         table=sourcetable,
         where=where,
     )
-    cursor = db.cursor3  # hack; was db.cursor()
+    cursor = db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)
     row = cursor.fetchone()
     nrows = 1
@@ -2874,9 +2863,9 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
             yield list(row)  # convert from tuple to list so we can modify it
             row = cursor.fetchone()
             nrows += 1
-    # logger.debug("About to close cursor...")
-    # cursor.close()
-    # logger.debug("... cursor closed")
+    logger.debug("About to close cursor...")
+    cursor.close()
+    logger.debug("... cursor closed")
     rnc_db.java_garbage_collect()  # for testing
 
 

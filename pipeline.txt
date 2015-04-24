@@ -644,7 +644,14 @@ A.  ps aux
         https://bugs.mysql.com/bug.php?id=74739
 
     Nasty workaround:
-        don't close the cursors?
+        don't close the cursors; use a set for each database?
+        ... didn't help: crashed on the table *after* the one with the
+        VARBINARY(MAX) field.
+
+    SQL Server / JDBC driver / connection properties:
+        https://msdn.microsoft.com/en-us/library/ms378988(SQL.90).aspx
+    ... and data types:
+        https://msdn.microsoft.com/en-us/library/ms378813(v=sql.110).aspx
 
     ---------------------------------------------------------------------------
     Enabling JDBC logging
