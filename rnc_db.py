@@ -159,7 +159,7 @@ except:
 
 try:
     import jaydebeapi  # sudo pip install jaydebeapi
-    import java.lang
+    import jpype
     JDBC_AVAILABLE = True
 except:
     JDBC_AVAILABLE = False
@@ -2185,6 +2185,6 @@ def java_garbage_collect():
     # http://stackoverflow.com/questions/1903041
     # http://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html
     logger.info("Calling Java garbage collector...")
-    r = java.lang.Runtime.getRuntime()
-    r.gc()
+    rt = jpype.java.lang.Runtime.getRuntime()
+    rt.gc()
     logger.info("... done")
