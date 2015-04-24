@@ -2662,6 +2662,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         "delete_dest_rows_with_no_src_row: source table {}, "
         "destination table {} [WARNING: MAY BE SLOW]".format(
             src_table, dest_table))
+    PKFIELD = "srcpk"
 
     # 1. Drop temporary table
     logger.debug("... dropping temporary table")
@@ -2671,10 +2672,11 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     logger.debug("... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
-            srcpk BIGINT UNSIGNED PRIMARY KEY
+            {pkfield} BIGINT UNSIGNED PRIMARY KEY
         )
     """.format(
         table=config.temporary_tablename,
+        pkfield=PKFIELD,
     )
     config.destdb.db_exec(create_sql)
 
@@ -2683,7 +2685,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         logger.debug("... inserting records")
         config.destdb.insert_multiple_records(
             config.temporary_tablename,
-            ["srcpk"],
+            [PKFIELD],
             records
         )
 
@@ -2705,22 +2707,28 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     if records:
         insert(records)
         records = []
+    commit(config.destdb)
 
-    # 4. DELETE FROM ... WHERE NOT IN ...
+    # 4. Index
+    logger.debug("... creating index on temporary table")
+    config.destdb.create_index(config.temporary_tablename, PKFIELD)
+
+    # 5. DELETE FROM ... WHERE NOT IN ...
     logger.debug("... deleting from destination table where appropriate")
     delete_sql = """
         DELETE FROM {dest_table}
         WHERE {dest_pk} NOT IN (
-            SELECT srcpk FROM {temptable}
+            SELECT {pkfield} FROM {temptable}
         )
     """.format(
         dest_table=pkddr.dest_table,
         dest_pk=pkddr.dest_field,
+        pkfield=PKFIELD,
         temptable=config.temporary_tablename,
     )
     config.destdb.db_exec(delete_sql)
 
-    # 5. Drop temporary table
+    # 6. Drop temporary table
     logger.debug("... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
 
