@@ -609,7 +609,12 @@ A.  Out of memory.
 Q.  Crash when closing cursor after reading VARBINARY(MAX) field (via SQL
     Server JDBC interface, via jpype, via jaydebeapi).
 -------------------------------------------------------------------------------
-A.  ps aux
+A.  Short answer: fixed internally (in rnc_db.py) by reconfiguring the SQL
+    Server JDBC connection.
+
+    Long answer/thoughts:
+
+    ps aux
     gdb -p 28896
     backtrace
 
@@ -653,6 +658,11 @@ A.  ps aux
     ... and data types:
         https://msdn.microsoft.com/en-us/library/ms378813(v=sql.110).aspx
 
+    FIXED!
+        Use responseBuffering = adaptive in the settings for the SQL Server
+        JDBC driver.
+        https://msdn.microsoft.com/en-us/library/ms378988(SQL.90).aspx
+
     ---------------------------------------------------------------------------
     Enabling JDBC logging
     ---------------------------------------------------------------------------
@@ -676,7 +686,7 @@ A.  ps aux
         java.util.logging.FileHandler.level = FINEST
 
 
-Python 3 changes
+    Python 3 changes -- not done, but some notes:
 
     $ sudo apt-get install python3-pip
 

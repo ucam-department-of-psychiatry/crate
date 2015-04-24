@@ -539,6 +539,11 @@ max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
 
 max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
+# We need a temporary table name for incremental updates. This can't be the
+# name of a real destination table.
+
+temporary_tablename = _temp_table
+
 # -----------------------------------------------------------------------------
 # List of source databases (each of which is defined in its own section).
 # -----------------------------------------------------------------------------
@@ -1166,6 +1171,11 @@ class DataDictionaryRow(object):
 
         if not self.omit:
             ensure_valid_table_name(self.dest_table)
+            if self.dest_table == config.temporary_tablename:
+                raise ValueError(
+                    "Destination tables can't be named {f}, as that's the "
+                    "name set in the config's temporary_tablename "
+                    "variable".format(config.temporary_tablename))
             ensure_valid_field_name(self.dest_field)
             if self.dest_field == config.source_hash_fieldname:
                 raise ValueError(
@@ -1781,6 +1791,7 @@ class Config(object):
         "open_databases_securely",
         "max_rows_before_commit",
         "max_bytes_before_commit",
+        "temporary_tablename",
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
@@ -1926,6 +1937,11 @@ class Config(object):
             raise ValueError("No destination database specified.")
         if not self.admindb:
             raise ValueError("No admin database specified.")
+
+        # Test table names
+        if not self.temporary_tablename:
+            raise ValueError("No temporary_tablename specified.")
+        ensure_valid_field_name(self.temporary_tablename)
 
         # Test field names
         def validate_fieldattr(name):
@@ -2632,44 +2648,60 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table):
     #   necessarily see both databases.
     # - Can't do this in a multiprocess way, because we're trying to do a
     #   DELETE WHERE NOT IN.
+    # - However, we can get stupidly long query lists if we try to SELECT all
+    #   the values and use a DELETE FROM x WHERE y NOT IN (v1, v2, v3, ...)
+    #   query.
+    # - Therefore, we need a temporary table in the destination.
     if not config.dd.has_active_destination(srcdbname, src_table):
         return
     dest_table = config.dd.get_dest_table_for_src_db_table(srcdbname,
                                                            src_table)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
-    logger.debug("delete_dest_rows_with_no_src_row: source table {}, "
-                 "destination table {}".format(src_table, dest_table))
-    pks = []
-    if pkddr:
-        sql = "SELECT {src_pk} FROM {src_table}".format(
-            src_pk=pkddr.src_field,
-            src_table=src_table,
-        )
-        pks = srcdb.fetchallfirstvalues(sql)
-    if not pks:
-        logger.debug("... deleting all")
-        sql = "DELETE FROM {dest_table}".format(dest_table=dest_table)
-        config.destdb.db_exec(sql)
-    else:
-        logger.debug("... deleting selectively")
+    logger.info(
+        "delete_dest_rows_with_no_src_row: source table {}, "
+        "destination table {} [WARNING: MAY BE SLOW]".format(
+            src_table, dest_table))
 
-        # The PKs may be translated:
+    # 1. Drop temporary table
+    config.destdb.drop_table(config.temporary_tablename)
+
+    # 2. Make temporary table
+    create_sql = """
+        CREATE TABLE IF NOT EXISTS {table} (
+            srcpk BIGINT UNSIGNED PRIMARY KEY
+        )
+    """.format(
+        table=config.temporary_tablename,
+    )
+    config.destdb.db_exec(create_sql)
+
+    # 3. Populate temporary table, +/- PK translation
+    insert_sql = rnc_db.get_sql_insert(config.temporary_tablename, "srcpk")
+    for pk in gen_pks(srcdb, src_table, pkddr.src_field):
         if SRCFLAG.PRIMARYPID in pkddr.src_flags:
-            pks = [config.encrypt_primary_pid(x) for x in pks]
+            pk = config.encrypt_primary_pid(pk)
         elif SRCFLAG.MASTERPID in pkddr.src_flags:
-            pks = [config.encrypt_master_pid(x) for x in pks]
+            pk = config.encrypt_master_pid(pk)
+        config.destdb.db_exec(insert_sql, pk)
 
-        value_string = ','.join(['?'] * len(pks))
-        sql = """
-            DELETE FROM {dest_table}
-            WHERE {dest_pk} NOT IN ({value_string})
-        """.format(
-            dest_table=pkddr.dest_table,
-            dest_pk=pkddr.dest_field,
-            value_string=value_string
+    # 4. DELETE FROM ... WHERE NOT IN ...
+    delete_sql = """
+        DELETE FROM {dest_table}
+        WHERE {dest_pk} NOT IN (
+            SELECT srcpk FROM {temptable}
         )
-        config.destdb.db_exec(sql, *pks)
-        # http://stackoverflow.com/questions/589284
+    """.format(
+        dest_table=pkddr.dest_table,
+        dest_pk=pkddr.dest_field,
+        temptable=config.temporary_tablename,
+    )
+    config.destdb.db_exec(delete_sql)
+
+    # 5. Drop temporary table
+    config.destdb.drop_table(config.temporary_tablename)
+
+    # 6. Commit
+    commit(config.destdb)
 
 
 def commit(destdb):
@@ -2895,6 +2927,11 @@ def gen_nonpatient_tables_with_int_pk():
         table = pair[1]
         pkname = config.dd.get_int_pk_name(db, table)
         yield (db, table, pkname)
+
+
+def gen_pks(db, table, pkname):
+    sql = "SELECT {pk} FROM {table}".format(pk=pkname, table=table)
+    return db.gen_fetchfirst(sql)
 
 
 # =============================================================================
