@@ -598,7 +598,9 @@ def _convert_java_binary(rs, col):
         if rs.wasNull():
             v = None
         else:
-            logger.debug("_convert_java_binary: type: {}".format(str(type(v))))
+            logger.debug(
+                "_convert_java_binary: type={}, length={}, value={}".format(
+                    str(type(v)), len(v), v))
 
     finally:
         time2 = time.time()
