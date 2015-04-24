@@ -601,9 +601,10 @@ def _convert_java_binary(rs, col):
     finally:
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
-        logger.debug("_convert_java_binary: type={}, length={}".format(
-            str(type(v)), len(v)))
-        logger.debug("_convert_java_binary: value={}".format(v))
+        if v:
+            logger.debug("_convert_java_binary: type={}, length={}".format(
+                str(type(v)), len(v)))
+            # logger.debug("_convert_java_binary: value={}".format(v))
         return v
 
 
