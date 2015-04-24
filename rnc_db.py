@@ -594,6 +594,7 @@ def _rnc_to_binary(rs, col):
 def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
+    return # ***
     # http://stackoverflow.com/questions/26899595
     from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS, _java_to_py
     _DEFAULT_CONVERTERS.update({
@@ -2184,6 +2185,8 @@ class DatabaseSupporter:
 def java_garbage_collect():
     # http://stackoverflow.com/questions/1903041
     # http://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html
+    if not JDBC_AVAILABLE:
+        return
     logger.info("Calling Java garbage collector...")
     rt = jpype.java.lang.Runtime.getRuntime()
     rt.gc()
