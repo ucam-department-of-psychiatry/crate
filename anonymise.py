@@ -2679,11 +2679,15 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table, +/- PK translation
-    logger.debug("... populating temporary table")
-    insert_sql = rnc_db.get_sql_insert(config.temporary_tablename, ["srcpk"])
-    i = 0
+    def insert(records):
+        config.destdb.insert_multiple_records(
+            config.temporary_tablename,
+            ["srcpk"],
+            records
+        )
 
-    cursor = config.destdb.cursor()
+    logger.debug("... populating temporary table")
+    i = 0
     records = []
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
         i += 1
@@ -2695,10 +2699,10 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
             pk = config.encrypt_master_pid(pk)
         records.append([pk])
         if i % chunksize == 0:
-            cursor.executemany(insert_sql, records)
+            insert(records)
             records = []
     if records:
-        cursor.executemany(insert_sql, records)
+        insert(records)
         records = []
 
     # 4. DELETE FROM ... WHERE NOT IN ...
