@@ -159,6 +159,7 @@ except:
 
 try:
     import jaydebeapi  # sudo pip install jaydebeapi
+    import java.lang
     JDBC_AVAILABLE = True
 except:
     JDBC_AVAILABLE = False
@@ -2174,3 +2175,16 @@ class DatabaseSupporter:
 
     def get_schema(self):
         return self.fetchvalue("SELECT {}".format(self.schema_expr))
+
+
+# =============================================================================
+# Debugging
+# =============================================================================
+
+def java_garbage_collect():
+    # http://stackoverflow.com/questions/1903041
+    # http://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html
+    logger.info("Calling Java garbage collector...")
+    r = java.lang.Runtime.getRuntime()
+    r.gc()
+    logger.info("... done")
