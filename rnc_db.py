@@ -595,22 +595,20 @@ def _convert_java_binary(rs, col):
         # ---------------------------------------------------------------------
         # Method 4:
         # ---------------------------------------------------------------------
-        java_val = rs.getBytes(col)
+        java_bytearray = rs.getBytes(col)
         if rs.wasNull():
             return
         # str(type(java_val)) == 'jpype._jarray.byte[]'
-        # v = bytearray(java_val)  # doesn't work
-        l = len(java_val)
-        v = bytearray(l)
-        for i in xrange(l):
-            v[i] = java_val[i] % 256
+        java_str = jpype._jclass.JClass('java.lang.String')(java_bytearray,
+                                                            'ISO-8859-1')
+        v = java_str.toString()
 
     finally:
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
-        #if v:
-        #    logger.debug("_convert_java_binary: type={}, length={}".format(
-        #        type(v), len(v)))
+        if v:
+            logger.debug("_convert_java_binary: type={}, length={}".format(
+                type(v), len(v)))
         #    # logger.debug("_convert_java_binary: value={}".format(v))
         return v
 
