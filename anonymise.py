@@ -1927,6 +1927,7 @@ class Config(object):
                                                         hex(id(db.cursor2))))
         logger.debug("Database {}: cursor 3: {}".format(section,
                                                         hex(id(db.cursor3))))
+        return db
 
     def check_valid(self, include_sources=False):
         """Raise exception if config is invalid."""
