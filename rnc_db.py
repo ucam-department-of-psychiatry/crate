@@ -164,6 +164,7 @@ try:
 except:
     JDBC_AVAILABLE = False
 
+import binascii
 import datetime
 import re
 import logging
@@ -595,13 +596,10 @@ def _convert_java_binary(rs, col):
         # ---------------------------------------------------------------------
         # Method 4:
         # ---------------------------------------------------------------------
-        java_bytearray = rs.getBytes(col)
+        j_hexstr = rs.getString(col)
         if rs.wasNull():
             return
-        # str(type(java_val)) == 'jpype._jarray.byte[]'
-        java_str = jpype._jclass.JClass('java.lang.String')(java_bytearray,
-                                                            'ISO-8859-1')
-        v = java_str.toString()
+        v = binascii.unhexlify(j_hexstr)
 
     finally:
         time2 = time.time()
