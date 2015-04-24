@@ -3246,7 +3246,8 @@ def drop_remake(incremental=False):
         for d in config.dd.get_source_databases():
             db = config.sources[d]
             for t in config.dd.get_src_tables(d):
-                delete_dest_rows_with_no_src_row(db, d, t)
+                delete_dest_rows_with_no_src_row(
+                    db, d, t, report_every=config.report_every_n_rows)
 
 
 def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
