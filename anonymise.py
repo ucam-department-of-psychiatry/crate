@@ -2644,14 +2644,14 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
 
 
 def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
-                                     report_every=1000):
+                                     report_every=1000, chunksize=1000):
     # - Can't do this in a single SQL command, since the engine can't
     #   necessarily see both databases.
     # - Can't do this in a multiprocess way, because we're trying to do a
     #   DELETE WHERE NOT IN.
     # - However, we can get stupidly long query lists if we try to SELECT all
     #   the values and use a DELETE FROM x WHERE y NOT IN (v1, v2, v3, ...)
-    #   query.
+    #   query. This crashes the MySQL connection, etc.
     # - Therefore, we need a temporary table in the destination.
     if not config.dd.has_active_destination(srcdbname, src_table):
         return
@@ -2682,6 +2682,9 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     logger.debug("... populating temporary table")
     insert_sql = rnc_db.get_sql_insert(config.temporary_tablename, ["srcpk"])
     i = 0
+
+    cursor = config.destdb.cursor()
+    records = []
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
         i += 1
         if report_every and i % report_every == 0:
@@ -2690,7 +2693,13 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
             pk = config.encrypt_primary_pid(pk)
         elif SRCFLAG.MASTERPID in pkddr.src_flags:
             pk = config.encrypt_master_pid(pk)
-        config.destdb.db_exec(insert_sql, pk)
+        records.append([pk])
+        if i % chunksize == 0:
+            cursor.executemany(insert_sql, records)
+            records = []
+    if records:
+        cursor.executemany(insert_sql, records)
+        records = []
 
     # 4. DELETE FROM ... WHERE NOT IN ...
     logger.debug("... deleting from destination table where appropriate")
