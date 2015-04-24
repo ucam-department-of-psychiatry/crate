@@ -2663,20 +2663,23 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         "destination table {} [WARNING: MAY BE SLOW]".format(
             src_table, dest_table))
     PKFIELD = "srcpk"
+    START = "delete_dest_rows_with_no_src_row: {}.{} -> {}: ".format(
+        srcdbname, src_table, dest_table
+    )
 
     # 0. If there's no source PK, we just delete everythong
-    logger.debug("... no source PK; deleting everything")
     if not pkddr:
+        logger.debug(START + "... no source PK; deleting everything")
         config.destdb.db_exec("DELETE FROM {}".format(dest_table))
         commit(config.destdb)
         return
 
     # 1. Drop temporary table
-    logger.debug("... dropping temporary table")
+    logger.debug(START + "... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
 
     # 2. Make temporary table
-    logger.debug("... making temporary table")
+    logger.debug(START + "... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
             {pkfield} BIGINT UNSIGNED PRIMARY KEY
@@ -2689,14 +2692,16 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 3. Populate temporary table, +/- PK translation
     def insert(records):
-        logger.debug("... inserting records")
+        logger.debug(START + "... inserting records")
         config.destdb.insert_multiple_records(
             config.temporary_tablename,
             [PKFIELD],
             records
         )
 
-    logger.debug("... populating temporary table")
+    n = srcdb.count_where(src_table)
+    logger.debug(START + "... populating temporary table; target number of "
+                 "records: {}".format(n))
     i = 0
     records = []
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
