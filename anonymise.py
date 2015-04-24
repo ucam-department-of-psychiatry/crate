@@ -2664,6 +2664,13 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
             src_table, dest_table))
     PKFIELD = "srcpk"
 
+    # 0. If there's no source PK, we just delete everythong
+    logger.debug("... no source PK; deleting everything")
+    if not pkddr:
+        config.destdb.db_exec("DELETE FROM {}".format(dest_table))
+        commit(config.destdb)
+        return
+
     # 1. Drop temporary table
     logger.debug("... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
