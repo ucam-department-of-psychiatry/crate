@@ -293,7 +293,8 @@ SRCFLAG = AttrDict(
     PRIMARYPID="P",
     DEFINESPRIMARYPIDS="*",
     MASTERPID="M",
-    CONSTANT="C"
+    CONSTANT="C",
+    ADDITION_ONLY="A"
 )
 
 # =============================================================================
@@ -343,7 +344,7 @@ DEMO_CONFIG = """
 #       {SRCFLAG.CONSTANT}:  Contents are constant (will not change) for a
 #           given PK.
 #           - An alternative to '{SRCFLAG.ADDSRCHASH}'. Can't be used with it.
-#           - Applicable only to src_pk fields, which can't be ommited in the
+#           - Applicable only to src_pk fields, which can't be omitted in the
 #             destination, and which have the same index requirements as
 #             the '{SRCFLAG.ADDSRCHASH}' flag.
 #           - If set, no hash is added to the destination, but the destination
@@ -353,6 +354,8 @@ DEMO_CONFIG = """
 #           - Intended for very data-intensive fields, such as BLOB fields
 #             containing binary documents, where hashing would be quite slow
 #             over many gigabytes of data.
+#       {SRCFLAG.ADDITION_ONLY}:  Addition only. It is assumed that records can
+#           only be added, not deleted.
 #       {SRCFLAG.PRIMARYPID}:  Primary patient ID field.
 #           If set,
 #           (a) This field will be used to link records for the same patient
@@ -632,6 +635,9 @@ ddgen_pk_fields =
 
 #   Assume that content stays constant?
 ddgen_constant_content = False
+
+#   Assume that records can only be added, not deleted?
+ddgen_addition_only = False
 
 #   Predefine field(s) that define the existence of patient IDs? UNUSUAL.
 ddgen_pid_defining_fieldnames =
@@ -989,6 +995,8 @@ class DataDictionaryRow(object):
                 self.src_flags += SRCFLAG.CONSTANT
             else:
                 self.src_flags += SRCFLAG.ADDSRCHASH
+            if cfg.ddgen_addition_only:
+                self.src_flags += SRCFLAG.ADDITION_ONLY
         if self.src_field == cfg.ddgen_per_table_pid_field:
             self.src_flags += SRCFLAG.PRIMARYPID
         if self.src_field == cfg.ddgen_master_pid_fieldname:
@@ -1333,19 +1341,19 @@ class DataDictionary(object):
             schema = db.get_schema()
             logger.info("... database nice name = {}, schema = {}".format(
                 pretty_dbname, schema))
-            if db.db_flavour == rnc_db.DatabaseSupporter.FLAVOUR_MYSQL:
+            if db.db_flavour == rnc_db.DatabaseSupporter.FLAVOUR_SQLSERVER:
+                sql = """
+                    SELECT table_name, column_name, data_type, {}, NULL
+                    FROM information_schema.columns
+                    WHERE table_schema=?
+                """.format(rnc_db.DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR)
+            else:
                 sql = """
                     SELECT table_name, column_name, data_type, column_type,
                         column_comment
                     FROM information_schema.columns
                     WHERE table_schema=?
                 """
-            else:
-                sql = """
-                    SELECT table_name, column_name, data_type, {}, NULL
-                    FROM information_schema.columns
-                    WHERE table_schema=?
-                """.format(rnc_db.DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR)
             args = [schema]
             i = 0
             signatures = []
@@ -1710,6 +1718,7 @@ class DatabaseSafeConfig(object):
             "ddgen_per_table_pid_field",
             "ddgen_master_pid_fieldname",
             "ddgen_constant_content",
+            "ddgen_addition_only",
             "debug_row_limit",
         ])
         read_config_multiline_options(self, parser, section, [
@@ -1733,6 +1742,7 @@ class DatabaseSafeConfig(object):
         convert_attrs_to_bool(self, [
             "ddgen_allow_no_patient_info",
             "ddgen_constant_content",
+            "ddgen_addition_only",
         ], default=False)
         convert_attrs_to_int(self, [
             "debug_row_limit",
@@ -2669,9 +2679,13 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 0. If there's no source PK, we just delete everythong
     if not pkddr:
-        logger.debug(START + "... no source PK; deleting everything")
+        logger.info(START + "... no source PK; deleting everything")
         config.destdb.db_exec("DELETE FROM {}".format(dest_table))
         commit(config.destdb)
+        return
+
+    if SRCFLAG.ADDITION_ONLY in pkddr.src_flags:
+        logger.info("Table is marked as addition-only; not deleting anything")
         return
 
     # 1. Drop temporary table
@@ -3398,6 +3412,15 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
     commit(config.destdb)
 
 
+def show_source_counts():
+    logger.info("SOURCE TABLE RECORD COUNTS:")
+    for d in config.dd.get_source_databases():
+        db = config.sources[d]
+        for t in config.dd.get_src_tables(d):
+            n = db.count_where(t)
+            logger.info("{}.{}: {} records".format(d, t, n))
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -3451,6 +3474,8 @@ Sample usage (having set PYTHONPATH):
                         action="store_true",
                         help="When creating or adding to a data dictionary, "
                              "set the 'omit' flag to False. DANGEROUS.")
+    parser.add_argument("--count", action="store_true",
+                        help="Count records in source database(s) only")
     parser.add_argument("--dropremake", action="store_true",
                         help="Drop/remake destination tables only")
     parser.add_argument("--nonpatienttables", action="store_true",
@@ -3531,6 +3556,10 @@ Sample usage (having set PYTHONPATH):
         config.dd.read_from_source_databases(
             default_omit=(not args.makeddpermitbydefaultdangerous))
         print(config.dd.get_tsv())
+        return
+
+    if args.count:
+        show_source_counts()
         return
 
     # -------------------------------------------------------------------------
