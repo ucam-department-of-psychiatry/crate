@@ -605,6 +605,36 @@ A.  Out of memory.
         subset of documents (to make sure all documents are anonymised), let's
         add the debug_row_limit and debug_limited_tables options in the config.
 
+    Source:
+
+    2015-04-25 20:44:05.676:INFO:anonymise:crs_cdl_network.address: 394511 records
+    2015-04-25 20:44:05.701:INFO:anonymise:crs_cdl_network.alias: 58606 records
+    2015-04-25 20:44:05.722:INFO:anonymise:crs_cdl_network.assessment: 10874 records
+    2015-04-25 20:44:05.762:INFO:anonymise:crs_cdl_network.careplan: 17601 records
+    2015-04-25 20:44:05.820:INFO:anonymise:crs_cdl_network.careplangoal: 203553 records
+    2015-04-25 20:44:05.851:INFO:anonymise:crs_cdl_network.cdlinternalreferral: 5098 records
+    2015-04-25 20:44:05.869:INFO:anonymise:crs_cdl_network.cdlpatient: 13021 records
+    2015-04-25 20:44:05.878:INFO:anonymise:crs_cdl_network.cgas: 2523 records
+    2015-04-25 20:44:05.892:INFO:anonymise:crs_cdl_network.dependant: 953 records
+    2015-04-25 20:44:05.922:INFO:anonymise:crs_cdl_network.diagnosis: 74119 records
+    2015-04-25 20:44:06.075:INFO:anonymise:crs_cdl_network.documentlibrary: 691360 records
+    2015-04-25 20:44:06.081:INFO:anonymise:crs_cdl_network.employment_status: 11874 records
+    2015-04-25 20:44:06.093:INFO:anonymise:crs_cdl_network.honos: 16530 records
+    2015-04-25 20:44:06.098:INFO:anonymise:crs_cdl_network.honos_65: 11948 records
+    2015-04-25 20:44:06.112:INFO:anonymise:crs_cdl_network.honos_ca: 48 records
+    2015-04-25 20:44:06.140:INFO:anonymise:crs_cdl_network.honos_ld: 866 records
+    2015-04-25 20:44:06.151:INFO:anonymise:crs_cdl_network.honos_secure: 308 records
+    2015-04-25 20:44:06.164:INFO:anonymise:crs_cdl_network.living_arrangements: 676 records
+    2015-04-25 20:44:06.200:INFO:anonymise:crs_cdl_network.mpi: 159506 records
+    2015-04-25 20:44:06.216:INFO:anonymise:crs_cdl_network.personal_carers: 37788 records
+    2015-04-25 20:44:06.284:INFO:anonymise:crs_cdl_network.practicegp: 350050 records
+    2015-04-25 20:44:06.292:INFO:anonymise:crs_cdl_network.procedures: 2688 records
+    2015-04-25 20:44:06.376:INFO:anonymise:crs_cdl_network.referral: 353714 records
+    2015-04-25 20:44:06.983:INFO:anonymise:crs_cdl_network.schedules: 2948420 records
+    2015-04-25 20:44:07.028:INFO:anonymise:crs_cdl_network.team_episodes: 151836 records
+    2015-04-25 20:44:07.064:INFO:anonymise:crs_cdl_network.telephone: 148720 records
+    2015-04-25 20:44:07.097:INFO:anonymise:crs_cdl_network.ward_stays: 131985 records
+
 -------------------------------------------------------------------------------
 Q.  Crash when closing cursor after reading VARBINARY(MAX) field (via SQL
     Server JDBC interface, via jpype, via jaydebeapi).

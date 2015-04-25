@@ -2668,32 +2668,29 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     dest_table = config.dd.get_dest_table_for_src_db_table(srcdbname,
                                                            src_table)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
-    logger.info(
-        "delete_dest_rows_with_no_src_row: source table {}, "
-        "destination table {} [WARNING: MAY BE SLOW]".format(
-            src_table, dest_table))
     PKFIELD = "srcpk"
     START = "delete_dest_rows_with_no_src_row: {}.{} -> {}: ".format(
         srcdbname, src_table, dest_table
     )
+    logger.info(START + "[WARNING: MAY BE SLOW]")
 
     # 0. If there's no source PK, we just delete everythong
     if not pkddr:
-        logger.info(START + "... no source PK; deleting everything")
+        logger.info("... No source PK; deleting everything")
         config.destdb.db_exec("DELETE FROM {}".format(dest_table))
         commit(config.destdb)
         return
 
     if SRCFLAG.ADDITION_ONLY in pkddr.src_flags:
-        logger.info("Table is marked as addition-only; not deleting anything")
+        logger.info("... Table marked as addition-only; not deleting anything")
         return
 
     # 1. Drop temporary table
-    logger.debug(START + "... dropping temporary table")
+    logger.debug("... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
 
     # 2. Make temporary table
-    logger.debug(START + "... making temporary table")
+    logger.debug("... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
             {pkfield} BIGINT UNSIGNED PRIMARY KEY
@@ -2714,7 +2711,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         )
 
     n = srcdb.count_where(src_table)
-    logger.debug(START + "... populating temporary table")
+    logger.debug("... populating temporary table")
     i = 0
     records = []
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
@@ -2735,11 +2732,11 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     commit(config.destdb)
 
     # 4. Index
-    logger.debug(START + "... creating index on temporary table")
+    logger.debug("... creating index on temporary table")
     config.destdb.create_index(config.temporary_tablename, PKFIELD)
 
     # 5. DELETE FROM ... WHERE NOT IN ...
-    logger.debug(START + "... deleting from destination where appropriate")
+    logger.debug("... deleting from destination where appropriate")
     delete_sql = """
         DELETE FROM {dest_table}
         WHERE {dest_pk} NOT IN (
@@ -2754,7 +2751,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     config.destdb.db_exec(delete_sql)
 
     # 6. Drop temporary table
-    logger.debug(START + "... dropping temporary table")
+    logger.debug("... dropping temporary table")
     config.destdb.drop_table(config.temporary_tablename)
 
     # 6. Commit
@@ -3001,9 +2998,8 @@ def gen_pks(db, table, pkname):
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                   pid=None, scrubber=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
-    logger.debug(
-        "process_table: {}.{}, pid={}, incremental={}".format(
-            sourcedbname, sourcetable, pid, incremental))
+    START = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
+    logger.debug(START + "pid={}, incremental={}".format(pid, incremental))
 
     # Limit the data quantity for debugging?
     srccfg = config.srccfg[sourcedbname]
@@ -3028,7 +3024,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     destfields = []
     pkfield_index = None
     for i, ddr in enumerate(ddrows):
-        logger.debug("DD row: {}".format(str(ddr)))
+        # logger.debug("DD row: {}".format(str(ddr)))
         if SRCFLAG.PK in ddr.src_flags:
             pkfield_index = i
         sourcefields.append(ddr.src_field)
@@ -3042,7 +3038,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                         pkname=pkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
-            logger.info("... processing row {} of task set".format(n))
+            logger.info(START + "processing row {} of task set".format(n))
         if addhash:
             srchash = config.hash_list(row)
             if incremental and identical_record_exists_by_hash(
@@ -3145,11 +3141,10 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if config._bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True
         if early_commit:
-            logger.info("Triggering early commit")
+            logger.info(START + "Triggering early commit")
             commit(destdb)
 
-    logger.debug("process_table finished: {}.{}, pid={}".format(
-        sourcedbname, sourcetable, pid))
+    logger.debug(START + "finished: pid={}".format(pid))
     commit(destdb)
 
 
