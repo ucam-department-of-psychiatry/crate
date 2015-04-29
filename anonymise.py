@@ -1726,6 +1726,7 @@ class Config(object):
         self.destfieldinfo = []
         self._rows_in_transaction = 0
         self._bytes_in_transaction = 0
+        self.debug_scrubbers = False
 
     def set(self, filename=None, environ=None, include_sources=True,
             load_dd=True, load_destfields=True):
@@ -2315,7 +2316,15 @@ class Scrubber(object):
         self.re_tp = get_regex_from_elements(
             list(self.re_tp_elements))
         # Announce pointlessly
-        # logger.debug("Scrubber: {}".format(self.get_hash_string()))
+        if config.debug_scrubbers:
+            logger.debug(
+                "Patient scrubber: {}".format(
+                    self.get_regex_string_from_elements(
+                        self.re_patient_elements)))
+            logger.debug(
+                "Third party scrubber: {}".format(
+                    self.get_regex_string_from_elements(
+                        self.re_tp_elements)))
 
     def get_hash_string(self):
         return repr(self.re_patient_elements | self.re_tp_elements)
@@ -3383,6 +3392,9 @@ Sample usage (having set PYTHONPATH):
                         action="store_true",
                         help="When creating or adding to a data dictionary, "
                              "set the 'omit' flag to False. DANGEROUS.")
+    parser.add_argument("--debugscrubbers", action="store_true",
+                        help="Report sensitive scrubbing information, for "
+                             "debugging")
     parser.add_argument("--count", action="store_true",
                         help="Count records in source database(s) only")
     parser.add_argument("--dropremake", action="store_true",
@@ -3457,6 +3469,7 @@ Sample usage (having set PYTHONPATH):
     config.set(filename=args.configfile, load_dd=(not args.draftdd),
                load_destfields=False)
     config.report_every_n_rows = args.report
+    config.debug_scrubbers = args.debugscrubbers
 
     if args.draftdd or args.incrementaldd:
         # Note: the difference is that for incrementaldd, the data dictionary
