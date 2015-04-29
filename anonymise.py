@@ -25,129 +25,14 @@ Copyright/licensing:
     See the License for the specific language governing permissions and
     limitations under the License.
 
-Performance:
-
-    For a test source database mostly consisting of text (see makedata.py),
-    on a 8-core x 3.5-Ghz machine, including (non-full-text) indexing:
-
-from __future__ import division
-test_size_mb = 1887
-time_s = 84
-speed_mb_per_s = test_size_mb / time_s
-cpft_size_gb = 84
-estimated_cpft_time_min = cpft_size_gb * 1024 * time_s / (test_size_mb * 60)
-
-    Initial speed tests (Mb/s):
-        7.9 Mb/s with 1 process, 8 threads
-        8.6 Mb/s with 1 process, 16 threads
-        18.0 Mb/s with 8 patient processes + 1 for non-patient tables.
-        18.0 Mb/s with 16 patient processes + 1 for non-patient tables.
-    Most recent:
-        22.5 Mb/s with 8 patient processes + 1 for non-patient tables.
-    See launch_multiprocess.sh.
-    Guesstimate for Feb 2015 CPFT RiO database (about 84 Gb): 1 h 04 min.
-    Note that the full-text indexing is very slow, and would be extra.
-
-Incremental updates:
-
-    Where a full run takes 126s, an incremental run with nothing to do takes
-    11s.
-
-MySQL full-text indexing:
-
-    http://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html
-
-    Once indexed, change this conventional SQL:
-        SELECT something
-        WHERE field1 LIKE '%word%' OR field2 LIKE '%word%';
-
-    to one of these:
-        SELECT something
-        WHERE MATCH(field1, field2) AGAINST ('word');
-
-        SELECT something
-        WHERE MATCH(field1, field2) AGAINST ('word');
-
-    ... and there are some more subtle options.
-
-    Improves speed from e.g.:
-        SELECT brcid FROM notes WHERE note LIKE '%Citibank%';
-        ... 10.66 s
-    to:
-        SELECT brcid FROM idxnotes WHERE MATCH(note) AGAINST('citibank');
-        ...  0.49 s
-
-    NOTE: requires MySQL 5.6 to use FULLTEXT indexes with InnoDB tables (as
-    opposed to MyISAM tables, which don't support transactions).
-
-    On Ubuntu 14.04, default MySQL is 5.5, so use:
-        sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
-            mysql-client-5.6 mysql-client-core-5.6
-    ... but it does break dependences on (e.g.) mysql-server, so not yet done.
-
-
-Encryption/hashing
-
-- A normal PID might be an 'M' number, RiO number, or some other such system-
-  specific ID number. A master PID might be an NHS number.
-- There must not be collisions in the PID -> RID mapping; we need to keep our
-  patients separate.
-- The transformation must involve something unknown outside this (open-
-  source) code. If we used encrypted = hashlib.sha256(plaintext).hexdigest(),
-  then anybody could run that function over a bunch of integers from 0 to
-  9,999,999,999 and they'd have a simple way of reversing the algorithm for
-  all PIDs up to that value.
-- So the options are
-  (a) hash with a secret salt;
-  (b) hash with a random salt;
-  (c) encrypt with a secret key.
-- We can't use (b), because we want consistency in our PID -> RID mappings
-  when we we re-run the anonymisation.
-- We do need to reverse one or both transformations, for consent-to-contact
-  methods (and potentially clinicaly use), but only a superuser/research
-  database manager should be able to do this.
-- Thus, if we hash with a secret salt, we'd have to store the PID/RID mapping
-  somewhere safe.
-- If we encrypt, we can skip that storage and just keep the secret key.
-- We also want a consistent output length.
-- With encryption, if the key is leaked, everything encrypted with it is
-  available to those with access to the encrypted data. With a secret
-  constant salt, the same is true (given a dictionary attack, since the stuff
-  being encrypted is just a bunch of integers).
-- This is *not* the same problem as password storage, where we don't care if
-  two users have the same passwords. Here, we need to distinguish patients
-  by the RID. It may be acceptable to use a per-patient salt, and then store
-  the PID/RID mapping, but for an incremental update one would have to rely
-  on being able to retrieve the old PID/RID mapping, or the mapping would
-  change. So: per-patient salt wouldn't be safe for incremental updates.
-- We're left with (a) and (c). Both are in principle vulnerable to loss of
-  the secret information; but that will always be true of a reversible
-  system.
-- One benefit of encryption, is that we could use public-key encryption and
-  this program would then never need to know the decryption key (whereas with
-  a hash, it needs to know the salt, so loss of this program's config file
-  will be of concern). The decryption key can be stored somewhere especially
-  secret. However, RSA (for example) produces long output, e.g. 1024 bytes.
-- Remaining options then include:
-  (a) SHA256 hash with secret salt;
-  (c) AES256 encryption with secret key.
-  I don't think either has a strong advantage over the other, so since we do
-  have to be able to reverse the system, we might as well use AES256. But
-  then... AES should really have a random initialization vector (IV) used
-  (typically stored with the encrypted output, which is fine), but that means
-  that a second encryption of the same thing (e.g. for a second anonymisation
-  run) gives a different output.
-- If we want to use hex encoding and end up with an encrypted thing of length
-  32 bytes, then the actual pre-hex value needs to be 16 bytes, etc.
-- Anyway, pragmatic weakening of security for practical purposes: let's use
-  an MD5 hash with a secret salt.
-
-NOT YET IMPLEMENTED:
-
-- Incremental updates following small data dictionary changes, e.g. field
-  addition. Currently, these require a full re-run.
-
 CHANGE LOG:
+
+- v0.04, 2015-04-29
+  - Ability to vary audit/secret map tablenames.
+
+- v0.04, 2015-04-25
+  - Whole bunch of stuff to cope with a limited computer talking to SQL Server
+    with some idiosyncrasies.
 
 - v0.03, 2015-03-19
   - Bug fix for incremental update (previous version inserted rather than
@@ -248,15 +133,13 @@ import rnc_log
 # Global constants
 # =============================================================================
 
-VERSION = 0.03
-VERSION_DATE = "2015-03-19"
+VERSION = 0.05
+VERSION_DATE = "2015-04-29"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
 SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
 # ... in practice: VARCHAR(32)
-
-MAPPING_TABLE = "secret_map"
 
 DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
@@ -525,6 +408,7 @@ open_databases_securely = True
 
 # -----------------------------------------------------------------------------
 # Destination database configuration
+# See the [destination_database] section for connection details.
 # -----------------------------------------------------------------------------
 
 # Specify the maximum number of rows to be processed before a COMMIT is issued
@@ -546,6 +430,21 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 # name of a real destination table.
 
 temporary_tablename = _temp_table
+
+# -----------------------------------------------------------------------------
+# Admin database configuration
+# See the [admin_database] section for connection details.
+# -----------------------------------------------------------------------------
+
+# Table name to use for the secret patient ID to research ID mapping.
+# Usually no need to change the default.
+
+secret_map_tablename = secret_map
+
+# Table name to use for the audit trail of various types of access.
+# Usually no need to change the default.
+
+audit_tablename = audit
 
 # -----------------------------------------------------------------------------
 # List of source databases (each of which is defined in its own section).
@@ -574,10 +473,7 @@ password = XXX
 db = XXX
 
 # =============================================================================
-# Administrative database, containing these tables:
-# - secret_map: secret patient ID to research ID mapping.
-# - audit: audit trail of various types of access
-# User should have WRITE access.
+# Administrative database. User should have WRITE access.
 # =============================================================================
 
 [admin_database]
@@ -1802,6 +1698,8 @@ class Config(object):
         "max_rows_before_commit",
         "max_bytes_before_commit",
         "temporary_tablename",
+        "secret_map_tablename",
+        "audit_tablename",
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
@@ -1952,6 +1850,12 @@ class Config(object):
         if not self.temporary_tablename:
             raise ValueError("No temporary_tablename specified.")
         ensure_valid_field_name(self.temporary_tablename)
+        if not self.secret_map_tablename:
+            raise ValueError("No secret_map_tablename specified.")
+        ensure_valid_field_name(self.secret_map_tablename)
+        if not self.audit_tablename:
+            raise ValueError("No audit_tablename specified.")
+        ensure_valid_field_name(self.audit_tablename)
 
         # Test field names
         def validate_fieldattr(name):
@@ -2436,7 +2340,7 @@ def patient_scrubber_unchanged(admindb, patient_id, scrubber):
         WHERE {patient_id} = ?
         AND {scrubber_hash} = ?
     """.format(
-        table=MAPPING_TABLE,
+        table=config.secret_map_tablename,
         patient_id=config.mapping_patient_id_fieldname,
         scrubber_hash=config.source_hash_fieldname,
     )
@@ -2450,7 +2354,7 @@ def patient_in_map(admindb, patient_id):
         FROM {table}
         WHERE {patient_id} = ?
     """.format(
-        table=MAPPING_TABLE,
+        table=config.secret_map_tablename,
         patient_id=config.mapping_patient_id_fieldname,
     )
     row = admindb.fetchone(sql, patient_id)
@@ -2495,13 +2399,14 @@ def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
 def recreate_audit_table(db):
     logger.debug("recreate_audit_table")
     db.create_or_update_table(
-        AUDIT_TABLE,
+        config.audit_tablename,
         AUDIT_FIELDSPECS,
         drop_superfluous_columns=True,
         dynamic=True,
         compressed=False)
-    if not db.mysql_table_using_barracuda(AUDIT_TABLE):
-        db.mysql_convert_table_to_barracuda(AUDIT_TABLE, compressed=False)
+    if not db.mysql_table_using_barracuda(config.audit_tablename):
+        db.mysql_convert_table_to_barracuda(config.audit_tablename,
+                                            compressed=False)
 
 
 def insert_into_mapping_db(admindb, scrubber):
@@ -2516,7 +2421,7 @@ def insert_into_mapping_db(admindb, scrubber):
             SET {master_id} = ?, {master_research_id} = ?, {scrubber_hash} = ?
             WHERE {patient_id} = ?
         """.format(
-            table=MAPPING_TABLE,
+            table=config.secret_map_tablename,
             master_id=config.mapping_master_id_fieldname,
             master_research_id=config.master_research_id_fieldname,
             scrubber_hash=config.source_hash_fieldname,
@@ -2536,7 +2441,7 @@ def insert_into_mapping_db(admindb, scrubber):
                 ?
             )
         """.format(
-            table=MAPPING_TABLE,
+            table=config.secret_map_tablename,
             patient_id=config.mapping_patient_id_fieldname,
             research_id=config.research_id_fieldname,
             master_id=config.mapping_master_id_fieldname,
@@ -2554,7 +2459,7 @@ def insert_into_mapping_db(admindb, scrubber):
 def wipe_and_recreate_mapping_table(admindb, incremental=False):
     logger.debug("wipe_and_recreate_mapping_table")
     if not incremental:
-        admindb.drop_table(MAPPING_TABLE)
+        admindb.drop_table(config.secret_map_tablename)
     sql = """
         CREATE TABLE IF NOT EXISTS {table} (
             {patient_id} BIGINT UNSIGNED PRIMARY KEY,
@@ -2564,7 +2469,7 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
             {scrubber_hash} {hash_type}
         )
     """.format(
-        table=MAPPING_TABLE,
+        table=config.secret_map_tablename,
         hash_type=SQLTYPE_ENCRYPTED_PID,
         patient_id=config.mapping_patient_id_fieldname,
         research_id=config.research_id_fieldname,
@@ -2770,7 +2675,6 @@ def commit(destdb):
 # Audit
 # =============================================================================
 
-AUDIT_TABLE = "audit"
 AUDIT_FIELDSPECS = [
     dict(name="id", sqltype="INT UNSIGNED", pk=True, autoincrement=True,
          comment="Arbitrary primary key"),
@@ -2807,7 +2711,7 @@ def audit(details,
                 (when_access_utc, source, remote_addr, user, query, details)
             VALUES
                 (?,?,?,?,?,?)
-        """.format(table=AUDIT_TABLE),
+        """.format(table=config.audit_tablename),
         config.NOW_UTC_NO_TZ,  # when_access_utc
         source,
         remote_addr,

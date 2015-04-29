@@ -1,0 +1,497 @@
+===============================================================================
+Performance
+===============================================================================
+
+    For a test source database mostly consisting of text (see makedata.py),
+    on a 8-core x 3.5-Ghz machine, including (non-full-text) indexing:
+
+from __future__ import division
+test_size_mb = 1887
+time_s = 84
+speed_mb_per_s = test_size_mb / time_s
+cpft_size_gb = 84
+estimated_cpft_time_min = cpft_size_gb * 1024 * time_s / (test_size_mb * 60)
+
+    Initial speed tests (Mb/s):
+        7.9 Mb/s with 1 process, 8 threads
+        8.6 Mb/s with 1 process, 16 threads
+        18.0 Mb/s with 8 patient processes + 1 for non-patient tables.
+        18.0 Mb/s with 16 patient processes + 1 for non-patient tables.
+    Most recent:
+        22.5 Mb/s with 8 patient processes + 1 for non-patient tables.
+    See launch_multiprocess.sh.
+    Guesstimate for Feb 2015 CPFT RiO database (about 84 Gb): 1 h 04 min.
+    Note that the full-text indexing is very slow, and would be extra.
+
+Incremental updates:
+
+    Where a full run takes 126s, an incremental run with nothing to do takes
+    11s.
+
+MySQL full-text indexing:
+
+    http://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html
+
+    Once indexed, change this conventional SQL:
+        SELECT something
+        WHERE field1 LIKE '%word%' OR field2 LIKE '%word%';
+
+    to one of these:
+        SELECT something
+        WHERE MATCH(field1, field2) AGAINST ('word');
+
+        SELECT something
+        WHERE MATCH(field1, field2) AGAINST ('word');
+
+    ... and there are some more subtle options.
+
+    Improves speed from e.g.:
+        SELECT brcid FROM notes WHERE note LIKE '%Citibank%';
+        ... 10.66 s
+    to:
+        SELECT brcid FROM idxnotes WHERE MATCH(note) AGAINST('citibank');
+        ...  0.49 s
+
+    NOTE: requires MySQL 5.6 to use FULLTEXT indexes with InnoDB tables (as
+    opposed to MyISAM tables, which don't support transactions).
+
+    On Ubuntu 14.04, default MySQL is 5.5, so use:
+        sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
+            mysql-client-5.6 mysql-client-core-5.6
+    ... but it does break dependences on (e.g.) mysql-server, so not yet done.
+
+
+===============================================================================
+Encryption/hashing
+===============================================================================
+
+- A normal PID might be an 'M' number, RiO number, or some other such system-
+  specific ID number. A master PID might be an NHS number.
+- There must not be collisions in the PID -> RID mapping; we need to keep our
+  patients separate.
+- The transformation must involve something unknown outside this (open-
+  source) code. If we used encrypted = hashlib.sha256(plaintext).hexdigest(),
+  then anybody could run that function over a bunch of integers from 0 to
+  9,999,999,999 and they'd have a simple way of reversing the algorithm for
+  all PIDs up to that value.
+- So the options are
+  (a) hash with a secret salt;
+  (b) hash with a random salt;
+  (c) encrypt with a secret key.
+- We can't use (b), because we want consistency in our PID -> RID mappings
+  when we we re-run the anonymisation.
+- We do need to reverse one or both transformations, for consent-to-contact
+  methods (and potentially clinicaly use), but only a superuser/research
+  database manager should be able to do this.
+- Thus, if we hash with a secret salt, we'd have to store the PID/RID mapping
+  somewhere safe.
+- If we encrypt, we can skip that storage and just keep the secret key.
+- We also want a consistent output length.
+- With encryption, if the key is leaked, everything encrypted with it is
+  available to those with access to the encrypted data. With a secret
+  constant salt, the same is true (given a dictionary attack, since the stuff
+  being encrypted is just a bunch of integers).
+- This is *not* the same problem as password storage, where we don't care if
+  two users have the same passwords. Here, we need to distinguish patients
+  by the RID. It may be acceptable to use a per-patient salt, and then store
+  the PID/RID mapping, but for an incremental update one would have to rely
+  on being able to retrieve the old PID/RID mapping, or the mapping would
+  change. So: per-patient salt wouldn't be safe for incremental updates.
+- We're left with (a) and (c). Both are in principle vulnerable to loss of
+  the secret information; but that will always be true of a reversible
+  system.
+- One benefit of encryption, is that we could use public-key encryption and
+  this program would then never need to know the decryption key (whereas with
+  a hash, it needs to know the salt, so loss of this program's config file
+  will be of concern). The decryption key can be stored somewhere especially
+  secret. However, RSA (for example) produces long output, e.g. 1024 bytes.
+- Remaining options then include:
+  (a) SHA256 hash with secret salt;
+  (c) AES256 encryption with secret key.
+  I don't think either has a strong advantage over the other, so since we do
+  have to be able to reverse the system, we might as well use AES256. But
+  then... AES should really have a random initialization vector (IV) used
+  (typically stored with the encrypted output, which is fine), but that means
+  that a second encryption of the same thing (e.g. for a second anonymisation
+  run) gives a different output.
+- If we want to use hex encoding and end up with an encrypted thing of length
+  32 bytes, then the actual pre-hex value needs to be 16 bytes, etc.
+- Anyway, pragmatic weakening of security for practical purposes: let's use
+  an MD5 hash with a secret salt.
+
+===============================================================================
+NOT YET IMPLEMENTED
+===============================================================================
+
+- Incremental updates following small data dictionary changes, e.g. field
+  addition. Currently, these require a full re-run.
+
+===============================================================================
+Z. NOTES
+===============================================================================
+
+-------------------------------------------------------------------------------
+Q.  Segmentation fault (core dumped)... ?
+-------------------------------------------------------------------------------
+A.  Short answer: use the Microsoft JDBC driver instead of the Microsoft ODBC
+    driver for Linux, which is buggy.
+
+    Long answer, i.e. working this out:
+
+    Examine the core with gdb anonymise.py ~/core
+    ... then it tells you which program generated the core
+    ... then gdb PROGRAM ~/core
+    ... but actually the likely reason is being out of RAM
+    ... monitor memory use with
+            htop
+            top (press M)
+            watch free -m
+                http://www.linuxatemyram.com/
+    ... tried: reduce the innodb_thread_concurrency variable as above, and
+        restart MySQL (under Ubuntu/Debian, with: sudo service mysql restart).
+        - didn't fix it
+    ... for 32M max_allowed_packet, use 320M (not 512M) for the logfile
+        - did significantly reduce memory usage, but still crashed, and not
+          while processing a large record
+        - longest BLOB in this data set is
+    So, systematic method:
+    (1) What's the biggest packet needed? Estimate with:
+            SELECT MAX(LEN(giantbinaryfield)) FROM relevanttable;
+        ... in our case (CRS/CDL test): 39,294,299 = 37.47 MiB.
+        So with a bit of margin, let's use
+            max_allowed_packet = 40M
+            innodb_log_file_size = 400M
+    (2) Then set max number of rows and bytes, e.g. to 1000 rows and 80 MiB.
+    OK, actually relates to a single specific record -- found using MySQL
+    log with
+            SET GLOBAL general_log = 'ON';
+            SHOW VARIABLES LIKE 'general_log_file';
+    ... but actually not relating to insertion at all, but to retrieval
+    ... nrows=90060 then crash in gen_rows at the point of cursor.fetchone()
+    ... This?
+        http://stackoverflow.com/questions/11657958
+        https://code.google.com/p/pyodbc/issues/detail?id=346
+        https://msdn.microsoft.com/en-us/library/hh568448.aspx
+        https://code.google.com/p/pyodbc/issues/detail?id=188
+    ... changing rnc_db to use pypyodbc rather than pyodbc:
+            sudo pip install pypyodbc
+            import pypyodbc as pyodbc
+        ... crashed at the same point (segfault).
+        ... so back to pyodbc
+    ... git clone https://github.com/mkleehammer/pyodbc
+        ... getdata.cpp, as one bughunt above suggested, already has that fix
+    ... sudo pip install pyodbc --upgrade  # from 3.0.6 to 3.0.7
+        ... no change
+    ... try the query using Perl and DBI::ODBC -- also crashes.
+        So probably a bug in the SQL Server Native Client 11.0 for Linux.
+    ... can't use FreeTDS because the SQL Server won't let us login (another
+        Microsoft bug).
+    ... removing the VARCHAR(MAX) fields from the data dictionary makes it happy again.
+    ... random: http://www.saltycrane.com/blog/2011/09/notes-sqlalchemy-w-pyodbc-freetds-ubuntu/
+
+    [Full details in private log.]
+
+    Switched to the JDBC driver.
+    Problem went away.
+
+
+-------------------------------------------------------------------------------
+Q.  "Killed."
+-------------------------------------------------------------------------------
+A.  Out of memory.
+    Suggest
+    - Reduce MySQL memory footprint; see notes below.
+    Testing on a rather small machine (0.5 Gb RAM, 1 Gb swap).
+    Inspect what was running:
+
+        # cat /var/log/syslog
+
+    Remove memory-hogging things:
+
+        # apt-get purge modemmanager
+        - change the report_crashes parameter to false in the /etc/default/whoopsie file.
+        # service whoopsie stop
+        # apt-get remove unity unity-asset-pool unity-control-center unity-control-center-signon unity-gtk-module-common unity-lens* unity-services unity-settings-daemon unity-webapps* unity-voice-service
+        ... NOT YET REMOVED: network-manager
+
+    Inspect it:
+
+        # pmap -x <process_id>
+
+    Leaks?
+    - http://www.lshift.net/blog/2008/11/14/tracing-python-memory-leaks/
+
+        $ python -m pdb ./anonymise.py
+        (Pdb) run crs_cdl_anon.ini -v
+        (Pdb) c
+
+    Use openDBcopy to copy the database: http://opendbcopy.sourceforge.net/
+
+        Prerequisites
+            export JAVA_HOME=/usr/lib/jvm/default-java
+            cd ~/openDBcopy/bin
+            ./start.sh &
+
+        Plugin chain:
+
+            - Migrate database schema (DDL)
+
+                0.  Configuration
+
+                1.  Database connections
+                    SOURCE
+                        Driver name = Microsoft MSSQL Server JDBC Driver
+                        Driver class = com.microsoft.sqlserver.jdbc.SQLServerDriver
+                        URL = jdbc:sqlserver://XXX:1433;databaseName=XXX
+                        User name = XXX
+                        Password = XXX
+                    DESTINATION
+                        Driver name = MySQL Driver
+                        Driver class = com.mysql.jdbc.Driver
+                        URL = jdbc:mysql://localhost:3306/DATABASENAME
+                        User name = XXX
+                        Password = XXX
+                    TEST BOTH.
+
+                2.  Source model
+                        Catalog = [DATABASE NAME]
+                        Schema = dbo
+                        Table pattern = %
+                    CAPTURE SOURCE MODEL.
+
+                3.  Tables to migrate
+                        = all by default
+
+                4.  Columns to migrate
+                        = all by default
+
+            - Copy data from a source into a destination database
+
+        ... NOT WORKING.
+
+    - http://stackoverflow.com/questions/27068092/jpype-java-initialize-with-or-get-remaining-heap-space
+
+    - http://stackoverflow.com/questions/1178736/mysql-maximum-memory-usage
+    - SHOW ENGINE INNODB STATUS
+
+    USEFUL THINGS:
+    - see estimate_mysql_memory_usage.sh
+    - changed innodb_buffer_pool_size from 128M to 16M
+        ... big improvement; mysqld %MEM (in top) went from ~30% to ~10%
+    - RTF processing takes lots of memory, using Python/pyth
+        ... significant improvement after switching to Linux/unrtf
+        ... similarly, using Linux/pdftotext rather than Python/pdfminer
+
+    AFTERWARDS:
+    - Show table size and number of rows in MySQL (note: APPROXIMATE):
+
+        SELECT table_name AS 'Table',
+            ROUND(((data_length + index_length) / 1024 / 1024), 2) AS "Size in MiB",
+            table_rows AS 'Approx. # rows'
+        FROM information_schema.TABLES
+        WHERE table_schema = DATABASE()
+        ORDER BY table_name;
+
+    TEMPORARY HOLDUP: not enough disk space (~9.2 Gb on CPFT test machine):
+
+        +---------------------+-------------+------------+
+        | Table               | Size in MiB | table_rows |
+        +---------------------+-------------+------------+
+        | address             |       63.61 |     431262 |
+        | alias               |        5.52 |      58468 |
+        | assessment          |      256.63 |       9725 |
+        | careplan            |      191.64 |      16801 |
+        | careplangoal        |       98.64 |     187922 |
+        | cdlinternalreferral |        2.52 |       4679 |
+        | cdlpatient          |        2.52 |      14014 |
+        | cgas                |        1.52 |       2571 |
+        | dependant           |        0.13 |       1001 |
+        | diagnosis           |        8.52 |      76361 |
+        | documentlibrary     |     3795.00 |     474874 |
+        | employment_status   |        0.02 |          0 |
+        | exclude             |        0.02 |          0 |
+        | honos               |        0.02 |          0 |
+        | honos_65            |        0.02 |          0 |
+        | honos_ca            |        0.02 |          0 |
+        | honos_ld            |        0.02 |          0 |
+        | honos_secure        |        0.02 |          0 |
+        | living_arrangements |        0.02 |          0 |
+        | mpi                 |        0.02 |          0 |
+        | personal_carers     |        0.02 |          0 |
+        | practicegp          |        0.02 |          0 |
+        | procedures          |        0.02 |          0 |
+        | referral            |        0.02 |          0 |
+        | schedules           |        0.02 |          0 |
+        | team_episodes       |        0.02 |          0 |
+        | telephone           |        0.02 |          0 |
+        | ward_stays          |        0.02 |          0 |
+        +---------------------+-------------+------------+
+        28 rows in set (0.42 sec)
+
+        ... THEN OUT OF DISK SPACE:
+
+        _mysql_exceptions.OperationalError: (1114, "The table 'documentlibrary' is full")
+
+        Since we want to test with all patients being processed but only a
+        subset of documents (to make sure all documents are anonymised), let's
+        add the debug_row_limit and debug_limited_tables options in the config.
+
+    Source (NB exact number of rows):
+
+    2015-04-25 20:44:05.676:INFO:anonymise:crs_cdl_network.address: 394511 records
+    2015-04-25 20:44:05.701:INFO:anonymise:crs_cdl_network.alias: 58606 records
+    2015-04-25 20:44:05.722:INFO:anonymise:crs_cdl_network.assessment: 10874 records
+    2015-04-25 20:44:05.762:INFO:anonymise:crs_cdl_network.careplan: 17601 records
+    2015-04-25 20:44:05.820:INFO:anonymise:crs_cdl_network.careplangoal: 203553 records
+    2015-04-25 20:44:05.851:INFO:anonymise:crs_cdl_network.cdlinternalreferral: 5098 records
+    2015-04-25 20:44:05.869:INFO:anonymise:crs_cdl_network.cdlpatient: 13021 records
+    2015-04-25 20:44:05.878:INFO:anonymise:crs_cdl_network.cgas: 2523 records
+    2015-04-25 20:44:05.892:INFO:anonymise:crs_cdl_network.dependant: 953 records
+    2015-04-25 20:44:05.922:INFO:anonymise:crs_cdl_network.diagnosis: 74119 records
+    2015-04-25 20:44:06.075:INFO:anonymise:crs_cdl_network.documentlibrary: 691360 records
+    2015-04-25 20:44:06.081:INFO:anonymise:crs_cdl_network.employment_status: 11874 records
+    2015-04-25 20:44:06.093:INFO:anonymise:crs_cdl_network.honos: 16530 records
+    2015-04-25 20:44:06.098:INFO:anonymise:crs_cdl_network.honos_65: 11948 records
+    2015-04-25 20:44:06.112:INFO:anonymise:crs_cdl_network.honos_ca: 48 records
+    2015-04-25 20:44:06.140:INFO:anonymise:crs_cdl_network.honos_ld: 866 records
+    2015-04-25 20:44:06.151:INFO:anonymise:crs_cdl_network.honos_secure: 308 records
+    2015-04-25 20:44:06.164:INFO:anonymise:crs_cdl_network.living_arrangements: 676 records
+    2015-04-25 20:44:06.200:INFO:anonymise:crs_cdl_network.mpi: 159506 records
+    2015-04-25 20:44:06.216:INFO:anonymise:crs_cdl_network.personal_carers: 37788 records
+    2015-04-25 20:44:06.284:INFO:anonymise:crs_cdl_network.practicegp: 350050 records
+    2015-04-25 20:44:06.292:INFO:anonymise:crs_cdl_network.procedures: 2688 records
+    2015-04-25 20:44:06.376:INFO:anonymise:crs_cdl_network.referral: 353714 records
+    2015-04-25 20:44:06.983:INFO:anonymise:crs_cdl_network.schedules: 2948420 records
+    2015-04-25 20:44:07.028:INFO:anonymise:crs_cdl_network.team_episodes: 151836 records
+    2015-04-25 20:44:07.064:INFO:anonymise:crs_cdl_network.telephone: 148720 records
+    2015-04-25 20:44:07.097:INFO:anonymise:crs_cdl_network.ward_stays: 131985 records
+
+    After phase 1 of copying/text extraction, with a 1000-row limit on the
+    documentlibrary table (NB approximate number of rows):
+
+    +---------------------+-------------+----------------+
+    | Table               | Size in MiB | Approx. # rows |
+    +---------------------+-------------+----------------+
+    | address             |       70.13 |         425752 |
+    | alias               |        7.03 |          59073 |
+    | assessment          |      256.83 |          10318 |
+    | careplan            |      191.95 |          20559 |
+    | careplangoal        |      102.16 |         192640 |
+    | cdlinternalreferral |        2.63 |           4741 |
+    | cdlpatient          |        2.75 |          13209 |
+    | cgas                |        1.59 |           2505 |
+    | dependant           |        0.14 |            886 |
+    | diagnosis           |       10.03 |          75277 |
+    | documentlibrary     |        8.56 |           1274 |
+    | employment_status   |        1.73 |          11945 |
+    | exclude             |        0.02 |              0 |
+    | honos               |        9.81 |          16171 |
+    | honos_65            |        5.73 |          11701 |
+    | honos_ca            |        0.06 |             63 |
+    | honos_ld            |        0.50 |            912 |
+    | honos_secure        |        0.23 |            309 |
+    | living_arrangements |        0.11 |            588 |
+    | mpi                 |       28.08 |         160866 |
+    | personal_carers     |        7.03 |          38366 |
+    | practicegp          |       80.13 |         354670 |
+    | procedures          |        0.44 |           2225 |
+    | referral            |      109.17 |         357245 |
+    | schedules           |      990.59 |        2952553 |
+    | team_episodes       |       35.08 |         151676 |
+    | telephone           |       17.03 |         149018 |
+    | ward_stays          |       29.08 |         131564 |
+    +---------------------+-------------+----------------+
+
+
+-------------------------------------------------------------------------------
+Q.  Crash when closing cursor after reading VARBINARY(MAX) field (via SQL
+    Server JDBC interface, via jpype, via jaydebeapi).
+-------------------------------------------------------------------------------
+A.  Short answer: fixed internally (in rnc_db.py) by reconfiguring the SQL
+    Server JDBC connection.
+
+    Long answer/thoughts:
+
+    ps aux
+    gdb -p 28896
+    backtrace
+
+        #0  0x00007fbfd1b3f14b in __libc_recv (fd=21, buf=0x7fff06f5a300, n=8,
+            flags=-1) at ../sysdeps/unix/sysv/linux/x86_64/recv.c:33
+        #1  0x00007fbfc09ece1d in ?? ()
+           from /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/libnet.so
+        #2  0x00007fbfc09e8bd0 in Java_java_net_SocketInputStream_socketRead0 ()
+           from /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/libnet.so
+        #3  0x00007fbfc10989a1 in ?? ()
+        #4  0x0000000000000000 in ?? ()
+
+    Related to this bug?
+        https://bugs.openjdk.java.net/browse/JDK-8049846
+
+    Occurs when you call cursor.close() of jaydebeapi:
+        https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
+
+    Unrelated to any conversion that I was doing.
+
+    sudo apt-get remove openjdk-7-jre  # though didn't get rid of java
+
+    sudo add-apt-repository ppa:webupd8team/java
+    sudo apt-get update
+    sudo apt-get install oracle-java8-installer
+
+    ... no help
+
+    Thoughts:
+        https://code.google.com/p/jyjdbc/source/browse/jyjdbc/__init__.py
+        https://social.technet.microsoft.com/Forums/en-US/430b4352-92c9-4a5c-98b5-f96643009453/jdbc-driver-thread-stuck-infinite-while-closing-result-set-locked?forum=sqldataaccess
+        https://bugs.mysql.com/bug.php?id=74739
+
+    Nasty workaround:
+        don't close the cursors; use a set for each database?
+        ... didn't help: crashed on the table *after* the one with the
+        VARBINARY(MAX) field.
+
+    SQL Server / JDBC driver / connection properties:
+        https://msdn.microsoft.com/en-us/library/ms378672(v=sql.110).aspx
+    ... and data types:
+        https://msdn.microsoft.com/en-us/library/ms378813(v=sql.110).aspx
+
+    FIXED!
+        Use responseBuffering = adaptive in the settings for the SQL Server
+        JDBC driver.
+        https://msdn.microsoft.com/en-us/library/ms378988(SQL.90).aspx
+
+    ---------------------------------------------------------------------------
+    Enabling JDBC logging
+    ---------------------------------------------------------------------------
+        https://msdn.microsoft.com/en-us/library/ms378517(v=sql.110).aspx
+    $ find /usr -name "logging.properties"
+        /usr/lib/jvm/java-7-openjdk-amd64/jre/lib/logging.properties
+        /usr/lib/jvm/java-8-oracle/jre/lib/logging.properties
+            ... this one (check with: java -version)
+    Default handler is the console. Unchanged line:
+        # handlers = java.util.logging.ConsoleHandler
+        handlers = java.util.logging.ConsoleHandler, java.util.logging.FileHandler
+    Add line:
+        com.microsoft.sqlserver.jdbc.level=FINEST
+    Change logger level:
+        java.util.logging.ConsoleHandler.level = FINEST
+    OR configure file handler:
+        java.util.logging.FileHandler.pattern = %h/java%u.log
+        java.util.logging.FileHandler.limit = 5000000
+        java.util.logging.FileHandler.count = 20
+        java.util.logging.FileHandler.formatter = java.util.logging.SimpleFormatter
+        java.util.logging.FileHandler.level = FINEST
+
+
+    Python 3 changes -- not done, but some notes:
+
+    $ sudo apt-get install python3-pip
+
+    import bcrypt  # sudo apt-get install python3-bcrypt
+    import configparser  # was: import ConfigParser
+    import dateutil  # sudo apt-get install python3-dateutil
+    import M2Crypto  # sudo apt-get install swig; sudo pip3 install M2Crypto  # *** INSTALLS BUT FAILS TO IMPORT
+    import pytz  # sudo pip3 install pytz
+    import regex  # sudo apt-get install python3-regex
+    import sortedcontainers  # sudo pip3 install sortedcontainers
