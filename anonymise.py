@@ -965,7 +965,7 @@ class DataDictionaryRow(object):
                     cfg.ddgen_safe_fields_exempt_from_scrubbing):
                 self._scrub = True
         elif (is_sqltype_text_of_length_at_least(
-                datatype_full, config.ddgen_min_length_for_scrubbing)
+                datatype_full, cfg.ddgen_min_length_for_scrubbing)
                 and not self.omit
                 and SRCFLAG.PRIMARYPID not in self.src_flags
                 and SRCFLAG.MASTERPID not in self.src_flags
@@ -1623,8 +1623,8 @@ class DatabaseSafeConfig(object):
             "ddgen_master_pid_fieldname",
             "ddgen_constant_content",
             "ddgen_addition_only",
-            "debug_row_limit",
             "ddgen_min_length_for_scrubbing",
+            "debug_row_limit",
         ])
         read_config_multiline_options(self, parser, section, [
             "ddgen_pk_fields",
