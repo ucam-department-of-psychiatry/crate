@@ -116,6 +116,7 @@ from rnc_db import (
     is_sqltype_integer,
     is_sqltype_numeric,
     is_sqltype_text_over_one_char,
+    is_sqltype_text_of_length_at_least,
     is_sqltype_valid,
 )
 from rnc_extract_text import document_to_text
@@ -549,6 +550,9 @@ ddgen_scrubmethod_number_fields =
 #   Known safe fields, exempt from scrubbing
 ddgen_safe_fields_exempt_from_scrubbing =
 
+#   Define minimum text field length for scrubbing (shorter is assumed safe)
+ddgen_min_length_for_scrubbing = 4
+
 #   Other default manipulations
 ddgen_truncate_date_fields =
 
@@ -598,6 +602,7 @@ ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubmethod_date_fields =
 ddgen_scrubmethod_number_fields =
 ddgen_safe_fields_exempt_from_scrubbing =
+ddgen_min_length_for_scrubbing = 4
 ddgen_truncate_date_fields =
 ddgen_filename_to_text_fields =
 ddgen_binary_to_text_field_pairs =
@@ -731,6 +736,8 @@ ddgen_safe_fields_exempt_from_scrubbing = _device
     gamble_start_time
     gamble_response_time
     likelihood
+
+ddgen_min_length_for_scrubbing = 4
 
 ddgen_truncate_date_fields = _patient_dob
 ddgen_filename_to_text_fields =
@@ -957,7 +964,8 @@ class DataDictionaryRow(object):
             if (self.src_field not in
                     cfg.ddgen_safe_fields_exempt_from_scrubbing):
                 self._scrub = True
-        elif (is_sqltype_text_over_one_char(datatype_full)
+        elif (is_sqltype_text_of_length_at_least(
+                datatype_full, config.ddgen_min_length_for_scrubbing)
                 and not self.omit
                 and SRCFLAG.PRIMARYPID not in self.src_flags
                 and SRCFLAG.MASTERPID not in self.src_flags
@@ -1616,6 +1624,7 @@ class DatabaseSafeConfig(object):
             "ddgen_constant_content",
             "ddgen_addition_only",
             "debug_row_limit",
+            "ddgen_min_length_for_scrubbing",
         ])
         read_config_multiline_options(self, parser, section, [
             "ddgen_pk_fields",
@@ -1642,6 +1651,7 @@ class DatabaseSafeConfig(object):
         ], default=False)
         convert_attrs_to_int(self, [
             "debug_row_limit",
+            "ddgen_min_length_for_scrubbing"
         ], default=0)
         self.bin2text_dict = {}
         for pair in self.ddgen_binary_to_text_field_pairs:
