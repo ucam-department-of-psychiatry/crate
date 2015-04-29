@@ -829,6 +829,7 @@ class DatabaseSupporter:
     FLAVOUR_ACCESS = "access"
     PYTHONLIB_MYSQLDB = "mysqldb"
     PYTHONLIB_PYODBC = "pyodbc"
+    PYTHONLIB_JAYDEBEAPI = "jaydebeapi"
     MYSQL_COLUMN_TYPE_EXPR = "column_type"
     SQLSERVER_COLUMN_TYPE_EXPR = """
         (CASE
@@ -944,6 +945,7 @@ class DatabaseSupporter:
             #     raise ValueError("Missing database parameter")
             if user is None:
                 raise ValueError("Missing user parameter")
+            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_JAYDEBEAPI
         else:
             raise ValueError("Unknown interface")
 
@@ -2247,7 +2249,9 @@ class DatabaseSupporter:
     def java_garbage_collect(self):
         # http://stackoverflow.com/questions/1903041
         # http://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html
-        if not JDBC_AVAILABLE or self.interface != INTERFACE_JDBC:
+        if not JDBC_AVAILABLE:
+            return
+        if self.db_pythonlib != DatabaseSupporter.PYTHONLIB_JAYDEBEAPI:
             return
         logger.info("Calling Java garbage collector...")
         rt = jpype.java.lang.Runtime.getRuntime()
