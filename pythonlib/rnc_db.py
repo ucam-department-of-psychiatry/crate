@@ -2240,17 +2240,16 @@ class DatabaseSupporter:
     def get_schema(self):
         return self.fetchvalue("SELECT {}".format(self.schema_expr))
 
+    # =========================================================================
+    # Debugging
+    # =========================================================================
 
-# =============================================================================
-# Debugging
-# =============================================================================
-
-def java_garbage_collect():
-    # http://stackoverflow.com/questions/1903041
-    # http://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html
-    if not JDBC_AVAILABLE:
-        return
-    logger.info("Calling Java garbage collector...")
-    rt = jpype.java.lang.Runtime.getRuntime()
-    rt.gc()
-    logger.info("... done")
+    def java_garbage_collect(self):
+        # http://stackoverflow.com/questions/1903041
+        # http://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html
+        if not JDBC_AVAILABLE or self.interface != INTERFACE_JDBC:
+            return
+        logger.info("Calling Java garbage collector...")
+        rt = jpype.java.lang.Runtime.getRuntime()
+        rt.gc()
+        logger.info("... done")
