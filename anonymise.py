@@ -2319,11 +2319,11 @@ class Scrubber(object):
         if config.debug_scrubbers:
             logger.debug(
                 "Patient scrubber: {}".format(
-                    self.get_regex_string_from_elements(
+                    get_regex_string_from_elements(
                         self.re_patient_elements)))
             logger.debug(
                 "Third party scrubber: {}".format(
-                    self.get_regex_string_from_elements(
+                    get_regex_string_from_elements(
                         self.re_tp_elements)))
 
     def get_hash_string(self):
