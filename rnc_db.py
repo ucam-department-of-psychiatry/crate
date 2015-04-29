@@ -516,13 +516,17 @@ def is_sqltype_date(datatype_long):
     return datatype_short in SQLTYPES_WITH_DATE
 
 
-def is_sqltype_text_over_one_char(datatype_long):
+def is_sqltype_text_of_length_at_least(datatype_long, min_length):
     (datatype_short, length) = split_long_sqltype(datatype_long)
-    possibles_short_text = ["CHAR(1)", "VARCHAR(1)"]
-    return not (
-        datatype_short in SQLTYPES_NOT_TEXT
-        or datatype_long in possibles_short_text
-    )
+    if datatype_short not in SQLTYPES_TEXT:
+        return False
+    if length is None:  # text, with no length, e.g. VARCHAR(MAX)
+        return True
+    return length >= min_length
+
+
+def is_sqltype_text_over_one_char(datatype_long):
+    return is_sqltype_text_of_length_at_least(datatype_long, 2)
 
 
 def is_sqltype_binary(datatype_long):
