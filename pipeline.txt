@@ -315,6 +315,29 @@ c)  You're all set.
 SQL.
 
 ===============================================================================
+6. HOT-SWAPPING TWO DATABASES
+===============================================================================
+
+Since anonymisation is slow, you may want a live research database and another
+that you can update offline. When you're ready to swap, you'll want to
+
+    - create DEFUNCT
+    - rename LIVE -> DEFUNCT
+    - rename OFFLINE -> LIVE
+
+then either revert:
+    - rename LIVE -> OFFLINE
+    - rename DEFUNCT -> LIVE
+
+or commit:
+    - drop DEFUNCT
+
+How?
+
+    http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
+    https://gist.github.com/michaelmior/1173781
+
+===============================================================================
 X. TROUBLESHOOTING
 ===============================================================================
 
