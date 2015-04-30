@@ -34,6 +34,8 @@ CHANGE LOG:
   - min_string_length_to_scrub_with option
   - words_not_to_scrub option
   - bugfix: date regex couldn't cope with years prior to 1900
+  - gen_all_values_for_patient() was inefficient in that it would process the
+    same source table multiple times to retrieve different fields.
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -1390,7 +1392,8 @@ class DataDictionary(object):
         self.cached_source_databases = SortedSet()
         self.cached_srcdb_table_pairs = SortedSet()
         self.cached_srcdb_table_pairs_w_pt_info = SortedSet()  # w = with
-        self.cached_scrub_from_rows = []
+        self.cached_scrub_from_db_table_pairs = SortedSet()
+        self.cached_scrub_from_rows = {}
         self.cached_src_tables = {}
         self.cached_src_tables_w_pt_info = {}  # w = with
         src_tables_with_dest = {}
@@ -1424,6 +1427,8 @@ class DataDictionary(object):
             if db_t_key not in self.cached_dest_tables_for_src_db_table:
                 self.cached_dest_tables_for_src_db_table[db_t_key] = \
                     SortedSet()
+            if db_t_key not in self.cached_scrub_from_rows:
+                self.cached_scrub_from_rows[db_t_key] = SortedSet()
 
             # Destination table-oriented maps
             if ddr.dest_table not in self.cached_src_dbtables_for_dest_table:
@@ -1445,7 +1450,8 @@ class DataDictionary(object):
 
             # Is it a scrub-from row?
             if ddr.scrub_src:
-                self.cached_scrub_from_rows.append(ddr)
+                self.cached_scrub_from_db_table_pairs.add(db_t_key)
+                self.cached_scrub_from_rows[db_t_key].add(ddr)
                 # ... even if omit flag set
 
             # Is it a src_pk row, contributing to src_hash info?
@@ -1666,8 +1672,11 @@ class DataDictionary(object):
     def get_fieldnames_for_src_table(self, src_db, src_table):
         return self.cached_fieldnames_for_src_table[(src_db, src_table)]
 
-    def get_scrub_from_rows(self):
-        return self.cached_scrub_from_rows
+    def get_scrub_from_db_table_pairs(self):
+        return self.cached_scrub_from_db_table_pairs
+
+    def get_scrub_from_rows(self, src_db, src_table):
+        return self.cached_scrub_from_rows[(src_db, src_table)]
 
     def get_tsv(self):
         return "\n".join(
@@ -2335,18 +2344,26 @@ class Scrubber(object):
         self.re_patient_elements = set()
         self.re_tp_elements = set()
         logger.debug("building scrubber")
-        for ddr in config.dd.get_scrub_from_rows():
-            scrub_method = self.get_scrub_method(ddr.src_datatype,
-                                                 ddr.scrub_method)
-            is_patient = ddr.scrub_src == SCRUBSRC.PATIENT
-            for v in gen_all_values_for_patient(sources,
-                                                ddr.src_db,
-                                                ddr.src_table,
-                                                ddr.src_field, pid):
-                self.add_value(v, scrub_method, is_patient)
-                if self.mpid is None and SRCFLAG.MASTERPID in ddr.src_flags:
-                    # We've come across the master ID.
-                    self.mpid = v
+        db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
+        for (src_db, src_table) in db_table_pair_list:
+            ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
+            fields = []
+            scrub_methods = []
+            is_patient = []
+            is_mpid = []
+            for ddr in ddrows:
+                fields.append(ddr.src_field)
+                scrub_methods.append(self.get_scrub_method(ddr.src_datatype,
+                                                           ddr.scrub_method))
+                is_patient.append(ddr.scrub_src == SCRUBSRC.PATIENT)
+                is_mpid.append(SRCFLAG.MASTERPID in ddr.src_flags)
+            for vlist in gen_all_values_for_patient(sources, src_db, src_table,
+                                                    fields, pid):
+                for i in xrange(vlist):
+                    self.add_value(vlist[i], scrub_methods[i], is_patient[i])
+                    if self.mpid is None and is_mpid[i]:
+                        # We've come across the master ID.
+                        self.mpid = vlist[i]
         self.finished_adding()
 
     @staticmethod
@@ -2931,29 +2948,24 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             row = cursor.fetchone()
 
 
-def gen_all_values_for_patient(sources, dbname, table, field, pid):
+def gen_all_values_for_patient(sources, dbname, table, fields, pid):
     cfg = config.srccfg[dbname]
     if not cfg.ddgen_per_table_pid_field:
         return
         # http://stackoverflow.com/questions/13243766
-    logger.debug("gen_all_values_for_patient: {d}.{t}.{f} for PID {p}".format(
-        d=dbname, t=table, f=field, p=pid))
+    logger.debug(
+        "gen_all_values_for_patient: PID {p}, table {d}.{t}, "
+        "fields: {f}".format(
+            d=dbname, t=table, f=",".join(fields), p=pid))
     db = sources[dbname]
-    sql = """
-        SELECT {field}
-        FROM {table}
-        WHERE {patient_id_field} = ?
-    """.format(
-        field=field,
-        table=table,
-        patient_id_field=cfg.ddgen_per_table_pid_field
-    )
+    sql = rnc_db.get_sql_select_all_fields_by_key(
+        table, fields, cfg.ddgen_per_table_pid_field, delims=db.delims)
     args = [pid]
     cursor = db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)
     row = cursor.fetchone()
     while row is not None:
-        yield row[0]
+        yield row
         row = cursor.fetchone()
 
 
