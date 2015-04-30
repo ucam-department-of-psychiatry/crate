@@ -38,6 +38,7 @@ CHANGE LOG:
     same source table multiple times to retrieve different fields.
   - ddgen_index_fields option
   - simplification of get_anon_fragments_from_string()
+  - SCRUBMETHOD.CODE, particularly for postcodes.
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -52,7 +53,7 @@ CHANGE LOG:
     anonymisation of e.g. 19Mar2015, 19800101.
   - New default at_word_boundaries_only=False for get_date_regex_elements(),
     allowing anonymisation of ISO8601-format dates (e.g. 1980-10-01T0000), etc.
-  - Similar option for get_numeric_regex_elements().
+  - Similar option for get_code_regex_elements().
   - Similar option for get_string_regex_elements().
   - Options in config to control these.
   - Fuzzy matching for get_string_regex_elements(); string_max_regex_errors
@@ -171,7 +172,8 @@ INDEX = AttrDict(
 SCRUBMETHOD = AttrDict(
     TEXT="text",
     NUMERIC="number",
-    DATE="date"
+    DATE="date",
+    CODE="code"
 )
 ALTERMETHOD = AttrDict(
     TRUNCATEDATE="truncatedate",
@@ -286,7 +288,10 @@ DEMO_CONFIG = """
 #       - "{SCRUBMETHOD.NUMERIC}": treat as number
 #         This is the default for all numeric fields (e.g. INTEGER, FLOAT).
 #         If you have a phone number in a text field, mark it as
-#         "{SCRUBMETHOD.NUMERIC}" here.
+#         "{SCRUBMETHOD.NUMERIC}" here. It will be scrubbed regardless of
+#         spacing/punctuation.
+#       - "{SCRUBMETHOD.CODE}": treat as an alphanumeric code. Suited to
+#         postcodes. Very like "{SCRUBMETHOD.NUMERIC}" but permits non-digits.
 #       - "{SCRUBMETHOD.DATE}": treat as date.
 #         This is the default for all DATE/DATETIME fields.
 #
@@ -422,6 +427,7 @@ words_not_to_scrub = am
 # beware if you use a prefix, e.g. people write 'M123456' or 'R123456'; in that
 # case you will need anonymise_numbers_at_word_boundaries_only = False.
 
+anonymise_codes_at_word_boundaries_only = True
 anonymise_dates_at_word_boundaries_only = True
 anonymise_numbers_at_word_boundaries_only = False
 anonymise_strings_at_word_boundaries_only = True
@@ -608,6 +614,7 @@ ddgen_scrubsrc_patient_fields =
 ddgen_scrubsrc_thirdparty_fields =
 
 #   Override default scrubbing methods
+ddgen_scrubmethod_code_fields =
 ddgen_scrubmethod_date_fields =
 ddgen_scrubmethod_number_fields =
 
@@ -666,6 +673,7 @@ ddgen_pk_fields =
 ddgen_constant_content = False
 ddgen_scrubsrc_patient_fields =
 ddgen_scrubsrc_thirdparty_fields =
+ddgen_scrubmethod_code_fields =
 ddgen_scrubmethod_date_fields =
 ddgen_scrubmethod_number_fields =
 ddgen_safe_fields_exempt_from_scrubbing =
@@ -745,8 +753,8 @@ ddgen_scrubsrc_patient_fields = _patient_forename
 
 ddgen_scrubsrc_thirdparty_fields =
 
+ddgen_scrubmethod_code_fields =
 ddgen_scrubmethod_date_fields = _patient_dob
-
 ddgen_scrubmethod_number_fields =
 
 ddgen_safe_fields_exempt_from_scrubbing = _device
@@ -983,7 +991,8 @@ class DataDictionaryRow(object):
             self.scrub_src = SCRUBSRC.PATIENT
         elif self.src_field in cfg.ddgen_scrubsrc_thirdparty_fields:
             self.scrub_src = SCRUBSRC.THIRDPARTY
-        elif (self.src_field in cfg.ddgen_scrubmethod_date_fields
+        elif (self.src_field in cfg.ddgen_scrubmethod_code_fields
+                or self.src_field in cfg.ddgen_scrubmethod_date_fields
                 or self.src_field in cfg.ddgen_scrubmethod_number_fields):
             # We're not sure what sort these are, but it seems conservative to
             # include these! Easy to miss them otherwise, and better to be
@@ -992,7 +1001,7 @@ class DataDictionaryRow(object):
         else:
             self.scrub_src = ""
 
-        # What kind of sensitive data? Date, text, number?
+        # What kind of sensitive data? Date, text, number, code?
         if not self.scrub_src:
             self.scrub_method = ""
         elif (is_sqltype_numeric(datatype_full)
@@ -1003,6 +1012,8 @@ class DataDictionaryRow(object):
         elif (is_sqltype_date(datatype_full)
               or self.src_field in cfg.ddgen_scrubmethod_date_fields):
             self.scrub_method = SCRUBMETHOD.DATE
+        elif self.src_field in cfg.ddgen_scrubmethod_code_fields:
+            self.scrub_method = SCRUBMETHOD.CODE
         else:
             self.scrub_method = SCRUBMETHOD.TEXT
 
@@ -1164,12 +1175,11 @@ class DataDictionaryRow(object):
                 "Invalid scrub_src - must be one of [{}]".format(
                     ",".join(valid_scrubsrc)))
 
-        valid_scrubmethods = [SCRUBMETHOD.DATE, SCRUBMETHOD.NUMERIC,
-                              SCRUBMETHOD.TEXT, ""]
-        if self.scrub_src and self.scrub_method not in valid_scrubmethods:
+        if (self.scrub_src and self.scrub_method
+                and self.scrub_method not in SCRUBMETHOD.values()):
             raise ValueError(
-                "Invalid scrub_method - must be one of [{}]".format(
-                    ",".join(valid_scrubmethods)))
+                "Invalid scrub_method - must be blank or one of [{}]".format(
+                    ",".join(SCRUBMETHOD.values())))
 
         if not self.omit:
             ensure_valid_table_name(self.dest_table)
@@ -1734,6 +1744,7 @@ class DatabaseSafeConfig(object):
             "ddgen_field_blacklist",
             "ddgen_scrubsrc_patient_fields",
             "ddgen_scrubsrc_thirdparty_fields",
+            "ddgen_scrubmethod_code_fields",
             "ddgen_scrubmethod_date_fields",
             "ddgen_scrubmethod_number_fields",
             "ddgen_safe_fields_exempt_from_scrubbing",
@@ -1797,6 +1808,7 @@ class Config(object):
         "string_max_regex_errors",
         "min_string_length_for_errors",
         "min_string_length_to_scrub_with",
+        "anonymise_codes_at_word_boundaries_only",
         "anonymise_dates_at_word_boundaries_only",
         "anonymise_numbers_at_word_boundaries_only",
         "anonymise_strings_at_word_boundaries_only",
@@ -1918,6 +1930,7 @@ class Config(object):
                                       Config.MAIN_MULTILINE_HEADINGS)
         # Processing of parameters
         convert_attrs_to_bool(self, [
+            "anonymise_codes_at_word_boundaries_only",
             "anonymise_dates_at_word_boundaries_only",
             "anonymise_numbers_at_word_boundaries_only",
             "anonymise_strings_at_word_boundaries_only",
@@ -2157,16 +2170,22 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
         return basic_regexes
 
 
-def get_numeric_regex_elements(s, liberal=True, at_word_boundaries_only=True):
-    """Takes a STRING representation of a number, which may include leading
-    zeros (as for phone numbers), and produces a list of regex strings for
-    scrubbing.
+def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
+    """Takes a STRING representation of a number or an alphanumeric code, which
+    may include leading zeros (as for phone numbers), and produces a list of
+    regex strings for scrubbing.
 
     We allow all sorts of separators. For example, 0123456789 might appear as
         (01234) 56789
         0123 456 789
         01234-56789
         0123.456.789
+
+    This can also be used for postcodes, which should have whitespace
+    prestripped, so e.g. PE123AB might appear as
+        PE123AB
+        PE12 3AB
+        PE 12 3 AB
     """
     s = escape_literal_string_for_regex(s)  # escape any decimal points, etc.
     if liberal:
@@ -2182,6 +2201,10 @@ def get_numeric_regex_elements(s, liberal=True, at_word_boundaries_only=True):
 def get_digit_string_from_vaguely_numeric_string(s):
     """For example, converts "(01223) 123456" to "01223123456"."""
     return "".join([d for d in s if d.isdigit()])
+
+
+def reduce_to_alphanumeric(s):
+    return "".join([d for d in s if d.isalnum()])
 
 
 def remove_whitespace(s):
@@ -2323,15 +2346,15 @@ SHOULD REPLACE:
 
 regex_date = get_regex_from_elements(get_date_regex_elements(testdate))
 regex_number = get_regex_from_elements(
-    get_numeric_regex_elements(str(testnumber)))
+    get_code_regex_elements(str(testnumber)))
 regex_number_as_text = get_regex_from_elements(
-    get_numeric_regex_elements(
+    get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(testnumber_as_text)))
 regex_string = get_regex_from_elements(get_string_regex_elements(teststring))
 all_elements = (
     get_date_regex_elements(testdate)
-    + get_numeric_regex_elements(str(testnumber))
-    + get_numeric_regex_elements(
+    + get_code_regex_elements(str(testnumber))
+    + get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(testnumber_as_text))
     + get_string_regex_elements(teststring)
 )
@@ -2446,8 +2469,16 @@ class Scrubber(object):
             # Remove everything but the digits
             # Particular examples: phone numbers, e.g. "(01223) 123456".
             wbo = config.anonymise_numbers_at_word_boundaries_only
-            elements = get_numeric_regex_elements(
+            elements = get_code_regex_elements(
                 get_digit_string_from_vaguely_numeric_string(str(value)),
+                at_word_boundaries_only=wbo)
+        elif scrub_method == SCRUBMETHOD.CODE:
+            # Source is a text field containing an alphanumeric code.
+            # Remove whitespace.
+            # Particular examples: postcodes, e.g. "PE12 3AB".
+            wbo = config.anonymise_codes_at_word_boundaries_only
+            elements = get_code_regex_elements(
+                reduce_to_alphanumeric(str(value)),
                 at_word_boundaries_only=wbo)
         else:
             raise ValueError("Bug: unknown scrub_method to add_value")
