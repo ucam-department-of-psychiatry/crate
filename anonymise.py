@@ -181,7 +181,7 @@ SRCFLAG = AttrDict(
     ADDITION_ONLY="A"
 )
 
-RAW_SCRUBBER_FIELDNAME_PT = "_raw_scrubber_pt"
+RAW_SCRUBBER_FIELDNAME_PATIENT = "_raw_scrubber_patient"
 RAW_SCRUBBER_FIELDNAME_TP = "_raw_scrubber_tp"
 
 # =============================================================================
@@ -1382,7 +1382,11 @@ class DataDictionary(object):
                         ddr.src_field
 
             # Is it a relevant contribution from a source table?
-            pt_info = bool(ddr.scrub_src)
+            pt_info = (
+                bool(ddr.scrub_src)
+                or SRCFLAG.PRIMARYPID in ddr.src_flags
+                or SRCFLAG.MASTERPID in ddr.src_flags
+            )
             omit = ddr.omit
             if pt_info or not omit:
                 # Ensure our source lists contain that table.
@@ -2449,7 +2453,7 @@ def insert_into_mapping_db(admindb, scrubber):
         sql = """
             UPDATE {table}
             SET {master_id} = ?, {master_research_id} = ?, {scrubber_hash} = ?,
-                {RAW_SCRUBBER_FIELDNAME_PT} = ?,
+                {RAW_SCRUBBER_FIELDNAME_PATIENT} = ?,
                 {RAW_SCRUBBER_FIELDNAME_TP} = ?
             WHERE {patient_id} = ?
         """.format(
@@ -2458,7 +2462,7 @@ def insert_into_mapping_db(admindb, scrubber):
             master_research_id=config.master_research_id_fieldname,
             scrubber_hash=config.source_hash_fieldname,
             patient_id=config.mapping_patient_id_fieldname,
-            RAW_SCRUBBER_FIELDNAME_PT=RAW_SCRUBBER_FIELDNAME_PT,
+            RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
             RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
         )
         args = [mpid, mrid, scrubber_hash, raw_pt, raw_tp, pid]
@@ -2468,7 +2472,7 @@ def insert_into_mapping_db(admindb, scrubber):
                 {patient_id}, {research_id},
                 {master_id}, {master_research_id},
                 {scrubber_hash},
-                {RAW_SCRUBBER_FIELDNAME_PT}, {RAW_SCRUBBER_FIELDNAME_TP}
+                {RAW_SCRUBBER_FIELDNAME_PATIENT}, {RAW_SCRUBBER_FIELDNAME_TP}
             )
             VALUES (
                 ?, ?,
@@ -2483,7 +2487,7 @@ def insert_into_mapping_db(admindb, scrubber):
             master_id=config.mapping_master_id_fieldname,
             master_research_id=config.master_research_id_fieldname,
             scrubber_hash=config.source_hash_fieldname,
-            RAW_SCRUBBER_FIELDNAME_PT=RAW_SCRUBBER_FIELDNAME_PT,
+            RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
             RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
         )
         args = [pid, rid, mpid, mrid, scrubber_hash, raw_pt, raw_tp]
@@ -2514,7 +2518,7 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
         dict(name=config.source_hash_fieldname,
              sqltype=SQLTYPE_ENCRYPTED_PID,
              comment="Scrubber hash (for change detection)"),
-        dict(name=RAW_SCRUBBER_FIELDNAME_PT,
+        dict(name=RAW_SCRUBBER_FIELDNAME_PATIENT,
              sqltype="TEXT",
              comment="Raw patient scrubber (for debugging only)"),
         dict(name=RAW_SCRUBBER_FIELDNAME_TP,
