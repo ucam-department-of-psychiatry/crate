@@ -91,7 +91,7 @@ import ConfigParser
 import datetime
 import dateutil
 import dateutil.tz
-import itertools
+# import itertools
 import logging
 import multiprocessing
 import operator
@@ -2113,6 +2113,14 @@ def escape_literal_string_for_regex(s):
     return s
 
 
+def is_integer(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
 # =============================================================================
 # Anonymisation regexes
 # =============================================================================
@@ -2393,14 +2401,6 @@ class Scrubber(object):
         else:
             return SCRUBMETHOD.NUMERIC
 
-    @staticmethod
-    def is_numeric(s):
-        try:
-            int(s)
-            return True
-        except ValueError:
-            return False
-
     def add_value(self, value, scrub_method, patient=True):
         if value is None:
             return
@@ -2430,7 +2430,7 @@ class Scrubber(object):
             for s in strings:
                 l = len(s)
                 if (l < config.min_string_length_to_scrub_with
-                        and not is_numeric(s)):
+                        and not is_integer(s)):
                     # Length limit doesn't apply to numbers; otherwise, we'd
                     # see numeric parts of addresses in e.g. 4 Drury Lane.
                     continue
