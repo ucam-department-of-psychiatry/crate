@@ -2359,7 +2359,7 @@ class Scrubber(object):
                 is_mpid.append(SRCFLAG.MASTERPID in ddr.src_flags)
             for vlist in gen_all_values_for_patient(sources, src_db, src_table,
                                                     fields, pid):
-                for i in xrange(vlist):
+                for i in xrange(len(vlist)):
                     self.add_value(vlist[i], scrub_methods[i], is_patient[i])
                     if self.mpid is None and is_mpid[i]:
                         # We've come across the master ID.
