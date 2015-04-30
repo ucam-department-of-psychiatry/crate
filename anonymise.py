@@ -923,7 +923,10 @@ class DataDictionaryRow(object):
         if self.src_field in cfg.ddgen_pid_defining_fieldnames:  # unusual!
             self.src_flags += SRCFLAG.DEFINESPRIMARYPIDS
 
-        if self.src_field in cfg.ddgen_scrubsrc_patient_fields:
+        if (self.src_field in cfg.ddgen_scrubsrc_patient_fields
+                or self.src_field == cfg.ddgen_per_table_pid_field
+                or self.src_field == cfg.ddgen_master_pid_fieldname
+                or self.src_field in cfg.ddgen_pid_defining_fieldnames):
             self.scrub_src = SCRUBSRC.PATIENT
         elif self.src_field in cfg.ddgen_scrubsrc_thirdparty_fields:
             self.scrub_src = SCRUBSRC.THIRDPARTY
