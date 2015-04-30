@@ -36,6 +36,8 @@ CHANGE LOG:
   - Ability to vary audit/secret map tablenames.
   - Made date element separators broader in anonymisation regex.
   - min_string_length_for_errors option
+  - min_string_length_to_scrub_with option
+  - words_not_to_scrub option
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -344,11 +346,13 @@ change_detection_encryption_phrase = YETANOTHER
 # Anonymisation
 # -----------------------------------------------------------------------------
 
-# Patient information will be replaced with this
+# Patient information will be replaced with this. For example, XXX or |___|;
+# the latter is a bit easier to spot!
 
 replace_patient_info_with = XXX
 
-# Third-party information will be replaced by this
+# Third-party information will be replaced by this. For example, YYY or |...|;
+# the latter is a bit easier to spot!
 
 replace_third_party_info_with = YYY
 
@@ -367,9 +371,50 @@ string_max_regex_errors = 1
 
 # Is there a minimum length to apply string_max_regex_errors? For example, if
 # you allow one typo and someone is called Ian, all instances of 'in' or 'an'
-# will be wiped.
+# will be wiped. Note that this apply to scrub-source data.
 
 min_string_length_for_errors = 4
+
+# Is there a minimum length of string to scrub WITH? For example, if you
+# specify 2, you allow two-letter names such as Al to be scrubbed, but you
+# allow initials through, and therefore prevent e.g. 'A' from being scrubbed
+# from the destination. Note that this applies to scrub-source data.
+
+min_string_length_to_scrub_with = 2
+
+# Are there any words not to scrub? For example, "the", "road", "street" often
+# appear in addresses, but you might not want them removed. Be careful in case
+# these could be names (e.g. "Lane").
+
+words_not_to_scrub = am
+    an
+    as
+    at
+    bd
+    by
+    he
+    if
+    is
+    it
+    me
+    mg
+    od
+    of
+    on
+    or
+    re
+    so
+    to
+    us
+    we
+    her
+    him
+    tds
+    she
+    the
+    you
+    road
+    street
 
 # Anonymise at word boundaries? True is more conservative; False is more
 # liberal and will deal with accidental word concatenation. With ID numbers,
@@ -1734,6 +1779,7 @@ class Config(object):
         "replace_third_party_info_with",
         "string_max_regex_errors",
         "min_string_length_for_errors",
+        "min_string_length_to_scrub_with",
         "anonymise_dates_at_word_boundaries_only",
         "anonymise_numbers_at_word_boundaries_only",
         "anonymise_strings_at_word_boundaries_only",
@@ -1754,6 +1800,7 @@ class Config(object):
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
+        "words_not_to_scrub",
         "source_databases",
     ]
 
@@ -1863,6 +1910,7 @@ class Config(object):
         convert_attrs_to_int(self, [
             "string_max_regex_errors",
             "min_string_length_for_errors",
+            "min_string_length_to_scrub_with",
             "max_rows_before_commit",
             "max_bytes_before_commit",
         ])
@@ -1947,6 +1995,9 @@ class Config(object):
             raise ValueError("string_max_regex_errors < 0, nonsensical")
         if self.min_string_length_for_errors < 0:
             raise ValueError("min_string_length_for_errors < 0, nonsensical")
+        if self.min_string_length_to_scrub_with < 0:
+            raise ValueError(
+                "min_string_length_to_scrub_with < 0, nonsensical")
 
         # Test date conversions
         format_datetime(self.NOW_UTC_NO_TZ, self.date_to_text_format)
@@ -2334,7 +2385,12 @@ class Scrubber(object):
             wbo = config.anonymise_strings_at_word_boundaries_only
             elements = []
             for s in strings:
-                if len(s) >= config.min_string_length_for_errors:
+                l = len(s)
+                if l < config.min_string_length_to_scrub_with:
+                    continue
+                if s in config.words_not_to_scrub:
+                    continue
+                if l >= config.min_string_length_for_errors:
                     max_errors = config.string_max_regex_errors
                 else:
                     max_errors = 0
