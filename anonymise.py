@@ -2113,14 +2113,6 @@ def escape_literal_string_for_regex(s):
     return s
 
 
-def is_integer(s):
-    try:
-        int(s)
-        return True
-    except ValueError:
-        return False
-
-
 # =============================================================================
 # Anonymisation regexes
 # =============================================================================
@@ -2432,10 +2424,11 @@ class Scrubber(object):
                 if l < config.min_string_length_to_scrub_with:
                     # With numbers: if you use the length limit, you may see
                     # numeric parts of addresses, e.g. 4 Drury Lane as
-                    # 4 [___] [___].
-                    # However, if you exempt numbers then you mess up a whole
-                    # bunch of quantitative information. So let's apply the
-                    # length limit consistently.
+                    # 4 [___] [___]. However, if you exempt numbers then you
+                    # mess up a whole bunch of quantitative information, such
+                    # as "the last 4-5 years" getting wiped to "the last
+                    # [___]-5 years". So let's apply the length limit
+                    # consistently.
                     continue
                 if s.lower() in config.words_not_to_scrub:
                     continue
