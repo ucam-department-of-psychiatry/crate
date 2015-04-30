@@ -372,11 +372,13 @@ string_max_regex_errors = 1
 min_string_length_for_errors = 4
 
 # Anonymise at word boundaries? True is more conservative; False is more
-# liberal and will deal with accidental word concatenation.
+# liberal and will deal with accidental word concatenation. With ID numbers,
+# beware if you use a prefix, e.g. people write 'M123456' or 'R123456'; in that
+# case you will need anonymise_numbers_at_word_boundaries_only = False.
 
-anonymise_dates_at_word_boundaries_only = False
-anonymise_numbers_at_word_boundaries_only = True
-anonymise_strings_at_word_boundaries_only = False
+anonymise_dates_at_word_boundaries_only = True
+anonymise_numbers_at_word_boundaries_only = False
+anonymise_strings_at_word_boundaries_only = True
 
 # -----------------------------------------------------------------------------
 # Output fields and formatting
@@ -907,6 +909,7 @@ class DataDictionaryRow(object):
         self.src_field = field
         self.src_datatype = datatype_full
 
+        # Is the field special, such as a PK?
         self.src_flags = ""
         if self.src_field in cfg.ddgen_pk_fields:
             self.src_flags += SRCFLAG.PK
@@ -923,6 +926,7 @@ class DataDictionaryRow(object):
         if self.src_field in cfg.ddgen_pid_defining_fieldnames:  # unusual!
             self.src_flags += SRCFLAG.DEFINESPRIMARYPIDS
 
+        # Does the field contain sensitive data?
         if (self.src_field in cfg.ddgen_scrubsrc_patient_fields
                 or self.src_field == cfg.ddgen_per_table_pid_field
                 or self.src_field == cfg.ddgen_master_pid_fieldname
@@ -930,9 +934,16 @@ class DataDictionaryRow(object):
             self.scrub_src = SCRUBSRC.PATIENT
         elif self.src_field in cfg.ddgen_scrubsrc_thirdparty_fields:
             self.scrub_src = SCRUBSRC.THIRDPARTY
+        elif (self.src_field in cfg.ddgen_scrubmethod_date_fields
+                or self.src_field in cfg.ddgen_scrubmethod_number_fields):
+            # We're not sure what sort these are, but it seems conservative to
+            # include these! Easy to miss them otherwise, and better to be
+            # overly conservative.
+            self.scrub_src = SCRUBSRC.PATIENT
         else:
             self.scrub_src = ""
 
+        # What kind of sensitive data? Date, text, number?
         if not self.scrub_src:
             self.scrub_method = ""
         elif (is_sqltype_numeric(datatype_full)
@@ -946,6 +957,7 @@ class DataDictionaryRow(object):
         else:
             self.scrub_method = SCRUBMETHOD.TEXT
 
+        # Should we omit it (at least until a human has looked at the DD)?
         self.omit = (
             (default_omit or bool(self.scrub_src))
             and not (SRCFLAG.PK in self.src_flags)
@@ -953,6 +965,7 @@ class DataDictionaryRow(object):
             and not (SRCFLAG.MASTERPID in self.src_flags)
         )
 
+        # Do we want to change the destination fieldname?
         if SRCFLAG.PRIMARYPID in self.src_flags:
             self.dest_field = config.research_id_fieldname
         elif SRCFLAG.MASTERPID in self.src_flags:
@@ -960,12 +973,14 @@ class DataDictionaryRow(object):
         else:
             self.dest_field = field
 
+        # Do we want to change the destination field SQL type?
         self.dest_datatype = (
             SQLTYPE_ENCRYPTED_PID
             if (SRCFLAG.PRIMARYPID in self.src_flags
                 or SRCFLAG.MASTERPID in self.src_flags)
             else rnc_db.full_datatype_to_mysql(datatype_full))
 
+        # How should we manipulate the destination?
         if self.src_field in cfg.ddgen_truncate_date_fields:
             self._truncate_date = True
         elif self.src_field in cfg.ddgen_filename_to_text_fields:
@@ -994,6 +1009,7 @@ class DataDictionaryRow(object):
 
         self.dest_table = table
 
+        # Should we index the destination?
         if SRCFLAG.PK in self.src_flags:
             self.index = INDEX.UNIQUE
         elif self.dest_field == config.research_id_fieldname:
@@ -1009,6 +1025,7 @@ class DataDictionaryRow(object):
                 and self.index != INDEX.FULLTEXT)
             else None
         )
+
         self.comment = comment
         self._from_file = False
         self.check_valid()
