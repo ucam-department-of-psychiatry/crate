@@ -37,6 +37,7 @@ CHANGE LOG:
   - gen_all_values_for_patient() was inefficient in that it would process the
     same source table multiple times to retrieve different fields.
   - ddgen_index_fields option
+  - simplification of get_anon_fragments_from_string()
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -2187,7 +2188,8 @@ def remove_whitespace(s):
     return ''.join(s.split())
 
 
-NON_WHITESPACE_SPLITTERS = regex.compile("['’-]+", regex.UNICODE)
+NON_ALPHANUMERIC_SPLITTERS = regex.compile("[\W]+", regex.UNICODE)
+# 1 or more non-alphanumeric characters...
 
 
 def get_anon_fragments_from_string(s):
@@ -2200,22 +2202,23 @@ def get_anon_fragments_from_string(s):
       TREATS APOSTROPHES AND HYPHENS AS WORD BOUNDARIES.
       Therefore, we don't need the largest-level chunks, like D'Souza.
     """
-    smallfragments = []
-    combinedsmallfragments = []
-    for chunk in s.split():  # split on whitespace
-        for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
-            if smallchunk.lower() in config.words_not_to_scrub:
-                continue
-            smallfragments.append(smallchunk)
-            # OVERLAP here, but we need it for the combination bit, and
-            # we remove the overlap at the end.
-    # Now we have chunks with e.g. apostrophes in, and all chunks split by
-    # everything. Finally, we want all of these lumped together.
-    for L in xrange(len(smallfragments) + 1):
-        for subset in itertools.combinations(smallfragments, L):
-            if subset:
-                combinedsmallfragments.append("".join(subset))
-    return list(set(smallfragments + combinedsmallfragments))
+    return NON_ALPHANUMERIC_SPLITTERS.split(s)
+    #smallfragments = []
+    #combinedsmallfragments = []
+    #for chunk in s.split():  # split on whitespace
+    #    for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
+    #        if smallchunk.lower() in config.words_not_to_scrub:
+    #            continue
+    #        smallfragments.append(smallchunk)
+    #        # OVERLAP here, but we need it for the combination bit, and
+    #        # we remove the overlap at the end.
+    ## Now we have chunks with e.g. apostrophes in, and all chunks split by
+    ## everything. Finally, we want all of these lumped together.
+    #for L in xrange(len(smallfragments) + 1):
+    #    for subset in itertools.combinations(smallfragments, L):
+    #        if subset:
+    #            combinedsmallfragments.append("".join(subset))
+    #return list(set(smallfragments + combinedsmallfragments))
 # EXAMPLES:
 # get_anon_fragments_from_string("Bob D'Souza")
 # get_anon_fragments_from_string("Jemima Al-Khalaim")
@@ -2272,6 +2275,7 @@ def get_regex_from_elements(elementlist):
 if False:
     TEST_REGEXES = '''
 from __future__ import print_function
+import calendar
 import dateutil.parser
 import regex
 
@@ -2418,6 +2422,8 @@ class Scrubber(object):
             for s in strings:
                 l = len(s)
                 if l < config.min_string_length_to_scrub_with:
+                    continue
+                if s.lower() in config.words_not_to_scrub:
                     continue
                 if l >= config.min_string_length_for_errors:
                     max_errors = config.string_max_regex_errors
