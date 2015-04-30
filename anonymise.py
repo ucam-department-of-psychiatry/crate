@@ -2393,6 +2393,14 @@ class Scrubber(object):
         else:
             return SCRUBMETHOD.NUMERIC
 
+    @staticmethod
+    def is_numeric(s):
+        try:
+            int(s)
+            return True
+        except ValueError:
+            return False
+
     def add_value(self, value, scrub_method, patient=True):
         if value is None:
             return
@@ -2421,7 +2429,10 @@ class Scrubber(object):
             elements = []
             for s in strings:
                 l = len(s)
-                if l < config.min_string_length_to_scrub_with:
+                if (l < config.min_string_length_to_scrub_with
+                        and not is_numeric(s)):
+                    # Length limit doesn't apply to numbers; otherwise, we'd
+                    # see numeric parts of addresses in e.g. 4 Drury Lane.
                     continue
                 if s.lower() in config.words_not_to_scrub:
                     continue
