@@ -36,6 +36,7 @@ CHANGE LOG:
   - bugfix: date regex couldn't cope with years prior to 1900
   - gen_all_values_for_patient() was inefficient in that it would process the
     same source table multiple times to retrieve different fields.
+  - ddgen_index_fields option
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -631,6 +632,9 @@ ddgen_filename_to_text_fields =
 #           ...
 ddgen_binary_to_text_field_pairs =
 
+#   Fields to apply an index to
+ddgen_index_fields =
+
 # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
 
 #   Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to
@@ -1060,6 +1064,8 @@ class DataDictionaryRow(object):
             self.index = INDEX.NORMAL
         elif does_sqltype_merit_fulltext_index(self.dest_datatype):
             self.index = INDEX.FULLTEXT
+        elif self.src_field in cfg.ddgen_index_fields:
+            self.index = INDEX.NORMAL
         else:
             self.index = ""
 
@@ -1730,6 +1736,7 @@ class DatabaseSafeConfig(object):
             "ddgen_truncate_date_fields",
             "ddgen_filename_to_text_fields",
             "ddgen_binary_to_text_field_pairs",
+            "ddgen_index_fields",
             "debug_limited_tables",
         ])
         convert_attrs_to_bool(self, [
