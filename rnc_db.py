@@ -516,6 +516,11 @@ def is_sqltype_date(datatype_long):
     return datatype_short in SQLTYPES_WITH_DATE
 
 
+def is_sqltype_text(datatype_long):
+    (datatype_short, length) = split_long_sqltype(datatype_long)
+    return datatype_short in SQLTYPES_TEXT
+
+
 def is_sqltype_text_of_length_at_least(datatype_long, min_length):
     (datatype_short, length) = split_long_sqltype(datatype_long)
     if datatype_short not in SQLTYPES_TEXT:
@@ -549,8 +554,8 @@ def does_sqltype_require_index_len(datatype_long):
     return datatype_short in ["TEXT", "BLOB"]
 
 
-def does_sqltype_merit_fulltext_index(datatype_long):
-    return datatype_long in ["TEXT"]
+def does_sqltype_merit_fulltext_index(datatype_long, min_length=1000):
+    return is_sqltype_text_of_length_at_least(datatype_long, min_length)
 
 
 # =============================================================================
