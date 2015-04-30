@@ -403,3 +403,14 @@ Q.  Anonymisation is slow.
 A.  (1) Make sure you have indexes created on all patient_id fields, because
         the tool will use this to find (a) values for scrubbing, and (b)
         records for anonymisation. This makes a huge difference!
+
+-------------------------------------------------------------------------------
+Q.  Can't create FULLTEXT index(es)
+-------------------------------------------------------------------------------
+A.  MySQL v5.6 is required to use FULLTEXT indexes with InnoDB tables (as
+    opposed to MyISAM tables, which don't support transactions).
+
+    On Ubuntu 14.04, default MySQL is 5.5, so use:
+
+        sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
+            mysql-client-5.6 mysql-client-core-5.6
