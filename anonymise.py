@@ -35,6 +35,7 @@ CHANGE LOG:
 - v0.04, 2015-04-29
   - Ability to vary audit/secret map tablenames.
   - Made date element separators broader in anonymisation regex.
+  - min_string_length_for_errors option
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -363,6 +364,12 @@ scrub_string_suffixes =
 # string regex matching. Beware using a high number! Suggest 1-2.
 
 string_max_regex_errors = 1
+
+# Is there a minimum length to apply string_max_regex_errors? For example, if
+# you allow one typo and someone is called Ian, all instances of 'in' or 'an'
+# will be wiped.
+
+min_string_length_for_errors = 4
 
 # Anonymise at word boundaries? True is more conservative; False is more
 # liberal and will deal with accidental word concatenation.
@@ -1706,6 +1713,7 @@ class Config(object):
         "replace_patient_info_with",
         "replace_third_party_info_with",
         "string_max_regex_errors",
+        "min_string_length_for_errors",
         "anonymise_dates_at_word_boundaries_only",
         "anonymise_numbers_at_word_boundaries_only",
         "anonymise_strings_at_word_boundaries_only",
@@ -1825,7 +1833,6 @@ class Config(object):
         read_config_multiline_options(self, parser, "main",
                                       Config.MAIN_MULTILINE_HEADINGS)
         # Processing of parameters
-        self.string_max_regex_errors = int(self.string_max_regex_errors)
         convert_attrs_to_bool(self, [
             "anonymise_dates_at_word_boundaries_only",
             "anonymise_numbers_at_word_boundaries_only",
@@ -1834,6 +1841,8 @@ class Config(object):
             "open_databases_securely",
         ])
         convert_attrs_to_int(self, [
+            "string_max_regex_errors",
+            "min_string_length_for_errors",
             "max_rows_before_commit",
             "max_bytes_before_commit",
         ])
@@ -1916,6 +1925,8 @@ class Config(object):
         # Regex
         if self.string_max_regex_errors < 0:
             raise ValueError("string_max_regex_errors < 0, nonsensical")
+        if self.min_string_length_for_errors < 0:
+            raise ValueError("min_string_length_for_errors < 0, nonsensical")
 
         # Test date conversions
         format_datetime(self.NOW_UTC_NO_TZ, self.date_to_text_format)
@@ -2303,10 +2314,14 @@ class Scrubber(object):
             wbo = config.anonymise_strings_at_word_boundaries_only
             elements = []
             for s in strings:
+                if len(s) >= config.min_string_length_for_errors:
+                    max_errors = config.string_max_regex_errors
+                else:
+                    max_errors = 0
                 elements.extend(get_string_regex_elements(
                     s,
                     config.scrub_string_suffixes,
-                    max_errors=config.string_max_regex_errors,
+                    max_errors=max_errors,
                     at_word_boundaries_only=wbo))
         elif scrub_method == SCRUBMETHOD.NUMERIC:
             # Source is a text field containing a number, or an actual number.
