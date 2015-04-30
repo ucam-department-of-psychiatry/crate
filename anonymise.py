@@ -32,12 +32,13 @@ Copyright/licensing:
 
 CHANGE LOG:
 
-- v0.04, 2015-04-29
+- v0.04, 2015-04-30
   - Ability to vary audit/secret map tablenames.
   - Made date element separators broader in anonymisation regex.
   - min_string_length_for_errors option
   - min_string_length_to_scrub_with option
   - words_not_to_scrub option
+  - bugfix: date regex couldn't cope with years prior to 1900
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -83,6 +84,7 @@ logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT)
 logger = logging.getLogger("anonymise")
 
 import argparse
+import calendar
 import cgi
 import csv
 import codecs
@@ -2115,7 +2117,8 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
     day = "0*" + str(dt.day) + "(?:st|nd|rd|th)?"
     # Month, allowing leading zeroes for numeric and e.g. Feb/February
     month_numeric = "0*" + str(dt.month)
-    month_word = dt.strftime("%B")
+    # month_word = dt.strftime("%B")  # can't cope with years < 1900
+    month_word = calendar.month_name[dt.month]
     month_word = month_word[0:3] + "(?:" + month_word[3:] + ")?"
     month = "(?:" + month_numeric + "|" + month_word + ")"
     # Year
@@ -2262,6 +2265,7 @@ testnumber = 34
 testnumber_as_text = "123456"
 testdate = dateutil.parser.parse("7 Jan 2013")
 teststring = "mother"
+old_testdate = dateutil.parser.parse("3 Sep 1847")
 
 s = u"""
 
@@ -2317,6 +2321,7 @@ print(regex_string.sub("STRING_GONE", s))
 print(regex_all.sub("EVERYTHING_GONE", s))
 print(get_regex_string_from_elements(all_elements))
 print(get_regex_string_from_elements(get_date_regex_elements(testdate)))
+print(get_regex_string_from_elements(get_date_regex_elements(old_testdate)))
 '''
 
 
