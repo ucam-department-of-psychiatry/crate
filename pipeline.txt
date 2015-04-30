@@ -396,3 +396,10 @@ Q.  "Killed."
 A.  Out of memory.
     Suggest reduce MySQL memory footprint; see notes.txt.
     Steps already taken to reduce memory usage by the anonymise program itself.
+
+-------------------------------------------------------------------------------
+Q.  Anonymisation is slow.
+-------------------------------------------------------------------------------
+A.  (1) Make sure you have indexes created on all patient_id fields, because
+        the tool will use this to find (a) values for scrubbing, and (b)
+        records for anonymisation. This makes a huge difference!

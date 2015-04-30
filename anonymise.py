@@ -1060,7 +1060,10 @@ class DataDictionaryRow(object):
         # Should we index the destination?
         if SRCFLAG.PK in self.src_flags:
             self.index = INDEX.UNIQUE
-        elif self.dest_field == config.research_id_fieldname:
+        elif (self.dest_field == config.research_id_fieldname
+                or SRCFLAG.PRIMARYPID in self.src_flags
+                or SRCFLAG.MASTERPID in self.src_flags
+                or SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags):
             self.index = INDEX.NORMAL
         elif does_sqltype_merit_fulltext_index(self.dest_datatype):
             self.index = INDEX.FULLTEXT
@@ -2201,6 +2204,8 @@ def get_anon_fragments_from_string(s):
     combinedsmallfragments = []
     for chunk in s.split():  # split on whitespace
         for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
+            if smallchunk.lower() in config.words_not_to_scrub:
+                continue
             smallfragments.append(smallchunk)
             # OVERLAP here, but we need it for the combination bit, and
             # we remove the overlap at the end.
@@ -2413,8 +2418,6 @@ class Scrubber(object):
             for s in strings:
                 l = len(s)
                 if l < config.min_string_length_to_scrub_with:
-                    continue
-                if s.lower() in config.words_not_to_scrub:
                     continue
                 if l >= config.min_string_length_for_errors:
                     max_errors = config.string_max_regex_errors
