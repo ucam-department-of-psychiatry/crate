@@ -347,15 +347,15 @@ change_detection_encryption_phrase = YETANOTHER
 # Anonymisation
 # -----------------------------------------------------------------------------
 
-# Patient information will be replaced with this. For example, XXX or |___|;
-# the latter is a bit easier to spot!
+# Patient information will be replaced with this. For example, XXX or [___];
+# the latter is a bit easier to spot, and works better if it directly abuts
+# other text.
 
-replace_patient_info_with = XXX
+replace_patient_info_with = [___]
 
-# Third-party information will be replaced by this. For example, YYY or |...|;
-# the latter is a bit easier to spot!
+# Third-party information will be replaced by this. For example, YYY or [...].
 
-replace_third_party_info_with = YYY
+replace_third_party_info_with = [...]
 
 # Strings to append to every "scrub from" string.
 # For example, include "s" if you want to scrub "Roberts" whenever you scrub
@@ -2429,10 +2429,13 @@ class Scrubber(object):
             elements = []
             for s in strings:
                 l = len(s)
-                if (l < config.min_string_length_to_scrub_with
-                        and not is_integer(s)):
-                    # Length limit doesn't apply to numbers; otherwise, we'd
-                    # see numeric parts of addresses in e.g. 4 Drury Lane.
+                if l < config.min_string_length_to_scrub_with:
+                    # With numbers: if you use the length limit, you may see
+                    # numeric parts of addresses, e.g. 4 Drury Lane as
+                    # 4 [___] [___].
+                    # However, if you exempt numbers then you mess up a whole
+                    # bunch of quantitative information. So let's apply the
+                    # length limit consistently.
                     continue
                 if s.lower() in config.words_not_to_scrub:
                     continue
