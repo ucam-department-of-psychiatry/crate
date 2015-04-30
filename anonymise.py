@@ -4,6 +4,11 @@
 """
 Anonymise multiple SQL-based databases using a data dictionary.
 
+CRATE: Clinical Records Anonymising Tool Experiment
+
+*** overenthusiastic anonymisation
+*** not splitting addresses properly?
+
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
 Last update: see VERSION_DATE below
@@ -29,6 +34,7 @@ CHANGE LOG:
 
 - v0.04, 2015-04-29
   - Ability to vary audit/secret map tablenames.
+  - Made date element separators broader in anonymisation regex.
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -2034,12 +2040,8 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
     year = str(dt.year)
     if len(year) == 4:
         year = "(?:" + year[0:2] + ")?" + year[2:4]
-        # ... makes e.g. (19)?86, to match 1986 or 86
-    # Separator: one or more of: whitespace, /, -, comma, nothing
-    ws = r"\s"  # whitespace; includes newlines
-    SEP = "[" + ws + "/,-]*"
-    # ... note that the hyphen has to be at the start or end, otherwise it
-    #     denotes a range.
+        # ... converts e.g. 1986 to (19)?86, to match 1986 or 86
+    SEP = "[\W]*"  # zero or more non-alphanumeric characters...
     # Regexes
     basic_regexes = [
         day + SEP + month + SEP + year,  # e.g. 13 Sep 2014
@@ -2053,7 +2055,7 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
         return basic_regexes
 
 
-def get_numeric_regex_elements(s, liberal=True, at_word_boundaries_only=False):
+def get_numeric_regex_elements(s, liberal=True, at_word_boundaries_only=True):
     """Takes a STRING representation of a number, which may include leading
     zeros (as for phone numbers), and produces a list of regex strings for
     scrubbing.
@@ -2117,8 +2119,8 @@ def get_anon_fragments_from_string(s):
 # get_anon_fragments_from_string("47 Russell Square")
 
 
-def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=False,
-                              max_errors=2):
+def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
+                              max_errors=0):
     """Takes a string (+/- suffixes, typically ["s"], and returns a list of
     regex strings with which to scrub."""
     s = escape_literal_string_for_regex(s)
@@ -2180,22 +2182,23 @@ testdate = dateutil.parser.parse("7 Jan 2013")
 teststring = "mother"
 
 s = u"""
+
+SHOULD REPLACE:
    I was born on 07 Jan 2013, m'lud.
    It was 7 January 13, or 7/1/13, or 1/7/13, or
    Jan 7 2013, or 2013/01/07, or 2013-01-07,
    or 7th January
    13 (split over a line)
    or Jan 7th 13
+   or 07.01.13 or 7.1.2013
    or a host of other variations.
-
    And ISO-8601 formats like 20130107T0123, or just 20130107.
 
    BUT NOT 8 Jan 2013, or 2013/02/07, or 2013
    Jan 17, or just a number like 7, or a month
    like January, or a nonspecific date like
    Jan 2013 or 7 January.
-
-   But not ISO-8601 formats like 20130108T0123, or just 20130108.
+   And not ISO-8601-formatted other dates like 20130108T0123, or just 20130108.
 
    I am 34 years old. My mother was 348, or 834, or perhaps 8348.
    Was she 34.6? Don't think so.
@@ -2231,6 +2234,7 @@ print(regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
 print(regex_string.sub("STRING_GONE", s))
 print(regex_all.sub("EVERYTHING_GONE", s))
 print(get_regex_string_from_elements(all_elements))
+print(get_regex_string_from_elements(get_date_regex_elements(testdate)))
 '''
 
 
