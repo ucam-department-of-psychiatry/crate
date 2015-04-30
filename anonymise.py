@@ -181,6 +181,9 @@ SRCFLAG = AttrDict(
     ADDITION_ONLY="A"
 )
 
+RAW_SCRUBBER_FIELDNAME_PT = "_raw_scrubber_pt"
+RAW_SCRUBBER_FIELDNAME_TP = "_raw_scrubber_tp"
+
 # =============================================================================
 # Demo config
 # =============================================================================
@@ -1727,6 +1730,7 @@ class Config(object):
         self._rows_in_transaction = 0
         self._bytes_in_transaction = 0
         self.debug_scrubbers = False
+        self.save_scrubbers = False
 
     def set(self, filename=None, environ=None, include_sources=True,
             load_dd=True, load_destfields=True):
@@ -2318,13 +2322,15 @@ class Scrubber(object):
         # Announce pointlessly
         if config.debug_scrubbers:
             logger.debug(
-                "Patient scrubber: {}".format(
-                    get_regex_string_from_elements(
-                        self.re_patient_elements)))
+                "Patient scrubber: {}".format(self.get_patient_regex_string()))
             logger.debug(
-                "Third party scrubber: {}".format(
-                    get_regex_string_from_elements(
-                        self.re_tp_elements)))
+                "Third party scrubber: {}".format(self.get_tp_regex_string()))
+
+    def get_patient_regex_string(self):
+        return get_regex_string_from_elements(self.re_patient_elements)
+
+    def get_tp_regex_string(self):
+        return get_regex_string_from_elements(self.re_tp_elements)
 
     def get_hash_string(self):
         return repr(self.re_patient_elements | self.re_tp_elements)
@@ -2434,10 +2440,17 @@ def insert_into_mapping_db(admindb, scrubber):
     mpid = scrubber.get_mpid()
     mrid = config.encrypt_master_pid(mpid)
     scrubber_hash = config.hash_scrubber(scrubber)
+    raw_pt = None
+    raw_tp = None
+    if config.save_scrubbers:
+        raw_pt = scrubber.get_patient_regex_string()
+        raw_tp = scrubber.get_tp_regex_string()
     if patient_in_map(admindb, pid):
         sql = """
             UPDATE {table}
-            SET {master_id} = ?, {master_research_id} = ?, {scrubber_hash} = ?
+            SET {master_id} = ?, {master_research_id} = ?, {scrubber_hash} = ?,
+                {RAW_SCRUBBER_FIELDNAME_PT} = ?,
+                {RAW_SCRUBBER_FIELDNAME_TP} = ?
             WHERE {patient_id} = ?
         """.format(
             table=config.secret_map_tablename,
@@ -2445,19 +2458,23 @@ def insert_into_mapping_db(admindb, scrubber):
             master_research_id=config.master_research_id_fieldname,
             scrubber_hash=config.source_hash_fieldname,
             patient_id=config.mapping_patient_id_fieldname,
+            RAW_SCRUBBER_FIELDNAME_PT=RAW_SCRUBBER_FIELDNAME_PT,
+            RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
         )
-        args = [mpid, mrid, scrubber_hash, pid]
+        args = [mpid, mrid, scrubber_hash, raw_pt, raw_tp, pid]
     else:
         sql = """
             INSERT INTO {table} (
                 {patient_id}, {research_id},
                 {master_id}, {master_research_id},
-                {scrubber_hash}
+                {scrubber_hash},
+                {RAW_SCRUBBER_FIELDNAME_PT}, {RAW_SCRUBBER_FIELDNAME_TP}
             )
             VALUES (
                 ?, ?,
                 ?, ?,
-                ?
+                ?,
+                ?, ?
             )
         """.format(
             table=config.secret_map_tablename,
@@ -2466,8 +2483,10 @@ def insert_into_mapping_db(admindb, scrubber):
             master_id=config.mapping_master_id_fieldname,
             master_research_id=config.master_research_id_fieldname,
             scrubber_hash=config.source_hash_fieldname,
+            RAW_SCRUBBER_FIELDNAME_PT=RAW_SCRUBBER_FIELDNAME_PT,
+            RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
         )
-        args = [pid, rid, mpid, mrid, scrubber_hash]
+        args = [pid, rid, mpid, mrid, scrubber_hash, raw_pt, raw_tp]
     admindb.db_exec(sql, *args)
     admindb.commit()
     # Commit immediately, because other processes may need this table promptly.
@@ -2479,25 +2498,38 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
     logger.debug("wipe_and_recreate_mapping_table")
     if not incremental:
         admindb.drop_table(config.secret_map_tablename)
-    sql = """
-        CREATE TABLE IF NOT EXISTS {table} (
-            {patient_id} BIGINT UNSIGNED PRIMARY KEY,
-            {research_id} {hash_type} NOT NULL,
-            {master_id} BIGINT UNSIGNED,
-            {master_research_id} {hash_type},
-            {scrubber_hash} {hash_type}
-        )
-    """.format(
-        table=config.secret_map_tablename,
-        hash_type=SQLTYPE_ENCRYPTED_PID,
-        patient_id=config.mapping_patient_id_fieldname,
-        research_id=config.research_id_fieldname,
-        master_id=config.mapping_master_id_fieldname,
-        master_research_id=config.master_research_id_fieldname,
-        scrubber_hash=config.source_hash_fieldname,
-    )
-    admindb.db_exec(sql)
-    admindb.commit()
+    fieldspecs = [
+        dict(name=config.mapping_patient_id_fieldname,
+             sqltype="BIGINT UNSIGNED", pk=True,
+             comment="Patient ID (PK)"),
+        dict(name=config.research_id_fieldname,
+             sqltype=SQLTYPE_ENCRYPTED_PID, notnull=True,
+             comment="Research ID"),
+        dict(name=config.mapping_master_id_fieldname,
+             sqltype="BIGINT UNSIGNED",
+             comment="Master ID"),
+        dict(name=config.master_research_id_fieldname,
+             sqltype=SQLTYPE_ENCRYPTED_PID, notnull=True,
+             comment="Master research ID"),
+        dict(name=config.source_hash_fieldname,
+             sqltype=SQLTYPE_ENCRYPTED_PID, notnull=True,
+             comment="Scrubber hash (for change detection)"),
+        dict(name=RAW_SCRUBBER_FIELDNAME_PT,
+             sqltype="TEXT",
+             comment="Raw patient scrubber (for debugging only)"),
+        dict(name=RAW_SCRUBBER_FIELDNAME_TP,
+             sqltype="TEXT",
+             comment="Raw third-party scrubber (for debugging only)"),
+    ]
+    admindb.create_or_update_table(
+        config.secret_map_tablename,
+        fieldspecs,
+        drop_superfluous_columns=True,
+        dynamic=True,
+        compressed=False)
+    if not admindb.mysql_table_using_barracuda(config.secret_map_tablename):
+        admindb.mysql_convert_table_to_barracuda(config.secret_map_tablename,
+                                                 compressed=False)
 
 
 def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
@@ -3395,6 +3427,9 @@ Sample usage (having set PYTHONPATH):
     parser.add_argument("--debugscrubbers", action="store_true",
                         help="Report sensitive scrubbing information, for "
                              "debugging")
+    parser.add_argument("--savescrubbers", action="store_true",
+                        help="Saves sensitive scrubbing information in admin "
+                             "database, for debugging")
     parser.add_argument("--count", action="store_true",
                         help="Count records in source database(s) only")
     parser.add_argument("--dropremake", action="store_true",
@@ -3470,6 +3505,7 @@ Sample usage (having set PYTHONPATH):
                load_destfields=False)
     config.report_every_n_rows = args.report
     config.debug_scrubbers = args.debugscrubbers
+    config.save_scrubbers = args.savescrubbers
 
     if args.draftdd or args.incrementaldd:
         # Note: the difference is that for incrementaldd, the data dictionary
