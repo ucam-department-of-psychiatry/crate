@@ -495,3 +495,10 @@ A.  Short answer: fixed internally (in rnc_db.py) by reconfiguring the SQL
     import pytz  # sudo pip3 install pytz
     import regex  # sudo apt-get install python3-regex
     import sortedcontainers  # sudo pip3 install sortedcontainers
+
+
+-------------------------------------------------------------------------------
+??naming
+-------------------------------------------------------------------------------
+
+CRATE: Clinical Records Anonymising Tool Experiment

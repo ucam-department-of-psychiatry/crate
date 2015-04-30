@@ -4,11 +4,6 @@
 """
 Anonymise multiple SQL-based databases using a data dictionary.
 
-CRATE: Clinical Records Anonymising Tool Experiment
-
-*** overenthusiastic anonymisation
-*** not splitting addresses properly?
-
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
 Last update: see VERSION_DATE below
@@ -32,7 +27,7 @@ Copyright/licensing:
 
 CHANGE LOG:
 
-- v0.04, 2015-04-30
+- v0.05, 2015-04-30
   - Ability to vary audit/secret map tablenames.
   - Made date element separators broader in anonymisation regex.
   - min_string_length_for_errors option
@@ -146,7 +141,7 @@ import rnc_log
 # =============================================================================
 
 VERSION = 0.05
-VERSION_DATE = "2015-04-29"
+VERSION_DATE = "2015-04-30"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
@@ -1916,6 +1911,8 @@ class Config(object):
             "max_rows_before_commit",
             "max_bytes_before_commit",
         ])
+        # Force words_not_to_scrub to lower case for speed later
+        self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
 
         # Databases
         self.destdb = self.get_database("destination_database")
@@ -2393,7 +2390,7 @@ class Scrubber(object):
                 l = len(s)
                 if l < config.min_string_length_to_scrub_with:
                     continue
-                if s in config.words_not_to_scrub:
+                if s.lower() in config.words_not_to_scrub:
                     continue
                 if l >= config.min_string_length_for_errors:
                     max_errors = config.string_max_regex_errors
