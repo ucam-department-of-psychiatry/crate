@@ -1873,6 +1873,7 @@ class Config(object):
                      load_dd=True):
         self.set_always()
         if self.PERSISTENT_CONSTANTS_INITIALIZED:
+            self.init_row_counts()
             return
         logger.info(SEP + "Loading config")
         if filename and environ:
@@ -1889,6 +1890,7 @@ class Config(object):
             logger.info(SEP + "Loading data dictionary")
             self.dd.read_from_file(config.data_dictionary_filename,
                                    check_against_source_db=include_sources)
+        self.init_row_counts()
         self.PERSISTENT_CONSTANTS_INITIALIZED = True
 
     def set_always(self):
@@ -1902,7 +1904,6 @@ class Config(object):
         self.TODAY = datetime.date.today()  # fetches the local date
         self._rows_in_transaction = 0
         self._bytes_in_transaction = 0
-        self.init_row_counts()
 
     def init_row_counts(self):
         self._rows_inserted_per_table = {}
