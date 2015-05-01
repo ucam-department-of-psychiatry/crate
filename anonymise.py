@@ -27,7 +27,7 @@ Copyright/licensing:
 
 CHANGE LOG:
 
-- v0.05, 2015-04-30
+- v0.05, 2015-05-1
   - Ability to vary audit/secret map tablenames.
   - Made date element separators broader in anonymisation regex.
   - min_string_length_for_errors option
@@ -38,7 +38,10 @@ CHANGE LOG:
     same source table multiple times to retrieve different fields.
   - ddgen_index_fields option
   - simplification of get_anon_fragments_from_string()
-  - SCRUBMETHOD.CODE, particularly for postcodes.
+  - SCRUBMETHOD.CODE, particularly for postcodes. (Not very different from
+    SCRUBMETHOD.NUMERIC, but a little different.)
+  - debug_row_limit applies to patient-based tables (as a per-thread limit);
+    was previously implemented as a per-patient limit, which was silly.
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -146,7 +149,7 @@ import rnc_log
 # =============================================================================
 
 VERSION = 0.05
-VERSION_DATE = "2015-04-30"
+VERSION_DATE = "2015-05-01"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
@@ -1704,6 +1707,9 @@ class DataDictionary(object):
             + [r.get_tsv() for r in self.rows]
         )
 
+    def get_src_db_tablepairs(self):
+        return self.cached_srcdb_table_pairs
+
     def get_src_dbs_tables_with_no_pt_info_no_pk(self):
         return self.cached_srcdb_table_pairs_wo_pt_info_no_pk
 
@@ -1845,6 +1851,7 @@ class Config(object):
         self._bytes_in_transaction = 0
         self.debug_scrubbers = False
         self.save_scrubbers = False
+        self._rows_inserted_per_table = {}
 
     def set(self, filename=None, environ=None, include_sources=True,
             load_dd=True, load_destfields=True):
@@ -1893,6 +1900,14 @@ class Config(object):
         self.NOW_LOCAL_TZ_ISO8601 = self.NOW_LOCAL_TZ.strftime(
             DATEFORMAT_ISO8601)
         self.TODAY = datetime.date.today()  # fetches the local date
+        self._rows_in_transaction = 0
+        self._bytes_in_transaction = 0
+        self.init_row_counts()
+
+    def init_row_counts(self):
+        self._rows_inserted_per_table = {}
+        for db_table_tuple in self.dd.get_src_db_tablepairs():
+            self._rows_inserted_per_table[db_table_tuple] = 0
 
     def read_environ(self, environ):
         self.remote_addr = environ.get("REMOTE_ADDR", "")
@@ -3060,17 +3075,18 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
     cursor = db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)
     row = cursor.fetchone()
-    nrows = 1
+    db_table_tuple = (dbname, sourcetable)
     while row is not None:
-        if debuglimit > 0 and nrows > debuglimit:
+        if (debuglimit > 0 and
+                config._rows_inserted_per_table[db_table_tuple] >= debuglimit):
             logger.warning(
-                "Table {}: stopping at {} rows due to debugging limits".format(
-                    sourcetable, debuglimit))
-            row = None
-        else:
-            yield list(row)  # convert from tuple to list so we can modify it
-            row = cursor.fetchone()
-            nrows += 1
+                "Table {}.{}: stopping at {} rows due to debugging "
+                "limits".format(dbname, sourcetable, debuglimit))
+            row = None  # terminate while loop
+            continue
+        yield list(row)  # convert from tuple to list so we can modify it
+        row = cursor.fetchone()
+        config._rows_inserted_per_table[db_table_tuple] += 1
     logger.debug("About to close cursor...")
     cursor.close()
     logger.debug("... cursor closed")

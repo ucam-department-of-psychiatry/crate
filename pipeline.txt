@@ -6,28 +6,54 @@ PIPELINE
 
 a)  Software prerequisites
 
-    i)  MySQL 5.6 or later
+    1)  MySQL 5.6 or later. For Ubuntu 14.10:
 
-        sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
-            mysql-client-5.6 mysql-client-core-5.6
+            $ sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
+                mysql-client-5.6 mysql-client-core-5.6
+            - Download the corresponding MySQL Workbench from
+                http://dev.mysql.com/downloads/workbench/
+              ... though it may moan about library incompatibilities
 
-b)  Ensure that all source database(s) are accessible to the Processing
+        ... but also sensible to use Ubuntu 15.04?
+
+    2)  Stuff that should come with Ubuntu:
+            git
+            Python 2.7
+
+    3)  This toolkit:
+
+            $ git clone https://github.com/RudolfCardinal/anonymise
+
+    4)  GATE
+        - Download GATE Developer
+        - java -jar gate-8.0-build4825-installer.jar
+        - Read the documentation; it's quite good.
+
+b)  Ensure that the PYTHONPATH is pointing to necessary Python support files:
+
+        $ . SET_PATHS.sh
+
+    To ensure it's working:
+
+        $ ./anonymise.py --help
+
+c)  Ensure that all source database(s) are accessible to the Processing
     Computer.
 
-c)  Write a draft config file, giving connection details for all source
-    databases.
+d)  Write a draft config file, giving connection details for all source
+    databases. To generate a demo config for editing:
 
-d)  Ensure that the PYTHONPATH is pointing to necessary Python support files.
+        $ ./anonymise.py --democonfig > MYCONFIG.ini
 
-e)  Ensure that the data dictionary has been created, and then updated and
-    verified by a human.
-    Use "anonymise.py -d <configfile>" to generate a draft config.
+    Edit it so that it can access your databases.
+
+e)  Ensure that the data dictionary (DD) has been created, and then updated and
+    verified by a human. To generate a draft DD from your databases for
+    editing:
+
+        $ ./anonymise.py MYCONFIG.ini --draftdd
+
     Edit it with any TSV editor (e.g. Excel, LibreOffice Calc).
-
-f)  Install GATE:
-    - Download GATE Developer
-    - java -jar gate-8.0-build4825-installer.jar
-    - Read the documentation; it's quite good.
 
 ===============================================================================
 1. PRE-PROCESSING
@@ -58,12 +84,6 @@ e)  Strongly consider using a row_id (e.g. integer primary key) field for each
     table. This will make natural language batch processing simpler (see
     below).
 
-f)  For extracting text from other things (DOC, DOCX, ODT, PDF):
-        extract_text.py
-    This script sends its output to stdout, but is easily modifiable to send
-    it elsewhere, or you can redirect its output in a calling script; it's also
-    easily parallelized.
-
 ===============================================================================
 2. ANONYMISATION (AND FULL-TEXT INDEXING) USING A DATA DICTIONARY
 ===============================================================================
@@ -85,6 +105,7 @@ OBJECTIVES:
       identifier (such as the NHS number), similarly encrypted.
     - For performance reasons, enable parallel processing and incremental
       updates.
+    - Deal with binary attachments containing text.
 
     For help: anonymise.py --help
 
