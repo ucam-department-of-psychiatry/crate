@@ -42,6 +42,8 @@ CHANGE LOG:
     SCRUBMETHOD.NUMERIC, but a little different.)
   - debug_row_limit applies to patient-based tables (as a per-thread limit);
     was previously implemented as a per-patient limit, which was silly.
+  - Indirection step in config for destination/admin databases.
+  - ignore_fulltext_indexes option, for old MySQL versions.
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -505,6 +507,9 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
 temporary_tablename = _temp_table
 
+# Ignore full-text indexes, for databases that don't support them?
+ignore_fulltext_indexes = False
+
 # -----------------------------------------------------------------------------
 # Admin database configuration
 # See the [admin_database] section for connection details.
@@ -521,23 +526,25 @@ secret_map_tablename = secret_map
 audit_tablename = audit
 
 # -----------------------------------------------------------------------------
-# List of source databases (each of which is defined in its own section).
+# Choose databases (defined in their own sections).
 # -----------------------------------------------------------------------------
 
-# Source database list.
-# Multiline field: https://docs.python.org/2/library/configparser.html
-
+#   Source database list. Can be lots.
 source_databases =
     mysourcedb1
     mysourcedb2
 
-# ...
+#   Destination database. Just one.
+destination_database = my_destination_database
+
+#   Admin database. Just one.
+admin_database = my_admin_database
 
 # =============================================================================
 # Destination database details. User should have WRITE access.
 # =============================================================================
 
-[destination_database]
+[my_destination_database]
 
 engine = mysql
 host = localhost
@@ -550,7 +557,7 @@ db = XXX
 # Administrative database. User should have WRITE access.
 # =============================================================================
 
-[admin_database]
+[my_admin_database]
 
 engine = mysql
 host = localhost
@@ -558,6 +565,19 @@ port = 3306
 user = XXX
 password = XXX
 db = XXX
+
+# In general, specify some of:
+#   - engine: one of:
+#       mysql
+#       sqlserver
+#   - interface: one of:
+#       mysqldb [default for mysql engine]
+#       odbc [default otherwise]
+#       jdbc
+#   - host, port, db [for mysqldb, JDBC]
+#   - dsn, odbc_connection_string [for ODBC]
+#   - username, password
+# ... see rnc_db.py
 
 # =============================================================================
 # SOURCE DATABASE DETAILS BELOW HERE.
@@ -1830,8 +1850,11 @@ class Config(object):
         "max_rows_before_commit",
         "max_bytes_before_commit",
         "temporary_tablename",
+        "ignore_fulltext_indexes",
         "secret_map_tablename",
         "audit_tablename",
+        "destination_database",
+        "admin_database",
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
@@ -1952,6 +1975,7 @@ class Config(object):
             "anonymise_strings_at_word_boundaries_only",
             "append_source_info_to_comment",
             "open_databases_securely",
+            "ignore_fulltext_indexes",
         ])
         convert_attrs_to_int(self, [
             "string_max_regex_errors",
@@ -1964,8 +1988,8 @@ class Config(object):
         self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
 
         # Databases
-        self.destdb = self.get_database("destination_database")
-        self.admindb = self.get_database("admin_database")
+        self.destdb = self.get_database(self.destination_database)
+        self.admindb = self.get_database(self.admin_database)
         self.sources = {}
         self.srccfg = {}
         self.src_db_names = []
@@ -2813,8 +2837,8 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
                                                            src_table)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
     PKFIELD = "srcpk"
-    START = "delete_dest_rows_with_no_src_row: {}.{} -> {}: ".format(
-        srcdbname, src_table, dest_table
+    START = "delete_dest_rows_with_no_src_row: {}.{} -> {}.{}: ".format(
+        srcdbname, src_table, config.destination_database, dest_table
     )
     logger.info(START + "[WARNING: MAY BE SLOW]")
 
@@ -3316,6 +3340,12 @@ def create_indexes(tasknum=0, ntasks=1):
                 )
             if config.destdb.index_exists(table, idxname):
                 continue  # because it will crash if you add it again!
+            if is_fulltext and config.ignore_fulltext_indexes:
+                logger.warning(
+                    "Skipping FULLTEXT index on {}.{} (disabled by "
+                    "config)".format(
+                        config.destination_database, table))
+                continue
             if is_fulltext:
                 sqlbits_fulltext.append(sqlbit)
             else:
