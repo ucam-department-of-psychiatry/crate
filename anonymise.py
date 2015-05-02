@@ -1864,6 +1864,7 @@ class Config(object):
 
     def __init__(self):
         self.config_filename = None
+        self.dd = None
         for x in Config.MAIN_HEADINGS:
             setattr(self, x, None)
         self.report_every_n_rows = 100
@@ -1930,6 +1931,8 @@ class Config(object):
 
     def init_row_counts(self):
         self._rows_inserted_per_table = {}
+        if not self.dd:
+            return
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self._rows_inserted_per_table[db_table_tuple] = 0
 
