@@ -1337,6 +1337,7 @@ class DataDictionaryRow(object):
 class DataDictionary(object):
     def __init__(self):
         self.rows = []
+        self.cached_srcdb_table_pairs = SortedSet()
 
     def read_from_file(self, filename, check_against_source_db=True):
         self.rows = []
@@ -1931,8 +1932,6 @@ class Config(object):
 
     def init_row_counts(self):
         self._rows_inserted_per_table = {}
-        if not self.dd:
-            return
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self._rows_inserted_per_table[db_table_tuple] = 0
 
