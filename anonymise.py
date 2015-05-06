@@ -106,6 +106,7 @@ import pytz
 import regex  # sudo apt-get install python-regex
 import signal
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
+import string
 import sys
 import threading
 import urllib
@@ -164,6 +165,8 @@ SEP = "=" * 20 + " "
 LONGTEXT = "LONGTEXT"
 DEFAULT_MAX_ROWS_BEFORE_COMMIT = 1000
 DEFAULT_MAX_BYTES_BEFORE_COMMIT = 80 * 1024 * 1024
+ODD_CHARS = '()/ '
+ODD_CHARS_TRANSLATE = string.maketrans(ODD_CHARS, '_' * len(ODD_CHARS))
 
 SCRUBSRC = AttrDict(
     PATIENT="patient",
@@ -599,7 +602,7 @@ db = XXX
 ddgen_force_lower_case = True
 
 #   Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.
-ddgen_convert_space_to_underscore = True
+ddgen_convert_odd_chars_to_underscore = True
 
 #   Allow the absence of patient info? Used to copy databases; WILL NOT
 #   ANONYMISE. Boolean; default is False.
@@ -1059,8 +1062,8 @@ class DataDictionaryRow(object):
             self.dest_field = config.master_research_id_fieldname
         else:
             self.dest_field = field
-        if cfg.ddgen_convert_space_to_underscore:
-            self.dest_field = self.dest_field.replace(" ", "_")
+        if cfg.ddgen_convert_odd_chars_to_underscore:
+            self.dest_field = self.dest_field.translate(ODD_CHARS_TRANSLATE)
 
         # Do we want to change the destination field SQL type?
         self.dest_datatype = (
@@ -1097,9 +1100,10 @@ class DataDictionaryRow(object):
             self._scrub = True
 
         # Manipulate the destination table name?
+        # http://stackoverflow.com/questions/10017147/python-replace-characters-in-string
         self.dest_table = table
-        if cfg.ddgen_convert_space_to_underscore:
-            self.dest_table = self.dest_table.replace(" ", "_")
+        if cfg.ddgen_convert_odd_chars_to_underscore:
+            self.dest_table = self.dest_table.translate(ODD_CHARS_TRANSLATE)
 
         # Should we index the destination?
         if SRCFLAG.PK in self.src_flags:
@@ -1766,7 +1770,7 @@ class DatabaseSafeConfig(object):
     def __init__(self, parser, section):
         read_config_string_options(self, parser, section, [
             "ddgen_force_lower_case",
-            "ddgen_convert_space_to_underscore",
+            "ddgen_convert_odd_chars_to_underscore",
             "ddgen_allow_no_patient_info",
             "ddgen_per_table_pid_field",
             "ddgen_master_pid_fieldname",
@@ -1795,7 +1799,7 @@ class DatabaseSafeConfig(object):
         ])
         convert_attrs_to_bool(self, [
             "ddgen_force_lower_case",
-            "ddgen_convert_space_to_underscore",
+            "ddgen_convert_odd_chars_to_underscore",
             "ddgen_allow_fulltext_indexing",
         ], default=True)
         convert_attrs_to_bool(self, [
