@@ -991,6 +991,12 @@ class DataDictionaryRow(object):
     def set_from_src_db_info(self, db, table, field, datatype_short,
                              datatype_full, cfg, comment=None,
                              default_omit=True):
+        # If Unicode, mangle to ASCII:
+        table = table.encode("ascii", "ignore")
+        field = field.encode("ascii", "ignore")
+        datatype_short = datatype_short.encode("ascii", "ignore")
+        datatype_full = datatype_full.encode("ascii", "ignore")
+
         self.src_db = db
         self.src_table = table
         self.src_field = field
