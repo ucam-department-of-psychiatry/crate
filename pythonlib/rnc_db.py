@@ -418,7 +418,7 @@ def debug_query_result(rows):
 # SQL types and validation
 # =============================================================================
 
-REGEX_INVALID_TABLE_FIELD_CHARS = re.compile("[^a-zA-Z0-9_]")
+REGEX_INVALID_TABLE_FIELD_CHARS = re.compile("[^a-zA-Z0-9_ ]")
 
 
 def is_valid_field_name(f):

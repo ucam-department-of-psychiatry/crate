@@ -598,6 +598,9 @@ db = XXX
 #   default is True.
 ddgen_force_lower_case = True
 
+#   Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.
+ddgen_convert_space_to_underscore = True
+
 #   Allow the absence of patient info? Used to copy databases; WILL NOT
 #   ANONYMISE. Boolean; default is False.
 ddgen_allow_no_patient_info = False
@@ -1056,6 +1059,8 @@ class DataDictionaryRow(object):
             self.dest_field = config.master_research_id_fieldname
         else:
             self.dest_field = field
+        if cfg.ddgen_convert_space_to_underscore:
+            self.dest_field = self.dest_field.replace(" ", "_")
 
         # Do we want to change the destination field SQL type?
         self.dest_datatype = (
@@ -1091,7 +1096,10 @@ class DataDictionaryRow(object):
                 cfg.ddgen_safe_fields_exempt_from_scrubbing):
             self._scrub = True
 
+        # Manipulate the destination table name?
         self.dest_table = table
+        if cfg.ddgen_convert_space_to_underscore:
+            self.dest_table = self.dest_table.replace(" ", "_")
 
         # Should we index the destination?
         if SRCFLAG.PK in self.src_flags:
@@ -1758,6 +1766,7 @@ class DatabaseSafeConfig(object):
     def __init__(self, parser, section):
         read_config_string_options(self, parser, section, [
             "ddgen_force_lower_case",
+            "ddgen_convert_space_to_underscore",
             "ddgen_allow_no_patient_info",
             "ddgen_per_table_pid_field",
             "ddgen_master_pid_fieldname",
@@ -1786,6 +1795,7 @@ class DatabaseSafeConfig(object):
         ])
         convert_attrs_to_bool(self, [
             "ddgen_force_lower_case",
+            "ddgen_convert_space_to_underscore",
             "ddgen_allow_fulltext_indexing",
         ], default=True)
         convert_attrs_to_bool(self, [
