@@ -360,7 +360,7 @@ def full_datatype_to_mysql(d):
     """Converts a full datatype, e.g. INT, VARCHAR(10), VARCHAR(MAX), to a
     MySQL equivalent."""
     d = d.upper()
-    if d == "VARCHAR(MAX)":
+    if d in ["VARCHAR(MAX)", "NVARCHAR(MAX)"]:
         # http://wiki.ispirer.com/sqlways/mysql/data-types/longtext
         return "LONGTEXT"
     elif d == "VARBINARY(MAX)":
@@ -454,7 +454,7 @@ SQLTYPES_OTHER_NUMERIC = [
     "BIT", "BOOL", "BOOLEAN", "DEC", "DECIMAL",
 ]
 SQLTYPES_TEXT = [
-    "CHAR", "VARCHAR",
+    "CHAR", "VARCHAR", "NVARCHAR",
     "TINYTEXT", "TEXT", "MEDIUMTEXT", "LONGTEXT",
 ]
 SQLTYPES_BINARY = [
