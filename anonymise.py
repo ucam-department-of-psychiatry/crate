@@ -43,7 +43,7 @@ CHANGE LOG:
   - debug_row_limit applies to patient-based tables (as a per-thread limit);
     was previously implemented as a per-patient limit, which was silly.
   - Indirection step in config for destination/admin databases.
-  - ignore_fulltext_indexes option, for old MySQL versions.
+  - ddgen_allow_fulltext_indexing option, for old MySQL versions.
 
 - v0.04, 2015-04-25
   - Whole bunch of stuff to cope with a limited computer talking to SQL Server
@@ -507,9 +507,6 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
 temporary_tablename = _temp_table
 
-# Ignore full-text indexes, for databases that don't support them?
-ignore_fulltext_indexes = False
-
 # -----------------------------------------------------------------------------
 # Admin database configuration
 # See the [admin_database] section for connection details.
@@ -665,6 +662,10 @@ ddgen_binary_to_text_field_pairs =
 
 #   Fields to apply an index to
 ddgen_index_fields =
+
+#   Allow full-text index creation? Default true. Disable for databases that
+#   don't support them?
+ddgen_allow_fulltext_indexing = True
 
 # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
 
@@ -1100,7 +1101,8 @@ class DataDictionaryRow(object):
                 or SRCFLAG.MASTERPID in self.src_flags
                 or SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags):
             self.index = INDEX.NORMAL
-        elif does_sqltype_merit_fulltext_index(self.dest_datatype):
+        elif (does_sqltype_merit_fulltext_index(self.dest_datatype)
+                and cfg.ddgen_allow_fulltext_indexing):
             self.index = INDEX.FULLTEXT
         elif self.src_field in cfg.ddgen_index_fields:
             self.index = INDEX.NORMAL
@@ -1762,6 +1764,7 @@ class DatabaseSafeConfig(object):
             "ddgen_constant_content",
             "ddgen_addition_only",
             "ddgen_min_length_for_scrubbing",
+            "ddgen_allow_fulltext_indexing",
             "debug_row_limit",
         ])
         read_config_multiline_options(self, parser, section, [
@@ -1783,6 +1786,7 @@ class DatabaseSafeConfig(object):
         ])
         convert_attrs_to_bool(self, [
             "ddgen_force_lower_case",
+            "ddgen_allow_fulltext_indexing",
         ], default=True)
         convert_attrs_to_bool(self, [
             "ddgen_allow_no_patient_info",
@@ -1851,7 +1855,6 @@ class Config(object):
         "max_rows_before_commit",
         "max_bytes_before_commit",
         "temporary_tablename",
-        "ignore_fulltext_indexes",
         "secret_map_tablename",
         "audit_tablename",
         "destination_database",
@@ -1977,7 +1980,6 @@ class Config(object):
             "anonymise_strings_at_word_boundaries_only",
             "append_source_info_to_comment",
             "open_databases_securely",
-            "ignore_fulltext_indexes",
         ])
         convert_attrs_to_int(self, [
             "string_max_regex_errors",
@@ -1990,12 +1992,19 @@ class Config(object):
         self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
 
         # Databases
+        if self.destination_database == self.admin_database:
+            raise ValueError(
+                "Destination and admin databases mustn't be the same")
         self.destdb = self.get_database(self.destination_database)
         self.admindb = self.get_database(self.admin_database)
         self.sources = {}
         self.srccfg = {}
         self.src_db_names = []
         for sourcedb_name in self.source_databases:
+            if (sourcedb_name == self.destination_database
+                    or sourcedb_name == self.admin_database):
+                raise ValueError("Source database can't be the same as "
+                                 "destination or admin database")
             self.src_db_names.append(sourcedb_name)
             if not include_sources:
                 continue
@@ -3342,12 +3351,6 @@ def create_indexes(tasknum=0, ntasks=1):
                 )
             if config.destdb.index_exists(table, idxname):
                 continue  # because it will crash if you add it again!
-            if is_fulltext and config.ignore_fulltext_indexes:
-                logger.warning(
-                    "Skipping FULLTEXT index on {}.{} (disabled by "
-                    "config)".format(
-                        config.destination_database, table))
-                continue
             if is_fulltext:
                 sqlbits_fulltext.append(sqlbit)
             else:
