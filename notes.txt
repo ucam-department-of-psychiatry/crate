@@ -502,3 +502,44 @@ A.  Short answer: fixed internally (in rnc_db.py) by reconfiguring the SQL
 -------------------------------------------------------------------------------
 
 CRATE: Clinical Records Anonymising Tool Experiment
+
+
+===============================================================================
+JDBC SQL tools
+===============================================================================
+
+- Squirrel SQL
+    - Install
+
+        wget http://downloads.sourceforge.net/project/squirrel-sql/1-stable/3.6.0/squirrel-sql-3.6-standard.jar?r=http%3A%2F%2Fsquirrel-sql.sourceforge.net%2F&ts=1432028753&use_mirror=netcologne
+
+        # now rename the result to squirrel-sql-3.6-standard.jar
+
+        java -jar squirrel-sql-3.6-standard.jar
+
+        # install, picking Microsoft SQL Server and MySQL as plugins,
+        # plus "Multi Source" and "Data import"
+        # Will then run from its new directory, via
+
+        squirrel-sql-3.6/squirrel-sql.sh &
+
+    - Configure SQL Server
+
+        Windows > View Drivers > Microsoft MSSQL Server JDBC Driver
+            > Extra Class Path
+            > find sqljdbc_4.1/enu/sqljdbc41.jar
+
+        Windows > View Aliases > Add Alias
+            ... set up the database
+            ... test connection
+        URL defaults to:
+            jdbc:sqlserver://<server_name>:1433;databaseName=<db_name>
+        Since it didn't work, using this:
+           jdbc:sqlserver://INSERT_IP_ADDRESS:1433;databaseName=INSERT_DB_NAME;responseBuffering=adaptive;selectMethod=cursor
+        It copes with specifying the username/password in the dialogue box.
+
+    - Configure MySQL
+
+        Extra classpath is /usr/share/java/mysql.jar
+        Beforehand: sudo apt-get install libmysql-java
+        URL: jdbc:mysql://{host}:{port}/{database}

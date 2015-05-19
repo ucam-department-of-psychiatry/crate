@@ -72,7 +72,7 @@ import textwrap
 # Local
 import rnc_web as ws
 from rnc_lang import AttrDict
-from shared_anon import config, escape_literal_string_for_regex
+from anonymise import config, escape_literal_string_for_regex
 
 # Conditional imports
 if PROFILE:
