@@ -349,12 +349,12 @@ class WhiskerTask(object):
         logger.info("Server fully connected.")
         self.fully_connected()
 
-        #sleeptime = 0.1
-        #logger.info("Sleeping for " + str(sleeptime) +
-        #                 " seconds as the Nagle-disabling feature of Python "
-        #                 "isn't working properly...")
-        #time.sleep(sleeptime)
-        # the Nagle business isn't working; the Link packet is getting
+        # sleeptime = 0.1
+        # logger.info("Sleeping for " + str(sleeptime) +
+        #                  " seconds as the Nagle-disabling feature of Python "
+        #                  "isn't working properly...")
+        # time.sleep(sleeptime)
+        # The Nagle business isn't working; the Link packet is getting
         # amalgamated with anything the main calling program starts to send.
         # So pause.
 
