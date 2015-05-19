@@ -26,7 +26,22 @@ Copyright/licensing:
 MOST OF THIS IS REDUNDANT.
 SEE BETTER ADVICE AT:
     http://pieces.openpolitics.com/2012/04/python-logging-best-practices/
-
+IN SUMMARY, LIBRARIES SHOULD DO THIS:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.addHandler(logging.NullHandler())
+    # ... and log away
+APPLICATIONS SHOULD DO THIS:
+    import logging
+    logging.basicConfig()
+OR THIS SORT OF THING:
+    import logging
+    LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+    LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT)
+    # +/-
+    logger = logging.getLogger(__name__)
+    # ... and log away
 """
 
 import logging
