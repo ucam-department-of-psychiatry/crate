@@ -645,7 +645,8 @@ def _convert_java_bigint(rs, col):
 def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
-    from jaydebeapi.dbapi2 import _DEFAULT_CONVERTERS  # , _java_to_py
+    from jaydebeapi import _DEFAULT_CONVERTERS  # , _java_to_py
+    # prior to jaydebeapi 0.2.0, was "from jaydebeapi.dbapi2 import..."
     _DEFAULT_CONVERTERS.update({
         'BIGINT': _convert_java_bigint,
 

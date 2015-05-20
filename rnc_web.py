@@ -381,6 +381,10 @@ def tsv_result(text, extraheaders=[], filename=None):
     return (contenttype, extraheaders, text.encode("utf-8"))
 
 
+# =============================================================================
+# CGI
+# =============================================================================
+
 def print_result_for_plain_cgi_script_from_tuple(contenttype_headers_content,
                                                  status='200 OK'):
     """Writes HTTP result to stdout.
@@ -402,6 +406,23 @@ def print_result_for_plain_cgi_script(contenttype, headers, content,
     ] + headers
     sys.stdout.write("\n".join([h[0] + ": " + h[1] for h in headers]) + "\n\n")
     sys.stdout.write(content)
+
+
+# =============================================================================
+# WSGI
+# =============================================================================
+
+def wsgi_simple_responder(result, handler, start_response, status='200 OK',
+                          extraheaders=[]):
+    (contenttype, extraheaders2, output) = handler(result)
+    response_headers = [('Content-Type', contenttype),
+                        ('Content-Length', str(len(output)))]
+    if extraheaders is not None:
+        response_headers.extend(extraheaders)
+    if extraheaders2 is not None:
+        response_headers.extend(extraheaders2)
+    start_response(status, response_headers)
+    return [output]
 
 
 # =============================================================================
