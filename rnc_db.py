@@ -571,7 +571,6 @@ def _convert_java_binary(rs, col):
     # https://github.com/baztian/jaydebeapi/blob/master/jaydebeapi/__init__.py
     # https://msdn.microsoft.com/en-us/library/ms378813(v=sql.110).aspx
     # http://stackoverflow.com/questions/2920364/checking-for-a-null-int-value-from-a-java-resultset  # noqa
-
     v = None
     logger.debug("_convert_java_binary: converting...")
     time1 = time.time()
@@ -585,7 +584,6 @@ def _convert_java_binary(rs, col):
         # t = str(type(java_val))
         # if t == "<class 'jpype._jarray.byte[]'>": ...
         # v = ''.join(map(lambda x: chr(x % 256), java_val))
-
         # ---------------------------------------------------------------------
         # Method 2: 3578880 bytes in 8.07930088043 seconds =   442 kB/s
         # ---------------------------------------------------------------------
@@ -596,7 +594,6 @@ def _convert_java_binary(rs, col):
         # v = bytearray(l)
         # for i in xrange(l):
         #     v[i] = java_val[i] % 256
-
         # ---------------------------------------------------------------------
         # Method 3: 3578880 bytes in 20.1435189247 seconds =   177 kB/s
         # ---------------------------------------------------------------------
@@ -604,7 +601,6 @@ def _convert_java_binary(rs, col):
         # if java_val is None:
         #     return
         # v = bytearray(map(lambda x: x % 256, java_val))
-
         # ---------------------------------------------------------------------
         # Method 4: 3578880 bytes in 0.48352599144 seconds = 7,402 kB/s
         # ---------------------------------------------------------------------
@@ -612,7 +608,6 @@ def _convert_java_binary(rs, col):
         if rs.wasNull():
             return
         v = binascii.unhexlify(j_hexstr)
-
     finally:
         time2 = time.time()
         logger.debug("... done (in {} seconds)".format(time2 - time1))
@@ -642,22 +637,56 @@ def _convert_java_bigint(rs, col):
     return int(v)
 
 
+def _convert_java_datetime(rs, col):
+    java_val = rs.getTimestamp(col)
+    if not java_val:
+        return
+    d = datetime.datetime.strptime(str(java_val)[:19], "%Y-%m-%d %H:%M:%S")
+    d = d.replace(microsecond=int(str(java_val.getNanos())[:6]))
+    # jaydebeapi 0.2.0 does this:
+    #   return str(d)
+    # but we want a datetime!
+    return d
+
+
 def reconfigure_jaydebeapi():
     if not JDBC_AVAILABLE:
         return
-    from jaydebeapi import _DEFAULT_CONVERTERS  # , _java_to_py
-    # prior to jaydebeapi 0.2.0, was "from jaydebeapi.dbapi2 import..."
-    _DEFAULT_CONVERTERS.update({
+    # The types used as keys below MUST be in java.sql.Types -- search for
+    # _init_types() calls in jaydebeapi's __init__.py. If not, this bit
+    # crashes:
+    #       for i in _DEFAULT_CONVERTERS:
+    #           const_val = types_map[i]
+    # Those types are:
+    #       http://docs.oracle.com/javase/6/docs/api/java/sql/Types.html
+    # In particular, note that DATETIME is not one of them!
+    # The equivalent is TIMESTAMP.
+    #       http://stackoverflow.com/questions/6777810
+    jaydebeapi._DEFAULT_CONVERTERS.update({
         'BIGINT': _convert_java_bigint,
-
         'BINARY': _convert_java_binary,  # overrides an existing one
         'BLOB': _convert_java_binary,
-        'LONGVARBINARY': _convert_java_binary,
-        'VARBINARY': _convert_java_binary,
-
-        'LONGVARCHAR': _convert_java_bigstring,
         'LONGNVARCHAR': _convert_java_bigstring,
+        'LONGVARBINARY': _convert_java_binary,
+        'LONGVARCHAR': _convert_java_bigstring,
+        'TIMESTAMP': _convert_java_datetime,
+        'VARBINARY': _convert_java_binary,
+        # Handled sensibly by jaydebeapi:
+        # 'TIME': _to_time,
+        # 'DATE': _to_date,
+        # 'BINARY': _to_binary,
+        # 'DECIMAL': _to_double,
+        # 'NUMERIC': _to_double,
+        # 'DOUBLE': _to_double,
+        # 'FLOAT': _to_double,
+        # 'INTEGER': _to_int,
+        # 'SMALLINT': _to_int,
+        # 'BOOLEAN': _java_to_py('booleanValue'),
+        #
+        # Not handled sensibly:
+        # 'TIMESTAMP': _to_datetime,
     })
+    # ... prior to jaydebeapi 0.2.0, was jaydebeapi.dbapi2._DEFAULT_CONVERTERS
 
 
 reconfigure_jaydebeapi()
