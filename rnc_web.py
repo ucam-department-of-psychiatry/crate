@@ -98,10 +98,14 @@ def number_to_dp(number, dp, default="", en_dash_for_minus=True):
 # CGI
 # =============================================================================
 
-def debug_form_contents(form):
+def debug_form_contents(form, to_stderr=True, to_logger=False):
     """Writes the keys and values of a CGI form to stderr."""
     for k in form.keys():
-        sys.stderr.write("{0} = {1}".format(k, form.getvalue(k)))
+        text = "{0} = {1}".format(k, form.getvalue(k))
+        if to_stderr:
+            sys.stderr.write(text)
+        if to_logger:
+            logger.info(text)
     # But note also: cgi.print_form(form)
 
 
