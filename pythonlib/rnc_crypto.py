@@ -86,16 +86,32 @@ def is_password_valid(plaintextpw, storedhash):
 
 
 # =============================================================================
-# MD5
+# Hashers
 # =============================================================================
 
-class MD5Hasher(object):
-    def __init__(self, salt):
+class GenericHasher(object):
+    def __init__(self, hashfunc, salt):
+        self.hashfunc = hashfunc
         self.salt = salt
 
     def hash(self, raw):
         raw = str(raw)
-        return hashlib.md5(self.salt + raw).hexdigest()
+        return self.hashfunc(self.salt + raw).hexdigest()
+
+
+class MD5Hasher(GenericHasher):
+    def __init__(self, salt):
+        super(MD5Hasher, self).__init__(hashlib.md5, salt)
+
+
+class SHA256Hasher(GenericHasher):
+    def __init__(self, salt):
+        super(SHA256Hasher, self).__init__(hashlib.sha256, salt)
+
+
+class SHA512Hasher(GenericHasher):
+    def __init__(self, salt):
+        super(SHA512Hasher, self).__init__(hashlib.sha512, salt)
 
 
 if False:

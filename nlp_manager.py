@@ -180,7 +180,7 @@ inputfielddefs =
 
 outputtypemap =
     person output_person
-    person output_location
+    location output_location
 
 # -----------------------------------------------------------------------------
 # NLP is done by an external program.

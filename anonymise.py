@@ -106,7 +106,6 @@ import pytz
 import regex  # sudo apt-get install python-regex
 import signal
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
-import string
 import sys
 import threading
 import urllib
@@ -115,7 +114,7 @@ from rnc_config import (
     read_config_multiline_options,
     read_config_string_options,
 )
-from rnc_crypto import MD5Hasher
+from rnc_crypto import MD5Hasher, SHA256Hasher, SHA512Hasher
 from rnc_datetime import (
     coerce_to_date,
     format_datetime,
@@ -155,9 +154,6 @@ VERSION = 0.05
 VERSION_DATE = "2015-05-01"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
-ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
-SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
-# ... in practice: VARCHAR(32)
 
 DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
@@ -165,8 +161,16 @@ SEP = "=" * 20 + " "
 LONGTEXT = "LONGTEXT"
 DEFAULT_MAX_ROWS_BEFORE_COMMIT = 1000
 DEFAULT_MAX_BYTES_BEFORE_COMMIT = 80 * 1024 * 1024
-ODD_CHARS = '()/ '
-ODD_CHARS_TRANSLATE = string.maketrans(ODD_CHARS, '_' * len(ODD_CHARS))
+
+# Better overall than string.maketrans:
+ODD_CHARS_TRANSLATE = [chr(x) for x in xrange(0, 256)]
+for c in '()/ ':
+    ODD_CHARS_TRANSLATE[ord(c)] = '_'
+for i in xrange(0, 32):
+    ODD_CHARS_TRANSLATE[i] = '_'
+for i in xrange(127, 256):
+    ODD_CHARS_TRANSLATE[i] = '_'
+ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 
 SCRUBSRC = AttrDict(
     PATIENT="patient",
@@ -246,7 +250,8 @@ DEMO_CONFIG = """
 #             name as set by the config's source_hash_fieldname variable,
 #             containing a hash of the contents of the source record (all
 #             fields that are not omitted, OR contain scrubbing information
-#             (scrub_src). The field is of type {SQLTYPE_ENCRYPTED_PID}.
+#             (scrub_src). The field is of type VARCHAR and its length is
+#             determined by the hash_method parameter (see below).
 #           - This table is then capable of incremental updates.
 #       {SRCFLAG.CONSTANT}:  Contents are constant (will not change) for a
 #           given PK.
@@ -350,6 +355,13 @@ data_dictionary_filename = testdd.tsv
 # Encryption phrases/passwords
 # -----------------------------------------------------------------------------
 
+# Hashing method. Options are:
+#   MD5 - produces a 32-character digest; cryptographically poor; default
+#   SHA256 - produces a 64-character digest
+#   SHA512 - produces a 128-character digest
+
+hash_method = MD5
+
 per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
 
 master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
@@ -448,8 +460,8 @@ anonymise_strings_at_word_boundaries_only = True
 
 mapping_patient_id_fieldname = patient_id
 
-# Research ID field name. This will be a {SQLTYPE_ENCRYPTED_PID}.
-# Used to replace per_table_patient_id_field.
+# Research ID field name. This will be a VARCHAR of length determined by
+# hash_method. Used to replace per_table_patient_id_field.
 
 research_id_fieldname = brcid
 
@@ -461,7 +473,8 @@ mapping_master_id_fieldname = nhsnum
 
 master_research_id_fieldname = nhshash
 
-# Change-detection hash fieldname. This will be a {SQLTYPE_ENCRYPTED_PID}.
+# Change-detection hash fieldname. This will be a VARCHAR of length determined
+# by hash_method.
 
 source_hash_fieldname = _src_hash
 
@@ -849,7 +862,6 @@ ddgen_filename_to_text_fields =
 ddgen_binary_to_text_field_pairs =
 
 """.format(
-    SQLTYPE_ENCRYPTED_PID=SQLTYPE_ENCRYPTED_PID,
     SCRUBSRC=SCRUBSRC,
     INDEX=INDEX,
     SCRUBMETHOD=SCRUBMETHOD,
@@ -1069,11 +1081,14 @@ class DataDictionaryRow(object):
         else:
             self.dest_field = field
         if cfg.ddgen_convert_odd_chars_to_underscore:
+            self.dest_field = str(self.dest_field)  # if this fails,
+            # there's a Unicode problem
             self.dest_field = self.dest_field.translate(ODD_CHARS_TRANSLATE)
+            # ... this will choke on a Unicode string
 
         # Do we want to change the destination field SQL type?
         self.dest_datatype = (
-            SQLTYPE_ENCRYPTED_PID
+            config.SQLTYPE_ENCRYPTED_PID
             if (SRCFLAG.PRIMARYPID in self.src_flags
                 or SRCFLAG.MASTERPID in self.src_flags)
             else rnc_db.full_datatype_to_mysql(datatype_full))
@@ -1106,9 +1121,11 @@ class DataDictionaryRow(object):
             self._scrub = True
 
         # Manipulate the destination table name?
-        # http://stackoverflow.com/questions/10017147/python-replace-characters-in-string
+        # http://stackoverflow.com/questions/10017147
         self.dest_table = table
         if cfg.ddgen_convert_odd_chars_to_underscore:
+            self.dest_table = str(self.dest_table)  # if this fails,
+            # there's a Unicode problem
             self.dest_table = self.dest_table.translate(ODD_CHARS_TRANSLATE)
 
         # Should we index the destination?
@@ -1295,13 +1312,13 @@ class DataDictionaryRow(object):
 
             if ((SRCFLAG.PRIMARYPID in self.src_flags
                  or SRCFLAG.MASTERPID in self.src_flags) and
-                    self.dest_datatype != SQLTYPE_ENCRYPTED_PID):
+                    self.dest_datatype != config.SQLTYPE_ENCRYPTED_PID):
                 raise ValueError(
                     "All src_flags={}/src_flags={} fields used in output must "
                     "have destination_datatype = {}".format(
                         SRCFLAG.PRIMARYPID,
                         SRCFLAG.MASTERPID,
-                        SQLTYPE_ENCRYPTED_PID))
+                        config.SQLTYPE_ENCRYPTED_PID))
 
             valid_index = [INDEX.NORMAL, INDEX.UNIQUE, INDEX.FULLTEXT, ""]
             if self.index not in valid_index:
@@ -1850,6 +1867,7 @@ class DestinationFieldInfo(object):
 class Config(object):
     MAIN_HEADINGS = [
         "data_dictionary_filename",
+        "hash_method",
         "ddgen_master_pid_fieldname",
         "per_table_patient_id_encryption_phrase",
         "master_patient_id_encryption_phrase",
@@ -2107,19 +2125,32 @@ class Config(object):
         format_datetime(self.NOW_UTC_NO_TZ, self.datetime_to_text_format)
 
         # Load encryption keys
+        if self.hash_method == "MD5" or not self.hash_method:
+            HashClass = MD5Hasher
+        elif self.hash_method == "SHA256":
+            HashClass = SHA256Hasher
+        elif self.hash_method == "SHA512":
+            HashClass = SHA512Hasher
+        else:
+            raise ValueError("Unknown value for hash_method")
+        encrypted_length = len(HashClass("dummysalt").hash(MAX_PID_STR))
+        self.SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(encrypted_length)
+        # ... VARCHAR(32) for MD5; VARCHAR(64) for SHA-256; VARCHAR(128) for
+        # SHA-512.
+
         if not self.per_table_patient_id_encryption_phrase:
             raise ValueError("Missing per_table_patient_id_encryption_phrase")
-        self.primary_pid_hasher = MD5Hasher(
+        self.primary_pid_hasher = HashClass(
             self.per_table_patient_id_encryption_phrase)
 
         if not self.master_patient_id_encryption_phrase:
             raise ValueError("Missing master_patient_id_encryption_phrase")
-        self.master_pid_hasher = MD5Hasher(
+        self.master_pid_hasher = HashClass(
             self.master_patient_id_encryption_phrase)
 
         if not self.change_detection_encryption_phrase:
             raise ValueError("Missing change_detection_encryption_phrase")
-        self.change_detection_hasher = MD5Hasher(
+        self.change_detection_hasher = HashClass(
             self.change_detection_encryption_phrase)
 
         # Source databases
@@ -2746,16 +2777,16 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
              sqltype="BIGINT UNSIGNED", pk=True,
              comment="Patient ID (PK)"),
         dict(name=config.research_id_fieldname,
-             sqltype=SQLTYPE_ENCRYPTED_PID, notnull=True,
+             sqltype=config.SQLTYPE_ENCRYPTED_PID, notnull=True,
              comment="Research ID"),
         dict(name=config.mapping_master_id_fieldname,
              sqltype="BIGINT UNSIGNED",
              comment="Master ID"),
         dict(name=config.master_research_id_fieldname,
-             sqltype=SQLTYPE_ENCRYPTED_PID,
+             sqltype=config.SQLTYPE_ENCRYPTED_PID,
              comment="Master research ID"),
         dict(name=config.source_hash_fieldname,
-             sqltype=SQLTYPE_ENCRYPTED_PID,
+             sqltype=config.SQLTYPE_ENCRYPTED_PID,
              comment="Scrubber hash (for change detection)"),
         dict(name=RAW_SCRUBBER_FIELDNAME_PATIENT,
              sqltype="TEXT",
@@ -2812,7 +2843,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
                 # append a special field
                 fieldspecs.append(
                     config.source_hash_fieldname + " " +
-                    SQLTYPE_ENCRYPTED_PID +
+                    config.SQLTYPE_ENCRYPTED_PID +
                     " COMMENT 'Hashed amalgamation of all source fields'")
                 dest_fieldnames.append(config.source_hash_fieldname)
         logger.debug("creating table {}".format(t))
