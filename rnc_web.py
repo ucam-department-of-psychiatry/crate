@@ -98,10 +98,14 @@ def number_to_dp(number, dp, default="", en_dash_for_minus=True):
 # CGI
 # =============================================================================
 
-def debug_form_contents(form):
+def debug_form_contents(form, to_stderr=True, to_logger=False):
     """Writes the keys and values of a CGI form to stderr."""
     for k in form.keys():
-        sys.stderr.write("{0} = {1}".format(k, form.getvalue(k)))
+        text = "{0} = {1}".format(k, form.getvalue(k))
+        if to_stderr:
+            sys.stderr.write(text)
+        if to_logger:
+            logger.info(text)
     # But note also: cgi.print_form(form)
 
 
@@ -381,6 +385,10 @@ def tsv_result(text, extraheaders=[], filename=None):
     return (contenttype, extraheaders, text.encode("utf-8"))
 
 
+# =============================================================================
+# CGI
+# =============================================================================
+
 def print_result_for_plain_cgi_script_from_tuple(contenttype_headers_content,
                                                  status='200 OK'):
     """Writes HTTP result to stdout.
@@ -402,6 +410,23 @@ def print_result_for_plain_cgi_script(contenttype, headers, content,
     ] + headers
     sys.stdout.write("\n".join([h[0] + ": " + h[1] for h in headers]) + "\n\n")
     sys.stdout.write(content)
+
+
+# =============================================================================
+# WSGI
+# =============================================================================
+
+def wsgi_simple_responder(result, handler, start_response, status='200 OK',
+                          extraheaders=[]):
+    (contenttype, extraheaders2, output) = handler(result)
+    response_headers = [('Content-Type', contenttype),
+                        ('Content-Length', str(len(output)))]
+    if extraheaders is not None:
+        response_headers.extend(extraheaders)
+    if extraheaders2 is not None:
+        response_headers.extend(extraheaders2)
+    start_response(status, response_headers)
+    return [output]
 
 
 # =============================================================================
