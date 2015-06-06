@@ -34,8 +34,7 @@ import pyPdf  # sudo apt-get install python-pypdf
 import sys
 
 try:
-    import xhtml2pdf.document
-    # sudo easy_install pip; sudo pip install xhtml2pdf
+    import xhtml2pdf.document  # sudo easy_install pip; sudo pip install xhtml2pdf  # noqa
     XHTML2PDF_AVAILABLE = True
 except ImportError:
     XHTML2PDF_AVAILABLE = False
@@ -46,9 +45,15 @@ try:
 except ImportError:
     WEASYPRINT_AVAILABLE = False
 
-if not XHTML2PDF_AVAILABLE and not WEASYPRINT_AVAILABLE:
-    raise RuntimeError("Neither xhtml2pdf nor Weasyprint available; can't "
-                       "load")
+try:
+    import pdfkit  # sudo apt-get install wkhtmltopdf; sudo pip install pdfkit
+    PDFKIT_AVAILABLE = True
+except ImportError:
+    PDFKIT_AVAILABLE = False
+
+if not any([XHTML2PDF_AVAILABLE, WEASYPRINT_AVAILABLE, PDFKIT_AVAILABLE]):
+    raise RuntimeError("No PDF engine (xhtml2pdf, weasyprint, pdfkit) "
+                       "available; can't load")
 
 # =============================================================================
 # Ancillary functions for PDFs
@@ -56,20 +61,34 @@ if not XHTML2PDF_AVAILABLE and not WEASYPRINT_AVAILABLE:
 
 XHTML2PDF = "xhtml2pdf"
 WEASYPRINT = "weasyprint"
-processor = WEASYPRINT if WEASYPRINT_AVAILABLE else XHTML2PDF
+PDFKIT = "pdfkit"
+if PDFKIT_AVAILABLE:
+    processor = PDFKIT
+elif WEASYPRINT_AVAILABLE:
+    processor = WEASYPRINT
+else:
+    processor = XHTML2PDF
 
 
-def set_processor(new_processor=WEASYPRINT):
+_wkhtmltopdf_filename = None
+
+
+def set_processor(new_processor=WEASYPRINT, wkhtmltopdf_filename=None):
     """Set the PDF processor."""
     global processor
-    if new_processor not in [XHTML2PDF, WEASYPRINT]:
+    if new_processor not in [XHTML2PDF, WEASYPRINT, PDFKIT]:
         raise AssertionError("rnc_pdf.set_pdf_processor: invalid PDF processor"
                              " specified")
     if new_processor == WEASYPRINT and not WEASYPRINT_AVAILABLE:
         raise RuntimeError("rnc_pdf: Weasyprint requested, but not available")
     if new_processor == XHTML2PDF and not XHTML2PDF_AVAILABLE:
         raise RuntimeError("rnc_pdf: xhtml2pdf requested, but not available")
+    if new_processor == PDFKIT and not PDFKIT_AVAILABLE:
+        raise RuntimeError("rnc_pdf: pdfkit requested, but not available")
+    global processor
     processor = new_processor
+    global _wkhtmltopdf_filename
+    _wkhtmltopdf_filename = wkhtmltopdf_filename
     logger.info("PDF processor set to: " + processor)
 
 
@@ -84,9 +103,18 @@ def pdf_from_html(html):
         memfile.seek(0)
         return buffer(memfile.read())
         # http://stackoverflow.com/questions/3310584
-    else:
+    elif processor == WEASYPRINT:
         # http://ampad.de/blog/generating-pdfs-django/
         return weasyprint.HTML(string=html).write_pdf()
+    elif processor == PDFKIT:
+        if _wkhtmltopdf_filename is None:
+            config = None
+        else:
+            config = pdfkit.configuration(wkhtmltopdf=_wkhtmltopdf_filename)
+        kit = pdfkit.pdfkit.PDFKit(html, 'string', configuration=config)
+        return kit.to_pdf(path=None)
+    else:
+        raise AssertionError("Unknown PDF engine")
 
 
 def pdf_from_writer(writer):
