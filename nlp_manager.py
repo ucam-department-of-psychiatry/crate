@@ -80,24 +80,24 @@ import os
 import subprocess
 import sys
 
-from rnc_config import read_config_string_options
-from rnc_crypto import MD5Hasher
-from rnc_datetime import (
+from pythonlib.rnc_config import read_config_string_options
+from pythonlib.rnc_crypto import MD5Hasher
+from pythonlib.rnc_datetime import (
     get_now_utc,
     get_now_utc_notz
 )
-import rnc_db
-from rnc_db import (
+import pythonlib.rnc_db as rnc_db
+from pythonlib.rnc_db import (
     DatabaseConfig,
     ensure_valid_field_name,
     ensure_valid_table_name,
     is_sqltype_valid
 )
-from rnc_lang import (
+from pythonlib.rnc_lang import (
     chunks,
     raise_if_attr_blank
 )
-import rnc_log
+import pythonlib.rnc_log as rnc_log
 
 
 # =============================================================================

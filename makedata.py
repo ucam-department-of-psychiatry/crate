@@ -34,7 +34,7 @@ import datetime
 import getpass
 import subprocess
 
-import rnc_db
+import pythonlib.rnc_db as rnc_db
 # rnc_db.set_loglevel(logging.DEBUG)
 
 parser = argparse.ArgumentParser()

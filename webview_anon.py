@@ -70,8 +70,8 @@ import sys
 import textwrap
 
 # Local
-import rnc_web as ws
-from rnc_lang import AttrDict
+import pythonlib.rnc_web as ws
+from pythonlib.rnc_lang import AttrDict
 from anonymise import config, escape_literal_string_for_regex
 
 # Conditional imports

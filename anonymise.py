@@ -110,19 +110,19 @@ import sys
 import threading
 import urllib
 
-from rnc_config import (
+from pythonlib.rnc_config import (
     read_config_multiline_options,
     read_config_string_options,
 )
-from rnc_crypto import MD5Hasher, SHA256Hasher, SHA512Hasher
-from rnc_datetime import (
+from pythonlib.rnc_crypto import MD5Hasher, SHA256Hasher, SHA512Hasher
+from pythonlib.rnc_datetime import (
     coerce_to_date,
     format_datetime,
     get_now_utc,
     truncate_date_to_first_of_month,
 )
-import rnc_db
-from rnc_db import (
+import pythonlib.rnc_db as rnc_db
+from pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,
     does_sqltype_require_index_len,
     ensure_valid_field_name,
@@ -135,8 +135,8 @@ from rnc_db import (
     is_sqltype_text_of_length_at_least,
     is_sqltype_valid,
 )
-from rnc_extract_text import document_to_text
-from rnc_lang import (
+from pythonlib.rnc_extract_text import document_to_text
+from pythonlib.rnc_lang import (
     AttrDict,
     convert_attrs_to_bool,
     convert_attrs_to_int,
@@ -144,7 +144,7 @@ from rnc_lang import (
     count_bool,
     raise_if_attr_blank,
 )
-import rnc_log
+import pythonlib.rnc_log as rnc_log
 
 # =============================================================================
 # Global constants
