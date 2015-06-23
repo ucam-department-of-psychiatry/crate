@@ -30,12 +30,13 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
+import os
 import pyPdf  # sudo apt-get install python-pypdf
 import sys
+import tempfile
 
 try:
-    import xhtml2pdf.document
-    # sudo easy_install pip; sudo pip install xhtml2pdf
+    import xhtml2pdf.document  # sudo easy_install pip; sudo pip install xhtml2pdf  # noqa
     XHTML2PDF_AVAILABLE = True
 except ImportError:
     XHTML2PDF_AVAILABLE = False
@@ -46,9 +47,15 @@ try:
 except ImportError:
     WEASYPRINT_AVAILABLE = False
 
-if not XHTML2PDF_AVAILABLE and not WEASYPRINT_AVAILABLE:
-    raise RuntimeError("Neither xhtml2pdf nor Weasyprint available; can't "
-                       "load")
+try:
+    import pdfkit  # sudo apt-get install wkhtmltopdf; sudo pip install pdfkit
+    PDFKIT_AVAILABLE = True
+except ImportError:
+    PDFKIT_AVAILABLE = False
+
+if not any([XHTML2PDF_AVAILABLE, WEASYPRINT_AVAILABLE, PDFKIT_AVAILABLE]):
+    raise RuntimeError("No PDF engine (xhtml2pdf, weasyprint, pdfkit) "
+                       "available; can't load")
 
 # =============================================================================
 # Ancillary functions for PDFs
@@ -56,25 +63,46 @@ if not XHTML2PDF_AVAILABLE and not WEASYPRINT_AVAILABLE:
 
 XHTML2PDF = "xhtml2pdf"
 WEASYPRINT = "weasyprint"
-processor = WEASYPRINT if WEASYPRINT_AVAILABLE else XHTML2PDF
+PDFKIT = "pdfkit"
+if PDFKIT_AVAILABLE:
+    processor = PDFKIT
+elif WEASYPRINT_AVAILABLE:
+    processor = WEASYPRINT
+else:
+    processor = XHTML2PDF
 
 
-def set_processor(new_processor=WEASYPRINT):
+_wkhtmltopdf_filename = None
+
+
+def set_processor(new_processor=WEASYPRINT, wkhtmltopdf_filename=None):
     """Set the PDF processor."""
     global processor
-    if new_processor not in [XHTML2PDF, WEASYPRINT]:
+    if new_processor not in [XHTML2PDF, WEASYPRINT, PDFKIT]:
         raise AssertionError("rnc_pdf.set_pdf_processor: invalid PDF processor"
                              " specified")
     if new_processor == WEASYPRINT and not WEASYPRINT_AVAILABLE:
         raise RuntimeError("rnc_pdf: Weasyprint requested, but not available")
     if new_processor == XHTML2PDF and not XHTML2PDF_AVAILABLE:
         raise RuntimeError("rnc_pdf: xhtml2pdf requested, but not available")
+    if new_processor == PDFKIT and not PDFKIT_AVAILABLE:
+        raise RuntimeError("rnc_pdf: pdfkit requested, but not available")
+    global processor
     processor = new_processor
+    global _wkhtmltopdf_filename
+    _wkhtmltopdf_filename = wkhtmltopdf_filename
     logger.info("PDF processor set to: " + processor)
 
 
-def pdf_from_html(html):
-    """Takes HTML and returns a PDF (as a buffer)."""
+def pdf_from_html(html, header_html=None, footer_html=None,
+                  wkhtmltopdf_options=None):
+    """
+    Takes HTML and returns a PDF (as a buffer).
+    For engines not supporting CSS Paged Media - meaning, here, wkhtmltopdf -
+    the header_html and footer_html options allow you to pass appropriate HTML
+    content to serve as the header/footer (rather than passing it within the
+    main HTML).
+    """
     if processor == XHTML2PDF:
         memfile = io.BytesIO()
         xhtml2pdf.document.pisaDocument(html, memfile)
@@ -84,9 +112,48 @@ def pdf_from_html(html):
         memfile.seek(0)
         return buffer(memfile.read())
         # http://stackoverflow.com/questions/3310584
-    else:
+
+    elif processor == WEASYPRINT:
         # http://ampad.de/blog/generating-pdfs-django/
         return weasyprint.HTML(string=html).write_pdf()
+
+    elif processor == PDFKIT:
+        if _wkhtmltopdf_filename is None:
+            config = None
+        else:
+            config = pdfkit.configuration(wkhtmltopdf=_wkhtmltopdf_filename)
+        # Temporary files that a subprocess can read:
+        #   http://stackoverflow.com/questions/15169101
+        # wkhtmltopdf requires its HTML files to have ".html" extensions:
+        #   http://stackoverflow.com/questions/5776125
+        h_filename = None
+        f_filename = None
+        try:
+            if header_html:
+                if not wkhtmltopdf_options:
+                    wkhtmltopdf_options = {}
+                h_fd, h_filename = tempfile.mkstemp(suffix='.html')
+                os.write(h_fd, header_html)
+                os.close(h_fd)
+                wkhtmltopdf_options["header-html"] = h_filename
+            if footer_html:
+                if not wkhtmltopdf_options:
+                    wkhtmltopdf_options = {}
+                f_fd, f_filename = tempfile.mkstemp(suffix='.html')
+                os.write(f_fd, footer_html)
+                os.close(f_fd)
+                wkhtmltopdf_options["footer-html"] = f_filename
+            kit = pdfkit.pdfkit.PDFKit(html, 'string', configuration=config,
+                                       options=wkhtmltopdf_options)
+            return kit.to_pdf(path=None)
+        finally:
+            if h_filename:
+                os.remove(h_filename)
+            if f_filename:
+                os.remove(f_filename)
+
+    else:
+        raise AssertionError("Unknown PDF engine")
 
 
 def pdf_from_writer(writer):

@@ -24,6 +24,9 @@ Copyright/licensing:
     limitations under the License.
 """
 
+import importlib
+import pkgutil
+
 
 # =============================================================================
 # enum
@@ -43,6 +46,22 @@ class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
+
+
+# =============================================================================
+# Other dictionary operations
+# =============================================================================
+
+def merge_dicts(*dict_args):
+    '''
+    Given any number of dicts, shallow copy and merge into a new dict,
+    precedence goes to key value pairs in latter dicts.
+    '''
+    # http://stackoverflow.com/questions/38987
+    result = {}
+    for dictionary in dict_args:
+        result.update(dictionary)
+    return result
 
 
 # =============================================================================
@@ -125,3 +144,33 @@ def is_integer(s):
         return True
     except ValueError:
         return False
+
+
+# =============================================================================
+# Module management
+# =============================================================================
+
+def import_submodules(package, recursive=True):
+    # http://stackoverflow.com/questions/3365740/how-to-import-all-submodules
+    """ Import all submodules of a module, recursively, including subpackages
+
+    :param package: package (name or actual module)
+    :type package: str | module
+    :rtype: dict[str, types.ModuleType]
+    """
+    if isinstance(package, str):
+        package = importlib.import_module(package)
+    results = {}
+    for loader, name, is_pkg in pkgutil.walk_packages(package.__path__):
+        full_name = package.__name__ + '.' + name
+        results[full_name] = importlib.import_module(full_name)
+        if recursive and is_pkg:
+            results.update(import_submodules(full_name))
+    return results
+
+# Note slightly nastier way: e.g.
+#   # Task imports: everything in "tasks" directory
+#   task_modules = glob.glob(os.path.dirname(__file__) + "/tasks/*.py")
+#   task_modules = [os.path.basename(f)[:-3] for f in task_modules]
+#   for tm in task_modules:
+#       __import__(tm, locals(), globals())
