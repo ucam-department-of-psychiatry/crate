@@ -1,4 +1,4 @@
-# crate
+# CRATE
 Clinical Records Anonymisation and Text Extraction (CRATE)
 - Anonymises relational databases.
 - Operates a GATE natural language processing (NLP) pipeline.
