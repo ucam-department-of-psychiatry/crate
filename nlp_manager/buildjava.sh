@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-BUILDDIR=$DIR/test_nlp
+BUILDDIR=$DIR/compiled_nlp_classes
 export GATEDIR=~/GATE_Developer_8.0
 export GATEJAR="$GATEDIR/bin/gate.jar"
 export GATELIBJARS="$GATEDIR/lib/*"
@@ -17,7 +17,7 @@ export PROG_ARGS="-g $APPFILE  $FEATURES $EOL_OPTIONS $DEBUG_OPTIONS_1"
 
 javac $JAVAC_OPTIONS $DIR/CamAnonGatePipeline.java
 mkdir -p $BUILDDIR
-mv *.class $BUILDDIR/
+mv $DIR/*.class $BUILDDIR/
 
 # JAR build and run
 #mkdir -p jarbuild

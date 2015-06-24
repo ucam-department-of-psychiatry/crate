@@ -662,7 +662,19 @@ def reconfigure_jaydebeapi():
     # In particular, note that DATETIME is not one of them!
     # The equivalent is TIMESTAMP.
     #       http://stackoverflow.com/questions/6777810
-    jaydebeapi._DEFAULT_CONVERTERS.update({
+    try:
+        if hasattr(jaydebeapi, "_DEFAULT_CONVERTERS"):
+            # Recent version of jaydebeapi, e.g. 0.2.0
+            converters = jaydebeapi._DEFAULT_CONVERTERS
+        else:
+            # Older version, e.g. prior to 0.2.0
+            logger.warning("Old jaydebeapi version")
+            converters = jaydebeapi.dbapi2._DEFAULT_CONVERTERS
+    except:
+        raise AssertionError(
+            "Don't know how to hook into this version of JayDeBeApi")
+
+    converters.update({
         'BIGINT': _convert_java_bigint,
         'BINARY': _convert_java_binary,  # overrides an existing one
         'BLOB': _convert_java_binary,
@@ -686,7 +698,6 @@ def reconfigure_jaydebeapi():
         # Not handled sensibly:
         # 'TIMESTAMP': _to_datetime,
     })
-    # ... prior to jaydebeapi 0.2.0, was jaydebeapi.dbapi2._DEFAULT_CONVERTERS
 
 
 reconfigure_jaydebeapi()

@@ -27,12 +27,12 @@ EOF
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 CPUCOUNT=`grep -c ^processor /proc/cpuinfo`
-CONFIG=$DIR/working_nlp_config.ini
+CONFIG=$DIR/working/working_nlp_config.ini
 NPROCESSES_MAIN=$CPUCOUNT
 NPROCESSES_INDEX=$CPUCOUNT
-NLPMANAGER=$DIR/nlp_manager.py
+NLPMANAGER=$DIR/nlp_manager/nlp_manager.py
 NLPNAME=name_location_nlp
-export PYTHONPATH=$PYTHONPATH:$DIR/pythonlib
+PYTHONPATH=$PYTHONPATH:$DIR
 VERBOSITY=
 METHOD_INCREMENTAL=false
 METHOD_FULL=false

@@ -31,12 +31,12 @@ EOF
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 CPUCOUNT=`grep -c ^processor /proc/cpuinfo`
-CONFIG=$DIR/working_anon_config.ini
+CONFIG=$DIR/working/working_anon_config.ini
 NPROCESSES_PATIENT=$CPUCOUNT
 NPROCESSES_INDEX=$CPUCOUNT
 NPROCESSES_NONPATIENT=$CPUCOUNT
-ANONYMISER=$DIR/anonymise.py
-export PYTHONPATH=$PYTHONPATH:$DIR/pythonlib:$DIR/anon_modules
+ANONYMISER=$DIR/anonymise/anonymise.py
+PYTHONPATH=$PYTHONPATH:$DIR
 VERBOSITY=
 METHOD_INCREMENTAL=false
 METHOD_FULL=false

@@ -256,7 +256,7 @@ hashphrase = doesnotmatter
 [MY_ENV_SECTION]
 
 GATEDIR = /home/myuser/GATE_Developer_8.0
-NLPPROGDIR = /home/myuser/somewhere/anonymiser/test_nlp
+NLPPROGDIR = /home/myuser/somewhere/crate/nlp_manager/compiled_nlp_classes
 
 # =============================================================================
 # Output types
