@@ -9,6 +9,7 @@ Test the anonymisation for specific databases.
 # Imports
 # =============================================================================
 
+from __future__ import print_function
 import argparse
 import collections
 import csv
@@ -244,12 +245,14 @@ def main():
                         help='Directory for anonymised output text files')
     parser.add_argument('--resultsfile', default='testanon_results.csv',
                         help='Results output CSV file name')
-    parser.add_argument('--pkfromsrc', dest='from_src', action='store_true',
-                        help='Fetch PKs (document IDs) from source (default)')
-    parser.add_argument('--pkfromdest', dest='from_src', action='store_false',
-                        help='Fetch PKs (document IDs) from destination')
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument('--pkfromsrc', dest='from_src', action='store_true',
+                       help='Fetch PKs (document IDs) from source (default)')
+    group.add_argument('--pkfromdest', dest='from_src', action='store_false',
+                       help='Fetch PKs (document IDs) from destination')
     parser.set_defaults(from_src=True)
     args = parser.parse_args()
+    logger.info("Arguments: " + str(args))
 
     # Load/validate config
     logger.info("Loading config...")
