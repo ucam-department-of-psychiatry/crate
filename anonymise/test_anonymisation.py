@@ -178,13 +178,18 @@ def process_doc(docid, args, fieldinfo, csvwriter, first):
     csvwriter.writerow(summary.values())
 
 
-def get_docids(args, fieldinfo):
+def get_docids(args, fieldinfo, from_src=True):
     """
     Generate a limited set of PKs for the documents.
     """
-    db = config.destdb
-    table = fieldinfo.text_ddrow.dest_table
-    pkfield = fieldinfo.pk_ddrow.dest_field
+    if from_src:
+        db = config.sources[fieldinfo.text_ddrow.src_db]
+        table = fieldinfo.pk_ddrow.src_table
+        pkfield = fieldinfo.pk_ddrow.src_field
+    else:
+        db = config.destdb
+        table = fieldinfo.pk_ddrow.dest_table
+        pkfield = fieldinfo.pk_ddrow.dest_field
     query = """
         SELECT {pkfield}
         FROM {table}
@@ -200,7 +205,7 @@ def get_docids(args, fieldinfo):
 
 def test_anon(args):
     fieldinfo = get_fieldinfo(args)
-    docids = get_docids(args, fieldinfo)
+    docids = get_docids(args, fieldinfo, args.from_src)
     mkdir_p(args.rawdir)
     mkdir_p(args.anondir)
     with open(args.resultsfile, 'wb') as csvfile:
@@ -224,21 +229,26 @@ def test_anon(args):
 # =============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="Test anonymisation")
-    parser.add_argument("--config", required=True,
-                        help="Configuration file name (input)")
-    parser.add_argument("--dsttable", required=True,
-                        help="Destination table")
-    parser.add_argument("--dstfield", required=True,
-                        help="Destination column")
-    parser.add_argument("--limit", type=int, default=100,
-                        help="Limit on number of documents")
-    parser.add_argument("--rawdir", default="raw",
-                        help="Directory for raw output text files")
-    parser.add_argument("--anondir", default="anon",
-                        help="Directory for anonymised output text files")
-    parser.add_argument("--resultsfile", default="testanon_results.csv",
-                        help="Results output CSV file name")
+    parser = argparse.ArgumentParser(description='Test anonymisation')
+    parser.add_argument('--config', required=True,
+                        help='Configuration file name (input)')
+    parser.add_argument('--dsttable', required=True,
+                        help='Destination table')
+    parser.add_argument('--dstfield', required=True,
+                        help='Destination column')
+    parser.add_argument('--limit', type=int, default=100,
+                        help='Limit on number of documents')
+    parser.add_argument('--rawdir', default='raw',
+                        help='Directory for raw output text files')
+    parser.add_argument('--anondir', default='anon',
+                        help='Directory for anonymised output text files')
+    parser.add_argument('--resultsfile', default='testanon_results.csv',
+                        help='Results output CSV file name')
+    parser.add_argument('--pkfromsrc', dest='from_src', action='store_true',
+                        help='Fetch PKs (document IDs) from source (default)')
+    parser.add_argument('--pkfromdest', dest='from_src', action='store_false',
+                        help='Fetch PKs (document IDs) from destination')
+    parser.set_defaults(from_src=True)
     args = parser.parse_args()
 
     # Load/validate config
