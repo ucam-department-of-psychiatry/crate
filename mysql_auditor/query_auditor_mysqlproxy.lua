@@ -38,7 +38,7 @@ function read_query(packet)
             If we watch for cmd == proxy.COM_INIT_DB, and set
             schema = packet:sub(2), then we end up accepting garbage, because
             the user can do "USE nonexistent_db;".
-        ]]--
+        --]]
         set_schema("")
         audit(packet:sub(2))
 
@@ -90,7 +90,7 @@ function now()
             local time_second, time_subsecond = math.modf(os.clock())
         ... but it is partly junk.
         Note that os.clock(), though fractional, is CPU time, not clock time.
-    ]]--
+    --]]
 end
 
 function set_flush()
@@ -128,9 +128,8 @@ function audit(query)
 end
 
 function log(msg)
-    io.stderr:write(
-        now()
-        .. ": " .. client_addr
-        .. "," .. user
-        .. ": " .. msg .. "\n")
+    io.stderr:write(now()
+                    .. ": " .. client_addr
+                    .. "," .. user
+                    .. ": " .. msg .. "\n")
 end

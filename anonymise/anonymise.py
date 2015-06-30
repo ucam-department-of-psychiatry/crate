@@ -27,7 +27,12 @@ Copyright/licensing:
 
 CHANGE LOG:
 
-- v0.05, 2015-05-1
+- v0.06, 2015-06-25
+  - Option: replace_nonspecific_info_with
+  - Option: scrub_all_numbers_of_n_digits
+  - Option: scrub_all_uk_postcodes
+
+- v0.05, 2015-05-01
   - Ability to vary audit/secret map tablenames.
   - Made date element separators broader in anonymisation regex.
   - min_string_length_for_errors option
@@ -150,8 +155,8 @@ import pythonlib.rnc_log as rnc_log
 # Global constants
 # =============================================================================
 
-VERSION = 0.05
-VERSION_DATE = "2015-05-01"
+VERSION = 0.06
+VERSION_DATE = "2015-06-25"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 
@@ -382,6 +387,12 @@ replace_patient_info_with = [___]
 
 replace_third_party_info_with = [...]
 
+# Things to be removed irrespective of patient-specific information will be
+# replaced by this (for example, if you opt to remove all things looking like
+# telephone numbers). For example, ZZZ or [~~~].
+
+replace_nonspecific_info_with = [~~~]
+
 # Strings to append to every "scrub from" string.
 # For example, include "s" if you want to scrub "Roberts" whenever you scrub
 # "Robert".
@@ -441,6 +452,28 @@ words_not_to_scrub = am
     you
     road
     street
+
+# Nonspecific scrubbing of numbers of a certain length?
+# For example, scrubbing all 11-digit numbers will remove modern UK telephone
+# numbers in conventional format. To do this, specify
+# scrub_all_numbers_of_n_digits = 11. You could scrub both 10- and 11-digit
+# numbers by specifying both numbers (in multiline format, as above); 10-digit
+# numbers would include all NHS numbers. Avoid using this for short numbers;
+# you may lose valuable numeric data!
+
+scrub_all_numbers_of_n_digits =
+
+# Nonspecific scrubbing of UK postcodes?
+# See https://www.mrs.org.uk/pdf/postcodeformat.pdf ; these can look like
+# FORMAT    EXAMPLE
+# AN NAA    M1 1AA
+# ANN NAA   M60 1NW
+# AAN NAA   CR2 6XH
+# AANN NAA  DN55 1PT
+# ANA NAA   W1A 1HQ
+# AANA NAA  EC1A 1BB
+
+scrub_all_uk_postcodes = False
 
 # Anonymise at word boundaries? True is more conservative; False is more
 # liberal and will deal with accidental word concatenation. With ID numbers,
@@ -1874,9 +1907,11 @@ class Config(object):
         "change_detection_encryption_phrase",
         "replace_patient_info_with",
         "replace_third_party_info_with",
+        "replace_nonspecific_info_with",
         "string_max_regex_errors",
         "min_string_length_for_errors",
         "min_string_length_to_scrub_with",
+        "scrub_all_uk_postcodes",
         "anonymise_codes_at_word_boundaries_only",
         "anonymise_dates_at_word_boundaries_only",
         "anonymise_numbers_at_word_boundaries_only",
@@ -1901,6 +1936,7 @@ class Config(object):
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
         "words_not_to_scrub",
+        "scrub_all_numbers_of_n_digits",
         "source_databases",
     ]
 
@@ -1918,6 +1954,7 @@ class Config(object):
         self.debug_scrubbers = False
         self.save_scrubbers = False
         self._rows_inserted_per_table = {}
+        self.re_nonspecific = None
 
     def set(self, filename=None, environ=None, include_sources=True,
             load_dd=True, load_destfields=True):
@@ -2012,6 +2049,7 @@ class Config(object):
                                       Config.MAIN_MULTILINE_HEADINGS)
         # Processing of parameters
         convert_attrs_to_bool(self, [
+            "scrub_all_uk_postcodes",
             "anonymise_codes_at_word_boundaries_only",
             "anonymise_dates_at_word_boundaries_only",
             "anonymise_numbers_at_word_boundaries_only",
@@ -2028,6 +2066,9 @@ class Config(object):
         ])
         # Force words_not_to_scrub to lower case for speed later
         self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
+        # These should all be integers:
+        self.scrub_all_numbers_of_n_digits = [
+            int(x) for x in self.scrub_all_numbers_of_n_digits]
 
         # Databases
         if self.destination_database == self.admin_database:
@@ -2049,10 +2090,29 @@ class Config(object):
             self.sources[sourcedb_name] = self.get_database(sourcedb_name)
             self.srccfg[sourcedb_name] = DatabaseSafeConfig(
                 parser, sourcedb_name)
+
         # Hashers
         self.primary_pid_hasher = None
         self.master_pid_hasher = None
         self.change_detection_hasher = None
+
+        # Nonspecific scrubber
+        nonspecific_elements = [
+            get_number_of_length_n_regex_elements(
+                n,
+                at_word_boundaries_only=
+                self.anonymise_numbers_at_word_boundaries_only
+            )
+            for n in self.scrub_all_numbers_of_n_digits
+        ]
+        if self.scrub_all_uk_postcodes:
+            nonspecific_elements.extend(
+                get_uk_postcode_regex_elements(
+                    at_word_boundaries_only=
+                    self.anonymise_codes_at_word_boundaries_only
+                )
+            )
+        self.re_nonspecific = get_regex_from_elements(nonspecific_elements)
 
     def get_database(self, section):
         parser = ConfigParser.RawConfigParser()
@@ -2106,10 +2166,16 @@ class Config(object):
             raise ValueError("Blank replace_patient_info_with")
         if not self.replace_third_party_info_with:
             raise ValueError("Blank replace_third_party_info_with")
-        if (self.replace_patient_info_with ==
-                self.replace_third_party_info_with):
-            raise ValueError("Inadvisable: replace_patient_info_with == "
-                             "replace_third_party_info_with")
+        if not self.replace_nonspecific_info_with:
+            raise ValueError("Blank replace_nonspecific_info_with")
+        replacements = list(set([self.replace_patient_info_with,
+                                 self.replace_third_party_info_with,
+                                 self.replace_nonspecific_info_with]))
+        if len(replacements) != 3:
+            raise ValueError(
+                "Inadvisable: replace_patient_info_with, "
+                "replace_third_party_info_with, and "
+                "replace_nonspecific_info_with should all be distinct")
 
         # Regex
         if self.string_max_regex_errors < 0:
@@ -2300,6 +2366,41 @@ def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
         return [s]
 
 
+def get_number_of_length_n_regex_elements(n, liberal=True,
+                                          at_word_boundaries_only=True):
+    """For example, to remove all 10-digit numbers."""
+    s = ["[0-9]"] * n
+    if liberal:
+        separators = "[\W]*"  # zero or more non-alphanumeric characters...
+    else:
+        separators = ""
+    s = separators.join([c for c in s])
+    if at_word_boundaries_only:
+        wb = ur"\b"  # word boundary
+        return [wb + s + wb]
+    else:
+        return [s]
+
+
+def get_uk_postcode_regex_elements(at_word_boundaries_only=True):
+    e = [
+        "AN NAA",
+        "ANN NAA",
+        "AAN NAA",
+        "AANN NAA",
+        "ANA NAA",
+        "AANA NAA",
+    ]
+    wb = r"\b"  # word boundary
+    for i in xrange(len(e)):
+        e[i] = e[i].replace("A", "[A-Z]")  # letter
+        e[i] = e[i].replace("N", "[0-9]")  # number
+        e[i] = e[i].replace(" ", "\s*")  # zero or more whitespace chars
+        if at_word_boundaries_only:
+            e[i] = wb + e[i] + wb
+    return e
+
+
 def get_digit_string_from_vaguely_numeric_string(s):
     """For example, converts "(01223) 123456" to "01223123456"."""
     return "".join([d for d in s if d.isdigit()])
@@ -2417,33 +2518,57 @@ old_testdate = dateutil.parser.parse("3 Sep 1847")
 s = u"""
 
 SHOULD REPLACE:
-   I was born on 07 Jan 2013, m'lud.
-   It was 7 January 13, or 7/1/13, or 1/7/13, or
-   Jan 7 2013, or 2013/01/07, or 2013-01-07,
-   or 7th January
-   13 (split over a line)
-   or Jan 7th 13
-   or 07.01.13 or 7.1.2013
-   or a host of other variations.
-   And ISO-8601 formats like 20130107T0123, or just 20130107.
+    I was born on 07 Jan 2013, m'lud.
+    It was 7 January 13, or 7/1/13, or 1/7/13, or
+    Jan 7 2013, or 2013/01/07, or 2013-01-07,
+    or 7th January
+    13 (split over a line)
+    or Jan 7th 13
+    or 07.01.13 or 7.1.2013
+    or a host of other variations.
+    And ISO-8601 formats like 20130107T0123, or just 20130107.
 
-   BUT NOT 8 Jan 2013, or 2013/02/07, or 2013
-   Jan 17, or just a number like 7, or a month
-   like January, or a nonspecific date like
-   Jan 2013 or 7 January.
-   And not ISO-8601-formatted other dates like 20130108T0123, or just 20130108.
+    BUT NOT 8 Jan 2013, or 2013/02/07, or 2013
+    Jan 17, or just a number like 7, or a month
+    like January, or a nonspecific date like
+    Jan 2013 or 7 January. And not ISO-8601-formatted other dates
+    like 20130108T0123, or just 20130108.
 
-   I am 34 years old. My mother was 348, or 834, or perhaps 8348.
-   Was she 34.6? Don't think so.
+    I am 34 years old. My mother was 348, or 834, or perhaps 8348.
+    Was she 34.6? Don't think so.
 
-   Her IDs include NHS#123456, or 123 456, or (123) 456, or 123456.
+    Her IDs include NHS#123456, or 123 456, or (123) 456, or 123456.
 
-   I am 34 years old. My mother was 348, or 834, or perhaps 8348.
-   She wasn't my step-mother, or my grandmother, or my mother-in-law.
-   She was my MOTHER!
-   A typo is mther.
+    I am 34 years old. My mother was 348, or 834, or perhaps 8348.
+    She wasn't my step-mother, or my grandmother, or my mother-in-law.
+    She was my MOTHER!
+    A typo is mther.
 
-   Unicode apostrophe: the thread’s possession
+    Unicode apostrophe: the thread’s possession
+
+    Some numbers by size:
+        1
+        12
+        123
+        1234
+        12345
+        123456
+        1234567
+        12345678
+        123456789
+        1234567890
+        12345678901
+        123456789012
+        1234567890123
+        12345678901234
+        123456789012345
+    Some postcodes:
+        M1 1AA
+        M60 1NW
+        CR2 6XH
+        DN55 1PT
+        W1A 1HQ
+        EC1A 1BB
 """
 
 regex_date = get_regex_from_elements(get_date_regex_elements(testdate))
@@ -2453,18 +2578,25 @@ regex_number_as_text = get_regex_from_elements(
     get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(testnumber_as_text)))
 regex_string = get_regex_from_elements(get_string_regex_elements(teststring))
+regex_10digit = get_regex_from_elements(
+    get_number_of_length_n_regex_elements(10))
+regex_postcode = get_regex_from_elements(get_uk_postcode_regex_elements())
 all_elements = (
     get_date_regex_elements(testdate)
     + get_code_regex_elements(str(testnumber))
     + get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(testnumber_as_text))
     + get_string_regex_elements(teststring)
+    + get_number_of_length_n_regex_elements(10)
+    + get_uk_postcode_regex_elements()
 )
 regex_all = get_regex_from_elements(all_elements)
 print(regex_date.sub("DATE_GONE", s))
 print(regex_number.sub("NUMBER_GONE", s))
 print(regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
 print(regex_string.sub("STRING_GONE", s))
+print(regex_10digit.sub("TEN_DIGIT_NUMBERS_GONE", s))
+print(regex_postcode.sub("POSTCODES_GONE", s))
 print(regex_all.sub("EVERYTHING_GONE", s))
 print(get_regex_string_from_elements(all_elements))
 print(get_regex_string_from_elements(get_date_regex_elements(testdate)))
@@ -2618,6 +2750,9 @@ class Scrubber(object):
             text = self.re_patient.sub(config.replace_patient_info_with, text)
         if self.re_tp:
             text = self.re_tp.sub(config.replace_third_party_info_with, text)
+        if config.re_nonspecific:
+            text = config.re_nonspecific.sub(
+                config.replace_nonspecific_info_with, text)
         return text
 
     def get_pid(self):
@@ -3318,30 +3453,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                         "method: {v}".format(ALTERMETHOD=ALTERMETHOD, v=value))
                     value = None
             elif ddr._extract_text:
-                filename = None
-                blob = None
-                extension = None
-                if ddr._extract_from_filename:
-                    filename = value
-                else:
-                    blob = value
-                    extindex = next(
-                        (i for i, x in enumerate(ddrows)
-                            if x.src_field == ddr._extract_ext_field),
-                        None)
-                    if extindex is None:
-                        raise ValueError(
-                            "Bug: missing extension field for "
-                            "alter_method={}".format(ddr.alter_method))
-                    extension = row[extindex]
-                try:
-                    value = document_to_text(filename=filename,
-                                             blob=blob,
-                                             extension=extension)
-                except Exception as e:
-                    logger.error(
-                        "Exception from document_to_text: {}".format(e))
-                    value = None
+                value = extract_text(value, row, ddr, ddrows)
 
             if ddr._scrub:
                 # Main point of anonymisation!
@@ -3371,6 +3483,34 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
 
     logger.debug(START + "finished: pid={}".format(pid))
     commit(destdb)
+
+
+def extract_text(value, row, ddr, ddrows):
+    filename = None
+    blob = None
+    extension = None
+    if ddr._extract_from_filename:
+        filename = value
+    else:
+        blob = value
+        extindex = next(
+            (i for i, x in enumerate(ddrows)
+                if x.src_field == ddr._extract_ext_field),
+            None)
+        if extindex is None:
+            raise ValueError(
+                "Bug: missing extension field for "
+                "alter_method={}".format(ddr.alter_method))
+        extension = row[extindex]
+    try:
+        value = document_to_text(filename=filename,
+                                 blob=blob,
+                                 extension=extension)
+    except Exception as e:
+        logger.error(
+            "Exception from document_to_text: {}".format(e))
+        value = None
+    return value
 
 
 def create_indexes(tasknum=0, ntasks=1):

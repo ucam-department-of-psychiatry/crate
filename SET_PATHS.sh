@@ -21,9 +21,10 @@ if [ "$0" != "bash" ] && [ "$0" != "-bash" ]; then
     exit 1
 fi
 
+add_pythonpath $DIR
 #add_pythonpath $DIR/pythonlib
 #add_pythonpath $DIR/anon_modules
-#echo "New PYTHONPATH should be: $PYTHONPATH"
+echo "New PYTHONPATH should be: $PYTHONPATH"
 
 add_javaclasspath /usr/share/java/mysql.jar
 add_javaclasspath $DIR/sqljdbc_4.1/enu/sqljdbc41.jar
