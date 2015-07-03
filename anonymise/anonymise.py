@@ -2616,6 +2616,7 @@ class Scrubber(object):
         self.re_tp = None
         self.re_patient_elements = set()
         self.re_tp_elements = set()
+        self.elements_tupleset = set()  # patient?, type, value
         logger.debug("building scrubber")
         db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
         for (src_db, src_table) in db_table_pair_list:
@@ -2653,6 +2654,8 @@ class Scrubber(object):
     def add_value(self, value, scrub_method, patient=True):
         if value is None:
             return
+        
+        self.elements_tupleset.add((patient, scrub_method, repr(value)))
 
         # Note: object reference
         r = self.re_patient_elements if patient else self.re_tp_elements
@@ -2741,6 +2744,9 @@ class Scrubber(object):
     def get_hash_string(self):
         return repr(self.re_patient_elements | self.re_tp_elements)
         # | for union
+        
+    def get_raw_info(self):
+        return list(self.elements_tupleset)
 
     def scrub(self, text):
         # logger.debug("scrubbing")

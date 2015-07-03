@@ -13,6 +13,7 @@ from __future__ import print_function
 import argparse
 import collections
 import csv
+import json
 import logging
 logger = logging.getLogger("test_anonymisation")
 logger.addHandler(logging.NullHandler())
@@ -22,11 +23,18 @@ import os
 from anonymise import (
     config,
     extract_text,
+    Scrubber,
     SRCFLAG,
 )
 from pythonlib.rnc_lang import AttrDict
 from pythonlib.rnc_ui import mkdir_p
 
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+ENCODING = 'utf-8'
 
 # =============================================================================
 # Specific tests
@@ -128,7 +136,7 @@ def get_patientnum_anontext(docid, fieldinfo):
     return pid, text
 
 
-def process_doc(docid, args, fieldinfo, csvwriter, first):
+def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     """
     Write the original and anonymised documents to disk, plus some
     counts to a CSV file.
@@ -137,15 +145,20 @@ def process_doc(docid, args, fieldinfo, csvwriter, first):
     patientnum, rawtext = get_patientnum_rawtext(docid, fieldinfo)
     patientnum2, anontext = get_patientnum_anontext(docid, fieldinfo)
     # patientnum is raw; patientnum2 is hashed
+    
+    # Get scrubbing info
+    scrubber = Scrubber(config.sources, patientnum)
+    scrubdict[patientnum] = scrubber.get_raw_info()
+    
     # Write text
     rawfilename = os.path.join(args.rawdir,
                                "{}_{}.txt".format(patientnum, docid))
     anonfilename = os.path.join(args.anondir,
                                 "{}_{}.txt".format(patientnum, docid))
     with open(rawfilename, 'w') as f:
-        f.write(rawtext)
+        f.write(rawtext.encode(ENCODING))
     with open(anonfilename, 'w') as f:
-        f.write(anontext)
+        f.write(anontext.encode(ENCODING))
 
     n_patient = anontext.count(config.replace_patient_info_with)
     n_thirdparty = anontext.count(config.replace_third_party_info_with)
@@ -209,12 +222,15 @@ def test_anon(args):
     docids = get_docids(args, fieldinfo, args.from_src)
     mkdir_p(args.rawdir)
     mkdir_p(args.anondir)
+    scrubdict = {}
     with open(args.resultsfile, 'wb') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter='\t')
         first = True
         for docid in docids:
-            process_doc(docid, args, fieldinfo, csvwriter, first)
+            process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict)
             first = False
+    with open(args.scrubfile, 'w') as f:
+        f.write(json.dumps(scrubdict, indent=4))
     logger.info("Finished. See {} for a summary.".format(args.resultsfile))
     logger.info(
         "Use meld to compare directories {} and {}".format(
@@ -245,6 +261,8 @@ def main():
                         help='Directory for anonymised output text files')
     parser.add_argument('--resultsfile', default='testanon_results.csv',
                         help='Results output CSV file name')
+    parser.add_argument('--scrubfile', default='testanon_scrubber.txt',
+                        help='Scrubbing information text file name')
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument('--pkfromsrc', dest='from_src', action='store_true',
                        help='Fetch PKs (document IDs) from source (default)')

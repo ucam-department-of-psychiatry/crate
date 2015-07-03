@@ -1,4 +1,7 @@
-*.pyc
+# Working config/data dictionary files
 *.ini
 *.tsv
 
+# Python residue
+*.pyc
+*.pyo
