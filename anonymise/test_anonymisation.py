@@ -190,6 +190,8 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     if first:
         csvwriter.writerow(summary.keys())
     csvwriter.writerow(summary.values())
+    
+    return patientnum
 
 
 def get_docids(args, fieldinfo, from_src=True):
@@ -200,21 +202,38 @@ def get_docids(args, fieldinfo, from_src=True):
         db = config.sources[fieldinfo.text_ddrow.src_db]
         table = fieldinfo.pk_ddrow.src_table
         pkfield = fieldinfo.pk_ddrow.src_field
+        pidfield = fieldinfo.pid_ddrow.src_field
     else:
         db = config.destdb
         table = fieldinfo.pk_ddrow.dest_table
         pkfield = fieldinfo.pk_ddrow.dest_field
-    query = """
-        SELECT {pkfield}
-        FROM {table}
-        ORDER BY {pkfield}
-        LIMIT {limit}
-    """.format(
-        pkfield=pkfield,
-        table=table,
-        limit=args.limit,
-    )
-    return db.fetchallfirstvalues(query)
+        pidfield = fieldinfo.pid_ddrow.dest_field
+    if args.uniquepatients:
+        query = """
+            SELECT MIN({pkfield}), {pidfield}
+            FROM {table}
+            GROUP BY {pidfield}
+            ORDER BY {pidfield}
+            LIMIT {limit}
+        """.format(
+            pkfield=pkfield,
+            pidfield=pidfield,
+            table=table,
+            limit=args.limit,
+        )
+        return db.fetchallfirstvalues(query)
+    else:
+        query = """
+            SELECT {pkfield}
+            FROM {table}
+            ORDER BY {pkfield}
+            LIMIT {limit}
+        """.format(
+            pkfield=pkfield,
+            table=table,
+            limit=args.limit,
+        )
+        return db.fetchallfirstvalues(query)
 
 
 def test_anon(args):
@@ -223,12 +242,14 @@ def test_anon(args):
     mkdir_p(args.rawdir)
     mkdir_p(args.anondir)
     scrubdict = {}
+    pidset = set()
     with open(args.resultsfile, 'wb') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter='\t')
         first = True
         for docid in docids:
-            process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict)
+            pid = process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict)
             first = False
+            pidset.add(pid)
     with open(args.scrubfile, 'w') as f:
         f.write(json.dumps(scrubdict, indent=4))
     logger.info("Finished. See {} for a summary.".format(args.resultsfile))
@@ -239,6 +260,7 @@ def test_anon(args):
         )
     )
     logger.info("To install meld on Debian/Ubuntu: sudo apt-get install meld")
+    logger.info("{} documents, {} patients".format(len(docids), len(pidset)))
 
 
 # =============================================================================
@@ -263,12 +285,23 @@ def main():
                         help='Results output CSV file name')
     parser.add_argument('--scrubfile', default='testanon_scrubber.txt',
                         help='Scrubbing information text file name')
-    group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument('--pkfromsrc', dest='from_src', action='store_true',
+
+    pkgroup = parser.add_mutually_exclusive_group(required=False)
+    pkgroup.add_argument('--pkfromsrc', dest='from_src', action='store_true',
                        help='Fetch PKs (document IDs) from source (default)')
-    group.add_argument('--pkfromdest', dest='from_src', action='store_false',
+    pkgroup.add_argument('--pkfromdest', dest='from_src', action='store_false',
                        help='Fetch PKs (document IDs) from destination')
     parser.set_defaults(from_src=True)
+
+    uniquegroup = parser.add_mutually_exclusive_group(required=False)
+    uniquegroup.add_argument(
+        '--uniquepatients', dest='uniquepatients', action='store_true',
+        help='Only one document per patient (the first by PK) (default)')
+    uniquegroup.add_argument(
+        '--nonuniquepatients', dest='uniquepatients', action='store_false',
+        help='Documents in sequence, with potentially >1 document/patient')
+    parser.set_defaults(uniquepatients=True)
+
     args = parser.parse_args()
     logger.info("Arguments: " + str(args))
 
