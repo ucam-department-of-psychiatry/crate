@@ -920,6 +920,9 @@ ddgen_binary_to_text_field_pairs =
 #   rather than a database table.
 
 class DataDictionaryRow(object):
+    """
+    Class representing a single row of a data dictionary.
+    """
     ROWNAMES = [
         "src_db",
         "src_table",
@@ -942,6 +945,9 @@ class DataDictionaryRow(object):
     ]
 
     def __init__(self):
+        """
+        Set up basic defaults.
+        """
         for x in DataDictionaryRow.ROWNAMES:
             setattr(self, x, None)
         self._signature = None
@@ -954,6 +960,10 @@ class DataDictionaryRow(object):
         self._extract_ext_field = ""
 
     def alter_method_to_components(self):
+        """
+        Convert the alter_method field (from the data dictionary) to a bunch of
+        boolean/simple fields.
+        """
         self._scrub = False
         self._truncate_date = False
         self._extract_text = False
@@ -982,6 +992,9 @@ class DataDictionaryRow(object):
             self._scrub = True
 
     def get_alter_method(self):
+        """
+        Return the alter_method field from the working fields.
+        """
         if self._truncate_date:
             return ALTERMETHOD.TRUNCATEDATE
         if self._extract_text:
@@ -1001,19 +1014,32 @@ class DataDictionaryRow(object):
         return ""
 
     def components_to_alter_method(self):
+        """
+        Write the alter_method field from the component (working) fields.
+        """
         self.alter_method = self.get_alter_method()
 
     def __str__(self):
+        """
+        Return a string representation.
+        """
         self.components_to_alter_method()
         return ", ".join(["{}: {}".format(a, getattr(self, a))
                           for a in DataDictionaryRow.ROWNAMES])
 
     def get_signature(self):
+        """
+        Return a signature based on the source database/table/field.
+        """
         return "{}.{}.{}".format(self.src_db,
                                  self.src_table,
                                  self.src_field)
 
     def set_from_elements(self, elements):
+        """
+        Set internal fields from a list of elements representing a row from the
+        TSV data dictionary file.
+        """
         if len(elements) != len(DataDictionaryRow.ROWNAMES):
             raise ValueError("Bad data dictionary row. Values:\n" +
                              "\n".join(elements))
@@ -1036,6 +1062,9 @@ class DataDictionaryRow(object):
     def set_from_src_db_info(self, db, table, field, datatype_short,
                              datatype_full, cfg, comment=None,
                              default_omit=True):
+        """
+        Create a draft data dictionary row from a field in the source database.
+        """
         # If Unicode, mangle to ASCII:
         table = table.encode("ascii", "ignore")
         field = field.encode("ascii", "ignore")
@@ -1189,6 +1218,9 @@ class DataDictionaryRow(object):
         self.check_valid()
 
     def get_tsv(self):
+        """
+        Return a TSV row for writing.
+        """
         values = []
         for x in DataDictionaryRow.ROWNAMES:
             v = getattr(self, x)
@@ -1199,6 +1231,10 @@ class DataDictionaryRow(object):
         return "\t".join(values)
 
     def check_valid(self):
+        """
+        Check internal validity and complain if invalid, showing the source
+        of the problem.
+        """
         self.components_to_alter_method()
         offenderdest = "" if not self.omit else " -> {}.{}".format(
             self.dest_table, self.dest_field)
@@ -1212,6 +1248,9 @@ class DataDictionaryRow(object):
             raise
 
     def _check_valid(self):
+        """
+        Check internal validity and complain if invalid.
+        """
         raise_if_attr_blank(self, [
             "src_db",
             "src_table",
@@ -1405,11 +1444,21 @@ class DataDictionaryRow(object):
 
 
 class DataDictionary(object):
+    """
+    Class representing an entire data dictionary.
+    """
+
     def __init__(self):
+        """
+        Set defaults.
+        """
         self.rows = []
         self.cached_srcdb_table_pairs = SortedSet()
 
     def read_from_file(self, filename, check_against_source_db=True):
+        """
+        Read DD from file.
+        """
         self.rows = []
         logger.debug("Opening data dictionary: {}".format(filename))
         with open(filename, 'rb') as tsvfile:
@@ -1433,6 +1482,9 @@ class DataDictionary(object):
 
     def read_from_source_databases(self, report_every=100,
                                    default_omit=True):
+        """
+        Create a draft DD from a source database.
+        """
         logger.info("Reading information for draft data dictionary")
         for pretty_dbname, db in config.sources.iteritems():
             cfg = config.srccfg[pretty_dbname]
@@ -1501,6 +1553,10 @@ class DataDictionary(object):
         logger.info("... done")
 
     def cache_stuff(self):
+        """
+        Cache DD information from various perspectives for performance and
+        simplicity during actual processing.
+        """
         logger.debug("Caching data dictionary information...")
         self.cached_dest_tables = SortedSet()
         self.cached_source_databases = SortedSet()
@@ -1633,6 +1689,9 @@ class DataDictionary(object):
             self.cached_srcdb_table_pairs_wo_pt_info_int_pk))
 
     def check_against_source_db(self):
+        """
+        Check DD validity against the source database.
+        """
         logger.debug("Checking DD: source tables...")
         for d in self.get_source_databases():
             db = config.sources[d]
@@ -1708,6 +1767,9 @@ class DataDictionary(object):
                     )
 
     def check_valid(self, check_against_source_db):
+        """
+        Check DD validity, internally +/- against the source database.
+        """
         logger.info("Checking data dictionary...")
         if not self.rows:
             raise ValueError("Empty data dictionary")
@@ -1754,67 +1816,107 @@ class DataDictionary(object):
                     SRCFLAG.DEFINESPRIMARYPIDS))
 
     def get_dest_tables(self):
+        """Return a SortedSet of all destination tables."""
         return self.cached_dest_tables
 
     def get_dest_tables_for_src_db_table(self, src_db, src_table):
+        """For a given source database/table, return a SortedSet of destination
+        tables."""
         return self.cached_dest_tables_for_src_db_table[(src_db, src_table)]
 
     def get_dest_table_for_src_db_table(self, src_db, src_table):
+        """For a given source database/table, return the single or the first
+        destination table."""
         return self.cached_dest_tables_for_src_db_table[(src_db, src_table)][0]
 
     def get_source_databases(self):
+        """Return a SortedSet of source database names."""
         return self.cached_source_databases
 
     def get_src_dbs_tables_for_dest_table(self, dest_table):
+        """For a given destination table, return a SortedSet of (dbname, table)
+        tuples."""
         return self.cached_src_dbtables_for_dest_table[dest_table]
 
     def get_src_tables(self, src_db):
+        """For a given source database name, return a SortedSet of source
+        tables."""
         return self.cached_src_tables[src_db]
 
     def get_patient_src_tables_with_active_dest(self, src_db):
+        """For a given source database name, return a SortedSet of source
+        tables that have an active destination table."""
         return self.cached_pt_src_tables_w_dest[src_db]
 
     def get_src_tables_with_patient_info(self, src_db):
+        """For a given source database name, return a SortedSet of source
+        tables that have patient information."""
         return self.cached_src_tables_w_pt_info[src_db]
 
     def get_rows_for_src_table(self, src_db, src_table):
+        """For a given source database name/table, return a SortedSet of DD
+        rows."""
         return self.cached_rows_for_src_table[(src_db, src_table)]
 
     def get_rows_for_dest_table(self, dest_table):
+        """For a given destination table, return a SortedSet of DD rows."""
         return self.cached_rows_for_dest_table[dest_table]
 
     def get_fieldnames_for_src_table(self, src_db, src_table):
+        """For a given source database name/table, return a SortedSet of source
+        fields."""
         return self.cached_fieldnames_for_src_table[(src_db, src_table)]
 
     def get_scrub_from_db_table_pairs(self):
+        """Return a SortedSet of (source database name, source table) tuples
+        where those fields contain scrub_src (scrub-from) information."""
         return self.cached_scrub_from_db_table_pairs
 
     def get_scrub_from_rows(self, src_db, src_table):
+        """Return a SortedSet of DD rows for all fields containing scrub_src
+        (scrub-from) information."""
         return self.cached_scrub_from_rows[(src_db, src_table)]
 
     def get_tsv(self):
+        """
+        Return the DD in TSV format.
+        """
         return "\n".join(
             ["\t".join(DataDictionaryRow.ROWNAMES)]
             + [r.get_tsv() for r in self.rows]
         )
 
     def get_src_db_tablepairs(self):
+        """Return a SortedSet of (source database name, source table) tuples.
+        """
         return self.cached_srcdb_table_pairs
 
     def get_src_dbs_tables_with_no_pt_info_no_pk(self):
+        """Return a SortedSet of (source database name, source table) tuples
+        where the table has no patient information and no integer PK."""
         return self.cached_srcdb_table_pairs_wo_pt_info_no_pk
 
     def get_src_dbs_tables_with_no_pt_info_int_pk(self):
+        """Return a SortedSet of (source database name, source table) tuples
+        where the table has no patient information and has an integer PK."""
         return self.cached_srcdb_table_pairs_wo_pt_info_int_pk
 
     def get_int_pk_name(self, src_db, src_table):
+        """For a given source database name and table, return the field name
+        of the integer PK for that table."""
         return self.cached_srcdb_table_pairs_to_int_pk[(src_db, src_table)]
 
     def get_pk_ddr(self, src_db, src_table):
-        # Will return None if no such data dictionary row
+        """For a given source database name and table, return the DD row
+        for the integer PK for that table.
+
+        Will return None if no such data dictionary row.
+        """
         return self.cached_pk_ddr.get((src_db, src_table), None)
 
     def has_active_destination(self, src_db, src_table):
+        """For a given source database name and table: does it have an active
+        destination?"""
         return self.cached_has_active_destination[(src_db, src_table)]
 
 
@@ -1823,7 +1925,11 @@ class DataDictionary(object):
 # =============================================================================
 
 class DatabaseSafeConfig(object):
+    """Class representing non-sensitive configuration information about a
+    source database."""
+
     def __init__(self, parser, section):
+        """Read from a ConfigParser section."""
         read_config_string_options(self, parser, section, [
             "ddgen_force_lower_case",
             "ddgen_convert_odd_chars_to_underscore",
@@ -1881,6 +1987,8 @@ class DatabaseSafeConfig(object):
 # =============================================================================
 
 class DestinationFieldInfo(object):
+    """Class representing information about a destination field."""
+
     def __init__(self, table, field, fieldtype, comment):
         self.table = table
         self.field = field
@@ -1898,6 +2006,8 @@ class DestinationFieldInfo(object):
 # =============================================================================
 
 class Config(object):
+    """Class representing the main configuration."""
+
     MAIN_HEADINGS = [
         "data_dictionary_filename",
         "hash_method",
@@ -1941,6 +2051,7 @@ class Config(object):
     ]
 
     def __init__(self):
+        """Set some defaults."""
         self.config_filename = None
         self.dd = None
         for x in Config.MAIN_HEADINGS:
@@ -1974,6 +2085,8 @@ class Config(object):
 
     def set_internal(self, filename=None, environ=None, include_sources=True,
                      load_dd=True):
+        """Set up process-local storage. Read from config unless we've done
+        that already in a previous WSGI incarnation."""
         self.set_always()
         if self.PERSISTENT_CONSTANTS_INITIALIZED:
             self.init_row_counts()
@@ -1997,7 +2110,8 @@ class Config(object):
         self.PERSISTENT_CONSTANTS_INITIALIZED = True
 
     def set_always(self):
-        """Set the things we set every time the script is invoked (time!)."""
+        """Set the things we set every time the script is invoked via WSGI
+        (such as the current time, and some counters)."""
         localtz = dateutil.tz.tzlocal()
         self.NOW_LOCAL_TZ = datetime.datetime.now(localtz)
         self.NOW_UTC_WITH_TZ = self.NOW_LOCAL_TZ.astimezone(pytz.utc)
@@ -2009,11 +2123,13 @@ class Config(object):
         self._bytes_in_transaction = 0
 
     def init_row_counts(self):
+        """Initialize row counts for all source tables."""
         self._rows_inserted_per_table = {}
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self._rows_inserted_per_table[db_table_tuple] = 0
 
     def read_environ(self, environ):
+        """Read from the WSGI environment."""
         self.remote_addr = environ.get("REMOTE_ADDR", "")
         self.remote_port = environ.get("REMOTE_PORT", "")
         self.SCRIPT_NAME = environ.get("SCRIPT_NAME", "")
@@ -2115,6 +2231,9 @@ class Config(object):
         self.re_nonspecific = get_regex_from_elements(nonspecific_elements)
 
     def get_database(self, section):
+        """Return an rnc_db database object from information in a section of
+        the config file (a section that will contain password and other
+        connection information)."""
         parser = ConfigParser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         return rnc_db.get_database_from_configparser(
@@ -2241,15 +2360,19 @@ class Config(object):
         logger.debug("Config validated.")
 
     def encrypt_primary_pid(self, pid):
+        """Encrypt a primary PID, producing a RID."""
         return self.primary_pid_hasher.hash(pid)
 
     def encrypt_master_pid(self, pid):
+        """Encrypt a master PID, producing a master RID."""
         if pid is None:
             return None  # or risk of revealing the hash?
         return self.master_pid_hasher.hash(pid)
 
     def hash_list(self, l):
-        """ Hashes a list with Python's built-in hash function.
+        """
+        Hashes a list with Python's built-in hash function.
+
         We could use Python's build-in hash() function, which produces a 64-bit
         unsigned integer (calculated from: sys.maxint).
         However, there is an outside chance that someone uses a single-field
@@ -2259,9 +2382,12 @@ class Config(object):
         return self.change_detection_hasher.hash(repr(l))
 
     def hash_scrubber(self, scrubber):
+        """Return a hash of a scrubber object."""
         return self.change_detection_hasher.hash(scrubber.get_hash_string())
 
     def load_destination_fields(self, force=False):
+        """Fetches field information from the destination database, unless
+        we've cached that information already."""
         if self.DESTINATION_FIELDS_LOADED and not force:
             return
         # Everything that was in the data dictionary should now be in the
@@ -2288,7 +2414,12 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 
 
 def escape_literal_string_for_regex(s):
-    # Escape any regex characters. Start with \ -> \\.
+    r"""
+    Escape any regex characters.
+
+    Start with \ -> \\
+        ... this should be the first replacement in REGEX_METACHARS.
+    """
     for c in REGEX_METACHARS:
         s.replace(c, "\\" + c)
     return s
@@ -2305,8 +2436,10 @@ def escape_literal_string_for_regex(s):
 # ... let's go with the fuzzy regex method (Python regex module).
 
 def get_date_regex_elements(dt, at_word_boundaries_only=False):
-    """Takes a datetime object and returns a list of regex strings with which
-    to scrub."""
+    """
+    Takes a datetime object and returns a list of regex strings with which
+    to scrub.
+    """
     # Reminders: ? zero or one, + one or more, * zero or more
     # Non-capturing groups: (?:...)
     # ... https://docs.python.org/2/howto/regex.html
@@ -2339,7 +2472,8 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
 
 
 def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
-    """Takes a STRING representation of a number or an alphanumeric code, which
+    """
+    Takes a STRING representation of a number or an alphanumeric code, which
     may include leading zeros (as for phone numbers), and produces a list of
     regex strings for scrubbing.
 
@@ -2368,7 +2502,11 @@ def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
 
 def get_number_of_length_n_regex_elements(n, liberal=True,
                                           at_word_boundaries_only=True):
-    """For example, to remove all 10-digit numbers."""
+    """
+    Get a list of regex strings for scrubbing n-digit numbers -- for
+    example, to remove all 10-digit numbers as putative NHS numbers, or all
+    11-digit numbers as putative UK phone numbers.
+    """
     s = ["[0-9]"] * n
     if liberal:
         separators = "[\W]*"  # zero or more non-alphanumeric characters...
@@ -2383,6 +2521,9 @@ def get_number_of_length_n_regex_elements(n, liberal=True,
 
 
 def get_uk_postcode_regex_elements(at_word_boundaries_only=True):
+    """
+    Get a list of regex strings for scrubbing UK postcodes.
+    """
     e = [
         "AN NAA",
         "ANN NAA",
@@ -2402,15 +2543,25 @@ def get_uk_postcode_regex_elements(at_word_boundaries_only=True):
 
 
 def get_digit_string_from_vaguely_numeric_string(s):
-    """For example, converts "(01223) 123456" to "01223123456"."""
+    """
+    Strips non-digit characters from a string.
+    For example, converts "(01223) 123456" to "01223123456".
+    """
     return "".join([d for d in s if d.isdigit()])
 
 
 def reduce_to_alphanumeric(s):
+    """
+    Strips non-alphanumeric characters from a string.
+    For example, converts "PE12 3AB" to "PE12 3AB".
+    """
     return "".join([d for d in s if d.isalnum()])
 
 
 def remove_whitespace(s):
+    """
+    Removes whitespace from a string.
+    """
     return ''.join(s.split())
 
 
@@ -2420,6 +2571,13 @@ NON_ALPHANUMERIC_SPLITTERS = regex.compile("[\W]+", regex.UNICODE)
 
 def get_anon_fragments_from_string(s):
     """
+    Takes a complex string, such as a name or address with its components
+    separated by spaces, commas, etc., and returns a list of substrings to be
+    used for anonymisation.
+    - For example, from "John Smith", return ["John", "Smith"];
+      from "John D'Souza", return ["John", "D", "Souza"];
+      from "42 West Street", return ["42", "West", "Street"].
+
     - Try the examples listed below the function.
     - Note that this is a LIBERAL algorithm, i.e. one prone to anonymise too
       much (e.g. all instances of "Street" if someone has that as part of their
@@ -2453,8 +2611,14 @@ def get_anon_fragments_from_string(s):
 
 def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
                               max_errors=0):
-    """Takes a string (+/- suffixes, typically ["s"], and returns a list of
-    regex strings with which to scrub."""
+    """
+    Takes a string and returns a list of regex strings with which to scrub.
+    Options:
+    - list of suffixes to permit, typically ["s"]
+    - typographical errors
+    - whether to constrain to word boundaries or not
+        ... if false: will scrub ANN from bANNed
+    """
     s = escape_literal_string_for_regex(s)
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"
@@ -2475,6 +2639,9 @@ def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
 
 
 def get_regex_string_from_elements(elementlist):
+    """
+    Convert a list of regex elements into a single regex string.
+    """
     if not elementlist:
         return ""
     return u"|".join(elementlist)
@@ -2487,6 +2654,10 @@ def get_regex_string_from_elements(elementlist):
 
 
 def get_regex_from_elements(elementlist):
+    """
+    Convert a list of regex elements into a compiled regex, which will operate
+    in case-insensitive fashion on Unicode strings.
+    """
     if not elementlist:
         return None
     try:
@@ -2609,7 +2780,17 @@ print(get_regex_string_from_elements(get_date_regex_elements(old_testdate)))
 # =============================================================================
 
 class Scrubber(object):
+    """Class representing a patient-specific scrubber."""
+
     def __init__(self, sources, pid):
+        """
+        Build the scrubber based on data dictionary information.
+
+            sources: dictionary
+                key: db name
+                value: rnc_db database object
+            pid: integer patient identifier
+        """
         self.pid = pid
         self.mpid = None
         self.re_patient = None  # re: regular expression
@@ -2617,7 +2798,7 @@ class Scrubber(object):
         self.re_patient_elements = set()
         self.re_tp_elements = set()
         self.elements_tupleset = set()  # patient?, type, value
-        logger.debug("building scrubber")
+        logger.info("Building scrubber")
         db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
         for (src_db, src_table) in db_table_pair_list:
             ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
@@ -2642,6 +2823,9 @@ class Scrubber(object):
 
     @staticmethod
     def get_scrub_method(datatype_long, scrub_method):
+        """
+        Return the scrub method for a given SQL datatype unless overridden.
+        """
         if scrub_method:
             return scrub_method
         elif is_sqltype_date(datatype_long):
@@ -2652,9 +2836,15 @@ class Scrubber(object):
             return SCRUBMETHOD.NUMERIC
 
     def add_value(self, value, scrub_method, patient=True):
+        """
+        Add a specific value via a specific scrub_method.
+
+        The patient flag controls whether it's treated as a patient value or
+        a third-party value.
+        """
         if value is None:
             return
-        
+
         self.elements_tupleset.add((patient, scrub_method, repr(value)))
 
         # Note: object reference
@@ -2723,6 +2913,9 @@ class Scrubber(object):
             r.add(element)
 
     def finished_adding(self):
+        """
+        All components added; build the regexes.
+        """
         # Create regexes:
         self.re_patient = get_regex_from_elements(
             list(self.re_patient_elements))
@@ -2736,19 +2929,24 @@ class Scrubber(object):
                 "Third party scrubber: {}".format(self.get_tp_regex_string()))
 
     def get_patient_regex_string(self):
+        """Return the string version of the patient regex."""
         return get_regex_string_from_elements(self.re_patient_elements)
 
     def get_tp_regex_string(self):
+        """Return the string version of the third-party regex."""
         return get_regex_string_from_elements(self.re_tp_elements)
 
     def get_hash_string(self):
+        """Return a string to be used for scrubber hashing."""
         return repr(self.re_patient_elements | self.re_tp_elements)
         # | for union
-        
+
     def get_raw_info(self):
+        """Return a list of (patient?, scrub type, value) tuples."""
         return list(self.elements_tupleset)
 
     def scrub(self, text):
+        """Scrub some text and return the scrubbed result."""
         # logger.debug("scrubbing")
         if text is None:
             return None
@@ -2762,9 +2960,11 @@ class Scrubber(object):
         return text
 
     def get_pid(self):
+        """Return the patient ID (PID)."""
         return self.pid
 
     def get_mpid(self):
+        """Return the master patient ID (MPID)."""
         return self.mpid
 
 
@@ -2773,6 +2973,10 @@ class Scrubber(object):
 # =============================================================================
 
 def patient_scrubber_unchanged(admindb, patient_id, scrubber):
+    """
+    Has the scrubber changed, compared to the hashed version in the admin
+    database?
+    """
     new_scrub_hash = config.hash_scrubber(scrubber)
     sql = """
         SELECT 1
@@ -2789,6 +2993,9 @@ def patient_scrubber_unchanged(admindb, patient_id, scrubber):
 
 
 def patient_in_map(admindb, patient_id):
+    """
+    Is the patient in the PID/RID mapping table?
+    """
     sql = """
         SELECT 1
         FROM {table}
@@ -2803,6 +3010,10 @@ def patient_in_map(admindb, patient_id):
 
 def identical_record_exists_by_hash(destdb, dest_table, pkfield, pkvalue,
                                     hashvalue):
+    """
+    For a given PK in a given destination table, is there a record with the
+    specified value for its source hash?
+    """
     sql = """
         SELECT 1
         FROM {table}
@@ -2819,6 +3030,9 @@ def identical_record_exists_by_hash(destdb, dest_table, pkfield, pkvalue,
 
 
 def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
+    """
+    For a given PK in a given destination table, does a record exist?
+    """
     sql = """
         SELECT 1
         FROM {table}
@@ -2836,20 +3050,28 @@ def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
 # Database actions
 # =============================================================================
 
-def recreate_audit_table(db):
+def recreate_audit_table(admindb):
+    """
+    Create/recreate the audit table (in the admin database).
+    """
     logger.debug("recreate_audit_table")
-    db.create_or_update_table(
+    admindb.create_or_update_table(
         config.audit_tablename,
         AUDIT_FIELDSPECS,
         drop_superfluous_columns=True,
         dynamic=True,
         compressed=False)
-    if not db.mysql_table_using_barracuda(config.audit_tablename):
-        db.mysql_convert_table_to_barracuda(config.audit_tablename,
-                                            compressed=False)
+    if not admindb.mysql_table_using_barracuda(config.audit_tablename):
+        admindb.mysql_convert_table_to_barracuda(config.audit_tablename,
+                                                 compressed=False)
 
 
 def insert_into_mapping_db(admindb, scrubber):
+    """
+    Insert patient information (including PID, RID, MPID, RID, and scrubber
+    hash) into the mapping database.
+    """
+    logger.debug("Inserting patient into mapping table")
     pid = scrubber.get_pid()
     rid = config.encrypt_primary_pid(pid)
     mpid = scrubber.get_mpid()
@@ -2910,6 +3132,9 @@ def insert_into_mapping_db(admindb, scrubber):
 
 
 def wipe_and_recreate_mapping_table(admindb, incremental=False):
+    """
+    Drop and rebuild the mapping table in the admin database.
+    """
     logger.debug("wipe_and_recreate_mapping_table")
     if not incremental:
         admindb.drop_table(config.secret_map_tablename)
@@ -2949,6 +3174,10 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
 
 def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
                                      incremental=False):
+    """
+    Drop and recreate all destination tables (as specified in the DD) in the
+    destination database.
+    """
     logger.debug("wipe_and_recreate_destination_db, incremental={}".format(
         incremental))
     if destdb.db_flavour != rnc_db.DatabaseSupporter.FLAVOUR_MYSQL:
@@ -3026,14 +3255,19 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
 
 def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
                                      report_every=1000, chunksize=10000):
-    # - Can't do this in a single SQL command, since the engine can't
-    #   necessarily see both databases.
-    # - Can't do this in a multiprocess way, because we're trying to do a
-    #   DELETE WHERE NOT IN.
-    # - However, we can get stupidly long query lists if we try to SELECT all
-    #   the values and use a DELETE FROM x WHERE y NOT IN (v1, v2, v3, ...)
-    #   query. This crashes the MySQL connection, etc.
-    # - Therefore, we need a temporary table in the destination.
+    """
+    For a given source database/table, delete any rows in the corresponding
+    destination table where there is no corresponding source row.
+
+    - Can't do this in a single SQL command, since the engine can't
+      necessarily see both databases.
+    - Can't do this in a multiprocess way, because we're trying to do a
+      DELETE WHERE NOT IN.
+    - However, we can get stupidly long query lists if we try to SELECT all
+      the values and use a DELETE FROM x WHERE y NOT IN (v1, v2, v3, ...)
+      query. This crashes the MySQL connection, etc.
+    - Therefore, we need a temporary table in the destination.
+    """
     if not config.dd.has_active_destination(srcdbname, src_table):
         return
     dest_table = config.dd.get_dest_table_for_src_db_table(srcdbname,
@@ -3130,9 +3364,10 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
 
 def commit(destdb):
-    logger.info("Committing...")
+    """
+    Execute a COMMIT on the destination database, and reset row counts.
+    """
     destdb.commit()
-    logger.info("... done")
     config._rows_in_transaction = 0
     config._bytes_in_transaction = 0
 
@@ -3162,7 +3397,9 @@ AUDIT_FIELDSPECS = [
 
 def audit(details,
           from_console=False, remote_addr=None, user=None, query=None):
-    """Write an entry to the audit log."""
+    """
+    Write an entry to the audit log (in the admin database).
+    """
     if not remote_addr:
         remote_addr = config.session.ip_address if config.session else None
     if not user:
@@ -3193,6 +3430,13 @@ def audit(details,
 # =============================================================================
 
 def gen_patient_ids(sources, tasknum=0, ntasks=1):
+    """
+    Generate patient IDs.
+
+        sources: dictionary
+            key: db name
+            value: rnc_db database object
+    """
     # ASSIGNS WORK TO THREADS/PROCESSES, via the simple expedient of processing
     # only those patient ID numbers where patientnum % ntasks == tasknum.
     if ntasks > 1 and tasknum >= ntasks:
@@ -3246,6 +3490,18 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
 
 
 def gen_all_values_for_patient(sources, dbname, table, fields, pid):
+    """
+    Generate all sensitive (scrub_src) values for a given patient, from a given
+    source table. Used to build the scrubber.
+
+        sources: dictionary
+            key: db name
+            value: rnc_db database object
+        dbname: source database name
+        table: source table
+        fields: source fields containing scrub_src information
+        pid: patient ID
+    """
     cfg = config.srccfg[dbname]
     if not cfg.ddgen_per_table_pid_field:
         return
@@ -3268,8 +3524,15 @@ def gen_all_values_for_patient(sources, dbname, table, fields, pid):
 
 def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
              pkname=None, tasknum=None, ntasks=None, debuglimit=0):
-    """ Generates a series of lists of values, each value corresponding to a
-    field in sourcefields.
+    """
+    Generates rows from a source table
+    ... each row being a list of values
+    ... each value corresponding to a field in sourcefields.
+
+    ... optionally restricted to a single patient
+
+    If the table has a PK and we're operating in a multitasking situation,
+    generate just the rows for this task (thread/process).
     """
     args = []
     whereconds = []
@@ -3322,6 +3585,10 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
 
 
 def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
+    """
+    Generate (table, list-of-DD-rows-for-indexed-fields) tuples for all tables
+    requiring indexing.
+    """
     indexrows = [ddr for ddr in config.dd.rows
                  if ddr.index and not ddr.omit]
     tables = list(set([r.dest_table for r in indexrows]))
@@ -3333,6 +3600,11 @@ def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
 
 
 def gen_nonpatient_tables_without_int_pk(tasknum=0, ntasks=1):
+    """
+    Generate (source db name, source table) tuples for all tables that
+    (a) don't contain patient information and
+    (b) don't have an integer PK.
+    """
     db_table_pairs = config.dd.get_src_dbs_tables_with_no_pt_info_no_pk()
     for i, pair in enumerate(db_table_pairs):
         if i % ntasks != tasknum:
@@ -3341,6 +3613,11 @@ def gen_nonpatient_tables_without_int_pk(tasknum=0, ntasks=1):
 
 
 def gen_nonpatient_tables_with_int_pk():
+    """
+    Generate (source db name, source table, PK name) tuples for all tables that
+    (a) don't contain patient information and
+    (b) do have an integer PK.
+    """
     db_table_pairs = config.dd.get_src_dbs_tables_with_no_pt_info_int_pk()
     for pair in db_table_pairs:
         db = pair[0]
@@ -3350,6 +3627,9 @@ def gen_nonpatient_tables_with_int_pk():
 
 
 def gen_pks(db, table, pkname):
+    """
+    Generate PK values from a table.
+    """
     sql = "SELECT {pk} FROM {table}".format(pk=pkname, table=table)
     return db.gen_fetchfirst(sql)
 
@@ -3364,6 +3644,10 @@ def gen_pks(db, table, pkname):
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                   pid=None, scrubber=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
+    """
+    Process a table. This can either be a patient table (in which case the
+    scrubber is applied) or not (in which case the table is just copied).
+    """
     START = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
     logger.debug(START + "pid={}, incremental={}".format(pid, incremental))
 
@@ -3484,7 +3768,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if config._bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True
         if early_commit:
-            logger.info(START + "Triggering early commit")
+            logger.info(START + "Triggering early commit based on row/byte "
+                        "count")
             commit(destdb)
 
     logger.debug(START + "finished: pid={}".format(pid))
@@ -3492,6 +3777,10 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
 
 
 def extract_text(value, row, ddr, ddrows):
+    """
+    Take a field's value and return extracted text, for file-related fields,
+    where the DD row indicates that this field contains a filename or a BLOB.
+    """
     filename = None
     blob = None
     extension = None
@@ -3520,6 +3809,9 @@ def extract_text(value, row, ddr, ddrows):
 
 
 def create_indexes(tasknum=0, ntasks=1):
+    """
+    Create indexes for the destination tables.
+    """
     logger.info(SEP + "Create indexes")
     for (table, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                           ntasks=ntasks):
@@ -3571,9 +3863,14 @@ def create_indexes(tasknum=0, ntasks=1):
 
 
 class PatientThread(threading.Thread):
+    """
+    Class for patient processing in a multithreaded environment.
+    (DEPRECATED: use multiple processes instead.)
+    """
     def __init__(self, sources, destdb, admindb, nthreads, threadnum,
                  abort_event, subthread_error_event,
                  incremental):
+        """Initialize the thread."""
         threading.Thread.__init__(self)
         self.sources = sources
         self.destdb = destdb
@@ -3586,6 +3883,7 @@ class PatientThread(threading.Thread):
         self.incremental = incremental
 
     def run(self):
+        """Run the thread."""
         try:
             patient_processing_fn(
                 self.sources, self.destdb, self.admindb,
@@ -3601,6 +3899,7 @@ class PatientThread(threading.Thread):
             raise e  # to kill the thread
 
     def get_exception(self):
+        """Return stored exception information."""
         return self.exception
 
 
@@ -3608,6 +3907,12 @@ def patient_processing_fn(sources, destdb, admindb,
                           tasknum=0, ntasks=1,
                           abort_event=None, multiprocess=False,
                           incremental=False):
+    """
+    Iterate through patient IDs;
+        build the scrubber for each patient;
+        process source data for that patient, scrubbing it;
+        insert the patient into the mapping table in the admin database.
+    """
     threadprefix = ""
     if ntasks > 1 and not multiprocess:
         threadprefix = "Thread {}: ".format(tasknum)
@@ -3647,11 +3952,15 @@ def patient_processing_fn(sources, destdb, admindb,
         # Insert into mapping db
         insert_into_mapping_db(admindb, scrubber)
 
-    logger.info(SEP + threadprefix + "Commit")
     commit(destdb)
 
 
 def drop_remake(incremental=False):
+    """
+    Drop and rebuild (a) mapping table, (b) destination tables.
+    If incremental is True, doesn't drop tables; just deletes destination
+    information where source information no longer exists.
+    """
     recreate_audit_table(config.admindb)
     wipe_and_recreate_mapping_table(config.admindb, incremental=incremental)
     wipe_and_recreate_destination_db(config.destdb, incremental=incremental)
@@ -3664,6 +3973,10 @@ def drop_remake(incremental=False):
 
 
 def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
+    """
+    Copies all non-patient tables.
+    If they have an integer PK, the work may be parallelized.
+    """
     logger.info(SEP + "Non-patient tables: (a) with integer PK")
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
         db = config.sources[d]
@@ -3686,6 +3999,9 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
 
 def process_patient_tables(nthreads=1, process=0, nprocesses=1,
                            incremental=False):
+    """
+    Process all patient tables, optionally in a parallel-processing fashion.
+    """
     # We'll use multiple destination tables, so commit right at the end.
 
     def ctrl_c_handler(signum, frame):
@@ -3779,6 +4095,9 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
 
 
 def show_source_counts():
+    """
+    Show the number of records in all source tables.
+    """
     logger.info("SOURCE TABLE RECORD COUNTS:")
     for d in config.dd.get_source_databases():
         db = config.sources[d]
@@ -3792,10 +4111,16 @@ def show_source_counts():
 # =============================================================================
 
 def fail():
+    """
+    Exit with a failure code.
+    """
     sys.exit(1)
 
 
 def main():
+    """
+    Command-line entry point.
+    """
     version = "Version {} ({})".format(VERSION, VERSION_DATE)
     description = """
 Database anonymiser. {version}. By Rudolf Cardinal.

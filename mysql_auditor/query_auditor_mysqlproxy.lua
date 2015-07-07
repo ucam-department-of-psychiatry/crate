@@ -21,15 +21,18 @@ local user = ""
 local schema = ""
 
 function read_handshake()
+    -- IP handshaking is happening. Grab info.
     client_addr = proxy.connection.client.src.name
 end
 
 function read_auth()
+    -- Authorization is happening. Grab info.
 	user = proxy.connection.client.username
     set_flush()  -- good time to do this
 end
 
 function read_query(packet)
+    -- A query/command is coming through.
     local cmd = packet:byte()
 
 	if cmd == proxy.COM_QUERY then
@@ -62,6 +65,7 @@ function isempty(s)
 end
 
 function set_schema(client_request)
+    -- Set the current schema (database) from the best information we have.
     pref1 = proxy.connection.client.default_db
     pref2 = proxy.connection.server.default_db
     pref3 = client_request
@@ -102,6 +106,8 @@ end
 
 function escape(x)
     --[[
+        Escape a query for the audit output.
+
         SQL queries can have newlines in. In the output, they're the last field
         of the CSV, so anything is fine except newlines. If we want the output
         to be valid and identical SQL, though, we can't (e.g.) replace newlines
@@ -119,6 +125,7 @@ function escape(x)
 end
 
 function audit(query)
+    -- Audit a query to stdout
     query = escape(query)
 	print(now()
           .. "," .. client_addr
@@ -128,6 +135,7 @@ function audit(query)
 end
 
 function log(msg)
+    -- Send log message to stderr
     io.stderr:write(now()
                     .. ": " .. client_addr
                     .. "," .. user

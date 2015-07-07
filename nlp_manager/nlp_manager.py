@@ -370,7 +370,14 @@ db = ANONYMOUS_OUTPUT
 # =============================================================================
 
 class OutputTypeConfig(object):
+    """
+    Class defining configuration for the output of a given GATE app.
+    """
+
     def __init__(self, parser, section):
+        """
+        Read config from a ConfigParser section.
+        """
         read_config_string_options(
             self,
             parser,
@@ -427,7 +434,14 @@ class OutputTypeConfig(object):
 
 
 class InputFieldConfig(object):
+    """
+    Class defining configuration for an input field (containing text).
+    """
+
     def __init__(self, parser, section):
+        """
+        Read config from a ConfigParser section.
+        """
         read_config_string_options(
             self,
             parser,
@@ -455,8 +469,14 @@ class InputFieldConfig(object):
 # =============================================================================
 
 class Config(object):
+    """
+    Class representing configuration as read from config file.
+    """
+
     def __init__(self, filename, nlpname, logtag=""):
-        """Read config from file."""
+        """
+        Read config from file.
+        """
 
         self.config_filename = filename
         parser = ConfigParser.RawConfigParser()
@@ -549,6 +569,9 @@ class Config(object):
         self.now = get_now_utc_notz()
 
     def get_database(self, section):
+        """
+        Return an rnc_db database object from a config file section.
+        """
         parser = ConfigParser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         try:  # guard this bit to prevent any password leakage
@@ -572,6 +595,9 @@ class Config(object):
 # =============================================================================
 
 def tsv_pairs_to_dict(line, key_lower=True):
+    """
+    Converts a TSV line into sequential key/value pairs as a dictionary.
+    """
     items = line.split("\t")
     d = {}
     for chunk in chunks(items, 2):
@@ -584,9 +610,10 @@ def tsv_pairs_to_dict(line, key_lower=True):
 
 
 def escape_tabs_newlines(s):
-    """ Escapes CR, LF, tab, and backslashes.
-    Here just for testing; mirrors the equivalent function in the Java
-    code."""
+    """
+    Escapes CR, LF, tab, and backslashes. (Here just for testing; mirrors the
+    equivalent function in the Java code.)
+    """
     if not s:
         return s
     s = s.replace("\\", r"\\")  # replace \ with \\
@@ -597,7 +624,9 @@ def escape_tabs_newlines(s):
 
 
 def unescape_tabs_newlines(s):
-    """ Reverses escape_tabs_newlines."""
+    """
+    Reverses escape_tabs_newlines.
+    """
     # See also http://stackoverflow.com/questions/4020539
     if not s:
         return s
@@ -635,11 +664,17 @@ def unescape_tabs_newlines(s):
 # OK, first one works; that's easier.
 
 class NlpController(object):
+    """
+    Class controlling the external process.
+    """
 
     # -------------------------------------------------------------------------
     # Interprocess comms
     # -------------------------------------------------------------------------
     def __init__(self, config, commit=False):
+        """
+        Initializes from the config.
+        """
         self.config = config
         self.commit = commit
         self.input_terminator = self.config.input_terminator
@@ -648,6 +683,9 @@ class NlpController(object):
         self.n_uses = 0
 
     def start(self):
+        """
+        Launch the external process.
+        """
         args = self.config.progargs
         logger.info("launching command: " + " ".join(args))
         self.p = subprocess.Popen(
@@ -663,6 +701,9 @@ class NlpController(object):
         # helpful.
 
     def send(self, text, starting_fields_values={}, utf8=True):
+        """
+        Send text to the external process and receive the result.
+        """
         self.starting_fields_values = starting_fields_values
         logger.debug("writing: " + text)
         if utf8:
@@ -684,6 +725,9 @@ class NlpController(object):
             self.n_uses = 0
 
     def finish(self):
+        """
+        Close down the external process.
+        """
         self.p.communicate()  # close p.stdout, wait for the subprocess to exit
 
     # -------------------------------------------------------------------------
@@ -691,6 +735,10 @@ class NlpController(object):
     # -------------------------------------------------------------------------
 
     def receive(self, line):
+        """
+        Receive a line from the external process and send the results to our
+        database.
+        """
         d = tsv_pairs_to_dict(line)
         logger.debug("dictionary received: {}".format(d))
         d = dict(d.items() + self.starting_fields_values.items())
@@ -719,6 +767,9 @@ class NlpController(object):
     # -------------------------------------------------------------------------
 
     def _test(self):
+        """
+        Test the send function.
+        """
         datalist = [
             "Bob Hope visited Seattle.",
             "James Joyce wrote Ulysses."
@@ -732,9 +783,13 @@ class NlpController(object):
 # =============================================================================
 
 def pk_of_record_in_progressdb(config, ifconfig, srcpkval, srchash=None):
-    # Inputs of None cause that field to be skipped in the check.
-    # With srchash=None, checks for record existence.
-    # With srchash, checks for matching hash too.
+    """
+    Find the PK of a source record in the progress database.
+
+    Inputs of None cause that field to be skipped in the check.
+    With srchash=None, checks for record existence.
+    With srchash, checks for matching hash too.
+    """
     sql = """
         SELECT pk
         FROM {table}
@@ -759,6 +814,9 @@ def pk_of_record_in_progressdb(config, ifconfig, srcpkval, srchash=None):
 # =============================================================================
 
 def insert_into_progress_db(config, ifconfig, srcpkval, srchash, commit=False):
+    """
+    Make a note in the progress database that we've processed a source record.
+    """
     pk = pk_of_record_in_progressdb(config, ifconfig, srcpkval, srchash=None)
     args = [
         ifconfig.srcdb,
@@ -803,10 +861,14 @@ def insert_into_progress_db(config, ifconfig, srcpkval, srchash, commit=False):
 
 
 def delete_where_no_source(config, ifconfig):
-    # - Can't do this in a single SQL command, since the engine can't
-    #   necessarily see both databases.
-    # - Can't do this in a multiprocess way, because we're trying to do a
-    #   DELETE WHERE NOT IN.
+    """
+    Delete destination records where source records no longer exist.
+
+    - Can't do this in a single SQL command, since the engine can't necessarily
+      see both databases.
+    - Can't do this in a multiprocess way, because we're trying to do a
+      DELETE WHERE NOT IN.
+    """
 
     # 1. Progress database
     logger.debug(
@@ -867,7 +929,9 @@ def delete_where_no_source(config, ifconfig):
 
 
 def delete_from_dest_dbs(config, ifconfig, srcpkval, commit=False):
-    """ For when a record has been updated; wipe older entries for it. """
+    """
+    For when a record has been updated; wipe older entries for it.
+    """
     for otconfig in config.outputtypemap.values():
         logger.debug(
             "delete_from_dest_dbs... {}.{} -> {}.{}".format(
@@ -896,6 +960,9 @@ def delete_from_dest_dbs(config, ifconfig, srcpkval, commit=False):
 
 
 def commit_all(config):
+    """
+    Execute a COMMIT on all databases.
+    """
     config.progdb.commit()
     for db in config.databases.values():
         db.commit()
@@ -906,6 +973,9 @@ def commit_all(config):
 # =============================================================================
 
 def gen_text(config, ifconfig, tasknum=0, ntasks=1):
+    """
+    Generate text strings from the input database.
+    """
     if ntasks > 1 and tasknum >= ntasks:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
@@ -943,6 +1013,10 @@ def gen_text(config, ifconfig, tasknum=0, ntasks=1):
 # =============================================================================
 
 def process_nlp(config, incremental=False, tasknum=0, ntasks=1):
+    """
+    Main NLP processing function. Fetch text, send it to the GATE app
+    (storing the results), and make a note in the progress database.
+    """
     logger.info(SEP + "NLP")
     controller = NlpController(config, commit=incremental)
     controller.start()
@@ -978,6 +1052,10 @@ def process_nlp(config, incremental=False, tasknum=0, ntasks=1):
 
 
 def drop_remake(config, incremental=False, dynamic=True, compressed=False):
+    """
+    Drop output tables and recreate them.
+    """
+
     # Not parallel.
     # -------------------------------------------------------------------------
     # 1. Progress database
@@ -1060,6 +1138,9 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
 
 
 def create_indexes(config, tasknum=0, ntasks=1):
+    """
+    Create indexes on destination table(s).
+    """
     # Parallelize by table.
     logger.info(SEP + "Create indexes")
     outputtypes_list = config.outputtypemap.values()
@@ -1094,10 +1175,16 @@ def create_indexes(config, tasknum=0, ntasks=1):
 # =============================================================================
 
 def fail():
+    """
+    Exit with a failure code.
+    """
     sys.exit(1)
 
 
 def main():
+    """
+    Command-line entry point.
+    """
     version = "Version {} ({})".format(VERSION, VERSION_DATE)
     description = """
 NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)

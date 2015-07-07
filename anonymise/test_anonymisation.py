@@ -145,11 +145,11 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     patientnum, rawtext = get_patientnum_rawtext(docid, fieldinfo)
     patientnum2, anontext = get_patientnum_anontext(docid, fieldinfo)
     # patientnum is raw; patientnum2 is hashed
-    
+
     # Get scrubbing info
     scrubber = Scrubber(config.sources, patientnum)
     scrubdict[patientnum] = scrubber.get_raw_info()
-    
+
     # Write text
     rawfilename = os.path.join(args.rawdir,
                                "{}_{}.txt".format(patientnum, docid))
@@ -190,7 +190,7 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     if first:
         csvwriter.writerow(summary.keys())
     csvwriter.writerow(summary.values())
-    
+
     return patientnum
 
 
@@ -237,6 +237,10 @@ def get_docids(args, fieldinfo, from_src=True):
 
 
 def test_anon(args):
+    """
+    Fetch raw and anonymised documents and store them in files for
+    comparison, along with some summary information.
+    """
     fieldinfo = get_fieldinfo(args)
     docids = get_docids(args, fieldinfo, args.from_src)
     mkdir_p(args.rawdir)
@@ -268,6 +272,9 @@ def test_anon(args):
 # =============================================================================
 
 def main():
+    """
+    Command-line entry point.
+    """
     parser = argparse.ArgumentParser(description='Test anonymisation')
     parser.add_argument('--config', required=True,
                         help='Configuration file name (input)')
