@@ -726,6 +726,8 @@ ddgen_allow_fulltext_indexing = True
 #   this many rows will be taken from the source database.
 #   If you run a multiprocess/multithreaded anonymisation, this limit applies
 #   per *process* (or task), not overall.
+#   Note that these limits DO NOT APPLY to the fetching of patient identifiable
+#   information for anonymisation.
 debug_row_limit =
 
 #   List of tables to which to apply debug_row_limit (see above).
@@ -2065,6 +2067,7 @@ class Config(object):
         self.debug_scrubbers = False
         self.save_scrubbers = False
         self._rows_inserted_per_table = {}
+        self._warned_re_limits = {}
         self.re_nonspecific = None
 
     def set(self, filename=None, environ=None, include_sources=True,
@@ -2127,6 +2130,7 @@ class Config(object):
         self._rows_inserted_per_table = {}
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self._rows_inserted_per_table[db_table_tuple] = 0
+            self._warned_re_limits[db_table_tuple] = False
 
     def read_environ(self, environ):
         """Read from the WSGI environment."""
@@ -2798,7 +2802,7 @@ class Scrubber(object):
         self.re_patient_elements = set()
         self.re_tp_elements = set()
         self.elements_tupleset = set()  # patient?, type, value
-        logger.info("Building scrubber")
+        logger.debug("Building scrubber")
         db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
         for (src_db, src_table) in db_table_pair_list:
             ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
@@ -3570,17 +3574,20 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
     while row is not None:
         if (debuglimit > 0 and
                 config._rows_inserted_per_table[db_table_tuple] >= debuglimit):
-            logger.warning(
-                "Table {}.{}: stopping at {} rows due to debugging "
-                "limits".format(dbname, sourcetable, debuglimit))
+            if not config._warned_re_limits[db_table_tuple]:
+                logger.warning(
+                    "Table {}.{}: not fetching more than {} rows (in total "
+                    "for this process) due to debugging limits".format(
+                        dbname, sourcetable, debuglimit))
+                config._warned_re_limits[db_table_tuple] = True
             row = None  # terminate while loop
             continue
         yield list(row)  # convert from tuple to list so we can modify it
         row = cursor.fetchone()
         config._rows_inserted_per_table[db_table_tuple] += 1
-    logger.debug("About to close cursor...")
+    # logger.debug("About to close cursor...")
     cursor.close()
-    logger.debug("... cursor closed")
+    # logger.debug("... cursor closed")
     db.java_garbage_collect()  # for testing
 
 
@@ -3926,7 +3933,9 @@ def patient_processing_fn(sources, destdb, admindb,
         if abort_event is not None and abort_event.is_set():
             logger.error(threadprefix + "aborted")
             return
-        logger.info(threadprefix + "Processing patient ID: {}".format(pid))
+        logger.info(
+            threadprefix + "Processing patient ID: {} (incremental={})".format(
+                pid, incremental))
 
         # Gather scrubbing information
         scrubber = Scrubber(sources, pid)
@@ -4106,6 +4115,17 @@ def show_source_counts():
             logger.info("{}.{}: {} records".format(d, t, n))
 
 
+def show_dest_counts():
+    """
+    Show the number of records in all destination tables.
+    """
+    logger.info("DESTINATION TABLE RECORD COUNTS:")
+    db = config.destdb
+    for t in config.dd.get_dest_tables():
+        n = db.count_where(t)
+        logger.info("DESTINATION: {}: {} records".format(t, n))
+
+
 # =============================================================================
 # Main
 # =============================================================================
@@ -4172,9 +4192,10 @@ Sample usage (having set PYTHONPATH):
                         help="Saves sensitive scrubbing information in admin "
                              "database, for debugging")
     parser.add_argument("--count", action="store_true",
-                        help="Count records in source database(s) only")
+                        help="Count records in source/destination databases, "
+                             "then stop")
     parser.add_argument("--dropremake", action="store_true",
-                        help="Drop/remake destination tables only")
+                        help="Drop/remake destination tables, then stop")
     parser.add_argument("--nonpatienttables", action="store_true",
                         help="Process non-patient tables only")
     parser.add_argument("--patienttables", action="store_true",
@@ -4259,6 +4280,7 @@ Sample usage (having set PYTHONPATH):
 
     if args.count:
         show_source_counts()
+        show_dest_counts()
         return
 
     # -------------------------------------------------------------------------

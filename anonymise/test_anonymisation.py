@@ -275,7 +275,9 @@ def main():
     """
     Command-line entry point.
     """
-    parser = argparse.ArgumentParser(description='Test anonymisation')
+    parser = argparse.ArgumentParser(
+        description='Test anonymisation',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--config', required=True,
                         help='Configuration file name (input)')
     parser.add_argument('--dsttable', required=True,
