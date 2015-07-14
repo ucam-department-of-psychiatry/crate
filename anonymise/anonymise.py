@@ -27,6 +27,10 @@ Copyright/licensing:
 
 CHANGE LOG:
 
+- v0.06, 2015-07-14
+  - bugfix: if a source scrub-from value was a number with value '.', the
+    regex went haywire... so regex builders now check for blanks.
+
 - v0.06, 2015-06-25
   - Option: replace_nonspecific_info_with
   - Option: scrub_all_numbers_of_n_digits
@@ -2188,7 +2192,7 @@ class Config(object):
         self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
         # These should all be integers:
         self.scrub_all_numbers_of_n_digits = [
-            int(x) for x in self.scrub_all_numbers_of_n_digits]
+            int(x) for x in self.scrub_all_numbers_of_n_digits if int(x) > 0]
 
         # Databases
         if self.destination_database == self.admin_database:
@@ -2303,11 +2307,11 @@ class Config(object):
         # Regex
         if self.string_max_regex_errors < 0:
             raise ValueError("string_max_regex_errors < 0, nonsensical")
-        if self.min_string_length_for_errors < 0:
-            raise ValueError("min_string_length_for_errors < 0, nonsensical")
-        if self.min_string_length_to_scrub_with < 0:
+        if self.min_string_length_for_errors < 1:
+            raise ValueError("min_string_length_for_errors < 1, nonsensical")
+        if self.min_string_length_to_scrub_with < 1:
             raise ValueError(
-                "min_string_length_to_scrub_with < 0, nonsensical")
+                "min_string_length_to_scrub_with < 1, nonsensical")
 
         # Test date conversions
         format_datetime(self.NOW_UTC_NO_TZ, self.date_to_text_format)
@@ -2493,6 +2497,8 @@ def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
         PE12 3AB
         PE 12 3 AB
     """
+    if not s:
+        return []
     s = escape_literal_string_for_regex(s)  # escape any decimal points, etc.
     if liberal:
         separators = "[\W]*"  # zero or more non-alphanumeric characters...
@@ -2623,6 +2629,8 @@ def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
     - whether to constrain to word boundaries or not
         ... if false: will scrub ANN from bANNed
     """
+    if not s:
+        return []
     s = escape_literal_string_for_regex(s)
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"

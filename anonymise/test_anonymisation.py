@@ -3,6 +3,24 @@
 
 """
 Test the anonymisation for specific databases.
+
+From the output, we have:
+    n_replacements (POSITIVE)
+    word_count (N)
+    true_positive_confidential_masked (TP)
+    false_positive_banal_masked (FP)
+    false_negative_confidential_visible_known_to_source (FN)
+    confidential_visible_but_unknown_to_source
+
+Therefore, having summed across documents:
+    TP + FP = POSITIVE
+    NEGATIVE = N - POSITIVE
+    TN = NEGATIVE - FN
+    
+and then we have everything we need. For all identifiers, we make FN equal to
+    false_negative_confidential_visible_known_to_source
+        + not_false_negative_confidential_visible_but_unknown_to_source
+instead.
 """
 
 # =============================================================================
@@ -156,13 +174,22 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     anonfilename = os.path.join(args.anondir,
                                 "{}_{}.txt".format(patientnum, docid))
     with open(rawfilename, 'w') as f:
-        f.write(rawtext.encode(ENCODING))
+        if rawtext:
+            f.write(rawtext.encode(ENCODING))
     with open(anonfilename, 'w') as f:
-        f.write(anontext.encode(ENCODING))
+        if anontext:
+            f.write(anontext.encode(ENCODING))
+            
+    wordcount = len(rawtext.split()) if rawtext else 0
 
-    n_patient = anontext.count(config.replace_patient_info_with)
-    n_thirdparty = anontext.count(config.replace_third_party_info_with)
-    n_nonspecific = anontext.count(config.replace_nonspecific_info_with)
+    if anontext:
+        n_patient = anontext.count(config.replace_patient_info_with)
+        n_thirdparty = anontext.count(config.replace_third_party_info_with)
+        n_nonspecific = anontext.count(config.replace_nonspecific_info_with)
+    else:
+        n_patient = 0
+        n_thirdparty = 0
+        n_nonspecific = 0
     n_replacements = n_patient + n_thirdparty + n_nonspecific
 
     summary = collections.OrderedDict()
@@ -179,12 +206,13 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     # summary["n_patient"] = n_patient
     # summary["n_thirdparty"] = n_thirdparty
     # summary["n_nonspecific"] = n_nonspecific
-    summary["word_count"] = len(rawtext.split())
+    summary["word_count"] = wordcount
     # ... use this to calculate true negatives (banal, visible) as:
     # true_negative = word_count - (true_pos + false_pos + false_neg)
     summary["true_positive_confidential_masked"] = "?"
-    summary["false_negative_confidential_visible"] = "?"
     summary["false_positive_banal_masked"] = "?"
+    summary["false_negative_confidential_visible_known_to_source"] = "?"
+    summary["confidential_visible_but_unknown_to_source"] = "?"
     summary["comments"] = ""
 
     if first:
