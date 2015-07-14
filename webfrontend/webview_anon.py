@@ -623,9 +623,9 @@ def test_show_fields(session=None, form=None):
 
 def fail_unknown_action(action):
     """HTML given when action unknown."""
-    #return cc_html.fail_with_error_stay_logged_in(
-    #    "Can't process action {} - action not recognized.".format(action)
-    #)
+    # return cc_html.fail_with_error_stay_logged_in(
+    #     "Can't process action {} - action not recognized.".format(action)
+    # )
     return "GARBAGE"
 
 
@@ -654,7 +654,7 @@ def cli_main():
 
     config.set(filename=args.configfilename, include_sources=False)
 
-    #print(test_query_output())
+    # print(test_query_output())
     print(test_show_fields())
 
 
@@ -700,29 +700,30 @@ def main_http_processor(env):
     # -------------------------------------------------------------------------
     # Login
     # -------------------------------------------------------------------------
-    #if action == ACTION.LOGIN:
-    #    return login(pls.session, form)
+    # if action == ACTION.LOGIN:
+    #     return login(pls.session, form)
 
     # -------------------------------------------------------------------------
     # If we're not authorized, we won't get any further:
     # -------------------------------------------------------------------------
-    #if not pls.session.authorized_as_viewer():
-    #    if not action:
-    #        return cc_html.login_page()
-    #    else:
-    #        return fail_not_user(action, redirect=env.get("REQUEST_URI"))
+    # if not pls.session.authorized_as_viewer():
+    #     if not action:
+    #         return cc_html.login_page()
+    #     else:
+    #         return fail_not_user(action, redirect=env.get("REQUEST_URI"))
 
     # -------------------------------------------------------------------------
     # Can't bypass an enforced password change, or acknowledging terms:
     # -------------------------------------------------------------------------
-    #if pls.session.user_must_change_password():
-    #    if action != ACTION.CHANGE_PASSWORD:
-    #        return cc_user.enter_new_password(
-    #            pls.session, pls.session.user,
-    #            as_manager=False, because_password_expired=True
-    #        )
-    #elif pls.session.user_must_agree_terms() and action != ACTION.AGREE_TERMS:
-    #    return offer_terms(pls.session, form)
+    # if pls.session.user_must_change_password():
+    #     if action != ACTION.CHANGE_PASSWORD:
+    #         return cc_user.enter_new_password(
+    #             pls.session, pls.session.user,
+    #             as_manager=False, because_password_expired=True
+    #         )
+    # elif (pls.session.user_must_agree_terms()
+    #           and action != ACTION.AGREE_TERMS):
+    #     return offer_terms(pls.session, form)
     # Caution with the case where the user must do both; don't want deadlock!
     # The statements let a user through if they're changing their password,
     # even if they also need to acknowledge terms (which comes next).

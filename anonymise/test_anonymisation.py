@@ -16,7 +16,7 @@ Therefore, having summed across documents:
     TP + FP = POSITIVE
     NEGATIVE = N - POSITIVE
     TN = NEGATIVE - FN
-    
+
 and then we have everything we need. For all identifiers, we make FN equal to
     false_negative_confidential_visible_known_to_source
         + not_false_negative_confidential_visible_but_unknown_to_source
@@ -53,6 +53,7 @@ from pythonlib.rnc_ui import mkdir_p
 # =============================================================================
 
 ENCODING = 'utf-8'
+
 
 # =============================================================================
 # Specific tests
@@ -179,7 +180,7 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     with open(anonfilename, 'w') as f:
         if anontext:
             f.write(anontext.encode(ENCODING))
-            
+
     wordcount = len(rawtext.split()) if rawtext else 0
 
     if anontext:
@@ -279,7 +280,8 @@ def test_anon(args):
         csvwriter = csv.writer(csvfile, delimiter='\t')
         first = True
         for docid in docids:
-            pid = process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict)
+            pid = process_doc(docid, args, fieldinfo, csvwriter, first,
+                              scrubdict)
             first = False
             pidset.add(pid)
     with open(args.scrubfile, 'w') as f:
@@ -325,9 +327,9 @@ def main():
 
     pkgroup = parser.add_mutually_exclusive_group(required=False)
     pkgroup.add_argument('--pkfromsrc', dest='from_src', action='store_true',
-                       help='Fetch PKs (document IDs) from source (default)')
+                         help='Fetch PKs (document IDs) from source (default)')
     pkgroup.add_argument('--pkfromdest', dest='from_src', action='store_false',
-                       help='Fetch PKs (document IDs) from destination')
+                         help='Fetch PKs (document IDs) from destination')
     parser.set_defaults(from_src=True)
 
     uniquegroup = parser.add_mutually_exclusive_group(required=False)

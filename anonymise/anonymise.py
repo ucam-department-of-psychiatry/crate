@@ -2221,19 +2221,19 @@ class Config(object):
         self.change_detection_hasher = None
 
         # Nonspecific scrubber
+        awbo_num = self.anonymise_numbers_at_word_boundaries_only
+        awbo_code = self.anonymise_codes_at_word_boundaries_only
         nonspecific_elements = [
             get_number_of_length_n_regex_elements(
                 n,
-                at_word_boundaries_only=
-                self.anonymise_numbers_at_word_boundaries_only
+                at_word_boundaries_only=awbo_num
             )
             for n in self.scrub_all_numbers_of_n_digits
         ]
         if self.scrub_all_uk_postcodes:
             nonspecific_elements.extend(
                 get_uk_postcode_regex_elements(
-                    at_word_boundaries_only=
-                    self.anonymise_codes_at_word_boundaries_only
+                    at_word_boundaries_only=awbo_code
                 )
             )
         self.re_nonspecific = get_regex_from_elements(nonspecific_elements)
@@ -2597,22 +2597,22 @@ def get_anon_fragments_from_string(s):
       Therefore, we don't need the largest-level chunks, like D'Souza.
     """
     return NON_ALPHANUMERIC_SPLITTERS.split(s)
-    #smallfragments = []
-    #combinedsmallfragments = []
-    #for chunk in s.split():  # split on whitespace
-    #    for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
-    #        if smallchunk.lower() in config.words_not_to_scrub:
-    #            continue
-    #        smallfragments.append(smallchunk)
-    #        # OVERLAP here, but we need it for the combination bit, and
-    #        # we remove the overlap at the end.
-    ## Now we have chunks with e.g. apostrophes in, and all chunks split by
-    ## everything. Finally, we want all of these lumped together.
-    #for L in xrange(len(smallfragments) + 1):
-    #    for subset in itertools.combinations(smallfragments, L):
-    #        if subset:
-    #            combinedsmallfragments.append("".join(subset))
-    #return list(set(smallfragments + combinedsmallfragments))
+    # smallfragments = []
+    # combinedsmallfragments = []
+    # for chunk in s.split():  # split on whitespace
+    #     for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
+    #         if smallchunk.lower() in config.words_not_to_scrub:
+    #             continue
+    #         smallfragments.append(smallchunk)
+    #         # OVERLAP here, but we need it for the combination bit, and
+    #         # we remove the overlap at the end.
+    # # Now we have chunks with e.g. apostrophes in, and all chunks split by
+    # # everything. Finally, we want all of these lumped together.
+    # for L in xrange(len(smallfragments) + 1):
+    #     for subset in itertools.combinations(smallfragments, L):
+    #         if subset:
+    #             combinedsmallfragments.append("".join(subset))
+    # return list(set(smallfragments + combinedsmallfragments))
 # EXAMPLES:
 # get_anon_fragments_from_string("Bob D'Souza")
 # get_anon_fragments_from_string("Jemima Al-Khalaim")

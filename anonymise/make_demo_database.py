@@ -218,7 +218,7 @@ After anonymisation, check with:
 for p in xrange(PATIENTS):
     if p % REPORT_EVERY == 0:
         print("patient {}".format(p))
-    #forename = words[(p + 1) % NWORDS]
+    # forename = words[(p + 1) % NWORDS]
     forename = words[(p + 1) % NWORDS] + " " + words[(p + 10) % NWORDS]
     surname = words[(p + 2) % NWORDS]
     dob = BASE_DOB + datetime.timedelta(days=p)

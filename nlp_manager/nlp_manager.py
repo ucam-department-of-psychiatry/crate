@@ -1118,7 +1118,7 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
             fieldspecs=",".join(fieldspecs),
             dynamic="ROW_FORMAT=DYNAMIC" if dynamic and fancy_ok else "",
             compressed=("ROW_FORMAT=COMPRESSED"
-                    if compressed and fancy_ok else ""),
+                        if compressed and fancy_ok else ""),
         )
         logger.debug(sql)
         db.db_exec_literal(sql)

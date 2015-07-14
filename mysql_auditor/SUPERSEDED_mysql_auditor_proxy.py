@@ -310,7 +310,7 @@ class UserFacing(protocol.Protocol):
         flagmap = map_bitflags(capability_flags, MYSQL_CAPABILITY_FLAGS,
                                indent=4)
         logger.info("Capability flags 0b{:b}\n{}".format(capability_flags,
-                                                       flagmap))
+                                                         flagmap))
         if not capability_flags & MYSQL_CAPABILITY_FLAGS.CLIENT_PROTOCOL_41:
             logger.error("Unknown MySQL protocol packet")
         logger.info(
