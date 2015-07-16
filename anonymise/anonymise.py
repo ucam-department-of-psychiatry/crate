@@ -28,7 +28,7 @@ Copyright/licensing:
 CHANGE LOG:
 
 - v0.07, 2015-07-16
-  - regex.ENHANCEMATCH flag
+  - regex.ENHANCEMATCH flag tried unsuccessfully (segmentation fault)
 
 - v0.06, 2015-07-14
   - bugfix: if a source scrub-from value was a number with value '.', the
@@ -2638,9 +2638,10 @@ def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"
         # - a leading (?e) forces a search for a better match than the first;
-        #   the other way is to specify the regex.ENHANCEMATCH flag, which is
-        #   what we'll do, to keep the regex pattern short; see
-        #   get_regex_from_elements
+        #   the other way is to specify the regex.ENHANCEMATCH flag...
+        #   however, when doing this in get_regex_from_elements(), we got a
+        #   segmentation fault... and, less consistently, when we put it here.
+        #   So skip that!
         # - (...) is the pattern
         # - suffix up to n insertion/deletion/substitution errors
         # ... https://pypi.python.org/pypi/regex
@@ -2685,8 +2686,7 @@ def get_regex_from_elements(elementlist):
         return None
     try:
         s = get_regex_string_from_elements(elementlist)
-        return regex.compile(s, regex.IGNORECASE | regex.UNICODE
-                             | regex.ENHANCEMATCH)
+        return regex.compile(s, regex.IGNORECASE | regex.UNICODE)
     except:
         logger.exception(u"Failed regex: {}".format(s))
         raise
