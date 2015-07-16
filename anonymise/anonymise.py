@@ -27,6 +27,9 @@ Copyright/licensing:
 
 CHANGE LOG:
 
+- v0.07, 2015-07-16
+  - regex.ENHANCEMATCH flag
+
 - v0.06, 2015-07-14
   - bugfix: if a source scrub-from value was a number with value '.', the
     regex went haywire... so regex builders now check for blanks.
@@ -159,8 +162,8 @@ import pythonlib.rnc_log as rnc_log
 # Global constants
 # =============================================================================
 
-VERSION = 0.06
-VERSION_DATE = "2015-06-25"
+VERSION = 0.07
+VERSION_DATE = "2015-07-16"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 
@@ -2634,6 +2637,14 @@ def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
     s = escape_literal_string_for_regex(s)
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"
+        # - a leading (?e) forces a search for a better match than the first;
+        #   the other way is to specify the regex.ENHANCEMATCH flag, which is
+        #   what we'll do, to keep the regex pattern short; see
+        #   get_regex_from_elements
+        # - (...) is the pattern
+        # - suffix up to n insertion/deletion/substitution errors
+        # ... https://pypi.python.org/pypi/regex
+        # ... http://www.gossamer-threads.com/lists/python/python/1002881
     if suffixes:
         suffixstr = (
             "(?:"
@@ -2674,7 +2685,8 @@ def get_regex_from_elements(elementlist):
         return None
     try:
         s = get_regex_string_from_elements(elementlist)
-        return regex.compile(s, regex.IGNORECASE | regex.UNICODE)
+        return regex.compile(s, regex.IGNORECASE | regex.UNICODE
+                             | regex.ENHANCEMATCH)
     except:
         logger.exception(u"Failed regex: {}".format(s))
         raise
