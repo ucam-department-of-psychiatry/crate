@@ -27,6 +27,11 @@ Copyright/licensing:
 
 CHANGE LOG:
 
+- v0.08, 2015-07-20
+  - SCRUBMETHOD.WORDS renamed SCRUBMETHOD.WORDS
+  - SCRUBMETHOD.PHRASE added
+    ... ddgen_scrubmethod_phrase_fields added
+
 - v0.07, 2015-07-16
   - regex.ENHANCEMATCH flag tried unsuccessfully (segmentation fault)
 
@@ -194,7 +199,8 @@ INDEX = AttrDict(
     FULLTEXT="F"
 )
 SCRUBMETHOD = AttrDict(
-    TEXT="text",
+    WORDS="words",
+    PHRASE="phrase",
     NUMERIC="number",
     DATE="date",
     CODE="code"
@@ -308,8 +314,12 @@ DEMO_CONFIG = """
 #       Applicable to scrub_src fields. Manner in which this field should be
 #       treated for scrubbing.
 #       Options:
-#       - "{SCRUBMETHOD.TEXT}": treat as text
+#       - "{SCRUBMETHOD.WORDS}": treat as a set of textual words
 #         This is the default for all textual fields (e. CHAR, VARCHAR, TEXT).
+#         Typically used for names.
+#       - "{SCRUBMETHOD.PHRASE}": treat as a textual phrase (a sequence of
+#         words to be replaced only when they occur in sequence). Typically
+#         used for address components.
 #       - "{SCRUBMETHOD.NUMERIC}": treat as number
 #         This is the default for all numeric fields (e.g. INTEGER, FLOAT).
 #         If you have a phone number in a text field, mark it as
@@ -403,6 +413,7 @@ replace_nonspecific_info_with = [~~~]
 # Strings to append to every "scrub from" string.
 # For example, include "s" if you want to scrub "Roberts" whenever you scrub
 # "Robert".
+# Applies to {SCRUBMETHOD.WORDS}, but not to {SCRUBMETHOD.PHRASE}.
 # Multiline field: https://docs.python.org/2/library/configparser.html
 
 scrub_string_suffixes =
@@ -488,9 +499,13 @@ scrub_all_uk_postcodes = False
 # case you will need anonymise_numbers_at_word_boundaries_only = False.
 
 anonymise_codes_at_word_boundaries_only = True
+# ... applies to {SCRUBMETHOD.CODE}
 anonymise_dates_at_word_boundaries_only = True
+# ... applies to {SCRUBMETHOD.DATE}
 anonymise_numbers_at_word_boundaries_only = False
+# ... applies to {SCRUBMETHOD.NUMERIC}
 anonymise_strings_at_word_boundaries_only = True
+# ... applies to {SCRUBMETHOD.WORDS} and {SCRUBMETHOD.PHRASE}
 
 # -----------------------------------------------------------------------------
 # Output fields and formatting
@@ -696,6 +711,7 @@ ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubmethod_code_fields =
 ddgen_scrubmethod_date_fields =
 ddgen_scrubmethod_number_fields =
+ddgen_scrubmethod_phrase_fields =
 
 #   Known safe fields, exempt from scrubbing
 ddgen_safe_fields_exempt_from_scrubbing =
@@ -761,6 +777,7 @@ ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubmethod_code_fields =
 ddgen_scrubmethod_date_fields =
 ddgen_scrubmethod_number_fields =
+ddgen_scrubmethod_phrase_fields =
 ddgen_safe_fields_exempt_from_scrubbing =
 ddgen_min_length_for_scrubbing = 4
 ddgen_truncate_date_fields =
@@ -841,6 +858,7 @@ ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubmethod_code_fields =
 ddgen_scrubmethod_date_fields = _patient_dob
 ddgen_scrubmethod_number_fields =
+ddgen_scrubmethod_phrase_fields =
 
 ddgen_safe_fields_exempt_from_scrubbing = _device
     _era
@@ -1112,7 +1130,8 @@ class DataDictionaryRow(object):
             self.scrub_src = SCRUBSRC.THIRDPARTY
         elif (self.src_field in cfg.ddgen_scrubmethod_code_fields
                 or self.src_field in cfg.ddgen_scrubmethod_date_fields
-                or self.src_field in cfg.ddgen_scrubmethod_number_fields):
+                or self.src_field in cfg.ddgen_scrubmethod_number_fields
+                or self.src_field in cfg.ddgen_scrubmethod_phrase_fields):
             # We're not sure what sort these are, but it seems conservative to
             # include these! Easy to miss them otherwise, and better to be
             # overly conservative.
@@ -1133,8 +1152,10 @@ class DataDictionaryRow(object):
             self.scrub_method = SCRUBMETHOD.DATE
         elif self.src_field in cfg.ddgen_scrubmethod_code_fields:
             self.scrub_method = SCRUBMETHOD.CODE
+        elif self.src_field in cfg.ddgen_scrubmethod_phrase_fields:
+            self.scrub_method = SCRUBMETHOD.PHRASE
         else:
-            self.scrub_method = SCRUBMETHOD.TEXT
+            self.scrub_method = SCRUBMETHOD.WORDS
 
         # Should we omit it (at least until a human has looked at the DD)?
         self.omit = (
@@ -1961,6 +1982,7 @@ class DatabaseSafeConfig(object):
             "ddgen_scrubmethod_code_fields",
             "ddgen_scrubmethod_date_fields",
             "ddgen_scrubmethod_number_fields",
+            "ddgen_scrubmethod_phrase_fields",
             "ddgen_safe_fields_exempt_from_scrubbing",
             "ddgen_truncate_date_fields",
             "ddgen_filename_to_text_fields",
@@ -2662,6 +2684,25 @@ def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
         return [s + suffixstr]
 
 
+def get_phrase_regex_elements(phrase, at_word_boundaries_only=True,
+                              max_errors=0):
+    """
+    phrase: e.g. '4 Privet Drive'
+    """
+    strings = get_anon_fragments_from_string(phrase)
+    if not strings:
+        return
+    strings = [escape_literal_string_for_regex(x) for x in strings]
+    s = "[\W]+".join(strings)  # 1 or more non-alphanumeric character
+    if max_errors > 0:
+        s = "(" + s + "){e<" + str(max_errors + 1) + "}"
+    if at_word_boundaries_only:
+        wb = ur"\b"  # word boundary
+        return [wb + s + wb]
+    else:
+        return [s]
+
+
 def get_regex_string_from_elements(elementlist):
     """
     Convert a list of regex elements into a single regex string.
@@ -2708,6 +2749,7 @@ testnumber = 34
 testnumber_as_text = "123456"
 testdate = dateutil.parser.parse("7 Jan 2013")
 teststring = "mother"
+testphrase = "348 or 834"
 old_testdate = dateutil.parser.parse("3 Sep 1847")
 
 s = u"""
@@ -2773,6 +2815,7 @@ regex_number_as_text = get_regex_from_elements(
     get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(testnumber_as_text)))
 regex_string = get_regex_from_elements(get_string_regex_elements(teststring))
+regex_phrase = get_regex_from_elements(get_phrase_regex_elements(testphrase))
 regex_10digit = get_regex_from_elements(
     get_number_of_length_n_regex_elements(10))
 regex_postcode = get_regex_from_elements(get_uk_postcode_regex_elements())
@@ -2782,6 +2825,7 @@ all_elements = (
     + get_code_regex_elements(
         get_digit_string_from_vaguely_numeric_string(testnumber_as_text))
     + get_string_regex_elements(teststring)
+    + get_phrase_regex_elements(testphrase)
     + get_number_of_length_n_regex_elements(10)
     + get_uk_postcode_regex_elements()
 )
@@ -2790,12 +2834,14 @@ print(regex_date.sub("DATE_GONE", s))
 print(regex_number.sub("NUMBER_GONE", s))
 print(regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
 print(regex_string.sub("STRING_GONE", s))
+print(regex_phrase.sub("PHRASE_GONE", s))
 print(regex_10digit.sub("TEN_DIGIT_NUMBERS_GONE", s))
 print(regex_postcode.sub("POSTCODES_GONE", s))
 print(regex_all.sub("EVERYTHING_GONE", s))
 print(get_regex_string_from_elements(all_elements))
 print(get_regex_string_from_elements(get_date_regex_elements(testdate)))
 print(get_regex_string_from_elements(get_date_regex_elements(old_testdate)))
+print(get_regex_string_from_elements(get_phrase_regex_elements(testphrase)))
 '''
 
 
@@ -2855,7 +2901,7 @@ class Scrubber(object):
         elif is_sqltype_date(datatype_long):
             return SCRUBMETHOD.DATE
         elif is_sqltype_text_over_one_char(datatype_long):
-            return SCRUBMETHOD.TEXT
+            return SCRUBMETHOD.WORDS
         else:
             return SCRUBMETHOD.NUMERIC
 
@@ -2887,8 +2933,9 @@ class Scrubber(object):
             wbo = config.anonymise_dates_at_word_boundaries_only
             elements = get_date_regex_elements(
                 value, at_word_boundaries_only=wbo)
-        elif scrub_method == SCRUBMETHOD.TEXT:
-            # Source is text.
+
+        elif scrub_method == SCRUBMETHOD.WORDS:
+            # Source is a string containing textual words.
             value = unicode(value)
             strings = get_anon_fragments_from_string(value)
             wbo = config.anonymise_strings_at_word_boundaries_only
@@ -2915,6 +2962,25 @@ class Scrubber(object):
                     config.scrub_string_suffixes,
                     max_errors=max_errors,
                     at_word_boundaries_only=wbo))
+
+        elif scrub_method == SCRUBMETHOD.PHRASE:
+            value = unicode(value)
+            if not value:
+                return
+            l = len(value)
+            if l < config.min_string_length_to_scrub_with:
+                return
+            if value.lower() in config.words_not_to_scrub:
+                return
+            if l >= config.min_string_length_for_errors:
+                max_errors = config.string_max_regex_errors
+            else:
+                max_errors = 0
+            elements.extend(get_phrase_regex_elements(
+                value,
+                max_errors=max_errors,
+                at_word_boundaries_only=wbo))
+
         elif scrub_method == SCRUBMETHOD.NUMERIC:
             # Source is a text field containing a number, or an actual number.
             # Remove everything but the digits
@@ -2923,6 +2989,7 @@ class Scrubber(object):
             elements = get_code_regex_elements(
                 get_digit_string_from_vaguely_numeric_string(str(value)),
                 at_word_boundaries_only=wbo)
+
         elif scrub_method == SCRUBMETHOD.CODE:
             # Source is a text field containing an alphanumeric code.
             # Remove whitespace.
@@ -2931,8 +2998,10 @@ class Scrubber(object):
             elements = get_code_regex_elements(
                 reduce_to_alphanumeric(str(value)),
                 at_word_boundaries_only=wbo)
+
         else:
             raise ValueError("Bug: unknown scrub_method to add_value")
+
         for element in elements:
             r.add(element)
 
