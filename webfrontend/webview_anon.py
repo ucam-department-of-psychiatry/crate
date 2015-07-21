@@ -72,13 +72,18 @@ import textwrap
 # Local
 import pythonlib.rnc_web as ws
 from pythonlib.rnc_lang import AttrDict
-from anonymise import config, escape_literal_string_for_regex
+from anonymise.anonymise import (
+    config,
+    # *** WRONG: needs separate config (different, less privileged,
+    # database user) - just with reference to DD
+    escape_literal_string_for_regex,
+)
 
 # Conditional imports
 if PROFILE:
     import werkzeug.contrib.profiler
 if DEBUG_TO_HTTP_CLIENT:
-    import wsgi_errorreporter
+    import pythonlib.wsgi_errorreporter as wsgi_errorreporter
 
 # Configure logger
 logger = logging.getLogger("webview_anon")
@@ -618,6 +623,106 @@ def test_show_fields(session=None, form=None):
 
 
 # =============================================================================
+# For a MySQL database: do I have write permissions or not?
+# Since we're going to allow (with considerable wariness) unrestricted SQL,
+# we should at least check that the user can't destroy everything.
+# =============================================================================
+
+def is_mysql_access_read_only(db):
+
+    def convert_enums(row):
+        # All these columns are of type enum('N', 'Y');
+        # https://dev.mysql.com/doc/refman/5.0/en/enum.html
+        return [True if x == 'Y' else (False if x == 'N' else None)
+                for x in row]
+
+    # 1. Current database privileges: must be SELECT only
+    sql = """
+        SELECT /* must have: */
+               Select_priv,
+
+               /* must not have: */
+               Insert_priv, Update_priv, Delete_priv,
+               Create_priv, Drop_priv, Index_priv, Alter_priv,
+               Lock_tables_priv, Create_view_priv,
+               Create_routine_priv, Alter_routine_priv,
+               Execute_priv, Event_priv, Trigger_priv
+        FROM mysql.db
+        WHERE
+            CONCAT(user, '@', host) = CURRENT_USER()
+            AND db = DATABASE()
+    """
+    rows = db.fetchall(sql)
+    if not rows or len(rows) > 1:
+        return False
+    data = convert_enums(rows[0])
+    mandatory = [data[0]]
+    prohibited = data[1:]
+    if not all(mandatory) or any(prohibited):
+        logger.debug(
+            "is_mysql_access_read_only: FAIL: current database privileges "
+            "wrong: mandatory={}, prohibited={}".format(mandatory, prohibited))
+        return False
+
+    # 2. Other databases: must be none
+    sql = """
+        SELECT db,
+               /* must not have: */
+               Select_priv,
+               Insert_priv, Update_priv, Delete_priv,
+               Create_priv, Drop_priv, Index_priv, Alter_priv,
+               Lock_tables_priv, Create_view_priv,
+               Create_routine_priv, Alter_routine_priv,
+               Execute_priv, Event_priv, Trigger_priv
+        FROM mysql.db
+        WHERE
+            CONCAT(user, '@', host) = CURRENT_USER()
+            AND db != DATABASE()
+    """
+    rows = db.fetchall(sql)
+    for row in rows:
+        dbname = row[0]
+        prohibited = convert_enums(row[1:])
+        if any(prohibited):
+            logger.debug(
+                "is_mysql_access_read_only: FAIL: OTHER database privileges "
+                "wrong: dbname={}, prohibited={}".format(dbname, prohibited))
+            return False
+
+    # 3. Global privileges, e.g. as held by root
+    sql = """
+        SELECT /* must not have: */
+               Insert_priv, Update_priv, Delete_priv,
+               Create_priv, Drop_priv,
+               Reload_priv, Shutdown_priv,
+               Process_priv, File_priv, Grant_priv,
+               Index_priv, Alter_priv,
+               Show_db_priv, Super_priv,
+               Lock_tables_priv, Execute_priv,
+               Repl_slave_priv, Repl_client_priv,
+               Create_view_priv,
+               Create_routine_priv, Alter_routine_priv,
+               Create_user_priv,
+               Event_priv, Trigger_priv,
+               Create_tablespace_priv
+        FROM mysql.user
+        WHERE
+            CONCAT(user, '@', host) = CURRENT_USER()
+    """
+    rows = db.fetchall(sql)
+    if not rows or len(rows) > 1:
+        return False
+    prohibited = convert_enums(rows[0])
+    if any(prohibited):
+        logger.debug(
+            "is_mysql_access_read_only: FAIL: GLOBAL privileges "
+            "wrong: prohibited={}".format(prohibited))
+        return False
+
+    return True
+
+
+# =============================================================================
 # HTTP/HTML forms etc.
 # =============================================================================
 
@@ -626,8 +731,15 @@ def fail_unknown_action(action):
     # return cc_html.fail_with_error_stay_logged_in(
     #     "Can't process action {} - action not recognized.".format(action)
     # )
-    return "GARBAGE"
+    return "GARBAGE" # ***
 
+
+def fail_dangerous_database_access():
+    """
+    HTML given when the database user is mis-configured and might permit
+    writes.
+    """
+    return "GARBAGE" # ***
 
 # =============================================================================
 # Command-line processor
@@ -656,6 +768,8 @@ def cli_main():
 
     # print(test_query_output())
     print(test_show_fields())
+    print("is_mysql_access_read_only: {}".format(
+        is_mysql_access_read_only(config.destdb)))
 
 
 # =============================================================================
@@ -689,6 +803,12 @@ def main_http_processor(env):
     """Main processor of HTTP requests."""
 
     # Sessions details are already in pls.session
+
+    # -------------------------------------------------------------------------
+    # Check we don't have dangerous access
+    # -------------------------------------------------------------------------
+    if not is_mysql_access_read_only(config.destdb):
+
 
     # -------------------------------------------------------------------------
     # Process requested action
