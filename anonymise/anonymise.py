@@ -167,8 +167,8 @@ import pythonlib.rnc_log as rnc_log
 # Global constants
 # =============================================================================
 
-VERSION = 0.07
-VERSION_DATE = "2015-07-16"
+VERSION = 0.08
+VERSION_DATE = "2015-07-20"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 
@@ -2976,10 +2976,10 @@ class Scrubber(object):
                 max_errors = config.string_max_regex_errors
             else:
                 max_errors = 0
-            elements.extend(get_phrase_regex_elements(
-                value,
-                max_errors=max_errors,
-                at_word_boundaries_only=wbo))
+            wbo = config.anonymise_strings_at_word_boundaries_only
+            elements = get_phrase_regex_elements(value,
+                                                 max_errors=max_errors,
+                                                 at_word_boundaries_only=wbo)
 
         elif scrub_method == SCRUBMETHOD.NUMERIC:
             # Source is a text field containing a number, or an actual number.
