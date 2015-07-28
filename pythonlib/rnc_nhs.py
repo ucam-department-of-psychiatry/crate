@@ -40,7 +40,11 @@ DIGIT_WEIGHTINGS = [10, 9, 8, 7, 6, 5, 4, 3, 2]
 # =============================================================================
 
 def is_valid_nhs_number(n):
-    """Validates an integer as an NHS number."""
+    """
+    Validates an integer as an NHS number.
+    Checksum details are at
+        http://www.datadictionary.nhs.uk/version2/data_dictionary/data_field_notes/n/nhs_number_de.asp  # noqa
+    """
     if not (type(n) is int or type(n) is long):
         logger.debug("is_valid_nhs_number: parameter was not an integer or "
                      "a long")
@@ -128,14 +132,26 @@ def nhs_number_from_text_or_none(s):
 
 
 def generate_random_nhs_number():
+    """Returns a random valid NHS number, as an int."""
     import random
-    digits = [random.randint(1, 9)]  # don't start with a zero
-    digits.extend([random.randint(0, 9) for x in range(8)])
-    check_digit = 11 - (sum([
-        d * f
-        for (d, f) in zip(digits, DIGIT_WEIGHTINGS)
-    ]) % 11)
-    if check_digit == 11:
-        check_digit = 0
+    check_digit = 10  # NHS numbers with this check digit are all invalid
+    while check_digit == 10:
+        digits = [random.randint(1, 9)]  # don't start with a zero
+        digits.extend([random.randint(0, 9) for x in xrange(8)])  # length now 9
+        check_digit = 11 - (sum([
+            d * f
+            for (d, f) in zip(digits, DIGIT_WEIGHTINGS)
+        ]) % 11)
+        # ... % 11 yields something in the range 0-10
+        # ... 11 - that yields something in the range 1-11
+        if check_digit == 11:
+            check_digit = 0
     digits.append(check_digit)
     return int("".join([str(d) for d in digits]))
+
+
+def test_nhs_rng(n=100):
+    """Tests the NHS random number generator."""
+    for i in xrange(n):
+        x = generate_random_nhs_number()
+        assert is_valid_nhs_number(x), "Invalid NHS number: {}".format(x)
