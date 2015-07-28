@@ -2097,13 +2097,13 @@ class Config(object):
         "destination_database",
         "admin_database",
         "debug_max_n_patients",
-        "debug_pid_list",
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
         "words_not_to_scrub",
         "scrub_all_numbers_of_n_digits",
         "source_databases",
+        "debug_pid_list",
     ]
 
     def __init__(self):
@@ -2247,7 +2247,6 @@ class Config(object):
         self.scrub_all_numbers_of_n_digits = [
             int(x) for x in self.scrub_all_numbers_of_n_digits if int(x) > 0]
         self.debug_pid_list = self.debug_pid_list or []  # replace None
-        logger.warning("debug_pid_list: {}".format(repr(self.debug_pid_list)))
         self.debug_pid_list = [int(x) for x in self.debug_pid_list if x]
 
         # Databases
