@@ -2249,10 +2249,6 @@ class Config(object):
         self.debug_pid_list = self.debug_pid_list or []  # replace None
         self.debug_pid_list = [int(x) for x in self.debug_pid_list]
 
-        logger.error("debug_max_n_patients: {}".format(self.debug_max_n_patients))
-        logger.error("debug_pid_list: {}".format(self.debug_pid_list))
-        raise Exception("stop")
-
         # Databases
         if self.destination_database == self.admin_database:
             raise ValueError(
