@@ -27,13 +27,20 @@ Copyright/licensing:
 
 CHANGE LOG:
 
+- v0.09, 2015-07-28
+  - debug_max_n_patients option, used with gen_patient_ids(), to reduce the
+    number of patients processed for "full rebuild" debugging.
+  - debug_pid_list option, similarly
+
 - v0.08, 2015-07-20
   - SCRUBMETHOD.WORDS renamed SCRUBMETHOD.WORDS
   - SCRUBMETHOD.PHRASE added
     ... ddgen_scrubmethod_phrase_fields added
 
 - v0.07, 2015-07-16
-  - regex.ENHANCEMATCH flag tried unsuccessfully (segmentation fault)
+  - regex.ENHANCEMATCH flag tried unsuccessfully (segmentation fault, i.e.
+    internal error in regex module, likely because generated regular
+    expressions got too complicated for it).
 
 - v0.06, 2015-07-14
   - bugfix: if a source scrub-from value was a number with value '.', the
@@ -746,15 +753,26 @@ ddgen_allow_fulltext_indexing = True
 
 #   Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to
 #   apply to any tables listed in debug_limited_tables. For those tables, only
-#   this many rows will be taken from the source database.
+#   this many rows will be taken from the source database. Use this, for
+#   example, to reduce the number of large documents fetched.
 #   If you run a multiprocess/multithreaded anonymisation, this limit applies
 #   per *process* (or task), not overall.
 #   Note that these limits DO NOT APPLY to the fetching of patient identifiable
-#   information for anonymisation.
+#   information for anonymisation -- when a patient is processed, all
+#   identifiable information for that patient is trawled.
 debug_row_limit =
 
 #   List of tables to which to apply debug_row_limit (see above).
 debug_limited_tables =
+
+#   Limit the number of patients to be processed? Specify 0 (the default) for
+#   no limit.
+debug_max_n_patients =
+
+#   Specify a list of integer patient IDs, for debugging? If specified, this
+#   list will be used directly (overriding the patient ID source specified in
+#   the data dictionary, and overriding debug_max_n_patients).
+debug_pid_list =
 
 [mysourcedb2]
 
@@ -1971,6 +1989,7 @@ class DatabaseSafeConfig(object):
             "ddgen_min_length_for_scrubbing",
             "ddgen_allow_fulltext_indexing",
             "debug_row_limit",
+            "debug_max_n_patients",
         ])
         read_config_multiline_options(self, parser, section, [
             "ddgen_pk_fields",
@@ -1989,6 +2008,7 @@ class DatabaseSafeConfig(object):
             "ddgen_binary_to_text_field_pairs",
             "ddgen_index_fields",
             "debug_limited_tables",
+            "debug_pid_list",
         ])
         convert_attrs_to_bool(self, [
             "ddgen_force_lower_case",
@@ -2002,7 +2022,8 @@ class DatabaseSafeConfig(object):
         ], default=False)
         convert_attrs_to_int(self, [
             "debug_row_limit",
-            "ddgen_min_length_for_scrubbing"
+            "debug_max_n_patients",
+            "ddgen_min_length_for_scrubbing",
         ], default=0)
         self.bin2text_dict = {}
         for pair in self.ddgen_binary_to_text_field_pairs:
@@ -2011,6 +2032,7 @@ class DatabaseSafeConfig(object):
                 raise ValueError("ddgen_binary_to_text_field_pairs: specify "
                                  "fields in pairs")
             self.bin2text_dict[items[0]] = items[1]
+        self.debug_pid_list = [int(x) for x in self.debug_pid_list]
 
 
 # =============================================================================
@@ -3540,9 +3562,21 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     # We can't use the mapping table easily (*), because it leads to thread/
     # process locking for database access. So we use a set.
     # (*) if not patient_id_exists_in_mapping_db(admindb, patient_id): ...
+
+    # Debug option?
+    if config.debug_pid_list:
+        logger.warning("USING MANUALLY SPECIFIED PATIENT ID LIST")
+        for pid in config.debug_pid_list:
+            if ntasks == 1 or pid % ntasks == tasknum:
+                yield pid
+        return
+
+    # Otherwise do it properly:
     keeping_track = config.dd.n_definers > 1
     if keeping_track:
         processed_ids = set()
+    n_found = 0
+    debuglimit = config.debug_max_n_patients
     for ddr in config.dd.rows:
         if SRCFLAG.DEFINESPRIMARYPIDS not in ddr.src_flags:
             continue
@@ -3572,13 +3606,26 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
         row = cursor.fetchone()
         while row is not None:
             patient_id = row[0]
+            # Duplicate?
             if keeping_track:
                 if patient_id in processed_ids:
+                    # we've done this one already; skip it this time
                     row = cursor.fetchone()
                     continue
                 processed_ids.add(patient_id)
+            # Valid one
             logger.debug("Found patient id: {}".format(patient_id))
+            n_found += 1
             yield patient_id
+            # Too many?
+            logger.warning("n_found: {}, debuglimit: ".format(n_found, debuglimit))
+            if debuglimit > 0 and n_found > debuglimit:
+                logger.warning(
+                    "Not fetching more than {} patients (in total for this "
+                    "process) due to debug_max_n_patients limit".format(
+                        debuglimit))
+                return
+            # Fetch the next
             row = cursor.fetchone()
 
 
