@@ -615,6 +615,20 @@ destination_database = my_destination_database
 #   Admin database. Just one.
 admin_database = my_admin_database
 
+# -----------------------------------------------------------------------------
+# PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
+# -----------------------------------------------------------------------------
+
+#   Limit the number of patients to be processed? Specify 0 (the default) for
+#   no limit.
+debug_max_n_patients =
+
+#   Specify a list of integer patient IDs, for debugging? If specified, this
+#   list will be used directly (overriding the patient ID source specified in
+#   the data dictionary, and overriding debug_max_n_patients).
+debug_pid_list =
+
+
 # =============================================================================
 # Destination database details. User should have WRITE access.
 # =============================================================================
@@ -764,15 +778,6 @@ debug_row_limit =
 
 #   List of tables to which to apply debug_row_limit (see above).
 debug_limited_tables =
-
-#   Limit the number of patients to be processed? Specify 0 (the default) for
-#   no limit.
-debug_max_n_patients =
-
-#   Specify a list of integer patient IDs, for debugging? If specified, this
-#   list will be used directly (overriding the patient ID source specified in
-#   the data dictionary, and overriding debug_max_n_patients).
-debug_pid_list =
 
 [mysourcedb2]
 
@@ -1989,7 +1994,6 @@ class DatabaseSafeConfig(object):
             "ddgen_min_length_for_scrubbing",
             "ddgen_allow_fulltext_indexing",
             "debug_row_limit",
-            "debug_max_n_patients",
         ])
         read_config_multiline_options(self, parser, section, [
             "ddgen_pk_fields",
@@ -2008,7 +2012,6 @@ class DatabaseSafeConfig(object):
             "ddgen_binary_to_text_field_pairs",
             "ddgen_index_fields",
             "debug_limited_tables",
-            "debug_pid_list",
         ])
         convert_attrs_to_bool(self, [
             "ddgen_force_lower_case",
@@ -2022,7 +2025,6 @@ class DatabaseSafeConfig(object):
         ], default=False)
         convert_attrs_to_int(self, [
             "debug_row_limit",
-            "debug_max_n_patients",
             "ddgen_min_length_for_scrubbing",
         ], default=0)
         self.bin2text_dict = {}
@@ -2032,7 +2034,6 @@ class DatabaseSafeConfig(object):
                 raise ValueError("ddgen_binary_to_text_field_pairs: specify "
                                  "fields in pairs")
             self.bin2text_dict[items[0]] = items[1]
-        self.debug_pid_list = [int(x) for x in self.debug_pid_list]
 
 
 # =============================================================================
@@ -2095,6 +2096,8 @@ class Config(object):
         "audit_tablename",
         "destination_database",
         "admin_database",
+        "debug_max_n_patients",
+        "debug_pid_list",
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
@@ -2234,12 +2237,14 @@ class Config(object):
             "min_string_length_to_scrub_with",
             "max_rows_before_commit",
             "max_bytes_before_commit",
+            "debug_max_n_patients",
         ])
         # Force words_not_to_scrub to lower case for speed later
         self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
         # These should all be integers:
         self.scrub_all_numbers_of_n_digits = [
             int(x) for x in self.scrub_all_numbers_of_n_digits if int(x) > 0]
+        self.debug_pid_list = [int(x) for x in self.debug_pid_list]
 
         # Databases
         if self.destination_database == self.admin_database:
@@ -3554,9 +3559,11 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     """
     # ASSIGNS WORK TO THREADS/PROCESSES, via the simple expedient of processing
     # only those patient ID numbers where patientnum % ntasks == tasknum.
+
     if ntasks > 1 and tasknum >= ntasks:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
+
     # If we're going to define based on >1 table, we need to keep track of
     # what we've processed. However, if we only have one table, we don't.
     # We can't use the mapping table easily (*), because it leads to thread/
