@@ -63,6 +63,8 @@ PROFILE = False
 # =============================================================================
 
 import argparse
+import csv
+import io
 import logging
 import math
 import re
@@ -463,6 +465,15 @@ def make_html_results_table(db, sql, args, fieldnames,
     return table
 
 
+def make_results_tsv(db, sql, args, fieldnames, firstrow=0, lastrow=None):
+    output = io.StringIO()
+    writer = csv.writer(output, delimiter='\t')
+    writer.writerow(fieldnames)
+    for r in gen_rows(db, sql, args, firstrow=firstrow, lastrow=lastrow):
+        writer.writerow(r)
+    return output.getvalue()
+
+
 def navigation(first_row_this_page, total_rows, rows_per_page):
     page = int(math.floor(first_row_this_page / rows_per_page)) + 1
     npages = int(math.ceil(total_rows / rows_per_page))
@@ -636,39 +647,12 @@ def is_mysql_access_read_only(db):
         return [True if x == 'Y' else (False if x == 'N' else None)
                 for x in row]
 
-    # 1. Current database privileges: must be SELECT only
-    sql = """
-        SELECT /* must have: */
-               Select_priv,
-
-               /* must not have: */
-               Insert_priv, Update_priv, Delete_priv,
-               Create_priv, Drop_priv, Index_priv, Alter_priv,
-               Lock_tables_priv, Create_view_priv,
-               Create_routine_priv, Alter_routine_priv,
-               Execute_priv, Event_priv, Trigger_priv
-        FROM mysql.db
-        WHERE
-            CONCAT(user, '@', host) = CURRENT_USER()
-            AND db = DATABASE()
-    """
-    rows = db.fetchall(sql)
-    if not rows or len(rows) > 1:
-        return False
-    data = convert_enums(rows[0])
-    mandatory = [data[0]]
-    prohibited = data[1:]
-    if not all(mandatory) or any(prohibited):
-        logger.debug(
-            "is_mysql_access_read_only: FAIL: current database privileges "
-            "wrong: mandatory={}, prohibited={}".format(mandatory, prohibited))
-        return False
-
-    # 2. Other databases: must be none
+    # 1. Check per-database privileges.
+    # We don't check SELECT privileges. We're just trying to ensure
+    # nothing dangerous is present - for ANY database.
     sql = """
         SELECT db,
                /* must not have: */
-               Select_priv,
                Insert_priv, Update_priv, Delete_priv,
                Create_priv, Drop_priv, Index_priv, Alter_priv,
                Lock_tables_priv, Create_view_priv,
@@ -677,19 +661,17 @@ def is_mysql_access_read_only(db):
         FROM mysql.db
         WHERE
             CONCAT(user, '@', host) = CURRENT_USER()
-            AND db != DATABASE()
     """
-    rows = db.fetchall(sql)
     for row in rows:
         dbname = row[0]
         prohibited = convert_enums(row[1:])
         if any(prohibited):
             logger.debug(
-                "is_mysql_access_read_only: FAIL: OTHER database privileges "
+                "is_mysql_access_read_only: FAIL: database privileges "
                 "wrong: dbname={}, prohibited={}".format(dbname, prohibited))
             return False
 
-    # 3. Global privileges, e.g. as held by root
+    # 2. Global privileges, e.g. as held by root
     sql = """
         SELECT /* must not have: */
                Insert_priv, Update_priv, Delete_priv,
