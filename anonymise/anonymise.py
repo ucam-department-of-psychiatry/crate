@@ -2247,6 +2247,7 @@ class Config(object):
         self.scrub_all_numbers_of_n_digits = [
             int(x) for x in self.scrub_all_numbers_of_n_digits if int(x) > 0]
         self.debug_pid_list = self.debug_pid_list or []  # replace None
+        logger.warning("debug_pid_list: {}".format(repr(self.debug_pid_list))
         self.debug_pid_list = [int(x) for x in self.debug_pid_list if x]
 
         # Databases
