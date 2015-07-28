@@ -3615,6 +3615,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
         db.db_exec_with_cursor(cursor, sql)
         row = cursor.fetchone()
         while row is not None:
+            # Extract ID
             patient_id = row[0]
             # Duplicate?
             if keeping_track:
@@ -3628,8 +3629,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             n_found += 1
             yield patient_id
             # Too many?
-            logger.warning("n_found: {}, debuglimit: ".format(n_found, debuglimit))
-            if debuglimit > 0 and n_found > debuglimit:
+            if debuglimit > 0 and n_found >= debuglimit:
                 logger.warning(
                     "Not fetching more than {} patients (in total for this "
                     "process) due to debug_max_n_patients limit".format(
