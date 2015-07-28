@@ -2237,8 +2237,10 @@ class Config(object):
             "min_string_length_to_scrub_with",
             "max_rows_before_commit",
             "max_bytes_before_commit",
-            "debug_max_n_patients",
         ])
+        convert_attrs_to_int(self, [
+            "debug_max_n_patients",
+        ], default=0)
         # Force words_not_to_scrub to lower case for speed later
         self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
         # These should all be integers:
@@ -2246,6 +2248,10 @@ class Config(object):
             int(x) for x in self.scrub_all_numbers_of_n_digits if int(x) > 0]
         self.debug_pid_list = self.debug_pid_list or []  # replace None
         self.debug_pid_list = [int(x) for x in self.debug_pid_list]
+
+        logger.error("debug_max_n_patients: {}".format(self.debug_max_n_patients))
+        logger.error("debug_pid_list: {}".format(self.debug_pid_list))
+        raise Exception("stop")
 
         # Databases
         if self.destination_database == self.admin_database:
