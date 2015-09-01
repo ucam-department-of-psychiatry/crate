@@ -58,7 +58,8 @@ def send_email(sender,
                attachment_filenames=[],
                attachment_binaries=[],
                attachment_binary_filenames=[],
-               charset="utf8"):
+               charset="utf8",
+               verbose=False):
     """Sends an e-mail in text/html format using SMTP via TLS."""
     # http://segfault.in/2010/12/sending-gmail-from-python/
     # http://stackoverflow.com/questions/64505
@@ -88,6 +89,9 @@ def send_email(sender,
     # Attachments
     try:
         if attachment_filenames is not None:
+            if verbose:
+                logger.debug("attachment_filenames: {}".format(
+                    attachment_filenames))
             for f in attachment_filenames:
                 part = email.mime.base.MIMEBase("application", "octet-stream")
                 part.set_payload(open(f, "rb").read())
@@ -103,6 +107,9 @@ def send_email(sender,
                     len(attachment_binaries) ==
                     len(attachment_binary_filenames)
                 )):
+            if verbose:
+                logger.debug("attachment_binary_filenames: {}".format(
+                    attachment_binary_filenames))
             for i in range(len(attachment_binaries)):
                 blob = attachment_binaries[i]
                 filename = attachment_binary_filenames[i]
@@ -180,6 +187,7 @@ def get_email_domain(email):
 # =============================================================================
 
 if __name__ == '__main__':
+    logging.basicConfig()
     parser = argparse.ArgumentParser(
         description="Send an e-mail from the command line.")
     parser.add_argument("sender", action="store",
@@ -196,10 +204,12 @@ if __name__ == '__main__':
                         help="Message subject")
     parser.add_argument("body", action="store",
                         help="Message body")
-    parser.add_argument("--attach", action="append",
+    parser.add_argument("--attach", nargs="*",
                         help="Filename(s) to attach")
     parser.add_argument("--tls", action="store_false",
                         help="Use TLS connection security")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Be verbose")
     parser.add_argument("-h --help", action="help",
                         help="Prints this help")
     args = parser.parse_args()
@@ -212,10 +222,12 @@ if __name__ == '__main__':
         args.user,
         args.password,
         use_tls=args.tls,
-        attachment_filenames=args.attach
+        attachment_filenames=args.attach,
+        verbose=args.verbose,
     )
     if result:
-        print("Success")
+        logger.info("Success")
     else:
-        print("Failure\n{}".format(msg))
+        logger.info("Failure")
+        # logger.error(msg)
     sys.exit(0 if result else 1)
