@@ -1,4 +1,18 @@
 ===============================================================================
+Considered but not implemented
+===============================================================================
+
+- Ability to run an incremental update from a partial data set.
+  Since this data set might not include all identifiers, the software would
+  have to store the anonymisation information (e.g. a repr()-style
+  representation of the regexes) and work on the assumption that identifiers
+  can be added but not subtracted. However, this is still problematic: if
+  a scrubber has changed, the rows it's scrubbed should be re-scrubbed, but
+  that requires the original data source (unless one were just to re-scrub
+  the destination from its previous version, which would give potentially
+  inconsistent results). So not implemented.
+
+===============================================================================
 Performance
 ===============================================================================
 
