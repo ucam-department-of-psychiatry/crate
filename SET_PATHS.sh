@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Script to set up PYTHONPATH and Java CLASSPATH
+#
+# Author: Rudolf Cardinal
+# Copyright (C) 2015-2015 Rudolf Cardinal.
+# License: http://www.apache.org/licenses/LICENSE-2.0
 
 add_pythonpath() {
     # http://superuser.com/questions/39751

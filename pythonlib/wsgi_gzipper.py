@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- encoding: utf8 -*-
 
-# http://pyod.googlecode.com/hg/Gzipper.py
+# Based on: http://pyod.googlecode.com/hg/Gzipper.py
 
 '''
     A WSGI middleware application that automatically gzips output

@@ -1,6 +1,8 @@
 #!/bin/sh
-
-# https://dev.mysql.com/doc/refman/5.0/en/memory-use.html
+#
+# Script to check the memory usage (approximately) of a running MySQL instance.
+#
+# From: https://dev.mysql.com/doc/refman/5.0/en/memory-use.html
 
 mysql -e "show variables; show status" | awk '
 {

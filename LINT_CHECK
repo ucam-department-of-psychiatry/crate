@@ -1,4 +1,6 @@
 #!/bin/bash
+#
+# Script to check all Python code using pyflakes
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 find $DIR -name "*.py" -exec pyflakes {} \;
