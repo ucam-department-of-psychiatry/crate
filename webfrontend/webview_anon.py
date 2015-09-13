@@ -662,6 +662,7 @@ def is_mysql_access_read_only(db):
         WHERE
             CONCAT(user, '@', host) = CURRENT_USER()
     """
+    rows = db.fetchall(sql)
     for row in rows:
         dbname = row[0]
         prohibited = convert_enums(row[1:])
@@ -713,7 +714,7 @@ def fail_unknown_action(action):
     # return cc_html.fail_with_error_stay_logged_in(
     #     "Can't process action {} - action not recognized.".format(action)
     # )
-    return "GARBAGE" # ***
+    return "GARBAGE"  # ***
 
 
 def fail_dangerous_database_access():
@@ -721,7 +722,8 @@ def fail_dangerous_database_access():
     HTML given when the database user is mis-configured and might permit
     writes.
     """
-    return "GARBAGE" # ***
+    return "GARBAGE"  # ***
+
 
 # =============================================================================
 # Command-line processor
@@ -790,7 +792,7 @@ def main_http_processor(env):
     # Check we don't have dangerous access
     # -------------------------------------------------------------------------
     if not is_mysql_access_read_only(config.destdb):
-
+        pass  # ***
 
     # -------------------------------------------------------------------------
     # Process requested action

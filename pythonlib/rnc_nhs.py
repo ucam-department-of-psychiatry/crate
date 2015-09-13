@@ -137,7 +137,8 @@ def generate_random_nhs_number():
     check_digit = 10  # NHS numbers with this check digit are all invalid
     while check_digit == 10:
         digits = [random.randint(1, 9)]  # don't start with a zero
-        digits.extend([random.randint(0, 9) for x in xrange(8)])  # length now 9
+        digits.extend([random.randint(0, 9) for x in xrange(8)])
+        # ... length now 9
         check_digit = 11 - (sum([
             d * f
             for (d, f) in zip(digits, DIGIT_WEIGHTINGS)

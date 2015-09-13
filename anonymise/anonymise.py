@@ -27,9 +27,10 @@ Copyright/licensing:
 
 CHANGE LOG. CHANGE VERSION NUMBER/DATE BELOW IF INCREMENTING.
 
-- v0.10, 2015-09-02
+- v0.10, 2015-09-02 to 2015-09-13
   - Opt-out mechanism.
   - Default hasher changed to SHA256.
+  - Bugfix to datatypes in delete_dest_rows_with_no_src_row().
 
 - v0.09, 2015-07-28
   - debug_max_n_patients option, used with gen_patient_ids(), to reduce the
@@ -3371,6 +3372,8 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
             if r.omit:
                 continue
             fs = r.dest_field + " " + r.dest_datatype
+            if SRCFLAG.PK in r.src_flags:
+                fs += " PRIMARY KEY"
             dest_fieldnames.append(r.dest_field)
             if r.comment or config.append_source_info_to_comment:
                 comment = r.comment or ""
@@ -3471,9 +3474,9 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     logger.debug("... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
-            {pkfield} BIGINT UNSIGNED PRIMARY KEY
+            {pkfield} {sqltype} PRIMARY KEY
         )
-    """.format(table=TEMPTABLE, pkfield=PKFIELD)
+    """.format(table=TEMPTABLE, pkfield=PKFIELD, sqltype=pkddr.dest_datatype)
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table, +/- PK translation
@@ -4172,9 +4175,10 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     logger.debug("... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
-            {rid} BIGINT UNSIGNED PRIMARY KEY
+            {rid} {sqltype} PRIMARY KEY
         )
-    """.format(table=TEMPTABLE, rid=RIDFIELD)
+    """.format(table=TEMPTABLE, rid=RIDFIELD,
+               sqltype=config.SQLTYPE_ENCRYPTED_PID)
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table with RIDs
@@ -4209,13 +4213,13 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
         records = []
     commit(config.destdb)
 
-    # 4. For each patient destination table, DELETE FROM ... WHERE NOT IN ...
+    # 4. For each patient destination table, DELETE FROM ... WHERE IN ...
     for dest_table in config.dd.get_dest_tables_with_patient_info():
         logger.debug(START + "... deleting from {} where appropriate".format(
             dest_table))
         delete_sql = """
             DELETE FROM {dest_table}
-            WHERE {rid} NOT IN (
+            WHERE {rid} IN (
                 SELECT {rid} FROM {temptable}
             )
         """.format(
@@ -4231,6 +4235,20 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
 
     # 6. Commit
     commit(config.destdb)
+
+    # 7. Delete those entries from the mapping table
+    config.admindb.db_exec("""
+        DELETE FROM {mappingtable}
+        WHERE {pid} IN (
+            SELECT {pid}
+            FROM {optouttable}
+        )
+    """.format(
+        mappingtable=config.secret_map_tablename,
+        optouttable=config.opt_out_tablename,
+        pid=PIDFIELD,
+    ))
+    config.admindb.commit()
 
 
 def drop_remake(incremental=False):

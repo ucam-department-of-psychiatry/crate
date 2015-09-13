@@ -89,7 +89,7 @@ Other notes
     tar xzvf mysql-proxy-0.8.5-linux-glibc2.3-x86-64bit.tar.gz
     cd mysql-proxy-0.8.5-linux-glibc2.3-x86-64bit/bin
 
-    export MYSQLPROXYROOT=~/Downloads/mysql-proxy-0.8.5-linux-glibc2.3-x86-64bit
+    export MYSQLPROXYROOT=~/Downloads/mysql-proxy-0.8.5-linux-glibc2.3-x86-64bit  # noqa
     export MYSQLPROXYDIR=$MYSQLPROXYROOT/bin
     # export MYSQLPROXYSCRIPTDIR=$MYSQLPROXYDIR/share/doc/mysql-proxy
     export MYSQLPROXYSCRIPTDIR=~/Documents/code/anonymise
