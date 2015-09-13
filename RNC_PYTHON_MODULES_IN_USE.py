@@ -1,7 +1,13 @@
 #!/usr/bin/python
-
+#
+# Script to install a bunch of Python modules
+#
+# Author: Rudolf Cardinal
+# Copyright (C) 2012-2015 Rudolf Cardinal.
+# License: http://www.apache.org/licenses/LICENSE-2.0
+#
 # Run with e.g.:
-
+#
 # rm RNC_PYTHON_MODULES_IN_USE.py
 # wget http://egret.psychol.cam.ac.uk/pythonlib/RNC_PYTHON_MODULES_IN_USE.py
 # chmod u+x RNC_PYTHON_MODULES_IN_USE.py

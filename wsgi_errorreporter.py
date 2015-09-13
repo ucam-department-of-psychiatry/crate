@@ -4,6 +4,7 @@
 # =============================================================================
 # ErrorReportingMiddleware
 # =============================================================================
+# From: http://pylonsbook.com/en/1.0/the-web-server-gateway-interface-wsgi.html
 
 import sys
 import cgitb
