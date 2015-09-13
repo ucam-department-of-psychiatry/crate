@@ -1,4 +1,10 @@
 #!/bin/bash
+#
+# Script to compile Java source for CamAnonGatePipeline
+#
+# Author: Rudolf Cardinal
+# Copyright (C) 2015-2015 Rudolf Cardinal.
+# License: http://www.apache.org/licenses/LICENSE-2.0
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 BUILDDIR=$DIR/compiled_nlp_classes

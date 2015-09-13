@@ -25,7 +25,11 @@ Copyright/licensing:
     See the License for the specific language governing permissions and
     limitations under the License.
 
-CHANGE LOG:
+CHANGE LOG. CHANGE VERSION NUMBER/DATE BELOW IF INCREMENTING.
+
+- v0.10, 2015-09-02
+  - Opt-out mechanism.
+  - Default hasher changed to SHA256.
 
 - v0.09, 2015-07-28
   - debug_max_n_patients option, used with gen_patient_ids(), to reduce the
@@ -174,8 +178,8 @@ import pythonlib.rnc_log as rnc_log
 # Global constants
 # =============================================================================
 
-VERSION = 0.08
-VERSION_DATE = "2015-07-20"
+VERSION = 0.10
+VERSION_DATE = "2015-09-02"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 
@@ -385,11 +389,11 @@ data_dictionary_filename = testdd.tsv
 # -----------------------------------------------------------------------------
 
 # Hashing method. Options are:
-#   MD5 - produces a 32-character digest; cryptographically poor; default
-#   SHA256 - produces a 64-character digest
+#   MD5 - produces a 32-character digest; cryptographically poor
+#   SHA256 - produces a 64-character digest; default
 #   SHA512 - produces a 128-character digest
 
-hash_method = MD5
+hash_method = SHA256
 
 per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
 
@@ -599,6 +603,11 @@ secret_map_tablename = secret_map
 # Usually no need to change the default.
 
 audit_tablename = audit
+
+# Table name to use for the opt-out list of patient PKs.
+# Usually no need to change the default.
+
+opt_out_tablename = opt_out
 
 # -----------------------------------------------------------------------------
 # Choose databases (defined in their own sections).
@@ -961,6 +970,28 @@ ddgen_binary_to_text_field_pairs =
 #       source2 = thing
 # ... you can't have multiple keys with the same name.
 # http://stackoverflow.com/questions/287757
+
+# =============================================================================
+# Predefined fieldspecs
+# =============================================================================
+
+AUDIT_FIELDSPECS = [
+    dict(name="id", sqltype="BIGINT UNSIGNED", pk=True, autoincrement=True,
+         comment="Arbitrary primary key"),
+    dict(name="when_access_utc", sqltype="DATETIME", notnull=True,
+         comment="Date/time of access (UTC)", indexed=True),
+    dict(name="source", sqltype="VARCHAR(20)", notnull=True,
+         comment="Source (e.g. tablet, webviewer)"),
+    dict(name="remote_addr",
+         sqltype="VARCHAR(45)",  # http://stackoverflow.com/questions/166132
+         comment="IP address of the remote computer"),
+    dict(name="user", sqltype="VARCHAR(255)",
+         comment="User name, where applicable"),
+    dict(name="query", sqltype="TEXT",
+         comment="SQL query (with arguments)"),
+    dict(name="details", sqltype="TEXT",
+         comment="Details of the access"),
+]
 
 
 # =============================================================================
@@ -1612,6 +1643,7 @@ class DataDictionary(object):
         """
         logger.debug("Caching data dictionary information...")
         self.cached_dest_tables = SortedSet()
+        self.cached_dest_tables_w_pt_info = SortedSet()
         self.cached_source_databases = SortedSet()
         self.cached_srcdb_table_pairs = SortedSet()
         self.cached_srcdb_table_pairs_w_pt_info = SortedSet()  # w = with
@@ -1711,6 +1743,9 @@ class DataDictionary(object):
                 self.cached_dest_tables_for_src_db_table[db_t_key].add(
                     ddr.dest_table
                 )
+
+            if pt_info and not omit:
+                self.cached_dest_tables_w_pt_info.add(ddr.dest_table)
 
         db_table_pairs_w_int_pk = set(
             self.cached_srcdb_table_pairs_to_int_pk.keys()
@@ -1906,6 +1941,11 @@ class DataDictionary(object):
         tables that have patient information."""
         return self.cached_src_tables_w_pt_info[src_db]
 
+    def get_dest_tables_with_patient_info(self):
+        """Return a SortedSet of destination table names that have patient
+        information."""
+        return self.cached_dest_tables_w_pt_info
+
     def get_rows_for_src_table(self, src_db, src_table):
         """For a given source database name/table, return a SortedSet of DD
         rows."""
@@ -2094,6 +2134,7 @@ class Config(object):
         "temporary_tablename",
         "secret_map_tablename",
         "audit_tablename",
+        "opt_out_tablename",
         "destination_database",
         "admin_database",
         "debug_max_n_patients",
@@ -2314,13 +2355,16 @@ class Config(object):
         # Test table names
         if not self.temporary_tablename:
             raise ValueError("No temporary_tablename specified.")
-        ensure_valid_field_name(self.temporary_tablename)
+        ensure_valid_table_name(self.temporary_tablename)
         if not self.secret_map_tablename:
             raise ValueError("No secret_map_tablename specified.")
-        ensure_valid_field_name(self.secret_map_tablename)
+        ensure_valid_table_name(self.secret_map_tablename)
         if not self.audit_tablename:
             raise ValueError("No audit_tablename specified.")
-        ensure_valid_field_name(self.audit_tablename)
+        ensure_valid_table_name(self.audit_tablename)
+        if not self.opt_out_tablename:
+            raise ValueError("No opt_out_tablename specified.")
+        ensure_valid_table_name(self.opt_out_tablename)
 
         # Test field names
         def validate_fieldattr(name):
@@ -2373,9 +2417,10 @@ class Config(object):
         format_datetime(self.NOW_UTC_NO_TZ, self.datetime_to_text_format)
 
         # Load encryption keys
-        if self.hash_method == "MD5" or not self.hash_method:
+        if self.hash_method == "MD5":
+            logger.warning("MD5 hasher is cryptographically poor")
             HashClass = MD5Hasher
-        elif self.hash_method == "SHA256":
+        elif self.hash_method == "SHA256" or not self.hash_method:
             HashClass = SHA256Hasher
         elif self.hash_method == "SHA512":
             HashClass = SHA512Hasher
@@ -3173,20 +3218,32 @@ def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
 # Database actions
 # =============================================================================
 
+def makeadmintable(admindb, tablename, fieldspecs):
+    """Makes a table in the admin database. Uses the MySQL Barracuda
+    settings if available."""
+    admindb.create_or_update_table(tablename,
+                                   fieldspecs,
+                                   drop_superfluous_columns=True,
+                                   dynamic=True,
+                                   compressed=False)
+    if not admindb.mysql_table_using_barracuda(tablename):
+        admindb.mysql_convert_table_to_barracuda(tablename, compressed=False)
+
+
 def recreate_audit_table(admindb):
-    """
-    Create/recreate the audit table (in the admin database).
-    """
+    """Create/recreate the audit table (in the admin database)."""
     logger.debug("recreate_audit_table")
-    admindb.create_or_update_table(
-        config.audit_tablename,
-        AUDIT_FIELDSPECS,
-        drop_superfluous_columns=True,
-        dynamic=True,
-        compressed=False)
-    if not admindb.mysql_table_using_barracuda(config.audit_tablename):
-        admindb.mysql_convert_table_to_barracuda(config.audit_tablename,
-                                                 compressed=False)
+    makeadmintable(admindb, config.audit_tablename, AUDIT_FIELDSPECS)
+
+
+def recreate_opt_out_table(admindb):
+    """Create/recreate the opt-out table (in the admin database)."""
+    logger.debug("recreate_opt_out_table")
+    OPT_OUT_FIELDSPECS = [
+        dict(name=config.mapping_patient_id_fieldname,
+             sqltype="BIGINT UNSIGNED", pk=True, comment="Patient ID"),
+    ]
+    makeadmintable(admindb, config.opt_out_tablename, OPT_OUT_FIELDSPECS)
 
 
 def insert_into_mapping_db(admindb, scrubber):
@@ -3284,15 +3341,7 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
              sqltype="TEXT",
              comment="Raw third-party scrubber (for debugging only)"),
     ]
-    admindb.create_or_update_table(
-        config.secret_map_tablename,
-        fieldspecs,
-        drop_superfluous_columns=True,
-        dynamic=True,
-        compressed=False)
-    if not admindb.mysql_table_using_barracuda(config.secret_map_tablename):
-        admindb.mysql_convert_table_to_barracuda(config.secret_map_tablename,
-                                                 compressed=False)
+    makeadmintable(admindb, config.secret_map_tablename, fieldspecs)
 
 
 def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
@@ -3396,6 +3445,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     dest_table = config.dd.get_dest_table_for_src_db_table(srcdbname,
                                                            src_table)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
+    TEMPTABLE = config.temporary_tablename
     PKFIELD = "srcpk"
     START = "delete_dest_rows_with_no_src_row: {}.{} -> {}.{}: ".format(
         srcdbname, src_table, config.destination_database, dest_table
@@ -3415,7 +3465,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 1. Drop temporary table
     logger.debug("... dropping temporary table")
-    config.destdb.drop_table(config.temporary_tablename)
+    config.destdb.drop_table(TEMPTABLE)
 
     # 2. Make temporary table
     logger.debug("... making temporary table")
@@ -3423,20 +3473,13 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         CREATE TABLE IF NOT EXISTS {table} (
             {pkfield} BIGINT UNSIGNED PRIMARY KEY
         )
-    """.format(
-        table=config.temporary_tablename,
-        pkfield=PKFIELD,
-    )
+    """.format(table=TEMPTABLE, pkfield=PKFIELD)
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table, +/- PK translation
     def insert(records):
         logger.debug(START + "... inserting {} records".format(len(records)))
-        config.destdb.insert_multiple_records(
-            config.temporary_tablename,
-            [PKFIELD],
-            records
-        )
+        config.destdb.insert_multiple_records(TEMPTABLE, [PKFIELD], records)
 
     n = srcdb.count_where(src_table)
     logger.debug("... populating temporary table")
@@ -3461,7 +3504,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 4. Index
     logger.debug("... creating index on temporary table")
-    config.destdb.create_index(config.temporary_tablename, PKFIELD)
+    config.destdb.create_index(TEMPTABLE, PKFIELD)
 
     # 5. DELETE FROM ... WHERE NOT IN ...
     logger.debug("... deleting from destination where appropriate")
@@ -3474,15 +3517,15 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         dest_table=pkddr.dest_table,
         dest_pk=pkddr.dest_field,
         pkfield=PKFIELD,
-        temptable=config.temporary_tablename,
+        temptable=TEMPTABLE,
     )
     config.destdb.db_exec(delete_sql)
 
     # 6. Drop temporary table
     logger.debug("... dropping temporary table")
-    config.destdb.drop_table(config.temporary_tablename)
+    config.destdb.drop_table(TEMPTABLE)
 
-    # 6. Commit
+    # 7. Commit
     commit(config.destdb)
 
 
@@ -3498,25 +3541,6 @@ def commit(destdb):
 # =============================================================================
 # Audit
 # =============================================================================
-
-AUDIT_FIELDSPECS = [
-    dict(name="id", sqltype="INT UNSIGNED", pk=True, autoincrement=True,
-         comment="Arbitrary primary key"),
-    dict(name="when_access_utc", sqltype="DATETIME", notnull=True,
-         comment="Date/time of access (UTC)", indexed=True),
-    dict(name="source", sqltype="VARCHAR(20)", notnull=True,
-         comment="Source (e.g. tablet, webviewer)"),
-    dict(name="remote_addr",
-         sqltype="VARCHAR(45)",  # http://stackoverflow.com/questions/166132
-         comment="IP address of the remote computer"),
-    dict(name="user", sqltype="VARCHAR(255)",
-         comment="User name, where applicable"),
-    dict(name="query", sqltype="TEXT",
-         comment="SQL query (with arguments)"),
-    dict(name="details", sqltype="TEXT",
-         comment="Details of the access"),
-]
-
 
 def audit(details,
           from_console=False, remote_addr=None, user=None, query=None):
@@ -3545,6 +3569,19 @@ def audit(details,
         query,
         details
     )
+
+
+# =============================================================================
+# Opt-out
+# =============================================================================
+
+def opt_out(pid):
+    """Does this patient wish to opt out?"""
+    if pid is None:
+        raise ValueError("opt_out(None) is nonsensical")
+    return config.admindb.count_where(
+        config.opt_out_tablename,
+        {config.mapping_patient_id_fieldname: pid}) > 0
 
 
 # =============================================================================
@@ -4083,6 +4120,11 @@ def patient_processing_fn(sources, destdb, admindb,
             threadprefix + "Processing patient ID: {} (incremental={})".format(
                 pid, incremental))
 
+        # Opt out?
+        if opt_out(pid):
+            logger.info("... opt out")
+            continue
+
         # Gather scrubbing information
         scrubber = Scrubber(sources, pid)
 
@@ -4110,6 +4152,87 @@ def patient_processing_fn(sources, destdb, admindb,
     commit(destdb)
 
 
+def wipe_opt_out_patients(report_every=1000, chunksize=10000):
+    """
+    Delete any data from patients that have opted out.
+    (Slightly complicated by the fact that the destination database can't
+    necessarily 'see' the mapping database.)
+    """
+    START = "wipe_opt_out_patients"
+    logger.info(START)
+    TEMPTABLE = config.temporary_tablename
+    PIDFIELD = config.mapping_patient_id_fieldname
+    RIDFIELD = config.research_id_fieldname
+
+    # 1. Drop temporary table
+    logger.debug("... dropping temporary table")
+    config.destdb.drop_table(TEMPTABLE)
+
+    # 2. Make temporary table
+    logger.debug("... making temporary table")
+    create_sql = """
+        CREATE TABLE IF NOT EXISTS {table} (
+            {rid} BIGINT UNSIGNED PRIMARY KEY
+        )
+    """.format(table=TEMPTABLE, rid=RIDFIELD)
+    config.destdb.db_exec(create_sql)
+
+    # 3. Populate temporary table with RIDs
+    def insert(records):
+        logger.debug(START + "... inserting {} records".format(len(records)))
+        config.destdb.insert_multiple_records(TEMPTABLE, [RIDFIELD], records)
+
+    logger.debug("... populating temporary table")
+    i = 0
+    records = []
+    gensql = """
+        SELECT {rid}
+        FROM {mappingtable}
+        INNER JOIN {optouttable}
+        ON {mappingtable}.{pid} = {optouttable}.{pid}
+    """.format(
+        rid=RIDFIELD,
+        mappingtable=config.secret_map_tablename,
+        optouttable=config.opt_out_tablename,
+        pid=PIDFIELD,
+    )
+    for rid in config.admindb.gen_fetchfirst(gensql):
+        i += 1
+        if report_every and i % report_every == 0:
+            logger.debug(START + "... src row# {}".format(i))
+        records.append([rid])
+        if i % chunksize == 0:
+            insert(records)
+            records = []
+    if records:
+        insert(records)
+        records = []
+    commit(config.destdb)
+
+    # 4. For each patient destination table, DELETE FROM ... WHERE NOT IN ...
+    for dest_table in config.dd.get_dest_tables_with_patient_info():
+        logger.debug(START + "... deleting from {} where appropriate".format(
+            dest_table))
+        delete_sql = """
+            DELETE FROM {dest_table}
+            WHERE {rid} NOT IN (
+                SELECT {rid} FROM {temptable}
+            )
+        """.format(
+            dest_table=dest_table,
+            rid=RIDFIELD,
+            temptable=TEMPTABLE,
+        )
+        config.destdb.db_exec(delete_sql)
+
+    # 5. Drop temporary table
+    logger.debug("... dropping temporary table")
+    config.destdb.drop_table(TEMPTABLE)
+
+    # 6. Commit
+    commit(config.destdb)
+
+
 def drop_remake(incremental=False):
     """
     Drop and rebuild (a) mapping table, (b) destination tables.
@@ -4117,14 +4240,17 @@ def drop_remake(incremental=False):
     information where source information no longer exists.
     """
     recreate_audit_table(config.admindb)
+    recreate_opt_out_table(config.admindb)
     wipe_and_recreate_mapping_table(config.admindb, incremental=incremental)
     wipe_and_recreate_destination_db(config.destdb, incremental=incremental)
-    if incremental:
-        for d in config.dd.get_source_databases():
-            db = config.sources[d]
-            for t in config.dd.get_src_tables(d):
-                delete_dest_rows_with_no_src_row(
-                    db, d, t, report_every=config.report_every_n_rows)
+    if not incremental:
+        return
+    wipe_opt_out_patients()
+    for d in config.dd.get_source_databases():
+        db = config.sources[d]
+        for t in config.dd.get_src_tables(d):
+            delete_dest_rows_with_no_src_row(
+                db, d, t, report_every=config.report_every_n_rows)
 
 
 def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):

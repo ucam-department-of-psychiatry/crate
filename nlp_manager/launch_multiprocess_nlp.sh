@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# Script to launch nlp_manager.py in multiprocess mode
+#
+# Author: Rudolf Cardinal
+# Copyright (C) 2015-2015 Rudolf Cardinal.
+# License: http://www.apache.org/licenses/LICENSE-2.0
+#
 # Note: $! is the process ID of last process launched in background
 
 # =============================================================================

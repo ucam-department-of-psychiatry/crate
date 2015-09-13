@@ -1,6 +1,11 @@
 #!/bin/bash
-
+#
 # Script to run an instance of mysql-proxy
+#
+# Author: Rudolf Cardinal
+# Copyright (C) 2015-2015 Rudolf Cardinal.
+# License: http://www.apache.org/licenses/LICENSE-2.0
+#
 # The mysql-proxy version must be at least 0.8.5; see
 #       http://dev.mysql.com/doc/mysql-proxy/en/
 # and downloads are at

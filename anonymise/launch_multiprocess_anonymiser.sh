@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# Launch anonymise.py in multiprocess mode.
+#
+# Author: Rudolf Cardinal
+# Copyright (C) 2015-2015 Rudolf Cardinal.
+# License: http://www.apache.org/licenses/LICENSE-2.0
+#
 # http://stackoverflow.com/questions/356100
 # http://stackoverflow.com/questions/1644856
 # http://stackoverflow.com/questions/8903239
