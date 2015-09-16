@@ -40,8 +40,11 @@ import regex  # sudo apt-get install python-regex
 
 
 # =============================================================================
-# Regexes
+# Constants
 # =============================================================================
+
+NON_ALPHANUMERIC_SPLITTERS = regex.compile("[\W]+", regex.UNICODE)
+# 1 or more non-alphanumeric characters...
 
 REGEX_METACHARS = ["\\", "^", "$", ".",
                    "|", "?", "*", "+",
@@ -49,6 +52,79 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # http://www.regular-expressions.info/characters.html
 # Start with \, for replacement.
 
+WB = r"\b"  # word boundary; escape the slash if not using a raw string
+
+
+# =============================================================================
+# String manipulation
+# =============================================================================
+
+def get_digit_string_from_vaguely_numeric_string(s):
+    """
+    Strips non-digit characters from a string.
+    For example, converts "(01223) 123456" to "01223123456".
+    """
+    return "".join([d for d in s if d.isdigit()])
+
+
+def reduce_to_alphanumeric(s):
+    """
+    Strips non-alphanumeric characters from a string.
+    For example, converts "PE12 3AB" to "PE12 3AB".
+    """
+    return "".join([d for d in s if d.isalnum()])
+
+
+def remove_whitespace(s):
+    """
+    Removes whitespace from a string.
+    """
+    return ''.join(s.split())
+
+
+def get_anon_fragments_from_string(s):
+    """
+    Takes a complex string, such as a name or address with its components
+    separated by spaces, commas, etc., and returns a list of substrings to be
+    used for anonymisation.
+    - For example, from "John Smith", return ["John", "Smith"];
+      from "John D'Souza", return ["John", "D", "Souza"];
+      from "42 West Street", return ["42", "West", "Street"].
+
+    - Try the examples listed below the function.
+    - Note that this is a LIBERAL algorithm, i.e. one prone to anonymise too
+      much (e.g. all instances of "Street" if someone has that as part of their
+      address).
+    - NOTE THAT WE USE THE "WORD BOUNDARY" FACILITY WHEN REPLACING, AND THAT
+      TREATS APOSTROPHES AND HYPHENS AS WORD BOUNDARIES.
+      Therefore, we don't need the largest-level chunks, like D'Souza.
+    """
+    return NON_ALPHANUMERIC_SPLITTERS.split(s)
+    # smallfragments = []
+    # combinedsmallfragments = []
+    # for chunk in s.split():  # split on whitespace
+    #     for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
+    #         if smallchunk.lower() in config.words_not_to_scrub:
+    #             continue
+    #         smallfragments.append(smallchunk)
+    #         # OVERLAP here, but we need it for the combination bit, and
+    #         # we remove the overlap at the end.
+    # # Now we have chunks with e.g. apostrophes in, and all chunks split by
+    # # everything. Finally, we want all of these lumped together.
+    # for L in xrange(len(smallfragments) + 1):
+    #     for subset in itertools.combinations(smallfragments, L):
+    #         if subset:
+    #             combinedsmallfragments.append("".join(subset))
+    # return list(set(smallfragments + combinedsmallfragments))
+# EXAMPLES:
+# get_anon_fragments_from_string("Bob D'Souza")
+# get_anon_fragments_from_string("Jemima Al-Khalaim")
+# get_anon_fragments_from_string("47 Russell Square")
+
+
+# =============================================================================
+# Regexes
+# =============================================================================
 
 def escape_literal_string_for_regex(s):
     r"""
@@ -102,8 +178,7 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
         year + SEP + month + SEP + day,  # e.g. 2014/09/13
     ]
     if at_word_boundaries_only:
-        wb = r"\b"  # word boundary; escape the slash if not using a raw string
-        return [wb + x + wb for x in basic_regexes]
+        return [WB + x + WB for x in basic_regexes]
     else:
         return basic_regexes
 
@@ -133,8 +208,7 @@ def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
         separators = "[\W]*"  # zero or more non-alphanumeric characters...
         s = separators.join([c for c in s])  # ... can appear anywhere
     if at_word_boundaries_only:
-        wb = ur"\b"  # word boundary
-        return [wb + s + wb]
+        return [WB + s + WB]
     else:
         return [s]
 
@@ -153,8 +227,7 @@ def get_number_of_length_n_regex_elements(n, liberal=True,
         separators = ""
     s = separators.join([c for c in s])
     if at_word_boundaries_only:
-        wb = ur"\b"  # word boundary
-        return [wb + s + wb]
+        return [WB + s + WB]
     else:
         return [s]
 
@@ -171,81 +244,13 @@ def get_uk_postcode_regex_elements(at_word_boundaries_only=True):
         "ANA NAA",
         "AANA NAA",
     ]
-    wb = r"\b"  # word boundary
     for i in xrange(len(e)):
         e[i] = e[i].replace("A", "[A-Z]")  # letter
         e[i] = e[i].replace("N", "[0-9]")  # number
         e[i] = e[i].replace(" ", "\s*")  # zero or more whitespace chars
         if at_word_boundaries_only:
-            e[i] = wb + e[i] + wb
+            e[i] = WB + e[i] + WB
     return e
-
-
-def get_digit_string_from_vaguely_numeric_string(s):
-    """
-    Strips non-digit characters from a string.
-    For example, converts "(01223) 123456" to "01223123456".
-    """
-    return "".join([d for d in s if d.isdigit()])
-
-
-def reduce_to_alphanumeric(s):
-    """
-    Strips non-alphanumeric characters from a string.
-    For example, converts "PE12 3AB" to "PE12 3AB".
-    """
-    return "".join([d for d in s if d.isalnum()])
-
-
-def remove_whitespace(s):
-    """
-    Removes whitespace from a string.
-    """
-    return ''.join(s.split())
-
-
-NON_ALPHANUMERIC_SPLITTERS = regex.compile("[\W]+", regex.UNICODE)
-# 1 or more non-alphanumeric characters...
-
-
-def get_anon_fragments_from_string(s):
-    """
-    Takes a complex string, such as a name or address with its components
-    separated by spaces, commas, etc., and returns a list of substrings to be
-    used for anonymisation.
-    - For example, from "John Smith", return ["John", "Smith"];
-      from "John D'Souza", return ["John", "D", "Souza"];
-      from "42 West Street", return ["42", "West", "Street"].
-
-    - Try the examples listed below the function.
-    - Note that this is a LIBERAL algorithm, i.e. one prone to anonymise too
-      much (e.g. all instances of "Street" if someone has that as part of their
-      address).
-    - NOTE THAT WE USE THE "WORD BOUNDARY" FACILITY WHEN REPLACING, AND THAT
-      TREATS APOSTROPHES AND HYPHENS AS WORD BOUNDARIES.
-      Therefore, we don't need the largest-level chunks, like D'Souza.
-    """
-    return NON_ALPHANUMERIC_SPLITTERS.split(s)
-    # smallfragments = []
-    # combinedsmallfragments = []
-    # for chunk in s.split():  # split on whitespace
-    #     for smallchunk in NON_WHITESPACE_SPLITTERS.split(chunk):
-    #         if smallchunk.lower() in config.words_not_to_scrub:
-    #             continue
-    #         smallfragments.append(smallchunk)
-    #         # OVERLAP here, but we need it for the combination bit, and
-    #         # we remove the overlap at the end.
-    # # Now we have chunks with e.g. apostrophes in, and all chunks split by
-    # # everything. Finally, we want all of these lumped together.
-    # for L in xrange(len(smallfragments) + 1):
-    #     for subset in itertools.combinations(smallfragments, L):
-    #         if subset:
-    #             combinedsmallfragments.append("".join(subset))
-    # return list(set(smallfragments + combinedsmallfragments))
-# EXAMPLES:
-# get_anon_fragments_from_string("Bob D'Souza")
-# get_anon_fragments_from_string("Jemima Al-Khalaim")
-# get_anon_fragments_from_string("47 Russell Square")
 
 
 def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
@@ -282,8 +287,7 @@ def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
     else:
         suffixstr = ""
     if at_word_boundaries_only:
-        wb = ur"\b"  # word boundary
-        return [wb + s + suffixstr + wb]
+        return [WB + s + suffixstr + WB]
     else:
         return [s + suffixstr]
 
@@ -301,11 +305,14 @@ def get_phrase_regex_elements(phrase, at_word_boundaries_only=True,
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"
     if at_word_boundaries_only:
-        wb = ur"\b"  # word boundary
-        return [wb + s + wb]
+        return [WB + s + WB]
     else:
         return [s]
 
+
+# =============================================================================
+# Combining regex elements into a giant regex
+# =============================================================================
 
 def get_regex_string_from_elements(elementlist):
     """
