@@ -10,6 +10,7 @@
 ## Directory structure with key files
 - `anonymise/`
   - **`anonymise.py`** &ndash; core program
+  - `anon_*.py`: subsidiary classes for anonymiser
   - `launch_makedata.sh` &ndash; launcher for make_demo_database.py
   - `launch_multiprocess_anonymiser.sh` &ndash; parallel processing
     (multiprocess) launcher for anonymise.py
