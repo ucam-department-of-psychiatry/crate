@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: June 2013
-Last update: 22 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -28,6 +28,7 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
+from __future__ import division, print_function, absolute_import
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
@@ -80,14 +81,14 @@ def softmax(x, b=1.0):
 # =============================================================================
 
 if __name__ == '__main__':
-    print EQUALS_SEPARATOR
-    print "Test softmax"
-    print EQUALS_SEPARATOR
+    print(EQUALS_SEPARATOR)
+    print("Test softmax")
+    print(EQUALS_SEPARATOR)
 
     x1 = np.array([1, 2, 3, 4, 5.0**400])
     x2 = np.array([1, 2, 3, 4, 5])
     x3 = np.array([1, 1, 1, 1, 1.01])
-    print softmax(x1)
-    print softmax(x2)
-    print softmax(x3)
-    print softmax(x3, b=100.0)
+    print(softmax(x1))
+    print(softmax(x2))
+    print(softmax(x3))
+    print(softmax(x3, b=100.0))

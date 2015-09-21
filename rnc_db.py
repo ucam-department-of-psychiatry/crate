@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 19 May 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -171,6 +171,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
+import six
+from six.moves import range
 import time
 
 
@@ -379,16 +381,16 @@ def debug_object(obj):
     """Prints key/value pairs for an object's dictionary."""
     pairs = []
     for k, v in vars(obj).items():
-        pairs.append("{}={}".format(unicode(k), unicode(v)))
-    return ", ".join(pairs)
+        pairs.append(u"{}={}".format(k, v))
+    return u", ".join(pairs)
 
 
 def dump_database_object(obj, fieldlist):
     """Prints key/value pairs for an object's dictionary."""
     logger.info(LINE_EQUALS)
-    logger.info("DUMP OF: " + unicode(obj))
+    logger.info(u"DUMP OF: {}".format(obj))
     for f in fieldlist:
-        logger.info(f + ": " + unicode(getattr(obj, f)))
+        logger.info(u"{f}: {v}".format(f=f, v=getattr(obj)))
     logger.info(LINE_EQUALS)
 
 
@@ -398,7 +400,7 @@ def assign_from_list(obj, fieldlist, valuelist):
     if len(fieldlist) != len(valuelist):
         raise AssertionError("assign_from_list: fieldlist and valuelist of "
                              "different length")
-    for i in xrange(len(valuelist)):
+    for i in range(len(valuelist)):
         setattr(obj, fieldlist[i], valuelist[i])
 
 
@@ -411,7 +413,7 @@ def blank_object(obj, fieldlist):
 def debug_query_result(rows):
     """Writes a query result to the logger."""
     logger.info("Retrieved {} rows".format(len(rows)))
-    for i in xrange(len(rows)):
+    for i in range(len(rows)):
         logger.info("Row {}: {}".format(i, rows[i]))
 
 
@@ -592,7 +594,7 @@ def _convert_java_binary(rs, col):
         #     return
         # l = len(java_val)
         # v = bytearray(l)
-        # for i in xrange(l):
+        # for i in range(l):
         #     v[i] = java_val[i] % 256
         # ---------------------------------------------------------------------
         # Method 3: 3578880 bytes in 20.1435189247 seconds =   177 kB/s
@@ -1162,11 +1164,11 @@ class DatabaseSupporter:
             # it's fetched a VARBINARY(MAX) field.
             nvp['selectMethod'] = 'cursor'  # trying this; default is 'direct'
             url = urlstem + ';'.join(
-                '{}={}'.format(x, y) for x, y in nvp.iteritems())
+                '{}={}'.format(x, y) for x, y in six.iteritems(nvp))
 
             nvp['password'] = '[censored]'
             url_censored = urlstem + ';'.join(
-                '{}={}'.format(x, y) for x, y in nvp.iteritems())
+                '{}={}'.format(x, y) for x, y in six.iteritems(nvp))
             logger.info(
                 'jdbc connect: jclassname={jclassname}, url = {url}'.format(
                     jclassname=jclassname,
@@ -1403,7 +1405,7 @@ class DatabaseSupporter:
         n = len(valuedict)
         fields = []
         args = []
-        for f, v in valuedict.iteritems():
+        for f, v in six.iteritems(valuedict):
             fields.append(self.delimit(f))
             args.append(v)
         query = """
@@ -1496,9 +1498,12 @@ class DatabaseSupporter:
         query = self.localize_sql(query)
         # Now into the back end:
         # See cursors.py, connections.py in MySQLdb source.
-        charset = self.db.character_set_name()
-        if isinstance(query, unicode):
-            query = query.encode(charset)
+
+        # charset = self.db.character_set_name()
+        # if isinstance(query, unicode):
+        #     query = query.encode(charset)
+        # Don't get them double-encoded:
+        #   http://stackoverflow.com/questions/6202726/writing-utf-8-string-to-mysql-with-python  # noqa
         if args is not None:
             query = query % self.db.literal(args)
         return query

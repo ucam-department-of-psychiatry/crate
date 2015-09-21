@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2013
-Last update: 19 Mar 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -26,6 +26,8 @@ Copyright/licensing:
 
 import importlib
 import pkgutil
+import six
+from six.moves import range
 
 
 # =============================================================================
@@ -79,7 +81,7 @@ def convert_to_bool(x, default=None):
         return float(x) != 0
     except:
         pass
-    if not (isinstance(x, str) or isinstance(x, unicode)):
+    if not isinstance(x, six.string_types):
         raise Exception("Unknown thing being converted to bool: {}".format(x))
     x = x.upper()
     if x in ["Y", "YES", "T", "TRUE"]:
@@ -134,7 +136,7 @@ def count_bool(blist):
 def chunks(l, n):
     """ Yield successive n-sized chunks from l.
     """
-    for i in xrange(0, len(l), n):
+    for i in range(0, len(l), n):
         yield l[i:i + n]
 
 

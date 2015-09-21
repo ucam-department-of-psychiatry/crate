@@ -6,7 +6,7 @@ __init__.py
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 23 June 2015
-Last update: 23 June 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 

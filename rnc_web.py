@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 26 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -36,6 +36,7 @@ logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.DEBUG)
 import os
 import re
+import six
 import sys
 
 # =============================================================================
@@ -443,10 +444,9 @@ def webify(v, preserve_newlines=True):
     nl = "<br>" if preserve_newlines else " "
     if v is None:
         return ""
-    elif isinstance(v, unicode):
-        return cgi.escape(v).replace("\n", nl).replace("\\n", nl)
-    else:
-        return cgi.escape(str(v)).replace("\n", nl).replace("\\n", nl)
+    if not isinstance(v, six.string_types):
+        v = str(v)
+    return cgi.escape(v).replace("\n", nl).replace("\\n", nl)
 
 
 def websafe(value):
@@ -455,9 +455,9 @@ def websafe(value):
     # http://stackoverflow.com/questions/1061697
 
 
-def replace_nl_with_html_br(str):
+def replace_nl_with_html_br(string):
     """Replaces newlines with <br>."""
-    return _NEWLINE_REGEX.sub("<br>", str)
+    return _NEWLINE_REGEX.sub("<br>", string)
 
 
 def bold_if_not_blank(x):
@@ -470,8 +470,10 @@ def bold_if_not_blank(x):
 def make_urls_hyperlinks(text):
     """Adds hyperlinks to text that appears to contain URLs."""
     # http://stackoverflow.com/questions/1071191
+    # ... except that double-replaces everything; e.g. try with
+    #     text = "me@somewhere.com me@somewhere.com"
     # http://stackp.online.fr/?p=19
-    pat_url = re.compile(r'''
+    find_url = r'''
         (?x)(              # verbose identify URLs within text
         (http|ftp|gopher)  # make sure we find a resource type
         ://                # ...needs to be followed by colon-slash-slash
@@ -481,18 +483,12 @@ def make_urls_hyperlinks(text):
         [\w/])             # resource name ends in alphanumeric or slash
         (?=[\s\.,>)'"\]])  # assert: followed by white or clause ending
         )                  # end of match group
-    ''')
-    pat_email = re.compile('([\w\-\.]+@(\w[\w\-]+\.)+[\w\-]+)')
-    for url in re.findall(pat_url, text):
-        text = text.replace(
-            url[0],
-            '<a href="%(url)s">%(url)s</a>' % {"url": url[0]}
-        )
-    for email in re.findall(pat_email, text):
-        text = text.replace(
-            email[0],
-            '<a href="mailto:%(email)s">%(email)s</a>' % {"email": email[0]}
-        )
+    '''
+    replace_url = r'<a href="\1">\1</a>'
+    find_email = re.compile('([\w\-\.]+@(\w[\w\-]+\.)+[\w\-]+)')
+    replace_email = r'<a href="mailto:\1">\1</a>'
+    text = re.sub(find_url, replace_url, text)
+    text = re.sub(find_email, replace_email, text)
     return text
 
 

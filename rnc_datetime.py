@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 26 Feb 2015
-Last update: 26 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 

@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: Feb 2014
-Last update: 22 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -29,6 +29,7 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
+import six
 
 WHITESPACE_REGEX = re.compile('\s')
 NON_NUMERIC_REGEX = re.compile("[^0-9]")  # or "\D"
@@ -45,9 +46,8 @@ def is_valid_nhs_number(n):
     Checksum details are at
         http://www.datadictionary.nhs.uk/version2/data_dictionary/data_field_notes/n/nhs_number_de.asp  # noqa
     """
-    if not (type(n) is int or type(n) is long):
-        logger.debug("is_valid_nhs_number: parameter was not an integer or "
-                     "a long")
+    if not isinstance(n, six.integer_types):
+        logger.debug("is_valid_nhs_number: parameter was not of integer type")
         return False
     try:
         s = str(n)
@@ -137,7 +137,7 @@ def generate_random_nhs_number():
     check_digit = 10  # NHS numbers with this check digit are all invalid
     while check_digit == 10:
         digits = [random.randint(1, 9)]  # don't start with a zero
-        digits.extend([random.randint(0, 9) for x in xrange(8)])
+        digits.extend([random.randint(0, 9) for x in range(8)])
         # ... length now 9
         check_digit = 11 - (sum([
             d * f
@@ -153,6 +153,6 @@ def generate_random_nhs_number():
 
 def test_nhs_rng(n=100):
     """Tests the NHS random number generator."""
-    for i in xrange(n):
+    for i in range(n):
         x = generate_random_nhs_number()
         assert is_valid_nhs_number(x), "Invalid NHS number: {}".format(x)

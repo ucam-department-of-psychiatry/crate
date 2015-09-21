@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 22 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -25,6 +25,7 @@ Copyright/licensing:
 
 """
 
+from __future__ import division, print_function, absolute_import
 import io
 import logging
 logger = logging.getLogger(__name__)
@@ -33,6 +34,8 @@ logger.setLevel(logging.INFO)
 import os
 import pyPdf  # sudo apt-get install python-pypdf
 import sys
+if sys.version_info > (3,):
+    buffer = memoryview
 import tempfile
 
 try:
@@ -172,8 +175,8 @@ def serve_pdf_to_stdout(pdf):
     # http://stackoverflow.com/questions/312230/proper-mime-type-for-pdf-files
     # http://www.askapache.com/htaccess/pdf-cookies-headers-rewrites.html
     # http://stackoverflow.com/questions/2374427
-    # print "Content-type: text/plain\n" # for debugging
-    print "Content-Type: application/pdf\n"
+    # print("Content-type: text/plain\n")  # for debugging
+    print("Content-Type: application/pdf\n")
     sys.stdout.write(pdf)
 
 
