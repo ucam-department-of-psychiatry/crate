@@ -313,6 +313,10 @@ class Flavour(object):
     @classmethod
     def mysql_get_max_allowed_packet(cls, db):
         return None
+    
+    @classmethod
+    def is_read_only(cls, db, logger=None):
+        return False
 
 
 # -----------------------------------------------------------------------------
@@ -459,7 +463,7 @@ class MySQL(Flavour):
             SELECT {}
             FROM information_schema.columns
             WHERE table_schema=? AND table_name=? AND column_name=?
-        """.format(cls.get_coltype_expr())
+        """.format(cls.column_type_expr())
         return db.fetchvalue(sql, db.schema, table, column)
 
     @classmethod
@@ -534,6 +538,88 @@ class MySQL(Flavour):
     def mysql_get_max_allowed_packet(cls, db):
         return cls.get_system_variable(db, "max_allowed_packet")
 
+    @classmethod
+    def is_read_only(cls, db, logger=None):
+        """Do we have read-only access?"""
+        
+        def convert_enums(row):
+            # All these columns are of type enum('N', 'Y');
+            # https://dev.mysql.com/doc/refman/5.0/en/enum.html
+            return [True if x == 'Y' else (False if x == 'N' else None)
+                    for x in row]
+    
+        # 1. Check per-database privileges.
+        # We don't check SELECT privileges. We're just trying to ensure
+        # nothing dangerous is present - for ANY database.
+        # If we get an exception
+        try:
+            sql = """
+                SELECT db,
+                       /* must not have: */
+                       Insert_priv, Update_priv, Delete_priv,
+                       Create_priv, Drop_priv, Index_priv, Alter_priv,
+                       Lock_tables_priv, Create_view_priv,
+                       Create_routine_priv, Alter_routine_priv,
+                       Execute_priv, Event_priv, Trigger_priv
+                FROM mysql.db
+                WHERE
+                    CONCAT(user, '@', host) = CURRENT_USER()
+            """
+            rows = db.fetchall(sql)
+            for row in rows:
+                dbname = row[0]
+                prohibited = convert_enums(row[1:])
+                if any(prohibited):
+                    if logger:
+                        logger.debug(
+                            "MySQL.is_read_only(): FAIL: database privileges "
+                            "wrong: dbname={}, prohibited={}".format(
+                                dbname, prohibited
+                            )
+                        )
+                    return False
+        except mysql.OperationalError:
+            # Probably: error 1142, "SELECT command denied to user 'xxx'@'yyy'
+            # for table 'db'". This would be OK.
+            pass
+    
+        # 2. Global privileges, e.g. as held by root
+        try:
+            sql = """
+                SELECT /* must not have: */
+                       Insert_priv, Update_priv, Delete_priv,
+                       Create_priv, Drop_priv,
+                       Reload_priv, Shutdown_priv,
+                       Process_priv, File_priv, Grant_priv,
+                       Index_priv, Alter_priv,
+                       Show_db_priv, Super_priv,
+                       Lock_tables_priv, Execute_priv,
+                       Repl_slave_priv, Repl_client_priv,
+                       Create_view_priv,
+                       Create_routine_priv, Alter_routine_priv,
+                       Create_user_priv,
+                       Event_priv, Trigger_priv,
+                       Create_tablespace_priv
+                FROM mysql.user
+                WHERE
+                    CONCAT(user, '@', host) = CURRENT_USER()
+            """
+            rows = db.fetchall(sql)
+            if not rows or len(rows) > 1:
+                return False
+            prohibited = convert_enums(rows[0])
+            if any(prohibited):
+                if logger:
+                    logger.debug(
+                        "MySQL.is_read_only(): FAIL: GLOBAL privileges "
+                        "wrong: prohibited={}".format(prohibited))
+                return False
+        except mysql.OperationalError:
+            # Probably: error 1142, "SELECT command denied to user 'xxx'@'yyy'
+            # for table 'user'". This would be OK.
+            pass
+    
+        return True
 
 # -----------------------------------------------------------------------------
 # SQL Server
@@ -627,7 +713,7 @@ class SQLServer(Flavour):
             SELECT {}
             FROM information_schema.columns
             WHERE table_schema=? AND table_name=? AND column_name=?
-        """.format(cls.get_coltype_expr())
+        """.format(cls.column_type_expr())
         return db.fetchvalue(sql, db.schema, table, column)
 
 
@@ -2542,6 +2628,12 @@ class DatabaseSupporter:
     def get_schema(self):
         return self.fetchvalue("SELECT {}".format(
             self.get_current_schema_expr()))
+    
+    def is_read_only(self):
+        """Does the user have read-only access to the database?
+        This is a safety check, but should NOT be the only safety check!"""
+        return self.flavour.is_read_only(self, logger=logger)
+
 
     # =========================================================================
     # Debugging
