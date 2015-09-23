@@ -2,6 +2,9 @@
 Considered but not implemented
 ===============================================================================
 
+- NOT YET SUITABLE FOR PYTHON 3: the following dependencies do not work:
+    docx (in rnc_extract_text.py)
+
 - Ability to run an incremental update from a partial data set.
   Since this data set might not include all identifiers, the software would
   have to store the anonymisation information (e.g. a repr()-style

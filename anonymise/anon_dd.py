@@ -863,6 +863,8 @@ class DataDictionary(object):
         logger.debug("cached_srcdb_table_pairs_wo_pt_info_int_pk: {}".format(
             self.cached_srcdb_table_pairs_wo_pt_info_int_pk))
 
+        logger.debug("... cached.")
+
     def check_against_source_db(self):
         """
         Check DD validity against the source database.
@@ -941,6 +943,8 @@ class DataDictionary(object):
                         )
                     )
 
+        logger.debug("... source tables checked.")
+
     def check_valid(self, check_against_source_db):
         """
         Check DD validity, internally +/- against the source database.
@@ -989,6 +993,8 @@ class DataDictionary(object):
             logger.warning(
                 "Unusual: >1 field with src_flags={} set.".format(
                     SRCFLAG.DEFINESPRIMARYPIDS))
+
+        logger.debug("... DD checked.")
 
     def get_dest_tables(self):
         """Return a SortedSet of all destination tables."""

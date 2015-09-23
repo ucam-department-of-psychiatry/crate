@@ -151,7 +151,6 @@ from anon_constants import (
     SEP,
     SRCFLAG,
 )
-import anon_dd
 from anon_regex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
@@ -1832,8 +1831,6 @@ Sample usage (having set PYTHONPATH):
         level=mainloglevel
     )
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
-    anon_config.logger.setLevel(mainloglevel)
-    anon_dd.logger.setLevel(mainloglevel)
 
     # Load/validate config
     config.set(filename=args.configfile, load_dd=(not args.draftdd),

@@ -25,8 +25,8 @@ Copyright/licensing:
 """
 
 import datetime
-import dateutil.parser
-import pytz
+import dateutil.parser  # sudo apt-get install python-dateutil
+import pytz  # sudo apt-get install python-tz
 
 
 # =============================================================================

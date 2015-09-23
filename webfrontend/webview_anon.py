@@ -741,9 +741,9 @@ def cli_main():
     logger.info("is_read_only: {}".format(config.destdb.is_read_only()))
 
     if args.datadictionary:
-        print(test_show_fields())
+        print(test_show_fields().encode("utf-8"))
     else:
-        print(test_query_output())
+        print(test_query_output().encode("utf-8"))
 
 
 # =============================================================================
