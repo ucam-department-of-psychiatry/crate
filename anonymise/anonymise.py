@@ -27,6 +27,11 @@ Copyright/licensing:
 
 CHANGE LOG. CHANGE VERSION NUMBER/DATE BELOW IF INCREMENTING.
 
+- v0.12, 2015-09-21
+  - Database interface renamed from mysqldb to mysql, to allow for PyMySQL
+    support as well (backend details otherwise irrelevant to front-end
+    application).
+
 - v0.11, 2015-09-16
   - Split main source code for simplicity.
 
@@ -166,8 +171,8 @@ from anon_regex import (
 # Global constants
 # =============================================================================
 
-VERSION = 0.11
-VERSION_DATE = "2015-09-16"
+VERSION = 0.12
+VERSION_DATE = "2015-09-21"
 
 RAW_SCRUBBER_FIELDNAME_PATIENT = "_raw_scrubber_patient"
 RAW_SCRUBBER_FIELDNAME_TP = "_raw_scrubber_tp"

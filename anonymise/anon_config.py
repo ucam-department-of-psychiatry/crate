@@ -522,10 +522,10 @@ db = XXX
 #       mysql
 #       sqlserver
 #   - interface: one of:
-#       mysqldb [default for mysql engine]
+#       mysql [default for mysql engine]
 #       odbc [default otherwise]
 #       jdbc
-#   - host, port, db [for mysqldb, JDBC]
+#   - host, port, db [for mysql, JDBC]
 #   - dsn, odbc_connection_string [for ODBC]
 #   - username, password
 # ... see rnc_db.py
