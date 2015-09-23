@@ -30,7 +30,6 @@ import io
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.INFO)
 import os
 import pyPdf  # sudo apt-get install python-pypdf
 import sys

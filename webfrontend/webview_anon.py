@@ -35,6 +35,27 @@ IN PROGRESS
         - easy to make something too fiddly: http://www.ajaxquerybuilder.com/
     - needs session, security/users, main menu, audit
     - user accessing the destination database must be READ ONLY here
+    
+This kind of queries that might benefit from some autogeneration:
+
+    SELECT
+        master.rid, master.dob, ...
+        secondtable.field1, secondtable.field2, ...
+        thirdtable.field1, thirdtable.field2, ...
+    FROM
+        master
+        INNER JOIN secondtable ON (secondtable.rid = master.rid)
+        INNER JOIN thirdtable ON (thirdtable.rid = master.rid)
+    WHERE
+        MATCH(secondtable.field1) AGAINST ('schizophrenia')
+        OR MATCH(thirdtable.field1) AGAINST ('schizophrenia')
+
+However, it's not clear anything really improves on writing raw SQL; most
+assisted query generation frameworks are quite crippled functionally. Simple
+SQL also has the advantage of producing a clear tabular structure, without
+nesting.
+
+What is definitely useful is result highlighting.
 """
 
 from __future__ import division
@@ -66,20 +87,20 @@ import argparse
 import csv
 import io
 import logging
+logger = logging.getLogger(__name__)
 import math
 import re
 import sys
 import textwrap
 
 # Local
+import pythonlib.rnc_db as rnc_db
 import pythonlib.rnc_web as ws
 from pythonlib.rnc_lang import AttrDict
-from anonymise.anonymise import (
-    config,
+from anonymise.anonymise import config
     # *** WRONG: needs separate config (different, less privileged,
     # database user) - just with reference to DD
-    escape_literal_string_for_regex,
-)
+from anonymise.anon_regex import escape_literal_string_for_regex
 
 # Conditional imports
 if PROFILE:
@@ -88,14 +109,13 @@ if DEBUG_TO_HTTP_CLIENT:
     import pythonlib.wsgi_errorreporter as wsgi_errorreporter
 
 # Configure logger
-logger = logging.getLogger("webview_anon")
 logger.setLevel(logging.INFO)
 
 # =============================================================================
 # Constants
 # =============================================================================
 
-HIGHLIGHTER = ur'<span class="highlight">\1</span>'
+N_CSS_HIGHLIGHT_CLASSES = 2  # named highlight0, highlight1, ... highlight<n-1>
 PLUS_IMAGE = (
     "data:image/gif;base64,R0lGODlhCQAJAMQAAJ2sw8PP4e/z+pakupWlucXR5OXs97vN66/"
     "A2Z2swrbF3c/b8u/z+/n7/ebs+MTU79rk9JyrwJ6uxJqovvD0+/j6/am82JSkuJinvOXs+M/N"
@@ -144,19 +164,17 @@ td {
 
 .expandcollapse {
 }
-
 .detail {
 }
-
 .indent {
     margin-left: 50px;
 }
 
-.highlight {
-    background-color: #0F0;
-    /* yellow and red are typically used by browsers for all-instances
-       and instance-at-the-cursor with Ctrl-F */
-}
+/* yellow and red are typically used by browsers for all-instances and
+   instance-at-the-cursor with Ctrl-F */
+.highlight0 { background-color: #0F0; }
+.highlight1 { background-color: #88F; }
+/* If altering: change also N_CSS_HIGHLIGHT_CLASSES in the source */
 
 /*=============================================================================
 CSS end
@@ -404,22 +422,32 @@ def get_regex_from_highlights(highlights, at_word_boundaries_only=False):
     return re.compile(regexstring, re.IGNORECASE | re.UNICODE)
 
 
+def highlight_text(x, n=0):
+    n %= N_CSS_HIGHLIGHT_CLASSES
+    return ur'<span class="highlight{n}">{x}</span>'.format(n=n, x=x)
+
+
+def make_highlight_replacement_regex(n=0):
+    return highlight_text(r"\1", n=n)
+
+
 def make_html_element(x, elementnum,
                       highlights=[], collapse_at=None, line_length=None):
     if x is None:
         return ""
-    stringtype = isinstance(x, unicode) or isinstance(x, str)
-    if stringtype:
-        xlen = len(x)  # before we mess around with it
-        if line_length:
-            x = "\n".join(textwrap.wrap(x, width=line_length))
-        x = ws.webify(x)
-        if highlights:
-            regex = get_regex_from_highlights(highlights)
-            x = regex.sub(HIGHLIGHTER, x)
-        if collapse_at and xlen >= collapse_at:
-            return collapsible_div(elementnum, x)
-    return str(x)  # ***
+    if not isinstance(x, (str, unicode)):
+        x = str(x)
+    xlen = len(x)  # before we mess around with it
+    if line_length:
+        x = "\n".join(textwrap.wrap(x, width=line_length))
+    x = ws.webify(x)
+    for n, highlight_values in enumerate(highlights):
+        find = get_regex_from_highlights(highlight_values)
+        replace = make_highlight_replacement_regex(n)
+        x = find.sub(replace, x)
+    if collapse_at and xlen >= collapse_at:
+        return collapsible_div(elementnum, x)
+    return x
 
 
 def make_html_row(row, elementnum,
@@ -515,6 +543,10 @@ def expand_collapse_buttons():
 def make_html_results_page(db, sql, args, firstrow=0, highlights=[],
                            collapse_at=None, line_length=None,
                            rows_per_page=25):
+    """
+    highlights: a list of lists of values. Each list uses a different
+        colour highlighter, until we run out of possibilities.
+    """
     cursor = db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)
     rowcount = cursor.rowcount
@@ -525,12 +557,17 @@ def make_html_results_page(db, sql, args, firstrow=0, highlights=[],
         firstrow=firstrow, lastrow=lastrow,
         highlights=highlights, collapse_at=collapse_at,
         line_length=line_length)
+    highlightdescription = "".join(
+        u"<li>{}</li>".format(", ".join(highlight_text(x, n)
+                                        for x in valuelist))
+        for n, valuelist in enumerate(highlights)
+    )
     return HTML_START + u"""
         {smallmenu}
         <h1>SQL</h1>
-        <p>{sql}</p>
+        <pre>{sql}</pre>
         <h1>Highlighting</h1>
-        <p>{highlights}</p>
+        <ul>{highlightdescription}</ul>
         <h1>Results</h1>
         {nav}
         {expandcollapse}
@@ -538,9 +575,9 @@ def make_html_results_page(db, sql, args, firstrow=0, highlights=[],
         {nav}
     """.format(
         smallmenu=small_menu(),
-        sql=db.get_literal_sql_with_arguments(sql, *args),
+        sql=ws.webify(db.get_literal_sql_with_arguments(sql, *args)),
         args=args,
-        highlights=u", ".join(highlights),
+        highlightdescription=highlightdescription,
         nav=navigation(firstrow, rowcount, rows_per_page),
         expandcollapse=expand_collapse_buttons(),
         table=table,
@@ -580,7 +617,10 @@ def test_query_output(session=None, form=None):
     sql = "SELECT * FROM notes WHERE note LIKE ?"
     args = ['%Adam%']
     firstrow = 10  # zero-indexed
-    highlights = ["Aaron", "Adam"]
+    highlights = [
+        ["Aaron", "Adam"],  # highlight 0
+        ["October"]  # highlight 1
+    ]
     rows_per_page = 10
     line_length = 60
     collapse_at = 5 * line_length
@@ -591,13 +631,17 @@ def test_query_output(session=None, form=None):
 
 
 def test_show_fields(session=None, form=None):
-    tables = set([dfi.table for dfi in config.destfieldinfo])
+    tables = sorted(set([dfi.table for dfi in config.destfieldinfo]))
     table_elements = []
     for t in tables:
         field_elements = []
-        for dfi in [dfi for dfi in config.destfieldinfo if dfi.table == t]:
+        dfi_list = [dfi for dfi in config.destfieldinfo if dfi.table == t]
+        dfi_list = sorted(dfi_list, key=lambda x: x.field)
+        for dfi in dfi_list:
             field_elements.append(u"""
-                <div>{table}.<b>{field}</b>, {fieldtype}{sep}{comment}</div>
+                <div>
+                    {table}.<b>{field}</b>, {fieldtype}{sep}<i>{comment}</i>
+                </div>
             """.format(
                 table=t,
                 field=dfi.field,
@@ -624,7 +668,7 @@ def test_show_fields(session=None, form=None):
         </div>
     """.format("\n".join(table_elements))
     return HTML_START + u"""
-        <h1>Available fields</h1>
+        <h1>Fields in the anonymised database (from the data dictionary)</h1>
         {expandcollapse}
         {tree}
     """.format(
@@ -632,77 +676,6 @@ def test_show_fields(session=None, form=None):
         tree=tree,
     ) + HTML_END
 
-
-# =============================================================================
-# For a MySQL database: do I have write permissions or not?
-# Since we're going to allow (with considerable wariness) unrestricted SQL,
-# we should at least check that the user can't destroy everything.
-# =============================================================================
-
-def is_mysql_access_read_only(db):
-
-    def convert_enums(row):
-        # All these columns are of type enum('N', 'Y');
-        # https://dev.mysql.com/doc/refman/5.0/en/enum.html
-        return [True if x == 'Y' else (False if x == 'N' else None)
-                for x in row]
-
-    # 1. Check per-database privileges.
-    # We don't check SELECT privileges. We're just trying to ensure
-    # nothing dangerous is present - for ANY database.
-    sql = """
-        SELECT db,
-               /* must not have: */
-               Insert_priv, Update_priv, Delete_priv,
-               Create_priv, Drop_priv, Index_priv, Alter_priv,
-               Lock_tables_priv, Create_view_priv,
-               Create_routine_priv, Alter_routine_priv,
-               Execute_priv, Event_priv, Trigger_priv
-        FROM mysql.db
-        WHERE
-            CONCAT(user, '@', host) = CURRENT_USER()
-    """
-    rows = db.fetchall(sql)
-    for row in rows:
-        dbname = row[0]
-        prohibited = convert_enums(row[1:])
-        if any(prohibited):
-            logger.debug(
-                "is_mysql_access_read_only: FAIL: database privileges "
-                "wrong: dbname={}, prohibited={}".format(dbname, prohibited))
-            return False
-
-    # 2. Global privileges, e.g. as held by root
-    sql = """
-        SELECT /* must not have: */
-               Insert_priv, Update_priv, Delete_priv,
-               Create_priv, Drop_priv,
-               Reload_priv, Shutdown_priv,
-               Process_priv, File_priv, Grant_priv,
-               Index_priv, Alter_priv,
-               Show_db_priv, Super_priv,
-               Lock_tables_priv, Execute_priv,
-               Repl_slave_priv, Repl_client_priv,
-               Create_view_priv,
-               Create_routine_priv, Alter_routine_priv,
-               Create_user_priv,
-               Event_priv, Trigger_priv,
-               Create_tablespace_priv
-        FROM mysql.user
-        WHERE
-            CONCAT(user, '@', host) = CURRENT_USER()
-    """
-    rows = db.fetchall(sql)
-    if not rows or len(rows) > 1:
-        return False
-    prohibited = convert_enums(rows[0])
-    if any(prohibited):
-        logger.debug(
-            "is_mysql_access_read_only: FAIL: GLOBAL privileges "
-            "wrong: prohibited={}".format(prohibited))
-        return False
-
-    return True
 
 
 # =============================================================================
@@ -742,18 +715,35 @@ def cli_main():
     )
     parser.add_argument("configfilename", nargs="?", default=None,
                         help="Configuration file")
+    parser.add_argument('--verbose', '-v', action='count',
+                        help="Be verbose (use twice for extra verbosity)")
+    parser.add_argument('--datadictionary', '-d', action='store_true',
+                        help="Output is an HTML-formatted copy of the data "
+                             "dictionary")
     args = parser.parse_args()
 
     if not args.configfilename:
         parser.print_help()
         fail()
 
+    rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
+    LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+    LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+    mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
+                        level=mainloglevel)
+
     config.set(filename=args.configfilename, include_sources=False)
 
-    # print(test_query_output())
-    print(test_show_fields())
-    print("is_mysql_access_read_only: {}".format(
-        is_mysql_access_read_only(config.destdb)))
+    # For a MySQL database: do I have write permissions or not?
+    # Since we're going to allow (with considerable wariness) unrestricted SQL,
+    # we should at least check that the user can't destroy everything.
+    logger.info("is_read_only: {}".format(config.destdb.is_read_only()))
+
+    if args.datadictionary:
+        print(test_show_fields())
+    else:
+        print(test_query_output())
 
 
 # =============================================================================
@@ -791,7 +781,7 @@ def main_http_processor(env):
     # -------------------------------------------------------------------------
     # Check we don't have dangerous access
     # -------------------------------------------------------------------------
-    if not is_mysql_access_read_only(config.destdb):
+    if not config.destdb.is_read_only():
         pass  # ***
 
     # -------------------------------------------------------------------------

@@ -35,7 +35,6 @@ import calendar
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.INFO)
 import regex  # sudo apt-get install python-regex
 
 

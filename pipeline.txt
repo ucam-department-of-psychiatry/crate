@@ -498,3 +498,16 @@ A.  MySQL v5.6 is required to use FULLTEXT indexes with InnoDB tables (as
 
         sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
             mysql-client-5.6 mysql-client-core-5.6
+
+-------------------------------------------------------------------------------
+Q.  How to search with FULLTEXT indexes?
+-------------------------------------------------------------------------------
+
+A.  In conventional SQL, you would use:
+        ... WHERE field LIKE '%word%'
+
+    In a field having a MySQL FULLTEXT index, you can use:
+        ... WHERE MATCH(field) AGAINST ('word')
+
+    There are several variants.
+    See https://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html

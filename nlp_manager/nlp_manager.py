@@ -67,10 +67,7 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
-LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
-logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT)
-logger = logging.getLogger("nlp_manager")
+logger = logging.getLogger(__name__)
 
 import argparse
 import codecs
@@ -1257,6 +1254,11 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         debug=(args.verbose >= 1)
     )
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
+    LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+    LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+    mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
+                        level=mainloglevel)
 
     # Report args
     logger.debug("arguments: {}".format(args))

@@ -34,7 +34,6 @@ import email.utils
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.DEBUG)
 import os
 import re
 import smtplib
@@ -188,6 +187,7 @@ def get_email_domain(email):
 
 if __name__ == '__main__':
     logging.basicConfig()
+    logger.setLevel(logging.DEBUG)
     parser = argparse.ArgumentParser(
         description="Send an e-mail from the command line.")
     parser.add_argument("sender", action="store",

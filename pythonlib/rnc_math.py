@@ -32,7 +32,6 @@ from __future__ import division, print_function, absolute_import
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.WARNING)
 import numpy as np
 import sys
 

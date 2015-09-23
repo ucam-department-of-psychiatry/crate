@@ -120,11 +120,7 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
-LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
-logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT)
-logger = logging.getLogger("anonymise")
-
+logger = logging.getLogger(__name__)
 import argparse
 import logging
 import multiprocessing
@@ -155,6 +151,7 @@ from anon_constants import (
     SEP,
     SRCFLAG,
 )
+import anon_dd
 from anon_regex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
@@ -1824,12 +1821,19 @@ Sample usage (having set PYTHONPATH):
         mynames.append(args.processcluster)
     if args.nprocesses > 1:
         mynames.append("process {}".format(args.process))
+    LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+    LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+    mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
+                        level=mainloglevel)
     rnc_log.reset_logformat_timestamped(
         logger,
         extraname=" ".join(mynames),
-        debug=(args.verbose >= 1)
+        level=mainloglevel
     )
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
+    anon_config.logger.setLevel(mainloglevel)
+    anon_dd.logger.setLevel(mainloglevel)
 
     # Load/validate config
     config.set(filename=args.configfile, load_dd=(not args.draftdd),

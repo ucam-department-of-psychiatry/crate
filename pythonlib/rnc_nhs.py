@@ -28,7 +28,6 @@ import re
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.INFO)
 import six
 
 WHITESPACE_REGEX = re.compile('\s')

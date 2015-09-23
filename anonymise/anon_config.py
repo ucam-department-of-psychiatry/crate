@@ -40,7 +40,6 @@ import dateutil.tz
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.INFO)
 import os
 import pytz
 import urllib
@@ -1117,11 +1116,10 @@ class Config(object):
                 raise ValueError("Source database can't be the same as "
                                  "destination or admin database")
             self.src_db_names.append(sourcedb_name)
-            if not include_sources:
-                continue
-            self.sources[sourcedb_name] = self.get_database(sourcedb_name)
             self.srccfg[sourcedb_name] = DatabaseSafeConfig(
                 parser, sourcedb_name)
+            if include_sources:
+                self.sources[sourcedb_name] = self.get_database(sourcedb_name)
 
         # Hashers
         self.primary_pid_hasher = None
