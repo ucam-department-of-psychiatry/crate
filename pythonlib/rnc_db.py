@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 19 May 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -143,27 +143,6 @@ JDBC types:
 # Imports
 # =============================================================================
 
-try:
-    import pyodbc  # sudo apt-get install python-pyodbc
-    PYODBC_AVAILABLE = True
-except:
-    PYODBC_AVAILABLE = False
-
-try:
-    import MySQLdb  # sudo apt-get install python-mysqldb
-    import MySQLdb.converters
-    import _mysql
-    MYSQLDB_AVAILABLE = True
-except:
-    MYSQLDB_AVAILABLE = False
-
-try:
-    import jaydebeapi  # sudo pip install jaydebeapi
-    import jpype
-    JDBC_AVAILABLE = True
-except:
-    JDBC_AVAILABLE = False
-
 import binascii
 import datetime
 import re
@@ -171,8 +150,44 @@ import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 logger.setLevel(logging.INFO)
+import six
+from six.moves import range
 import time
 
+# 1. An ODBC driver
+try:
+    import pyodbc  # Python 2: "sudo pip install pyodbc"; Python 3: "sudo pip3 install pyodbc"  # noqa
+    PYODBC_AVAILABLE = True
+except:
+    PYODBC_AVAILABLE = False
+
+# 2. A JDBC driver
+try:
+    import jaydebeapi  # Python 2: "sudo pip install jaydebeapi"; Python 3: "sudo pip3 install jaydebeapi"  # noqa
+    import jpype
+    JDBC_AVAILABLE = True
+except:
+    JDBC_AVAILABLE = False
+
+# 3. A direct MySQL driver
+try:
+    import pymysql  # Python 2: "sudo pip install PyMySQL"; Python 3: "sudo pip3 install PyMySQL"  # noqa
+    # pymysql.converters is automatically available now
+    mysql = pymysql
+    PYMYSQL_AVAILABLE = True
+except:
+    PYMYSQL_AVAILABLE = False
+
+MYSQLDB_AVAILABLE = False
+if not PYMYSQL_AVAILABLE:
+    try:
+        import MySQLdb  # Python 2 (Debian): "sudo apt-get install python-mysqldb"  # noqa
+        import MySQLdb.converters  # needs manual import
+        import _mysql
+        mysql = MySQLdb
+        MYSQLDB_AVAILABLE = True
+    except:
+        pass
 
 # =============================================================================
 # Constants
@@ -181,15 +196,25 @@ import time
 _QUERY_VALUE_REGEX = re.compile("\?", re.MULTILINE)
 _PERCENT_REGEX = re.compile("%", re.MULTILINE)
 LINE_EQUALS = "=" * 79
-MSG_PYODBC_UNAVAILABLE = "Python pyodbc module not available"
-MSG_MYSQLDB_UNAVAILABLE = "Python MySQLdb module not available"
-MSG_JDBC_UNAVAILABLE = "Python jaydebeapi module not available"
+
+ENGINE_ACCESS = "access"
 ENGINE_MYSQL = "mysql"
 ENGINE_SQLSERVER = "sqlserver"
-ENGINE_ACCESS = "access"
-INTERFACE_MYSQLDB = "mysqldb"
-INTERFACE_ODBC = "odbc"
-INTERFACE_JDBC = "jdbc"
+
+INTERFACE_JDBC = "jdbc"  # Java Database Connectivity
+INTERFACE_MYSQL = "mysql"  # Direct e.g. TCP/IP connection to a MySQL instance
+INTERFACE_ODBC = "odbc"  # Open Database Connectivity
+
+PYTHONLIB_JAYDEBEAPI = "jaydebeapi"
+PYTHONLIB_MYSQLDB = "mysqldb"
+PYTHONLIB_PYMYSQL = "pymysql"
+PYTHONLIB_PYODBC = "pyodbc"
+
+MSG_JDBC_UNAVAILABLE = "Python jaydebeapi module not available"
+MSG_MYSQL_DRIVERS_UNAVAILABLE = (
+    "Python PyMySQL (Python 2/3) and MySQLdb (Python 2) modules unavailable")
+MSG_PYODBC_UNAVAILABLE = "Python pyodbc module not available"
+
 MYSQL_JDBC_ERROR_HELP = """
 
     If you get:
@@ -379,16 +404,16 @@ def debug_object(obj):
     """Prints key/value pairs for an object's dictionary."""
     pairs = []
     for k, v in vars(obj).items():
-        pairs.append("{}={}".format(unicode(k), unicode(v)))
-    return ", ".join(pairs)
+        pairs.append(u"{}={}".format(k, v))
+    return u", ".join(pairs)
 
 
 def dump_database_object(obj, fieldlist):
     """Prints key/value pairs for an object's dictionary."""
     logger.info(LINE_EQUALS)
-    logger.info("DUMP OF: " + unicode(obj))
+    logger.info(u"DUMP OF: {}".format(obj))
     for f in fieldlist:
-        logger.info(f + ": " + unicode(getattr(obj, f)))
+        logger.info(u"{f}: {v}".format(f=f, v=getattr(obj)))
     logger.info(LINE_EQUALS)
 
 
@@ -398,7 +423,7 @@ def assign_from_list(obj, fieldlist, valuelist):
     if len(fieldlist) != len(valuelist):
         raise AssertionError("assign_from_list: fieldlist and valuelist of "
                              "different length")
-    for i in xrange(len(valuelist)):
+    for i in range(len(valuelist)):
         setattr(obj, fieldlist[i], valuelist[i])
 
 
@@ -411,7 +436,7 @@ def blank_object(obj, fieldlist):
 def debug_query_result(rows):
     """Writes a query result to the logger."""
     logger.info("Retrieved {} rows".format(len(rows)))
-    for i in xrange(len(rows)):
+    for i in range(len(rows)):
         logger.info("Row {}: {}".format(i, rows[i]))
 
 
@@ -592,7 +617,7 @@ def _convert_java_binary(rs, col):
         #     return
         # l = len(java_val)
         # v = bytearray(l)
-        # for i in xrange(l):
+        # for i in range(l):
         #     v[i] = java_val[i] % 256
         # ---------------------------------------------------------------------
         # Method 3: 3578880 bytes in 20.1435189247 seconds =   177 kB/s
@@ -715,8 +740,8 @@ def create_database_mysql(database,
                           charset="utf8",
                           collate="utf8_general_ci",
                           use_unicode=True):
-    """Connects via MySQLdb and creates a database."""
-    con = MySQLdb.connect(
+    """Connects via PyMySQL/MySQLdb and creates a database."""
+    con = mysql.connect(
         host=server,
         port=port,
         user=user,
@@ -747,8 +772,8 @@ def add_master_user_mysql(database,
                           charset="utf8",
                           use_unicode=True,
                           localhost_only=True):
-    """Connects via MySQLdb and creates a database superuser."""
-    con = MySQLdb.connect(
+    """Connects via PyMySQL/MySQLdb and creates a database superuser."""
+    con = mysql.connect(
         host=server,
         port=port,
         user=root_user,
@@ -815,12 +840,13 @@ class DatabaseConfig(object):
         if self.engine not in [ENGINE_MYSQL, ENGINE_SQLSERVER]:
             raise ValueError("Unknown database engine: {}".format(self.engine))
         if not self.interface:
-            self.interface = (INTERFACE_MYSQLDB
-                              if self.engine == ENGINE_MYSQL
-                              else INTERFACE_ODBC)
-        if self.interface not in [INTERFACE_MYSQLDB,
-                                  INTERFACE_ODBC,
-                                  INTERFACE_JDBC]:
+            if self.engine == ENGINE_MYSQL:
+                self.interface = INTERFACE_MYSQL
+            else:
+                self.interface = INTERFACE_ODBC
+        if self.interface not in [INTERFACE_JDBC,
+                                  INTERFACE_MYSQL,
+                                  INTERFACE_ODBC]:
             raise ValueError("Unknown interface: {}".format(self.interface))
         if self.engine == ENGINE_MYSQL:
             if (not self.host or not self.port or not self.user or not
@@ -889,9 +915,6 @@ class DatabaseSupporter:
     FLAVOUR_SQLSERVER = "sqlserver"
     FLAVOUR_MYSQL = "mysql"
     FLAVOUR_ACCESS = "access"
-    PYTHONLIB_MYSQLDB = "mysqldb"
-    PYTHONLIB_PYODBC = "pyodbc"
-    PYTHONLIB_JAYDEBEAPI = "jaydebeapi"
     MYSQL_COLUMN_TYPE_EXPR = "column_type"
     SQLSERVER_COLUMN_TYPE_EXPR = """
         (CASE
@@ -972,7 +995,7 @@ class DatabaseSupporter:
         # Default interface
         if interface is None:
             if engine == ENGINE_MYSQL:
-                interface = INTERFACE_MYSQLDB
+                interface = INTERFACE_MYSQL
             else:
                 interface = INTERFACE_ODBC
 
@@ -1007,14 +1030,17 @@ class DatabaseSupporter:
         # ---------------------------------------------------------------------
         # Interface-specific tasks:
         # ---------------------------------------------------------------------
-        if interface == INTERFACE_MYSQLDB:
-            if not MYSQLDB_AVAILABLE:
-                raise ImportError(MSG_MYSQLDB_UNAVAILABLE)
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_MYSQLDB
+        if interface == INTERFACE_MYSQL:
+            if PYMYSQL_AVAILABLE:
+                self.db_pythonlib = PYTHONLIB_PYMYSQL
+            elif MYSQLDB_AVAILABLE:
+                self.db_pythonlib = PYTHONLIB_MYSQLDB
+            else:
+                raise ImportError(MSG_MYSQL_DRIVERS_UNAVAILABLE)
         elif interface == INTERFACE_ODBC:
             if not PYODBC_AVAILABLE:
                 raise ImportError(MSG_PYODBC_UNAVAILABLE)
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_PYODBC
+            self.db_pythonlib = PYTHONLIB_PYODBC
         elif interface == INTERFACE_JDBC:
             if not JDBC_AVAILABLE:
                 raise ImportError(MSG_JDBC_UNAVAILABLE)
@@ -1026,15 +1052,15 @@ class DatabaseSupporter:
             #     raise ValueError("Missing database parameter")
             if user is None:
                 raise ValueError("Missing user parameter")
-            self.db_pythonlib = DatabaseSupporter.PYTHONLIB_JAYDEBEAPI
+            self.db_pythonlib = PYTHONLIB_JAYDEBEAPI
         else:
             raise ValueError("Unknown interface")
 
         # ---------------------------------------------------------------------
         # Connect
         # ---------------------------------------------------------------------
-        if engine == ENGINE_MYSQL and interface == INTERFACE_MYSQLDB:
-            # Connects to a MySQL database via MySQLdb.
+        if engine == ENGINE_MYSQL and interface == INTERFACE_MYSQL:
+            # Connects to a MySQL database via MySQLdb/PyMySQL.
             # http://dev.mysql.com/doc/refman/5.1/en/connector-odbc-configuration-connection-parameters.html  # noqa
             # http://code.google.com/p/pyodbc/wiki/ConnectionStrings
 
@@ -1045,15 +1071,15 @@ class DatabaseSupporter:
             #   '2014-01-03 18:15:51.842097+00:00'.
             # Let's fix that...
             DateTimeType = datetime.datetime  # as per MySQLdb times.py
-            converters = MySQLdb.converters.conversions.copy()
+            converters = mysql.converters.conversions.copy()
             converters[DateTimeType] = DateTime2literal_RNC
             # See also:
             #   http://stackoverflow.com/questions/11053941
             logger.info(
-                "mysqldb connect: host={h}, port={p}, user={u}, "
+                "{i} connect: host={h}, port={p}, user={u}, "
                 "database={d}".format(
-                    h=host, p=port, u=user, d=database))
-            self.db = MySQLdb.connect(
+                    i=interface, h=host, p=port, u=user, d=database))
+            self.db = mysql.connect(
                 host=host,
                 port=port,
                 user=user,
@@ -1107,7 +1133,7 @@ class DatabaseSupporter:
             jars = None
             libs = None
             logger.info(
-                "jdbc connect: jclassname={jclassname}, "
+                "JDBC connect: jclassname={jclassname}, "
                 "url={url}, user={user}, password=[censored]".format(
                     jclassname=jclassname,
                     url=url,
@@ -1162,11 +1188,11 @@ class DatabaseSupporter:
             # it's fetched a VARBINARY(MAX) field.
             nvp['selectMethod'] = 'cursor'  # trying this; default is 'direct'
             url = urlstem + ';'.join(
-                '{}={}'.format(x, y) for x, y in nvp.iteritems())
+                '{}={}'.format(x, y) for x, y in six.iteritems(nvp))
 
             nvp['password'] = '[censored]'
             url_censored = urlstem + ';'.join(
-                '{}={}'.format(x, y) for x, y in nvp.iteritems())
+                '{}={}'.format(x, y) for x, y in six.iteritems(nvp))
             logger.info(
                 'jdbc connect: jclassname={jclassname}, url = {url}'.format(
                     jclassname=jclassname,
@@ -1228,7 +1254,7 @@ class DatabaseSupporter:
         self.db.jconn.setAutoCommit(autocommit)
 
     # -------------------------------------------------------------------------
-    # MySQLdb
+    # MySQLdb / PyMySQL
     # -------------------------------------------------------------------------
 
     def connect_to_database_mysql(self,
@@ -1240,15 +1266,15 @@ class DatabaseSupporter:
                                   charset="utf8",
                                   use_unicode=True,
                                   autocommit=True):
-        self.connect(engine=ENGINE_MYSQL, interface=INTERFACE_MYSQLDB,
+        self.connect(engine=ENGINE_MYSQL, interface=INTERFACE_MYSQL,
                      database=database, user=user, password=password,
                      host=server, port=port, charset=charset,
                      use_unicode=use_unicode, autocommit=autocommit)
 
     def ping(self):
         """Pings a database connection, reconnecting if necessary."""
-        if (self.db is None
-                or self.db_pythonlib != DatabaseSupporter.PYTHONLIB_MYSQLDB):
+        if self.db is None or self.db_pythonlib not in [PYTHONLIB_MYSQLDB,
+                                                        PYTHONLIB_PYMYSQL]:
             return
         try:
             self.db.ping(True)  # test connection; reconnect upon failure
@@ -1259,7 +1285,7 @@ class DatabaseSupporter:
             #   (2006, 'MySQL server has gone away')
             # http://mail.python.org/pipermail/python-list/2008-February/
             #        474598.html
-        except MySQLdb.OperationalError:  # loss of connection
+        except mysql.OperationalError:  # loss of connection
             self.db = None
             self.connect_to_database_mysql(
                 self._database, self._user, self._password, self._server,
@@ -1403,7 +1429,7 @@ class DatabaseSupporter:
         n = len(valuedict)
         fields = []
         args = []
-        for f, v in valuedict.iteritems():
+        for f, v in six.iteritems(valuedict):
             fields.append(self.delimit(f))
             args.append(v)
         query = """
@@ -1496,9 +1522,12 @@ class DatabaseSupporter:
         query = self.localize_sql(query)
         # Now into the back end:
         # See cursors.py, connections.py in MySQLdb source.
-        charset = self.db.character_set_name()
-        if isinstance(query, unicode):
-            query = query.encode(charset)
+
+        # charset = self.db.character_set_name()
+        # if isinstance(query, unicode):
+        #     query = query.encode(charset)
+        # Don't get them double-encoded:
+        #   http://stackoverflow.com/questions/6202726/writing-utf-8-string-to-mysql-with-python  # noqa
         if args is not None:
             query = query % self.db.literal(args)
         return query
@@ -1612,7 +1641,7 @@ class DatabaseSupporter:
 
         For example, MySQLdb uses %s rather than ?.
         """
-        if self.db_pythonlib == DatabaseSupporter.PYTHONLIB_MYSQLDB:
+        if self.db_pythonlib == PYTHONLIB_MYSQLDB:
             # pyodbc seems happy with ? now (pyodbc.paramstyle is 'qmark');
             # this is much simpler, because we may want to use % with LIKE
             # fields or (in my case) with date formatting strings for
@@ -2316,7 +2345,7 @@ class DatabaseSupporter:
         # http://docs.oracle.com/javase/7/docs/api/java/lang/Runtime.html
         if not JDBC_AVAILABLE:
             return
-        if self.db_pythonlib != DatabaseSupporter.PYTHONLIB_JAYDEBEAPI:
+        if self.db_pythonlib != PYTHONLIB_JAYDEBEAPI:
             return
         logger.info("Calling Java garbage collector...")
         rt = jpype.java.lang.Runtime.getRuntime()

@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2012
-Last update: 22 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -42,7 +42,7 @@ def get_pipe_series_output(commands, stdinput=None):
 
     # print commands
     processes = []
-    for i in xrange(len(commands)):
+    for i in range(len(commands)):
         if i == 0:  # first processes
             processes.append(
                 subprocess.Popen(

@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2011
-Last update: 26 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -48,6 +48,7 @@ See
 
 """
 
+from __future__ import division, print_function, absolute_import
 import ctypes
 import os.path
 import platform
@@ -135,11 +136,11 @@ def create_and_register_access_db(filename, dsn, description):
 
 if __name__ == "__main__":
     if platform.system() != "Windows":
-        print "Only Windows supported."
+        print("Only Windows supported.")
         sys.exit()
     if create_and_register_access_db("testaccessdb.mdb",
                                      "Test_Access_DB",
                                      "My test Access DB DSN"):
-        print "DSN created"
+        print("DSN created")
     else:
-        print "DSN not created"
+        print("DSN not created")

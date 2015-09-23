@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 # -*- encoding: utf8 -*-
 
 """whisker.py: Support functions for Whisker clients.
@@ -7,7 +7,7 @@ http://egret.psychol.cam.ac.uk/pythonlib/whisker.py
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 18 Aug 2011
-Last update: 26 Feb 2015
+Last update: 21 Sep 2015
 
 TO IMPORT REMOTELY:
     http://stackoverflow.com/questions/3799545/dynamically-importing-python-module  # noqa
@@ -43,7 +43,7 @@ Copyright/licensing:
 # =============================================================================
 
 # Python Standard Library:
-from __future__ import print_function
+from __future__ import division, print_function, absolute_import
 import logging
 import re
 import socket

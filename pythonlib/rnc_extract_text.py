@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 
 """
 Converts a bunch of stuff to text, either from external files or from in-memory
@@ -11,7 +11,7 @@ Prerequisites:
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: Feb 2015
-Last update: 31 Mar 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -50,7 +50,7 @@ See also:
 # Imports
 # =============================================================================
 
-from __future__ import print_function
+from __future__ import division, print_function, absolute_import
 import argparse
 import bs4  # sudo apt-get install python-bs4
 # import cStringIO
@@ -63,6 +63,7 @@ import os
 # import pdfminer.pdfpage   # sudo pip install pdfminer
 # import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
 # import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
+import six
 import subprocess
 import sys
 import xml.etree
@@ -91,32 +92,35 @@ def get_filelikeobject(filename=None, blob=None):
     if filename and blob:
         raise ValueError("specify either filename or blob")
     if filename:
-        return open(filename, 'r')
+        return open(filename, 'rb')
     else:
         return io.BytesIO(blob)
 
 
 def get_file_contents(filename=None, blob=None):
+    """Returns binary contents of a file, or blob."""
     if not filename and not blob:
         raise ValueError("no filename and no blob")
     if filename and blob:
         raise ValueError("specify either filename or blob")
     if blob:
         return blob
-    with open(filename, 'r') as f:
+    with open(filename, 'rb') as f:
         return f.read()
 
 
-def get_cmd_output(*args):
+def get_cmd_output(encoding=ENCODING, *args):
+    """Returns text output of a command."""
     p = subprocess.Popen(args, stdout=subprocess.PIPE)
     stdout, stderr = p.communicate()
-    return stdout.decode(ENCODING, errors='ignore')
+    return stdout.decode(encoding, errors='ignore')
 
 
-def get_cmd_output_from_stdin(stdin_content, *args):
+def get_cmd_output_from_stdin(stdint_content_binary, encoding=ENCODING, *args):
+    """Returns text output of a command, passing binary data in via stdin."""
     p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    stdout, stderr = p.communicate(input=stdin_content)
-    return stdout.decode(ENCODING, errors='ignore')
+    stdout, stderr = p.communicate(input=stdint_content_binary)
+    return stdout.decode(encoding, errors='ignore')
 
 
 # =============================================================================
@@ -315,7 +319,7 @@ def main():
     result = document_to_text(filename=args.inputfile)
     if result is None:
         return
-    elif isinstance(result, unicode):
+    elif isinstance(result, six.text_type):
         print(result.encode(ENCODING))
     else:
         print(result)

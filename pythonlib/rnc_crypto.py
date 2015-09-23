@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 22 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -66,18 +66,16 @@ def is_password_valid(plaintextpw, storedhash):
 
     Uses bcrypt. The stored hash includes its own incorporated salt.
     """
+    # Upon CamCOPS from MySQL 5.5.34 (Ubuntu) to 5.1.71 (CentOS 6.5), the
+    # VARCHAR was retrieved as Unicode. We needed to convert that to a str.
+    # For Python 3 compatibility, we just str-convert everything, avoiding the
+    # unicode keyword, which no longer exists.
     if storedhash is None:
         storedhash = ""
-    if isinstance(storedhash, unicode):
-        # Became necessary upon downgrade of CamCOPS from MySQL 5.5.34 (Ubuntu)
-        # to 5.1.71 (CentOS 6.5); the VARCHAR was retrieved as Unicode.
-        storedhash = str(storedhash)
-
+    storedhash = str(storedhash)
     if plaintextpw is None:
         plaintextpw = ""
-    if isinstance(plaintextpw, unicode):
-        plaintextpw = str(plaintextpw)
-
+    plaintextpw = str(plaintextpw)
     try:
         h = bcrypt.hashpw(plaintextpw, storedhash)
     except ValueError:  # e.g. ValueError: invalid salt
@@ -117,6 +115,7 @@ class SHA512Hasher(GenericHasher):
 if False:
     TEST_NO_COLLISIONS = """
 import hashlib
+from six.moves import range
 
 class MD5Hasher(object):
     def __init__(self, salt):
@@ -130,7 +129,7 @@ MAX_PID_NUM = int(MAX_PID_STR)
 # sets are MUCH, MUCH faster than lists for "have-I-seen-it" tests
 hasher = MD5Hasher("dummysalt")
 used_hashes = set()
-for i in xrange(MAX_PID_NUM):
+for i in range(MAX_PID_NUM):
     if i % 1000000 == 0:
         print("... " + str(i))
     x = hasher.hash(i)

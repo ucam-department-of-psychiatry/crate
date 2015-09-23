@@ -2,6 +2,8 @@
 # -*- encoding: utf8 -*-
 
 # Based on: http://pyod.googlecode.com/hg/Gzipper.py
+# Modified to use six.StringIO instead of cStringIO.StringIO()
+# Latest changes: 21 Sep 2015
 
 '''
     A WSGI middleware application that automatically gzips output
@@ -30,7 +32,7 @@
 
 
 from gzip import GzipFile
-import cStringIO
+import six
 
 
 __version__ = '1.0.1'
@@ -40,7 +42,7 @@ def compress(data, compression_level):
     ''' The `gzip` module didn't provide a way to gzip just a string.
         Had to hack together this. I know, it isn't pretty.
     '''
-    buf = cStringIO.StringIO()
+    buf = six.StringIO()
     gz_file = GzipFile(None, 'wb', compression_level, buf)
     gz_file.write(data)
     gz_file.close()

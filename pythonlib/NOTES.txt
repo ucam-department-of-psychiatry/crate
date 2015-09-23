@@ -1,0 +1,14 @@
+Python 2/3 compatibility:
+
+- http://python-future.org/compatible_idioms.html
+- http://nipy.org/dipy/devel/python3.html
+- the 2to3 tool
+- https://docs.python.org/3.3/howto/pyporting.html
+- https://pythonhosted.org/six/
+    ... Ubuntu packages: python-six python3-six
+- http://python3porting.com/differences.html
+
+Checkers:
+- pep8 FILE  # Cosmetics
+- pyflakes FILE  # Python 2
+- python3 -m pyflakes FILE  # Python 3

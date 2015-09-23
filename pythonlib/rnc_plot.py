@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2013
-Last update: 22 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -26,6 +26,9 @@ Copyright/licensing:
 
 import io
 import numpy
+import sys
+if sys.version_info > (3,):
+    buffer = memoryview
 
 import rnc_web
 
@@ -62,7 +65,7 @@ def svg_html_from_pyplot_figure(fig):
         return ""
     memfile = io.BytesIO()  # StringIO doesn't like mixing str/unicode
     fig.savefig(memfile, format="svg")
-    return unicode(memfile.getvalue(), "utf-8")
+    return memfile.getvalue().decode("utf-8")  # returns a text/Unicode type
     # SVG works directly in HTML; it returns <svg ...></svg>
 
 

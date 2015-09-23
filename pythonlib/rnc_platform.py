@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2013
-Last update: 22 Feb 2015
+Last update: 21 Sep 2015
 
 Copyright/licensing:
 
@@ -25,6 +25,8 @@ Copyright/licensing:
 """
 
 import codecs
+import six
+from six.moves import reload_module
 import sys
 
 
@@ -34,7 +36,9 @@ import sys
 # http://stackoverflow.com/questions/5419
 
 def fix_windows_utf8_output():
-    reload(sys)
+    if six.PY3:
+        return
+    reload_module(sys)
     sys.setdefaultencoding('utf-8')
     # print sys.getdefaultencoding()
 
@@ -64,8 +68,8 @@ def fix_windows_utf8_output():
 
 
 def test_windows_utf8_output():
-    print ("This is an Е乂αmp١ȅ testing Unicode support using Arabic, Latin, "
-           "Cyrillic, Greek, Hebrew and CJK code points.\n")
+    print(u"This is an Е乂αmp١ȅ testing Unicode support using Arabic, Latin, "
+          u"Cyrillic, Greek, Hebrew and CJK code points.\n")
 
 
 if __name__ == '__main__':
