@@ -73,7 +73,7 @@ def reset_logformat_timestamped(logger, extraname="", level=logging.INFO):
     namebit = extraname + ":" if extraname else ""
     fmt = ("%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:" + namebit +
            "%(message)s")
-    logger.info(fmt)
+    # logger.info(fmt)
     reset_logformat(logger, fmt=fmt)
-    logger.info(fmt)
+    # logger.info(fmt)
     logger.setLevel(level)
