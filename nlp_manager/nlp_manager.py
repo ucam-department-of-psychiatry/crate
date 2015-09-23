@@ -1094,7 +1094,7 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
     for ot in config.outputtypemap.values():
         db = config.databases[ot.destdb]
         t = ot.desttable
-        fancy_ok = (db.db_flavour == rnc_db.DatabaseSupporter.FLAVOUR_MYSQL)
+        fancy_ok = db.is_mysql()
         # Drop
         if not incremental:
             logger.debug("dropping table {}".format(t))

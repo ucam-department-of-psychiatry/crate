@@ -632,7 +632,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
     """
     logger.debug("wipe_and_recreate_destination_db, incremental={}".format(
         incremental))
-    if destdb.db_flavour != rnc_db.DatabaseSupporter.FLAVOUR_MYSQL:
+    if not destdb.is_mysql():
         dynamic = False
         compressed = False
 
@@ -981,7 +981,7 @@ def gen_all_values_for_patient(sources, dbname, table, fields, pid):
             d=dbname, t=table, f=",".join(fields), p=pid))
     db = sources[dbname]
     sql = rnc_db.get_sql_select_all_fields_by_key(
-        table, fields, cfg.ddgen_per_table_pid_field, delims=db.delims)
+        table, fields, cfg.ddgen_per_table_pid_field, delims=db.get_delims())
     args = [pid]
     cursor = db.cursor()
     db.db_exec_with_cursor(cursor, sql, *args)

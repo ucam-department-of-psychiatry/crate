@@ -195,11 +195,21 @@ if not PYMYSQL_AVAILABLE:
 
 _QUERY_VALUE_REGEX = re.compile("\?", re.MULTILINE)
 _PERCENT_REGEX = re.compile("%", re.MULTILINE)
-LINE_EQUALS = "=" * 79
+_CONNECTION_ERROR_MSG = "Failed to connect. {ex}: {msg}"
+_LINE_EQUALS = "=" * 79
+_MSG_JDBC_UNAVAILABLE = "Python jaydebeapi module not available"
+_MSG_MYSQL_DRIVERS_UNAVAILABLE = (
+    "Python PyMySQL (Python 2/3) and MySQLdb (Python 2) modules unavailable")
+_MSG_NO_FLAVOUR = "No database flavour specified"
+_MSG_PYODBC_UNAVAILABLE = "Python pyodbc module not available"
 
 ENGINE_ACCESS = "access"
 ENGINE_MYSQL = "mysql"
 ENGINE_SQLSERVER = "sqlserver"
+
+FLAVOUR_ACCESS = ENGINE_ACCESS
+FLAVOUR_MYSQL = ENGINE_MYSQL
+FLAVOUR_SQLSERVER = ENGINE_SQLSERVER
 
 INTERFACE_JDBC = "jdbc"  # Java Database Connectivity
 INTERFACE_MYSQL = "mysql"  # Direct e.g. TCP/IP connection to a MySQL instance
@@ -210,12 +220,188 @@ PYTHONLIB_MYSQLDB = "mysqldb"
 PYTHONLIB_PYMYSQL = "pymysql"
 PYTHONLIB_PYODBC = "pyodbc"
 
-MSG_JDBC_UNAVAILABLE = "Python jaydebeapi module not available"
-MSG_MYSQL_DRIVERS_UNAVAILABLE = (
-    "Python PyMySQL (Python 2/3) and MySQLdb (Python 2) modules unavailable")
-MSG_PYODBC_UNAVAILABLE = "Python pyodbc module not available"
 
-MYSQL_JDBC_ERROR_HELP = """
+# =============================================================================
+# Database specializations
+# =============================================================================
+
+class Flavour(object):
+    @classmethod
+    def flavour(cls):
+        return ""
+
+    @classmethod
+    def delims(cls):
+        return ("[", "]")
+
+    @classmethod
+    def current_schema_expr(cls):
+        return "NULL"  # Don't know how
+
+    @classmethod
+    def column_type_expr(cls):
+        return "NULL"  # Don't know how
+
+    @classmethod
+    def jdbc_error_help(cls):
+        return ""
+
+    @classmethod
+    def get_all_table_names(cls, db):
+        """Returns all table names in the database."""
+        raise RuntimeError(_MSG_NO_FLAVOUR)
+
+    @classmethod
+    def get_all_table_details(cls, db):
+        """Returns all information the database has on a table."""
+        raise RuntimeError(_MSG_NO_FLAVOUR)
+        # works in MySQL and SQL Server
+        # SQL Server: TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
+        # ... those fields (and more) available in MySQL
+
+    @classmethod
+    def describe_table(cls, db, table):
+        """Returns details on a specific table."""
+        raise RuntimeError(_MSG_NO_FLAVOUR)
+
+    @classmethod
+    def fetch_column_names(cls, db, table):
+        """Returns all column names for a table."""
+        raise RuntimeError(_MSG_NO_FLAVOUR)
+
+    @classmethod
+    def get_datatype(cls, db, table, column):
+        """Returns database SQL datatype for a column: e.g. VARCHAR."""
+        raise RuntimeError(_MSG_NO_FLAVOUR)
+
+    @classmethod
+    def get_column_type(cls, db, table, column):
+        """Returns database SQL datatype for a column, e.g. VARCHAR(50)."""
+        raise RuntimeError(_MSG_NO_FLAVOUR)
+
+    @classmethod
+    def get_comment(cls, db, table, column):
+        """Returns database SQL comment for a column."""
+        return None
+
+    @classmethod
+    def get_system_variable(self, db, varname):
+        """Returns a database system variable."""
+        return None
+
+    @classmethod
+    def mysql_using_file_per_table(cls, db):
+        return False
+
+    @classmethod
+    def mysql_using_innodb_barracuda(cls, db):
+        return False
+
+    @classmethod
+    def mysql_table_using_barracuda(cls, db, tablename):
+        return False
+
+    @classmethod
+    def mysql_convert_table_to_barracuda(cls, db, tablename, logger=None,
+                                         compressed=False):
+        pass
+
+    @classmethod
+    def mysql_using_innodb_strict_mode(cls, db):
+        return False
+
+    @classmethod
+    def mysql_get_max_allowed_packet(cls, db):
+        return None
+
+
+# -----------------------------------------------------------------------------
+# Microsoft Access
+# -----------------------------------------------------------------------------
+class Access(Flavour):
+    @classmethod
+    def flavour(cls):
+        return FLAVOUR_ACCESS
+
+    @classmethod
+    def delims(cls):
+        return ("[", "]")
+
+    @classmethod
+    def get_all_table_names(cls, db):
+        return db.fetchallfirstvalues("""
+            SELECT MSysObjects.Name AS table_name
+            FROM MSysObjects
+            WHERE (((Left([Name],1))<>"~")
+                    AND ((Left([Name],4))<>"MSys")
+                    AND ((MSysObjects.Type) In (1,4,6)))
+            ORDER BY MSysObjects.Name
+        """)
+        # http://stackoverflow.com/questions/201282
+
+    @classmethod
+    def get_all_table_details(cls, db):
+        # returns some not-very-helpful stuff too!
+        return db.fetchall("""
+            SELECT *
+            FROM MSysObjects
+            WHERE (((Left([Name],1))<>"~")
+                    AND ((Left([Name],4))<>"MSys")
+                    AND ((MSysObjects.Type) In (1,4,6)))
+            ORDER BY MSysObjects.Name
+        """)
+
+    @classmethod
+    def describe_table(cls, db, table):
+        raise RuntimeError("Don't know how to describe table in Access")
+
+    @classmethod
+    def fetch_column_names(cls, db, table):
+        # not possible in SQL:
+        #   http://stackoverflow.com/questions/2221250
+        # can do this:
+        #   http://stackoverflow.com/questions/3343922/get-column-names
+        # or can use pyodbc:
+        db.ensure_db_open()
+        cursor = db.db.cursor()
+        sql = "SELECT TOP 1 * FROM " + db.delimit(table)
+        debug_sql(sql)
+        cursor.execute(sql)
+        return [x[0] for x in cursor.variables]
+        # https://code.google.com/p/pyodbc/wiki/Cursor
+
+    @classmethod
+    def get_datatype(cls, db, table, column):
+        raise AssertionError("Don't know how to get datatype in Access")
+
+    @classmethod
+    def get_column_type(cls, db, table, column):
+        raise AssertionError("Don't know how to get datatype in Access")
+
+
+# -----------------------------------------------------------------------------
+# MySQL
+# -----------------------------------------------------------------------------
+class MySQL(Flavour):
+    @classmethod
+    def flavour(cls):
+        return FLAVOUR_MYSQL
+
+    @classmethod
+    def delims(cls):
+        return ("`", "`")
+
+    @classmethod
+    def current_schema_expr(cls):
+        return "DATABASE()"
+
+    @classmethod
+    def column_type_expr(cls):
+        return "column_type"
+
+    @classmethod
+    def jdbc_error_help(cls):
+        return """
 
     If you get:
         java.lang.RuntimeException: Class com.mysql.jdbc.Driver not found
@@ -229,8 +415,158 @@ MYSQL_JDBC_ERROR_HELP = """
     ... under 64-bit Ubuntu, then:
         sudo apt-get install default-jre libc6-i386
 
-"""
-SQLSERVER_JDBC_ERROR_HELP = """
+        """
+
+    @classmethod
+    def get_all_table_names(cls, db):
+        return db.fetchallfirstvalues(
+            "SELECT table_name FROM information_schema.tables "
+            "WHERE table_schema=?", db.schema)
+        # or: "SHOW TABLES"
+
+    @classmethod
+    def get_all_table_details(cls, db):
+        return db.fetchall("SELECT * FROM information_schema.tables "
+                           "WHERE table_schema=?", db.schema)
+        # not restricted to current database, unless we do that manually
+
+    @classmethod
+    def describe_table(cls, db, table):
+        return db.fetchall(
+            "SELECT * FROM information_schema.columns "
+            "WHERE table_schema=? AND table_name=?", db.schema, table)
+        # or: "SHOW TABLES"
+
+    @classmethod
+    def fetch_column_names(cls, db, table):
+        return db.fetchallfirstvalues(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema=? AND table_name=?", db.schema, table)
+        # or: "SHOW TABLES"
+
+    @classmethod
+    def get_datatype(cls, db, table, column):
+        # ISO standard for INFORMATION_SCHEMA, I think.
+        return db.fetchvalue(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_schema=? AND table_name=? AND column_name=?",
+            db.schema, table, column)
+
+    @classmethod
+    def get_column_type(cls, db, table, column):
+        # ISO standard for INFORMATION_SCHEMA, I think.
+        sql = """
+            SELECT {}
+            FROM information_schema.columns
+            WHERE table_schema=? AND table_name=? AND column_name=?
+        """.format(cls.get_coltype_expr())
+        return db.fetchvalue(sql, db.schema, table, column)
+
+    @classmethod
+    def get_comment(cls, db, table, column):
+        return db.fetchvalue(
+            "SELECT column_comment FROM information_schema.columns "
+            "WHERE table_schema=? AND table_name=? AND column_name=?",
+            db.schema, table, column)
+
+    @classmethod
+    def get_system_variable(self, db, varname):
+        sql = "SELECT @@{varname}".format(varname=varname)
+        # http://dev.mysql.com/doc/refman/5.5/en/using-system-variables.html
+        return db.fetchvalue(sql)
+
+    @classmethod
+    def mysql_using_file_per_table(cls, db):
+        return cls.get_system_variable(db, "innodb_file_per_table") == 1
+
+    @classmethod
+    def mysql_using_innodb_barracuda(cls, db):
+        return cls.get_system_variable(db, "innodb_file_format") == "Barracuda"
+
+    @classmethod
+    def mysql_table_using_barracuda(cls, db, tablename):
+        if (not cls.mysql_using_file_per_table(db)
+                or not cls.mysql_using_innodb_barracuda(db)):
+            return False
+        sql = """
+            SELECT engine, row_format
+            FROM information_schema.tables
+            WHERE table_name = ?
+            AND table_schema={}
+        """.format(cls.current_schema_expr())
+        args = [tablename]
+        row = db.fetchone(sql, *args)
+        if not row:
+            return False
+        engine = row[0]
+        row_format = row[1]
+        return engine == "InnoDB" and row_format in ["Compressed", "Dynamic"]
+        # http://dev.mysql.com/doc/refman/5.6/en/innodb-file-format-identifying.html  # noqa
+
+    @classmethod
+    def mysql_convert_table_to_barracuda(cls, db, tablename, logger=None,
+                                         compressed=False):
+        row_format = "COMPRESSED" if compressed else "DYNAMIC"
+        sql = """
+            ALTER TABLE {tablename}
+            ENGINE=InnoDB
+            ROW_FORMAT={row_format}
+        """.format(
+            tablename=tablename,
+            row_format=row_format,
+        )
+        if logger:
+            logger.info(
+                "Converting table {} to Barracuda (row_format={})".format(
+                    tablename,
+                    row_format
+                )
+            )
+        db.db_exec(sql)
+        # http://dev.mysql.com/doc/refman/5.5/en/innodb-compression-usage.html
+        # http://www.percona.com/blog/2011/04/07/innodb-row-size-limitation/
+
+    @classmethod
+    def mysql_using_innodb_strict_mode(cls, db):
+        return cls.get_system_variable(db, "innodb_strict_mode") == 1
+
+    @classmethod
+    def mysql_get_max_allowed_packet(cls, db):
+        return cls.get_system_variable(db, "max_allowed_packet")
+
+
+# -----------------------------------------------------------------------------
+# SQL Server
+# -----------------------------------------------------------------------------
+class SQLServer(Flavour):
+    @classmethod
+    def flavour(cls):
+        return FLAVOUR_SQLSERVER
+
+    @classmethod
+    def delims(cls):
+        return ("[", "]")
+
+    @classmethod
+    def current_schema_expr(cls):
+        return "SCHEMA_NAME()"
+
+    @classmethod
+    def column_type_expr(cls):
+        return """
+            (CASE
+                WHEN character_maximum_length > 0
+                    THEN data_type + '(' +
+                        CAST(character_maximum_length AS VARCHAR(20)) + ')'
+                WHEN character_maximum_length = -1
+                    THEN data_type + '(MAX)'
+                ELSE data_type
+             END)
+        """
+
+    @classmethod
+    def jdbc_error_help(cls):
+        return """
 
     If you get:
         java.lang.RuntimeException: Class
@@ -242,7 +578,57 @@ SQLSERVER_JDBC_ERROR_HELP = """
     (2) [sudo] tar xvzf sqljdbc_4.1.5605.100_enu.tar.gz [-C destdir]
     (3) export CLASSPATH=$CLASSPATH:/wherever/sqljdbc_4.1/enu/sqljdbc41.jar
 
-"""
+        """
+
+    @classmethod
+    def get_all_table_names(cls, db):
+        return db.fetchallfirstvalues(
+            "SELECT table_name FROM information_schema.tables")
+
+    @classmethod
+    def get_all_table_details(cls, db):
+        return db.fetchall("SELECT * FROM information_schema.tables")
+        # restricted to current database (in full:
+        #   databasename.information_schema.tables)
+        # http://stackoverflow.com/questions/6568098
+
+    @classmethod
+    def describe_table(cls, db, table):
+        return db.fetchall(
+            "SELECT * FROM information_schema.columns "
+            "WHERE table_name=?", table)
+
+    @classmethod
+    def fetch_column_names(cls, db, table):
+        return db.fetchallfirstvalues(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name=?", table)
+
+    @classmethod
+    def get_datatype(cls, db, table, column):
+        # ISO standard for INFORMATION_SCHEMA, I think.
+        # SQL Server carries a warning but the warning may be incorrect:
+        # https://msdn.microsoft.com/en-us/library/ms188348.aspx
+        # http://stackoverflow.com/questions/917431
+        # http://sqlblog.com/blogs/aaron_bertrand/archive/2011/11/03/the-case-against-information-schema-views.aspx  # noqa
+        return db.fetchvalue(
+            "SELECT data_type FROM information_schema.columns "
+            "WHERE table_schema=? AND table_name=? AND column_name=?",
+            db.schema, table, column)
+
+    @classmethod
+    def get_column_type(cls, db, table, column):
+        # ISO standard for INFORMATION_SCHEMA, I think.
+        # SQL Server carries a warning but the warning may be incorrect:
+        # https://msdn.microsoft.com/en-us/library/ms188348.aspx
+        # http://stackoverflow.com/questions/917431
+        # http://sqlblog.com/blogs/aaron_bertrand/archive/2011/11/03/the-case-against-information-schema-views.aspx  # noqa
+        sql = """
+            SELECT {}
+            FROM information_schema.columns
+            WHERE table_schema=? AND table_name=? AND column_name=?
+        """.format(cls.get_coltype_expr())
+        return db.fetchvalue(sql, db.schema, table, column)
 
 
 # =============================================================================
@@ -410,11 +796,11 @@ def debug_object(obj):
 
 def dump_database_object(obj, fieldlist):
     """Prints key/value pairs for an object's dictionary."""
-    logger.info(LINE_EQUALS)
+    logger.info(_LINE_EQUALS)
     logger.info(u"DUMP OF: {}".format(obj))
     for f in fieldlist:
         logger.info(u"{f}: {v}".format(f=f, v=getattr(obj)))
-    logger.info(LINE_EQUALS)
+    logger.info(_LINE_EQUALS)
 
 
 def assign_from_list(obj, fieldlist, valuelist):
@@ -912,34 +1298,13 @@ def get_database_from_configparser(parser, section, securely=True):
 
 class DatabaseSupporter:
     """Support class for databases using pyodbc or MySQLdb."""
-    FLAVOUR_SQLSERVER = "sqlserver"
-    FLAVOUR_MYSQL = "mysql"
-    FLAVOUR_ACCESS = "access"
-    MYSQL_COLUMN_TYPE_EXPR = "column_type"
-    SQLSERVER_COLUMN_TYPE_EXPR = """
-        (CASE
-            WHEN character_maximum_length > 0
-                THEN data_type + '(' +
-                    CAST(character_maximum_length AS VARCHAR(20)) + ')'
-            WHEN character_maximum_length = -1
-                THEN data_type + '(MAX)'
-            ELSE data_type
-         END)
-    """
-    ACCESS_COLUMN_TYPE_EXPR = "NULL"  # don't know how
-    MYSQL_CURRENT_SCHEMA_EXPR = "DATABASE()"
-    SQLSERVER_CURRENT_SCHEMA_EXPR = "SCHEMA_NAME()"
-    ACCESS_CURRENT_SCHEMA_EXPR = "NULL"  # don't know how
-    CONNECTION_ERROR_MSG = "Failed to connect. {ex}: {msg}"
 
     def __init__(self):
         self.db = None
-        self.db_flavour = None
+        self.flavour = None
         self.db_pythonlib = None
         self.schema = None
-        self.delims = ("", "")
         self.autocommit = None
-        self.coltype_expr = ""
         # http://stackoverflow.com/questions/2901453
         # http://stackoverflow.com/questions/7311990
 
@@ -963,8 +1328,8 @@ class DatabaseSupporter:
                 user=None, password=None,
                 autocommit=True, charset="utf8", use_unicode=True):
         """
-            engine: mysql, sqlserver
-            interface: mysqldb, odbc, jdbc
+            engine: access, mysql, sqlserver
+            interface: mysql, odbc, jdbc
         """
 
         # Catch all exceptions, so the error-catcher never shows a password.
@@ -989,7 +1354,19 @@ class DatabaseSupporter:
                  user=None, password=None,
                  autocommit=True, charset="utf8", use_unicode=True):
         # Check engine
-        if engine not in [ENGINE_MYSQL, ENGINE_SQLSERVER, ENGINE_ACCESS]:
+        if engine == ENGINE_MYSQL:
+            self.flavour = MySQL()
+            self.schema = database
+        elif engine == ENGINE_SQLSERVER:
+            self.flavour = SQLServer()
+            if database:
+                self.schema = database
+            else:
+                self.schema = "dbo"  # default for SQL server
+        elif engine == ENGINE_ACCESS:
+            self.flavour = Access()
+            self.schema = "dbo"  # default for SQL server
+        else:
             raise ValueError("Unknown engine")
 
         # Default interface
@@ -1027,23 +1404,21 @@ class DatabaseSupporter:
                     "use_unicode={u}, autocommit={a}".format(
                         e=engine, i=interface, u=use_unicode, a=autocommit))
 
-        # ---------------------------------------------------------------------
-        # Interface-specific tasks:
-        # ---------------------------------------------------------------------
+        # Interface
         if interface == INTERFACE_MYSQL:
             if PYMYSQL_AVAILABLE:
                 self.db_pythonlib = PYTHONLIB_PYMYSQL
             elif MYSQLDB_AVAILABLE:
                 self.db_pythonlib = PYTHONLIB_MYSQLDB
             else:
-                raise ImportError(MSG_MYSQL_DRIVERS_UNAVAILABLE)
+                raise ImportError(_MSG_MYSQL_DRIVERS_UNAVAILABLE)
         elif interface == INTERFACE_ODBC:
             if not PYODBC_AVAILABLE:
-                raise ImportError(MSG_PYODBC_UNAVAILABLE)
+                raise ImportError(_MSG_PYODBC_UNAVAILABLE)
             self.db_pythonlib = PYTHONLIB_PYODBC
         elif interface == INTERFACE_JDBC:
             if not JDBC_AVAILABLE:
-                raise ImportError(MSG_JDBC_UNAVAILABLE)
+                raise ImportError(_MSG_JDBC_UNAVAILABLE)
             if host is None:
                 raise ValueError("Missing host parameter")
             if port is None:
@@ -1140,7 +1515,7 @@ class DatabaseSupporter:
                     user=user,
                 )
             )
-            self.jdbc_connect(jclassname, driver_args, jars, libs, autocommit)
+            self._jdbc_connect(jclassname, driver_args, jars, libs, autocommit)
 
         elif engine == ENGINE_SQLSERVER and interface == INTERFACE_ODBC:
             # SQL Server:
@@ -1203,7 +1578,7 @@ class DatabaseSupporter:
             driver_args = [url]
             jars = None
             libs = None
-            self.jdbc_connect(jclassname, driver_args, jars, libs, autocommit)
+            self._jdbc_connect(jclassname, driver_args, jars, libs, autocommit)
 
         elif engine == ENGINE_ACCESS and interface == INTERFACE_ODBC:
             dsn = "DSN={}".format(dsn)
@@ -1219,57 +1594,24 @@ class DatabaseSupporter:
                 )
             )
 
-        # ---------------------------------------------------------------------
-        # Engine-specific tasks
-        # ---------------------------------------------------------------------
-        if engine == ENGINE_MYSQL:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_MYSQL
-            self.schema = database
-        elif engine == ENGINE_SQLSERVER:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_SQLSERVER
-            if database:
-                self.schema = database
-            else:
-                self.schema = "dbo"  # default for SQL server
-        elif engine == ENGINE_ACCESS:
-            self.db_flavour = DatabaseSupporter.FLAVOUR_ACCESS
-            self.schema = "dbo"  # default for SQL server
-        else:
-            raise Exception("bug")
-        self.set_for_engine()
-
         return True
 
-    def jdbc_connect(self, jclassname, driver_args, jars, libs,
-                     autocommit):
+    def _jdbc_connect(self, jclassname, driver_args, jars, libs,
+                      autocommit):
         try:
             self.db = jaydebeapi.connect(jclassname, driver_args, jars=jars,
                                          libs=libs)
             # ... which should have had its connectors altered by
             #     reconfigure_jaydebeapi()
         except Exception as e:
-            logger.error(MYSQL_JDBC_ERROR_HELP)
+            logger.error(self.flavour.jdbc_error_help())
             self.reraise_connection_exception(e)
         # http://almostflan.com/2012/03/01/turning-off-autocommit-in-jaydebeapi/  # noqa
         self.db.jconn.setAutoCommit(autocommit)
 
     # -------------------------------------------------------------------------
-    # MySQLdb / PyMySQL
+    # ping
     # -------------------------------------------------------------------------
-
-    def connect_to_database_mysql(self,
-                                  database,
-                                  user,
-                                  password,
-                                  server="localhost",
-                                  port=3306,
-                                  charset="utf8",
-                                  use_unicode=True,
-                                  autocommit=True):
-        self.connect(engine=ENGINE_MYSQL, interface=INTERFACE_MYSQL,
-                     database=database, user=user, password=password,
-                     host=server, port=port, charset=charset,
-                     use_unicode=use_unicode, autocommit=autocommit)
 
     def ping(self):
         """Pings a database connection, reconnecting if necessary."""
@@ -1292,8 +1634,22 @@ class DatabaseSupporter:
                 self._port, self._charset, self._use_unicode)  # reconnect
 
     # -------------------------------------------------------------------------
-    # pyodbc
+    # Specific connection methods
     # -------------------------------------------------------------------------
+
+    def connect_to_database_mysql(self,
+                                  database,
+                                  user,
+                                  password,
+                                  server="localhost",
+                                  port=3306,
+                                  charset="utf8",
+                                  use_unicode=True,
+                                  autocommit=True):
+        self.connect(engine=ENGINE_MYSQL, interface=INTERFACE_MYSQL,
+                     database=database, user=user, password=password,
+                     host=server, port=port, charset=charset,
+                     use_unicode=use_unicode, autocommit=autocommit)
 
     def connect_to_database_odbc_mysql(self,
                                        database,
@@ -1336,21 +1692,14 @@ class DatabaseSupporter:
     # Engine configurations
     # -------------------------------------------------------------------------
 
-    def set_for_engine(self):
-        if self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
-            self.delims = ("`", "`")
-            self.coltype_expr = DatabaseSupporter.MYSQL_COLUMN_TYPE_EXPR
-            self.schema_expr = DatabaseSupporter.MYSQL_CURRENT_SCHEMA_EXPR
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
-            self.delims = ("[", "]")
-            self.coltype_expr = DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR
-            self.schema_expr = DatabaseSupporter.SQLSERVER_CURRENT_SCHEMA_EXPR
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            self.delims = ("[", "]")
-            self.coltype_expr = DatabaseSupporter.ACCESS_COLUMN_TYPE_EXPR
-            self.schema_expr = DatabaseSupporter.ACCESS_CURRENT_SCHEMA_EXPR
-        else:
-            pass
+    def get_coltype_expr(self):
+        return self.flavour.column_type_expr()
+
+    def get_current_schema_expr(self):
+        return self.flavour.current_schema_expr()
+
+    def get_delims(self):
+        return self.flavour.delims()
 
     # -------------------------------------------------------------------------
     # Generic SQL and database operations
@@ -1358,7 +1707,7 @@ class DatabaseSupporter:
     # Thus fieldlist[0] means the PK name,
     # and fieldlist[1:] means all non-PK fields
     # -------------------------------------------------------------------------
-
+    
     def is_open(self):
         """Is the database open?"""
         return self.db is not None
@@ -1370,7 +1719,7 @@ class DatabaseSupporter:
 
     def delimit(self, x):
         """Delimits e.g. a fieldname."""
-        return delimit(x, self.delims)
+        return delimit(x, self.get_delims())
 
     def commit(self):
         """Commits the transaction."""
@@ -1392,9 +1741,9 @@ class DatabaseSupporter:
         if len(fields) != len(values):
             raise AssertionError("Field/value mismatch")
         if update_on_duplicate_key:
-            sql = get_sql_insert_or_update(table, fields, self.delims)
+            sql = get_sql_insert_or_update(table, fields, self.get_delims())
         else:
-            sql = get_sql_insert(table, fields, self.delims)
+            sql = get_sql_insert(table, fields, self.get_delims())
         sql = self.localize_sql(sql)
         new_pk = None
         logger.debug("About to insert_record with SQL template: " + sql)
@@ -1460,7 +1809,8 @@ class DatabaseSupporter:
         fieldnames and the list of records (each a list of values).
         Returns number of rows affected."""
         self.ensure_db_open()
-        sql = self.localize_sql(get_sql_insert(table, fields, self.delims))
+        sql = self.localize_sql(get_sql_insert(table, fields,
+                                               self.get_delims()))
         logger.debug("About to insert multiple records with SQL template: "
                      + sql)
         try:
@@ -1641,18 +1991,21 @@ class DatabaseSupporter:
 
         For example, MySQLdb uses %s rather than ?.
         """
-        if self.db_pythonlib == PYTHONLIB_MYSQLDB:
-            # pyodbc seems happy with ? now (pyodbc.paramstyle is 'qmark');
-            # this is much simpler, because we may want to use % with LIKE
-            # fields or (in my case) with date formatting strings for
-            # STR_TO_DATE().
-            # Oh, no, still breaks ("not all arguments converted during
-            # string formatting");
-            # http://stackoverflow.com/questions/9337134
+        # pyodbc seems happy with ? now (pyodbc.paramstyle is 'qmark');
+        # using ? is much simpler, because we may want to use % with LIKE
+        # fields or (in my case) with date formatting strings for
+        # STR_TO_DATE().
+        # If you get this wrong, you may see "not all arguments converted
+        # during string formatting";
+        # http://stackoverflow.com/questions/9337134
+        if self.db_pythonlib in [PYTHONLIB_PYMYSQL, PYTHONLIB_MYSQLDB]:
+            # These engines use %, so we need to convert ? to %, without
+            # breaking literal % values.
             sql = _PERCENT_REGEX.sub("%%", sql)
             # ... replace all % with %% first
             sql = _QUERY_VALUE_REGEX.sub("%s", sql)
             # ... replace all ? with %s in the SQL
+        # Otherwise: engine uses ?, so we don't have to fiddle.
         return sql
 
     def fetch_object_from_db_by_pk(self, obj, table, fieldlist, pkvalue):
@@ -1663,7 +2016,7 @@ class DatabaseSupporter:
             return False
         row = self.fetchone(
             get_sql_select_all_non_pk_fields_by_pk(table, fieldlist,
-                                                   self.delims),
+                                                   self.get_delims()),
             pkvalue
         )
         if row is None:
@@ -1680,7 +2033,7 @@ class DatabaseSupporter:
         success/failure."""
         row = self.fetchone(
             get_sql_select_all_fields_by_key(table, fieldlist, keyname,
-                                             self.delims),
+                                             self.get_delims()),
             keyvalue
         )
         if row is None:
@@ -1754,7 +2107,7 @@ class DatabaseSupporter:
         for f in fieldlist:
             valuelist.append(getattr(obj, f))
         self.db_exec(
-            get_sql_insert(table, fieldlist, self.delims),
+            get_sql_insert(table, fieldlist, self.get_delims()),
             *valuelist
         )
 
@@ -1768,7 +2121,8 @@ class DatabaseSupporter:
         cursor = self.db.cursor()
         self.db_exec_with_cursor(
             cursor,
-            get_sql_insert_without_first_field(table, fieldlist, self.delims),
+            get_sql_insert_without_first_field(table, fieldlist,
+                                               self.get_delims()),
             *valuelist
         )
         pkvalue = get_pk_of_last_insert(cursor)
@@ -1788,7 +2142,7 @@ class DatabaseSupporter:
         cursor = self.db.cursor()
         self.db_exec_with_cursor(
             cursor,
-            get_sql_update_by_first_field(table, fieldlist, self.delims),
+            get_sql_update_by_first_field(table, fieldlist, self.get_delims()),
             *valuelist
         )
 
@@ -1939,7 +2293,7 @@ class DatabaseSupporter:
             FROM information_schema.tables
             WHERE table_name=?
             AND table_schema={}
-        """.format(self.schema_expr)
+        """.format(self.get_current_schema_expr())
         row = self.fetchone(sql, tablename)
         return True if row[0] >= 1 else False
 
@@ -1951,7 +2305,7 @@ class DatabaseSupporter:
             WHERE table_name=?
             AND column_name=?
             AND table_schema={}
-        """.format(self.schema_expr)
+        """.format(self.get_current_schema_expr())
         row = self.fetchone(sql, tablename, column)
         return True if row[0] >= 1 else False
 
@@ -1976,7 +2330,7 @@ class DatabaseSupporter:
             logger.info("Skipping creation of table " + tablename
                         + " (already exists)")
             return
-        if self.db_flavour != DatabaseSupporter.FLAVOUR_MYSQL:
+        if not self.is_mysql():
             dynamic = False
             compressed = False
         # http://dev.mysql.com/doc/refman/5.5/en/innodb-compression-usage.html
@@ -2094,153 +2448,31 @@ class DatabaseSupporter:
 
     def get_all_table_details(self):
         """Returns all information the database has on a table."""
-        if self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
-            return self.fetchall("SELECT * FROM information_schema.tables")
-            # restricted to current database (in full:
-            #   databasename.information_schema.tables)
-            # http://stackoverflow.com/questions/6568098
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
-            return self.fetchall("SELECT * FROM information_schema.tables "
-                                 "WHERE table_schema=?", self.schema)
-            # not restricted to current database, unless we do that manually
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            # returns some not-very-helpful stuff too!
-            return self.fetchall("""
-                SELECT *
-                FROM MSysObjects
-                WHERE (((Left([Name],1))<>"~")
-                        AND ((Left([Name],4))<>"MSys")
-                        AND ((MSysObjects.Type) In (1,4,6)))
-                ORDER BY MSysObjects.Name
-            """)
-        else:
-            raise AssertionError("Unknown database flavour")
-        # works in MySQL and SQL Server
-        # SQL Server: TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE
-        # ... those fields (and more) available in MySQL
+        return self.flavour.get_all_table_details(self)
 
     def get_all_table_names(self):
         """Returns all table names in the database."""
-        if self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
-            return self.fetchallfirstvalues("SELECT table_name "
-                                            "FROM information_schema.tables")
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
-            return self.fetchallfirstvalues(
-                "SELECT table_name FROM information_schema.tables "
-                "WHERE table_schema=?", self.schema)
-            # or: "SHOW TABLES"
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            return self.fetchallfirstvalues("""
-                SELECT MSysObjects.Name AS table_name
-                FROM MSysObjects
-                WHERE (((Left([Name],1))<>"~")
-                        AND ((Left([Name],4))<>"MSys")
-                        AND ((MSysObjects.Type) In (1,4,6)))
-                ORDER BY MSysObjects.Name
-            """)
-            # http://stackoverflow.com/questions/201282
-        else:
-            raise AssertionError("Unknown database flavour")
+        return self.flavour.get_all_table_names(self)
 
     def describe_table(self, table):
         """Returns details on a specific table."""
-        if self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
-            return self.fetchall(
-                "SELECT * FROM information_schema.columns "
-                "WHERE table_name=?", table)
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
-            return self.fetchall(
-                "SELECT * FROM information_schema.columns "
-                "WHERE table_schema=? AND table_name=?", self.schema, table)
-            # or: "SHOW TABLES"
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            raise RuntimeError("Don't know how to describe table in Access")
-        else:
-            raise AssertionError("Unknown database flavour")
+        return self.flavour.describe_table(self, table)
 
     def fetch_column_names(self, table):
         """Returns all column names for a table."""
-        # May come back in Unicode
-        if self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
-            c = self.fetchallfirstvalues(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_name=?", table)
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
-            c = self.fetchallfirstvalues(
-                "SELECT column_name FROM information_schema.columns "
-                "WHERE table_schema=? AND table_name=?", self.schema, table)
-            # or: "SHOW TABLES"
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            # not possible in SQL:
-            #   http://stackoverflow.com/questions/2221250
-            # can do this:
-            #   http://stackoverflow.com/questions/3343922/get-column-names
-            # or can use pyodbc:
-            self.ensure_db_open()
-            cursor = self.db.cursor()
-            sql = "SELECT TOP 1 * FROM " + self.delimit(table)
-            debug_sql(sql)
-            cursor.execute(sql)
-            c = [x[0] for x in cursor.variables]
-            # https://code.google.com/p/pyodbc/wiki/Cursor
-        else:
-            raise AssertionError("Unknown database flavour")
-        return c
+        return self.flavour.fetch_column_names(self, table)
 
     def get_datatype(self, table, column):
-        """Returns database SQL datatype for a column: e.g. varchar."""
-        if (self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER
-                or self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL):
-            # ISO standard for INFORMATION_SCHEMA, I think.
-            # SQL Server carries a warning but the warning may be incorrect:
-            # https://msdn.microsoft.com/en-us/library/ms188348.aspx
-            # http://stackoverflow.com/questions/917431
-            # http://sqlblog.com/blogs/aaron_bertrand/archive/2011/11/03/the-case-against-information-schema-views.aspx  # noqa
-            c = self.fetchvalue(
-                "SELECT data_type FROM information_schema.columns "
-                "WHERE table_schema=? AND table_name=? AND column_name=?",
-                self.schema, table, column)
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            raise AssertionError("Don't know how to get datatype in Access")
-        else:
-            raise AssertionError("Unknown database flavour")
-        return c.upper()
+        """Returns database SQL datatype for a column: e.g. VARCHAR."""
+        return self.flavour.get_datatype(self, table, column).upper()
 
     def get_column_type(self, table, column):
-        """Returns database SQL datatype for a column, e.g. varchar(50)."""
-        if (self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER
-                or self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL):
-            # ISO standard for INFORMATION_SCHEMA, I think.
-            # SQL Server carries a warning but the warning may be incorrect:
-            # https://msdn.microsoft.com/en-us/library/ms188348.aspx
-            # http://stackoverflow.com/questions/917431
-            # http://sqlblog.com/blogs/aaron_bertrand/archive/2011/11/03/the-case-against-information-schema-views.aspx  # noqa
-            sql = """
-                SELECT {}
-                FROM information_schema.columns
-                WHERE table_schema=? AND table_name=? AND column_name=?
-            """.format(self.coltype_expr)
-            c = self.fetchvalue(sql, self.schema, table, column)
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            raise AssertionError("Don't know how to get datatype in Access")
-        else:
-            raise AssertionError("Unknown database flavour")
-        return c.upper()
+        """Returns database SQL datatype for a column, e.g. VARCHAR(50)."""
+        return self.flavour.get_column_type(self, table, column).upper()
 
     def get_comment(self, table, column):
-        """Returns database SQL datatype for a column."""
-        if self.db_flavour == DatabaseSupporter.FLAVOUR_SQLSERVER:
-            return None  # unable to fetch
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_MYSQL:
-            c = self.fetchvalue(
-                "SELECT column_comment FROM information_schema.columns "
-                "WHERE table_schema=? AND table_name=? AND column_name=?",
-                self.schema, table, column)
-        elif self.db_flavour == DatabaseSupporter.FLAVOUR_ACCESS:
-            return None  # unable to fetch
-        else:
-            raise AssertionError("Unknown database flavour")
-        return c
+        """Returns database SQL comment for a column."""
+        return self.flavour.get_comment(self, table, column)
 
     def debug_query(self, sql, *args):
         """Executes SQL and writes the result to the logger."""
@@ -2261,7 +2493,7 @@ class DatabaseSupporter:
             WHERE table_name=?
             AND table_schema={}
             AND constraint_name='PRIMARY'
-        """.format(self.schema_expr)
+        """.format(self.get_current_schema_expr())
         # http://forums.mysql.com/read.php?10,114742,114748#msg-114748
         row = self.fetchone(sql, table)
         has_pk_already = True if row[0] >= 1 else False
@@ -2272,69 +2504,44 @@ class DatabaseSupporter:
                + " ADD PRIMARY KEY(" + fieldlist + ")")
         # http://stackoverflow.com/questions/8859353
         return self.db_exec(sql)
+    
+    # =========================================================================
+    # Flavours
+    # =========================================================================
 
-    def get_mysql_variable(self, varname):
-        """Returns a MySQL system variable."""
-        if self.db_flavour != DatabaseSupporter.FLAVOUR_MYSQL:
+    def get_flavour(self):
+        if not self.flavour:
             return None
-        sql = "SELECT @@{varname}".format(varname=varname)
-        # http://dev.mysql.com/doc/refman/5.5/en/using-system-variables.html
-        return self.fetchvalue(sql)
+        return self.flavour.flavour()
+    
+    def is_sqlserver(self):
+        return self.get_flavour() == FLAVOUR_SQLSERVER
+
+    def is_mysql(self):
+        return self.get_flavour() == FLAVOUR_MYSQL
 
     def mysql_using_file_per_table(self):
-        value = self.get_mysql_variable("innodb_file_per_table")
-        return True if value == 1 else False
+        return self.flavour.mysql_using_file_per_table(self)
 
     def mysql_using_innodb_barracuda(self):
-        value = self.get_mysql_variable("innodb_file_format")
-        return True if value == "Barracuda" else False
+        return self.flavour.mysql_using_innodb_barracuda(self)
 
     def mysql_table_using_barracuda(self, tablename):
-        if (not self.mysql_using_file_per_table()
-                or not self.mysql_using_innodb_barracuda()):
-            return False
-        sql = """
-            SELECT engine, row_format
-            FROM information_schema.tables
-            WHERE table_name = ?
-            AND table_schema={}
-        """.format(self.schema_expr)
-        args = [tablename]
-        row = self.fetchone(sql, *args)
-        if not row:
-            return False
-        engine = row[0]
-        row_format = row[1]
-        return engine == "InnoDB" and row_format in ["Compressed", "Dynamic"]
-        # http://dev.mysql.com/doc/refman/5.6/en/innodb-file-format-identifying.html  # noqa
+        return self.flavour.mysql_table_using_barracuda(self, tablename)
 
     def mysql_convert_table_to_barracuda(self, tablename, compressed=False):
-        row_format = "COMPRESSED" if compressed else "DYNAMIC"
-        sql = """
-            ALTER TABLE {tablename}
-            ENGINE=InnoDB
-            ROW_FORMAT={row_format}
-        """.format(
-            tablename=tablename,
-            row_format=row_format,
-        )
-        logger.info("Converting table {} to Barracuda (row_format={})".format(
-            tablename,
-            row_format
-        ))
-        self.db_exec(sql)
-        # http://dev.mysql.com/doc/refman/5.5/en/innodb-compression-usage.html
-        # http://www.percona.com/blog/2011/04/07/innodb-row-size-limitation/
+        self.flavour.mysql_convert_table_to_barracuda(
+            self, tablename, logger=logger, compressed=compressed)
 
     def mysql_using_innodb_strict_mode(self):
-        value = self.get_mysql_variable("innodb_strict_mode")
-        return True if value == 1 else False
+        return self.flavour.mysql_using_innodb_strict_mode(self)
 
     def mysql_get_max_allowed_packet(self):
-        return self.get_mysql_variable("max_allowed_packet")
+        return self.flavour.mysql_get_max_allowed_packet(self)
 
     def get_schema(self):
-        return self.fetchvalue("SELECT {}".format(self.schema_expr))
+        return self.fetchvalue("SELECT {}".format(
+            self.get_current_schema_expr()))
 
     # =========================================================================
     # Debugging

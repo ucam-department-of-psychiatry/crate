@@ -663,12 +663,12 @@ class DataDictionary(object):
             schema = db.get_schema()
             logger.info("... database nice name = {}, schema = {}".format(
                 pretty_dbname, schema))
-            if db.db_flavour == rnc_db.DatabaseSupporter.FLAVOUR_SQLSERVER:
+            if db.is_sqlserver():
                 sql = """
                     SELECT table_name, column_name, data_type, {}, NULL
                     FROM information_schema.columns
                     WHERE table_schema=?
-                """.format(rnc_db.DatabaseSupporter.SQLSERVER_COLUMN_TYPE_EXPR)
+                """.format(rnc_db.SQLServer.column_type_expr())
             else:
                 sql = """
                     SELECT table_name, column_name, data_type, column_type,
