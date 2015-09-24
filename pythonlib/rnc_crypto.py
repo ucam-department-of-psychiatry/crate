@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 21 Sep 2015
+Last update: 24 Sep 2015
 
 Copyright/licensing:
 
@@ -25,9 +25,9 @@ Copyright/licensing:
 """
 
 import base64
-import bcrypt  # sudo apt-get install python-bcrypt
+import bcrypt  # PYTHON 2/UBUNTU: sudo apt-get install python-bcrypt  // PYTHON3/UBUNTU: sudo apt-get install python3-bcrypt  # noqa
+import Crypto.Random  # sudo pip install pycrypto
 import hashlib
-import M2Crypto  # sudo apt-get install python-m2crypto
 
 
 # =============================================================================
@@ -43,7 +43,9 @@ def create_base64encoded_randomness(num_bytes):
     Result is encoded in a string with URL-safe base64 encoding.
     Used (for example) to generate session tokens.
     """
-    return base64.urlsafe_b64encode(M2Crypto.m2.rand_bytes(num_bytes))
+    # randbytes = M2Crypto.m2.rand_bytes(num_bytes)
+    randbytes = Crypto.Random.get_random_bytes(num_bytes)
+    return base64.urlsafe_b64encode(randbytes)
 
 # http://crackstation.net/hashing-security.htm
 # http://www.mindrot.org/projects/py-bcrypt/

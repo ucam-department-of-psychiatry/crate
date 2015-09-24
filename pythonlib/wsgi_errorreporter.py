@@ -6,7 +6,7 @@
 # =============================================================================
 # From: http://pylonsbook.com/en/1.0/the-web-server-gateway-interface-wsgi.html
 # Modified to use six.StringIO
-# Latest changes: 21 Sep 2015
+# Latest changes: 24 Sep 2015
 
 import six
 import sys

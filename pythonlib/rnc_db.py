@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 21 Sep 2015
+Last update: 24 Sep 2015
 
 Copyright/licensing:
 
@@ -158,7 +158,7 @@ import time
 try:
     import pyodbc  # Python 2: "sudo pip install pyodbc"; Python 3: "sudo pip3 install pyodbc"  # noqa
     PYODBC_AVAILABLE = True
-except:
+except ImportError:
     PYODBC_AVAILABLE = False
 
 # 2. A JDBC driver
@@ -166,7 +166,7 @@ try:
     import jaydebeapi  # Python 2: "sudo pip install jaydebeapi"; Python 3: "sudo pip3 install jaydebeapi"  # noqa
     import jpype
     JDBC_AVAILABLE = True
-except:
+except ImportError:
     JDBC_AVAILABLE = False
 
 # 3. A direct MySQL driver
@@ -175,7 +175,7 @@ try:
     # pymysql.converters is automatically available now
     mysql = pymysql
     PYMYSQL_AVAILABLE = True
-except:
+except ImportError:
     PYMYSQL_AVAILABLE = False
 
 MYSQLDB_AVAILABLE = False
@@ -186,7 +186,7 @@ if not PYMYSQL_AVAILABLE:
         import _mysql
         mysql = MySQLdb
         MYSQLDB_AVAILABLE = True
-    except:
+    except ImportError:
         pass
 
 # =============================================================================
@@ -313,7 +313,7 @@ class Flavour(object):
     @classmethod
     def mysql_get_max_allowed_packet(cls, db):
         return None
-    
+
     @classmethod
     def is_read_only(cls, db, logger=None):
         return False
@@ -541,13 +541,13 @@ class MySQL(Flavour):
     @classmethod
     def is_read_only(cls, db, logger=None):
         """Do we have read-only access?"""
-        
+
         def convert_enums(row):
             # All these columns are of type enum('N', 'Y');
             # https://dev.mysql.com/doc/refman/5.0/en/enum.html
             return [True if x == 'Y' else (False if x == 'N' else None)
                     for x in row]
-    
+
         # 1. Check per-database privileges.
         # We don't check SELECT privileges. We're just trying to ensure
         # nothing dangerous is present - for ANY database.
@@ -582,7 +582,7 @@ class MySQL(Flavour):
             # Probably: error 1142, "SELECT command denied to user 'xxx'@'yyy'
             # for table 'db'". This would be OK.
             pass
-    
+
         # 2. Global privileges, e.g. as held by root
         try:
             sql = """
@@ -618,8 +618,9 @@ class MySQL(Flavour):
             # Probably: error 1142, "SELECT command denied to user 'xxx'@'yyy'
             # for table 'user'". This would be OK.
             pass
-    
+
         return True
+
 
 # -----------------------------------------------------------------------------
 # SQL Server
@@ -1793,7 +1794,7 @@ class DatabaseSupporter:
     # Thus fieldlist[0] means the PK name,
     # and fieldlist[1:] means all non-PK fields
     # -------------------------------------------------------------------------
-    
+
     def is_open(self):
         """Is the database open?"""
         return self.db is not None
@@ -2590,7 +2591,7 @@ class DatabaseSupporter:
                + " ADD PRIMARY KEY(" + fieldlist + ")")
         # http://stackoverflow.com/questions/8859353
         return self.db_exec(sql)
-    
+
     # =========================================================================
     # Flavours
     # =========================================================================
@@ -2599,7 +2600,7 @@ class DatabaseSupporter:
         if not self.flavour:
             return None
         return self.flavour.flavour()
-    
+
     def is_sqlserver(self):
         return self.get_flavour() == FLAVOUR_SQLSERVER
 
@@ -2628,12 +2629,11 @@ class DatabaseSupporter:
     def get_schema(self):
         return self.fetchvalue("SELECT {}".format(
             self.get_current_schema_expr()))
-    
+
     def is_read_only(self):
         """Does the user have read-only access to the database?
         This is a safety check, but should NOT be the only safety check!"""
         return self.flavour.is_read_only(self, logger=logger)
-
 
     # =========================================================================
     # Debugging

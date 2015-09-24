@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: June 2013
-Last update: 21 Sep 2015
+Last update: 24 Sep 2015
 
 Copyright/licensing:
 
@@ -32,7 +32,7 @@ from __future__ import division, print_function, absolute_import
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-import numpy as np
+import numpy as np  # PYTHON 3: sudo pip3 install numpy
 import sys
 
 # =============================================================================
