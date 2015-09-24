@@ -11,7 +11,7 @@ Prerequisites:
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: Feb 2015
-Last update: 21 Sep 2015
+Last update: 24 Sep 2015
 
 Copyright/licensing:
 
@@ -43,6 +43,8 @@ See also:
     Multi-purpose:
         https://pypi.python.org/pypi/fulltext/
         https://media.readthedocs.org/pdf/textract/latest/textract.pdf
+    DOCX
+        http://etienned.github.io/posts/extract-text-from-word-docx-simply/
 """
 
 
@@ -54,25 +56,27 @@ from __future__ import division, print_function, absolute_import
 import argparse
 import bs4  # sudo apt-get install python-bs4
 # import cStringIO
-import docx  # sudo pip install docx
+import docx  # sudo pip install python-docx (NOT docx)
 import io
 import os
 # import pdfminer.pdfinterp  # sudo pip install pdfminer
 # import pdfminer.converter  # sudo pip install pdfminer
 # import pdfminer.layout  # sudo pip install pdfminer
 # import pdfminer.pdfpage   # sudo pip install pdfminer
+import prettytable  # sudo pip install PrettyTable
 # import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
 # import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
 import six
 import subprocess
 import sys
+# import texttable  # ... can't deal with Unicode properly
+import textwrap
 import xml.etree
 import zipfile
 
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.DEBUG)
 
 # =============================================================================
 # Constants
@@ -109,15 +113,18 @@ def get_file_contents(filename=None, blob=None):
         return f.read()
 
 
-def get_cmd_output(encoding=ENCODING, *args):
+def get_cmd_output(*args, **kwargs):
     """Returns text output of a command."""
+    encoding = kwargs.get("encoding", ENCODING)
+    logger.debug("get_cmd_output(): args = {}".format(repr(args)))
     p = subprocess.Popen(args, stdout=subprocess.PIPE)
     stdout, stderr = p.communicate()
     return stdout.decode(encoding, errors='ignore')
 
 
-def get_cmd_output_from_stdin(stdint_content_binary, encoding=ENCODING, *args):
+def get_cmd_output_from_stdin(stdint_content_binary, *args, **kwargs):
     """Returns text output of a command, passing binary data in via stdin."""
+    encoding = kwargs.get("encoding", ENCODING)
     p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = p.communicate(input=stdint_content_binary)
     return stdout.decode(encoding, errors='ignore')
@@ -164,16 +171,78 @@ def convert_pdf_to_txt(filename=None, blob=None):
             '-')
 
 
-def convert_docx_to_text(filename=None, blob=None):
+def convert_docx_to_text(filename=None, blob=None, width=80, min_col_width=15):
     """Pass either a filename or a binary object."""
+    # -------------------------------------------------------------------------
+    # 1. method with package: docx (OLD; not Python 3)
+    #       pip install docx
+    #       import docx
+    #    https://pypi.python.org/pypi/docx
+    #    https://github.com/mikemaccana/python-docx/blob/master/docx.py
+    # -------------------------------------------------------------------------
     # docx.opendocx(file) uses zipfile.ZipFile, which can take either a
-    # filename or a file-like object
-    #   https://github.com/mikemaccana/python-docx/blob/master/docx.py
+    # filename or a file-like object;
     #   https://docs.python.org/2/library/zipfile.html
+    #
+    # with get_filelikeobject(filename, blob) as fp:
+    #     document = docx.opendocx(fp)
+    #     paratextlist = docx.getdocumenttext(document)
+    # return '\n\n'.join(paratextlist)
+
+    # -------------------------------------------------------------------------
+    # 2. There are other manual methods...
+    #    http://etienned.github.io/posts/extract-text-from-word-docx-simply/
+    # -------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------
+    # 3. method with package python-docx (NEW)
+    #       pip install python-docx
+    #       import docx
+    #    https://pypi.python.org/pypi/python-docx
+    #    https://python-docx.readthedocs.org/en/latest/
+    #    http://stackoverflow.com/questions/25228106
+    # -------------------------------------------------------------------------
+    def process_docx_simple_text(text, width):
+        if width:
+            return '\n'.join(textwrap.wrap(text, width=width))
+        else:
+            return text
+
+    def process_docx_table(table, width):
+        ncols = 1
+        for row in table.rows:
+            ncols = max(ncols, len(row.cells))
+        pt = prettytable.PrettyTable(
+            field_names=list(range(ncols)),
+            encoding=ENCODING,
+            header=False,
+            border=True,
+            hrules=prettytable.ALL,
+            vrules=prettytable.ALL,
+        )
+        pt.align = 'l'
+        pt.valign = 't'
+        pt.max_width = max(width // ncols, min_col_width)
+        for row in table.rows:
+            ncols = max(ncols, len(row.cells))
+            ptrow = []
+            for cell in row.cells:
+                cellparagraphs = [paragraph.text.strip()
+                                  for paragraph in cell.paragraphs]
+                cellparagraphs = [x for x in cellparagraphs if x]
+                ptrow.append('\n\n'.join(cellparagraphs))
+            pt.add_row(ptrow)
+        return pt.get_string()
+
+    def gen_text(document, width):
+        for paragraph in document.paragraphs:
+            yield process_docx_simple_text(paragraph.text, width)
+        for table in document.tables:
+            yield process_docx_table(table, width)
+
     with get_filelikeobject(filename, blob) as fp:
-        document = docx.opendocx(fp)
-        paratextlist = docx.getdocumenttext(document)
-    return '\n\n'.join(paratextlist)
+        document = docx.Document(fp)
+        return '\n\n'.join(gen_text(document, width=width))
 
 
 def convert_odt_to_text(filename=None, blob=None):
@@ -316,10 +385,12 @@ def main():
     if not args.inputfile:
         parser.print_help(sys.stderr)
         return
+    logging.basicConfig()
+    logger.setLevel(logging.DEBUG)
     result = document_to_text(filename=args.inputfile)
     if result is None:
         return
-    elif isinstance(result, six.text_type):
+    elif six.PY2 and isinstance(result, six.text_type):
         print(result.encode(ENCODING))
     else:
         print(result)

@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2009
-Last update: 21 Sep 2015
+Last update: 24 Sep 2015
 
 Copyright/licensing:
 
@@ -33,6 +33,7 @@ import sys
 if sys.version_info > (3,):
     # Python 3
     import tkinter
+    import tkinter.filedialog
     filedialog = tkinter.filedialog
 else:
     # Python 2

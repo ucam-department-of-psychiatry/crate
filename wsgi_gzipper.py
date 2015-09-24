@@ -3,7 +3,7 @@
 
 # Based on: http://pyod.googlecode.com/hg/Gzipper.py
 # Modified to use six.StringIO instead of cStringIO.StringIO()
-# Latest changes: 21 Sep 2015
+# Latest changes: 24 Sep 2015
 
 '''
     A WSGI middleware application that automatically gzips output

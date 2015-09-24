@@ -7,7 +7,7 @@ http://egret.psychol.cam.ac.uk/pythonlib/whisker.py
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 18 Aug 2011
-Last update: 21 Sep 2015
+Last update: 24 Sep 2015
 
 TO IMPORT REMOTELY:
     http://stackoverflow.com/questions/3799545/dynamically-importing-python-module  # noqa
@@ -56,7 +56,7 @@ import time
 #           sudo apt-get install python-twisted
 #       If problems:
 #           sudo pip install zope.interface==3.6.0
-from twisted.internet import reactor
+from twisted.internet import reactor  # PYTHON 3: sudo pip3 install twisted
 # from twisted.internet.stdio import StandardIO
 from twisted.internet.protocol import ClientFactory
 from twisted.protocols.basic import LineReceiver
