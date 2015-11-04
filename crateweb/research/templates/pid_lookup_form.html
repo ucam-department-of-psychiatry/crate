@@ -1,0 +1,21 @@
+{# pid_lookup_form.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Look up patient ID (PID) from research ID (RID)</h1>
+
+    <div>You can enter one value or multiple values in each or several boxes.</div>
+
+    <form action="{% url 'lookup' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Look up" />
+    </form>
+
+    {% include "pid_abbrev_explanation.html" %}
+
+{% endblock %}

@@ -518,7 +518,7 @@ A.  Short answer: fixed internally (in rnc_db.py) by reconfiguring the SQL
 ??naming
 -------------------------------------------------------------------------------
 
-CRATE: Clinical Records Anonymising Tool Experiment
+CRATE: Clinical Records Anonymisation and Text Extraction
 
 
 ===============================================================================
@@ -560,3 +560,13 @@ JDBC SQL tools
         Extra classpath is /usr/share/java/mysql.jar
         Beforehand: sudo apt-get install libmysql-java
         URL: jdbc:mysql://{host}:{port}/{database}
+
+===============================================================================
+Django app and project structure
+===============================================================================
+
+- want a single virtualenv
+- Django app may want to access anonymisation classes e.g. data dictionary
+- top-level Python programs should be distinct from imported files
+
+- http://python-notes.curiousefficiency.org/en/latest/python_concepts/import_traps.html

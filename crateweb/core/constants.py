@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+# core/constants.py
+
+LEN_ADDRESS = 100
+LEN_FIELD_DESCRIPTION = 100
+LEN_NAME = 100
+LEN_PHONE = 20
+LEN_TITLE = 20
+MAX_HASH_LENGTH = 128

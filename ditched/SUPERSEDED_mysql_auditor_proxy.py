@@ -227,7 +227,7 @@ def get_integer(index, bytestring, n):
     # LSB first = little-endian
     value = 0
     shift = 0
-    for i in xrange(index, index + n):
+    for i in range(index, index + n):
         b = ord(bytestring[i])
         value += b << shift
         shift += 8

@@ -27,6 +27,9 @@ Copyright/licensing:
 
 CHANGE LOG. CHANGE VERSION NUMBER/DATE BELOW IF INCREMENTING.
 
+- v0.13, 2015-10-06
+  - Added TRID.
+
 - v0.12, 2015-09-21
   - Database interface renamed from mysqldb to mysql, to allow for PyMySQL
     support as well (backend details otherwise irrelevant to front-end
@@ -125,6 +128,7 @@ import argparse
 import logging
 import multiprocessing
 import operator
+import random
 import signal
 import sys
 import threading
@@ -167,18 +171,24 @@ from anon_regex import (
 # Global constants
 # =============================================================================
 
-VERSION = 0.12
-VERSION_DATE = "2015-09-21"
+VERSION = 0.13
+VERSION_DATE = "2015-10-06"
 
 RAW_SCRUBBER_FIELDNAME_PATIENT = "_raw_scrubber_patient"
 RAW_SCRUBBER_FIELDNAME_TP = "_raw_scrubber_tp"
+BIGINT_UNSIGNED = "BIGINT UNSIGNED"
+TRID_TYPE = "INT UNSIGNED"
+MAX_TRID = 4294967295
+# https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
+# Maximum INT UNSIGNED is              4294967295.
+# Maximum BIGINT UNSIGNED is 18446744073709551615.
 
 # =============================================================================
 # Predefined fieldspecs
 # =============================================================================
 
 AUDIT_FIELDSPECS = [
-    dict(name="id", sqltype="BIGINT UNSIGNED", pk=True, autoincrement=True,
+    dict(name="id", sqltype=BIGINT_UNSIGNED, pk=True, autoincrement=True,
          comment="Arbitrary primary key"),
     dict(name="when_access_utc", sqltype="DATETIME", notnull=True,
          comment="Date/time of access (UTC)", indexed=True),
@@ -201,9 +211,10 @@ AUDIT_FIELDSPECS = [
 # =============================================================================
 
 class Scrubber(object):
-    """Class representing a patient-specific scrubber."""
+    """Class representing a patient-specific scrubber, and also other
+    patient information like PIDs and RIDs."""
 
-    def __init__(self, sources, pid):
+    def __init__(self, sources, pid, admindb):
         """
         Build the scrubber based on data dictionary information.
 
@@ -212,16 +223,28 @@ class Scrubber(object):
                 value: rnc_db database object
             pid: integer patient identifier
         """
+        # ID information
         self.pid = pid
         self.mpid = None
+        self.trid = None
+        self.rid = config.encrypt_primary_pid(pid)
+        self.mrid = None
+        # Regex information
         self.re_patient = None  # re: regular expression
         self.re_tp = None
         self.re_patient_elements = set()
         self.re_tp_elements = set()
         self.elements_tupleset = set()  # patient?, type, value
+        # Database
+        self.admindb = admindb
+        # Construction. We go through all "scrub-from" fields in the data
+        # dictionary. We collect all values of those fields from the source
+        # database.
         logger.debug("Building scrubber")
         db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
         for (src_db, src_table) in db_table_pair_list:
+            # Build a list of fields for this table, and corresponding lists of
+            # scrub methods and a couple of other flags.
             ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
             fields = []
             scrub_methods = []
@@ -233,13 +256,17 @@ class Scrubber(object):
                                                            ddr.scrub_method))
                 is_patient.append(ddr.scrub_src == SCRUBSRC.PATIENT)
                 is_mpid.append(SRCFLAG.MASTERPID in ddr.src_flags)
+            # Collect the actual patient-specific values for this table.
             for vlist in gen_all_values_for_patient(sources, src_db, src_table,
                                                     fields, pid):
                 for i in xrange(len(vlist)):
+                    # Add a value, which adds appropriate regex fragment(s).
                     self.add_value(vlist[i], scrub_methods[i], is_patient[i])
                     if self.mpid is None and is_mpid[i]:
                         # We've come across the master ID.
                         self.mpid = vlist[i]
+                        self.mrid = config.encrypt_master_pid(self.mpid)
+        # We've collected all the regex fragments; now compile the regexes.
         self.finished_adding()
 
     @staticmethod
@@ -385,13 +412,16 @@ class Scrubber(object):
         return repr(self.re_patient_elements | self.re_tp_elements)
         # | for union
 
+    def get_hash(self):
+        """Returns a hash of the scrubber."""
+        return config.hash_scrubber(self)
+
     def get_raw_info(self):
         """Return a list of (patient?, scrub type, value) tuples."""
         return list(self.elements_tupleset)
 
     def scrub(self, text):
         """Scrub some text and return the scrubbed result."""
-        # logger.debug("scrubbing")
         if text is None:
             return None
         if self.re_patient:
@@ -411,46 +441,164 @@ class Scrubber(object):
         """Return the master patient ID (MPID)."""
         return self.mpid
 
+    def get_rid(self):
+        """Returns the RID (encrypted PID)."""
+        return self.rid
+
+    def get_mrid(self):
+        """Returns the master RID (encrypted MPID)."""
+        return self.mrid
+
+    def get_trid(self):
+        """Returns the transient integer RID (TRID)."""
+        if self.trid is None:
+            self.fetch_trid()
+        return self.trid
+
+    def unchanged(self):
+        """
+        Has the scrubber changed, compared to the hashed version in the admin
+        database?
+        """
+        sql = """
+            SELECT 1
+            FROM {table}
+            WHERE {patient_id_field} = ?
+            AND {scrubber_hash_field} = ?
+        """.format(
+            table=config.secret_map_tablename,
+            patient_id_field=config.mapping_patient_id_fieldname,
+            scrubber_hash_field=config.source_hash_fieldname,
+        )
+        row = self.admindb.fetchone(sql, self.get_pid(), self.get_hash())
+        return True if row is not None and row[0] == 1 else False
+
+    def patient_in_map(self):
+        """
+        Is the patient in the PID/RID mapping table already?
+        """
+        sql = """
+            SELECT 1
+            FROM {table}
+            WHERE {patient_id_field} = ?
+        """.format(
+            table=config.secret_map_tablename,
+            patient_id_field=config.mapping_patient_id_fieldname,
+        )
+        row = self.admindb.fetchone(sql, self.get_pid())
+        return True if row is not None and row[0] == 1 else False
+
+    def save_to_mapping_db(self):
+        """
+        Insert patient information (including PID, RID, MPID, RID, and scrubber
+        hash) into the mapping database. Establish the TRID as well.
+        """
+        logger.debug("Inserting patient into mapping table")
+        pid = self.get_pid()
+        rid = self.get_rid()
+        mpid = self.get_mpid()
+        mrid = self.get_mrid()
+        scrubber_hash = self.get_hash()
+        if config.save_scrubbers:
+            raw_pt = self.get_patient_regex_string()
+            raw_tp = self.get_tp_regex_string()
+        else:
+            raw_pt = None
+            raw_tp = None
+        if self.patient_in_map():
+            sql = """
+                UPDATE {table}
+                SET {master_id} = ?,
+                    {master_research_id} = ?,
+                    {scrubber_hash} = ?,
+                    {RAW_SCRUBBER_FIELDNAME_PATIENT} = ?,
+                    {RAW_SCRUBBER_FIELDNAME_TP} = ?
+                WHERE {patient_id} = ?
+            """.format(
+                table=config.secret_map_tablename,
+                master_id=config.mapping_master_id_fieldname,
+                master_research_id=config.master_research_id_fieldname,
+                scrubber_hash=config.source_hash_fieldname,
+                patient_id=config.mapping_patient_id_fieldname,
+                RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
+                RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
+            )
+            args = [mpid, mrid, scrubber_hash, raw_pt, raw_tp, pid]
+        else:
+            self.trid = self.make_new_trid()
+            sql = """
+                INSERT INTO {table} (
+                    {patient_id},
+                    {research_id},
+                    {tridfield},
+                    {master_id},
+                    {master_research_id},
+                    {scrubber_hash},
+                    {RAW_SCRUBBER_FIELDNAME_PATIENT},
+                    {RAW_SCRUBBER_FIELDNAME_TP}
+                )
+                VALUES (
+                    ?, ?, ?, ?,
+                    ?, ?, ?, ?
+                )
+            """.format(
+                table=config.secret_map_tablename,
+                patient_id=config.mapping_patient_id_fieldname,
+                research_id=config.research_id_fieldname,
+                tridfield=config.trid_fieldname,
+                master_id=config.mapping_master_id_fieldname,
+                master_research_id=config.master_research_id_fieldname,
+                scrubber_hash=config.source_hash_fieldname,
+                RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
+                RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
+            )
+            args = [pid, rid, self.trid, mpid,
+                    mrid, scrubber_hash, raw_pt, raw_tp]
+        self.admindb.db_exec(sql, *args)
+        self.admindb.commit()
+        # Commit immediately, because other processes may need this table
+        # promptly. Otherwise, get:
+        #   Deadlock found when trying to get lock; try restarting transaction
+
+    def fetch_trid(self):
+        """Fetch TRID from database."""
+        sql = """
+            SELECT {trid_field}
+            FROM {table}
+            WHERE {patient_id_field} = ?
+        """.format(
+            trid_field=config.trid_fieldname,
+            table=config.secret_map_tablename,
+            patient_id_field=config.mapping_patient_id_fieldname,
+        )
+        row = self.admindb.fetchone(sql, self.get_pid())
+        self.trid = row[0] if row is not None else None
+
+    def trid_exists(self, trid):
+        """Does a TRID exist in the database already?"""
+        # http://stackoverflow.com/questions/1676551/best-way-to-test-if-a-row-exists-in-a-mysql-table  # noqa
+        sql = """
+            SELECT EXISTS(SELECT 1 FROM {table} WHERE {trid_field}=?)
+        """.format(
+            table=config.secret_map_tablename,
+            trid_field=config.trid_fieldname,
+        )
+        row = self.admindb.fetchone(sql, trid)
+        return bool(row[0])
+
+    def make_new_trid(self):
+        """Generate an unused TRID."""
+        # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
+        logger.debug("Making TRID...")
+        while True:
+            trid = random.randint(0, MAX_TRID)
+            if not self.trid_exists(trid):
+                return trid
+
 
 # =============================================================================
 # Database queries
 # =============================================================================
-
-def patient_scrubber_unchanged(admindb, patient_id, scrubber):
-    """
-    Has the scrubber changed, compared to the hashed version in the admin
-    database?
-    """
-    new_scrub_hash = config.hash_scrubber(scrubber)
-    sql = """
-        SELECT 1
-        FROM {table}
-        WHERE {patient_id} = ?
-        AND {scrubber_hash} = ?
-    """.format(
-        table=config.secret_map_tablename,
-        patient_id=config.mapping_patient_id_fieldname,
-        scrubber_hash=config.source_hash_fieldname,
-    )
-    row = admindb.fetchone(sql, patient_id, new_scrub_hash)
-    return True if row is not None and row[0] == 1 else False
-
-
-def patient_in_map(admindb, patient_id):
-    """
-    Is the patient in the PID/RID mapping table?
-    """
-    sql = """
-        SELECT 1
-        FROM {table}
-        WHERE {patient_id} = ?
-    """.format(
-        table=config.secret_map_tablename,
-        patient_id=config.mapping_patient_id_fieldname,
-    )
-    row = admindb.fetchone(sql, patient_id)
-    return True if row is not None and row[0] == 1 else False
-
 
 def identical_record_exists_by_hash(destdb, dest_table, pkfield, pkvalue,
                                     hashvalue):
@@ -517,74 +665,9 @@ def recreate_opt_out_table(admindb):
     logger.debug("recreate_opt_out_table")
     OPT_OUT_FIELDSPECS = [
         dict(name=config.mapping_patient_id_fieldname,
-             sqltype="BIGINT UNSIGNED", pk=True, comment="Patient ID"),
+             sqltype=BIGINT_UNSIGNED, pk=True, comment="Patient ID"),
     ]
     makeadmintable(admindb, config.opt_out_tablename, OPT_OUT_FIELDSPECS)
-
-
-def insert_into_mapping_db(admindb, scrubber):
-    """
-    Insert patient information (including PID, RID, MPID, RID, and scrubber
-    hash) into the mapping database.
-    """
-    logger.debug("Inserting patient into mapping table")
-    pid = scrubber.get_pid()
-    rid = config.encrypt_primary_pid(pid)
-    mpid = scrubber.get_mpid()
-    mrid = config.encrypt_master_pid(mpid)
-    scrubber_hash = config.hash_scrubber(scrubber)
-    raw_pt = None
-    raw_tp = None
-    if config.save_scrubbers:
-        raw_pt = scrubber.get_patient_regex_string()
-        raw_tp = scrubber.get_tp_regex_string()
-    if patient_in_map(admindb, pid):
-        sql = """
-            UPDATE {table}
-            SET {master_id} = ?, {master_research_id} = ?, {scrubber_hash} = ?,
-                {RAW_SCRUBBER_FIELDNAME_PATIENT} = ?,
-                {RAW_SCRUBBER_FIELDNAME_TP} = ?
-            WHERE {patient_id} = ?
-        """.format(
-            table=config.secret_map_tablename,
-            master_id=config.mapping_master_id_fieldname,
-            master_research_id=config.master_research_id_fieldname,
-            scrubber_hash=config.source_hash_fieldname,
-            patient_id=config.mapping_patient_id_fieldname,
-            RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
-            RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
-        )
-        args = [mpid, mrid, scrubber_hash, raw_pt, raw_tp, pid]
-    else:
-        sql = """
-            INSERT INTO {table} (
-                {patient_id}, {research_id},
-                {master_id}, {master_research_id},
-                {scrubber_hash},
-                {RAW_SCRUBBER_FIELDNAME_PATIENT}, {RAW_SCRUBBER_FIELDNAME_TP}
-            )
-            VALUES (
-                ?, ?,
-                ?, ?,
-                ?,
-                ?, ?
-            )
-        """.format(
-            table=config.secret_map_tablename,
-            patient_id=config.mapping_patient_id_fieldname,
-            research_id=config.research_id_fieldname,
-            master_id=config.mapping_master_id_fieldname,
-            master_research_id=config.master_research_id_fieldname,
-            scrubber_hash=config.source_hash_fieldname,
-            RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
-            RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
-        )
-        args = [pid, rid, mpid, mrid, scrubber_hash, raw_pt, raw_tp]
-    admindb.db_exec(sql, *args)
-    admindb.commit()
-    # Commit immediately, because other processes may need this table promptly.
-    # Otherwise, get:
-    #   Deadlock found when trying to get lock; try restarting transaction
 
 
 def wipe_and_recreate_mapping_table(admindb, incremental=False):
@@ -596,17 +679,20 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
         admindb.drop_table(config.secret_map_tablename)
     fieldspecs = [
         dict(name=config.mapping_patient_id_fieldname,
-             sqltype="BIGINT UNSIGNED", pk=True,
-             comment="Patient ID (PK)"),
+             sqltype=BIGINT_UNSIGNED, pk=True,
+             comment="Patient ID (PID) (PK)"),
         dict(name=config.research_id_fieldname,
              sqltype=config.SQLTYPE_ENCRYPTED_PID, notnull=True,
-             comment="Research ID"),
+             comment="Research ID (RID)"),
+        dict(name=config.trid_fieldname, unique=True, notnull=True,
+             sqltype=TRID_TYPE, autoincrement=True,
+             comment="Transient integer research ID (TRID)"),
         dict(name=config.mapping_master_id_fieldname,
-             sqltype="BIGINT UNSIGNED",
-             comment="Master ID"),
+             sqltype=BIGINT_UNSIGNED,
+             comment="Master patient ID (MPID)"),
         dict(name=config.master_research_id_fieldname,
              sqltype=config.SQLTYPE_ENCRYPTED_PID,
-             comment="Master research ID"),
+             comment="Master research ID (MRID)"),
         dict(name=config.source_hash_fieldname,
              sqltype=config.SQLTYPE_ENCRYPTED_PID,
              comment="Scrubber hash (for change detection)"),
@@ -647,6 +733,8 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
             if r.omit:
                 continue
             fs = r.dest_field + " " + r.dest_datatype
+            if SRCFLAG.PRIMARYPID in r.src_flags:
+                fs += " NOT NULL"
             if SRCFLAG.PK in r.src_flags:
                 fs += " PRIMARY KEY"
             dest_fieldnames.append(r.dest_field)
@@ -662,10 +750,18 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
             if SRCFLAG.ADDSRCHASH in r.src_flags:
                 # append a special field
                 fieldspecs.append(
-                    config.source_hash_fieldname + " " +
-                    config.SQLTYPE_ENCRYPTED_PID +
+                    config.source_hash_fieldname
+                    + " " + config.SQLTYPE_ENCRYPTED_PID +
                     " COMMENT 'Hashed amalgamation of all source fields'")
                 dest_fieldnames.append(config.source_hash_fieldname)
+            if SRCFLAG.PRIMARYPID in r.src_flags:
+                # append another special field
+                fieldspecs.append(
+                    config.trid_fieldname
+                    + " " + BIGINT_UNSIGNED
+                    + " NOT NULL"
+                    + " COMMENT 'Transient integer research ID (TRID)'")
+                dest_fieldnames.append(config.trid_fieldname)
         logger.debug("creating table {}".format(t))
         sql = """
             CREATE TABLE IF NOT EXISTS {table} (
@@ -1110,13 +1206,14 @@ def gen_pks(db, table, pkname):
 #   CONNECTIONS.
 
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
-                  pid=None, scrubber=None, incremental=False,
+                  scrubber=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
     """
     Process a table. This can either be a patient table (in which case the
     scrubber is applied) or not (in which case the table is just copied).
     """
     START = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
+    pid = None if scrubber is None else scrubber.get_pid()
     logger.debug(START + "pid={}, incremental={}".format(pid, incremental))
 
     # Limit the data quantity for debugging?
@@ -1128,6 +1225,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
 
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
     addhash = any([SRCFLAG.ADDSRCHASH in ddr.src_flags for ddr in ddrows])
+    addtrid = any([SRCFLAG.PRIMARYPID in ddr.src_flags for ddr in ddrows])
     constant = any([SRCFLAG.CONSTANT in ddr.src_flags for ddr in ddrows])
     # If addhash or constant is true, there will also be at least one non-
     # omitted row, namely the source PK (by the data dictionary's validation
@@ -1150,6 +1248,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             destfields.append(ddr.dest_field)
     if addhash:
         destfields.append(config.source_hash_fieldname)
+    if addtrid:
+        destfields.append(config.trid_fieldname)
     n = 0
     for row in gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
@@ -1198,7 +1298,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                 continue
             value = row[i]
             if SRCFLAG.PRIMARYPID in ddr.src_flags:
-                value = config.encrypt_primary_pid(value)
+                assert(value == scrubber.get_pid())
+                value = scrubber.get_rid()
             elif SRCFLAG.MASTERPID in ddr.src_flags:
                 value = config.encrypt_master_pid(value)
             elif ddr._truncate_date:
@@ -1220,6 +1321,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             destvalues.append(value)
         if addhash:
             destvalues.append(srchash)
+        if addtrid:
+            destvalues.append(scrubber.get_trid())
         destdb.insert_record(dest_table, destfields, destvalues,
                              update_on_duplicate_key=True)
 
@@ -1306,12 +1409,24 @@ def create_indexes(tasknum=0, ntasks=1):
                     length="" if length is None else "({})".format(length),
                     unique="UNIQUE" if is_unique else "",
                 )
-            if config.destdb.index_exists(table, idxname):
-                continue  # because it will crash if you add it again!
-            if is_fulltext:
-                sqlbits_fulltext.append(sqlbit)
-            else:
-                sqlbits_normal.append(sqlbit)
+            if not config.destdb.index_exists(table, idxname):
+                # because it will crash if you add it again!
+                if is_fulltext:
+                    sqlbits_fulltext.append(sqlbit)
+                else:
+                    sqlbits_normal.append(sqlbit)
+            # Extra index for TRID?
+            if SRCFLAG.PRIMARYPID in tr.src_flags:
+                column = config.trid_fieldname
+                idxname = "_idx_{}".format(column)
+                if not config.destdb.index_exists(table, idxname):
+                    sqlbits_normal.append(
+                        "ADD {unique} INDEX {name} ({column})".format(
+                            unique="UNIQUE" if is_unique else "",
+                            name=idxname,
+                            column=column,
+                        )
+                    )
 
         if sqlbits_normal:
             sql = "ALTER TABLE {table} {add_indexes}".format(
@@ -1388,6 +1503,7 @@ def patient_processing_fn(sources, destdb, admindb,
             threadprefix +
             "Started thread {} (of {} threads, numbered from 0)".format(
                 tasknum, ntasks))
+
     for pid in gen_patient_ids(sources, tasknum, ntasks):
         # gen_patient_ids() assigns the work to the appropriate thread/process
         # Check for an abort signal once per patient processed
@@ -1404,14 +1520,17 @@ def patient_processing_fn(sources, destdb, admindb,
             continue
 
         # Gather scrubbing information
-        scrubber = Scrubber(sources, pid)
+        scrubber = Scrubber(sources, pid, admindb)
 
-        scrubber_unchanged = patient_scrubber_unchanged(admindb, pid, scrubber)
+        scrubber_unchanged = scrubber.unchanged()
         if incremental:
             if scrubber_unchanged:
                 logger.debug("Scrubber unchanged; may save some time")
             else:
                 logger.debug("Scrubber new or changed; reprocessing in full")
+
+        # Insert into mapping db
+        scrubber.save_to_mapping_db()
 
         # For each source database/table...
         for d in config.dd.get_source_databases():
@@ -1421,11 +1540,8 @@ def patient_processing_fn(sources, destdb, admindb,
                 logger.debug(
                     threadprefix + "Patient {}, processing table {}.{}".format(
                         pid, d, t))
-                process_table(db, d, t, destdb, pid=pid, scrubber=scrubber,
+                process_table(db, d, t, destdb, scrubber=scrubber,
                               incremental=(incremental and scrubber_unchanged))
-
-        # Insert into mapping db
-        insert_into_mapping_db(admindb, scrubber)
 
     commit(destdb)
 
@@ -1556,7 +1672,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
         db = config.sources[d]
         logger.info("Processing non-patient table {}.{} (PK: {})...".format(
             d, t, pkname))
-        process_table(db, d, t, config.destdb, pid=None, scrubber=None,
+        process_table(db, d, t, config.destdb, scrubber=None,
                       incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
         commit(config.destdb)
@@ -1565,7 +1681,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
                                                        ntasks=ntasks):
         db = config.sources[d]
         logger.info("Processing non-patient table {}.{}...".format(d, t))
-        process_table(db, d, t, config.destdb, pid=None, scrubber=None,
+        process_table(db, d, t, config.destdb, scrubber=None,
                       incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)
         commit(config.destdb)
@@ -1770,6 +1886,11 @@ Sample usage (having set PYTHONPATH):
     parser.add_argument("-i", "--incremental", action="store_true",
                         help="Process only new/changed information, where "
                              "possible")
+    parser.add_argument("--seed",
+                        help="String to use as the basis of the seed for the "
+                             "random number generator used for the transient "
+                             "integer RID (TRID). Leave blank to use the "
+                             "default seed (system time).")
     args = parser.parse_args()
 
     # Demo config?
@@ -1852,6 +1973,9 @@ Sample usage (having set PYTHONPATH):
         show_source_counts()
         show_dest_counts()
         return
+
+    # random number seed
+    random.seed(args.seed)
 
     # -------------------------------------------------------------------------
 

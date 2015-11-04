@@ -1,0 +1,45 @@
+{# clinician_already_responded.html #}
+{% comment %}
+    template parameters:
+        clinician_response (object)
+        consent_mode (object)
+        contact_request (object)
+        Leaflet (object)
+        patient_lookup (object)
+        settings (object)
+        study (object)
+
+{% endcomment %}
+
+{% extends "base.html" %}
+
+{% block mainsiteheader %}{% endblock %}
+
+{% block content %}
+
+    <div class="error"><b>You have already responded using this form.</b>
+    Your response was {{ clinician_response.get_response_explanation }}.
+    <b>Thank you!</b>
+    </div>
+
+    <h2>Patient</h2>
+
+    {% include "patient_table.html" with
+        patient_lookup=patient_lookup
+        consent_mode=consent_mode %}
+
+    <h2>Study</h2>
+
+    {% include "study_table_for_clinician.html" with
+        study=study
+        contact_request=contact_request
+        offer_details=offer_details
+        offer_clinician_form=offer_clinician_form %}
+
+    <h2>Notes</h2>
+
+    {% include "clinician_notes.html" with
+        settings=settings
+        Leaflet=Leaflet %}
+
+{% endblock %}

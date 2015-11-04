@@ -1,0 +1,26 @@
+{# submit_contact_request.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Submit patient contact request</h1>
+
+    <p>You can submit contact requests for studies for which all of the following are true:</p>
+    <ul>
+        <li>You are the lead or other designated researcher (or you are the RDBM)</li>
+        <li>Approval has been granted for patient contact</li>
+        <li>A patient information leaflet has been uploaded by the RDBM</li>
+    </ul>
+    <p>The RDBM can submit contact requests using NHS numbers or research
+    IDs; researchers are restricted to research ID lookup.</p>
+
+    <form action="{% url 'submit_contact_request' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form }}
+        </table>
+        <input type="submit" value="Submit" />
+    </form>
+
+{% endblock %}

@@ -1,0 +1,6 @@
+{# action_only_form.html #}
+
+<form action="{% url action pk %}" method="post">
+    {% csrf_token %}
+    <input type="submit" value="{{ button }}" />
+</form>

@@ -6,7 +6,7 @@ Config class for CRATE anonymiser.
 
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
-Last update: 16 Sep 2015
+Last update: 06 Oct 2015
 
 Copyright/licensing:
 
@@ -156,7 +156,8 @@ DEMO_CONFIG = """
 #               the data dictionary, for ALL tables that contain patient-
 #               identifiable information.
 #           (b) If the field is not omitted: the field will be hashed as the
-#               primary ID (database patient primary key) in the destination.
+#               primary ID (database patient primary key) in the destination,
+#               and a transient research ID (TRID) also added.
 #       {SRCFLAG.DEFINESPRIMARYPIDS}:  This field *defines* primary PIDs.
 #           If set, this row will be used to search for all patient IDs, and
 #           will define them for this database. Only those patients will be
@@ -382,6 +383,13 @@ mapping_patient_id_fieldname = patient_id
 # hash_method. Used to replace per_table_patient_id_field.
 
 research_id_fieldname = brcid
+
+# Transient integer research ID (TRID) fieldname.
+# An unsigned integer field with this name will be added to every table
+# containing a primary patient ID (in the source) or research ID (in the
+# destination).
+
+trid_fieldname = trid
 
 # Name used for the master patient ID in the mapping table.
 
@@ -933,6 +941,7 @@ class Config(object):
         "anonymise_strings_at_word_boundaries_only",
         "mapping_patient_id_fieldname",
         "research_id_fieldname",
+        "trid_fieldname",
         "mapping_master_id_fieldname",
         "master_research_id_fieldname",
         "source_hash_fieldname",
@@ -1013,8 +1022,12 @@ class Config(object):
         self.dd = DataDictionary(self)
         if load_dd:
             logger.info(SEP + "Loading data dictionary")
-            self.dd.read_from_file(self.data_dictionary_filename,
-                                   check_against_source_db=include_sources)
+            self.dd.read_from_file(self.data_dictionary_filename)
+            self.dd.check_valid(check_against_source_db=include_sources,
+                                prohibited_fieldnames=[
+                                    self.source_hash_fieldname,
+                                    self.trid_fieldname,
+                                ])
         self.init_row_counts()
         self.PERSISTENT_CONSTANTS_INITIALIZED = True
 
@@ -1185,6 +1198,7 @@ class Config(object):
         specialfieldlist = [
             "mapping_patient_id_fieldname",
             "research_id_fieldname",
+            "trid_fieldname",
             "master_research_id_fieldname",
             "mapping_master_id_fieldname",
             "source_hash_fieldname",

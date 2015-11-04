@@ -1,0 +1,16 @@
+{# shortlist_studies_as_lead.html #}
+
+{% comment %}
+    -- https://docs.djangoproject.com/en/dev/ref/contrib/admin/#reversing-admin-urls
+    -- http://stackoverflow.com/questions/694477/getting-django-admin-url-for-an-object
+    -- DEBUG WITH: http://stackoverflow.com/questions/7182532/django-grappelli-admin-no-reverse-match-error
+{% endcomment %}
+
+<p>
+    {% for study in studies %}
+        <a href="{% url 'admin:consent_study_change' study.id %}">
+        Study {{ study.id }}: {{ study.title }}<br>
+    {% empty %}
+        (No studies)
+    {% endfor %}
+</p>

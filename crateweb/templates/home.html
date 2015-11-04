@@ -1,0 +1,89 @@
+{# home.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div>
+        <h1>Main menu</h1>
+
+        <h2>Research database</h2>
+        <ul>
+            <li>Main query functions: {% include "query_nav.html" %}</li>
+
+            <li>
+                View research database structure:
+                <ul>
+                    <li><a href="{% url 'structure_table_paginated' %}">online
+                    in paginated tabular format</a></li>
+
+                    <li><a href="{% url 'structure_table_long' %}">online
+                    in single-page tabular format</a>
+                    (WARNING: slow)</li>
+
+                    <li><a href="{% url 'structure_tsv' %}">download in
+                    tab-separated values (TSV) format</a></li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>Contacting patients</h2>
+        <ul>
+            <li>
+                <a href="{% url 'resadmin:index' %}">Researcher administration</a>:
+                <ul>
+                    <li>View your studies</li>
+                    <li>View contact requests for your studies *** DO VIA READ-ONLY ADMIN SITE</li>
+                    <li>View approval-to-contact/rescindment-of-approval letters for your studies *** DO VIA READ-ONLY ADMIN SITE</li>
+                    <li>View master leaflets</li>
+                </ul>
+            </li>
+            <li><a href="{% url 'submit_contact_request' %}">Submit a contact request</a></li>
+        </ul>
+
+        {% comment %}
+            <h2>Leaflets</h2>
+            <ul>
+                {% for leaflet in leaflets %}
+                    <li><a href="{% url 'leaflet' leaflet.key %}">{{ leaflet.name }}</a></li>
+                {% endfor %}
+            </ul>
+        {% endcomment %}
+
+        {% if user.is_superuser %}
+            <h2>Administrative functions for Research Database manager</h2>
+            <ul>
+                <li><a href="{% url 'pidlookup' %}">Look up patient ID (PID) from
+                research ID (RID)</a></li>
+
+                <li><a href="{% url 'admin:index' %}">RDBM administration</a>
+                (users, including researchers/clinical team representatives;
+                query audits;
+                studies; patients; consent modes;
+                clinical team representatives; payments to charity)</li>
+            </ul>
+        {% endif %}
+
+        {% if is_developer %}
+            <h2>Extra functions for developers</h2>
+            <ul>
+                <li><a href="{% url 'generate_fake_nhs' %}">Generate fake NHS
+                numbers for testing</a></li>
+
+                <li><a href="{% url 'devadmin:index' %}">Developer admin</a>
+                (emails, dummy records for patient lookup, actual patient
+                lookups)</li>
+
+                <li><a href="{% url 'test_patient_lookup' %}">Test patient
+                lookup without saving data</a></li>
+            </ul>
+        {% endif %}
+
+        <h2>Your settings</h2>
+        <ul>
+            <li><a href="{% url 'edit_profile' %}">Change your settings</a></li>
+
+            <li><a href="{% url 'password_change' %}">Change password</a></li>
+        </ul>
+    </div>
+{% endblock %}

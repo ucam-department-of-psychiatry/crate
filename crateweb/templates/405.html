@@ -1,0 +1,12 @@
+{# 405.html #}
+
+{% extends "base.html" %}
+
+{% block title %}Method not allowed{% endblock %}
+
+{% block content %}
+<h1>Method not allowed</h1>
+
+<p>You submitted a request using a disallowed method (probably: HTTP GET when
+you should have used HTTP POST).</p>
+{% endblock %}

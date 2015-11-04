@@ -1,0 +1,76 @@
+{# patient_lookup_result.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Results of patient lookup (not saved)</h1>
+
+    <h2>Lookup details</h2>
+    <table class="heading_left">
+        <tr><th>nhs_number</th><td>{{ lookup.nhs_number }}</td></tr>
+        <tr><th>lookup_when</th><td>{{ lookup.lookup_when }}</td></tr>
+        <tr><th>source_db</th><td>{{ lookup.source_db }}</td></tr>
+    </table>
+
+    <h2>Patient</h2>
+    <table class="heading_left">
+        <tr><th>pt_dob</th><td>{{ lookup.pt_dob }}</td></tr>
+        <tr><th>pt_dod</th><td>{{ lookup.pt_dod }}</td></tr>
+        <tr><th>pt_dead</th><td>{{ lookup.pt_dead }}</td></tr>
+        <tr><th>pt_discharged</th><td>{{ lookup.pt_discharged }}</td></tr>
+        <tr><th>pt_sex</th><td>{{ lookup.pt_sex }}</td></tr>
+        <tr><th>pt_title</th><td>{{ lookup.pt_title }}</td></tr>
+        <tr><th>pt_first_name</th><td>{{ lookup.pt_first_name }}</td></tr>
+        <tr><th>pt_last_name</th><td>{{ lookup.pt_last_name }}</td></tr>
+        <tr><th>pt_address_1</th><td>{{ lookup.pt_address_1 }}</td></tr>
+        <tr><th>pt_address_2</th><td>{{ lookup.pt_address_2 }}</td></tr>
+        <tr><th>pt_address_3</th><td>{{ lookup.pt_address_3 }}</td></tr>
+        <tr><th>pt_address_4</th><td>{{ lookup.pt_address_4 }}</td></tr>
+        <tr><th>pt_address_5</th><td>{{ lookup.pt_address_5 }}</td></tr>
+        <tr><th>pt_address_6</th><td>{{ lookup.pt_address_6 }}</td></tr>
+        <tr><th>pt_address_7</th><td>{{ lookup.pt_address_7 }}</td></tr>
+        <tr><th>pt_telephone</th><td>{{ lookup.pt_telephone }}</td></tr>
+        <tr><th>pt_email</th><td>{{ lookup.pt_email }}</td></tr>
+    </table>
+
+    <h2>GP</h2>
+    <table class="heading_left">
+        <tr><th>gp_title</th><td>{{ lookup.gp_title }}</td></tr>
+        <tr><th>gp_first_name</th><td>{{ lookup.gp_first_name }}</td></tr>
+        <tr><th>gp_last_name</th><td>{{ lookup.gp_last_name }}</td></tr>
+        <tr><th>gp_address_1</th><td>{{ lookup.gp_address_1 }}</td></tr>
+        <tr><th>gp_address_2</th><td>{{ lookup.gp_address_2 }}</td></tr>
+        <tr><th>gp_address_3</th><td>{{ lookup.gp_address_3 }}</td></tr>
+        <tr><th>gp_address_4</th><td>{{ lookup.gp_address_4 }}</td></tr>
+        <tr><th>gp_address_5</th><td>{{ lookup.gp_address_5 }}</td></tr>
+        <tr><th>gp_address_6</th><td>{{ lookup.gp_address_6 }}</td></tr>
+        <tr><th>gp_address_7</th><td>{{ lookup.gp_address_7 }}</td></tr>
+        <tr><th>gp_telephone</th><td>{{ lookup.gp_telephone }}</td></tr>
+        <tr><th>gp_email</th><td>{{ lookup.gp_email }}</td></tr>
+    </table>
+
+    <h2>Clinician</h2>
+    <table class="heading_left">
+        <tr><th>clinician_title</th><td>{{ lookup.clinician_title }}</td></tr>
+        <tr><th>clinician_first_name</th><td>{{ lookup.clinician_first_name }}</td></tr>
+        <tr><th>clinician_last_name</th><td>{{ lookup.clinician_last_name }}</td></tr>
+        <tr><th>clinician_address_1</th><td>{{ lookup.clinician_address_1 }}</td></tr>
+        <tr><th>clinician_address_2</th><td>{{ lookup.clinician_address_2 }}</td></tr>
+        <tr><th>clinician_address_3</th><td>{{ lookup.clinician_address_3 }}</td></tr>
+        <tr><th>clinician_address_4</th><td>{{ lookup.clinician_address_4 }}</td></tr>
+        <tr><th>clinician_address_5</th><td>{{ lookup.clinician_address_5 }}</td></tr>
+        <tr><th>clinician_address_6</th><td>{{ lookup.clinician_address_6 }}</td></tr>
+        <tr><th>clinician_address_7</th><td>{{ lookup.clinician_address_7 }}</td></tr>
+        <tr><th>clinician_telephone</th><td>{{ lookup.clinician_telephone }}</td></tr>
+        <tr><th>clinician_email</th><td>{{ lookup.clinician_email }}</td></tr>
+        <tr><th>clinician_is_consultant</th><td>{{ lookup.clinician_is_consultant }}</td></tr>
+        <tr><th>clinician_signatory_title</th><td>{{ lookup.clinician_signatory_title }}</td></tr>
+    </table>
+
+    <h2>Decisions during lookup</h2>
+    <table class="heading_left">
+        <tr><th>decisions</th><td>{{ lookup.decisions }}</td></tr>
+        <tr><th>secret_decisions</th><td>{{ lookup.secret_decisions }}</td></tr>
+    </table>
+{% endblock %}

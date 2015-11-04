@@ -1,0 +1,13 @@
+{# bad_query_id.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Invalid query ID</h1>
+    <p>Query {{ query_id }} is invalid (or invalid for your user).
+    Please create or choose another query.</p>
+
+{% endblock %}

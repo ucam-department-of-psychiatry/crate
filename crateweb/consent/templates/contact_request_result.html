@@ -1,0 +1,20 @@
+{# patient_lookup_result.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Contact requests created</h1>
+    
+    <table>
+        <tr>
+            <th>Contact request</th>
+        </tr>
+        {% for cr in contact_requests %}
+            <tr>
+                <td>{{ cr }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+
+{% endblock %}

@@ -35,7 +35,7 @@ IN PROGRESS
         - easy to make something too fiddly: http://www.ajaxquerybuilder.com/
     - needs session, security/users, main menu, audit
     - user accessing the destination database must be READ ONLY here
-    
+
 This kind of queries that might benefit from some autogeneration:
 
     SELECT
@@ -98,8 +98,8 @@ import pythonlib.rnc_db as rnc_db
 import pythonlib.rnc_web as ws
 from pythonlib.rnc_lang import AttrDict
 from anonymise.anonymise import config
-    # *** WRONG: needs separate config (different, less privileged,
-    # database user) - just with reference to DD
+# *** WRONG: needs separate config (different, less privileged,
+# database user) - just with reference to DD
 from anonymise.anon_regex import escape_literal_string_for_regex
 
 # Conditional imports
@@ -675,7 +675,6 @@ def test_show_fields(session=None, form=None):
         expandcollapse=expand_collapse_buttons(),
         tree=tree,
     ) + HTML_END
-
 
 
 # =============================================================================

@@ -771,7 +771,7 @@ class NlpController(object):
             "Bob Hope visited Seattle.",
             "James Joyce wrote Ulysses."
         ]
-        for i in xrange(len(datalist)):
+        for i in range(len(datalist)):
             self.send(datalist[i], {"_item_number": i})
 
 
@@ -1098,7 +1098,7 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
             db.drop_table(t)
         # Recreate
         fieldspecs = []
-        for i in xrange(len(ot.destfields)):
+        for i in range(len(ot.destfields)):
             f = ot.destfields[i]
             dt = ot.dest_datatypes[i]
             fieldspecs.append(f + " " + dt)
@@ -1141,7 +1141,7 @@ def create_indexes(config, tasknum=0, ntasks=1):
     # Parallelize by table.
     logger.info(SEP + "Create indexes")
     outputtypes_list = config.outputtypemap.values()
-    for i in xrange(len(outputtypes_list)):
+    for i in range(len(outputtypes_list)):
         if i % ntasks != tasknum:
             continue
         ot = outputtypes_list[i]
@@ -1150,7 +1150,7 @@ def create_indexes(config, tasknum=0, ntasks=1):
         db = config.databases[ot.destdb]
         t = ot.desttable
         sqlbits = []
-        for i in xrange(len(ot.indexnames)):
+        for i in range(len(ot.indexnames)):
             n = ot.indexnames[i]
             d = ot.indexdefs[i]
             s = "ADD INDEX {n} ({d})".format(n=n, d=d)

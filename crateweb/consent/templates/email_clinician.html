@@ -1,0 +1,87 @@
+{# email_clinician.html #}
+
+{% comment %}
+    template parameters:
+        ClinicianResponse (class)
+        consent_mode (object)
+        contact_request (object)
+        patient_lookup (object)
+        settings (object)
+        study (object)
+{% endcomment %}
+
+{% block content %}
+
+    <p>Dear {{ patient_lookup.clinician_title_surname_str }},</p>
+
+    <p>Based on anonymised information in the CPFT Research Database, one
+    of our research teams has identified the following patient of yours as
+    potentially eligible for a study that they are conducting:</p>
+
+    {% include "patient_table.html" with
+        patient_lookup=patient_lookup
+        consent_mode=consent_mode %}
+
+    <p>The study is:</p>
+    {% include "study_table_for_clinician.html" with
+        study=study
+        contact_request=contact_request
+        offer_details=False
+        offer_clinician_form=False %}
+
+    {% include "discharged_phrase.html" %}
+
+    <div class="action">
+        <b>Please click on ONE of the following buttons to respond to the
+        request.</b>
+    </div>
+
+    <div id="response_yes" class="response_button">
+        <a href="{url_yes}">Yes, ask the patient on my behalf</a>
+        *** ClinicianResponse.EMAIL_CHOICE_Y
+    </div>
+
+    <div id="response_no" class="response_button">
+        <a href="{url_no}">No, I veto for clinical reasons</a>
+        *** ClinicianResponse.EMAIL_CHOICE_N
+    </div>
+
+    <div id="response_maybe" class="response_button">
+        <a href="{url_maybe}">
+            Something else<br>
+            <i>or</i><br>
+            Tell me more
+        </a>
+        *** ClinicianResponse.EMAIL_CHOICE_MAYBE
+    </div>
+
+    <p>
+        Click “Tell me more” for links to full study details, and
+        information about this system. Donations will be made to local
+        mental health charities as a result of your participation.
+    </p>
+    <p>
+        <b>Don’t reply to this e-mail.</b>
+        If you’d like help, please telephone the Research Database Manager,
+        {{ settings.RDBM_NAME }}, on {{ settings.RDBM_TELEPHONE }}, or e-mail
+        <a href="mailto:{{ settings.RDBM_EMAIL }}">{{ settings.RDBM_EMAIL }}</a>.
+    </p>
+    <p>
+        <b>If you’re not one of this patient’s clinicians,</b> we
+        apologize. Please (1) ask your secretary to correct the patient’s
+        electronic records in this respect, and (2) report the contact
+        request code to the Research Database Manager (details above),
+        so that they can create a new request to the correct clinician.
+    </p>
+
+    <p>Many thanks for your help!</p>
+
+    <p>Yours sincerely,</p>
+
+    <p><i>The CPFT Research Database Computer</i></p>
+
+    <p>P.S. Sorry this is an automated e-mail. A computer has generated
+    this e-mail as part of a process that restricts access to confidential
+    patient-identifiable information.</p>
+
+{% endblock %}

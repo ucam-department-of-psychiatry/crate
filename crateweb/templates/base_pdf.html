@@ -1,0 +1,22 @@
+{# base_pdf.html #}
+
+<!DOCTYPE html> <!-- HTML 5 -->
+<html>
+    <head>
+        <title>
+            {% block title %}
+                {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
+                automated e-mail
+            {% endblock %}
+        </title>
+        <meta charset="utf-8">
+        <style type="text/css">
+            {% include "pdf.css" %}
+        </style>
+    </head>
+
+    <body>
+        {% block content %}{% endblock %}
+    </body>
+
+</html>

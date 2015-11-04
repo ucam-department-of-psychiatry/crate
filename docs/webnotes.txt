@@ -1,0 +1,183 @@
+===============================================================================
+SITE-SPECIFIC CONFIGURATION FILES FOR DJANGO
+===============================================================================
+
+Several methods; e.g.
+    https://code.djangoproject.com/wiki/SplitSettings#ini-stylefilefordeployment
+    https://code.djangoproject.com/wiki/SplitSettings#Multiplesettingfilesimportingfromeachother
+The question is which works best with WSGI, where we have public (repository)
+code and secret (site-specific) settings, and in principle might want to run
+more than one instance of the application on a single server.
+
+Using Apache's SetEnv and then reading the WSGI environment (as I currently do
+for CamCOPS, Sep 2015) can be flaky with Django, so should be avoided:
+    http://stackoverflow.com/questions/19754834/access-apache-setenv-variable-from-django-wsgi-py-file
+Note that it appears possible, and lots of people advocate it, but Graham D.'s
+point is cautionary, and he wrote mod_wsgi.
+
+Therefore, follow Graham Dumpleton's suggestion, e.g. as follows:
+
+- hard-code the filename 'crate_local_settings.py', so that the Django
+  settings.py does 'from crate_local_settings import *'
+- define settings for multiple apps by creating e.g.
+    /etc/crate_instance_1/crate_local_settings.py
+    /etc/crate_instance_2/crate_local_settings.py
+- set the WSGI "python-path" (more or less equivalent to the normal environment
+  variable PYTHONPATH) to include the relevant /etc/[something] directory
+
+===============================================================================
+DJANGO PROJECT
+===============================================================================
+
+# -----------------------------------------------------------------------------
+# SYSTEM-WIDE OPTIONAL EXTRAS
+# -----------------------------------------------------------------------------
+
+sudo apt-get install sqliteman
+
+# -----------------------------------------------------------------------------
+# VIRTUALENV; PYTHON PREREQUISITES
+# -----------------------------------------------------------------------------
+
+# (a) System-wide installation of pip and virtualenv
+
+sudo apt-get install python3-pip  # pip for Python 3
+sudo pip3 install virtualenv  # Python 3 version of virtualenv
+
+# (b) Creation of clean Python 3 virtual environment, with its own pip
+
+export VENV=~/tmp/crate_virtualenv
+mkdir -p $VENV
+virtualenv --python=/usr/bin/python3.4 $VENV
+export PIP=$VENV/bin/pip
+export PYTHON=$VENV/bin/python
+
+# (c) Installation of packages into virtual environment
+
+$PIP install django  # Django
+export DJANGO_ADMIN=$VENV/bin/django-admin.py
+$PIP install mysqlclient  # Python 3 replacement for MySQLdb
+$PIP install django-sslserver  # SSL development server
+$PIP install django-picklefield  # PickleField
+
+# -----------------------------------------------------------------------------
+# DJANGO PROJECT CREATION
+# -----------------------------------------------------------------------------
+
+# Check versions
+$PYTHON -c "import django; print(django.get_version())"
+$DJANGO_ADMIN version
+# ... is currently 1.8.4
+
+$DJANGO_ADMIN startproject crateweb
+
+# Edit manage.py, changing
+#       #!/usr/bin/env python
+# to
+#       #!/usr/bin/env python3
+# ... or Python 2 and an old version of Django may be used.
+
+# -----------------------------------------------------------------------------
+# DJANGO PROJECT MANAGEMENT
+# -----------------------------------------------------------------------------
+
+export CRATE_BASE=~/Documents/code/crate
+export CRATE_DJANGO_ROOT=$CRATE_BASE/webfrontend/crateweb
+export CRATE_MANAGE="$PYTHON $CRATE_DJANGO_ROOT/manage.py"
+. $CRATE_BASE/webfrontend/SET_PATHS.sh
+$CRATE_MANAGE  # shouldn't produce an error
+
+-------------------------------------------------------------------------------
+RUN TEST SERVER
+-------------------------------------------------------------------------------
+
+# For HTTP:
+$CRATE_MANAGE runserver
+# ... now browse to http://127.0.0.1:8000/
+
+# For HTTPS (having installed/configured django-sslserver)
+$CRATE_MANAGE runsslserver
+# ... now browse to https://127.0.0.1:8000/
+
+-------------------------------------------------------------------------------
+GRANT READ-ONLY ACCESS TO MYSQL RESEARCH DATABASE
+-------------------------------------------------------------------------------
+
+mysql -u root -p
+mysql> GRANT SELECT ON anonymous_output.* TO 'researcher'@'localhost' IDENTIFIED BY 'password';
+
+-------------------------------------------------------------------------------
+CREATE/RECREATE TABLES
+-------------------------------------------------------------------------------
+
+# If models have changed:
+$CRATE_MANAGE makemigrations [appname]
+
+# To see what it'll do, e.g.
+$CRATE_MANAGE sqlmigrate research 0001  # ... appname, migration_number
+
+# Then:
+$CRATE_MANAGE migrate
+
+-------------------------------------------------------------------------------
+CREATE APP
+-------------------------------------------------------------------------------
+
+cd $CRATE_DJANGO_ROOT
+$CRATE_MANAGE startapp research
+# now add it to INSTALLED_APPS in settings.py
+
+-------------------------------------------------------------------------------
+EXPLORE APP FROM COMMAND LINE
+-------------------------------------------------------------------------------
+
+$CRATE_MANAGE shell
+# See https://docs.djangoproject.com/en/1.8/intro/tutorial01/
+
+-------------------------------------------------------------------------------
+CREATE SUPERUSER
+-------------------------------------------------------------------------------
+
+$CRATE_MANAGE createsuperuser
+
+# Now run the demo server and go to http://127.0.0.1:8000/admin/
+
+-------------------------------------------------------------------------------
+TUTORIALS
+-------------------------------------------------------------------------------
+
+- https://docs.djangoproject.com/en/1.8/intro/tutorial01/
+- https://www.youtube.com/watch?v=oT1A1KKf0SI&list=PLxxA5z-8B2xk4szCgFmgonNcCboyNneMD&index=1
+
+-------------------------------------------------------------------------------
+USER PROFILES
+-------------------------------------------------------------------------------
+
+# http://stackoverflow.com/questions/19433630/how-to-use-user-as-foreign-key-in-django-1-5
+# https://docs.djangoproject.com/en/dev/topics/auth/customizing/#referencing-the-user-model
+# https://www.youtube.com/watch?v=qLRxkStiaUg&list=PLxxA5z-8B2xk4szCgFmgonNcCboyNneMD&index=22
+
+cd $CRATE_DJANGO_ROOT
+$CRATE_MANAGE startapp userprofile
+# edit settings.py (a) INSTALLED_APPS; (b) AUTH_PROFILE_MODULE = 'userprofile.UserProfile'
+
+===============================================================================
+CONSENT-MODE DATABASE
+===============================================================================
+- General principle to avoid storing BLOBs in databases, to keep the database
+  small, and to allow static file serving. With Django, for private static
+  files, that may need something like X-Sendfile:
+    http://zacharyvoase.com/2009/09/08/sendfile/
+    http://django-private-files.readthedocs.org/en/0.1.2/serverconf.html
+    ... Apache with mod_xsendfile
+    http://stackoverflow.com/questions/1156246/having-django-serve-downloadable-files
+- However, we do want to concatenate PDFs to make packages for clinicians.
+  Though not necessarily very often.
+- Outbound e-mails can be stored as text (e.g. HTML).
+- Letters could be stored as PDFs (e.g. files) or as the HTML used to generate
+  the PDF (smaller; reproducible exactly unless e.g. the header changes).
+
+
+
+If you drop a table, or want to drop a table:
+    http://stackoverflow.com/questions/5328053/how-to-restore-dropped-table-with-django-south

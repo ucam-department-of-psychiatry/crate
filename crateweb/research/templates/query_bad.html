@@ -1,0 +1,24 @@
+{# query_bad.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Failed: error in query</h1>
+    <p>There’s an error in your query. Please edit it and try again.</p>
+
+    <h1>Error</h1>
+    <pre>{{ exception }}</pre>
+
+    <h1>SQL from you</h1>
+    <pre>{{ original_sql }}</pre>
+
+    <h1>SQL sent to database engine</h1>
+    <pre>{{ final_sql }}</pre>
+
+    <h2>Arguments (if applicable)</h2>
+    <pre>{{ args }}</pre>
+
+{% endblock %}

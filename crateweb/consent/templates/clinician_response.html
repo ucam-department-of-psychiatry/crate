@@ -1,0 +1,344 @@
+{# clinician_response.html #}
+{% comment %}
+    template parameters:
+        consent_mode (object)
+        contact_request (object)
+        Leaflet (object)
+        patient_lookup (object)
+        settings (object)
+        study (object)
+
+        clinician_involvement_requested (Boolean)
+        clinician_involvement_required_yellow (Boolean)
+        clinician_involvement_required_unknown (Boolean)
+        option_c_available (Boolean)
+{% endcomment %}
+
+{% extends "base.html" %}
+
+{% block extrahead %}
+    <script>
+        {% include "clinician_response.js" with
+            option_c_available=option_c_available %}
+    </script>
+{% endblock %}
+{% block mainsiteheader %}{% endblock %}
+
+{% block content %}
+
+    <p>Dear {{ patient_lookup.clinician_title_surname_str }},</p>
+
+    <p>Based on anonymised information in the CPFT Research Database, a
+    research team has identified the following patient of yours as
+    potentially eligible for a study that they are conducting:</p>
+
+    {patient_table}
+    {% include "patient_table.html" with
+        patient_lookup=patient_lookup
+        consent_mode=consent_mode %}
+
+    <p>The study is:</p>
+
+    {% include "study_table_for_clinician.html" with
+        study=study
+        contact_request=contact_request
+        offer_details=offer_details
+        offer_clinician_form=offer_clinician_form %}
+
+    <p>At this stage, the researchers do not know the patient’s identity.
+    They have identified the patient based on a search of the anonymised
+    CPFT Research Database. Patient information may only be disclosed to
+    the researchers with the patient’s consent.</p>
+
+    {% if clinician_involvement_requested %}
+
+        <b>The researchers have indicated that they would like you, as the
+        patient’s clinician, to consider this request.</b>
+        This may be because they would need clinical information from you
+        to establish whether the patient is indeed eligible to participate,
+        or because they would need information from you as part of the
+        study itself.
+
+    {% elif clinician_involvement_required_yellow %}
+
+        The researchers would like the patient’s permission to be
+        contacted.
+        <b>This patient has actively chosen that all approaches by research
+        teams should be on a case-by-case
+        basis via the primary clinical team</b> (“approach mode YELLOW”),
+        and so this request has been passed along to you.
+
+    {% elif clinician_involvement_required_unknown %}
+
+        The researchers would like the patient’s permission to be
+        contacted.
+        <b>This patient has never been asked their preference regarding
+        direct approaches by research teams,</b>
+        and so this request has been passed along to you.
+        <b>We would like to know the patient’s preference about being
+        contacted for this study,
+        but also about future studies in general.</b>
+
+    {% else %}
+
+        <div class="important">Bug! Please contact the CRATE developer.</div>
+
+    {% endif %}
+
+    <p>We would be very grateful if you would do the following:</p>
+
+    <div class="important">
+        <b>Under 16? Lacks capacity?</b>
+        If the patient is under 16 or may lack capacity to decide
+        about research participation, please follow the procedure
+        outlined in the leaflet “<i>Information for clinicians and
+        researchers about the CPFT research database</i>” (see below).
+    </div>
+
+    {% include "discharged_phrase.html" %}
+
+    <p class="action">
+        Please examine the study details (see link above).
+        (You don’t have to consider detailed inclusion/exclusion
+        criteria; that’s the researcher’s job. If you think the patient
+        <i>might</i> be suitable, that’s good enough.)
+    </p>
+
+    <p class="action">
+        <b>Please select an option below, and follow the
+        instructions that appear.</b>
+    </p>
+
+    <br>
+    <div class="indented highlight">
+        <form name="myform" action="{THIS_SCRIPT_URL}" method="POST">
+
+            <label onclick="showR();">
+                <input type="radio" name="{PARAM.CLINICIAN_RESPONSE}"
+                    value="{CLINICIAN_DECISION.R}">
+                <b>R. The patient may be eligible for this study.
+                Do the work for me.</b> I authorize the Research
+                Database Manager to send the patient a letter on my
+                behalf, signed <i>pp</i> me, passing on this request.
+                <br>
+            </label>
+
+            <label onclick="showA();">
+                <input type="radio" name="{PARAM.CLINICIAN_RESPONSE}"
+                    value="{CLINICIAN_DECISION.A}">
+                <b>A. The patient may be eligible for this study. I
+                shall pass this request along to the patient.</b>
+                <br>
+            </label>
+
+            <label onclick="showB()";>
+                <input type="radio" name="{PARAM.CLINICIAN_RESPONSE}"
+                    value="{CLINICIAN_DECISION.B}">
+                <b>B. As the patient’s clinician, I decline to pass
+                this request on to the patient.</b>
+                <br>
+            </label>
+
+            <label id="optionC_radio" onclick="showC();">
+                <input type="radio" name="{PARAM.CLINICIAN_RESPONSE}"
+                    value="{CLINICIAN_DECISION.C}">
+                <b>C. The patient is ineligible for this study.</b>
+                <br>
+            </label>
+
+            <label onclick="showD();">
+                <input type="radio" name="{PARAM.CLINICIAN_RESPONSE}"
+                    value="{CLINICIAN_DECISION.D}">
+                <b>D. The patient is Dead, Discharged, or their Details
+                are Defunct, preventing contact.</b>
+                <br>
+            </label>
+
+            <div id="optionR" class="indented">
+                <p>Thank you. Please confirm your name below and click
+                “Submit”. We’ll do the rest.</p>
+            </div>
+
+            <div id="optionA" class="indented">
+                <p>Thank you.</p>
+
+                <p class="action"><b>Please print out the
+                <a href="{clinician_pack_url}"
+                    target="_blank">CUSTOMIZED INFORMATION PACK</a>.
+                    </b></p>
+
+                <p class="action">Now choose whether you prefer to
+                discuss this with the patient in person, or pass on the
+                request by letter. A letter has been drafted for your
+                signature (it’s in the pack) in case you prefer the
+                latter.</p>
+
+                <p class="important">If you prefer to discuss this with
+                the patient <b>in person:</b></p>
+
+                <ol>
+                    <li>Please show the materials to the patient.</li>
+
+                    {% if clinician_involvement_required_unknown %}
+
+                        <li>Please explain to that all CPFT patients are asked their views
+                        about being contacted in the future by research teams about taking
+                        part in research. In addition, one particular research team is
+                        already interested in patients like them, and we would like to know
+                        whether they are willing for that research team to be given their
+                        details, so that researchers can talk to them about taking part in
+                        research. They are <i>not</i> being asked for consent to
+                        participate, just for consent to being sent information by the
+                        researchers and for the researchers to see their CPFT records (to
+                        check they’re suitable for the study).</li>
+
+                        <li>Please ask them to choose (consent or refuse) <b>about this
+                        study</b> on their personalized form and sign it.</li>
+
+                        <li>Please ask them to choose (GREEN, YELLOW, or RED) <b>about
+                        studies in general</b> on the other decision form, fill in their
+                        details, and sign it.</li>
+
+                        <li>Return both forms to {{ settings.RDBM_ADDRESS }}.</li>
+
+                    {% elif clinician_involvement_requested and study.has_form_pdf %}
+
+                        {# Usual method for clinician involvement: supply a form. #}
+
+                        <li>Please ask them to choose (consent or refuse) on their form
+                        and sign it.</li>
+
+                        <li>If they consent, please complete the researcher’s form as
+                        best you can.</li>
+
+                        <li>Then return both forms to {{ settings.RDBM_ADDRESS }}.</li>
+
+                    {% else %}
+
+                        {% comment %}
+                            Either:
+                            (A) Researchers want contact via clinicians, but don't
+                                want to supply a subject template form... i.e. they
+                                could have gone GREEN but are choosing not to; or
+                            (B) CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW
+                        {% endcomment %}
+
+                        <li>Please ask them to choose (consent or refuse) on their
+                        form (1) and sign it.</li>
+
+                        <li>Return the form to {{ settings.RDBM_ADDRESS }}.</li>
+
+                    {% endif %}
+
+                    <li>Then confirm your name below and click
+                    “Submit”. Thank you!</li>
+                </ol>
+
+                <div class="important">If you prefer to pass the
+                request to the patient <b>by letter:</b></div>
+
+                <ol>
+                    <li>Please sign the draft letter from you to the patient.</li>
+
+                    <li>Please send (or ask your secretary to send) all materials to the
+                    patient. Include an envelope pre-addressed to {rdbm_address} (if you’d
+                    like stocks of pre-printed envelopes, please e-mail
+                    <a href="mailto:{{ settings.RDBM_EMAIL }}">{{ settings.RDBM_EMAIL }}</a>).</li>
+
+                    {% if clinician_involvement_requested and study.has_form_pdf %}
+                        <li>Please fill in the <b>researcher’s form</b> as best you
+                        can.</li>
+                    {% endif %}
+
+                    <li>Then confirm your name below and click “Submit”. Thank you!</li>
+                </ol>
+            </div>
+
+            <div id="optionB" class="indented">
+                <p>Thank you.</p>
+
+                <p>Normally, the decision about being contacted for
+                research studies should be the patient’s. However, all
+                approaches such as this one, via the clinical team, are
+                subject to your “veto”: as the patient’s clinician, you
+                may decline to pass the request on to the patient. If
+                you choose this option, no information about the
+                patient will be given to the research team. Please only
+                choose this option in exceptional circumstances, as it
+                reduces the patient’s ability to choose. Exceptional
+                circumstances might include those in which, in your
+                judgement, an offer to the patient to participate in
+                research might cause extreme distress, or that the
+                patient currently lacks the capacity to make a decision
+                about participation (and the study does not concern
+                such patients specifically). Your views on the study
+                itself should not prompt you to select this option; all
+                studies supported by CPFT have ethical approval and we
+                seek to promote patient choice about research
+                participation. Please give a reason for your choice,
+                so that we may audit use of this option.</p>
+
+                <b>Reason:</b><br>
+                <textarea name="{PARAM.CLINICIAN_VETO_REASON}"
+                    cols="70" rows="5"></textarea><br>
+
+                <p>Now, please confirm your name below and click
+                “Submit”. Thank you!</p>
+            </div>
+
+            <div id="optionC" class="indented">
+                <p>Thank you.</p>
+                <p>
+                    If you can, please supply a brief reason. This will
+                    not be passed to the researchers but will help us
+                    to monitor the accuracy of researchers’ requests
+                    from the Research Database.
+                </p>
+                <b>Reason:</b><br>
+                <textarea name="{PARAM.CLINICIAN_INELIGIBLE_REASON}"
+                    cols="70" rows="5"></textarea><br>
+                <p>Now, please confirm your name below and click
+                “Submit”. Thank you!</p>
+            </div>
+
+            <div id="optionD" class="indented">
+                <p>Thank you.</p>
+                <p>
+                    If you can, please give further details. This will
+                    not be passed to the researchers but will help us
+                    to monitor the accuracy of researchers’ requests
+                    from the Research Database.
+                </p>
+                <b>Reason:</b><br>
+                <textarea name="clinician_pt_uncontactable_reason"
+                    cols="70" rows="5"></textarea><br>
+                <p>Now, please confirm your name below and click
+                “Submit”. Thank you!</p>
+            </div>
+
+            <div id="submit" class="indented">
+                <b>Please confirm your name by typing it here:</b>
+                <input type="text"
+                        name="{PARAM.CLINICIAN_CONFIRM_NAME}"><br>
+                <input type="hidden" name="{PARAM.ACTION}"
+                        value="{ACTION.CLINICIAN_SUBMIT_RESPONSE_WEB}">
+                <input type="hidden" name="{PARAM.CONTACT_REQUEST_ID}"
+                        value="{contact_request_id}">
+                <input type="hidden"
+                        name="{PARAM.CLINICIAN_RESPONSE_ROUTE}"
+                        value="{VALUE.WEB}">
+                <input type="submit" value="Submit">
+            </div>
+        </form>
+    </div>
+
+    <p>If you have any queries, please telephone the Research Database
+    Manager on {{ settings.RDBM_TELEPHONE }}.</p>
+
+    <p>Thank you for your help!<p>
+
+    {% include "clinician_notes.html" with
+        settings=settings
+        Leaflet=Leaflet %}
+
+{% endblock %}

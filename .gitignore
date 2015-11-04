@@ -3,5 +3,7 @@
 *.tsv
 
 # Python residue
-*.pyc
-*.pyo
+__pycache__/
+*.py[cod]
+
+# http://stackoverflow.com/questions/3719243/recommended-gitignore-file-for-python-projects

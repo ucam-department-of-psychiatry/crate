@@ -1,0 +1,23 @@
+# use:
+#       pip install -r THISFILE
+# where pip is your virtualenv version of pip
+# Note also that this file can include others with "-r OTHERFILE".
+
+# For the Django site:
+
+Django>=1.8.4
+django-picklefield>=0.3.2
+django-sslserver>=0.15
+django-debug-toolbar>=1.4
+mysqlclient>=1.3.6
+pdfkit>=0.5.0
+PyPDF2>=1.25.1
+pytz
+python-dateutil
+
+# Include others
+
+-r pythonlib/requirements.txt
+
+# WILL ALSO NEED:
+# sudo apt-get install python-dev wkhtmltopdf

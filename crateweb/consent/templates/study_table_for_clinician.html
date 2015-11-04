@@ -1,0 +1,50 @@
+{# study_table_for_clinician.html #}
+{% comment %}
+    pass in:
+        study (object)
+        contact_request (object) -- or None
+        offer_details (Boolean)
+        offer_clinician_form (Boolean)
+{% endcomment %}
+
+<table class="researcher">
+    <tr><td>Study number</td><td><b>{{ study.institutional_id }}</b></td></tr>
+    <tr>
+        <td>Lead researcher</td>
+        <td><b>{{ study.lead_researcher.userprofile.get_title_forename_surname }}</b></td>
+    </tr>
+    <tr><td>Title</td><td><b>{{ study.title }}</b></td></tr>
+    <tr><td>Summary</td><td><b>{{ study.summary }}</b></td></tr>
+    <tr>
+        <td>Study specifically involves those without capacity?</td>
+        <td><b>{{ study.include_lack_capacity|yesno }}</b></td>
+    </tr>
+    {% if contact_request %}
+        <tr><td>Contact request code</td><td><b>{{ contact_request.id }}</b></td></tr>
+    {% endif %}
+    {% if offer_details %}
+        <tr>
+            <td>Study details</td>
+            <td><b><a href="{% url 'study_details' study.id %}"
+                      target="_blank">Click for study details PDF</b></td>
+        </tr>
+    {% endif %}
+    {% if offer_clinician_form %}
+        <tr>
+            <td>Form for clinicians</td>
+            <td><b>a <a href="{% url 'study_form' study.id %}"
+                        target="_blank">form from the researchers</a>, which
+                        they would like completed</b></td>
+        </tr>
+    {% endif %}
+</table>
+
+{% if study.clinical_trial %}
+    <div class="important">
+        <b>This is a clinical trial (CTIMP). Approaches about CTIMPs
+        should only be by the patient’s consultant.</b>
+        If you are not the patient’s consultant, please do NOT click
+        below to respond, but INSTEAD forward this request (by Trust
+        internal e-mail) to the consultant. Thank you!
+    </div>
+{% endif %}

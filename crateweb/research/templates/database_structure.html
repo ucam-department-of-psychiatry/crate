@@ -1,0 +1,49 @@
+{# database_structure.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+
+    {% if paginated %}
+        <h1>Research database structure: paginated</h1>
+    {% else %}
+        <h1>Research database structure: long form</h1>
+    {% endif %}
+
+    <table>
+        <tr>
+            <th>table.column</th>
+            <th>Schema</th>
+            <th>Table</th>
+            <th>Column</th>
+            <th>Data type</th>
+            <th>May be NULL?</th>
+            <th>Comment</th>
+            <th>Indexed?</th>
+            <th>FULLTEXT index?</th>
+        </tr>
+        {% for d in infodictlist %}
+            <tr>
+                <td><b>{{ d.table_name }}.{{ d.column_name }}</b></td>
+                <td>{{ d.table_schema }}</td>
+                <td><b>{{ d.table_name }}</b></td>
+                <td><b>{{ d.column_name }}</b></td>
+                <td>{{ d.column_type|upper }}</td>
+                <td>{{ d.is_nullable|yesno }}</td>
+                <td>{{ d.column_comment }}</td>
+                <td>{{ d.indexed|yesno }}</td>
+                <td>
+                    {% if d.indexed_fulltext %}<b>{% endif %}
+                    {{ d.indexed_fulltext|yesno }}
+                    {% if d.indexed_fulltext %}</b>{% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    {% if paginated %}
+        {% include "page_nav_results.html" with items=infodictlist %}
+    {% endif %}
+
+{% endblock %}

@@ -1,0 +1,17 @@
+{# query_count.html #}
+
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Count</h1>
+    <div>There are <b>{{ rowcount|intcomma }}</b> records.</div>
+    <div><a href="{% url 'results' %}">view results</a></div>
+
+    <h1>SQL</h1>
+    <pre>{{ sql }}</pre>
+
+{% endblock %}

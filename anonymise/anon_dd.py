@@ -9,7 +9,7 @@ than a database table.
 
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
-Last update: 16 Sep 2015
+Last update: 06 Oct 2015
 
 Copyright/licensing:
 
@@ -395,22 +395,32 @@ class DataDictionaryRow(object):
             values.append(v)
         return "\t".join(values)
 
+    def get_offender_description(self):
+        offenderdest = "" if not self.omit else " -> {}.{}".format(
+            self.dest_table, self.dest_field)
+        return "{}.{}.{}{}".format(
+            self.src_db, self.src_table, self.src_field, offenderdest)
+
     def check_valid(self):
         """
         Check internal validity and complain if invalid, showing the source
         of the problem.
         """
         self.components_to_alter_method()
-        offenderdest = "" if not self.omit else " -> {}.{}".format(
-            self.dest_table, self.dest_field)
-        offender = "{}.{}.{}{}".format(
-            self.src_db, self.src_table, self.src_field, offenderdest)
         try:
             self._check_valid()
         except:
             logger.exception(
-                "Offending DD row [{}]: {}".format(offender, str(self)))
+                "Offending DD row [{}]: {}".format(
+                    self.get_offender_description(), str(self)))
             raise
+
+    def check_prohibited_fieldnames(self, fieldnames):
+        if self.dest_field in fieldnames:
+            logger.exception(
+                "Offending DD row [{}]: {}".format(
+                    self.get_offender_description(), str(self)))
+            raise ValueError("Prohibited dest_field name")
 
     def _check_valid(self):
         """
@@ -649,7 +659,6 @@ class DataDictionary(object):
                 self.rows.append(ddr)
             logger.debug("... content loaded.")
         self.cache_stuff()
-        self.check_valid(check_against_source_db)
 
     def read_from_source_databases(self, report_every=100,
                                    default_omit=True):
@@ -945,10 +954,12 @@ class DataDictionary(object):
 
         logger.debug("... source tables checked.")
 
-    def check_valid(self, check_against_source_db):
+    def check_valid(self, check_against_source_db, prohibited_fieldnames=[]):
         """
         Check DD validity, internally +/- against the source database.
         """
+        if prohibited_fieldnames is None:
+            prohibited_fieldnames = []
         logger.info("Checking data dictionary...")
         if not self.rows:
             raise ValueError("Empty data dictionary")
@@ -956,10 +967,13 @@ class DataDictionary(object):
             raise ValueError("Empty data dictionary after removing "
                              "redundant tables")
 
-        # Individual rows will already have been checked
-        # for r in self.rows:
-        #    r.check_valid()
-        # Now check collective consistency
+        # Individual rows will already have been checked with their own
+        # check_valid() method. But now we check collective consistency
+
+        logger.debug("Checking DD: prohibited fieldnames...")
+        if prohibited_fieldnames:
+            for r in self.rows:
+                r.check_prohibited_fieldnames(prohibited_fieldnames)
 
         logger.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables():

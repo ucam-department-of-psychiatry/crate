@@ -1,0 +1,22 @@
+{# login.html #}
+
+{% extends "base.html" %}
+
+{% block user_header %}{% endblock %}
+{% block content %}
+
+    <h1>Please log in below.</h1>
+
+    {% if next %}
+        <form action="{% url 'login' %}?next={{next}}" method="post" >
+    {%else%}
+        <form action="{% url 'login' %}" method="post" >
+    {% endif %}
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Login" />
+    </form>
+
+{% endblock %}

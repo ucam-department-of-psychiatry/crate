@@ -1,0 +1,37 @@
+{# query_nav.html #}
+
+<div>
+    [
+    {% if nav_on_query %}
+        SQL
+    {% else %}
+        <a href="{% url 'query' %}">SQL</a>
+    {% endif %}
+    |
+    {% if nav_on_highlight %}
+        highlighting
+    {% else %}
+        <a href="{% url 'highlight' %}">highlighting</a>
+    {% endif %}
+{% comment %}
+    |
+    {% if nav_on_count or not query_selected %}
+        <b>preview count</b>
+    {% else %}
+        <a href="{% url 'count' current_query_id %}">preview count</a>
+    {% endif %}
+{% endcomment %}
+    |
+    {% if nav_on_results or not query_selected %}
+        view results
+    {% else %}
+        <a href="{% url 'results' current_query_id %}">view results</a>
+    {% endif %}
+    |
+    {% if not query_selected %}
+        export as TSV
+    {% else %}
+        <a href="{% url 'tsv' %}">export as TSV</a>
+    {% endif %}
+    ]
+</div>

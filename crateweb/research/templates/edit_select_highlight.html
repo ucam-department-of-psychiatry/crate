@@ -1,0 +1,90 @@
+{# edit_select_highlight.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    {% if query_selected %}
+        <h1>Currently selected SQL</h1>
+        <pre>{{ sql }}</pre>
+
+        <h1>Proceed to results</h1>
+        {% comment %}
+            <div><a href="{% url 'count' current_query_id %}">Preview count</a></div>
+        {% endcomment %}
+        <div><a href="{% url 'results' current_query_id %}">View results</a></div>
+    {% endif %}
+
+    <h1>Add a new highlight</h1>
+
+    <form action="{% url 'highlight' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Add" />
+    </form>
+
+    <h1>Existing highlights</h1>
+
+    {% if highlights %}
+        <table>
+            <tr>
+                <th>Text</th>
+                <th>Colour number (0-{{ N_CSS_HIGHLIGHT_CLASSES|add:"-1" }})</th>
+                <th>Delete highlight</th>
+                <th>Active?</th>
+                <th>Activate this one</th>
+                <th>Deactivate this one</th>
+            </tr>
+            {% for highlight in highlights %}
+                <tr>
+                    <td>{{ highlight.text }}</td>
+                    <td>{{ highlight.colour }}</td>
+                    <td>
+                        {% include "action_only_form.html" with action="delete_highlight" pk=highlight.id button="Delete" %}
+                    </td>
+                    <td>
+                        {% if highlight.active %}<b>{% endif %}
+                        {{ highlight.active|yesno }}
+                        {% if highlight.active %}</b>{% endif %}
+                    </td>
+                    <td>
+                        {% if highlight.active %}
+                            (activated)
+                        {% else %}
+                            {% include "action_only_form.html" with action="activate_highlight" pk=highlight.id button="Activate" %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if highlight.active %}
+                            {% include "action_only_form.html" with action="deactivate_highlight" pk=highlight.id button="Deactivate" %}
+                        {% else %}
+                            (deactivated)
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        {% include "page_nav.html" with items=highlights %}
+
+    {% else %}
+        <div>None.</div>
+    {% endif %}
+
+    <h1>Current highlighting</h1>
+    <ul>
+        {% for h in highlight_descriptions %}
+            <li>{{ h|safe }}</li>
+        {% endfor %}
+    </ul>
+
+    <h1>Colour examples</h1>
+    {% for colour in colourlist %}
+        <div class="highlight{{ colour }}">Colour {{ colour }}</div>
+    {% endfor %}
+
+{% endblock %}

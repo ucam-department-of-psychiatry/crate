@@ -1,0 +1,15 @@
+{# collapsible_div.html #}
+
+{% load staticfiles %}
+<div class="expandcollapse"
+        onclick="toggle('collapse_detail_{{ tag }}', 'collapse_img_{{ tag }}');">
+    <img class="plusminus_image"
+            id="collapse_img_{{ tag }}"
+            alt=""
+            src="{% static "plus.gif" %}">
+</div>
+<div class="collapse_detail {{ extradivclasses }}"
+        id="collapse_detail_{{ tag }}"
+        style="display:none">
+    {{ contents|safe }}
+</div>

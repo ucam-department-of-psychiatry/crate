@@ -1,0 +1,12 @@
+{# generate_fake_nhs.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Randomly generated fake NHS numbers</h1>
+
+    <pre>{% for nhs in nhs_numbers %}{{ nhs }}
+{% endfor %}</pre>
+
+{% endblock %}

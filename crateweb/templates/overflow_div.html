@@ -1,0 +1,19 @@
+{# overflow_div.html #}
+
+{% load staticfiles %}
+<div class="expandcollapse"
+        onclick="toggle('collapse_detail_{{ tag }}', 'collapse_img_{{ tag }}', 'collapse_summary_{{ tag }}');">
+    <img class="plusminus_image"
+            id="collapse_img_{{ tag }}"
+            alt=""
+            src="{% static "plus.gif" %}">
+</div>
+<div class="collapse_detail {{ extradivclasses }}"
+        id="collapse_detail_{{ tag }}"
+        style="display:none">
+    {{ contents|safe }}
+</div>
+<div class="collapse_summary {{ extradivclasses }}"
+        id="collapse_summary_{{ tag }}">
+    {{ contents|safe }}
+</div>
