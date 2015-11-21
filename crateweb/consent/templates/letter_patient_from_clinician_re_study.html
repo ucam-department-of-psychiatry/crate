@@ -1,0 +1,127 @@
+{# letter_patient_from_clinician_re_study.html #}
+
+{% extends 'base_pdf_letter.html' %}
+
+{% block letter_body %}
+
+    {% include "patient_p.html" with patient_lookup=patient_lookup only %}
+
+    <p>
+        <em>I am writing to you to ask whether you are interested in
+        finding out more about a research study, and maybe taking part.</em>
+        {% if yellow %}
+            I’m contacting you because you previously chose to receive
+            information about research studies via your clinician.
+        {% endif %}
+    </p>
+
+    {% include "phrase_never_affect.html" %}
+
+    <p>
+        Research is vital to understand the causes and consequences of
+        mental health problems across the lifespan, and to find better
+        ways to treat mental health problems and improve the lives of
+        those affected. CPFT conducts research and works with partner
+        research organizations, such as the University of Cambridge.
+        Research from these organizations into brain function and
+        mental health problems is some of the best in the world.
+        We’re grateful for any help you could give us
+        by taking part in research.
+    </p>
+
+    <p><em>One of our current studies is this one:</em></p>
+
+    {% include "study_table.html" with study=study include_summary=True only %}
+
+    <p><em>This may be a study that you could take part in. The
+    researchers don’t know who you are, and we won’t tell them without
+    your permission. <b>Would you like more information about this
+    study?</b></em></p>
+
+    <p>Here’s what I’ve enclosed:</p>
+
+    <ul>
+        <li>Details of the study for you to have a look at.</li>
+
+        <li>A form to decide whether you’re interested in being
+        contacted by
+        {% if unknown %}
+            the researchers about <b>this</b> study,
+        {% else %}
+            these researchers
+        {% endif %}
+        and willing to allow them
+        to see your CPFT records so they can check you’re suitable for
+        the study. (<b>Saying “yes” doesn’t mean that you’re agreeing
+        to take part in the study</b> — just that the researchers can
+        write to tell you more about the study and maybe invite you to
+        take part. If you say no now, they’ll get no information about
+        you, not even your name.)</li>
+
+        {% if extra_form %}
+            <li>A form from the researchers, which I’ve filled in. If you
+            are interested in taking part, please fill in any gaps and
+            return it. If you don’t want to take part, you can throw it
+            away.</li>
+        {% endif %}
+
+        {% if unknown %}
+            <li>
+                A form titled <i>“Would you like to be contacted about
+                research?”</i>.
+                In the future, if researchers outside your clinical team want
+                to contact you directly about research studies that may be
+                relevant to you, you can choose to have your name and address
+                passed on to them (GREEN), to have all requests sent to you via
+                your clinicians (YELLOW), or not to have your name and address
+                passed on at all (RED).
+            </li>
+        {% endif %}
+
+        <li>A leaflet, <i>“Taking part in research”</i>, with some more
+        general information.</li>
+
+        <li>A Freepost envelope (to
+        {{ settings.RDBM_ADDRESS|join:", " }}).</li>
+    </ul>
+
+    {% if unknown %}
+        <p><em>The most important thing to know is that saying yes or no
+        won’t affect your normal NHS treatment!</em></p>
+    {% endif %}
+
+    <p><em>
+        {% if extra_form %}
+            <b>Please have a look at the study details and the form that
+            the researchers would like, and then choose option 1 or option
+            2 on the decision form.</b> Then please return the form(s) in
+            the Freepost envelope, or give them to a member of staff at
+            CPFT.
+        {% elif unknown %}
+            <b>Please have a look at the study details, and then choose option
+            1 or option 2 on the decision form.
+            Then please complete the other form (<i>“Would you like to be
+            contacted about research?”</i>).</b>
+            Finally, please send both forms back in the Freepost envelope, or
+            give them to a member of staff at CPFT.
+        {% else %}
+            <b>Please have a look at the study details, and then choose option
+            1 or option 2 on the decision form.</b> Then please return the form
+            in the Freepost envelope, or give it to a member of staff at CPFT.
+        {% endif %}
+{# *** THINK: could it be extra_form and unknown? *** #}
+    </em></p>
+
+    {% if yellow %}
+        <p>I’ve written to you because you previously chose the “YELLOW”
+        option in CPFT’s Research Database. If you’d like to be
+        reminded what this means, to choose a different option, or to
+        set other limits on how you’re contacted about research, please
+        tell us. You can also do so via the CPFT Research Database
+        Administrator, whose contact details are on the decision form
+        and at {{ settings.PUBLIC_RESEARCH_URL_SHORT }}.</p>
+    {% endif %}
+
+    <p>Thank you very much.</p>
+
+{% endblock %}

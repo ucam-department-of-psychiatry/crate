@@ -4,7 +4,7 @@
 from django import forms
 from django.conf import settings
 from django.forms import ModelForm
-from core.extra import (
+from extra.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
 )

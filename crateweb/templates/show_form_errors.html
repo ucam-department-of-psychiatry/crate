@@ -1,0 +1,33 @@
+{# show_form_errors.html #}
+
+<h1>Form debugging</h1>
+
+{% if form.errors %}
+    <h1>Field errors</h1>
+        {% for field in form %}
+            {% if field.errors %}
+                <div>{{ field.html_name }}:</div>
+                {% for error in field.errors %}
+                    <div class="alert alert-error">
+                        <strong>{{ error|escape }}</strong>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
+    </ul>
+
+    <h2>Non-field errors</h2>
+    {% for error in form.non_field_errors %}
+        <div class="alert alert-error">
+            <strong>{{ error|escape }}</strong>
+        </div>
+    {% endfor %}
+{% else %}
+    <div>No form errors.</div>
+{% endif %}
+
+<h2>form.data</h2>
+<div>{{ form.data }}</div>
+
+<h2>form.cleaned_data</h2>
+<div>{{ form.cleaned_data }}</div>

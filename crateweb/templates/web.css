@@ -1,0 +1,14 @@
+/* web.css */
+
+body {
+    font-size: small;
+}
+th {
+    border-bottom: 1px solid #000;
+}
+.heading_left th {
+    border-bottom: 1px solid #ccc;
+}
+tr {
+    border-bottom: 1px solid #ccc;
+}

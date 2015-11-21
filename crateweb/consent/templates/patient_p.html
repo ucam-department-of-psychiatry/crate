@@ -1,0 +1,15 @@
+{# patient_p.html #}
+{# parameters: patient_lookup #}
+
+<p class="patient_details">
+    Date of birth: {{ patient_lookup.pt_dob }}<br>
+
+    NHS number: {{ patient_lookup.nhs_number }}.
+    {% if patient_lookup.pt_local_id_description %}
+        {{ patient_lookup.pt_local_id_description}}:
+        {{ patient_lookup.pt_local_id_number }}.
+    {% endif %}
+    <br>
+
+    GP: {{ patient_lookup.gp_name_address_str }}
+</p>

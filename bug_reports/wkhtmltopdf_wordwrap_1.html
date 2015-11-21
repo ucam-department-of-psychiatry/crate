@@ -1,0 +1,70 @@
+<!DOCTYPE html> <!-- HTML 5 -->
+<html>
+    <head>
+        <style type="text/css">
+body {
+    font-family: sans-serif;
+    text-align: left;
+    line-height: 1.2em;
+    font-size: 12pt;
+    /* 11.6pt to 12.3pt goes wrong; smaller or greater is fine */
+}
+div {
+    margin: 0.5em 0em;
+}
+table {
+    border-collapse: collapse;
+    vertical-align: top;
+    margin: 0.5em 0em;
+}
+th, td {
+    vertical-align: top;
+    border: 0.1mm solid black;
+    margin: 0.5em;
+    padding: 0.1em 0.3em;
+}
+
+.addresses {
+    clear: both;
+}
+.address_to {
+    float: left;
+}
+.address_from {
+    float: right;
+    text-align: right;
+}
+.letterbody {
+    clear: both;
+}
+        </style>
+        </head>
+
+    <body>
+
+        <div class="addresses">
+            <div class="address_from">
+                United House<br>My place<br>Cambridge<br><br><br><br>
+            </div>
+            <div class="address_to">
+                Mr Alec Guinness<br>Big House<br>Tall Hill<br>Remoteville<br>Cambridgeshire<br>CB0 0ZZ
+            </div>
+        </div>
+
+        <div class="letterbody">
+            <table>
+                <tbody>
+                    <tr>
+                        <td>Lead researcher</td>
+                        <td><b>Prof. Bob Thinkalot</b></td>
+                    </tr>
+                    <tr>
+                        <td>Title</td>
+                        <td><b>Neuroimaging of whimsy</b></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div>Some plain text; is it wrapped?</div>
+        </div>
+    </body>
+</html>

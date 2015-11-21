@@ -1,0 +1,33 @@
+{# letter_researcher_withdraw.html #}
+
+{% extends 'base_pdf_letter.html' %}
+
+{% block letter_body %}
+
+<p><b>NOTIFICATION TO RESEARCHER OF WITHDRAWAL OF CONSENT TO BE
+CONTACTED</b></p>
+
+<p>The following patient has <b>withdrawn</b> permission for you to
+contact them directly about research, if you have not already done
+so.</p>
+
+{% include "patient_table.html" with patient_lookup=patient_lookup include_email=True withdrawal=True %}
+
+<p>You had previously, on {{ contact_request.get_permission_date|date }}, been given permission
+to contact them about this study:</p>
+
+{% include 'study_table.html' with study=study contact_request=contact_request %}
+
+<p><b>What should you do next?</b></p>
+
+<ul>
+    <li>If you have not already contacted them, please don’t.</li>
+    <li>If you have contacted them already, please ignore this notice.</li>
+</ul>
+
+<p>Please contact the Database Manager if you have queries about
+this process.</p>
+
+<p>Thank you.</p>
+
+{% endblock %}

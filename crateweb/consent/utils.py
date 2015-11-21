@@ -1,18 +1,36 @@
 #!/usr/bin/env python3
 # consent/utils.py
 
+from django.conf import settings
+from django.core.exceptions import ValidationError
+
 
 def pdf_template_dict(patient=True):
     if patient:
-        fontsize = "12pt"
-        lineheight = "14pt"
+        fontsize = settings.PATIENT_FONTSIZE
     else:
-        fontsize = "10pt"
-        lineheight = "12pt"
-    # NHS Blue is rgb(0, 114, 198); see
-    # http://www.nhsidentity.nhs.uk/page/11951/tools-and-resources/
-    #        nhs-brand-basics/nhs-colours/nhs-colours
+        fontsize = settings.RESEARCHER_FONTSIZE
     return {
         'fontsize': fontsize,
-        'lineheight': lineheight,
+        'PDF_LOGO_ABSPATH': settings.PDF_LOGO_ABSPATH,
+        'PDF_LOGO_WIDTH': settings.PDF_LOGO_WIDTH,
     }
+
+
+def get_domain_from_email(email):
+    # Very simple version...
+    try:
+        return email.split('@')[1]
+    except:
+        raise ValidationError("Bad e-mail address: no domain")
+
+
+def validate_researcher_email_domain(email):
+    if not settings.VALID_RESEARCHER_EMAIL_DOMAINS:
+        # Anything goes.
+        return
+    domain = get_domain_from_email(email)
+    for valid_domain in settings.VALID_RESEARCHER_EMAIL_DOMAINS:
+        if domain.lower() == valid_domain.lower():
+            return
+    raise ValidationError("Invalid researcher e-mail domain")

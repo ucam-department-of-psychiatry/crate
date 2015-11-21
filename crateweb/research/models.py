@@ -293,7 +293,6 @@ class ResearchDatabaseInfo(object):
     def infodictlist(self):
         logger.debug("Fetching/caching database structure")
         schemas = [settings.DATABASES['research']['NAME']]
-        # *** support multiple schemas via config?
         sql = translate_sql_qmark_to_percent("""
             SELECT
                 c.table_schema,
@@ -352,9 +351,11 @@ class PidLookupRouter(object):
     # https://newcircle.com/s/post/1242/django_multiple_database_support
     def db_for_read(self, model, **hints):
         """
-        read model Lookup -> look at database secret
+        read model PidLookup -> look at database secret
         """
-        if model._meta.verbose_name == 'lookup':
+        # logger.debug("PidLookupRouter: {}".format(model._meta.model_name))
+        # if model._meta.model_name == PidLookup._meta.model_name:
+        if model == PidLookup:
             return 'secret'
         return None
 
@@ -383,3 +384,25 @@ class PidLookup(models.Model):
     class Meta:
         managed = False
         db_table = settings.SECRET_MAP['TABLENAME']
+
+
+def get_pid_lookup(trid=None, rid=None, mrid=None):
+    if trid is not None:
+        lookup = PidLookup.objects.get(trid=trid)
+    elif rid is not None:
+        lookup = PidLookup.objects.get(rid=rid)
+    elif mrid is not None:
+        lookup = PidLookup.objects.get(mrid=mrid)
+    else:
+        raise ValueError("no input")
+    return lookup
+
+
+def get_mpid(trid=None, rid=None, mrid=None):
+    lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
+    return lookup.mpid
+
+
+def get_pid(trid=None, rid=None, mrid=None):
+    lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
+    return lookup.pid

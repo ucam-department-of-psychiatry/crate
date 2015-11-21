@@ -1,0 +1,53 @@
+{# charity_report.html #}
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Charity report</h1>
+
+    <h2>Totals</h2>
+    <p>Total of payments due to charity: <b>{{ total_due }}</b></p>
+    <p>Total of payments made: <b>{{ total_paid }}</b></p>
+    <p>Outstanding due: <b>{{ outstanding }}</b></p>
+
+    <h2>Payments to charity</h2>
+    <table>
+        <tbody>
+            <tr>
+                <th>Created at</th>
+                <th>Payee</th>
+                <th>Amount</th>
+            </tr>
+            {% for payment in payments %}
+                <tr>
+                    <td>{{ payment.created_at }}</td>
+                    <td>{{ payment.payee }}</td>
+                    <td><b>{{ payment.amount }}</b></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Clinician responses</h2>
+    <table>
+        <tbody>
+            <tr>
+                <th>Created at</th>
+                <th>Clinician response ID</th>
+                <th>Contact request ID</th>
+                <th>Study ID</th>
+                <th>Amount due</th>
+            </tr>
+            {% for clinician_response in responses %}
+                <tr>
+                    <td>{{ clinician_response.created_at }}</td>
+                    <td>{{ clinician_response.id }}</td>
+                    <td>{{ clinician_response.contact_request.id }}</td>
+                    <td>{{ clinician_response.study.id }}</td>
+                    <td><b>{{ clinician_response.charity_amount_due }}</b></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% endblock %}

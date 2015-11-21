@@ -1,6 +1,9 @@
 {# clinician_already_responded.html #}
+{% extends "base.html" %}
+
 {% comment %}
     template parameters:
+        ClinicianResponse (object)
         clinician_response (object)
         consent_mode (object)
         contact_request (object)
@@ -11,35 +14,26 @@
 
 {% endcomment %}
 
-{% extends "base.html" %}
-
 {% block mainsiteheader %}{% endblock %}
 
 {% block content %}
 
-    <div class="error"><b>You have already responded using this form.</b>
-    Your response was {{ clinician_response.get_response_explanation }}.
-    <b>Thank you!</b>
+    <div class="error">
+    You have already responded to this request.
+    Your response was <b>{{ clinician_response.get_response_explanation }}</b>.
+    Thank you!
     </div>
 
     <h2>Patient</h2>
 
-    {% include "patient_table.html" with
-        patient_lookup=patient_lookup
-        consent_mode=consent_mode %}
+    {% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode verbose=True %}
 
     <h2>Study</h2>
 
-    {% include "study_table_for_clinician.html" with
-        study=study
-        contact_request=contact_request
-        offer_details=offer_details
-        offer_clinician_form=offer_clinician_form %}
+    {% include 'study_table.html' with study=study contact_request=contact_request to_clinician=True include_details=True include_clinician_form=passed_to_pt include_clinician_pack=passed_to_pt clinician_response=clinician_response %}
 
     <h2>Notes</h2>
 
-    {% include "clinician_notes.html" with
-        settings=settings
-        Leaflet=Leaflet %}
+    {% include "clinician_notes.html" with settings=settings Leaflet=Leaflet %}
 
 {% endblock %}

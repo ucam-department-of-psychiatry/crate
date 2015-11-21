@@ -4,15 +4,27 @@
 
 {% block content %}
 
-    <h1>Contact requests created</h1>
+    <h1>Contact requests created for background processing</h1>
     
     <table>
         <tr>
-            <th>Contact request</th>
+            <th>Contact request ID</th>
+            <th>NHS number used for lookup</th>
+            <th>RID used for lookup</th>
+            <th>MRID used for lookup</th>
+            {% if request.user.is_superuser %}
+                <th>View in RDBM admin site</th>
+            {% endif %}
         </tr>
         {% for cr in contact_requests %}
             <tr>
-                <td>{{ cr }}</td>
+                <td>{{ cr.id }}</td>
+                <td>{{ cr.lookup_nhs_number }}</td>
+                <td>{{ cr.lookup_rid }}</td>
+                <td>{{ cr.lookup_mrid }}</td>
+                {% if request.user.is_superuser %}
+                    <td><a href="{{ cr.get_mgr_admin_url }}">view contact request {{ cr.id }}</a></td>
+                {% endif %}
             </tr>
         {% endfor %}
     </table>

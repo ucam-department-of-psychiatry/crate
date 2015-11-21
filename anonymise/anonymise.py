@@ -1,6 +1,8 @@
 #!/usr/bin/python2.7
 # -*- encoding: utf8 -*-
 
+# anonymise.py *** convert to Python 3; use virtualenv
+
 """
 Anonymise multiple SQL-based databases using a data dictionary.
 

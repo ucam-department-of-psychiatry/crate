@@ -13,7 +13,6 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from core.dbfunc import dictlist_to_tsv, get_fieldnames_from_cursor
 from core.utils import is_superuser, paginate
-from userprofile.models import get_or_create_user_profile
 from .forms import (
     AddHighlightForm,
     PidLookupForm,
@@ -192,7 +191,7 @@ def results(request, query_id):
         query = Query.objects.get(id=query_id, user=request.user)
     except:
         return render_bad_query_id(request, query_id)
-    profile = get_or_create_user_profile(request.user)
+    profile = request.user.profile
     highlights = Highlight.get_active_highlights(request)
     return render_resultset(request, query, highlights,
                             collapse_at=profile.collapse_at,

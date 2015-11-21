@@ -1,0 +1,37 @@
+/* email.css */
+
+body {
+    font-size: medium;
+}
+
+/* Outlook doesn't seem to support multiple classes on elements in
+   HTML e-mail. Therefore, we use one class and one ID: */
+.response_button {
+    /* Common bits for response buttons */
+    display: block;
+    height: auto;
+    width: 300px;
+    border: 2px solid rgba(33, 68, 72, 0.59);
+    padding-top: 15px;
+    padding-bottom: 15px;
+    margin: 10px;
+    text-align: center;
+    font-weight: bold;
+    font-size: large;
+    color: rgb(0, 0, 0);
+}
+.response_button a { /* a within response_button class */
+    color: rgb(0, 0, 0);
+}
+.response_button a:link {
+    color: rgb(0, 0, 0);
+}
+#response_maybe {
+    background-color: rgb(255, 255, 0); /* yellow */
+}
+#response_no {
+    background-color: rgb(255, 0, 0); /* red */
+}
+#response_yes {
+    background-color: rgb(0, 255, 0); /* green */
+}

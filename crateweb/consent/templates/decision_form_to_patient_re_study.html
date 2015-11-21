@@ -1,0 +1,106 @@
+{# decision_form_to_patient_re_study.html #}
+
+{% extends 'base_pdf.html' %}
+
+{% block content %}
+
+    <div class="formtitle"><b>Deciding whether to be contacted about a
+    study</b></div>
+
+    <p>Your clinician has asked you whether you’d like to be contacted
+    about this study:</p>
+
+    {% include "study_table.html" with study=study omit_id=True only %}
+
+    {% include "phrase_never_affect.html" %}
+
+    <p>Would you like this research team to contact you?</p>
+    <p>Please tick one option, then sign and date the form.</p>
+    <table class="options">
+        <colgroup>
+            <col style="width:15%">
+            <col style="width:85%">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="rjust"><b>( )</b></td>
+                <td>
+                    <p class="hangingindent"><em><b>1.
+                    {% if extra_form %}
+                        Yes, please allow this research team to write to me. Please
+                        pass on the information requested by the researchers on the
+                        enclosed form, and allow them access to my full CPFT
+                        records.
+                    {% else %}
+                        Yes, please allow this research team to write to me, and
+                        allow them access to my full CPFT records.
+                    {% endif %}
+                    </b>
+                    I understand that they will write to me about this
+                    study, but that there’s no commitment to take part.
+                    </em></p>
+                </td>
+            </tr>
+            <tr>
+                <td class="rjust"><b>( )</b></td>
+                <td>
+                    <p class="hangingindent"><em><b>2. No, do not pass on
+                    my details to this research team about this study, and
+                    do not allow them access to my full CPFT records.
+                    </b></em></p>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if not yellow %}
+        {# If yellow, the patient has already consented to this. #}
+        <p>By signing you also agree that the CPFT Research Database Manager
+        (who is independent of the research team) can see the information
+        you send back, so that they can record your choice, and pass on
+        information to the researchers if that’s what you want.</p>
+    {% endif %}
+
+    {% include "signature_box_patient.html" with patient_lookup=patient_lookup %}
+
+    {% if patient_lookup.is_under_15 %}
+        <p><u>As you are under 16, please also fill in the box on the next
+        page.</u></p>
+    {% elif patient_lookup.is_under_16 %}
+        {# Might have been sent out with 16th birthday approaching, etc. #}
+        <p><u>If you are under 16, or another adult is making decisions on
+        your behalf</u>, please also fill in the relevant box on the next
+        page.</p>
+    {% else %}
+        <p><u>If another adult is making decisions on your behalf</u>,
+        please also fill in the box on the next page.</p>
+    {% endif %}
+
+    <p><em>Please return
+    {% if n_forms == 3 %}
+        all forms
+    {% elif n_forms == 2 %}
+        both forms
+    {% else %}
+        this form
+    {% endif %}
+    to {{ settings.RDBM_ADDRESS|join:", " }}. Postage is
+    free, and an envelope is enclosed. You can also give
+    {% if n_forms == 2 %}
+        the forms
+    {% else %}
+        this form
+    {% endif %}
+    to a member of staff at CPFT.</em> If you would
+    like more information from your health care professional before
+    completing this form, please feel free to ask.</p>
+
+    <p>Thank you!</p>
+
+    {% include "office_div.html" with study=study contact_request=contact_request %}
+
+    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT %}
+
+    {% include "office_div.html" with study=study contact_request=contact_request %}
+
+{% endblock content %}

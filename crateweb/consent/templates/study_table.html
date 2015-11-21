@@ -1,0 +1,89 @@
+{# study_table.html #}
+{% comment %}
+    pass in:
+        study (object)
+        contact_request (object) -- or None
+        omit_id (Boolean)
+        include_summary (Boolean)
+        include_capacity (Boolean)
+        include_details (Boolean)
+        to_clinician (Boolean)
+        include_clinician_form (Boolean)
+        include_clinician_pack (Boolean)
+        clinician_response -- or None
+{% endcomment %}
+
+<table class="study">
+    {% comment %}
+        <colgroup>
+            <col style="width:30%">
+            <col style="width:70%">
+        </colgroup>
+    {% endcomment %}
+    <tbody>
+        {% if not omit_id %}
+            <tr>
+                <td>Study number</td>
+                <td><b>{{ study.institutional_id }}</b></td>
+            </tr>
+        {% endif %}
+        <tr>
+            <td>Lead researcher</td>
+            <td><b>{{ study.lead_researcher.profile.get_title_forename_surname }}</b></td>
+        </tr>
+        <tr>
+            <td>Title</td>
+            <td><b>{{ study.title }}</b></td>
+        </tr>
+        {% if to_clinician or include_summary %}
+            <tr>
+                <td>Summary</td>
+                <td><b>{{ study.summary }}</b></td>
+            </tr>
+        {% endif %}
+        {% if to_clinician or include_capacity %}
+            <tr>
+                <td>Study specifically involves those without capacity?</td>
+                <td><b>{{ study.include_lack_capacity|yesno }}</b></td>
+            </tr>
+        {% endif %}
+        {% if contact_request %}
+            <tr>
+                <td>Contact request code</td>
+                <td><b>{{ contact_request.id }}</b></td>
+            </tr>
+        {% endif %}
+        {% if include_details %}
+            <tr>
+                <td>Study details</td>
+                <td><b><a href="{% url 'study_details' study.id %}"
+                          target="_blank">Click for study details PDF</b></td>
+            </tr>
+        {% endif %}
+        {% if include_clinician_form and study.subject_form_template_pdf.name %}
+            <tr>
+                <td>Form for clinicians</td>
+                <td><b>A <a href="{% url 'study_form' study.id %}"
+                            target="_blank">form from the researchers</a>, which
+                            they would like completed</b></td>
+            </tr>
+        {% endif %}
+        {% if include_clinician_pack %}
+            <tr>
+                <td>Pack for clinicians with letter to patient</td>
+                <td><b><a href="{% url 'clinician_pack' clinician_response.id clinician_response.token %}"
+                          target="_blank">Clinician pack</a></b></td>
+            </tr>
+        {% endif %}
+    </tbody>
+</table>
+
+{% if to_clinician and study.clinical_trial %}
+    <div class="important">
+        <b>This is a clinical trial (CTIMP). Approaches about CTIMPs
+        should only be by the patient’s consultant.</b>
+        If you are not the patient’s consultant, please do NOT click
+        below to respond, but INSTEAD forward this request (by Trust
+        internal e-mail) to the consultant. Thank you!
+    </div>
+{% endif %}

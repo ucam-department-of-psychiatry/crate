@@ -3,6 +3,7 @@
 
 from django.conf import settings
 from django.db import models
+from django.dispatch import receiver
 from core.constants import (
     LEN_ADDRESS,
     LEN_PHONE,
@@ -18,12 +19,14 @@ from core.constants import (
 #   - a representation of the user as a researcher (or maybe clinician)
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL,
+                                primary_key=True,
+                                related_name="profile")
+    # http://stackoverflow.com/questions/14345303/creating-a-profile-model-with-both-an-inlineadmin-and-a-post-save-signal-in-djan  # noqa
+
     # first_name: in Django User model
     # last_name: in Django User model
     # email: in Django User model
-    # *** think: restriction of e-mail to internal ones required?
-    #     Possibly not as e-mails to researchers have explicit consent.
 
     N_PAGE_CHOICES = (
         (10, '10'),
@@ -80,46 +83,43 @@ class UserProfile(models.Model):
     # Clinician-specific bits
     # -------------------------------------------------------------------------
     is_consultant = models.BooleanField(
+        default=False,
         verbose_name="User is an NHS consultant")
     signatory_title = models.CharField(
         max_length=255,
         verbose_name='Title for signature (e.g. "Consultant psychiatrist")')
 
     def get_address_components(self):
-        return [self.address_1, self.address_2, self.address_3, self.address_4,
-                self.address_5, self.address_6, self.address_7]
+        return list(filter(None,
+                           [self.address_1, self.address_2, self.address_3,
+                            self.address_4, self.address_5, self.address_6,
+                            self.address_7]))
 
     def get_title_forename_surname(self):
-        return " ".join([self.title, self.forename, self.surname])
+        return " ".join(filter(None, [self.title, self.user.first_name,
+                                      self.user.last_name]))
 
     def get_title_surname(self):
         if self.title.lower() == "sir":  # frivolous!
-            return " ".join([self.title, self.forename])
+            return " ".join([self.title, self.user.first_name])
         else:
-            return " ".join([self.title, self.surname])
+            return " ".join([self.title, self.user.last_name])
 
     def get_forename_surname(self):
-        return " ".join([self.forename, self.surname])
+        return " ".join([self.user.first_name, self.user.last_name])
+
+
+@receiver(models.signals.post_save, sender=settings.AUTH_USER_MODEL)
+def user_saved_so_create_profile(sender, instance, created, **kwargs):
+    UserProfile.objects.get_or_create(user=instance)
 
 
 # =============================================================================
 # Helper functions
 # =============================================================================
 
-def get_or_create_user_profile(user):
-    # http://stackoverflow.com/questions/3707398/django-create-userprofile-if-does-not-exist  # noqa
-    if not user.is_authenticated():
-        return None
-    profile = None
-    try:
-        profile = user.userprofile
-    except UserProfile.DoesNotExist:
-        profile = UserProfile(user=user)
-        profile.save()
-    return profile
-
 
 def get_per_page(request):
-    profile = get_or_create_user_profile(request.user)
-    # logger.info("profile.per_page: {}".format(profile.per_page))
-    return profile.per_page
+    if not request.user.is_authenticated():
+        return None
+    return request.user.profile.per_page

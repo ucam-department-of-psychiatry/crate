@@ -1,75 +1,16 @@
 {# base_email.html #}
 
-<!DOCTYPE html> <!-- HTML 5 -->
-<html>
-    <head>
-        <title>
-            {% block title %}
-                {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
-                automated e-mail
-            {% endblock %}
-        </title>
-        <meta charset="utf-8">
-        <style type="text/css">
+{% extends "base_root.html" %}
 
-body { font-family: Arial, Helvetica, sans-serif; }
-table.patient { background-color: rgb(127, 255, 127); }
-table.researcher { background-color: rgb(200, 200, 255); }
-table { border-collapse:collapse; }
-table, th, td {
-    border: 1px solid black;
-    vertical-align: top;
-    padding: 2px;
-    text-align: left;
-}
+{% block title %}
+    {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
+    automated e-mail
+{% endblock %}
 
-.action { color: rgb(0, 0, 255); }
-.error { color: rgb(255, 0, 0); }
-.highlight { background-color: rgb(255, 255, 224); }
-.important { color: rgb(255, 0, 64); }
-.indented { margin-left: 75px; }
-.notes {
-    padding: 5px;
-    background-color: rgb(192, 192, 192);
-}
+{% block extra_css %}
+    <style type="text/css">
+        {% include "email.css" %}
+    </style>
+{% endblock %}
 
-/* Outlook doesn't seem to support multiple classes on elements in
-   HTML e-mail. Therefore: */
-.response_button {
-    /* Common bits for response buttons */
-    display: block;
-    height: auto;
-    width: 300px;
-    border: 2px solid rgba(33, 68, 72, 0.59);
-    padding-top: 15px;
-    padding-bottom: 15px;
-    margin: 10px;
-    text-align: center;
-    font-weight: bold;
-    font-size: large;
-    color: rgb(0, 0, 0);
-}
-.response_button a { /* a within response_button class */
-    color: rgb(0, 0, 0);
-}
-.response_button a:link {
-    color: rgb(0, 0, 0);
-}
-#response_maybe {
-    background-color: rgb(255, 255, 0); /* yellow */
-}
-#response_no {
-    background-color: rgb(255, 0, 0); /* red */
-}
-#response_yes {
-    background-color: rgb(0, 255, 0); /* green */
-}
-
-        </style>
-    </head>
-
-    <body>
-        {% block content %}{% endblock %}
-    </body>
-
-</html>
+{% block extrahead %}{% endblock %}

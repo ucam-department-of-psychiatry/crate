@@ -33,8 +33,8 @@
                 <a href="{% url 'resadmin:index' %}">Researcher administration</a>:
                 <ul>
                     <li>View your studies</li>
-                    <li>View contact requests for your studies *** DO VIA READ-ONLY ADMIN SITE</li>
-                    <li>View approval-to-contact/rescindment-of-approval letters for your studies *** DO VIA READ-ONLY ADMIN SITE</li>
+                    <li>View contact requests for your studies</li>
+                    <li>View letters/e-mails to researchers for your studies</li>
                     <li>View master leaflets</li>
                 </ul>
             </li>
@@ -56,23 +56,26 @@
                 <li><a href="{% url 'pidlookup' %}">Look up patient ID (PID) from
                 research ID (RID)</a></li>
 
-                <li><a href="{% url 'admin:index' %}">RDBM administration</a>
-                (users, including researchers/clinical team representatives;
-                query audits;
-                studies; patients; consent modes;
-                clinical team representatives; payments to charity)</li>
+                <li><a href="{% url 'charity_report' %}">Charity payment
+                report</a></li>
+
+                <li><a href="{% url 'exclusion_report' %}">Report patients to
+                be excluded entirely from anonymised database</a></li>
+
+                <li><a href="{% url 'mgradmin:index' %}">RDBM administration</a>:
+                user management, query audits, and consent-to-contact admin
+                functions</li>
             </ul>
         {% endif %}
 
         {% if is_developer %}
             <h2>Extra functions for developers</h2>
             <ul>
+                <li><a href="{% url 'devadmin:index' %}">Developer admin</a>:
+                more detailed inspection of database objects</li>
+
                 <li><a href="{% url 'generate_fake_nhs' %}">Generate fake NHS
                 numbers for testing</a></li>
-
-                <li><a href="{% url 'devadmin:index' %}">Developer admin</a>
-                (emails, dummy records for patient lookup, actual patient
-                lookups)</li>
 
                 <li><a href="{% url 'test_patient_lookup' %}">Test patient
                 lookup without saving data</a></li>

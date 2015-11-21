@@ -1,0 +1,44 @@
+{# signature_box_patient.html #}
+{# parameters: patient_lookup #}
+
+<table class="signature">
+    <colgroup>
+        <col style="width:20%">
+        <col style="width:40%">
+        <col style="width:10%">
+        <col style="width:30%">
+    </colgroup>
+    <tbody>
+        <tr>
+            <td class="signature_label">Signed:</td>
+            <td class="signature_box"><br></td>
+            <td class="signature_label">Date:</td>
+            <td class="signature_box"></td>
+        </tr>
+        <tr>
+            <td colspan=4>
+            </td>
+        </tr>
+        <tr>
+            <td class="rjust">Name:</td>
+            <td><b>{{ patient_lookup.pt_forename_surname_str }}</b></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td class="rjust">Date of birth:</td>
+            <td colspan=3>
+                <b>{{ patient_lookup.pt_dob }}</b>
+            </td>
+        </tr>
+        <tr>
+            <td class="rjust">Identifiers:</td>
+            <td colspan=3>
+                NHS number: <b>{{ patient_lookup.nhs_number }}</b>.
+                {% if patient_lookup.pt_local_id_description %}
+                    {{ patient_lookup.pt_local_id_description}}:
+                    <b>{{ patient_lookup.pt_local_id_number }}</b>.
+                {% endif %}
+            </td>
+        </tr>
+    </tbody>
+</table>

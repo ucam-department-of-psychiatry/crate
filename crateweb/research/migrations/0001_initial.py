@@ -11,17 +11,17 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Lookup',
+            name='PidLookup',
             fields=[
-                ('pid', models.PositiveIntegerField(db_column='patient_id', serialize=False, primary_key=True)),
+                ('pid', models.PositiveIntegerField(serialize=False, primary_key=True, db_column='patient_id')),
                 ('mpid', models.PositiveIntegerField(db_column='nhsnum')),
-                ('rid', models.CharField(db_column='brcid', max_length=255)),
-                ('mrid', models.CharField(db_column='nhshash', max_length=255)),
+                ('rid', models.CharField(max_length=255, db_column='brcid')),
+                ('mrid', models.CharField(max_length=255, db_column='nhshash')),
                 ('trid', models.PositiveIntegerField(db_column='trid')),
             ],
             options={
-                'managed': False,
                 'db_table': 'secret_map',
+                'managed': False,
             },
         ),
     ]

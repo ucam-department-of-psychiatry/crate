@@ -1,0 +1,43 @@
+{# letter_patient_first_traffic_light.html #}
+
+{% extends 'base_pdf_letter.html' %}
+
+{% block letter_body %}
+
+    <p>We would like to tell you about some of the ways that
+    Cambridgeshire &amp; Peterborough NHS Foundation Trust (CPFT) is
+    involved in health research. We’d like to know whether you’d like
+    to be contacted in the future about research studies that may be
+    relevant to you.</p>
+
+    <p>I enclose:</p>
+    <ul>
+        <li>a leaflet explaining how health information is used in
+        research in the UK (<i>“Your health records save
+        lives”</i>),</li>
+
+        <li>a leaflet explaining how you can take part in research at
+        CPFT if you want to (<i>“Taking part in research”</i>),</li>
+
+        <li>a form for you to fill in (<i>“Would you like to be
+        contacted about research?”</i>),</li>
+
+        <li>and a Freepost envelope to return the form (to
+        {{ settings.RDBM_ADDRESS|join:", " }}).</li>
+    </ul>
+
+    {% include "phrase_never_affect.html" %}
+
+    <p><b>We would be very grateful if you would fill in the form and
+    send it back to us in the Freepost envelope,</b> or give it to a
+    member of staff at CPFT. If you have questions you want answered
+    first, please ask your CPFT health care professional.</p>
+
+    <p>We have your details as follows. Please tell us if any of these
+    details are wrong.</p>
+
+    {% include "patient_table.html" with patient_lookup=patient_lookup %}
+
+    <p>Thank you very much.</p>
+
+{% endblock %}

@@ -5,19 +5,49 @@
 
 # For the Django site:
 
-Django>=1.8.4
+celery>=3.1.19
+Django>=1.9rc1
+django-extensions>=1.5.9
 django-picklefield>=0.3.2
 django-sslserver>=0.15
 django-debug-toolbar>=1.4
+# mod_wsgi-httpd  # a bit slow; don't worry
+# mod_wsgi
 mysqlclient>=1.3.6
 pdfkit>=0.5.0
+pygraphviz>=1.3.1
 PyPDF2>=1.25.1
-pytz
-python-dateutil
+pytz>=2015.6
+python-dateutil>=2.4.2
+Werkzeug>=0.10.4
 
 # Include others
 
 -r pythonlib/requirements.txt
 
 # WILL ALSO NEED:
-# sudo apt-get install python-dev wkhtmltopdf
+# -----------------------------------------------------------------------------
+# 1. Simple things
+# -----------------------------------------------------------------------------
+#   paste requirements-ubuntu.txt | xargs sudo aptitude install
+# -----------------------------------------------------------------------------
+# 2. wkhtmltopdf
+# -----------------------------------------------------------------------------
+# Method 1: AVOID as you don't get patched QT linked in
+#
+#   sudo add-apt-repository ppa:ecometrica/servers  # for wkhtmltopdf under Ubuntu 14.04
+# or
+#   sudo add-apt-repository ppa:pov/wkhtmltopdf  # for wkhtmltopdf under Ubuntu 12.04
+# then
+#   sudo apt-get update
+#   sudo apt-get install python-dev graphviz libgraphviz-dev wkhtmltopdf
+#
+# Method 2: from http://wkhtmltopdf.org/downloads.html: USE THIS; get patched QT
+#
+#   # check Ubuntu version with: lsb_release -a
+#   wget http://download.gna.org/wkhtmltopdf/0.12/0.12.2.1/wkhtmltox-0.12.2.1_linux-trusty-amd64.deb
+#   sudo dpkg -i wkhtmltox-0.12.2.1_linux-trusty-amd64.deb
+#
+# Either way, check with
+#
+#   wkhtmltopdf -V  # should show: wkhtmltopdf 0.12.2.1 (with patched qt)

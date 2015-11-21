@@ -1,0 +1,14 @@
+{# exclusion_report.html #}
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>NHS numbers of patients to exclude from anonymised database
+    entirely</h1>
+
+    <pre>{% for consent_mode in consent_modes %}{{ consent_mode.nhs_number }}
+{% endfor %}</pre>
+    
+    <p>(end)</p>
+
+{% endblock %}

@@ -1,0 +1,149 @@
+{# letter_patient_confirm_traffic.html #}
+{% extends 'base_pdf_letter.html' %}
+
+{% block letter_body %}
+
+    <p class="titlecolour"><b>Confirming your choice about
+    researchers contacting you</b></p>
+
+    {% if consent_mode.changed_by_clinician_override %}
+        <p>Your clinician recently told us what we should do if any
+        of our researchers would like to contact you directly about
+        research. This letter is to confirm that choice.</p>
+
+        <p>The possible options were:</p>
+    {% else %}
+        <p>You recently told us what we should do if any of our
+        researchers would like to contact you directly about research.
+        Thank you! This letter is to confirm your choice.</p>
+
+        <p>You were offered this choice:</p>
+    {% endif %}
+
+    <table class="options">
+        <colgroup>
+            <col style="width:15%">
+            <col style="width:85%">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="rjust">
+                    <img src="{{ red_img_url }}" width="15mm"
+                            align="right">
+                </td>
+                <td>
+                    {% include "phrase_red.html" %}
+                </td>
+            </tr>
+            <tr>
+                <td class="rjust">
+                    <img src="{{ yellow_img_url }}" width="15mm"
+                            align="right">
+                </td>
+                <td>
+                    {% include "phrase_yellow.html" %}
+                </td>
+            </tr>
+            <tr>
+                <td class="rjust">
+                    <img src="{{ green_img_url }}" width="15mm"
+                        align="right">
+                </td>
+                <td>
+                    {% include "phrase_green.html" %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% if consent_mode.changed_by_clinician_override %}
+        <p><b>Your clinician told us we should use this option:</b></p>
+    {% else %}
+        <p><b>You chose this option:</b></p>
+    {% endif %}
+
+    <p class="indent"><b>{{ consent_mode.consent_mode }}</b></p>
+
+    <p>We asked some other things, too:</p>
+
+    <table class="patientprefs">
+        <colgroup>
+            <col style="width:55%">
+            <col style="width:45%">
+        </colgroup>
+        <tbody>
+            <tr>
+                <th>We asked:</th>
+                <th>
+                    {% if consent_mode.changed_by_clinician_override %}
+                        Your clinician answered:
+                    {% else %}
+                        You answered:
+                    {% endif %}
+                </th>
+            </tr>
+            {% if consent_mode.consent_mode == "red" %}
+                <tr>
+                    <td>Do you wish to opt out of the use of your information
+                    for research even after all details that could identify
+                    you have been removed?</th>
+                    <td>{{ consent_mode.exclude_entirely|yesno }}</th>
+                </tr>
+            {% else %}
+                <tr>
+                    <td>Are you still willing to be contacted
+                    about research even after being discharged from CPFT entirely?</th>
+                    <td>{{ consent_mode.consent_after_discharge|yesno }}</th>
+                </tr>
+                <tr>
+                    <td>Do you prefer to hear about research
+                    by e-mail?</th>
+                    <td>{{ consent_mode.prefers_email|yesno }}</th>
+                </tr>
+                {% if consent_mode.prefers_email %}
+                    <tr>
+                        <td>... if so, we have your e-mail
+                        address as:</th>
+                        <td>{{ patient_lookup.pt_email|default:"?" }}</th>
+                    </tr>
+                {% endif %}
+                <tr>
+                    <td>Do you wish to limit your consent in
+                    some way...</th>
+                    <td class="deadcell"></th>
+                </tr>
+                <tr>
+                    <td>... such as an annual limit?</th>
+                    <td>{{ consent_mode.max_approaches_per_year|default:"–" }}</th>
+                </tr>
+                <tr>
+                    <td>... or in some other way?</th>
+                    <td>{{ consent_mode.other_requests|default:"–" }}</th>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+
+    {% if consent_mode.changed_by_clinician_override %}
+        <p><b>If you are happy with the current choice,</b> you don’t
+        need to do anything.</p>
+    {% else %}
+        <p><b>If you are happy with your current choice,</b> you don’t
+        need to do anything.</p>
+    {% endif %}
+
+    <p><b>If you would like to change your choice,</b> please complete
+    another copy of the enclosed form (<i>“Would you like to be contacted
+    about research?”</i>).</p>
+
+    <p>If you fill in any of the forms, please return them in the Freepost
+    envelope (to {{ settings.RDBM_ADDRESS|join:", " }}),
+    or give them to a member of staff at CPFT.</p>
+
+    <p>You may also speak to your health care professional at CPFT about
+    these choices at any time.</p>
+
+    <p>Thank you!</p>
+
+{% endblock %}

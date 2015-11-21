@@ -1,0 +1,218 @@
+/* base.css */
+
+body {
+    /* font-family: Georgia, "Times New Roman", Times, serif; */
+    /* font-family: "Roboto", Corbel, Avenir, "Lucida Grande", "Lucida Sans", sans-serif; */
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: left;
+    line-height: 1.2em;
+}
+div {
+    margin: 0.5em 0em;
+}
+em {
+    color: rgb(0, 114, 198);
+    /*
+    NHS Blue is rgb(0, 114, 198); see
+    http://www.nhsidentity.nhs.uk/page/11951/tools-and-resources/nhs-brand-basics/nhs-colours/nhs-colours
+    */
+    font-style: normal;
+}
+pre {
+    margin: 0px;
+}
+table {
+    display: table;  /* with table-cell, auto-resizing goes wrong */
+    border-collapse: collapse;
+    vertical-align: top;
+    margin: 0.5em 0em;
+    /* width: 100%; */
+}
+tr {
+    display: table-row;
+}
+th, td {
+    display: table-cell;
+    vertical-align: top;
+    border: 1px solid black;
+    margin: 0.5em;
+    padding: 0.1em 0.3em;
+}
+p {
+    margin: 0.5em 0em;
+}
+ul {
+    margin: 0.25em 0em;
+}
+
+.addresses {
+    clear: both;
+}
+.address_to {
+    float: left;
+}
+.address_from {
+    float: right;
+    text-align: right;
+}
+.action {
+    color: rgb(0, 0, 150);
+}
+.collapse_detail {
+}
+.collapse_summary {
+    height: 4em;
+    overflow: hidden;
+}
+
+.consent {
+    page-break-before: always;
+    background-color: rgb(230, 230, 230);
+    border: 0.5mm solid black;
+    padding: 0.5em;
+    margin: 0.5em 0em;
+}
+.consent tr, .consent th, .consent td {
+    border-style: none;
+}
+.consent .persontype {
+    vertical-align: bottom;
+    font-size: 0.8em;
+    line-height: 1.2em;
+}
+.consent .label {
+    text-align: right;
+    vertical-align: bottom;
+    font-size: 0.8em;
+    line-height: 1.2em;
+}
+.consent .footnote {
+    font-size: 0.7em;
+    line-height: 1.2em;
+}
+.deadcell {
+    background-color: rgb(200, 200, 200);
+}
+.error {
+    color: rgb(255, 0, 0);
+}
+.expandcollapse {
+}
+.formtable, .formtable th, .formtable tr, .formtable td {
+    border: none;
+}
+/*
+.formtable tr:nth-child(odd) {
+    background-color: rgb(240, 240, 240);
+}
+*/
+.formtitle {
+    /* page-break-before: right; */
+    font-size: 1.6em;
+    line-height: 1.2em;
+    color: rgb(0, 114, 198);
+}
+
+.hangingindent {
+    padding-left: 1.5em;
+    text-indent: -1.5em;
+}
+.highlight {
+    background-color: rgb(255, 255, 224);
+}
+
+/* yellow and red are typically used by browsers for all-instances and
+   instance-at-the-cursor with Ctrl-F */
+.highlight0 { background-color: #0F0; }
+.highlight1 { background-color: #88F; }
+.highlight2 { background-color: #F0F; }
+/* If altering: change also N_CSS_HIGHLIGHT_CLASSES in the source */
+
+.important {
+    color: rgb(150, 0, 0);
+}
+.indent {
+    margin-left: 4em;
+}
+.letterbody {
+    clear: both;
+}
+.letterdate {
+    text-align: right;
+}
+.logo {
+    text-align: right;
+}
+.office {
+    background-color: rgb(200, 200, 200);
+    padding: 0.5em;
+}
+
+.options {
+    border: none;
+    width: 100%;
+}
+.options tr, .options th, .options td {
+    border: none;
+}
+
+.patient {
+    background-color: rgb(127, 255, 127);
+}
+.patient_withdrawal {
+    background-color: rgb(255, 127, 127);
+}
+.patient, .patient_withdrawal {
+    /* width: 100%; */
+}
+.patient_details {
+    margin-left: 3em;
+    font-style: italic;
+}
+.patientprefs {
+    border-width: 0.5mm;
+    border-color: block;
+    border-style: solid;
+}
+.patientprefs tr {
+    border-style: none;
+}
+.patientprefs th {
+    border-style: solid none;
+}
+.patientprefs td {
+    border-style: none;
+}
+.rjust {
+    text-align: right;
+}
+.signature {
+    width: 100%;
+    border: none;
+    padding: 0.5em;
+    table-layout: fixed;
+}
+.signature tr, .signature th, .signature td {
+    border: 0.5mm none black;
+    border-style: none;
+}
+.signature_label {
+    text-align: right;
+    vertical-align: bottom;
+}
+.signature_box, .consent .signature_box, .signature .signature_box {
+    /* Increase CSS specificity to have this override ".signature td" etc. */
+    padding-top: 3em;
+    border-bottom: 0.5mm solid black;
+}
+
+.study {
+    background-color: rgb(200, 200, 255);
+}
+.titlecolour {
+    color: rgb(0, 114, 198);
+}
+.queryresult {
+    /* font-family: Georgia, "Times New Roman", Times, serif; */
+    font-family: "Times New Roman", Times, serif;
+}

@@ -1,119 +1,13 @@
 /* pdf.css */
 
+@page {
+    margin: 2cm;
+}
 body {
-    font-family: Arial, Helvetica, sans-serif;
     font-size: {{ fontsize }};
 }
-p.from_address { text-align: right; }
-p.patient_details { margin-left: 10mm; font-style: italic; }
-p.indent { margin-left: 10mm; }
-p.titlecolour { color: rgb(0, 114, 198); }
-p {
-    margin: 2mm 0mm 2mm 0mm;
-    line-height: {{ lineheight }};
-}
-p.hangingindent {
-    padding-left: 5mm;
-    text-indent: -5mm;
-    padding-bottom: 2mm; }
-li { line-height: {{ lineheight }}; }
-em { color: rgb(0, 114, 198); font-style: normal; }
-table.general {
-    border: 0.1mm solid black;
-    vertical-align: top;
-    border-collapse:collapse;
-    padding: 1mm;
-    margin: 1mm 0mm 1mm 0mm;
-}
+
 th, td {
-    vertical-align: top;
-    line-height: {{ lineheight }};
-}
-th.col1, td.col1 { width: 22%; }
-th.col2, td.col2 { width: 78%; }
-table.consent {
-    page-break-before: always;
-    background-color: rgb(230, 230, 230);
-    border: 0.1mm none black;
-    padding: 1mm;
-    margin: 1mm 0mm 1mm 0mm;
-}
-td.consentwidetop { border-style: solid solid none solid; }
-td.consentwidemiddle { border-style: none solid none solid; }
-td.consentwidebottom {
-    border-style: none solid solid solid;
-    font-size: 9pt;
-}
-td.consentcol1 {
-    width: 19%;
-    border-style: none none none solid;
-    vertical-align: bottom;
-    font-size: 10pt;
-}
-td.consentcol2, td.consentcol4, td.consentcol6 {
-    width: 10%;
-    border-style: none;
-    text-align: right;
-    vertical-align: bottom;
-    font-size: 10pt;
-}
-td.consentcol3, td.consentcol5 {
-    width: 18%;
-    border-style: none none solid none;
-    vertical-align: bottom;
-}
-td.consentcol7 {
-    width: 18%;
-    border-style: none solid solid none;
-    vertical-align: bottom;
-}
-table.patientprefs {
-    margin-left: 10mm;
     border: 0.1mm solid black;
-    vertical-align: top;
-    border-collapse: collapse;
-    padding: 1mm;
-    margin: 1mm 0mm 1mm 0mm;
+    /* with wkhtmltopdf 0.12.2.1 we can use 0.1mm and it'll render */
 }
-th.patientprefs_col1, td.patientprefs_col1 {
-    text-align: left;
-    width: 15%;
-    font-style: italic;
-}
-th.patientprefs_col2, td.patientprefs_col2 {
-    text-align: left;
-    width: 45%;
-}
-th.patientprefs_col3, td.patientprefs_col3 {
-    text-align: left;
-    width: 40%;
-}
-table.options {
-    margin-left: 10mm;
-    border: none;
-    vertical-align: top;
-    margin: 1mm 0mm 1mm 0mm;
-}
-td.options_col1 {
-    width: 15%;
-    text-align: right;
-    padding: 0mm 2mm 1mm 0mm;
-}
-td.options_col2 { width: 85%; padding: 0mm 0mm 1mm 0mm; }
-table.signature {
-    border: 0.5mm none black;
-    vertical-align: top;
-    margin: 1mm 0mm 1mm 0mm;
-}
-td.signature_col1 { width: 15%; }
-td.signature_col2 { width: 30%; }
-td.signature_col3 { width: 25%; }
-td.signature_col4 { width: 30%; }
-td.signature_box { border-style: none none solid none; }
-div.formtitle {
-    page-break-before: always;
-    font-size: 18pt;
-    color: rgb(0, 114, 198);
-}
-div.office { background-color: rgb(200, 200, 200); padding: 3mm; }
-@page { margin: 2cm; }

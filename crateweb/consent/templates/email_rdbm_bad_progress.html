@@ -1,0 +1,11 @@
+{# email_rdbm_bad_progress.html #}
+{% extends 'base_email.html' %}
+
+{% block content %}
+
+    <p>A clinician refused a request from the CPFT Research Database
+    consent-mode computer. The contact request ID was {{ id }}.
+    Their response was <b>{{ response }} – {{ explanation }}</b>.
+    Charity money needs sending.
+
+{% endblock %}

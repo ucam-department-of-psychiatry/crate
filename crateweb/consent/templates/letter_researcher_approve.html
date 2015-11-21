@@ -1,0 +1,125 @@
+{# letter_researcher_approve.html #}
+
+{% extends 'base_pdf_letter.html' %}
+
+{% block letter_body %}
+
+<p><b>APPROVAL FOR RESEARCHER TO CONTACT PATIENT DIRECTLY</b></p>
+
+<p>On {{ contact_request.created_at|date:"j F Y" }} you provided us with a list of research IDs
+and requested patient contact details for your study:</p>
+
+{% include 'study_table.html' with study=study contact_request=contact_request %}
+
+<p>The following patient has given his/her consent for his details
+to be passed to you. You may write to this patient, providing
+details of your study, and seeking further contact. You also have
+their permission to access their CPFT medical records.</p>
+
+{% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode include_prefers_email=True include_sex=True include_researcher_detail=True %}
+
+<p>If you indicated in your application that you preferred the
+request to be passed on to the patient’s clinician and enclosed a
+form for the clinician to complete, then the patient consented to
+disclosing the information on that form to you, and the completed
+form is enclosed.</p>
+
+<p><b>If this study conflicts with the patient’s special requests,
+DO NOT contact this patient UNLESS they were asked specifically
+about your study.</b> It’s up to you to judge this.</p>
+
+<p>You are reminded of the following. (1) Information hiding:</p>
+
+<ul>
+    <li>We will not tell you this patient’s research ID number.
+    However, (a) you gave us the list of research IDs based on your
+    searches of the CPFT Research Database, so you know the
+    conditions that the patient must have fulfilled to be on your
+    list; (b) you have the patient’s permission to view their CPFT
+    medical records; and (c) if you require further details about
+    this patient, you may ask the patient directly, and he/she may
+    agree or refuse to provide them to you.</li>
+
+    <li>Any information on this form, or your completed form
+    (attached, if applicable), must be treated as strictly
+    confidential within your research team.</li>
+
+    <li>You will not be told the identities of any patients who did
+    not consent to your contacting them. Such patients might
+    previously have refused direct approaches about all research
+    studies, or they might have been approached about your study by
+    their clinical team and refused you permission to contact them,
+    or the request might have been passed via their clinical team
+    and the clinician declined for exceptional reasons to pass your
+    request on to the patient. You may request only summary
+    statistics from the Research Database Manager about how often
+    these things occur.</li>
+
+</ul>
+
+<p>(2) About this patient:</p>
+
+<ul>
+    <li>Either the patient previously consented to being contacted
+    directly about all relevant studies, or your request was passed
+    to the patient via their primary clinical team and the patient
+    consented to being approached about your study specifically.
+    Which is the case? This is indicated above.</li>
+
+    <li>Though this patient has consented to your contacting them,
+    they have not yet consented to be part of your study.</li>
+
+    <li>Nor do they necessarily fulfil your eligibility criteria;
+    you must check this directly with the patient.</li>
+</ul>
+
+<p>(3) Next:</p>
+
+<ul>
+    <li><b>If the patient was asked specifically about your study,
+    please contact this patient! It would be discourteous not to
+    contact them.</b></li>
+
+    <li>The patient will only have seen your study information if
+    they were specifically asked about your study (see above) — you
+    must include study details in your letter to the patient.</li>
+
+    <li><b>When you write to them, please include this standard
+    text:</b></li>
+
+    <p><em>Thank you for your permission to write to you. You were
+    identified as someone who might be suitable for our study via
+    Cambridgeshire &amp; Peterborough Foundation Trust (CPFT). You
+    kindly consented to your details being passed to us and for us
+    to have access to your CPFT records. We’d like to remind you
+    that you’re always free to say yes or no about taking part in
+    research, and any choices you make about research won’t affect
+    your NHS treatment in other ways. If you ever want to change
+    your mind about researchers contacting you directly, please
+    write to the CPFT Research Database Manager, who will help you
+    to do this. The address is:
+    {{ settings.RDBM_ADDRESS|join:", " }}.</em></p>
+
+    <li>If the patient tells you that they wish to change their
+    mind about being approached about research, please inform the
+    Research Database Manager, who will send them a form to declare
+    their new choice and/or withdraw their consent.</li>
+
+    <li>You are reminded of the World Medical Association (2008)
+    Declaration of Helsinki, including the requirement that medical
+    research on patients or healthy volunteers requires the
+    supervision of a competent and appropriately qualified
+    physician or other health care professional. Supervising
+    physicians that are not members of the patient’s usual clinical
+    team must liaise with the usual clinical team as necessary. The
+    supervising physician may withdraw any patient from a research
+    study if they felt it necessary for the patient’s protection,
+    even though the patient had consented to take part.</li>
+
+    <li>Please contact the Database Manager if you have queries
+    about this process.</li>
+</ul>
+
+<p>Thank you.</p>
+
+{% endblock %}

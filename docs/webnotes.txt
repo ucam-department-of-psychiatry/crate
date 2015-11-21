@@ -161,6 +161,19 @@ cd $CRATE_DJANGO_ROOT
 $CRATE_MANAGE startapp userprofile
 # edit settings.py (a) INSTALLED_APPS; (b) AUTH_PROFILE_MODULE = 'userprofile.UserProfile'
 
+-------------------------------------------------------------------------------
+GENERAL DJANGO ADVICE
+-------------------------------------------------------------------------------
+Cheat sheet: http://www.mercurytide.co.uk/news/article/django-15-cheat-sheet/
+
+Collected tips: http://stackoverflow.com/questions/550632/favorite-django-tips-features
+... including:
+
+    $CRATE_MANAGE graph_models -a -g -o crate_model_diagram.png
+
+    $CRATE_MANAGE runserver_plus
+    assert False somewhere; then use the Werkzeug console to explore
+
 ===============================================================================
 CONSENT-MODE DATABASE
 ===============================================================================
@@ -181,3 +194,152 @@ CONSENT-MODE DATABASE
 
 If you drop a table, or want to drop a table:
     http://stackoverflow.com/questions/5328053/how-to-restore-dropped-table-with-django-south
+
+===============================================================================
+CSS MODEL
+===============================================================================
+- Static or template-based?
+  Since we want consistency across web/email/PDF (inc. the web aspects of
+  clinicians responding to e-mails), and since we have to embed CSS for email,
+  we'll embed the lot and use templates.
+
+- CSS selector tutorial:
+  http://css.maxdesign.com.au/selectutorial/selectors_class.htm
+
+===============================================================================
+GENERAL DJANGO NOTES FOR URL/'GET' INFORMATION-PASSING:
+===============================================================================
+1. URL path
+    - create in code with reverse()
+    - encapsulate the output of reverse() in request.build_absolute_uri()
+      to get an absolute URI with site domain name, etc.
+    - details are read back by the urlconf regexes (in urls.py) and passed
+      to views as parameters
+    - validation is "manual" e.g. using
+        study = get_object_or_404(Study, pk=study_id)
+        if not custom_is_valid_function(extraparam):
+            raise Http404('error message')
+    - ... or could validate manually with a form, e.g.
+        form = MyForm(request.GET, extraparam)
+      using the style at
+        http://stackoverflow.com/questions/18769607/django-form-with-customer-parameter-and-validation-not-getting-clean-function  # noqa
+
+2. Query parameters
+    - can encode using urllib, e.g.
+        def url_with_querystring(path, **kwargs):
+            return path + '?' + urllib.urlencode(kwargs)
+    - ?BETTER is to encode using Django's QueryDict and its urlencode()
+      method:
+        q = QueryDict(mutable=True)
+        q['key'] = value
+        querybits = q.urlencode()
+    - read them like this:
+        request.GET.get('key', 'defaultvalue')
+    - or could read/validate them with a form and its validators:
+        form = MyForm(request.GET):
+        # ... might use a ChoiceField or other validators
+        if form.is_valid():
+            ...
+        else:
+            ...
+
+3. Combining them
+    "{path}?{querystring}".format(
+        path=request.build_absolute_uri(reverse(...)),
+        querystring=querydict.urlencode()
+    )
+    ... etc ...
+
+4. Which is best?
+    - path parameters:
+        best for fixed resource lookup
+        elegant handling in Django; DRY
+    - query parameters:
+        best for display modification
+        order can vary
+        they can be optional
+        form-based validation is simpler
+    - sometimes either works
+
+5. But if we're building a Django object...
+    - consider a ModelForm
+    - slide
+        35 - basic pattern
+        86 - unit testing
+        99 - dynamically adding fields
+      of http://www.slideshare.net/pydanny/advanced-django-forms-usage
+      BUT SEE
+        http://www.pydanny.com/the-easy-form-views-pattern-controversy.html
+      ... use this:
+        request.POST if request.method == 'POST' else None
+      not this:
+        request.POST or None
+
+http://stackoverflow.com/questions/2345708/how-can-i-get-the-full-absolute-url-with-domain-in-django  # noqa
+http://stackoverflow.com/questions/150505/capturing-url-parameters-in-request-get  # noqa
+http://stackoverflow.com/questions/2778247/how-do-i-construct-a-django-reverse-url-using-query-args  # noqa
+http://whippleit.blogspot.co.uk/2010/10/pretty-urls-vs-query-strings.html
+http://stackoverflow.com/questions/3821663/querystring-in-rest-resource-url
+http://stackoverflow.com/questions/9399147/django-form-validation-with-get
+
+===============================================================================
+Back-end processing: Celery
+===============================================================================
+- High-end optimum broker for Celery is perhaps RabbitMQ.
+  Can persist messages to disk (or say you don't care).
+  But moderately complex.
+- Simpler is Celery with the Django database backend as the broker.
+  And we have a very low volume of traffic.
+
+http://docs.celeryproject.org/en/latest/getting-started/brokers/django.html#broker-django
+
+- pip install celery
+- in Django settings.py
+    BROKER_URL = 'django://'
+    CELERY_ACCEPT_CONTENT =  ['json']
+    CELERY_RESULT_SERIALIZER = 'json'
+    CELERY_TASK_SERIALIZER = 'json'
+    INSTALLED_APPS should include 'kombu.transport.django'
+- manage.py migrate
+    ... will make tables djkombu_message, djkombu_queue
+- follow http://docs.celeryproject.org/en/latest/django/first-steps-with-django.html
+
+- to run a debugging worker:
+    cd .../crateweb
+    celery -A consent worker --loglevel=debug
+
+- NOTE difficulty with PYTHONPATH
+    ... if PYTHONPATH includes .../crate and .../crate/crateweb,
+    Django moans when you start about duplicate filesystem locations.
+    ... if it only includes .../crate and you start Celery from a random
+    location with "crateweb.consent" as the module name, it can't find
+    other Django bits like "userprofile".
+    ... so the above seems simplest.
+    ... and celery also says you have to:
+        http://docs.celeryproject.org/en/latest/getting-started/next-steps.html#next-steps
+    
+- Anyway, success now.
+
+- However, database is going to grow (old messages not pruned).
+  Generally true? I'm unclear; https://github.com/celery/kombu/issues/276
+
+  Let's try RabbitMQ.
+
+    sudo apt-get install rabbitmq-server
+    # ... will autostart service
+
+  Easy. Also, much snappier.
+  
+  Will start with localhost-only access via the "guest" account:
+    https://www.rabbitmq.com/access-control.html
+    
+  Status:
+    sudo rabbitmqctl status
+    sudo rabbitmqctl report
+
+
+*** run as a daemon
+    http://docs.celeryproject.org/en/latest/tutorials/daemonizing.html#daemonizing
+    http://docs.celeryproject.org/en/latest/getting-started/next-steps.html#next-steps
+    
+    

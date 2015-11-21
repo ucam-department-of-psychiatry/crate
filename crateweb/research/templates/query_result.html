@@ -21,7 +21,7 @@
             <tr>
                 <td><i>{{ rows.start_index|add:forloop.counter0 }}</i></td>
                 {% for col in row %}
-                    <td>{{ col|safe }}</td>
+                    <td class="queryresult">{{ col|safe }}</td>
                 {% endfor %}
             </tr>
         {% endfor %}

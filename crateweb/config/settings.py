@@ -13,7 +13,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
-import datetime
+# import datetime
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -40,7 +40,10 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.humanize',  # for nice comma formatting of numbers
     'debug_toolbar',  # for debugging
+    'django_extensions',  # for graph_models etc.
     'sslserver',  # for SSL testing
+    # 'kombu.transport.django',  # for Celery with Django database as broker
+
     'userprofile',  # for user-specific settings
     'research',  # the research database query app
     'consent',  # the consent-to-contact app
@@ -56,13 +59,21 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     # Additional:
-    'core.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
-    'core.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
+    'extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
+    'extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
     'core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
 )
 
+# Celery things
+# BROKER_URL = 'django://'  # for Celery with Django database as broker
+BROKER_URL = 'amqp://'  # for Celery with RabbitMQ as broker
+CELERY_ACCEPT_CONTENT = ['json'] # avoids potential pickle security problem
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TASK_SERIALIZER = 'json'
+
 LOGIN_URL = '/login/'  # for LoginRequiredMiddleware
-LOGIN_EXEMPT_URLS = ()  # for LoginRequiredMiddleware
+LOGIN_VIEW_NAME = 'login'  # for LoginRequiredMiddleware
+LOGIN_EXEMPT_URLS = []  # for LoginRequiredMiddleware
 
 ROOT_URLCONF = 'config.urls'
 
@@ -100,21 +111,36 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
+# USE_L10N = True
+USE_L10N = False
 
 # https://docs.djangoproject.com/en/1.8/topics/i18n/timezones/
 USE_TZ = True
+
+DATE_FORMAT = "j M Y"  # d for leading zero, j for none
+TIME_FORMAT = "H:i"
+DATETIME_FORMAT = "d M Y, H:i:s"
+# O for timezone e.g. "+0100"
+
+SHORT_DATE_FORMAT = "d/m/Y"
+SHORT_TIME_FORMAT = "H:i"
+SHORT_DATETIME_FORMAT = "d/m/Y, H:i:s"
 
 # =============================================================================
 # Static files (CSS, JavaScript, Images)
 # =============================================================================
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
-STATIC_URL = '/static/'
+STATIC_URL = '/crate_static/'
+# This is a bit hard-coded, but at least it prevents conflicts with other
+# programs. No way to make Django look up static URLs dynamically using
+# get_script_prefix()?
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
 STATICFILES_ROOT = os.path.join(BASE_DIR, 'static_collected')
+STATICFILES_STORAGE = 'core.storage.StaticFilesStorage'  # *** not working
+# https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/
 
 # =============================================================================
 # Some managed database access goes to the secret mapping database.
@@ -131,7 +157,7 @@ DATABASE_ROUTERS = ['research.models.PidLookupRouter']
 # *** # CSRF_COOKIE_SECURE = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-USED_TOKEN_TIMEOUT = datetime.timedelta(days=14)
+# removed # USED_TOKEN_TIMEOUT = datetime.timedelta(days=14)
 
 # =============================================================================
 # Logging; https://docs.djangoproject.com/en/1.8/topics/logging/
@@ -176,6 +202,11 @@ LOGGING = {
             'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
             'propagate': True,
         },
+        'extra': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
     },
 }
 
@@ -185,14 +216,27 @@ LOGGING = {
 # https://pypi.python.org/pypi/pdfkit
 
 WKHTMLTOPDF_OPTIONS = {
+    # http://wkhtmltopdf.org/usage/wkhtmltopdf.txt
     'page-size': 'A4',
+    'dpi': '300',
     'orientation': 'portrait',
     'margin-top': '20mm',
     'margin-right': '20mm',
     'margin-bottom': '20mm',
     'margin-left': '20mm',
     'encoding': 'UTF-8',
+    # 'disable-smart-shrinking': None,
+    # 'print-media-type': None,
 }
+PATIENT_FONTSIZE = "11.5pt"  # "12.4pt"
+    # NB *** strange wkhtmltopdf bug: word wrap goes awry with
+    #   11.6pt to 12.3pt inclusive
+    # but is fine with
+    #   10, 11, 11.5, 12.4, 12.5, 13, 18...
+    # Affects addresses and word wrap within tables.
+    # Using wkhtmltopdf 0.12.2.1 (with patched qt)
+    # See https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2505
+RESEARCHER_FONTSIZE = "10pt"
 
 # =============================================================================
 # Import from a site-specific file, crate_local_settings.py, which must be

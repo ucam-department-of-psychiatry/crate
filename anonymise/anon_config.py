@@ -1009,7 +1009,7 @@ class Config(object):
         if self.PERSISTENT_CONSTANTS_INITIALIZED:
             self.init_row_counts()
             return
-        logger.info(SEP + "Loading config")
+        logger.info(SEP + "Loading config: {}".format(filename))
         if filename and environ:
             raise ValueError("Config.set(): mis-called")
         if environ:
@@ -1021,7 +1021,8 @@ class Config(object):
         self.check_valid(include_sources=include_sources)
         self.dd = DataDictionary(self)
         if load_dd:
-            logger.info(SEP + "Loading data dictionary")
+            logger.info(SEP + "Loading data dictionary: {}".format(
+                self.data_dictionary_filename))
             self.dd.read_from_file(self.data_dictionary_filename)
             self.dd.check_valid(check_against_source_db=include_sources,
                                 prohibited_fieldnames=[

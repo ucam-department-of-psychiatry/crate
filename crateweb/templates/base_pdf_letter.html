@@ -1,0 +1,66 @@
+{# base_pdf_letter.html #}
+
+{% extends 'base_pdf.html' %}
+{% comment %}
+    pass in:
+        PDF_LOGO_ABSPATH
+        PDF_LOGO_WIDTH
+        address_from (list)
+        address_to (list)
+        salutation
+        signatory_name
+        signatory_title
+{% endcomment %}
+
+{% block content %}
+
+    {% block logo %}
+    <div class="logo">
+        <img src="file://{{ PDF_LOGO_ABSPATH }}" width="{{ PDF_LOGO_WIDTH }}">
+        {# CONSIDER "float:right" now we're using wkhtmltopdf #}
+    </div>
+    {% endblock %}
+
+    <div class="addresses">
+        {% block address_from %}
+            <div class="address_from">
+                {{ address_from|join:"<br>" }}
+            </div>
+        {% endblock %}
+
+        {% block address_to %}
+            <div class="address_to">
+                {{ address_to|join:"<br>" }}
+            </div>
+        {% endblock %}
+    </div>
+
+    <div class="letterbody">
+
+        {% block date %}
+            <div class="letterdate">{% now "j F Y" %}</div>
+        {% endblock %}
+
+        {% block salutation %}
+            <p>Dear {{ salutation }},</p>
+        {% endblock %}
+
+        {% block letter_body %}
+        {% endblock %}
+
+        {% block signature %}
+            <p>Yours sincerely,</p>
+            <p>
+                <br>
+                <br>
+                {{ signatory_name }}<br>
+                {{ signatory_title }}
+            </p>
+        {% endblock %}
+
+    </div>
+
+    {% block after_signature %}
+    {% endblock after_signature %}
+
+{% endblock %}

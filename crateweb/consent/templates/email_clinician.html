@@ -1,13 +1,16 @@
 {# email_clinician.html #}
+{% extends 'base_email.html' %}
 
 {% comment %}
     template parameters:
-        ClinicianResponse (class)
         consent_mode (object)
         contact_request (object)
         patient_lookup (object)
         settings (object)
         study (object)
+        url_yes (string)
+        url_no (string)
+        url_maybe (string)
 {% endcomment %}
 
 {% block content %}
@@ -18,16 +21,10 @@
     of our research teams has identified the following patient of yours as
     potentially eligible for a study that they are conducting:</p>
 
-    {% include "patient_table.html" with
-        patient_lookup=patient_lookup
-        consent_mode=consent_mode %}
+    {% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode verbose=True %}
 
     <p>The study is:</p>
-    {% include "study_table_for_clinician.html" with
-        study=study
-        contact_request=contact_request
-        offer_details=False
-        offer_clinician_form=False %}
+    {% include "study_table.html" with study=study contact_request=contact_request to_clinician=True include_details=False include_clinician_form=False %}
 
     {% include "discharged_phrase.html" %}
 
@@ -37,22 +34,19 @@
     </div>
 
     <div id="response_yes" class="response_button">
-        <a href="{url_yes}">Yes, ask the patient on my behalf</a>
-        *** ClinicianResponse.EMAIL_CHOICE_Y
+        <a href="{{ url_yes|safe }}">Yes, ask the patient on my behalf</a>
     </div>
 
     <div id="response_no" class="response_button">
-        <a href="{url_no}">No, I veto for clinical reasons</a>
-        *** ClinicianResponse.EMAIL_CHOICE_N
+        <a href="{{ url_no|safe }}">No, I veto for clinical reasons</a>
     </div>
 
     <div id="response_maybe" class="response_button">
-        <a href="{url_maybe}">
+        <a href="{{ url_maybe|safe }}">
             Something else<br>
             <i>or</i><br>
             Tell me more
         </a>
-        *** ClinicianResponse.EMAIL_CHOICE_MAYBE
     </div>
 
     <p>

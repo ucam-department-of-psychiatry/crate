@@ -1,0 +1,32 @@
+{# email_researcher_approval.html #}
+{% extends 'base_email.html' %}
+
+{% comment %}
+    template parameters:
+        consent_mode (object)
+        contact_request (object)
+        patient_lookup (object)
+        study (object)
+{% endcomment %}
+
+{% block content %}
+
+    <p>Dear {{ study.lead_researcher.profile.get_title_surname }},</p>
+
+    <p><b>Bad news!</b> A patient has withdrawn their consent for you to
+    contact them about your study.</p>
+
+    <p><b>Please read the attached withdrawal letter CAREFULLY.</b></p>
+
+    <p>Patient:</p>
+
+    {% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode withdrawal=True %}
+
+    <p>Study:</p>
+    {% include 'study_table.html' with study=study contact_request=contact_request %}
+
+    <p>Yours sincerely,</p>
+
+    <p><i>The CPFT Research Database Computer</i></p>
+
+{% endblock %}

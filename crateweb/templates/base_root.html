@@ -1,0 +1,27 @@
+{# base_root.html #}
+
+<!DOCTYPE html> <!-- HTML 5 -->
+<html>
+    <head>
+        <title>
+            {% block title %}
+                {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
+            {% endblock %}
+        </title>
+        <meta charset="utf-8">
+        {% block base_css %}
+            <style type="text/css">
+                {% include "base.css" %}
+            </style>
+        {% endblock %}
+        {% block extra_css %}{% endblock %}
+        {% block extrahead %}{% endblock %}
+    </head>
+
+    <body {% block onload %}{% endblock %}>
+        {% block mainsiteheader %}{% endblock %}
+
+        {% block content %}{% endblock %}
+    </body>
+
+</html>

@@ -1,0 +1,5 @@
+graphviz
+libgraphviz-dev
+python3-dev
+rabbitmq-server
+xfonts-75dpi

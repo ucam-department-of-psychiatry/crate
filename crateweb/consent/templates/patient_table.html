@@ -3,42 +3,102 @@
     template parameters:
         patient_lookup (object)
         consent_mode (object)
+            OR: concise=True
+        verbose (Boolean)
+        include_sex (Boolean)
+        include_prefers_email (Boolean)
+        include_email (Boolean)
+        include_researcher_detail (Boolean)
 {% endcomment %}
 
-<table class="patient">
-    <tr><td>Name</td><td><b>{{ patient_lookup.pt_title_forename_surname_str }}</b></td></tr>
-    <tr><td>DOB</td><td><b>{{ patient_lookup.pt_dob }}</b></td></tr>
-    <tr>
-        <td>Identifiers</td>
-        <td>
-            NHS number: <b>{{ patient_lookup.nhs_number }}</b>.
-            {% if patient_lookup.pt_local_id_description %}
-                {{ patient_lookup.pt_local_id_description}}:
-                <b>{{ patient_lookup.pt_local_id_number }}</b>.
-            {% endif %}
-        </td>
-    </tr>
-    <tr><td>Address</td><td><b>{{ patient_lookup.pt_address_components_str }}</b></td></tr>
-    <tr><td>GP</td><td><b>{{ patient_lookup.gp_name_address_str }}</b></td></tr>
-    <tr>
-        <td>CPFT clinician</td>
-        <td>
-            <b>{{ patient_lookup.clinician_name_address_str }}</b>
-            <i>({{ patient_lookup.clinician_signatory_title }})</i>
-        </td>
-    </tr>
-    <tr><td>Patient under 16?</td><td><b>{{ patient_lookup.is_under_16|yesno }}</b></td></tr>
-    <tr>
-        <td>Patient discharged?</td>
-        <td><b>
-            {{ patient_lookup.pt_discharged|yesno:"yes,no,?" }}
-            {% if patient_lookup.pt_discharged %}
-                (and: patient has
-                {% if not consent_mode.consent_after_discharge %}
-                    not
+<table {% if withdrawal %}class="patient_withdrawal"{% else %}class="patient"{% endif %}>
+    {% comment %}
+        <colgroup>
+            <col style="width:30%">
+            <col style="width:70%">
+        </colgroup>
+    {% endcomment %}
+    <tbody>
+        <tr>
+            <td>Name</td>
+            <td><b>{{ patient_lookup.pt_title_forename_surname_str }}</b></td>
+        </tr>
+        {% if include_sex %}
+            <tr>
+                <td>Sex</td>
+                <td><b>{{ patient_lookup.pt_sex }}</b></td>
+            </tr>
+        {% endif %}
+        <tr>
+            <td>Date of birth</td>
+            <td><b>{{ patient_lookup.pt_dob }}</b></td>
+        </tr>
+        <tr>
+            <td>Identifiers</td>
+            <td>
+                NHS number: <b>{{ patient_lookup.nhs_number }}</b>.
+                {% if patient_lookup.pt_local_id_description %}
+                    {{ patient_lookup.pt_local_id_description}}:
+                    <b>{{ patient_lookup.pt_local_id_number }}</b>.
                 {% endif %}
-                specifically consented to contact after discharge)
-            {% endif %}
-        </b></td>
-    </tr>
+            </td>
+        </tr>
+        <tr>
+            <td>Address</td>
+            <td><b>{{ patient_lookup.pt_address_components_str }}</b></td>
+        </tr>
+        {% if include_prefers_email and consent_mode %}
+            <tr>
+                <td>Prefers e-mail?</td>
+                <td><b>{{ consent_mode.prefers_email|yesno }}</b></td>
+            </tr>
+        {% endif %}
+        {% if include_email %}
+            <tr>
+                <td>E-mail address</td>
+                <td><b></b>{{ patient_lookup.pt_email }}</td>
+            </tr>
+        {% endif %}
+        <tr>
+            <td>GP</td>
+            <td><b>{{ patient_lookup.gp_name_address_str }}</b></td>
+        </tr>
+        <tr>
+            <td>CPFT clinician</td>
+            <td>
+                <b>{{ patient_lookup.clinician_name_address_str }}</b>
+                <i>({{ patient_lookup.clinician_signatory_title }})</i>
+            </td>
+        </tr>
+        {% if verbose %}
+            <tr>
+                <td>Patient under 16?</td>
+                <td><b>{{ patient_lookup.is_under_16|yesno }}</b></td>
+            </tr>
+            <tr>
+                <td>Patient discharged?</td>
+                <td>
+                    <b>{{ patient_lookup.pt_discharged|yesno:"yes,no,?" }}</b>
+                    {% if patient_lookup.pt_discharged != False %}
+                        {% if consent_mode.consent_after_discharge %}
+                            (and: patient specifically consented to contact after discharge)
+                        {% else %}
+                            (note: patient has NOT consented to contact after discharge)
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+        {% endif %}
+        {% if include_researcher_detail %}
+            <tr>
+                <td>Patient’s previous special requests</td>
+                <td><b>{{ consent_mode.other_requests }}</b></td>
+            </tr>
+            <tr>
+                <td>Was the patient specifically asked about your
+                study?</td>
+                <td><b>{{ contact_request.decided_send_to_clinician|yesno }}</b></td>
+            </tr>
+        {% endif %}
+    </tbody>
 </table>

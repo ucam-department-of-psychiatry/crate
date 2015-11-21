@@ -3,7 +3,6 @@
 
 from django.shortcuts import redirect, render
 from .forms import UserProfileForm
-from .models import get_or_create_user_profile
 
 
 # =============================================================================
@@ -13,8 +12,9 @@ from .models import get_or_create_user_profile
 # ... e.g. slide 72
 
 def edit_profile(request):
-    profile = get_or_create_user_profile(request.user)
-    form = UserProfileForm(request.POST or None, instance=profile)
+    profile = request.user.profile
+    form = UserProfileForm(request.POST if request.method == 'POST' else None,
+                           instance=profile)
     if form.is_valid():
         profile = form.save()
         profile.save()

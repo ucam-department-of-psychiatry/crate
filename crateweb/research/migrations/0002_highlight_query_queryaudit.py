@@ -2,8 +2,8 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
-import picklefield.fields
 from django.conf import settings
+import picklefield.fields
 
 
 class Migration(migrations.Migration):
@@ -29,12 +29,12 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(serialize=False, primary_key=True)),
                 ('sql', models.TextField(verbose_name='SQL query')),
-                ('args', picklefield.fields.PickledObjectField(editable=False, verbose_name='Pickled arguments', null=True)),
-                ('raw', models.BooleanField(default=False, verbose_name='SQL is raw, not parameter-substituted')),
-                ('qmark', models.BooleanField(default=True, verbose_name='Parameter-substituted SQL uses ?, not %s, as placeholders')),
+                ('args', picklefield.fields.PickledObjectField(verbose_name='Pickled arguments', null=True, editable=False)),
+                ('raw', models.BooleanField(verbose_name='SQL is raw, not parameter-substituted', default=False)),
+                ('qmark', models.BooleanField(verbose_name='Parameter-substituted SQL uses ?, not %s, as placeholders', default=True)),
                 ('active', models.BooleanField(default=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('deleted', models.BooleanField(default=False, verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.")),
+                ('deleted', models.BooleanField(verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.", default=False)),
                 ('audited', models.BooleanField(default=False)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],

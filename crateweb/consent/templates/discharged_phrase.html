@@ -9,38 +9,38 @@
     {# operating in ignorance #}
     {% if consent_mode.consent_after_discharge %}
 
-        <p>The electronic records don’t know whether this patient has
+        <div>The electronic records don’t know whether this patient has
         been discharged, but they have specifically consented to being
         contacted by their former clinicians, so you may proceed as
-        long as you are a former clinician of theirs.</p>
+        long as you are a former clinician of theirs.</div>
 
     {% else %}
 
-        <p><b>Discharged?</b>
+        <div><b>Discharged?</b>
         The electronic records don’t know whether this patient has
         been discharged. If you know the patient has been
         discharged, please say no to this request (giving “discharged”
         as your reason), because this patient has not given their
-        specific consent to be contacted after discharge.</p>
+        specific consent to be contacted after discharge.</div>
 
     {% endif %}
 {% elif patient_lookup.pt_discharged %}
     {# discharged #}
     {% if consent_mode.consent_after_discharge %}
 
-        <p>The patient is listed as having been discharged, but they
+        <div>The patient is listed as having been discharged, but they
         have specifically consented to being contacted by their
         former clinicians, so you may proceed as long as you are a
-        former clinician of theirs.</p>
+        former clinician of theirs.</div>
 
     {% else %}
 
-        <p><b>Bug.</b>
+        <div><b>Bug.</b>
         The patient is listed as having been discharged, and has
         not given their consent to be contacted after discharge.
         This e-mail should not have come to you; we are sorry. This is
         a bug. <b>Please say no to the request and tell the Research
-        Database Manager (details below) of the bug.</b></p>
+        Database Manager (details below) of the bug.</b></div>
 
     {% endif %}
 {% else %}
@@ -48,5 +48,5 @@
     {# clinician always has the right to contact patient #}
 {% endif %}
 
-<p><b>Dead?</b> The electronic records won’t know if the patient has
-recently died, so please veto any such inadvertent requests.</p>
+<div><b>Dead?</b> The electronic records won’t know if the patient has
+recently died, so please veto any such inadvertent requests.</div>
