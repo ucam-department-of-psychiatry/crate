@@ -7,7 +7,7 @@ binary objects (BLOBs).
 Prerequisites:
 
     sudo apt-get install antiword
-    sudo pip install docx pdfminer
+    pip install docx pdfminer
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: Feb 2015
@@ -54,16 +54,16 @@ See also:
 
 from __future__ import division, print_function, absolute_import
 import argparse
-import bs4  # sudo apt-get install python-bs4
+import bs4  # pip install beautifulsoup4
 # import cStringIO
-import docx  # sudo pip install python-docx (NOT docx)
+import docx  # pip install python-docx (NOT docx)
 import io
 import os
-# import pdfminer.pdfinterp  # sudo pip install pdfminer
-# import pdfminer.converter  # sudo pip install pdfminer
-# import pdfminer.layout  # sudo pip install pdfminer
-# import pdfminer.pdfpage   # sudo pip install pdfminer
-import prettytable  # sudo pip install PrettyTable
+# import pdfminer.pdfinterp  # pip install pdfminer
+# import pdfminer.converter  # pip install pdfminer
+# import pdfminer.layout  # pip install pdfminer
+# import pdfminer.pdfpage   # pip install pdfminer
+import prettytable  # pip install PrettyTable
 # import pyth.plugins.rtf15.reader  # sudo apt-get install python-pyth
 # import pyth.plugins.plaintext.writer  # sudo apt-get install python-pyth
 import six
