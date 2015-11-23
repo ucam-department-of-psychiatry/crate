@@ -40,7 +40,7 @@ from .models import (
     Study,
 )
 from .storage import privatestorage
-from .tasks import finalize_clinician_response
+from .tasks import finalize_clinician_response, test_email_rdbm_task
 
 
 # =============================================================================
@@ -465,4 +465,12 @@ def exclusion_report(request):
                                                exclude_entirely=True)
     return render(request, 'exclusion_report.html', {
         'consent_modes': consent_modes,
+    })
+
+
+@user_passes_test(is_superuser)
+def test_email_rdbm(request):
+    test_email_rdbm_task.delay()
+    return render(request, 'test_email_rdbm_ack.html', {
+        'settings': settings,
     })

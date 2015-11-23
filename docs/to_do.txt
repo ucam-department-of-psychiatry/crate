@@ -4,15 +4,11 @@ versioning (think for CamCOPS and for consent mode)
     # *** https://django-simple-history.readthedocs.org/en/latest/usage.html
     # *** http://django-reversion.readthedocs.org/en/latest/
 
-*** distribution - github, pypi
-
 *** search for all *** in .py files
 
 # *** CONSIDER: pulling research consent info from RiO at point of lookup
-# *** Apache
-#   *** /static/ is a bit hard-coded, but that is the intent of Django's developers  # noqa
-# *** celery as daemon
 
-# *** support multiple research DB schemas via config? e.g. in research/models.py : ResearchDatabaseInfo
 
-# *** convert anonymiser/NLP bit to Python 3
+# *** test anonymiser/NLP (now Python 3) on wombat demo database
+
+# *** test reboot with Celery

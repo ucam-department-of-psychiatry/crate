@@ -2826,6 +2826,14 @@ class Email(models.Model):
         email.save()
         return email
 
+    @classmethod
+    def create_rdbm_text_email(cls, subject, text):
+        email = cls(recipient=settings.RDBM_EMAIL,
+                    subject=subject,
+                    msg_text=text)
+        email.save()
+        return email
+
     def has_been_sent(self):
         return self.emailtransmission_set.filter(sent=True).exists()
 

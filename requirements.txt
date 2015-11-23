@@ -5,21 +5,30 @@
 
 # For the Django site:
 
-celery>=3.1.19
-Django>=1.9rc1
-django-extensions>=1.5.9
-django-picklefield>=0.3.2
-django-sslserver>=0.15
-django-debug-toolbar>=1.4
+celery==3.1.19
+Django==1.9rc1
+django-extensions==1.5.9
+django-picklefield==0.3.2
+django-sslserver==0.15
+django-debug-toolbar==1.4
+gunicorn==19.3.0
 # mod_wsgi-httpd  # a bit slow; don't worry
 # mod_wsgi
-mysqlclient>=1.3.6
-pdfkit>=0.5.0
-pygraphviz>=1.3.1
-PyPDF2>=1.25.1
-pytz>=2015.6
-python-dateutil>=2.4.2
-Werkzeug>=0.10.4
+mysqlclient==1.3.6
+pdfkit==0.5.0
+pygraphviz==1.3.1
+PyPDF2==1.25.1
+pytz==2015.6
+python-dateutil==2.4.2
+Werkzeug==0.10.4
+
+# For the anonymiser/pythonlib:
+
+beautifulsoup4==4.4.1
+prettytable==0.7.2
+python-docx==0.8.5
+regex==2015.11.14
+sortedcontainers==1.4.2
 
 # Include others
 

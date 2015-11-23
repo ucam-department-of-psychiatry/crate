@@ -1,12 +1,12 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# anonymise/anon_config.py
 
 """
 Config class for CRATE anonymiser.
 
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
-Last update: 06 Oct 2015
+Last update: 22 Nov 2015
 
 Copyright/licensing:
 
@@ -33,7 +33,7 @@ Copyright/licensing:
 
 import cgi
 import codecs
-import ConfigParser
+import configparser
 import datetime
 import dateutil
 import dateutil.tz
@@ -48,7 +48,6 @@ from pythonlib.rnc_config import (
     read_config_multiline_options,
     read_config_string_options,
 )
-from pythonlib.rnc_crypto import MD5Hasher, SHA256Hasher, SHA512Hasher
 from pythonlib.rnc_datetime import (
     format_datetime,
 )
@@ -75,6 +74,7 @@ from anon_constants import (
 from anon_dd import (
     DataDictionary
 )
+from anon_hash import MD5Hasher, SHA256Hasher, SHA512Hasher
 from anon_regex import (
     get_number_of_length_n_regex_elements,
     get_regex_from_elements,
@@ -860,7 +860,7 @@ class DatabaseSafeConfig(object):
     source database."""
 
     def __init__(self, parser, section):
-        """Read from a ConfigParser section."""
+        """Read from a configparser section."""
         read_config_string_options(self, parser, section, [
             "ddgen_force_lower_case",
             "ddgen_convert_odd_chars_to_underscore",
@@ -1072,8 +1072,8 @@ class Config(object):
         else:
             if environ.get("SERVER_PORT") != "80":
                 url += ':' + environ.get("SERVER_PORT", "")
-        url += urllib.quote(environ.get("SCRIPT_NAME", ""))
-        url += urllib.quote(environ.get("PATH_INFO", ""))
+        url += urllib.parse.quote(environ.get("SCRIPT_NAME", ""))
+        url += urllib.parse.quote(environ.get("PATH_INFO", ""))
         # But not the query string:
         # if environ.get("QUERY_STRING"):
         #    url += "?" + environ.get("QUERY_STRING")
@@ -1082,7 +1082,7 @@ class Config(object):
     def read_config(self, include_sources=False):
         """Read config from file."""
         logger.debug("Opening config: {}".format(self.config_filename))
-        parser = ConfigParser.RawConfigParser()
+        parser = configparser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         read_config_string_options(self, parser, "main", Config.MAIN_HEADINGS)
         read_config_multiline_options(self, parser, "main",
@@ -1162,7 +1162,7 @@ class Config(object):
         """Return an rnc_db database object from information in a section of
         the config file (a section that will contain password and other
         connection information)."""
-        parser = ConfigParser.RawConfigParser()
+        parser = configparser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         return rnc_db.get_database_from_configparser(
             parser, section, securely=self.open_databases_securely)
@@ -1276,7 +1276,7 @@ class Config(object):
             return
         if not self.sources:
             raise ValueError("No source databases specified.")
-        for dbname, cfg in self.srccfg.iteritems():
+        for dbname, cfg in self.srccfg.items():
             if not cfg.ddgen_allow_no_patient_info:
                 if not cfg.ddgen_per_table_pid_field:
                     raise ValueError(

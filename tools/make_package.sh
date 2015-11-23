@@ -81,7 +81,6 @@ require_not_root() {
 #==============================================================================
 
 warn "*** think - RabbitMQ etc. for multiple web app instances / separation from other tasks"
-warn "*** collectstatic"
 
 #------------------------------------------------------------------------------
 # Package
@@ -90,7 +89,7 @@ warn "*** collectstatic"
 PACKAGE=crate
 
 #------------------------------------------------------------------------------
-# User
+# User and other default config
 #------------------------------------------------------------------------------
 
 CRATE_USER=www-data
@@ -98,6 +97,8 @@ CRATE_GROUP=www-data
 
 MAKE_USER=false  # not working properly yet
 MAKE_GROUP=false
+
+DEFAULT_GUNICORN_PORT=8005
 
 #------------------------------------------------------------------------------
 # Directories
@@ -119,6 +120,7 @@ DEST_PACKAGE_CONF_DIR=/etc/$PACKAGE
 DEST_SUPERVISOR_CONF_DIR=/etc/supervisor/conf.d
 INFO_DEST_DPKG_DIR=/var/lib/dpkg/info  # not written to directly
 DEST_DOC_DIR=/usr/share/doc/$PACKAGE
+DEST_COLLECTED_STATIC_DIR=$DEST_DJANGO_ROOT/static_collected
 
 # Working/Debian
 WORK_DIR=/tmp/crate_debian_pkg_build_tmp
@@ -142,6 +144,7 @@ DEST_SUPERVISOR_CONF_FILE=$DEST_SUPERVISOR_CONF_DIR/$PACKAGE.conf
 DEB_PACKAGE_FILE=$PACKAGE_DIR/${PACKAGE}_${VERSION_DEB}_all.deb
 LOCAL_CONFIG_BASENAME="crate_local_settings.py"
 DEST_CRATE_CONF_FILE=$DEST_PACKAGE_CONF_DIR/$LOCAL_CONFIG_BASENAME
+GUNICORN_START_SCRIPT=$DEST_ROOT/gunicorn_start
 
 #------------------------------------------------------------------------------
 # Dependencies
@@ -197,11 +200,15 @@ bold "=== Creating Debian package files"
 #------------------------------------------------------------------------------
 # Debian package file: preinst
 #------------------------------------------------------------------------------
-#echo "Creating Debian preinst file. Will be installed as $INFO_DEST_DPKG_DIR/$PACKAGE.preinst"
-## for heredocs, quoting the limit string prevents variable interpretation
-#cat << END_HEREDOC > $DEB_DIR/preinst
-##!/bin/bash
-#END_HEREDOC
+echo "Creating Debian preinst file. Will be installed as $INFO_DEST_DPKG_DIR/$PACKAGE.preinst"
+# for heredocs, quoting the limit string prevents variable interpretation
+cat << END_HEREDOC > $DEB_DIR/preinst
+#!/bin/bash
+set -e  # Exit on any errors. (Lintian strongly advises this.)
+
+echo "Stop services that may be affected"
+service supervisor stop
+END_HEREDOC
 
 #------------------------------------------------------------------------------
 # Debian package file: postinst
@@ -231,6 +238,10 @@ cat << END_HEREDOC > $DEB_DIR/postinst
 #!/bin/bash
 set -e  # Exit on any errors. (Lintian strongly advises this.)
 
+bold() {
+    echo "\$(tput bold)\$@\$(tput sgr0)"
+}
+
 echo '$PACKAGE: postinst file executing'
 
 $MAKE_GROUP_COMMAND_1
@@ -249,7 +260,22 @@ echo "Installing virtual environment..."
 sudo --user=$CRATE_USER XDG_CACHE_HOME=$DEST_ROOT/.cache "$DEST_ROOT/tools/install_virtualenv.sh" "$DEST_VIRTUALENV"
 echo "... finished installing virtual environment"
 
+echo "Collecting static files"
+source $DEST_VIRTUALENV/bin/activate
+# Run temporarily without local settings file (since the default raises an exception):
+export CRATE_RUN_WITHOUT_LOCAL_SETTINGS=yes
+manage.py collectstatic --noinput
+deactivate
+
+echo "Restart services that may have been affected"
+service supervisor restart
+
 echo '$PACKAGE: postinst file finished'
+
+echo
+bold "Please read this file: $INSTRUCTIONS"
+echo
+
 END_HEREDOC
 
 #------------------------------------------------------------------------------
@@ -261,17 +287,25 @@ cat << END_HEREDOC > $DEB_DIR/prerm
 #!/bin/bash
 set -e  # Exit on any errors. (Lintian strongly advises this.)
 
+echo "Stop services that may be affected"
+service supervisor stop
+
+echo "Remove virtual environment"
 rm -rf "$DEST_VIRTUALENV"
 END_HEREDOC
 
 #------------------------------------------------------------------------------
 # Debian package file: postrm
 #------------------------------------------------------------------------------
-#echo "Creating Debian postrm file. Will be installed as $INFO_DEST_DPKG_DIR/$PACKAGE.postrm"
-## for heredocs, quoting the limit string prevents variable interpretation
-#cat << END_HEREDOC > $DEB_DIR/postrm
-##!/bin/bash
-#END_HEREDOC
+echo "Creating Debian postrm file. Will be installed as $INFO_DEST_DPKG_DIR/$PACKAGE.postrm"
+# for heredocs, quoting the limit string prevents variable interpretation
+cat << END_HEREDOC > $DEB_DIR/postrm
+#!/bin/bash
+set -e  # Exit on any errors. (Lintian strongly advises this.)
+
+echo "Restart services that may be affected"
+service supervisor restart
+END_HEREDOC
 
 #------------------------------------------------------------------------------
 # Debian package file: control
@@ -347,6 +381,7 @@ cat << END_HEREDOC > $DEB_OVERRIDE_DIR/$PACKAGE
 # If we did want to close a new-package ITP bug: http://www.debian.org/doc/manuals/developers-reference/pkgs.html#upload-bugfix
 $PACKAGE binary: new-package-should-close-itp-bug
 $PACKAGE binary: extra-license-file
+$PACKAGE binary: embedded-javascript-library
 END_HEREDOC
 
 reassure "OK"
@@ -360,20 +395,21 @@ bold "=== Creating destination files"
 #------------------------------------------------------------------------------
 # Destination file: gunicorn_start
 #------------------------------------------------------------------------------
-GUNICORN_START_SCRIPT=$DEST_ROOT/gunicorn_start
 echo "Creating: $GUNICORN_START_SCRIPT"
 cat << END_HEREDOC > "$WORK_DIR$GUNICORN_START_SCRIPT"
 #!/bin/bash
 
-NAME="CRATE"                                  # Name of the application
-DJANGODIR=$DEST_DJANGO_ROOT             # Django project directory
-SOCKFILE=/webapps/hello_django/run/gunicorn.sock  # we will communicte using this unix socket
-USER=$CRATE_USER                                        # the user to run as
-GROUP=$CRATE_GROUP                                     # the group to run as
-NUM_WORKERS=3                                     # how many worker processes should Gunicorn spawn
-DJANGO_SETTINGS_MODULE=config.settings             # which settings file should Django use
-DJANGO_WSGI_MODULE=config.wsgi                     # WSGI module name
+NAME="CRATE"  # Name of the application (cosmetic)
+DJANGODIR=$DEST_DJANGO_ROOT  # Django project directory
+BIND=127.0.0.1:$DEFAULT_GUNICORN_PORT  # IP address/port to bind to.
+NUM_WORKERS=3  # how many worker processes should Gunicorn spawn
+DJANGO_SETTINGS_MODULE=config.settings  # which settings file should Django use
+DJANGO_WSGI_MODULE=config.wsgi  # WSGI module name
 VIRTUALENV=$DEST_VIRTUALENV
+
+# SOCKFILE=/somewhere/run/gunicorn.sock  # we will communicate using this unix socket
+# USER=$CRATE_USER  # the user to run as
+# GROUP=$CRATE_GROUP  # the group to run as
 
 echo "Starting \$NAME as `whoami`"
 
@@ -390,12 +426,17 @@ test -d \$RUNDIR || mkdir -p \$RUNDIR
 # Start your Django Unicorn
 # Programs meant to be run under supervisor should not daemonize themselves (do not use --daemon)
 gunicorn \${DJANGO_WSGI_MODULE}:application \
-  --name \$NAME \
-  --workers \$NUM_WORKERS \
-  --user=\$USER --group=\$GROUP \
-  --bind=unix:\$SOCKFILE \
-  --log-level=debug \
-  --log-file=-
+    --name \$NAME \
+    --workers \$NUM_WORKERS \
+    --bind=\$BIND \
+    --log-file=-
+
+# Alternative to port method:
+#    --bind=unix:\$SOCKFILE \
+# Causes permission problems:
+#    --user=\$USER --group=\$GROUP \
+# For debugging:
+#    --log-level=debug \
 
 END_HEREDOC
 # http://michal.karzynski.pl/blog/2013/06/09/django-nginx-gunicorn-virtualenv-supervisor/
@@ -405,6 +446,12 @@ END_HEREDOC
 #------------------------------------------------------------------------------
 echo "Creating: $DEST_SUPERVISOR_CONF_FILE"
 cat << END_HEREDOC > "$WORK_DIR$DEST_SUPERVISOR_CONF_FILE"
+
+; IF YOU EDIT THIS FILE, run:
+;       sudo service supervisor restart
+; TO MONITOR SUPERVISOR, run:
+;       sudo service supervisorctl status
+
 [program:crate-celery-worker]
 
 command=$DEST_VIRTUALENV/bin/celery worker --app=consent --loglevel=info
@@ -422,7 +469,19 @@ stopwaitsecs=600
 ; - You can't put quotes around the directory variable
 ;   http://stackoverflow.com/questions/10653590
 
-; *** gunicorn bits
+[program:crate-gunicorn]
+
+command=$GUNICORN_START_SCRIPT
+directory=$DEST_DJANGO_ROOT
+environment= CRATE_LOCAL_SETTINGS="$DEST_CRATE_CONF_FILE"
+# sets its own environment and uses the virtualenv itself
+user=$CRATE_USER
+stdout_logfile=/var/log/supervisor/$PACKAGE-gunicorn.log
+redirect_stderr=true
+autostart=true
+autorestart=true
+startsecs=10
+stopwaitsecs=600
 
 END_HEREDOC
 
@@ -435,10 +494,129 @@ SITE_PACKAGES=$DEST_VIRTUALENV/lib/$PYTHONBASE/site-packages
 CRATE_MANAGE=$DEST_DJANGO_ROOT/manage.py
 cat << END_HEREDOC > "$WORK_DIR$INSTRUCTIONS"
 ===============================================================================
+Your system's CRATE configuration
+===============================================================================
+- Default CRATE config is:
+    $DEST_CRATE_CONF_FILE"
+  This must be edited before it will run properly.
+
+- Gunicorn/Celery are being supervised as per:
+    $DEST_SUPERVISOR_CONF_FILE
+  This this should be edited to point to the correct CRATE config.
+  (And copied, in the unlikely event you should want to run >1 instance.)
+
+- Gunicorn default port is:
+    $DEFAULT_GUNICORN_PORT
+  To change this, edit
+    $GUNICORN_START_SCRIPT
+  Copy this script to run another instance on another port.
+
+- Static file root to serve:
+    $DEST_COLLECTED_STATIC_DIR
+  See instructions below re Apache.
+
+===============================================================================
+Command-line use: Django development server
+===============================================================================
+For convenience:
+
+    export \$CRATE_VIRTUALENV="$DEST_VIRTUALENV"
+    export \$CRATE_MANAGE="$CRATE_MANAGE"
+
+To activate virtual environment:
+    source \$CRATE_VIRTUALENV/bin/activate
+
+Then use \$CRATE_MANAGE as the Django management tool.
+Once you've activated the virtual environment, you can do this for a demo
+server:
+    manage.py runserver
+
+Its default port will be 8000.
+
+To deactivate the virtual environment:
+    deactivate
+
+===============================================================================
+Full stack
+===============================================================================
+
+- Gunicorn serves CRATE via WSGI
+  ... serving via an internal port (in the default configuration, $DEFAULT_GUNICORN_PORT).
+
+- Celery talks to CRATE (in the web "foreground" and in the background)
+
+- RabbitMQ handles messaging for Celery
+
+- supervisord keeps Gunicorn and Celery running
+
+- You should use a proper web server like Apache or nginx to:
+
+    (a) serve static files
+        ... offer URL: <your_crate_app_path>/static
+        ... from filesystem: $DEST_COLLECTED_STATIC_DIR
+
+    (b) proxy requests to the WSGI app via Gunicorn's internal port
+
+===============================================================================
+Monitoring with supervisord
+===============================================================================
+
+    sudo supervisorctl  # assuming it's running as root
+
+===============================================================================
 Apache
 ===============================================================================
 -------------------------------------------------------------------------------
-To use Apache with mod_wsgi
+OPTIMAL: proxy Apache through to Gunicorn
+-------------------------------------------------------------------------------
+(a) Add Ubuntu/Apache prerequisites
+
+    sudo apt-get install apache2 libapache2-mod-proxy-html libapache2-mod-xsendfile
+    sudo a2enmod proxy_http
+
+(b) Configure Apache for CRATE.
+    Use a section like this in the Apache config file:
+
+<VirtualHost *:80>
+    # ...
+
+    # =========================================================================
+    # CRATE
+    # =========================================================================
+
+    # We will mount the CRATE app at /crate/ and /crate_static/, as follows.
+
+    # 1. Proxy requests to the Gunicorn server on port $DEFAULT_GUNICORN_PORT,
+    #    and allow access.
+
+    ProxyPass /crate/ http://127.0.0.1:$DEFAULT_GUNICORN_PORT/
+    ProxyPassReverse /crate/ http://127.0.0.1:$DEFAULT_GUNICORN_PORT/
+    <Location /crate>
+        Require all granted
+    </Location>
+
+    # 2. Serve static files
+    # a) offer them at the appropriate URL
+    #    This MUST match Django's STATIC_URL, which is set to
+    #    '/crate_static/' in config/settings.py, but can be overridden in
+    #    your user-defined CRATE config file (passed to the Gunicorn and
+    #    Celery processes)/
+    # b) provide permission
+
+    Alias /crate_static/ $DEST_COLLECTED_STATIC_DIR/
+    <Directory $DEST_COLLECTED_STATIC_DIR>
+        Require all granted
+    </Directory>
+
+    # 3. The final piece of the puzzle is to ensure you have this in your
+    #    CRATE local settings file:
+    #       FORCE_SCRIPT_NAME = '/crate'
+    #    ... which will make Django generate the correct URLs.
+
+</VirtualHost>
+
+-------------------------------------------------------------------------------
+NOT THE SIMPLEST: To use Apache with mod_wsgi
 -------------------------------------------------------------------------------
 (a) Add Ubuntu prerequisites
 
@@ -541,27 +719,11 @@ Standalone Apache with mod_wsgi-express
 - Add --reload-on-changes for debugging.
 - Port 80 will require root privilege.
 
-===============================================================================
-Command-line use: Django development server
-===============================================================================
-For convenience:
-
-    export \$CRATE_VIRTUALENV="$DEST_VIRTUALENV"
-    export \$CRATE_MANAGE="$CRATE_MANAGE"
-
-To activate virtual environment:
-    source \$CRATE_VIRTUALENV/bin/activate
-
-Then use \$CRATE_MANAGE as the Django management tool, e.g. for the demo server:
-    \$CRATE_MANAGE runserver
-
-===============================================================================
-Monitoring with supervisord
-===============================================================================
-
-    sudo supervisorctl  # assuming it's running as root
-
 END_HEREDOC
+
+# http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass
+# http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypassreverse
+# http://design.canonical.com/2015/08/django-behind-a-proxy-fixing-absolute-urls/
 
 reassure "OK"
 
@@ -649,3 +811,5 @@ rm -rf "$WORK_DIR"
 #==============================================================================
 reassure "OK"
 exit 0
+
+# *** gunicorn not being stopped by supervisord

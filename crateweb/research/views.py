@@ -408,6 +408,7 @@ def structure_table_long(request):
     context = {
         'paginated': False,
         'infodictlist': research_database_info.infodictlist,
+        'default_schema': settings.DATABASES['research']['NAME'],
     }
     return render(request, 'database_structure.html', context)
 
@@ -418,6 +419,7 @@ def structure_table_paginated(request):
     context = {
         'paginated': True,
         'infodictlist': infodictlist,
+        'default_schema': settings.DATABASES['research']['NAME'],
     }
     return render(request, 'database_structure.html', context)
 

@@ -1,12 +1,12 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# anonymise/anon_constants.py
 
 """
 Shared constants for CRATE anonymiser.
 
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
-Last update: 16 Sep 2015
+Last update: 22 Nov 2015
 
 Copyright/licensing:
 
@@ -51,12 +51,12 @@ LONGTEXT = "LONGTEXT"
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 
 # Better overall than string.maketrans:
-ODD_CHARS_TRANSLATE = [chr(x) for x in xrange(0, 256)]
+ODD_CHARS_TRANSLATE = [chr(x) for x in range(0, 256)]
 for c in '()/ ':
     ODD_CHARS_TRANSLATE[ord(c)] = '_'
-for i in xrange(0, 32):
+for i in range(0, 32):
     ODD_CHARS_TRANSLATE[i] = '_'
-for i in xrange(127, 256):
+for i in range(127, 256):
     ODD_CHARS_TRANSLATE[i] = '_'
 ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 

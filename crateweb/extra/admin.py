@@ -250,6 +250,10 @@ def disable_bool_icon(fieldname, model):
         return getattr(obj, fieldname)
     func.boolean = False
     func.admin_order_field = fieldname
+    # func.short_description = \
+    #     model._meta.get_field_by_name(fieldname)[0].verbose_name
+    # get_field_by_name() deprecated in Django 1.9 and will go in 1.10
+    # https://docs.djangoproject.com/en/1.8/ref/models/meta/
     func.short_description = \
-        model._meta.get_field_by_name(fieldname)[0].verbose_name
+        model._meta.get_field(fieldname).verbose_name
     return func

@@ -1,5 +1,5 @@
-#!/usr/bin/python
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# anonymise/__init__.py
 
 """
 __init__.py

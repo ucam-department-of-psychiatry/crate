@@ -5,7 +5,9 @@ DJANGO_ROOT=`readlink -m $THISDIR/../crateweb`
 cd "$DJANGO_ROOT"
 # FILES_TO_MONITOR=$(find . -name "*.py" -type f | awk '{sub("\\./",""); gsub("/", "."); sub(".py",""); print}' ORS=',' | sed 's/.$//')
 # echo "Monitoring: $FILES_TO_MONITOR"
-celery -A consent worker \
+
+celery worker \
+    --app=consent \
     --loglevel=debug
     # --autoreload \
     # --include=$FILES_TO_MONITOR

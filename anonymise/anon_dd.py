@@ -1,5 +1,5 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# anonymise/anon_dd.py
 
 """
 Data dictionary classes for CRATE anonymiser.
@@ -9,7 +9,7 @@ than a database table.
 
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
-Last update: 06 Oct 2015
+Last update: 22 Nov 2015
 
 Copyright/licensing:
 
@@ -120,6 +120,9 @@ class DataDictionaryRow(object):
         self._extract_text = False
         self._extract_from_filename = False
         self._extract_ext_field = ""
+        
+    def __lt__(self, other):
+        return self.get_signature() < other.get_signature()
 
     def alter_method_to_components(self):
         """
@@ -205,7 +208,7 @@ class DataDictionaryRow(object):
         if len(elements) != len(DataDictionaryRow.ROWNAMES):
             raise ValueError("Bad data dictionary row. Values:\n" +
                              "\n".join(elements))
-        for i in xrange(len(elements)):
+        for i in range(len(elements)):
             setattr(self, DataDictionaryRow.ROWNAMES[i], elements[i])
         convert_attrs_to_bool(self, [
             "omit",
@@ -642,9 +645,9 @@ class DataDictionary(object):
         """
         self.rows = []
         logger.debug("Opening data dictionary: {}".format(filename))
-        with open(filename, 'rb') as tsvfile:
+        with open(filename, 'r') as tsvfile:
             tsv = csv.reader(tsvfile, delimiter='\t')
-            headerlist = tsv.next()
+            headerlist = next(tsv)
             if headerlist != DataDictionaryRow.ROWNAMES:
                 raise ValueError(
                     "Bad data dictionary file. Must be a tab-separated value "
@@ -666,7 +669,7 @@ class DataDictionary(object):
         Create a draft DD from a source database.
         """
         logger.info("Reading information for draft data dictionary")
-        for pretty_dbname, db in self.config.sources.iteritems():
+        for pretty_dbname, db in self.config.sources.items():
             cfg = self.config.srccfg[pretty_dbname]
             schema = db.get_schema()
             logger.info("... database nice name = {}, schema = {}".format(
@@ -900,7 +903,7 @@ class DataDictionary(object):
                 if any([r._scrub or SRCFLAG.MASTERPID in r.src_flags
                         for r in rows if not r.omit]):
                     pidfield = self.config.srccfg[d].ddgen_per_table_pid_field
-                    if not pidfield in fieldnames:
+                    if pidfield not in fieldnames:
                         raise ValueError(
                             "Source table {d}.{t} has a scrub_in or "
                             "src_flags={f} field but no {p} field".format(

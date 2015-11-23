@@ -96,3 +96,16 @@ def process_patient_response(patient_response_id):
     from consent.models import PatientResponse  # delayed import
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
     patient_response.process_response()
+
+@shared_task
+@task(ignore_result=True)
+def test_email_rdbm_task():
+    from consent.models import Email  # delayed import
+    subject = "TEST MESSAGE FROM RESEARCH DATABASE COMPUTER"
+    text = (
+        "Success! The CRATE framework can communicate via Celery with its "
+        "message broker, so it can talk to an 'offline' copy of itself "
+        "for background processing. And it can e-mail you."
+    )
+    email = Email.create_rdbm_text_email(subject, text)
+    email.send()

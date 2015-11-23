@@ -1,5 +1,5 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# anonymise/regex.py
 
 """
 Core anonymisation functions for CRATE.

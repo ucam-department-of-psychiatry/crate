@@ -1,5 +1,5 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# anonymise/test_anonymisation.py
 
 """
 Test the anonymisation for specific databases.
@@ -24,7 +24,7 @@ instead.
 
 Author: Rudolf Cardinal
 Created at: 21 Aug 2015
-Last update: 21 Aug 2015
+Last update: 22 Nov 2015
 
 Copyright/licensing:
 
@@ -49,7 +49,7 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
-from __future__ import print_function
+# from __future__ import print_function
 import argparse
 import collections
 import csv
@@ -107,7 +107,6 @@ def get_patientnum_rawtext(docid, fieldinfo):
     Fetches the original text for a given document PK, plus the associated
     patient ID.
     """
-    # *** ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
     db = config.sources[fieldinfo.text_ddrow.src_db]
     table = fieldinfo.text_ddrow.src_table
     textfield = fieldinfo.text_ddrow.src_field

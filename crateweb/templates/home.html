@@ -53,6 +53,10 @@
         {% if user.is_superuser %}
             <h2>Administrative functions for Research Database manager</h2>
             <ul>
+                <li><a href="{% url 'mgradmin:index' %}"><b>RDBM
+                administration</b></a>: user management, query audits,
+                and consent-to-contact admin functions</li>
+
                 <li><a href="{% url 'pidlookup' %}">Look up patient ID (PID) from
                 research ID (RID)</a></li>
 
@@ -62,17 +66,17 @@
                 <li><a href="{% url 'exclusion_report' %}">Report patients to
                 be excluded entirely from anonymised database</a></li>
 
-                <li><a href="{% url 'mgradmin:index' %}">RDBM administration</a>:
-                user management, query audits, and consent-to-contact admin
-                functions</li>
+                <li><a href="{% url 'test_email_rdbm' %}">Test message queue
+                by sending an e-mail to the RDBM</a></li>
             </ul>
         {% endif %}
 
         {% if is_developer %}
             <h2>Extra functions for developers</h2>
             <ul>
-                <li><a href="{% url 'devadmin:index' %}">Developer admin</a>:
-                more detailed inspection of database objects</li>
+                <li><a href="{% url 'devadmin:index' %}"><b>Developer
+                admin</b></a>: more detailed inspection of database
+                objects</li>
 
                 <li><a href="{% url 'generate_fake_nhs' %}">Generate fake NHS
                 numbers for testing</a></li>

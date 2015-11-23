@@ -4,40 +4,53 @@
 
 {% block content %}
 
-
     {% if paginated %}
         <h1>Research database structure: paginated</h1>
     {% else %}
         <h1>Research database structure: long form</h1>
     {% endif %}
+    
+    <p>Default schema: {{ default_schema }}</p>
 
     <table>
         <tr>
-            <th>table.column</th>
             <th>Schema</th>
             <th>Table</th>
             <th>Column</th>
+            <th>Comment</th>
             <th>Data type</th>
             <th>May be NULL?</th>
-            <th>Comment</th>
             <th>Indexed?</th>
             <th>FULLTEXT index?</th>
+            {% comment %}
+            <th>table.column</th>
+            <th>schema.table.column</th>
+            {% endcomment %}
         </tr>
         {% for d in infodictlist %}
             <tr>
-                <td><b>{{ d.table_name }}.{{ d.column_name }}</b></td>
-                <td>{{ d.table_schema }}</td>
+                <td>
+                    {% if d.table_schema == default_schema %}
+                        {{ d.table_schema }}
+                    {% else %}
+                        <b>{{ d.table_schema }}</b>
+                    {% endif %}
+                </td>
                 <td><b>{{ d.table_name }}</b></td>
                 <td><b>{{ d.column_name }}</b></td>
+                <td>{{ d.column_comment }}</td>
                 <td>{{ d.column_type|upper }}</td>
                 <td>{{ d.is_nullable|yesno }}</td>
-                <td>{{ d.column_comment }}</td>
                 <td>{{ d.indexed|yesno }}</td>
                 <td>
                     {% if d.indexed_fulltext %}<b>{% endif %}
                     {{ d.indexed_fulltext|yesno }}
                     {% if d.indexed_fulltext %}</b>{% endif %}
                 </td>
+                {% comment %}
+                <td><b>{{ d.table_name }}.{{ d.column_name }}</b></td>
+                <td><b>{{ d.table_schema }}.{{ d.table_name }}.{{ d.column_name }}</b></td>
+                {% endcomment %}
             </tr>
         {% endfor %}
     </table>

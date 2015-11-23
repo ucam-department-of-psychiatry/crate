@@ -1,4 +1,35 @@
 ===============================================================================
+Early thoughts preceding Django, starting 19 Mar 2015
+===============================================================================
+
+    - output roughly sketched out
+    - WSGI framework drafted
+
+    - needs safe SQL creation framework
+        - easy to make something too fiddly: http://www.ajaxquerybuilder.com/
+    - needs session, security/users, main menu, audit
+    - user accessing the destination database must be READ ONLY here
+
+This kind of queries that might benefit from some autogeneration:
+
+    SELECT
+        master.rid, master.dob, ...
+        secondtable.field1, secondtable.field2, ...
+        thirdtable.field1, thirdtable.field2, ...
+    FROM
+        master
+        INNER JOIN secondtable ON (secondtable.rid = master.rid)
+        INNER JOIN thirdtable ON (thirdtable.rid = master.rid)
+    WHERE
+        MATCH(secondtable.field1) AGAINST ('schizophrenia')
+        OR MATCH(thirdtable.field1) AGAINST ('schizophrenia')
+
+However, it's not clear anything really improves on writing raw SQL; most
+assisted query generation frameworks are quite crippled functionally. Simple
+SQL also has the advantage of producing a clear tabular structure, without
+nesting.
+
+===============================================================================
 SITE-SPECIFIC CONFIGURATION FILES FOR DJANGO
 ===============================================================================
 
@@ -338,8 +369,95 @@ http://docs.celeryproject.org/en/latest/getting-started/brokers/django.html#brok
     sudo rabbitmqctl report
 
 
-*** run as a daemon
+===============================================================================
+mod_wsgi-express, etc.
+===============================================================================
+
+# http://blog.dscpl.com.au/2015/04/introducing-modwsgi-express.html
+# http://blog.dscpl.com.au/2015/04/using-modwsgi-express-with-django.html
+# http://blog.dscpl.com.au/2015/04/integrating-modwsgi-express-as-django.html
+# http://blog.dscpl.com.au/2015/05/using-modwsgi-express-as-development.html
+# https://pypi.python.org/pypi/mod_wsgi
+# https://gist.github.com/GrahamDumpleton/b79d336569054882679e
+
+# https://opensourcemissions.wordpress.com/2010/03/12/finally-a-working-django-non-root-url-with-mod_wsgi/
+# https://groups.google.com/forum/#!topic/django-users/xFdZnKq26H0
+# https://code.djangoproject.com/ticket/8906
+
+# http://stackoverflow.com/questions/30566836/how-to-autostart-apachectl-script-that-mod-wsgi-express-made-for-django
+
+===============================================================================
+Celery (etc.) as daemon, and overall stack
+===============================================================================
+
+Most convenient to use supervisor/django-supervisor?
+    http://stackoverflow.com/questions/14275821/how-to-run-celery-as-a-daemon-in-production
+Supervisor won't install via pip for Python 3. It's Python 2 only at present:
+    http://supervisord.org
+However, it is an Ubuntu package (supervisor).
+Then we can use django-supervisor.
+    ... or maybe not; the installation is difficult.
+
+The "raw" Celery methods are:
     http://docs.celeryproject.org/en/latest/tutorials/daemonizing.html#daemonizing
     http://docs.celeryproject.org/en/latest/getting-started/next-steps.html#next-steps
-    
-    
+
+Possibly just follow this, which is clear:
+    http://www.apreche.net/complete-single-server-django-stack-tutorial/
+
+supervisord / PYTHONPATH
+    http://stackoverflow.com/questions/7930259/supervisor-running-a-python-script-pythonpath-issue
+
+===============================================================================
+Overall stack
+===============================================================================
+
+- We want very simple installation.
+- Happy to mandate Ubuntu/Debian for now. (CentOS is a pain, for a start.)
+- Several components of the stack auto-run (Apache; RabbitMQ).
+- No pressing reason not to run "proper" Apache.
+  Alternative include "standalone" Apache via mod_wsgi-express, which would
+  need daemonizing; other similar Python-based servers like nginx/gunicorn
+- If Apache is used, then that keeps the Django bit up and running.
+- Only other bit that needs daemonizing is Celery; we can daemonize that with
+  supervisord (which can be installed via Ubuntu).
+  Once configured, this works beautifully.
+  
+  For monitoring, can use:
+    sudo supervisorctl
+
+- So installation process would be:
+
+    sudo gdebi --non-interactive PACKAGE
+    ... ensure Ubuntu requirements
+        ... makes RabbitMQ happen automatically
+        ... Apache configuration is the user's business (but we offer instructions)
+    ... install code to /usr/share/crate
+    ... create virtualenv in /usr/share/crate/virtualenv
+        using sub-script install_virtualenv.sh
+        parameters:
+            (1) virtualenv: /usr/share/crate/virtualenv
+            (2) secrets: /etc/crate
+        ... ensure Python package requirements
+        ... create specimen /etc/crate/crate_local_settings.py
+        ... create customized instructions.txt for Apache, supervisord
+    ... create some scripts in /usr/share/crate
+        - launch demo Django server
+        - launch debugging Celery backend
+    ... restart supervisor
+    ... restart Apache, if running
+
+- The other possibility might be to run a separate web server and proxy it from Apache, e.g.
+    http://stackoverflow.com/questions/6418016/gunicorn-via-mod-proxy-is-redirecting-outside-of-the-projects-scope-despite-pr
+    http://serverfault.com/questions/429404/help-me-understand-how-to-use-proxypass
+    http://blog.endpoint.com/2013/04/making-ssl-work-with-django-behind.html
+  It adds another thing to fall over, but it would allow Apache to run without
+  restarting even when Python apps need to be restarted (a positive...).
+  Plus it would allow non-root running more simply, since port 80 is restricted.
+  And it minimizes the amount of Apache configuration required from the end user.
+  And it makes "development versus production" simpler.
+  It also has the consequence that we don't have mod_wsgi tied to a specific
+  Python version, which is a massive pain.
+- OK. Let's give it a go with gunicorn.
+
+    http://michal.karzynski.pl/blog/2013/06/09/django-nginx-gunicorn-virtualenv-supervisor/

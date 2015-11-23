@@ -292,7 +292,7 @@ class ResearchDatabaseInfo(object):
     @cached_property
     def infodictlist(self):
         logger.debug("Fetching/caching database structure")
-        schemas = [settings.DATABASES['research']['NAME']]
+        schemas = settings.RESEARCH_DB_INFO_SCHEMAS
         sql = translate_sql_qmark_to_percent("""
             SELECT
                 c.table_schema,

@@ -1,12 +1,12 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# anonymise/make_demo_database.py
 
 """
 Makes a giant test database for anonymisation testing.
 
 Author: Rudolf Cardinal
 Created at: 21 Feb 2015
-Last update: 24 Feb 2015
+Last update: 22 Nov 2015
 
 Copyright/licensing:
 
@@ -27,8 +27,8 @@ Copyright/licensing:
 
 """
 
-from __future__ import division
-from __future__ import print_function
+# from __future__ import division
+# from __future__ import print_function
 import argparse
 import datetime
 import getpass
@@ -215,7 +215,7 @@ After anonymisation, check with:
 """
 
 # A bunch of patients
-for p in xrange(PATIENTS):
+for p in range(PATIENTS):
     if p % REPORT_EVERY == 0:
         print("patient {}".format(p))
     # forename = words[(p + 1) % NWORDS]
@@ -236,7 +236,7 @@ for p in xrange(PATIENTS):
     sname = "SURNAME: " + surname + ". "
     numbers = "NUMBERS: {}, {}, {}. ".format(patient_id, patient_id + 1,
                                              nhsnum)
-    for n in xrange(NOTES_PER_PATIENT):
+    for n in range(NOTES_PER_PATIENT):
         wstr = " ".join(words[p % NWORDS:(p + WORDS_PER_NOTE) % NWORDS])
         insert_note(patient_id,
                     fname + sname + numbers + dates + wstr)

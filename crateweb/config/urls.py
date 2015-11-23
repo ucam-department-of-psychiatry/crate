@@ -113,6 +113,8 @@ urlpatterns = [
         consent.views.charity_report, name="charity_report"),
     url(r'^exclusion_report/$',
         consent.views.exclusion_report, name="exclusion_report"),
+    url(r'^test_email_rdbm/$',
+        consent.views.test_email_rdbm, name="test_email_rdbm"),
 
     # -------------------------------------------------------------------------
     # Public views

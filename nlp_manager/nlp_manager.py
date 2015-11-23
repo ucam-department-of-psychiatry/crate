@@ -1,5 +1,5 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
+#!/usr/bin/env python3
+# nlp_manager/nlp_manager.py
 
 """
 Manage natural-language processing (NLP) via external tools.
@@ -63,22 +63,22 @@ TO DO:
 # Imports
 # =============================================================================
 
-from __future__ import division
-from __future__ import print_function
+# from __future__ import division
+# from __future__ import print_function
 
 import logging
 logger = logging.getLogger(__name__)
 
 import argparse
 import codecs
-import ConfigParser
+import configparser
 import logging
 import os
 import subprocess
 import sys
 
 from pythonlib.rnc_config import read_config_string_options
-from pythonlib.rnc_crypto import MD5Hasher
+from anonymise.anon_hash import MD5Hasher
 from pythonlib.rnc_datetime import (
     get_now_utc,
     get_now_utc_notz
@@ -101,8 +101,8 @@ import pythonlib.rnc_log as rnc_log
 # Global constants
 # =============================================================================
 
-VERSION = 0.01
-VERSION_DATE = "2015-03-03"
+VERSION = 0.02
+VERSION_DATE = "2015-11-22"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
@@ -373,7 +373,7 @@ class OutputTypeConfig(object):
 
     def __init__(self, parser, section):
         """
-        Read config from a ConfigParser section.
+        Read config from a configparser section.
         """
         read_config_string_options(
             self,
@@ -437,7 +437,7 @@ class InputFieldConfig(object):
 
     def __init__(self, parser, section):
         """
-        Read config from a ConfigParser section.
+        Read config from a configparser section.
         """
         read_config_string_options(
             self,
@@ -476,7 +476,7 @@ class Config(object):
         """
 
         self.config_filename = filename
-        parser = ConfigParser.RawConfigParser()
+        parser = configparser.RawConfigParser()
         parser.optionxform = str  # make it case-sensitive
         parser.readfp(codecs.open(filename, "r", "utf8"))
 
@@ -544,7 +544,7 @@ class Config(object):
         if self.progenvsection:
             newitems = [(str(k), str(v))
                         for k, v in parser.items(self.progenvsection)]
-            self.env = dict(self.env.items() + newitems)
+            self.env = dict(list(self.env.items()) + newitems)
         self.env["NLPLOGTAG"] = logtag
         self.progargs = self.progargs.format(**self.env)
         self.progargs = [
@@ -569,7 +569,7 @@ class Config(object):
         """
         Return an rnc_db database object from a config file section.
         """
-        parser = ConfigParser.RawConfigParser()
+        parser = configparser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         try:  # guard this bit to prevent any password leakage
             dbc = DatabaseConfig(parser, section)
@@ -1190,7 +1190,7 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-n", "--version", action="version", version=version)
-    parser.add_argument('--verbose', '-v', action='count',
+    parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument("configfile", nargs="?",
                         help="Configuration file name")
@@ -1251,7 +1251,7 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     rnc_log.reset_logformat_timestamped(
         logger,
         extraname=" ".join(mynames),
-        debug=(args.verbose >= 1)
+        level=logging.DEBUG if args.verbose >= 1 else logging.INFO
     )
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
     LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'

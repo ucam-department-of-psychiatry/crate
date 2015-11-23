@@ -14,6 +14,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
 # import datetime
+import importlib.machinery
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -67,7 +68,7 @@ MIDDLEWARE_CLASSES = (
 # Celery things
 # BROKER_URL = 'django://'  # for Celery with Django database as broker
 BROKER_URL = 'amqp://'  # for Celery with RabbitMQ as broker
-CELERY_ACCEPT_CONTENT = ['json'] # avoids potential pickle security problem
+CELERY_ACCEPT_CONTENT = ['json']  # avoids potential pickle security problem
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TASK_SERIALIZER = 'json'
 
@@ -133,13 +134,26 @@ SHORT_DATETIME_FORMAT = "d/m/Y, H:i:s"
 
 STATIC_URL = '/crate_static/'
 # This is a bit hard-coded, but at least it prevents conflicts with other
-# programs. No way to make Django look up static URLs dynamically using
-# get_script_prefix()?
+# programs. No way to make Django look up (reverse) static URLs dynamically
+# using get_script_prefix()?
+# (I know that sounds a bit crazy, but the idea would be to point Apache to
+# serve those static files via a Django-site-specific location.)
+#
+# It seems not. So specifying STATIC_URL like this means that Django will serve
+# them correctly from its development server, and Apache should be pointed to
+# serve from this URL (and from wherever seems best on the filesystem) during
+# production.
+
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
-STATICFILES_ROOT = os.path.join(BASE_DIR, 'static_collected')
-STATICFILES_STORAGE = 'core.storage.StaticFilesStorage'  # *** not working
+STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
+# ... for collectstatic
+
+# NOTE that deriving from django.contrib.staticfiles.storage.StaticFilesStorage
+# and referring to it with STATICFILES_STORAGE only influences the
+# "collectstatic" command, not the creation of URLs to static files, so isn't
+# relevant here.
 # https://docs.djangoproject.com/en/dev/ref/contrib/staticfiles/
 
 # =============================================================================
@@ -229,7 +243,7 @@ WKHTMLTOPDF_OPTIONS = {
     # 'print-media-type': None,
 }
 PATIENT_FONTSIZE = "11.5pt"  # "12.4pt"
-    # NB *** strange wkhtmltopdf bug: word wrap goes awry with
+    # NB *** strange wkhtmltopdf bug: word wrap goes awry with font sizes of
     #   11.6pt to 12.3pt inclusive
     # but is fine with
     #   10, 11, 11.5, 12.4, 12.5, 13, 18...
@@ -239,8 +253,34 @@ PATIENT_FONTSIZE = "11.5pt"  # "12.4pt"
 RESEARCHER_FONTSIZE = "10pt"
 
 # =============================================================================
-# Import from a site-specific file, crate_local_settings.py, which must be
-# on the PYTHONPATH (via environment variable or WSGI settings)
+# Import from a site-specific file
 # =============================================================================
+# First attempt: import file with a fixed name from the PYTHONPATH.
+#       from crate_local_settings import *  # noqa
+# Better: import a file named in an environment variable, CRATE_LOCAL_SETTINGS.
 
-from crate_local_settings import *  # noqa
+if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ
+        and os.environ['CRATE_RUN_WITHOUT_LOCAL_SETTINGS'].lower()
+        in ['true', '1', 't', 'y', 'yes']):
+    # We will only get here for the collectstatic command in the Debian
+    # postinst file, so we just need the minimum specified.
+    CLINICAL_LOOKUP_DB = 'dummy_clinical'
+    EMAIL_SENDER = 'dummy'
+    MAX_UPLOAD_SIZE_BYTES = 1000
+    PRIVATE_FILE_STORAGE_ROOT = '/tmp'
+    SECRET_KEY = 'dummy'
+    SECRET_MAP = {
+        'TABLENAME': 'dummy',
+        'PID_FIELD': 'dummy',
+        'RID_FIELD': 'dummy',
+        'MASTER_PID_FIELD': 'dummy',
+        'MASTER_RID_FIELD': 'dummy',
+        'TRID_FIELD': 'dummy',
+        'MAX_RID_LENGTH': 255,
+    }
+else:
+    _loader = importlib.machinery.SourceFileLoader(
+        'local_settings',
+        os.environ['CRATE_LOCAL_SETTINGS'])
+    _local_module = _loader.load_module()
+    from local_settings import *  # noqa

@@ -1,7 +1,5 @@
-#!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
-
-# anonymise.py *** convert to Python 3; use virtualenv
+#!/usr/bin/env python3
+# anonymise/anonymise.py
 
 """
 Anonymise multiple SQL-based databases using a data dictionary.
@@ -121,8 +119,8 @@ CHANGE LOG. CHANGE VERSION NUMBER/DATE BELOW IF INCREMENTING.
 # Imports
 # =============================================================================
 
-from __future__ import division
-from __future__ import print_function
+# from __future__ import division
+# from __future__ import print_function
 
 import logging
 logger = logging.getLogger(__name__)
@@ -173,8 +171,8 @@ from anon_regex import (
 # Global constants
 # =============================================================================
 
-VERSION = 0.13
-VERSION_DATE = "2015-10-06"
+VERSION = 0.14
+VERSION_DATE = "2015-11-22"
 
 RAW_SCRUBBER_FIELDNAME_PATIENT = "_raw_scrubber_patient"
 RAW_SCRUBBER_FIELDNAME_TP = "_raw_scrubber_tp"
@@ -261,7 +259,7 @@ class Scrubber(object):
             # Collect the actual patient-specific values for this table.
             for vlist in gen_all_values_for_patient(sources, src_db, src_table,
                                                     fields, pid):
-                for i in xrange(len(vlist)):
+                for i in range(len(vlist)):
                     # Add a value, which adds appropriate regex fragment(s).
                     self.add_value(vlist[i], scrub_methods[i], is_patient[i])
                     if self.mpid is None and is_mpid[i]:
@@ -316,7 +314,8 @@ class Scrubber(object):
 
         elif scrub_method == SCRUBMETHOD.WORDS:
             # Source is a string containing textual words.
-            value = unicode(value)
+            # value = unicode(value)  # Python 2
+            value = str(value)
             strings = get_anon_fragments_from_string(value)
             wbo = config.anonymise_strings_at_word_boundaries_only
             elements = []
@@ -344,7 +343,8 @@ class Scrubber(object):
                     at_word_boundaries_only=wbo))
 
         elif scrub_method == SCRUBMETHOD.PHRASE:
-            value = unicode(value)
+            # value = unicode(value)  # Python 2
+            value = str(value)
             if not value:
                 return
             l = len(value)
@@ -1727,7 +1727,7 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
         abort_event.clear()
         subthread_error_event = threading.Event()
         subthread_error_event.clear()
-        for threadnum in xrange(nthreads):
+        for threadnum in range(nthreads):
             destdb = config.get_database("destination_database")
             admindb = config.get_database("admin_database")
             sources = {}
@@ -1838,7 +1838,7 @@ Sample usage (having set PYTHONPATH):
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-n", "--version", action="version", version=version)
-    parser.add_argument('--verbose', '-v', action='count',
+    parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument('-r', '--report', nargs="?", type=int, default=1000,
                         help="Report insert progress every n rows in verbose "
@@ -1894,6 +1894,7 @@ Sample usage (having set PYTHONPATH):
                              "integer RID (TRID). Leave blank to use the "
                              "default seed (system time).")
     args = parser.parse_args()
+    # logger.error(args)
 
     # Demo config?
     if args.democonfig:
