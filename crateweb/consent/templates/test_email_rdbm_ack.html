@@ -1,0 +1,22 @@
+{# test_email_rdbm_ack.html #}
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Test message sent to RDBM</h1>
+
+    <p>An e-mail has been sent to the RDBM at
+    <b>{{ settings.RDBM_EMAIL }}</b>.</p>
+    
+    <p>If this arrives (and it should in the next second or two), all this
+    works:</p>
+    <ul>
+        <li>CRATE web site Python code
+            &rarr; Django/Celery Python frameworks</li>
+        <li>&rarr; RabbitMQ AMQP server</li>
+        <li>&rarr; Celery worker &rarr; CRATE code</li>
+        <li>&rarr; e-mail server for transmission</li>
+        <li>&rarr; your e-mail address as above</li>
+    </ul>
+
+{% endblock %}
