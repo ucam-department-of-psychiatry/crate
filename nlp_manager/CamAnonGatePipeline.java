@@ -336,10 +336,12 @@ public class CamAnonGatePipeline {
             PersistenceManager.loadObjectFromFile(m_gapp_file);
         status("... app initialized");
 
+        status("Initializing corpus...");
         // Create a GATE corpus (name is arbitrary)
         m_corpus = Factory.newCorpus("CamAnonGatePipeline corpus");
         // Tell the controller about the corpus
         m_controller.setCorpus(m_corpus);
+        status("... corpus initialized");
     }
 
     private void process_input(String text)

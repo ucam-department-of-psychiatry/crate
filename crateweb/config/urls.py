@@ -46,9 +46,9 @@ urlpatterns = [
     # Admin sites
     # -------------------------------------------------------------------------
     # ... obfuscate: p351 of Greenfeld_2015.
-    url(r'^risotto_admin/', include(mgr_admin_site.urls)),
-    url(r'^pastapesto_admin/', include(dev_admin_site.urls)),
-    url(r'^resadmin/', include(res_admin_site.urls)),
+    url(r'^mgr_admin/', include(mgr_admin_site.urls)),
+    url(r'^dev_admin/', include(dev_admin_site.urls)),
+    url(r'^res_admin/', include(res_admin_site.urls)),
     # ... namespace is defined in call to AdminSite(); see core/admin.py
 
     # -------------------------------------------------------------------------

@@ -96,6 +96,9 @@ ul {
 .error {
     color: rgb(255, 0, 0);
 }
+.errorlist {  /* Django forms */
+    color: rgb(255, 0, 0);
+}
 .expandcollapse {
 }
 .formtable, .formtable th, .formtable tr, .formtable td {

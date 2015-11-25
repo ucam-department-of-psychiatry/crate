@@ -120,7 +120,7 @@ class DataDictionaryRow(object):
         self._extract_text = False
         self._extract_from_filename = False
         self._extract_ext_field = ""
-        
+
     def __lt__(self, other):
         return self.get_signature() < other.get_signature()
 

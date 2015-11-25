@@ -13,6 +13,15 @@ raise Exception(
     "remove this line.".format(os.path.abspath(__file__)))
 
 # =============================================================================
+# Site URL configuration
+# =============================================================================
+
+DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apache  # noqa
+# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
+
+# FORCE_SCRIPT_NAME = "/crate"  # example for Apache non-root hosting
+
+# =============================================================================
 # Site security
 # =============================================================================
 
@@ -27,10 +36,28 @@ SECRET_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  # CHANGE THIS
 DEBUG = False
 # ... when False, note that static files must be served properly
 
+
+def always_show_toolbar(request):
+    return True  # Always show toolbar, for debugging only.
+
 if DEBUG:
     ALLOWED_HOSTS = []
+    DEBUG_TOOLBAR_CONFIG = {
+        'SHOW_TOOLBAR_CALLBACK': always_show_toolbar,
+    }
 else:
     ALLOWED_HOSTS = ['*']
+
+# =============================================================================
+# Celery configuration
+# =============================================================================
+
+# Override BROKER_URL if you want.
+# This will allow you to use multiple virtual hosts, to host multiple
+# independent instances (in the unlikely event you'd wat to!)
+# See
+#   http://stackoverflow.com/questions/12209652/multi-celery-projects-with-same-rabbitmq-broker-backend-process  # noqa
+# Similarly, override BROKER_URL to improve RabbitMQ security.
 
 # =============================================================================
 # Database configuration
@@ -201,7 +228,7 @@ MANAGERS = (
 WKHTMLTOPDF_FILENAME = ''
 # WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
 
-PDF_LOGO_ABSPATH = '/home/rudolf/Documents/code/cpft-rd-consent/logo_cpft.png'
+PDF_LOGO_ABS_URL = 'http://localhost/crate_logo'
 # ... path on local machine, read by wkhtmltopdf
 PDF_LOGO_WIDTH = "75%"
 # ... must be suitable for an <img> tag, but "150mm" isn't working; "75%" is.
@@ -220,6 +247,3 @@ CHARITY_URL = "http://www.cpft.nhs.uk/research.htm"
 CHARITY_URL_SHORT = "www.cpft.nhs.uk/research.htm"
 LEAFLET_URL_CPFTRD_CLINRES_SHORT = "www.cpft.nhs.uk/research.htm > CPFT Research Database"  # noqa
 PUBLIC_RESEARCH_URL_SHORT = "www.cpft.nhs.uk/research.htm"
-
-DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain/crate"  # example for Apache  # noqa
-# DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa

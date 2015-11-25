@@ -4,6 +4,7 @@
 from celery import shared_task, task
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.urlresolvers import set_script_prefix
 
 """
 If you get a "received unregistered task" error:
@@ -14,7 +15,7 @@ If you get a "received unregistered task" error:
     (e.g. absolute, relative), you'll get a "Received unregistered task"
     error.
     http://docs.celeryq.org/en/latest/userguide/tasks.html#task-names
-    
+
 Acknowledgement/not doing things more than once:
 
 - http://docs.celeryproject.org/en/latest/userguide/tasks.html
@@ -25,10 +26,15 @@ Acknowledgement/not doing things more than once:
 - http://docs.celeryproject.org/en/latest/faq.html#faq-acks-late-vs-retry
 - We'll stick with the default (slightly less reliable but won't be run more
   than once).
-  
+
 Circular imports:
 
 - http://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models  # noqa
+- The potential circularity is:
+    - At launch, Celery must import tasks, which could want to import models.
+    - At launch, Django loads models, which may use tasks.
+- Simplest solution is to keep tasks very simple (as below) and use delayed
+  imports here.
 
 Race condition:
 - Django:
@@ -48,6 +54,7 @@ Race condition:
   Requires Django 1.9. As of 2015-11-21, that means 1.9rc1
 """
 
+
 @shared_task
 @task(ignore_result=True)
 def add(x, y):
@@ -62,13 +69,13 @@ def resend_email(email_id, user_id):
     email = Email.objects.get(pk=email_id)
     user = User.objects.get(pk=user_id)
     email.resend(user)
- 
- 
+
 
 @shared_task
 @task(ignore_result=True)
 def process_contact_request(contact_request_id):
     from consent.models import ContactRequest  # delayed import
+    set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
     contact_request = ContactRequest.objects.get(pk=contact_request_id)
     contact_request.process_request()
 
@@ -97,15 +104,22 @@ def process_patient_response(patient_response_id):
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
     patient_response.process_response()
 
+
 @shared_task
 @task(ignore_result=True)
 def test_email_rdbm_task():
-    from consent.models import Email  # delayed import
     subject = "TEST MESSAGE FROM RESEARCH DATABASE COMPUTER"
     text = (
         "Success! The CRATE framework can communicate via Celery with its "
         "message broker, so it can talk to an 'offline' copy of itself "
         "for background processing. And it can e-mail you."
     )
+    email_rdbm_task(subject, text)  # Will this work as a function? Yes.
+
+
+@shared_task
+@task(ignore_result=True)
+def email_rdbm_task(subject, text):
+    from consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)
     email.send()

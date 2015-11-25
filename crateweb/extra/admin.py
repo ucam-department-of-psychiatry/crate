@@ -226,7 +226,7 @@ def admin_view_reverse_fk_links(modeladmin, obj, reverse_fk_set_field,
         current_app = modeladmin.admin_site.name
     links = []
     for linked_obj in linked_objs:
-        logger.debug("linked_obj: {}".format(linked_obj))
+        # logger.debug("linked_obj: {}".format(linked_obj))
         url = reverse(viewname, args=[linked_obj.pk], current_app=current_app)
 
         if use_str:
@@ -235,7 +235,7 @@ def admin_view_reverse_fk_links(modeladmin, obj, reverse_fk_set_field,
             label = "{} {}".format(escape(linked_obj._meta.object_name),
                                    linked_obj.pk)
         links.append('<a href="{}">{}</a>'.format(url, label))
-    logger.debug("links: {}".format(links))
+    # logger.debug("links: {}".format(links))
     return separator.join(links)
 
 

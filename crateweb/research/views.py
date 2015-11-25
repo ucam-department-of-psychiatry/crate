@@ -55,7 +55,7 @@ def query(request):
     """
     Edit or select SQL for current query.
     """
-    logger.debug("query")
+    # logger.debug("query")
     # if this is a POST request we need to process the form data
     all_queries = Query.objects.filter(user=request.user, deleted=False)\
                                .order_by('-active', '-created')
@@ -74,7 +74,7 @@ def query(request):
                               active=True)
                 query.save()
             # redirect to a new URL:
-            return redirect('highlight')
+            return redirect('query')
 
     # if a GET (or any other method) we'll create a blank form
     values = {}
@@ -95,7 +95,7 @@ def activate_query(request, query_id):
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)
     query.activate()
-    return redirect('highlight')
+    return redirect('query')
 
 
 def delete_query(request, query_id):

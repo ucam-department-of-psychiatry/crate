@@ -2,7 +2,6 @@
 # core/views.py
 
 from django.shortcuts import render
-# from consent.models import Leaflet
 from core.utils import is_developer
 
 

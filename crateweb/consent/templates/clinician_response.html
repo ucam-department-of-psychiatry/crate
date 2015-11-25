@@ -13,12 +13,15 @@
         clinician_involvement_requested (Boolean)
         clinician_involvement_required_yellow (Boolean)
         clinician_involvement_required_unknown (Boolean)
+        option_r_available (Boolean)
         option_c_available (Boolean)
+        extra_form (Boolean)
+        unknown_consent_mode (Boolean)
 {% endcomment %}
 
 {% block extrahead %}
     <script>
-        {% include "clinician_response.js" with initial_response=clinician_response.response option_c_available=option_c_available %}
+        {% include "clinician_response.js" with initial_response=clinician_response.response option_c_available=option_c_available option_r_available=option_r_available %}
     </script>
 {% endblock %}
 {% block onload %}onload="startup()"{% endblock %}
@@ -132,7 +135,7 @@
             {% endfor %}
 
             {# Manual control of radio choice; see https://docs.djangoproject.com/en/1.8/ref/forms/widgets/ #}
-            <label onclick="showR();">
+            <label id="optionR_radio" onclick="showR();">
                 <input type="radio"
                        name="response"
                        value="{{ ClinicianResponse.RESPONSE_R }}"
@@ -214,8 +217,7 @@
                     <ol>
                         <li>Please show the materials to the patient.</li>
 
-                        {% if clinician_involvement_required_unknown %}
-
+                        {% if unknown_consent_mode %}
                             <li>Please explain to that all CPFT patients are asked their views
                             about being contacted in the future by research teams about taking
                             part in research. In addition, one particular research team is
@@ -226,49 +228,27 @@
                             participate, just for consent to being sent information by the
                             researchers and for the researchers to see their CPFT records (to
                             check they’re suitable for the study).</li>
+                        {% endif %}
 
-                            <li>Please ask them to choose (consent or refuse) <b>about this
-                            study</b> on their personalized form and sign it.</li>
+                        <li>Please ask them to choose (consent or refuse) <b>about this
+                        study</b> on their personalized form and sign it.</li>
 
+                        {% if extra_form %}
+                            <li>If they consent, please complete the researcher’s form as
+                            best you can.</li>
+                        {% endif %}
+
+                        {% if unknown_consent_mode %}
                             <li>Please ask them to choose (GREEN, YELLOW, or RED) <b>about
                             studies in general</b> on the other decision form, fill in their
                             details, and sign it.</li>
-
-                            <li>Return both forms to
-                            {{ settings.RDBM_ADDRESS|join:", " }}.</li>
-
-                        {% elif clinician_involvement_requested and study.has_form_pdf %}
-
-                            {# Usual method for clinician involvement: supply a form. #}
-
-                            <li>Please ask them to choose (consent or refuse) on their form
-                            and sign it.</li>
-
-                            <li>If they consent, please complete the researcher’s form as
-                            best you can.</li>
-
-                            <li>Then return both forms to
-                            {{ settings.RDBM_ADDRESS|join:", " }}.</li>
-
-                        {% else %}
-
-                            {% comment %}
-                                Either:
-                                (A) Researchers want contact via clinicians, but don't
-                                    want to supply a subject template form... i.e. they
-                                    could have gone GREEN but are choosing not to; or
-                                (B) CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW
-                            {% endcomment %}
-
-                            <li>Please ask them to choose (consent or refuse) on their
-                            form (1) and sign it.</li>
-
-                            <li>Return the form to {{ settings.RDBM_ADDRESS|join:", " }}.</li>
-
                         {% endif %}
 
-                        <li>Then confirm your name below and click
-                        “Submit”. Thank you!</li>
+                        <li>
+                            Return the
+                            form{% if extra_form or unknown_consent_mode %}s{% endif %}
+                            to {{ settings.RDBM_ADDRESS|join:", " }}.
+                        </li>
                     </ol>
 
                     <div class="important">If you prefer to pass the
@@ -276,20 +256,19 @@
 
                     <ol>
                         <li>Please sign the draft letter from you to the patient.</li>
+                        
+                        {% if contact_request.is_extra_form %}
+                            <li>Please fill in the researcher’s “clinician” form as best you can.</li>
+                        {% endif %}
 
                         <li>Please send (or ask your secretary to send) all materials to the
                         patient. Include an envelope pre-addressed to
                         {{ settings.RDBM_ADDRESS|join:", " }} (if you’d
                         like stocks of pre-printed envelopes, please e-mail
                         <a href="mailto:{{ settings.RDBM_EMAIL }}">{{ settings.RDBM_EMAIL }}</a>).</li>
-
-                        {% if clinician_involvement_requested and study.has_form_pdf %}
-                            <li>Please fill in the <b>researcher’s form</b> as best you
-                            can.</li>
-                        {% endif %}
-
-                        <li>Then confirm your name below and click “Submit”. Thank you!</li>
                     </ol>
+                    
+                    <li>Confirm your name below and click “Submit”. Thank you!</li>
                 </div>
             </div>
 

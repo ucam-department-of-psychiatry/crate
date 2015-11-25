@@ -12,7 +12,7 @@ def pdf_template_dict(patient=True):
         fontsize = settings.RESEARCHER_FONTSIZE
     return {
         'fontsize': fontsize,
-        'PDF_LOGO_ABSPATH': settings.PDF_LOGO_ABSPATH,
+        'PDF_LOGO_ABS_URL': settings.PDF_LOGO_ABS_URL,
         'PDF_LOGO_WIDTH': settings.PDF_LOGO_WIDTH,
     }
 

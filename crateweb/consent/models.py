@@ -55,6 +55,7 @@ from extra.pdf import get_concatenated_pdf_in_memory, pdf_from_html
 from research.models import get_mpid
 from .storage import privatestorage
 from .tasks import (
+    email_rdbm_task,
     process_contact_request,
 )
 from .utils import (
@@ -280,7 +281,7 @@ def auto_delete_leaflet_files_on_change(sender, instance, **kwargs):
 # =============================================================================
 
 class Decision(models.Model):
-    # Note that Decision._meta.get_all_field_names() doesn't care about the
+    # Note that Decision._meta.get_fields() doesn't care about the
     # ordering of its fields (and, I think, they can change). So:
     FIELDS = [
         'decision_signed_by_patient',
@@ -371,11 +372,13 @@ class ConsentMode(Decision):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL)
 
     exclude_entirely = models.BooleanField(
+        default=False,
         verbose_name="Exclude patient from Research Database entirely?")
     consent_mode = models.CharField(
         max_length=10, default="", choices=CONSENT_MODE_CHOICES,
         verbose_name="Consent mode ('red', 'yellow', 'green')")
     consent_after_discharge = models.BooleanField(
+        default=False,
         verbose_name="Consent given to contact patient after discharge?")
     max_approaches_per_year = models.PositiveSmallIntegerField(
         verbose_name="Maximum number of approaches permissible per year "
@@ -385,8 +388,10 @@ class ConsentMode(Decision):
         blank=True,
         verbose_name="Other special requests by patient")
     prefers_email = models.BooleanField(
+        default=False,
         verbose_name="Patient prefers e-mail contact?")
     changed_by_clinician_override = models.BooleanField(
+        default=False,
         verbose_name="Consent mode changed by clinician's override?")
 
     # class Meta:
@@ -485,9 +490,7 @@ class ConsentMode(Decision):
         # 2. Making it an absolute URL means that wkhtmltopdf will also see it
         #    (by fetching it from this web server).
         # 3. Works with Django testing server.
-        # 4. *** need to check with Apache, and alias .../static to the correct
-        #    directory
-        #    http://stackoverflow.com/questions/5682809/django-static-file-hosting-an-apache  # noqa
+        # 4. Works with Apache, + proxying to backend, + SSL
         context.update(pdf_template_dict(patient=True))
         return render_to_string('letter_patient_confirm_traffic.html', context)
 
@@ -523,6 +526,8 @@ class ConsentMode(Decision):
 class PatientLookupBase(models.Model):
     """
     Base class for PatientLookup and DummyPatientSourceInfo.
+    Must be able to be instantiate with defaults, for the "not found"
+    situation.
     """
 
     MALE = 'M'
@@ -550,7 +555,8 @@ class PatientLookupBase(models.Model):
     pt_dod = models.DateField(
         null=True, blank=True,
         verbose_name="Patient date of death (NULL if alive)")
-    pt_dead = models.BooleanField(verbose_name="Patient is dead")
+    pt_dead = models.BooleanField(default=False,
+                                  verbose_name="Patient is dead")
     pt_discharged = models.NullBooleanField(verbose_name="Patient discharged")
     pt_sex = models.CharField(max_length=1, blank=True, choices=SEX_CHOICES,
                               verbose_name="Patient sex")
@@ -656,7 +662,8 @@ class PatientLookupBase(models.Model):
         verbose_name="Clinician is a consultant")
     clinician_signatory_title = models.CharField(
         max_length=LEN_NAME, blank=True,
-        verbose_name="Clinician's title for signature")
+        verbose_name="Clinician's title for signature "
+                     "(e.g. 'Consultant psychiatrist')")
 
     class Meta:
         abstract = True
@@ -918,6 +925,7 @@ def lookup_patient(nhs_number, source_db=None, save=True,
                                           .latest('lookup_at')
             return lookup
         except PatientLookup.DoesNotExist:
+            # No existing lookup, so proceed to do it properly (below).
             pass
     lookup = PatientLookup(nhs_number=nhs_number,
                            source_db=source_db)
@@ -947,7 +955,7 @@ def lookup_dummy_clinical(lookup, decisions, secret_decisions):
     except ObjectDoesNotExist:
         decisions.append("Patient not found in dummy lookup")
         return
-    fieldnames = PatientLookupBase._meta.get_all_field_names()
+    fieldnames = [f.name for f in PatientLookupBase._meta.get_fields()]
     for fieldname in fieldnames:
         setattr(lookup, fieldname, getattr(dummylookup, fieldname))
     lookup.pt_found = True
@@ -1885,6 +1893,7 @@ class ContactRequest(models.Model):
          'Clinician involvement required by UNKNOWN consent mode'),
     )
 
+    # Created initially:
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
     request_by = models.ForeignKey(settings.AUTH_USER_MODEL)
@@ -1902,6 +1911,10 @@ class ContactRequest(models.Model):
     lookup_mrid = models.CharField(
         max_length=MAX_HASH_LENGTH, null=True,
         verbose_name="Master research ID used for lookup")
+
+    processed = models.BooleanField(default=False)
+    # Below: created during processing.
+
     # Those numbers translate to this:
     nhs_number = models.BigIntegerField(null=True, verbose_name="NHS number")
     # ... from which:
@@ -1948,6 +1961,7 @@ class ContactRequest(models.Model):
         self.decisionlist = []
         self.process_request_inner()
         self.decisions = " ".join(self.decisionlist)
+        self.processed = True
         self.save()
 
     def process_request_inner(self):
@@ -2058,7 +2072,21 @@ class ContactRequest(models.Model):
             self.notify_rdbm_of_work(letter, to_researcher=True)
             return
 
-        # All other routes are via clinician. Do we have one?
+        # All other routes are via clinician.
+
+        # Let's be precise about why the clinician is involved.
+        if not self.request_direct_approach:
+            self.clinician_involvement = (
+                ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED)
+        elif self.consent_mode.consent_mode == ConsentMode.YELLOW:
+            self.clinician_involvement = (
+                ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW)
+        else:
+            # Only other possibility
+            self.clinician_involvement = (
+                ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN)
+
+        # Do we have a clinician?
         if not self.patient_lookup.clinician_found:
             self.stop("don't know clinician; can't proceed")
             return
@@ -2304,15 +2332,8 @@ class ContactRequest(models.Model):
         decision form.
         """
         patient_lookup = self.patient_lookup
-        study = self.study
-        clinician_requested = (self.clinician_involvement ==
-                               ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED)
-        extra_form = (clinician_requested
-                      and study.subject_form_template_pdf.name)
         yellow = (self.clinician_involvement ==
                   ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW)
-        unknown = (self.clinician_involvement ==
-                   ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN)
         context = {
             # Letter bits
             'address_from': patient_lookup.clinician_address_components(),
@@ -2323,26 +2344,33 @@ class ContactRequest(models.Model):
             'signatory_title': patient_lookup.clinician_signatory_title,
             # Specific bits
             'contact_request': self,
-            'study': study,
+            'study': self.study,
             'patient_lookup': patient_lookup,
             'settings': settings,
 
-            'extra_form': extra_form,
+            'extra_form': self.is_extra_form(),
             'yellow': yellow,
-            'unknown': unknown,
+            'unknown_consent_mode': self.is_consent_mode_unknown(),
         }
         context.update(pdf_template_dict(patient=True))
         return render_to_string('letter_patient_from_clinician_re_study.html',
                                 context)
 
-    def get_decision_form_to_pt_re_study(self):
-        patient_lookup = self.patient_lookup
+    def is_extra_form(self):
         study = self.study
-        n_forms = 1
-        clinician_requested = (self.clinician_involvement ==
-                               ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED)
+        clinician_requested = not self.request_direct_approach
         extra_form = (clinician_requested
                       and study.subject_form_template_pdf.name)
+        # logger.debug("clinician_requested: {}".format(clinician_requested))
+        # logger.debug("extra_form: {}".format(extra_form))
+        return extra_form
+
+    def is_consent_mode_unknown(self):
+        return not self.consent_mode.consent_mode
+
+    def get_decision_form_to_pt_re_study(self):
+        n_forms = 1
+        extra_form = self.is_extra_form()
         if extra_form:
             n_forms += 1
         yellow = (self.clinician_involvement ==
@@ -2353,8 +2381,8 @@ class ContactRequest(models.Model):
             n_forms += 1
         context = {
             'contact_request': self,
-            'study': study,
-            'patient_lookup': patient_lookup,
+            'study': self.study,
+            'patient_lookup': self.patient_lookup,
             'settings': settings,
 
             'extra_form': extra_form,
@@ -2366,21 +2394,58 @@ class ContactRequest(models.Model):
                                 context)
 
     def get_clinician_pack_pdf(self):
-        html_or_filename_tuple_list = [
-            ('html', {
-                'html': self.get_letter_clinician_to_pt_re_study()
-            }),
-            ('html', {
-                'html': self.get_decision_form_to_pt_re_study()
-            }),
-        ]
+        html_or_filename_tuple_list = []
+        # Order should match letter...
+
+        # Letter to patient from clinician
+        html_or_filename_tuple_list.append(('html', {
+            'html': self.get_letter_clinician_to_pt_re_study()
+        }))
+        # Study details
         if self.study.study_details_pdf:
             html_or_filename_tuple_list.append(
                 ('filename', self.study.study_details_pdf.path)
             )
-        if self.study.subject_form_template_pdf:
-            html_or_filename_tuple_list.append(
-                ('filename', self.study.subject_form_template_pdf.path)
+        # Decision form about this study
+        html_or_filename_tuple_list.append(('html', {
+            'html': self.get_decision_form_to_pt_re_study()
+        }))
+        # Additional form for this study
+        if self.is_extra_form():
+            if self.study.subject_form_template_pdf:
+                html_or_filename_tuple_list.append(
+                    ('filename', self.study.subject_form_template_pdf.path)
+                )
+        # Traffic-light decision form, if consent mode unknown
+        if self.is_consent_mode_unknown():
+            try:
+                leaflet = Leaflet.objects.get(
+                    name=Leaflet.CPFT_TRAFFICLIGHT_CHOICE)
+                html_or_filename_tuple_list.append(
+                    ('filename', leaflet.pdf.path))
+            except:
+                logger.warn("Missing traffic-light leaflet!")
+                email_rdbm_task.delay(
+                    subject="ERROR FROM RESEARCH DATABASE COMPUTER",
+                    text=(
+                        "Missing traffic-light leaflet! Incomplete clinician "
+                        "pack accessed for contact request {}.".format(
+                            self.id)
+                    )
+                )
+        # General info leaflet
+        try:
+            leaflet = Leaflet.objects.get(name=Leaflet.CPFT_TPIR)
+            html_or_filename_tuple_list.append(('filename', leaflet.pdf.path))
+        except:
+            logger.warn("Missing taking-part-in-research leaflet!")
+            email_rdbm_task.delay(
+                subject="ERROR FROM RESEARCH DATABASE COMPUTER",
+                text=(
+                    "Missing taking-part-in-research leaflet! Incomplete "
+                    "clinician pack accessed for contact request {}.".format(
+                        self.id)
+                )
             )
         return get_concatenated_pdf_in_memory(html_or_filename_tuple_list,
                                               start_recto=True)
@@ -2473,7 +2538,6 @@ class ClinicianResponse(models.Model):
     def get_abs_url_path(self):
         rev = reverse('clinician_response', args=[self.id])
         url = site_absolute_url(rev)
-        # logger.debug("get_abs_url_path: rev={}, url={}".format(rev, url))
         return url
 
     def get_common_querydict(self, email_choice):

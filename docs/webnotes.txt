@@ -348,7 +348,7 @@ http://docs.celeryproject.org/en/latest/getting-started/brokers/django.html#brok
     ... so the above seems simplest.
     ... and celery also says you have to:
         http://docs.celeryproject.org/en/latest/getting-started/next-steps.html#next-steps
-    
+
 - Anyway, success now.
 
 - However, database is going to grow (old messages not pruned).
@@ -360,10 +360,10 @@ http://docs.celeryproject.org/en/latest/getting-started/brokers/django.html#brok
     # ... will autostart service
 
   Easy. Also, much snappier.
-  
+
   Will start with localhost-only access via the "guest" account:
     https://www.rabbitmq.com/access-control.html
-    
+
   Status:
     sudo rabbitmqctl status
     sudo rabbitmqctl report
@@ -422,7 +422,7 @@ Overall stack
 - Only other bit that needs daemonizing is Celery; we can daemonize that with
   supervisord (which can be installed via Ubuntu).
   Once configured, this works beautifully.
-  
+
   For monitoring, can use:
     sudo supervisorctl
 
@@ -461,3 +461,168 @@ Overall stack
 - OK. Let's give it a go with gunicorn.
 
     http://michal.karzynski.pl/blog/2013/06/09/django-nginx-gunicorn-virtualenv-supervisor/
+
+Unix domain sockets
+
+- Working
+- However, Django debug toolbar stops working
+
+    https://github.com/django-debug-toolbar/django-debug-toolbar/issues/690
+    https://github.com/benoitc/gunicorn/issues/797
+
+    ... see fix to INTERNAL_IPS, which is a bit bizarre, in the specimen
+    config file.
+
+SSL proxy
+
+    https://bharatikunal.wordpress.com/2010/12/01/howto-reverseproxy-to-https-in-apache/
+
+
+
+
+
+-------------------------------------------------------------------------------
+NOT THE SIMPLEST: To use Apache with mod_wsgi
+-------------------------------------------------------------------------------
+# ... we'll skip this.
+
+(a) Add Ubuntu prerequisites
+
+    sudo apt-get install apache2 libapache2-mod-wsgi-py3 libapache2-mod-xsendfile
+
+(b) Configure Apache for CRATE.
+    Use a section like this in the Apache config file:
+
+<VirtualHost *:80>
+    # ...
+
+    # =========================================================================
+    # CRATE
+    # =========================================================================
+
+    # Define a process group (using the specimen name crate_pg)
+    # Must use threads=1 (code may not be thread-safe).
+    # Example here with 5 processes.
+    WSGIDaemonProcess crate_pg processes=5 threads=1 python-path=$SITE_PACKAGES:$DEST_DJANGO_ROOT:$SECRETS_DIR
+
+    # Point a particular URL to a particular WSGI script (using the specimen path /crate)
+    WSGIScriptAlias /crate $DEST_DJANGO_ROOT/config/wsgi.py process-group=crate_pg
+
+    # Redirect requests for static files, and admin static files.
+    # MIND THE ORDER - more specific before less specific.
+    Alias /static/admin/ $SITE_PACKAGES/django/contrib/admin/static/admin/
+    # Alias /static/debug_toolbar/ $SITE_PACKAGES/debug_toolbar/static/debug_toolbar/
+    Alias /static/ $DEST_DJANGO_ROOT/static/
+
+    # Make our set of processes use a specific process group
+    <Location /crate>
+        WSGIProcessGroup crate_pg
+    </Location>
+
+    # Allow access to the WSGI script
+    <Directory $DEST_DJANGO_ROOT/config>
+        <Files "wsgi.py">
+            Require all granted
+        </Files>
+    </Directory>
+
+    # Allow access to the static files
+    <Directory $DEST_DJANGO_ROOT/static>
+        Require all granted
+    </Directory>
+
+    # Allow access to the admin static files
+    <Directory $SITE_PACKAGES/django/contrib/admin/static/admin>
+        Require all granted
+    </Directory>
+
+    # Allow access to the debug toolbar static files
+    # <Directory $SITE_PACKAGES/debug_toolbar/static/debug_toolbar>
+    #     Require all granted
+    # </Directory>
+
+</VirtualHost>
+
+(c) Additionally, install mod_xsendfile, e.g. (on Ubuntu):
+
+        sudo apt-get install libapache2-mod-xsendfile
+
+    ... which will implicitly run "a2enmod xsendfile" to enable it. Then add to
+    the Apache config file in an appropriate place:
+
+        # Turn on XSendFile
+        <IfModule mod_xsendfile.c>
+            XSendFile on
+            XSendFilePath /MY/SECRET/CRATE/FILE/ZONE
+            # ... as configured in your secret crate_local_settings.py
+        </IfModule>
+
+- If you get problems, check the log, typically /var/log/apache2/error.log
+- If it's a permissions problem, check the www-data user can see the file:
+    sudo -u www-data cat FILE
+    # ... using an absolute path
+    groups USER
+- If Chrome fails to load GIFs and says "pending" in the Network developer
+  view, restart Chrome. (Probably only a "caching of failure" during
+  development!)
+
+-------------------------------------------------------------------------------
+Standalone Apache with mod_wsgi-express
+-------------------------------------------------------------------------------
+
+    pip install mod_wsgi-httpd  # a bit slow; don't worry
+    pip install mod_wsgi
+
+    mod_wsgi-express start-server config.wsgi \\
+        --application-type module \\
+        --log-to-terminal \\
+        --port 80 \\
+        --processes 5 \\
+        --python-path $SECRETS_DIR \\
+        --threads 1 \\
+        --url-alias /static $DEST_DJANGO_ROOT/static \\
+        --working-directory $DEST_DJANGO_ROOT
+
+- This changes to the working directory and uses config/wsgi.py
+- Add --reload-on-changes for debugging.
+- Port 80 will require root privilege.
+
+
+===============================================================================
+Versioning
+===============================================================================
+
+versioning (think for CamCOPS and for consent mode)
+
+https://www.djangopackages.com/grids/g/versioning/
+    Python 3 support and production/stable -- narrows to
+        Django Reversion
+        django-simple-history
+    ... of which Django Reversion looks best, as it can "version"
+        relationships.
+
+===============================================================================
+Making the debug toolbar appear in different settings
+===============================================================================
+
+# If you want to use the Django debug toolbar while proxying (e.g. between
+# gunicorn and Apache) through a Unix domain socket, this will wipe out
+# REMOTE_ADDR, which is checked in debug_toolbar.middleware.show_toolbar .
+# Bizarrely, while at first glance it looks like b'', it's actually "b''"!
+# So you would need this:
+#
+# INTERNAL_IPS = (
+#     '127.0.0.1',  # for port proxy
+#     "b''",  # for Unix domain socket proxy
+# )
+#
+# An alternative is to set DEBUG_TOOLBAR_CONFIG as per
+# http://stackoverflow.com/questions/28226940/django-debug-toolbar-wont-display-from-production-server  # noqa
+# Like this:
+
+def always_show_toolbar(request):
+    return True # Always show toolbar, for example purposes only.
+
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': always_show_toolbar,
+}

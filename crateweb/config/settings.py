@@ -166,12 +166,9 @@ DATABASE_ROUTERS = ['research.models.PidLookupRouter']
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/
 # =============================================================================
 
-# *** # SECURE_SSL_REDIRECT = True
-# *** # SESSION_COOKIE_SECURE = True
-# *** # CSRF_COOKIE_SECURE = True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+CRATE_HTTPS = True  # may be overridden in local settings
 
-# removed # USED_TOKEN_TIMEOUT = datetime.timedelta(days=14)
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # =============================================================================
 # Logging; https://docs.djangoproject.com/en/1.8/topics/logging/
@@ -243,13 +240,15 @@ WKHTMLTOPDF_OPTIONS = {
     # 'print-media-type': None,
 }
 PATIENT_FONTSIZE = "11.5pt"  # "12.4pt"
-    # NB *** strange wkhtmltopdf bug: word wrap goes awry with font sizes of
-    #   11.6pt to 12.3pt inclusive
-    # but is fine with
-    #   10, 11, 11.5, 12.4, 12.5, 13, 18...
-    # Affects addresses and word wrap within tables.
-    # Using wkhtmltopdf 0.12.2.1 (with patched qt)
-    # See https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2505
+"""
+    NB strange wkhtmltopdf bug: word wrap goes awry with font sizes of
+      11.6pt to 12.3pt inclusive
+    but is fine with
+      10, 11, 11.5, 12.4, 12.5, 13, 18...
+    Affects addresses and word wrap within tables.
+    Using wkhtmltopdf 0.12.2.1 (with patched qt)
+    See https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2505
+"""
 RESEARCHER_FONTSIZE = "10pt"
 
 # =============================================================================
@@ -284,3 +283,20 @@ else:
         os.environ['CRATE_LOCAL_SETTINGS'])
     _local_module = _loader.load_module()
     from local_settings import *  # noqa
+
+# =============================================================================
+# Extra actions from the site-specific file
+# =============================================================================
+
+if CRATE_HTTPS:
+    # https://docs.djangoproject.com/en/1.8/ref/settings/
+    # We could do
+    #   SECURE_SSL_REDIRECT = True  # redirect all HTTP to HTTPS
+    #   SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    #   ... trust the X-Forwarded-Proto header from the front-end browser;
+    #       if it's 'https', we trust the connection is secure
+    # but it is a bit tricky to get right:
+    #   https://docs.djangoproject.com/en/1.8/ref/settings/#std:setting-SECURE_PROXY_SSL_HEADER  # noqa
+    # Instead, YOU SHOULD RESTRICT THE FRONT END. See instructions.txt.
+    SESSION_COOKIE_SECURE = True  # cookies only via HTTPS
+    CSRF_COOKIE_SECURE = True  # CSRF cookies only via HTTPS

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # consent/management/commands/populate.py
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from consent.models import Leaflet
 
 

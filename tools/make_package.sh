@@ -80,8 +80,6 @@ require_not_root() {
 # Variables
 #==============================================================================
 
-warn "*** think - RabbitMQ etc. for multiple web app instances / separation from other tasks"
-
 #------------------------------------------------------------------------------
 # Package
 #------------------------------------------------------------------------------
@@ -99,6 +97,8 @@ MAKE_USER=false  # not working properly yet
 MAKE_GROUP=false
 
 DEFAULT_GUNICORN_PORT=8005
+DEFAULT_GUNICORN_SOCKET_FILE=/tmp/.crate_gunicorn.sock  # must be writable by CRATE_USER
+# http://unix.stackexchange.com/questions/88083/idiomatic-location-for-file-based-sockets-on-debian-systems
 
 #------------------------------------------------------------------------------
 # Directories
@@ -140,11 +140,12 @@ PYTHONBASE="python3.4"
 # Files
 #------------------------------------------------------------------------------
 
+SPECIMEN_SUPERVISOR_CONF_FILE=$DEST_ROOT/specimen_etc_supervisor_conf.d_crate.conf
 DEST_SUPERVISOR_CONF_FILE=$DEST_SUPERVISOR_CONF_DIR/$PACKAGE.conf
 DEB_PACKAGE_FILE=$PACKAGE_DIR/${PACKAGE}_${VERSION_DEB}_all.deb
 LOCAL_CONFIG_BASENAME="crate_local_settings.py"
 DEST_CRATE_CONF_FILE=$DEST_PACKAGE_CONF_DIR/$LOCAL_CONFIG_BASENAME
-GUNICORN_START_SCRIPT=$DEST_ROOT/gunicorn_start
+INSTRUCTIONS=$DEST_ROOT/instructions.txt
 
 #------------------------------------------------------------------------------
 # Dependencies
@@ -392,103 +393,61 @@ reassure "OK"
 
 bold "=== Creating destination files"
 
-#------------------------------------------------------------------------------
-# Destination file: gunicorn_start
-#------------------------------------------------------------------------------
-echo "Creating: $GUNICORN_START_SCRIPT"
-cat << END_HEREDOC > "$WORK_DIR$GUNICORN_START_SCRIPT"
-#!/bin/bash
-
-NAME="CRATE"  # Name of the application (cosmetic)
-DJANGODIR=$DEST_DJANGO_ROOT  # Django project directory
-BIND=127.0.0.1:$DEFAULT_GUNICORN_PORT  # IP address/port to bind to.
-NUM_WORKERS=3  # how many worker processes should Gunicorn spawn
-DJANGO_SETTINGS_MODULE=config.settings  # which settings file should Django use
-DJANGO_WSGI_MODULE=config.wsgi  # WSGI module name
-VIRTUALENV=$DEST_VIRTUALENV
-
-# SOCKFILE=/somewhere/run/gunicorn.sock  # we will communicate using this unix socket
-# USER=$CRATE_USER  # the user to run as
-# GROUP=$CRATE_GROUP  # the group to run as
-
-echo "Starting \$NAME as `whoami`"
-
-# Activate the virtual environment
-cd \$DJANGODIR
-source \$VIRTUALENV/bin/activate
-export DJANGO_SETTINGS_MODULE=\$DJANGO_SETTINGS_MODULE
-export PYTHONPATH=\$DJANGODIR:\$PYTHONPATH
-
-# Create the run directory if it doesn't exist
-RUNDIR=$(dirname \$SOCKFILE)
-test -d \$RUNDIR || mkdir -p \$RUNDIR
-
-# Start your Django Unicorn
-# Programs meant to be run under supervisor should not daemonize themselves (do not use --daemon)
-gunicorn \${DJANGO_WSGI_MODULE}:application \
-    --name \$NAME \
-    --workers \$NUM_WORKERS \
-    --bind=\$BIND \
-    --log-file=-
-
-# Alternative to port method:
-#    --bind=unix:\$SOCKFILE \
-# Causes permission problems:
-#    --user=\$USER --group=\$GROUP \
-# For debugging:
-#    --log-level=debug \
-
-END_HEREDOC
-# http://michal.karzynski.pl/blog/2013/06/09/django-nginx-gunicorn-virtualenv-supervisor/
+# Don't use a gunicorn_start script like this one:
+#   http://michal.karzynski.pl/blog/2013/06/09/django-nginx-gunicorn-virtualenv-supervisor/
+# ... it doesn't work (supervisord doesn't stop it properly)
+# Just use the supervisor conf file.
 
 #------------------------------------------------------------------------------
 # Destination file: /etc/supervisor/conf.d/crate.conf
 #------------------------------------------------------------------------------
-echo "Creating: $DEST_SUPERVISOR_CONF_FILE"
-cat << END_HEREDOC > "$WORK_DIR$DEST_SUPERVISOR_CONF_FILE"
+echo "Creating: $DEST_SUPERVISOR_CONF_FILE and $SPECIMEN_SUPERVISOR_CONF_FILE"
+cat << END_HEREDOC > "$WORK_DIR$SPECIMEN_SUPERVISOR_CONF_FILE"
 
 ; IF YOU EDIT THIS FILE, run:
 ;       sudo service supervisor restart
 ; TO MONITOR SUPERVISOR, run:
 ;       sudo service supervisorctl status
-
-[program:crate-celery-worker]
-
-command=$DEST_VIRTUALENV/bin/celery worker --app=consent --loglevel=info
-directory=$DEST_DJANGO_ROOT
-environment= PYTHONPATH="$DEST_ROOT",CRATE_LOCAL_SETTINGS="$DEST_CRATE_CONF_FILE"
-user=$CRATE_USER
-stdout_logfile=/var/log/supervisor/$PACKAGE-celery.log
-redirect_stderr=true
-autostart=true
-autorestart=true
-startsecs=10
-stopwaitsecs=600
-
 ; NOTES:
 ; - You can't put quotes around the directory variable
 ;   http://stackoverflow.com/questions/10653590
+; - Programs like celery and gunicorn that are installed within a virtual
+;   environment use the virtualenv's python via their shebang.
+
+[program:crate-celery-worker]
+
+command = $DEST_VIRTUALENV/bin/celery worker --app=consent --loglevel=info
+directory = $DEST_DJANGO_ROOT
+environment = PYTHONPATH="$DEST_ROOT",CRATE_LOCAL_SETTINGS="$DEST_CRATE_CONF_FILE"
+user = $CRATE_USER
+stdout_logfile = /var/log/supervisor/${PACKAGE}_celery.log
+stderr_logfile = /var/log/supervisor/${PACKAGE}_celery_err.log
+autostart = true
+autorestart = true
+startsecs = 10
+stopwaitsecs = 600
 
 [program:crate-gunicorn]
 
-command=$GUNICORN_START_SCRIPT
-directory=$DEST_DJANGO_ROOT
-environment= CRATE_LOCAL_SETTINGS="$DEST_CRATE_CONF_FILE"
-# sets its own environment and uses the virtualenv itself
-user=$CRATE_USER
-stdout_logfile=/var/log/supervisor/$PACKAGE-gunicorn.log
-redirect_stderr=true
-autostart=true
-autorestart=true
-startsecs=10
-stopwaitsecs=600
+command = $DEST_VIRTUALENV/bin/gunicorn config.wsgi:application --workers 4 --bind=unix:$DEFAULT_GUNICORN_SOCKET
+; Alternative methods (port and socket respectively):
+;   --bind=127.0.0.1:$DEFAULT_GUNICORN_PORT
+;   --bind=unix:$DEFAULT_GUNICORN_SOCKET
+directory = $DEST_DJANGO_ROOT
+environment = PYTHONPATH="$DEST_ROOT",CRATE_LOCAL_SETTINGS="$DEST_CRATE_CONF_FILE"
+user = $CRATE_USER
+stdout_logfile = /var/log/supervisor/${PACKAGE}_gunicorn.log
+stderr_logfile = /var/log/supervisor/${PACKAGE}_gunicorn_err.log
+autostart = true
+autorestart = true
+startsecs = 10
+stopwaitsecs = 60
 
 END_HEREDOC
 
 #------------------------------------------------------------------------------
 # Destination file: instructions.txt
 #------------------------------------------------------------------------------
-INSTRUCTIONS=$DEST_ROOT/instructions.txt
 echo "Creating: $INSTRUCTIONS"
 SITE_PACKAGES=$DEST_VIRTUALENV/lib/$PYTHONBASE/site-packages
 CRATE_MANAGE=$DEST_DJANGO_ROOT/manage.py
@@ -508,7 +467,7 @@ Your system's CRATE configuration
 - Gunicorn default port is:
     $DEFAULT_GUNICORN_PORT
   To change this, edit
-    $GUNICORN_START_SCRIPT
+    $DEST_SUPERVISOR_CONF_FILE
   Copy this script to run another instance on another port.
 
 - Static file root to serve:
@@ -577,153 +536,172 @@ OPTIMAL: proxy Apache through to Gunicorn
 (b) Configure Apache for CRATE.
     Use a section like this in the Apache config file:
 
-<VirtualHost *:80>
+<VirtualHost *:443>
     # ...
 
     # =========================================================================
     # CRATE
     # =========================================================================
 
-    # We will mount the CRATE app at /crate/ and /crate_static/, as follows.
+    # We will mount the CRATE app at /crate/ and /crate_static/, and compel
+    # it to run over HTTPS, as follows.
 
-    # 1. Proxy requests to the Gunicorn server on port $DEFAULT_GUNICORN_PORT,
-    #    and allow access.
+        # ---------------------------------------------------------------------
+        # 1. Proxy requests to the Gunicorn server and back, and allow access
+        # ---------------------------------------------------------------------
+        #    ... either via port $DEFAULT_GUNICORN_PORT
+        #    ... or, better, via socket $DEFAULT_GUNICORN_SOCKET
+        # NOTES
+        # - Don't specify trailing slashes.
+        #   If you do, http://host/crate will fail though
+        #   http://host/crate/ will succeed.
+        # - Using a socket
+        #   - this requires Apache 2.4.9, and passes after the '|' character a
+        #     URL that determines the Host: value of the request; see
+        #       https://httpd.apache.org/docs/trunk/mod/mod_proxy.html#proxypass
+        #   - The Django debug toolbar will then require the bizarre entry in
+        #     the Django settings: INTERNAL_IPS = ("b''", ) -- i.e. the string
+        #     value of "b''", not an empty bytestring.
+        # - Ensure that you put the CORRECT PROTOCOL (e.g. https) in the rules
+        #   below.
 
-    ProxyPass /crate/ http://127.0.0.1:$DEFAULT_GUNICORN_PORT/
-    ProxyPassReverse /crate/ http://127.0.0.1:$DEFAULT_GUNICORN_PORT/
+        # Port
+        # Note the use of "http" (reflecting the backend), not https (like the
+        # front end).
+    # ProxyPass /crate https://127.0.0.1:$DEFAULT_GUNICORN_PORT
+    # ProxyPassReverse /crate https://127.0.0.1:$DEFAULT_GUNICORN_PORT
+        # Socket (Apache 2.4.9 and higher)
+    ProxyPass /crate unix:$DEFAULT_GUNICORN_SOCKET|https://localhost
+    ProxyPassReverse /crate unix:$DEFAULT_GUNICORN_SOCKET|https://localhost
+        # Allow access
     <Location /crate>
         Require all granted
     </Location>
 
-    # 2. Serve static files
-    # a) offer them at the appropriate URL
-    #    This MUST match Django's STATIC_URL, which is set to
-    #    '/crate_static/' in config/settings.py, but can be overridden in
-    #    your user-defined CRATE config file (passed to the Gunicorn and
-    #    Celery processes)/
-    # b) provide permission
+        # ---------------------------------------------------------------------
+        # 2. Serve static files
+        # ---------------------------------------------------------------------
+        # a) offer them at the appropriate URL
+        #    This MUST match Django's STATIC_URL, which is set to
+        #    '/crate_static/' in config/settings.py, but can be overridden in
+        #    your user-defined CRATE config file (passed to the Gunicorn and
+        #    Celery processes)/
+        # b) provide permission
 
     Alias /crate_static/ $DEST_COLLECTED_STATIC_DIR/
     <Directory $DEST_COLLECTED_STATIC_DIR>
         Require all granted
     </Directory>
 
-    # 3. The final piece of the puzzle is to ensure you have this in your
-    #    CRATE local settings file:
-    #       FORCE_SCRIPT_NAME = '/crate'
-    #    ... which will make Django generate the correct URLs.
+        # If you want your logo to be visible in the dev_admin test view,
+        # then make this enable access to the URL you specified as
+        # PDF_LOGO_ABS_URL in the config:
 
-</VirtualHost>
-
--------------------------------------------------------------------------------
-NOT THE SIMPLEST: To use Apache with mod_wsgi
--------------------------------------------------------------------------------
-(a) Add Ubuntu prerequisites
-
-    sudo apt-get install apache2 libapache2-mod-wsgi-py3 libapache2-mod-xsendfile
-
-(b) Configure Apache for CRATE.
-    Use a section like this in the Apache config file:
-
-<VirtualHost *:80>
-    # ...
-
-    # =========================================================================
-    # CRATE
-    # =========================================================================
-
-    # Define a process group (using the specimen name crate_pg)
-    # Must use threads=1 (code may not be thread-safe).
-    # Example here with 5 processes.
-    WSGIDaemonProcess crate_pg processes=5 threads=1 python-path=$SITE_PACKAGES:$DEST_DJANGO_ROOT:$SECRETS_DIR
-
-    # Point a particular URL to a particular WSGI script (using the specimen path /crate)
-    WSGIScriptAlias /crate $DEST_DJANGO_ROOT/config/wsgi.py process-group=crate_pg
-
-    # Redirect requests for static files, and admin static files.
-    # MIND THE ORDER - more specific before less specific.
-    Alias /static/admin/ $SITE_PACKAGES/django/contrib/admin/static/admin/
-    # Alias /static/debug_toolbar/ $SITE_PACKAGES/debug_toolbar/static/debug_toolbar/
-    Alias /static/ $DEST_DJANGO_ROOT/static/
-
-    # Make our set of processes use a specific process group
-    <Location /crate>
-        WSGIProcessGroup crate_pg
+    Alias /crate_logo /usr/share/crate/crateweb/static/demo_logo/logo_cpft.png
+    <Location /crate_logo>
+        Require all granted
     </Location>
-
-    # Allow access to the WSGI script
-    <Directory $DEST_DJANGO_ROOT/config>
-        <Files "wsgi.py">
+    <Directory /usr/share/crate/crateweb/demo_logo>
+        <Files logo_cpft.png>
             Require all granted
         </Files>
     </Directory>
 
-    # Allow access to the static files
-    <Directory $DEST_DJANGO_ROOT/static>
-        Require all granted
-    </Directory>
+        # ---------------------------------------------------------------------
+        # 3. Restrict to SSL.
+        # ---------------------------------------------------------------------
+        # a) Enable SSL.
+        #    If you haven't already enabled SSL, use:
+        #       sudo a2enmod ssl
+        #    Somewhere you will need commands like this:
+        #          SSLEngine On
+        #          SSLCertificateFile /etc/apache2/ssl/www_server_com.crt
+        #          SSLCertificateKeyFile /etc/apache2/ssl/server.key
+        #          SSLCertificateChainFile /etc/apache2/ssl/www_server_com.ca-bundle
+        # b) Restrict CRATE to SSL.
+        #    - Set CRATE_HTTPS=True in the CRATE local config file, which sets
+        #      several other flags in response to restrict cookies to HTTPS.
+        #    - Redirect HTTP to HTTPS in Apache. Ensure you have run:
+        #       sudo a2enmod rewrite
+        #    - Then these commands:
 
-    # Allow access to the admin static files
-    <Directory $SITE_PACKAGES/django/contrib/admin/static/admin>
-        Require all granted
-    </Directory>
+    RewriteEngine On
+        #   Don't rewrite for secure connections:
+    RewriteCond %{HTTPS} off
+        #   Send users to HTTPS:
+    RewriteRule ^crate/ https://%{HTTP_HOST}%{REQUEST_URI}
 
-    # Allow access to the debug toolbar static files
-    # <Directory $SITE_PACKAGES/debug_toolbar/static/debug_toolbar>
-    #     Require all granted
-    # </Directory>
+        # ---------------------------------------------------------------------
+        # 4. Tell Django where it's living, so it can get its URLs right.
+        # ---------------------------------------------------------------------
+        # The penultimate piece of the puzzle is to ensure you have this in
+        # your CRATE local settings file:
+        #       FORCE_SCRIPT_NAME = '/crate'
+        # ... which will make Django generate the correct URLs.
+        # Note that it will likely confuse and BREAK the Django debugging
+        # server (manage.py runserver).
+        #
+        # ---------------------------------------------------------------------
+        # 5. Allow command-line tools to fetch images from the site
+        # ---------------------------------------------------------------------
+        # And finally... for special PDF generation (so the command-line tool
+        # wkhtmltopdf can see the same images as the browser), ensure the local
+        # crate settings also includes e.g.:
+        #       DJANGO_SITE_ROOT_ABSOLUTE_URL = 'https://mysite.mydomain.com'
+        # ... without a trailing slash
+        # ... to which the site root (FORCE_SCRIPT_NAME) or the static root
+        #     (STATIC_URL), plus the rest of the path, will be appended.
+        #
+        # ---------------------------------------------------------------------
+        # You'll know it's working when all these are OK:
+        # ---------------------------------------------------------------------
+        #   - browse to http://localhost/crate/
+        #   - check a sub-page works
+        #   - check the admin sites work and are styled properly
+        #   - dev_admin > consent modes > view a traffic-light letter
+        #     ... check it works in both HTML (visible to client browsers)
+        #         ... if you have a snake-oil SSL certificate, you may have to
+        #             set an exemption first
+        #     ... and PDF (visible to wkhtmltopdf).
+        #         ... wkhtmltopdf won't be bothered by duff SSL certificates.
+        #   - check that a clinician e-mail contains correct response URLs to
+        #     an absolute machine (that work from a different computer)
+        #
+        # For debugging, consider:
+        # - command-line tools
+        #       wget -O - --verbose --no-check-certificate http://127.0.0.1/crate
+        # - Apache directives
+        #       LogLevel alert rewrite:trace6
+        #       LogLevel alert proxy:trace6
+        # - remember that browsers cache all sorts of failures and redirects
 
 </VirtualHost>
-
-(c) Additionally, install mod_xsendfile, e.g. (on Ubuntu):
-
-        sudo apt-get install libapache2-mod-xsendfile
-
-    ... which will implicitly run "a2enmod xsendfile" to enable it. Then add to
-    the Apache config file in an appropriate place:
-
-        # Turn on XSendFile
-        <IfModule mod_xsendfile.c>
-            XSendFile on
-            XSendFilePath /MY/SECRET/CRATE/FILE/ZONE
-            # ... as configured in your secret crate_local_settings.py
-        </IfModule>
-
-- If you get problems, check the log, typically /var/log/apache2/error.log
-- If it's a permissions problem, check the www-data user can see the file:
-    sudo -u www-data cat FILE
-    # ... using an absolute path
-    groups USER
-- If Chrome fails to load GIFs and says "pending" in the Network developer
-  view, restart Chrome. (Probably only a "caching of failure" during
-  development!)
-
--------------------------------------------------------------------------------
-Standalone Apache with mod_wsgi-express
--------------------------------------------------------------------------------
-
-    pip install mod_wsgi-httpd  # a bit slow; don't worry
-    pip install mod_wsgi
-
-    mod_wsgi-express start-server config.wsgi \\
-        --application-type module \\
-        --log-to-terminal \\
-        --port 80 \\
-        --processes 5 \\
-        --python-path $SECRETS_DIR \\
-        --threads 1 \\
-        --url-alias /static $DEST_DJANGO_ROOT/static \\
-        --working-directory $DEST_DJANGO_ROOT
-
-- This changes to the working directory and uses config/wsgi.py
-- Add --reload-on-changes for debugging.
-- Port 80 will require root privilege.
 
 END_HEREDOC
 
 # http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypass
 # http://httpd.apache.org/docs/2.2/mod/mod_proxy.html#proxypassreverse
+# ... says Unix domain socket (UDS) support came in 2.4.7
+# ... but was actually 2.4.9:
+#     http://mail-archives.apache.org/mod_mbox/httpd-announce/201403.mbox/%3CF590EEF7-7D4F-4ED7-A810-97ED5AA17DCE@apache.org%3E
+#     https://httpd.apache.org/docs/trunk/mod/mod_proxy.html#comment_4772
 # http://design.canonical.com/2015/08/django-behind-a-proxy-fixing-absolute-urls/
+
+# https://httpd.apache.org/docs/trunk/mod/mod_proxy.html#proxypass
+# http://float64.uk/blog/2014/08/20/php-fpm-sockets-apache-mod-proxy-fcgi-ubuntu/
+
+# Upgrading Apache from 2.4.7 to 2.4.9 or 2.4.10 (Ubuntu 14.03.3 LTS, as per lsb_release -a):
+# - http://askubuntu.com/questions/539256/how-to-update-apache2-on-ubuntu-14-04-server-to-the-latest-version
+# - As of 2015-11-24 and Ubuntu 14.03.3 LTS (as per lsb_release -a)
+#       apt-cache showpkg apache2  # shows versions
+#           ... 2.4.7 is the only available version
+#       apt-get install apache2=VERSION  # if possible
+# - Similarly, 2.4.7 is the current version for Ubuntu 14.04
+#       http://packages.ubuntu.com/trusty/apache2
+# - However, we can use this:
+#       https://launchpad.net/~ondrej/+archive/ubuntu/apache2?field.series_filter=trusty
+#       sudo add-apt-repository ppa:ondrej/apache2
+#   ... goes to 2.4.17
 
 reassure "OK"
 
@@ -748,12 +726,12 @@ cp -R $SOURCE_ROOT/docs $WORK_DIR$DEST_ROOT
 cp -R $SOURCE_ROOT/mysql_auditor $WORK_DIR$DEST_ROOT
 cp -R $SOURCE_ROOT/pythonlib $WORK_DIR$DEST_ROOT
 cp -R $SOURCE_ROOT/nlp_manager $WORK_DIR$DEST_ROOT
-cp -R $SOURCE_ROOT/specimen_secret_local_settings $WORK_DIR$DEST_ROOT
 cp -R $SOURCE_ROOT/tools $WORK_DIR$DEST_ROOT
 cp -R $SOURCE_ROOT/*.md $WORK_DIR$DEST_ROOT
 cp -R $SOURCE_ROOT/*.txt $WORK_DIR$DEST_ROOT
 
-cp $SOURCE_ROOT/specimen_secret_local_settings/$LOCAL_CONFIG_BASENAME $WORK_DIR$DEST_CRATE_CONF_FILE
+cp $SOURCE_ROOT/crateweb/specimen_secret_local_settings/$LOCAL_CONFIG_BASENAME $WORK_DIR$DEST_CRATE_CONF_FILE
+cp $WORK_DIR$SPECIMEN_SUPERVISOR_CONF_FILE $WORK_DIR$DEST_SUPERVISOR_CONF_FILE
 
 echo "Remove rubbish"
 find $WORK_DIR -type f -name "*.py[co]" -delete
@@ -777,7 +755,7 @@ chmod a+x $WORK_DIR$DEST_ROOT/nlp_manager/nlp_manager.py
 chmod a+x $WORK_DIR$DEST_ROOT/crateweb/manage.py
 find $WORK_DIR$DEST_ROOT -iname "*.sh" -exec chmod a+x {} \;
 # Extras
-chmod a+x $WORK_DIR$DEST_ROOT/gunicorn_start
+#chmod a+x $WORK_DIR$DEST_ROOT/gunicorn_start
 
 # Ownership: everything is by default owned by root,
 # and we change that in the postinst file.
@@ -811,5 +789,3 @@ rm -rf "$WORK_DIR"
 #==============================================================================
 reassure "OK"
 exit 0
-
-# *** gunicorn not being stopped by supervisord

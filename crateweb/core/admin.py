@@ -25,7 +25,7 @@ from extra.admin import (
     disable_bool_icon,
     ReadOnlyModelAdmin,
 )
-from core.utils import modelrepr, replace_in_list
+from core.utils import replace_in_list
 from userprofile.models import UserProfile
 from consent.models import (
     CharityPaymentRecord,
@@ -640,6 +640,7 @@ class ContactRequestMgrAdmin(ReadOnlyModelAdmin):
         'id', 'created_at', 'request_by', 'get_study',
         'request_direct_approach',
         'lookup_nhs_number', 'lookup_rid', 'lookup_mrid',
+        'processed',
         'get_consent_mode',
         'approaches_in_past_year',
         'decisions',

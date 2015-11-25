@@ -328,7 +328,7 @@ def clinician_response(request, clinician_response_id):
     clinician_involvement_required_unknown = (
         contact_request.clinician_involvement
         == ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN)
-    option_c_available = clinician_involvement_requested
+    extra_form = contact_request.is_extra_form()
     return render(request, 'clinician_response.html', {
         'clinician_response': clinician_response,
         'ClinicianResponse': ClinicianResponse,
@@ -346,7 +346,10 @@ def clinician_response(request, clinician_response_id):
         clinician_involvement_required_yellow,
         'clinician_involvement_required_unknown':
         clinician_involvement_required_unknown,
-        'option_c_available': option_c_available,
+        'option_c_available': clinician_involvement_requested,
+        'option_r_available': not extra_form,
+        'extra_form': extra_form,
+        'unknown_consent_mode': contact_request.is_consent_mode_unknown(),
     })
 
 clinician_response.login_required = False
@@ -380,8 +383,9 @@ clinician_pack.login_required = False
 @user_passes_test(is_developer)
 def draft_clinician_email(request, contact_request_id):
     contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
-    return HttpResponse(contact_request.get_clinician_email_html(request,
-                                                                 save=False))
+    return HttpResponse(
+        contact_request.get_clinician_email_html(save=False)
+    )
 
 
 @user_passes_test(is_developer)

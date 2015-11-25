@@ -6,7 +6,7 @@ Core anonymisation functions for CRATE.
 
 Author: Rudolf Cardinal
 Created at: 18 Feb 2015
-Last update: 16 Sep 2015
+Last update: 24 Nov 2015
 
 Copyright/licensing:
 
@@ -243,7 +243,7 @@ def get_uk_postcode_regex_elements(at_word_boundaries_only=True):
         "ANA NAA",
         "AANA NAA",
     ]
-    for i in xrange(len(e)):
+    for i in range(len(e)):
         e[i] = e[i].replace("A", "[A-Z]")  # letter
         e[i] = e[i].replace("N", "[0-9]")  # number
         e[i] = e[i].replace(" ", "\s*")  # zero or more whitespace chars

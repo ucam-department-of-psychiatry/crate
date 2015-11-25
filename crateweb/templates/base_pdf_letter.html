@@ -16,7 +16,7 @@
 
     {% block logo %}
     <div class="logo">
-        <img src="file://{{ PDF_LOGO_ABSPATH }}" width="{{ PDF_LOGO_WIDTH }}">
+        <img src="{{ PDF_LOGO_ABS_URL }}" width="{{ PDF_LOGO_WIDTH }}">
         {# CONSIDER "float:right" now we're using wkhtmltopdf #}
     </div>
     {% endblock %}

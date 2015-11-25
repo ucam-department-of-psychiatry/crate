@@ -8,6 +8,8 @@
 
 var c_available_python = "{{ option_c_available }}";
 var c_available = c_available_python == "True" ? true : false;
+var r_available_python = "{{ option_r_available }}";
+var r_available = r_available_python == "True" ? true : false;
 var initial_response = "{{ initial_response }}";
 
 function startup() {
@@ -37,7 +39,12 @@ function showStuff(a, b, c, d, r) {
         document.getElementById("optionC_radio").style.display = "none";
     }
     document.getElementById("optionD").style.display = d ? "block" : "none";
-    document.getElementById("optionR").style.display = r ? "block" : "none";
+    if (r_available) {
+        document.getElementById("optionR").style.display = r ? "block" : "none";
+    } else {
+        document.getElementById("optionR").style.display = "none";
+        document.getElementById("optionR_radio").style.display = "none";
+    }
     document.getElementById("submit").style.display = (a || b || c || d || r) ? "block" : "none";
 }
 

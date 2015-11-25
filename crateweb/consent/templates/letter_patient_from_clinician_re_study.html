@@ -45,7 +45,7 @@
 
         <li>A form to decide whether you’re interested in being
         contacted by
-        {% if unknown %}
+        {% if unknown_consent_mode %}
             the researchers about <b>this</b> study,
         {% else %}
             these researchers
@@ -65,7 +65,7 @@
             away.</li>
         {% endif %}
 
-        {% if unknown %}
+        {% if unknown_consent_mode %}
             <li>
                 A form titled <i>“Would you like to be contacted about
                 research?”</i>.
@@ -85,31 +85,28 @@
         {{ settings.RDBM_ADDRESS|join:", " }}).</li>
     </ul>
 
-    {% if unknown %}
+    {% if unknown_consent_mode %}
         <p><em>The most important thing to know is that saying yes or no
         won’t affect your normal NHS treatment!</em></p>
     {% endif %}
 
     <p><em>
-        {% if extra_form %}
-            <b>Please have a look at the study details and the form that
-            the researchers would like, and then choose option 1 or option
-            2 on the decision form.</b> Then please return the form(s) in
-            the Freepost envelope, or give them to a member of staff at
-            CPFT.
-        {% elif unknown %}
-            <b>Please have a look at the study details, and then choose option
-            1 or option 2 on the decision form.
-            Then please complete the other form (<i>“Would you like to be
-            contacted about research?”</i>).</b>
-            Finally, please send both forms back in the Freepost envelope, or
-            give them to a member of staff at CPFT.
-        {% else %}
-            <b>Please have a look at the study details, and then choose option
-            1 or option 2 on the decision form.</b> Then please return the form
-            in the Freepost envelope, or give it to a member of staff at CPFT.
-        {% endif %}
-{# *** THINK: could it be extra_form and unknown? *** #}
+        <b>
+            Please have a look at the study details,
+            {% if extra_form %}
+                and the form that the researchers would like,
+            {% endif %}
+            and then choose option 1 or option 2 on the decision form.
+            {% if unknown_consent_mode %}
+                Then please complete the other form (<i>“Would you like to be
+                contacted about research?”</i>).
+            {% endif %}
+        </b>
+        Finally, please return the
+        form{% if extra_form or unknown_consent_mode %}s{% endif %}
+        in the Freepost envelope, or give
+        {% if extra_form or unknown_consent_mode %}them{% else %}it{% endif %}
+        to a member of staff at CPFT.
     </em></p>
 
     {% if yellow %}

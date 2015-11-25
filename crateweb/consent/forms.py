@@ -34,11 +34,23 @@ def get_queryset_possible_contact_studies():
     )
 
 
-class SuperuserSubmitContactRequestForm(forms.Form):
+class AbstractContactRequestForm(forms.Form):
+    def clean(self):
+        cleaned_data = super().clean()
+        study = cleaned_data.get("study")
+        request_direct_approach = cleaned_data.get("request_direct_approach")
+
+        if request_direct_approach and not study.request_direct_approach:
+            raise forms.ValidationError(
+                "Study not approved for direct approach.")
+
+
+class SuperuserSubmitContactRequestForm(AbstractContactRequestForm):
     study = forms.ModelChoiceField(
         queryset=get_queryset_possible_contact_studies())
     request_direct_approach = forms.BooleanField(
-        label="Request direct approach to patient, if available",
+        label="Request direct approach to patient, if available "
+              "(UNTICK to ask clinician for additional info)",
         required=False,
         initial=True)
     nhs_numbers = MultipleNhsNumberAreaField(label='NHS numbers',
@@ -51,10 +63,11 @@ class SuperuserSubmitContactRequestForm(forms.Form):
         required=False)
 
 
-class ResearcherSubmitContactRequestForm(forms.Form):
+class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
     study = forms.ModelChoiceField(queryset=Study.objects.all())
     request_direct_approach = forms.BooleanField(
-        label="Request direct approach to patient, if available",
+        label="Request direct approach to patient, if available "
+              "(UNTICK to ask clinician for additional info)",
         required=False,
         initial=True)
     rids = MultipleWordAreaField(

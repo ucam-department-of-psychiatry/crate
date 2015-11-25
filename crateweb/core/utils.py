@@ -68,17 +68,45 @@ def url_with_querystring(path, querydict=None, **kwargs):
 
 def site_absolute_url(path):
     """
-    We need to generate links to our site outside the request environment,
-    e.g. for inclusion in e-mails, even when we're generating the e-mails
-    offline via Celery. There's no easy way to do this automatically (site
-    path information comes in only via requests), so we put it in the
-    settings.
-    
+    Returns an absolute URL for the site, given a relative part.
+    Use like:
+        url = site_absolute_url(static('red.png'))
+            ... determined in part by STATIC_URL.
+        url = site_absolute_url(reverse('clinician_response', args=[self.id]))
+            ... determined by SCRIPT_NAME or FORCE_SCRIPT_NAME
+            ... which is context-dependent: see below
+
+    We need to generate links to our site outside the request environment, e.g.
+    for inclusion in e-mails, even when we're generating the e-mails offline
+    via Celery. There's no easy way to do this automatically (site path
+    information comes in only via requests), so we put it in the settings.
+
     See also:
         http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object  # noqa
         https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/  # noqa
+
+    ---------------------------------------------------------------------------
+    IMPORTANT
+    ---------------------------------------------------------------------------
+    BEWARE: reverse() will produce something different inside a request and
+    outside it.
+        http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell  # noqa
+
+    So the only moderately clean way of doing this is to do this in the Celery
+    backend jobs, for anything that uses Django URLs (e.g. reverse) -- NOT
+    necessary for anything using only static URLs (e.g. pictures in PDFs).
+
+        from django.conf import settings
+        from django.core.urlresolvers import set_script_prefix
+
+        set_script_prefix(settings.FORCE_SCRIPT_NAME)
+
+    But that does at least mean we can use the same method for static and
+    Django URLs.
     """
-    return settings.DJANGO_SITE_ROOT_ABSOLUTE_URL + path
+    url = settings.DJANGO_SITE_ROOT_ABSOLUTE_URL + path
+    logger.debug("site_absolute_url: {} -> {}".format(path, url))
+    return url
 
 
 # =============================================================================
@@ -97,7 +125,7 @@ def get_friendly_date(date):
 def modelrepr(instance):
     """Default repr version of a Django model object, for debugging."""
     elements = []
-    for fieldname in instance._meta.get_all_field_names():
+    for fieldname in [f.name for f in instance._meta.get_fields()]:
         try:
             value = repr(getattr(instance, fieldname))
         except ObjectDoesNotExist:

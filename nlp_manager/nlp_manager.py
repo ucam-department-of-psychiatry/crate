@@ -102,7 +102,7 @@ import pythonlib.rnc_log as rnc_log
 # =============================================================================
 
 VERSION = 0.02
-VERSION_DATE = "2015-11-22"
+VERSION_DATE = "2015-11-25"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
@@ -545,6 +545,10 @@ class Config(object):
             newitems = [(str(k), str(v))
                         for k, v in parser.items(self.progenvsection)]
             self.env = dict(list(self.env.items()) + newitems)
+        if not logtag:
+            logtag = "."
+            # because passing a "-lt" switch with no parameter will make
+            # CamAnonGatePipeline.java complain and stop
         self.env["NLPLOGTAG"] = logtag
         self.progargs = self.progargs.format(**self.env)
         self.progargs = [
@@ -668,7 +672,7 @@ class NlpController(object):
     # -------------------------------------------------------------------------
     # Interprocess comms
     # -------------------------------------------------------------------------
-    def __init__(self, config, commit=False):
+    def __init__(self, config, commit=False, encoding='utf8'):
         """
         Initializes from the config.
         """
@@ -678,6 +682,7 @@ class NlpController(object):
         self.output_terminator = self.config.output_terminator
         self.starting_fields_values = {}
         self.n_uses = 0
+        self.encoding = encoding
 
     def start(self):
         """
@@ -691,29 +696,47 @@ class NlpController(object):
             stdout=subprocess.PIPE,
             # stderr=subprocess.PIPE,
             shell=False,
-            bufsize=1)
+            bufsize=1
+        )
         # ... don't ask for stderr to be piped if you don't want it; firstly,
         # there's a risk that if you don't consume it, something hangs, and
         # secondly if you don't consume it, you see it on the console, which is
         # helpful.
 
-    def send(self, text, starting_fields_values={}, utf8=True):
+    def _encode_to_subproc_stdin(self, text):
+        logger.debug("SENDING: " + text)
+        bytes = text.encode(self.encoding)
+        self.p.stdin.write(bytes)
+
+    def _flush_subproc_stdin(self):
+        self.p.stdin.flush()
+
+    def _decode_from_subproc_stdout(self):
+        bytes = self.p.stdout.readline()
+        text = bytes.decode(self.encoding)
+        logger.debug("RECEIVING: " + text)
+        return text
+
+    def send(self, text, starting_fields_values={}):
         """
         Send text to the external process and receive the result.
         """
         self.starting_fields_values = starting_fields_values
+        # Send
         logger.debug("writing: " + text)
-        if utf8:
-            text = text.encode("utf8")
-        self.p.stdin.write(text + "\n")
-        self.p.stdin.write(self.input_terminator + "\n")
-        for line in iter(self.p.stdout.readline,
+        self._encode_to_subproc_stdin(text)
+        self._encode_to_subproc_stdin("\n")
+        self._encode_to_subproc_stdin(self.input_terminator + "\n")
+        self._flush_subproc_stdin()  # required in the Python 3 system
+        # Receive
+        for line in iter(self._decode_from_subproc_stdout,
                          self.output_terminator + "\n"):
             # ... iterate until the sentinel output_terminator is received
             line = line.rstrip()  # remove trailing newline
             logger.debug("stdout received: " + line)
             self.receive(line)
         self.n_uses += 1
+        # Restart subprocess?
         if (self.config.max_external_prog_uses > 0
                 and self.n_uses >= self.config.max_external_prog_uses):
             logger.info("relaunching app after {} uses".format(self.n_uses))
@@ -738,8 +761,13 @@ class NlpController(object):
         """
         d = tsv_pairs_to_dict(line)
         logger.debug("dictionary received: {}".format(d))
-        d = dict(d.items() + self.starting_fields_values.items())
-        # ... so EXISTING FIELDS/VALUES HAVE PRIORITY
+        # Merge dictionaries so EXISTING FIELDS/VALUES (starting_fields_values)
+        # HAVE PRIORITY.
+        # http://stackoverflow.com/questions/38987
+        # Python 2: one method was:
+        #   d = dict(d.items() + self.starting_fields_values.items())
+        # Python 3, for this situation -- would also work in Python 2!:
+        d.update(self.starting_fields_values)
         logger.debug("dictionary now: {}".format(d))
 
         # Now process it.
@@ -1140,7 +1168,7 @@ def create_indexes(config, tasknum=0, ntasks=1):
     """
     # Parallelize by table.
     logger.info(SEP + "Create indexes")
-    outputtypes_list = config.outputtypemap.values()
+    outputtypes_list = list(config.outputtypemap.values())
     for i in range(len(outputtypes_list)):
         if i % ntasks != tasknum:
             continue
@@ -1205,7 +1233,7 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
                              "which this is to be one)")
     parser.add_argument("--processcluster", default="",
                         help="Process cluster name")
-    parser.add_argument("-c", "--democonfig", action="store_true",
+    parser.add_argument("--democonfig", action="store_true",
                         help="Print a demo config file")
     parser.add_argument("--incremental", action="store_true",
                         help="Process only new/changed information, where "

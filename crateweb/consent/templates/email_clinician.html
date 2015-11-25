@@ -22,31 +22,43 @@
     potentially eligible for a study that they are conducting:</p>
 
     {% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode verbose=True %}
-
+    
     <p>The study is:</p>
     {% include "study_table.html" with study=study contact_request=contact_request to_clinician=True include_details=False include_clinician_form=False %}
 
     {% include "discharged_phrase.html" %}
+
+    {% if contact_request.is_extra_form %}
+        <p><em>If the patient might be interested, the researchers would
+        specifically like your involvement, and have provided an additional
+        form for you to complete.</em></p>
+    {% endif %}
 
     <div class="action">
         <b>Please click on ONE of the following buttons to respond to the
         request.</b>
     </div>
 
-    <div id="response_yes" class="response_button">
-        <a href="{{ url_yes|safe }}">Yes, ask the patient on my behalf</a>
-    </div>
-
-    <div id="response_no" class="response_button">
-        <a href="{{ url_no|safe }}">No, I veto for clinical reasons</a>
-    </div>
+    {% if not contact_request.is_extra_form %}
+        <div id="response_yes" class="response_button">
+            <a href="{{ url_yes|safe }}">Yes, ask the patient on my behalf</a>
+        </div>
+    {% endif %}
 
     <div id="response_maybe" class="response_button">
         <a href="{{ url_maybe|safe }}">
+            {% if contact_request.is_extra_form %}
+                Yes, I’ll ask the patient<br>
+                <i>or</i><br>
+            {% endif %}
             Something else<br>
             <i>or</i><br>
             Tell me more
         </a>
+    </div>
+
+    <div id="response_no" class="response_button">
+        <a href="{{ url_no|safe }}">No, I veto for clinical reasons</a>
     </div>
 
     <p>
