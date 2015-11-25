@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2013
-Last update: 24 Sep 2015
+Last update: 24 Nov 2015
 
 Copyright/licensing:
 
@@ -24,6 +24,7 @@ Copyright/licensing:
     limitations under the License.
 """
 
+from __future__ import print_function
 import codecs
 import six
 from six.moves import reload_module
@@ -46,10 +47,11 @@ def fix_windows_utf8_output():
         try:
             import win32console
         except:
-            print ("Python Win32 Extensions module is required.\n "
-                   "You can download it from "
-                   "https://sourceforge.net/projects/pywin32/ "
-                   "(x86 and x64 builds are available)\n")
+            print(
+                "Python Win32 Extensions module is required.\n "
+                "You can download it from "
+                "https://sourceforge.net/projects/pywin32/ "
+                "(x86 and x64 builds are available)\n")
             exit(-1)
         # win32console implementation  of SetConsoleCP does not return a value
         # CP_UTF8 = 65001
