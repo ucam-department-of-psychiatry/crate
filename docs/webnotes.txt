@@ -626,3 +626,214 @@ def always_show_toolbar(request):
 DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TOOLBAR_CALLBACK': always_show_toolbar,
 }
+
+===============================================================================
+SQL Server
+===============================================================================
+
+http://stackoverflow.com/questions/13726670/using-jython-with-django
+
+- Microsoft SQL Server drivers:
+  OLD: ODBC: https://msdn.microsoft.com/en-us/library/hh568451(v=sql.110).aspx
+  NEW: JDBC: https://www.microsoft.com/en-gb/download/details.aspx?id=11774
+  OPEN SOURCE: jTDS: http://jtds.sourceforge.net/
+
+- Django-Jython supports zxJDBC, which supports SQL Server via jTDS:
+  https://pythonhosted.org/django-jython/database-backends.html
+  # 'ENGINE': 'doj.db.backends.mssql',
+
+- Jython is Python in a JVM. It's not clear this is very easy to set up with Apache.
+  https://www.mail-archive.com/pythonireland@googlegroups.com/msg00945.html
+
+- Django (Python) support Microsoft SQL Server via django-mssql, but that is Windows only, and doesn't support Linux.
+  http://django-mssql.readthedocs.org/en/latest/
+  http://stackoverflow.com/questions/22604732/linux-django-sqlserver
+
+- Another Python route, looking dated:
+  Django / django-sqlserver / python-tds
+  https://github.com/denisenkom/django-sqlserver  # BECOMING OUT OF DATE? SAYS IT CAN'T HANDLE DATETIME COLUMNS PROPERLY.
+  # django-sqlserver was formerly called django-pytds
+  # OLD # https://bitbucket.org/denisenkom/django-pytds
+  https://pypi.python.org/pypi/python-tds
+  
+  http://python-tds.readthedocs.org/en/latest/
+
+- Another Python route, looking more recent:
+  Django / django-pymssql / pymssql / [?FreeTDS]
+  https://github.com/aaugustin/django-pymssql
+  http://www.pymssql.org/en/latest/
+
+- Another Python route, but not Python 3:
+  Django / django-pyodbc
+  https://github.com/lionheart/django-pyodbc/
+  http://stackoverflow.com/questions/24026608/sql-server-2008-2012-backend-module-for-django-on-linux
+  http://stackoverflow.com/questions/2791766/django-pyodbc-sql-server-freetds-server-connection-problems-on-linux
+
+TO READ:
+http://blog.nguyenvq.com/blog/tag/jtds/
+
+
+LIKELY BEST? AVOID JAVA. And jaydebeapi is a bit flaky, and doesn't integrate with Django as yet.
+
+Django / django-pyodbc-azure / pyodbc / UnixODBC / FreeTDS
+  http://stefanoapostolico.com/2015/04/20/django_mssql_osx.html
+  https://github.com/michiya/django-pyodbc-azure
+  https://github.com/mkleehammer/pyodbc
+  http://www.unixodbc.org/
+  http://www.freetds.org/
+
+  +/- https://code.google.com/p/django-pyodbc/wiki/FreeTDS
+  +/- http://stackoverflow.com/questions/24906016/exception-value-08001-08001-unixodbcfreetdssql-serverunable-to-con
+  and http://stackoverflow.com/questions/20283199/django-pyodbc-azure-databaseerror-42000-42000-error-converting-data-type
+  ... = how to set TDS protocol version with Django
+
+... NB not old UnixODBC versions: https://github.com/michiya/django-pyodbc-azure/issues/4
+
+
+SUMMARY: From Django onwards through the stack:
+
+    django-jython
+        zxJDBC
+            jTDS
+    django-mssql
+        quasi-endorsed by Django but FAIL: needs Windows
+    django-sqlserver
+        POSSIBLE? django-sqlserver==1.7 -- BUGGY; tries to import "django.db.backends.util" (should be "utils") with Django 1.9rc1
+    django-pyodbc-azure
+
+
+-------------------------------------------------------------------------------
+django-pyodbc-azure -> unixODBC -> FreeTDS -> SQL Server
+-------------------------------------------------------------------------------
+- https://github.com/michiya/django-pyodbc-azure/blob/azure/README.rst
+
+1. On the Windows end (in this case, 192.168.1.13):
+
+    (*) SQL Server Configuration Manager (from Windows Start menu)
+        > SQL Server 2005 Network Configuration
+        > Protocols for MSSQLSERVER
+        > TCP/IP
+        > Enabled (and double-click "TCP/IP" for more settings)
+
+    (*) Create a database in Microsoft SQL Server Management Studio Express.
+        e.g. crate_sqlserver_db
+
+    (*) Create a user:
+        Microsoft SQL Server Management Studio Express
+        > [root server, e.g. WOMBATVMXP]
+        > Security
+        > Logins
+        > (right-click: Add Login)
+        >   Login name = crate_user
+            SQL Server authentication
+                password = something
+            set sensible defaults like not requiring password change
+
+    (*) Allow the user access
+        Microsoft SQL Server Management Studio Express
+        > New Query [button]
+            USE crate_sqlserver_db;
+            -- NOT SURE -- EXEC sp_grantdbaccess crate_user;
+            -- DOESN'T DO MUCH -- GRANT ALL TO crate_user;
+            EXEC sp_addrolemember 'db_owner', 'crate_user';
+
+    (*) Allow proper logins via TCP/IP:
+        Microsoft SQL Server Management Studio Express
+        > [root server, e.g. WOMBATVMXP]
+        > Security
+        > Logins
+        > (right-click: Properties)
+        > Security
+            Server authentication = SQL Server and Windows Authentication mode
+
+    (*) Services > stop/restart "SQL Server (MSSQLSERVER)"
+
+    (*) netstat -a
+        ... to verify port 1433 is open (or "ms-sql-s")
+
+    (*) from another machine, check the port is open:
+        telnet 192.168.1.13 1433
+
+    OK. Back to the Linux end.
+
+2. Get latest FreeTDS (see also http://www.freetds.org/)
+
+    $ sudo apt-get install freetds-bin tdsodbc
+
+    ... note that tdsodbc is critical for /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so
+
+3. Test the FreeTDS connection
+
+    $ TDSVER=8.0 tsql -H 192.168.1.13 -p 1433 -U crate_user -P something
+
+    Failure levels:
+        "No route to host"
+        "Connection refused"
+            -- duff port or port not open
+        "Login failed for user ''. The user is not associated with a trusted
+        SQL Server connection." / "Adaptive Server connection failed"
+            -- better... need to allow TCP/IP access
+        "Cannot open user default database. Using master database instead."
+            -- much better; need the grant command as above
+    At the point of success:
+        locale is "en_GB.UTF-8"
+        locale charset is "UTF-8"
+        using default charset "UTF-8"
+        1>
+
+    Then:
+        1> SELECT * FROM notes
+        2> GO
+    Also:
+        > VERSION
+        ... to show TDS protocol version
+    Which version? Choose from
+        http://www.freetds.org/userguide/choosingtdsprotocol.htm
+    ... but if you get "unrecognized msgno", go up.
+
+4. Get unixODBC and nice tools
+
+    $ sudo apt-get install unixodbc-bin
+
+5. Configure ODBC
+
+    - ignore /etc/freetds/freetds.conf
+        ... though there are some optional [global] settings there
+
+    - in /etc/odbcinst.ini
+
+        [FreeTDS]
+        Description = FreeTDS (SQL Server protocol driver for Unix)
+        Driver = /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so
+        Setup = /usr/lib/x86_64-linux-gnu/odbc/libtdsS.so
+
+    - in /etc/odbc.ini, or ~/.odbc.ini
+
+        [crate_sqlserver_odbc]
+        description = "CRATE test SQL Server 2005 database on Wombat VMXP"
+        driver = FreeTDS
+        TDS_Version = 8.0
+        ; which TDS version setting is read, of the several possibilities? See http://stackoverflow.com/questions/13066716
+        server = 192.168.1.13
+        port = 1433
+
+    $ odbcinst -j  # print config information
+    $ odbcinst -q -d  # query drivers
+    $ odbcinst -q -s  # query data sources
+    $ ODBCManageDataSourcesQ4  # visual confirmation of everything
+
+6. Configure Django
+
+    - in settings.py:
+
+        'research': {
+            'ENGINE': 'sql_server.pyodbc',
+            'NAME': 'crate_sqlserver_db',
+            'USER': 'crate_user',
+            'PASSWORD': 'something',
+            'OPTIONS': {
+                'dsn': 'crate_sqlserver_odbc',
+            }
+        },
+
+    - should then work.

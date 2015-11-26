@@ -1,6 +1,9 @@
+freetds-bin
 graphviz
 libgraphviz-dev
 python3
 python3.4-dev
 rabbitmq-server
 supervisor
+tdsodbc
+unixodbc-bin

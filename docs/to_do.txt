@@ -1,3 +1,6 @@
+===============================================================================
+To do
+===============================================================================
 
 
 ===============================================================================
@@ -25,3 +28,7 @@ Known bugs elsewhere affecting CRATE
 - If you try to use django-debug-toolbar when proxying via a Unix domain
   socket, you need to use a custom INTERNAL_IPS setting; see the specimen
   config file.
+
+- SQL Server returns a rowcount of -1; this is normal.
+  https://code.google.com/p/pyodbc/wiki/Cursor
+
