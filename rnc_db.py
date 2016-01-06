@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 24 Sep 2015
+Last update: 6 Jan 2015
 
 Copyright/licensing:
 
@@ -722,7 +722,7 @@ class SQLServer(Flavour):
 # Exceptions
 # =============================================================================
 
-class NoDatabaseError(IOError):
+class NoDatabaseError(ConnectionError):
     """Exception class for when a database is unavailable."""
     def __init__(self, value=""):
         self.value = value
