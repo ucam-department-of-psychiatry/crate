@@ -336,7 +336,11 @@ def pdf_result(pdf_binary, extraheaders=[], filename=None):
     contenttype = 'application/pdf'
     if filename:
         contenttype += '; filename="{}"'.format(filename)
-    return (contenttype, extraheaders, str(pdf_binary))
+    # logger.debug("type(pdf_binary): {}".format(type(pdf_binary)))
+    if six.PY3:
+        return (contenttype, extraheaders, pdf_binary)
+    else:
+        return (contenttype, extraheaders, str(pdf_binary))
 
 
 def zip_result(zip_binary, extraheaders=[], filename=None):
@@ -348,7 +352,10 @@ def zip_result(zip_binary, extraheaders=[], filename=None):
     contenttype = 'application/zip'
     if filename:
         contenttype += '; filename="{}"'.format(filename)
-    return (contenttype, extraheaders, str(zip_binary))
+    if six.PY3:
+        return (contenttype, extraheaders, zip_binary)
+    else:
+        return (contenttype, extraheaders, str(zip_binary))
 
 
 def html_result(html, extraheaders=[]):
