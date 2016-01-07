@@ -47,6 +47,7 @@ BASE64_PNG_URL_PREFIX = "data:image/png;base64,"
 PNG_SIGNATURE_HEXSTRING = "89504E470D0A1A0A"
 # ... http://en.wikipedia.org/wiki/Portable_Network_Graphics#Technical_details
 PNG_SIGNATURE_HEX = binascii.unhexlify(PNG_SIGNATURE_HEXSTRING)
+# ... bytes in Python 3; str in Python 2
 
 
 # =============================================================================
@@ -308,7 +309,10 @@ def is_valid_png(blob):
 
 def get_png_data_url(blob):
     """Converts a PNG blob into a local URL encapsulating the PNG."""
-    return BASE64_PNG_URL_PREFIX + base64.b64encode(blob)
+    if six.PY3:
+        return BASE64_PNG_URL_PREFIX + base64.b64encode(blob).decode('ascii')
+    else:
+        return BASE64_PNG_URL_PREFIX + base64.b64encode(blob)
 
 
 def get_png_img_html(blob, extra_html_class=None):
