@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: 2012
-Last update: 24 Sep 2015
+Last update: 09 Jan 2016
 
 Copyright/licensing:
 
@@ -54,15 +54,18 @@ def send_email(sender,
                port=None,
                use_tls=True,
                content_type="text/plain",
-               attachment_filenames=[],
-               attachment_binaries=[],
-               attachment_binary_filenames=[],
+               attachment_filenames=None,
+               attachment_binaries=None,
+               attachment_binary_filenames=None,
                charset="utf8",
                verbose=False):
     """Sends an e-mail in text/html format using SMTP via TLS."""
     # http://segfault.in/2010/12/sending-gmail-from-python/
     # http://stackoverflow.com/questions/64505
     # http://stackoverflow.com/questions/3362600
+    attachment_filenames = attachment_filenames or []
+    attachment_binaries = attachment_binaries or []
+    attachment_binary_filenames = attachment_binary_filenames or []
     if port is None:
         port = 587 if use_tls else 25
     if content_type == "text/plain":
