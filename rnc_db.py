@@ -886,7 +886,7 @@ def dump_database_object(obj, fieldlist):
     logger.info(_LINE_EQUALS)
     logger.info(u"DUMP OF: {}".format(obj))
     for f in fieldlist:
-        logger.info(u"{f}: {v}".format(f=f, v=getattr(obj)))
+        logger.info(u"{f}: {v}".format(f=f, v=getattr(obj, f)))
     logger.info(_LINE_EQUALS)
 
 
