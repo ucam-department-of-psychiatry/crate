@@ -47,7 +47,6 @@ class DisableClientSideCachingMiddleware(object):
 
         def custom_start_response(status, headers, exc_info=None):
             add_never_cache_headers(headers)
-            print("headers: {}".format(headers))
             return start_response(status, headers, exc_info)
 
         return self.app(environ, custom_start_response)

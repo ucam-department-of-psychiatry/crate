@@ -71,6 +71,8 @@ def merge_dicts(*dict_args):
 # =============================================================================
 
 def convert_to_bool(x, default=None):
+    if isinstance(x, bool):
+        return x
     if not x:  # None, zero, blank string...
         return default
     try:
