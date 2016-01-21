@@ -89,7 +89,12 @@ def number_to_dp(number, dp, default="", en_dash_for_minus=True):
     for minus signs."""
     if number is None:
         return default
-    s = u"{:.{precision}f}".format(number, precision=dp)
+    if number == float("inf"):
+        return u"∞"
+    if number == float("-inf"):
+        s = u"-∞"
+    else:
+        s = u"{:.{precision}f}".format(number, precision=dp)
     if en_dash_for_minus:
         s = s.replace("-", u"–")  # hyphen becomes en dash for minus sign
     return s
