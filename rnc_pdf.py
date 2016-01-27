@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 06 Jan 2016
+Last update: 27 Jan 2016
 
 Copyright/licensing:
 
@@ -96,7 +96,16 @@ def pdf_from_html(html, header_html=None, footer_html=None,
         if _wkhtmltopdf_filename is None:
             config = None
         else:
-            config = pdfkit.configuration(wkhtmltopdf=_wkhtmltopdf_filename)
+            # config = pdfkit.configuration(wkhtmltopdf=_wkhtmltopdf_filename)
+            # Curiously, while pdfkit.configuration just copies the
+            # wkhtmltopdf parameter to self.wkhtmltopdf, the next stage, in
+            # pdfkit.pdfkit.PDFKit.__init__, uses
+            # self.wkhtmltopdf = self.configuration.wkhtmltopdf.decode('utf-8'),
+            # which then fails with
+            # AttributeError: 'str' object has no attribute 'decode'.
+            # So, it seems, we must pre-encode it...
+            config = pdfkit.configuration(
+                wkhtmltopdf=_wkhtmltopdf_filename.encode('utf-8'))
         # Temporary files that a subprocess can read:
         #   http://stackoverflow.com/questions/15169101
         # wkhtmltopdf requires its HTML files to have ".html" extensions:
