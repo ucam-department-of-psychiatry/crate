@@ -768,10 +768,12 @@ def get_sql_select_all_non_pk_fields_by_pk(table, fieldlist, delims=("", "")):
     """Returns SQL:
         SELECT [all but the first field] WHERE [the first field] = ?
     """
-    return "SELECT " + \
-        ",".join([delimit(x, delims) for x in fieldlist[1:]]) + \
-        " FROM " + table + \
+    return (
+        "SELECT " +
+        ",".join([delimit(x, delims) for x in fieldlist[1:]]) +
+        " FROM " + table +
         " WHERE " + delimit(fieldlist[0], delims) + "=?"
+    )
 
 
 def get_sql_select_all_fields_by_key(table, fieldlist, keyname,
@@ -779,20 +781,24 @@ def get_sql_select_all_fields_by_key(table, fieldlist, keyname,
     """Returns SQL:
         SELECT [all fields in the fieldlist] WHERE [keyname] = ?
     """
-    return "SELECT " + \
-        ",".join([delimit(x, delims) for x in fieldlist]) + \
-        " FROM " + delimit(table, delims) + \
+    return (
+        "SELECT " +
+        ",".join([delimit(x, delims) for x in fieldlist]) +
+        " FROM " + delimit(table, delims) +
         " WHERE " + delimit(keyname, delims) + "=?"
+    )
 
 
 def get_sql_insert(table, fieldlist, delims=("", "")):
     """Returns ?-marked SQL for an INSERT statement."""
-    return "INSERT INTO " + delimit(table, delims) + \
-        " (" + \
-        ",".join([delimit(x, delims) for x in fieldlist]) + \
-        ") VALUES (" + \
-        ",".join(["?"] * len(fieldlist)) + \
+    return (
+        "INSERT INTO " + delimit(table, delims) +
+        " (" +
+        ",".join([delimit(x, delims) for x in fieldlist]) +
+        ") VALUES (" +
+        ",".join(["?"] * len(fieldlist)) +
         ")"
+    )
 
 
 def get_sql_insert_or_update(table, fieldlist, delims=("", "")):
@@ -823,10 +829,12 @@ def get_sql_insert_without_first_field(table, fieldlist, delims=("", "")):
 def get_sql_update_by_first_field(table, fieldlist, delims=("", "")):
     """Returns SQL for an UPDATE statement, to update all fields except the
     first field (PK) using the PK as the key."""
-    return "UPDATE " + delimit(table, delims) + \
-        " SET " + \
-        ",".join([delimit(x, delims) + "=?" for x in fieldlist[1:]]) + \
+    return (
+        "UPDATE " + delimit(table, delims) +
+        " SET " +
+        ",".join([delimit(x, delims) + "=?" for x in fieldlist[1:]]) +
         " WHERE " + delimit(fieldlist[0], delims) + "=?"
+    )
 
 
 def sql_quote_string(s):
@@ -898,6 +906,31 @@ def assign_from_list(obj, fieldlist, valuelist):
                              "different length")
     for i in range(len(valuelist)):
         setattr(obj, fieldlist[i], valuelist[i])
+
+
+def create_object_from_list(cls, fieldlist, valuelist, *args, **kwargs):
+    """
+    Create an object by instantiating cls(*args, **kwargs) and assigning the
+    values in valuelist to the fields in fieldlist.
+    If construct_with_pk is True, initialize with
+        cls(valuelist[0], *args, **kwargs)
+    and assign the values in valuelist[1:] to fieldlist[1:].
+
+    Note: in Python 3 could define as
+        ...(... valuelist, *args, construct_with_pk=False, **kwargs):
+    but not in Python 2, and this is meant to be back-compatible.
+    """
+    construct_with_pk = kwargs.pop('construct_with_pk', False)
+    # print("construct_with_pk: {}".format(construct_with_pk))
+    # print("args: {}".format(args))
+    # print("kwargs: {}".format(kwargs))
+    if construct_with_pk:
+        obj = cls(valuelist[0], *args, **kwargs)
+        assign_from_list(obj, fieldlist[1:], valuelist[1:])
+    else:
+        obj = cls(*args, **kwargs)
+        assign_from_list(obj, fieldlist, valuelist)
+    return obj
 
 
 def blank_object(obj, fieldlist):
@@ -1789,6 +1822,36 @@ class DatabaseSupporter:
         return self.flavour.delims()
 
     # -------------------------------------------------------------------------
+    # Generic SQL manipulation
+    # -------------------------------------------------------------------------
+
+    def delimit(self, x):
+        """Delimits e.g. a fieldname."""
+        return delimit(x, self.get_delims())
+
+    def localize_sql(self, sql):
+        """Translates ?-placeholder SQL to appropriate dialect.
+
+        For example, MySQLdb uses %s rather than ?.
+        """
+        # pyodbc seems happy with ? now (pyodbc.paramstyle is 'qmark');
+        # using ? is much simpler, because we may want to use % with LIKE
+        # fields or (in my case) with date formatting strings for
+        # STR_TO_DATE().
+        # If you get this wrong, you may see "not all arguments converted
+        # during string formatting";
+        # http://stackoverflow.com/questions/9337134
+        if self.db_pythonlib in [PYTHONLIB_PYMYSQL, PYTHONLIB_MYSQLDB]:
+            # These engines use %, so we need to convert ? to %, without
+            # breaking literal % values.
+            sql = _PERCENT_REGEX.sub("%%", sql)
+            # ... replace all % with %% first
+            sql = _QUERY_VALUE_REGEX.sub("%s", sql)
+            # ... replace all ? with %s in the SQL
+        # Otherwise: engine uses ?, so we don't have to fiddle.
+        return sql
+
+    # -------------------------------------------------------------------------
     # Generic SQL and database operations
     # CONVENTION: PK is the first field in the fieldlist
     # Thus fieldlist[0] means the PK name,
@@ -1804,9 +1867,10 @@ class DatabaseSupporter:
         if self.db is None:
             raise NoDatabaseError("Database not open")
 
-    def delimit(self, x):
-        """Delimits e.g. a fieldname."""
-        return delimit(x, self.get_delims())
+    def cursor(self):
+        """Returns database cursor, or raises NoDatabaseError."""
+        self.ensure_db_open()
+        return self.db.cursor()
 
     def commit(self):
         """Commits the transaction."""
@@ -2073,27 +2137,38 @@ class DatabaseSupporter:
             logger.exception("fetch_fieldnames: SQL was: " + sql)
             raise
 
-    def localize_sql(self, sql):
-        """Translates ?-placeholder SQL to appropriate dialect.
+    def count_where(self, table, wheredict=None):
+        """Counts rows in a table, given a set of WHERE criteria (ANDed),
+        returning a count."""
+        sql = "SELECT COUNT(*) FROM " + self.delimit(table)
+        if wheredict is not None:
+            sql += " WHERE " + " AND ".join([
+                self.delimit(k) + "=?"
+                for k in wheredict.keys()
+            ])
+            whereargs = wheredict.values()
+            count = self.fetchone(sql, *whereargs)[0]
+        else:
+            count = self.fetchone(sql)[0]
+        return count
 
-        For example, MySQLdb uses %s rather than ?.
-        """
-        # pyodbc seems happy with ? now (pyodbc.paramstyle is 'qmark');
-        # using ? is much simpler, because we may want to use % with LIKE
-        # fields or (in my case) with date formatting strings for
-        # STR_TO_DATE().
-        # If you get this wrong, you may see "not all arguments converted
-        # during string formatting";
-        # http://stackoverflow.com/questions/9337134
-        if self.db_pythonlib in [PYTHONLIB_PYMYSQL, PYTHONLIB_MYSQLDB]:
-            # These engines use %, so we need to convert ? to %, without
-            # breaking literal % values.
-            sql = _PERCENT_REGEX.sub("%%", sql)
-            # ... replace all % with %% first
-            sql = _QUERY_VALUE_REGEX.sub("%s", sql)
-            # ... replace all ? with %s in the SQL
-        # Otherwise: engine uses ?, so we don't have to fiddle.
-        return sql
+    def does_row_exist(self, table, field, value):
+        """Checks for the existence of a record by a single field (typically a
+        PK)."""
+        sql = ("SELECT COUNT(*) FROM " + self.delimit(table)
+               + " WHERE " + self.delimit(field) + "=?")
+        row = self.fetchone(sql, value)
+        return True if row[0] >= 1 else False
+
+    def delete_by_field(self, table, field, value):
+        """Deletes all records where "field" is "value"."""
+        sql = ("DELETE FROM " + self.delimit(table)
+               + " WHERE " + self.delimit(field) + "=?")
+        return self.db_exec(sql, value)
+
+    # -------------------------------------------------------------------------
+    # Object-based operations
+    # -------------------------------------------------------------------------
 
     def fetch_object_from_db_by_pk(self, obj, table, fieldlist, pkvalue):
         """Fetches object from database table by PK value. Writes back to
@@ -2149,6 +2224,8 @@ class DatabaseSupporter:
             objarray.append(obj)
         return objarray
 
+    # INEFFICIENT - two-stage fetch - superseded
+    '''
     def fetch_all_objects_from_db_where(self, cls, table, fieldlist,
                                         construct_with_pk, wheredict, *args):
         """Fetches all objects from a table, given a set of WHERE criteria
@@ -2167,21 +2244,33 @@ class DatabaseSupporter:
             pklist = self.fetchallfirstvalues(sql)
         return self.fetch_all_objects_from_db_by_pklist(
             cls, table, fieldlist, pklist, construct_with_pk, *args)
+    '''
 
-    def count_where(self, table, wheredict=None):
-        """Counts rows in a table, given a set of WHERE criteria (ANDed),
-        returning a count."""
-        sql = "SELECT COUNT(*) FROM " + self.delimit(table)
+    def fetch_all_objects_from_db_where(self, cls, table, fieldlist,
+                                        construct_with_pk, wheredict, *args):
+        """
+        Fetches all objects from a table, given a set of WHERE criteria
+        (ANDed), returning an array of objects of class cls.
+        As usual here, the first field in the fieldlist must be the PK.
+        """
+        sql = (
+            "SELECT " + ",".join([self.delimit(x) for x in fieldlist]) +
+            " FROM " + self.delimit(table)
+        )
+        whereargs = []
         if wheredict is not None:
             sql += " WHERE " + " AND ".join([
                 self.delimit(k) + "=?"
                 for k in wheredict.keys()
             ])
             whereargs = wheredict.values()
-            count = self.fetchone(sql, *whereargs)[0]
-        else:
-            count = self.fetchone(sql)[0]
-        return count
+        rows = self.fetchall(sql, *whereargs)
+        objects = []
+        for row in rows:
+            objects.append(
+                create_object_from_list(cls, fieldlist, row, *args,
+                                        construct_with_pk=construct_with_pk))
+        return objects
 
     def insert_object_into_db_pk_known(self, obj, table, fieldlist):
         """Inserts object into database table, with PK (first field) already
@@ -2233,11 +2322,6 @@ class DatabaseSupporter:
             *valuelist
         )
 
-    def cursor(self):
-        """Returns database cursor, or raises NoDatabaseError."""
-        self.ensure_db_open()
-        return self.db.cursor()
-
     def save_object_to_db(self, obj, table, fieldlist, is_new_record):
         """Saves a object to the database, inserting or updating as
         necessary."""
@@ -2250,23 +2334,10 @@ class DatabaseSupporter:
         else:
             self.update_object_in_db(obj, table, fieldlist)
 
-    def does_row_exist(self, table, field, value):
-        """Checks for the existence of a record by a single field (typically a
-        PK)."""
-        sql = ("SELECT COUNT(*) FROM " + self.delimit(table)
-               + " WHERE " + self.delimit(field) + "=?")
-        row = self.fetchone(sql, value)
-        return True if row[0] >= 1 else False
-
-    def delete_by_field(self, table, field, value):
-        """Deletes all records where "field" is "value"."""
-        sql = ("DELETE FROM " + self.delimit(table)
-               + " WHERE " + self.delimit(field) + "=?")
-        return self.db_exec(sql, value)
-
     # -------------------------------------------------------------------------
-    # Index
+    # Indexes
     # -------------------------------------------------------------------------
+
     def index_exists(self, table, indexname):
         """Does an index exist? (Specific to MySQL.)"""
         # MySQL:

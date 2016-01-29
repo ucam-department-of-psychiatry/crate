@@ -100,7 +100,8 @@ def pdf_from_html(html, header_html=None, footer_html=None,
             # Curiously, while pdfkit.configuration just copies the
             # wkhtmltopdf parameter to self.wkhtmltopdf, the next stage, in
             # pdfkit.pdfkit.PDFKit.__init__, uses
-            # self.wkhtmltopdf = self.configuration.wkhtmltopdf.decode('utf-8'),
+            # self.wkhtmltopdf = \
+            #       self.configuration.wkhtmltopdf.decode('utf-8'),
             # which then fails with
             # AttributeError: 'str' object has no attribute 'decode'.
             # So, it seems, we must pre-encode it...
