@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 24 Sep 2015
+Last update: 27 Jan 2016
 
 Copyright/licensing:
 
@@ -67,11 +67,11 @@ def set_processor(new_processor=WEASYPRINT, wkhtmltopdf_filename=None):
     _wkhtmltopdf_filename = wkhtmltopdf_filename
     logger.info("PDF processor set to: " + processor)
 
-
 def pdf_from_html(html, header_html=None, footer_html=None,
-                  wkhtmltopdf_options=None):
+                  wkhtmltopdf_options=None, file_encoding="utf-8"):
     """
-    Takes HTML and returns a PDF (as a buffer).
+    Takes HTML and returns a PDF (as a buffer in Python 2, or a memoryview
+    in Python 3).
     For engines not supporting CSS Paged Media - meaning, here, wkhtmltopdf -
     the header_html and footer_html options allow you to pass appropriate HTML
     content to serve as the header/footer (rather than passing it within the
@@ -95,7 +95,17 @@ def pdf_from_html(html, header_html=None, footer_html=None,
         if _wkhtmltopdf_filename is None:
             config = None
         else:
-            config = pdfkit.configuration(wkhtmltopdf=_wkhtmltopdf_filename)
+            # config = pdfkit.configuration(wkhtmltopdf=_wkhtmltopdf_filename)
+            # Curiously, while pdfkit.configuration just copies the
+            # wkhtmltopdf parameter to self.wkhtmltopdf, the next stage, in
+            # pdfkit.pdfkit.PDFKit.__init__, uses
+            # self.wkhtmltopdf = \
+            #       self.configuration.wkhtmltopdf.decode('utf-8'),
+            # which then fails with
+            # AttributeError: 'str' object has no attribute 'decode'.
+            # So, it seems, we must pre-encode it...
+            config = pdfkit.configuration(
+                wkhtmltopdf=_wkhtmltopdf_filename.encode('utf-8'))
         # Temporary files that a subprocess can read:
         #   http://stackoverflow.com/questions/15169101
         # wkhtmltopdf requires its HTML files to have ".html" extensions:
@@ -107,19 +117,23 @@ def pdf_from_html(html, header_html=None, footer_html=None,
                 if not wkhtmltopdf_options:
                     wkhtmltopdf_options = {}
                 h_fd, h_filename = tempfile.mkstemp(suffix='.html')
-                os.write(h_fd, header_html)
+                os.write(h_fd, header_html.encode(file_encoding))
                 os.close(h_fd)
                 wkhtmltopdf_options["header-html"] = h_filename
             if footer_html:
                 if not wkhtmltopdf_options:
                     wkhtmltopdf_options = {}
                 f_fd, f_filename = tempfile.mkstemp(suffix='.html')
-                os.write(f_fd, footer_html)
+                os.write(f_fd, footer_html.encode(file_encoding))
                 os.close(f_fd)
                 wkhtmltopdf_options["footer-html"] = f_filename
             kit = pdfkit.pdfkit.PDFKit(html, 'string', configuration=config,
                                        options=wkhtmltopdf_options)
             return kit.to_pdf(path=None)
+            # With "path=None", the to_pdf() function directly returns stdout
+            # from a subprocess.Popen().communicate() call (see pdfkit.py).
+            # Since universal_newlines is not set, stdout will be bytes in
+            # Python 3.
         finally:
             if h_filename:
                 os.remove(h_filename)

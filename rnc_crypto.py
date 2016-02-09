@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 24 Sep 2015
+Last update: 6 Jan 2016
 
 Copyright/licensing:
 
@@ -26,8 +26,11 @@ Copyright/licensing:
 
 import base64
 import bcrypt  # PYTHON 2/UBUNTU: sudo apt-get install python-bcrypt  // PYTHON3/UBUNTU: sudo apt-get install python3-bcrypt  # noqa
-import Crypto.Random  # sudo pip install pycrypto
+# import Crypto.Random  # sudo pip install pycrypto
 import hashlib
+import os
+
+import six
 
 
 # =============================================================================
@@ -39,13 +42,18 @@ BCRYPT_DEFAULT_LOG_ROUNDS = 12  # bcrypt default; work factor is 2^this.
 
 def create_base64encoded_randomness(num_bytes):
     """Create num_bytes of random data.
-
     Result is encoded in a string with URL-safe base64 encoding.
     Used (for example) to generate session tokens.
+    Which generator to use? See
+        https://cryptography.io/en/latest/random-numbers/
     """
-    # randbytes = M2Crypto.m2.rand_bytes(num_bytes)
-    randbytes = Crypto.Random.get_random_bytes(num_bytes)
-    return base64.urlsafe_b64encode(randbytes)
+    # NO # randbytes = M2Crypto.m2.rand_bytes(num_bytes)
+    # NO # randbytes = Crypto.Random.get_random_bytes(num_bytes)
+    randbytes = os.urandom(num_bytes)  # YES
+    if six.PY3:
+        return base64.urlsafe_b64encode(randbytes).decode('ascii')
+    else:
+        return base64.urlsafe_b64encode(randbytes)
 
 # http://crackstation.net/hashing-security.htm
 # http://www.mindrot.org/projects/py-bcrypt/
