@@ -11,12 +11,17 @@ from django.db import OperationalError, ProgrammingError
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from core.dbfunc import dictlist_to_tsv, get_fieldnames_from_cursor
+from core.dbfunc import (
+    dictlist_to_tsv,
+    escape_sql_string_literal,
+    get_fieldnames_from_cursor,
+)
 from core.utils import is_superuser, paginate
 from .forms import (
     AddHighlightForm,
-    PidLookupForm,
     AddQueryForm,
+    PidLookupForm,
+    SQLHelperTextAnywhereForm,
 )
 from .html_functions import (
     highlight_text,
@@ -223,19 +228,13 @@ def pidlookup(request):
     """
     Look up PID information from RID information.
     """
-    if request.method == 'POST':
-        form = PidLookupForm(request.POST)
-        if form.is_valid():
-            trids = form.cleaned_data['trids']
-            rids = form.cleaned_data['rids']
-            mrids = form.cleaned_data['mrids']
-            return render_lookup(request, trids=trids, rids=rids, mrids=mrids)
-
-    form = PidLookupForm()
-    context = {
-        'form': form,
-    }
-    return render(request, 'pid_lookup_form.html', context)
+    form = PidLookupForm(request.POST or None)
+    if form.is_valid():
+        trids = form.cleaned_data['trids']
+        rids = form.cleaned_data['rids']
+        mrids = form.cleaned_data['mrids']
+        return render_lookup(request, trids=trids, rids=rids, mrids=mrids)
+    return render(request, 'pid_lookup_form.html', {'form': form})
 
 
 # =============================================================================
@@ -428,3 +427,54 @@ def structure_tsv(request):
     infodictlist = research_database_info.infodictlist
     tsv = dictlist_to_tsv(infodictlist)
     return HttpResponse(tsv, content_type='text/csv')
+
+
+# =============================================================================
+# SQL helpers
+# =============================================================================
+
+def sqlhelper_text_anywhere(request):
+    # When you forget, go back to:
+    # http://www.slideshare.net/pydanny/advanced-django-forms-usage
+    default_values = {
+        'fkname': settings.SECRET_MAP['RID_FIELD'],
+        'min_length': 50,
+        'use_fulltext_index': True,
+    }
+    form = SQLHelperTextAnywhereForm(request.POST or default_values)
+    if form.is_valid():
+        fkname = form.cleaned_data['fkname']
+        min_length = form.cleaned_data['min_length']
+        use_fulltext_index = form.cleaned_data['use_fulltext_index']
+        fragment = escape_sql_string_literal(form.cleaned_data['fragment'])
+        table_queries = []
+        tables = research_database_info.tables_containing_field(fkname)
+        if not tables:
+            return HttpResponse(
+                "No tables containing fieldname: {}".format(fkname))
+        for (schema, table) in tables:
+            elements = []
+            columns = research_database_info.text_columns(
+                schema, table, min_length)
+            for column_name, indexed_fulltext in columns:
+                if indexed_fulltext and use_fulltext_index:
+                    element = "MATCH({column}) AGAINST ('{fragment}')".format(
+                        column=column_name, fragment=fragment)
+                else:
+                    element = "{column} LIKE '%{fragment}%'".format(
+                        column=column_name, fragment=fragment)
+                elements.append(element)
+            table_query = (
+                "SELECT {fkname} FROM {schema}.{table} WHERE ("
+                "\n    {elements}\n)".format(
+                    fkname=fkname,
+                    schema=schema,
+                    table=table,
+                    elements="\n    OR ".join(elements),
+                )
+            )
+            table_queries.append(table_query)
+        sql = "\nUNION\n".join(table_queries)
+        return HttpResponse(sql, content_type='text/plain')
+
+    return render(request, 'sqlhelper_form_text_anywhere.html', {'form': form})

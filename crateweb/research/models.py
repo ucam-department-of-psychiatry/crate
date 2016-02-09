@@ -10,8 +10,9 @@ import logging
 logger = logging.getLogger(__name__)
 from core.dbfunc import (
     dictfetchall,
-    escape_percent,
+    escape_percent_for_python_dbapi,
     get_fieldnames_from_cursor,
+    is_mysql_column_type_textual,
     translate_sql_qmark_to_percent,
     tsv_escape,
 )
@@ -138,7 +139,7 @@ class Query(models.Model):
         or as escaped raw SQL.
         """
         if self.raw:
-            sql = escape_percent(self.sql)
+            sql = escape_percent_for_python_dbapi(self.sql)
             args = None
         else:
             if self.qmark:
@@ -291,8 +292,9 @@ class ResearchDatabaseInfo(object):
     """
     @cached_property
     def infodictlist(self):
-        logger.debug("Fetching/caching database structure")
         schemas = settings.RESEARCH_DB_INFO_SCHEMAS
+        logger.debug("Fetching/caching database structure "
+                     "(for schemas: {})...".format(", ".join(schemas)))
         sql = translate_sql_qmark_to_percent("""
             SELECT
                 c.table_schema,
@@ -318,7 +320,8 @@ class ResearchDatabaseInfo(object):
                 ) AS indexed_fulltext
             FROM
                 information_schema.columns c
-            WHERE c.table_schema IN ({schema_placeholder})
+            WHERE
+                c.table_schema IN ({schema_placeholder})
             ORDER BY
                 c.table_schema,
                 c.table_name,
@@ -331,12 +334,58 @@ class ResearchDatabaseInfo(object):
         # since this is a system rather than a per-user query.
         cursor = connections['research'].cursor()
         cursor.execute(sql, args)
-        return dictfetchall(cursor)
+        results = dictfetchall(cursor)
+        logger.debug("... done")
+        return results
         # Multiple values:
         # - Don't circumvent the parameter protection against SQL injection.
         # - Too much hassle to use Django's ORM model here, though that would
         #   also be possible.
         # - http://stackoverflow.com/questions/907806
+
+    def tables_containing_field(self, fieldname):
+        """
+        Returns a list of [schema, table] pairs.
+        """
+        schemas = settings.RESEARCH_DB_INFO_SCHEMAS
+        sql = translate_sql_qmark_to_percent("""
+            SELECT
+                c.table_schema,
+                c.table_name
+            FROM
+                information_schema.columns c
+            WHERE
+                c.table_schema IN ({schema_placeholder})
+                AND c.column_name = ?
+            ORDER BY
+                c.table_schema,
+                c.table_name
+
+        """.format(
+            schema_placeholder=",".join(["?"] * len(schemas)),
+        ))
+        args = schemas + [fieldname]
+        cursor = connections['research'].cursor()
+        cursor.execute(sql, args)
+        return cursor.fetchall()
+
+    def text_columns(self, schema, table, min_length=1):
+        """
+        Returns list of (column_name, indexed_fulltext) pairs.
+        """
+        results = []
+        for rowdict in self.infodictlist:
+            if rowdict['table_schema'] != schema:
+                continue
+            if rowdict['table_name'] != table:
+                continue
+            column_type = rowdict['column_type']
+            if not is_mysql_column_type_textual(column_type, min_length):
+                continue
+            column_name = rowdict['column_name']
+            indexed_fulltext = rowdict['indexed_fulltext']
+            results.append((column_name, indexed_fulltext))
+        return results
 
 
 research_database_info = ResearchDatabaseInfo()

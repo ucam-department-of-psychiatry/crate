@@ -4,13 +4,44 @@
 from collections import OrderedDict
 # import logging
 # logger = logging.getLogger(__name__)
+import re
+
+COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
+# ... start, group(alphabetical), literal (, group(digit), literal ), end
 
 
-def escape_percent(sql):
+def escape_quote_in_literal(s):
+    """
+    Escape '. We could use '' or \'.
+    Let's use \. for consistency with percent escaping.
+    """
+    return s.replace("'", r"\'")
+
+
+def escape_percent_in_literal(sql):
+    """
+    Escapes % by converting it to \%.
+    Use this for LIKE clauses.
+    http://dev.mysql.com/doc/refman/5.7/en/string-literals.html
+    """
+    return sql.replace('%', r'\%')
+
+
+def escape_percent_for_python_dbapi(sql):
     """
     Escapes % by converting it to %%.
+    Use this for SQL within Python where % characters are used for argument
+    placeholders.
     """
     return sql.replace('%', '%%')
+
+
+def escape_sql_string_literal(s):
+    """
+    Escapes SQL string literal fragments against quotes and parameter
+    substitution.
+    """
+    return escape_percent_in_literal(escape_quote_in_literal(s))
 
 
 def translate_sql_qmark_to_percent(sql):
@@ -22,7 +53,7 @@ def translate_sql_qmark_to_percent(sql):
     # ... https://docs.djangoproject.com/en/1.8/topics/db/sql/
     # I prefer ?, because % is used in LIKE clauses.
     # 1. Escape % characters
-    sql = escape_percent(sql)
+    sql = escape_percent_for_python_dbapi(sql)
     # 2. Replace ? characters that are not within quotes with %s.
     newsql = ""
     in_quotes = False
@@ -117,3 +148,16 @@ def dictlist_to_tsv(dictlist):
     for d in dictlist:
         tsv += "\t".join([tsv_escape(v) for v in d.values()]) + "\n"
     return tsv
+
+
+def is_mysql_column_type_textual(column_type, min_length=1):
+    column_type = column_type.upper()
+    if column_type == 'TEXT':
+        return True
+    try:
+        m = COLTYPE_WITH_ONE_INTEGER_REGEX.match(column_type)
+        basetype = m.group(1)
+        length = int(m.group(2))
+    except (AttributeError, ValueError):
+        return False
+    return length >= min_length and basetype in ['CHAR', 'VARCHAR']

@@ -13,6 +13,7 @@ from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.views.debug import technical_500_response
+from django.utils.cache import add_never_cache_headers
 
 
 # =============================================================================
@@ -150,3 +151,14 @@ class LoginRequiredMiddleware:
         fullpath = request.get_full_path()
         return redirect_to_login(fullpath, reverse(settings.LOGIN_VIEW_NAME),
                                  REDIRECT_FIELD_NAME)
+
+
+# =============================================================================
+# DisableClientSideCachingMiddleware
+# =============================================================================
+# http://stackoverflow.com/questions/2095520/fighting-client-side-caching-in-django  # noqa
+
+class DisableClientSideCachingMiddleware(object):
+    def process_response(self, request, response):
+        add_never_cache_headers(response)
+        return response

@@ -3,7 +3,12 @@
 
 from django import forms
 from django.conf import settings
-from django.forms import ModelForm
+from django.forms import (
+    BooleanField,
+    CharField,
+    IntegerField,
+    ModelForm,
+)
 from extra.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
@@ -44,4 +49,16 @@ class PidLookupForm(forms.Form):
         required=False)
     mrids = MultipleWordAreaField(
         label='{} (MRID)'.format(settings.SECRET_MAP['MASTER_RID_FIELD']),
+        required=False)
+
+
+class SQLHelperTextAnywhereForm(forms.Form):
+    fkname = CharField(label="Field name containing patient ID", required=True)
+    min_length = IntegerField(
+        label="Minimum length of textual field (suggest e.g. 50)",
+        min_value=1, required=True)
+    fragment = CharField(label="String fragment to find", required=True)
+    use_fulltext_index = BooleanField(
+        label="Use full-text indexing where available "
+        "(faster, but requires whole words)",
         required=False)

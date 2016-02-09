@@ -62,6 +62,7 @@ MIDDLEWARE_CLASSES = (
     # Additional:
     'extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
     'extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
+    'extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
     'core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
 )
 

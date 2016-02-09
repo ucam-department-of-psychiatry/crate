@@ -6,17 +6,31 @@
 - Operates a GATE natural language processing (NLP) pipeline.
 - Includes a tool to audit all MySQL queries (with user details) via a TCP
   proxy.
+- Web app for
+  - querying the anonymised database
+  - managing a consent-to-contact process
 
 ## Directory structure with key files
+
 - `anonymise/`
   - **`anonymise.py`** &ndash; core program
-  - `anon_*.py`: subsidiary classes for anonymiser
   - `launch_makedata.sh` &ndash; launcher for make_demo_database.py
   - `launch_multiprocess_anonymiser.sh` &ndash; parallel processing
     (multiprocess) launcher for anonymise.py
   - `make_demo_database.py` &ndash; creates a demonstration database
   - `test_anonymisation.py` &ndash; generates a comparison of records between
     source and destination databases, to check anonymisation.
+
+- `bug_reports/` &ndash; relating to bugs in others' code
+
+- `built_packages/` &ndash; workspace to store new Debian package files
+
+- **`crateweb/`** &ndash; Django web application, as above
+
+- `ditched/` &ndash; ignored
+
+- **`docs/`** &ndash; documentation
+
 - `mysql_auditor/` &ndash; auditing tool for MySQL
   - `mysql_auditor.conf` &ndash; sample configuration file; edit for your own
     needs.
@@ -28,6 +42,7 @@
   - `query_auditor_mysqlproxy.lua` &ndash; Lua script that implements the
     auditor; this is used by the external mysql-proxy tool; its output is to
     stdout/stderr.
+
 - `nlp_manager/` &ndash; NLP interface tool
   - `buildjava.sh` &ndash; script to compile the necessary Java source on your
     machine
@@ -41,26 +56,24 @@
     CamAnonGatePipeline.java to communicate with the NLP app
   - `runjavademo.sh` &ndash; directly executes CamAnonGatePipeline using the
     ANNIE demo GATE app, for testing
+
 - `pythonlib/` &ndash; common RNC python libraries (a Git subtree)
+
+- `tools/`
+  - **`install_virtualenv.sh`** &ndash; creates a suitable virtualenv for CRATE
   - ...
-- `webfrontend/` &ndash; incomplete code for a WSGI web application to serve
-  the data dictionary and SQL query results
-  - ...
+
 - `working/` &ndash; ignored
-  - ...
-- `estimate_mysql_memory_usage.sh` &ndash; script to estimate memory usage by a
-  MySQL instance
+
+- `changelog.Debian` &ndash; Debian package changelog and general version history
 - `LICENCE` &ndash; Apache license applicable to CRATE
-- `LINT_CHECK` &ndash; script to check all Python code with pyflakes
-- `notes.txt` &ndash; development notes
-- `PEP8_CHECK` &ndash; script to check all Python code with pep8
-- **`pipeline.txt`** &ndash; description of data pipeline
-- `PUSH_EVERYTHING` &ndash; script to push to Github etc.
-- **`README.md`** &ndash; this file
-- `SET_PATHS.sh` &ndash; execute with `'. SET_PATHS.sh'` to set PYTHONPATH
-  and Java CLASSPATH environment variables
+- `README.md` &ndash; this file
+- `requirements.txt` &ndash; Python PIP requirements
+- `requirements-ubuntu.txt` &ndash; Ubuntu/Debian package requirements
+- `VERSION.txt` &ndash; package version number, read by package build script
 
 ## Copyright/licensing
+
 - CRATE: copyright &copy; 2015-2015 Rudolf Cardinal (rudolf@pobox.com).
 - Licensed under the Apache License, version 2.0: see LICENSE file.
 - Third-party code/libraries included:

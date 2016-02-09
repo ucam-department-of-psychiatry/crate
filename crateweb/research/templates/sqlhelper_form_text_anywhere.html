@@ -1,0 +1,22 @@
+{# pid_lookup_form.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Create SQL fragment: Find text anywhere</h1>
+
+    <div>Enter a fragment of text. SQL will be generated to find it in any
+    of the text fields present in the database. The LIKE operator will be used
+    for plain text fields, and an appropriate faster method will be used for
+    fields having a free-text index.</div>
+
+    <form action="{% url 'sqlhelper_text_anywhere' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Make SQL" />
+    </form>
+
+{% endblock %}

@@ -97,7 +97,7 @@ MAKE_USER=false  # not working properly yet
 MAKE_GROUP=false
 
 DEFAULT_GUNICORN_PORT=8005
-DEFAULT_GUNICORN_SOCKET_FILE=/tmp/.crate_gunicorn.sock  # must be writable by CRATE_USER
+DEFAULT_GUNICORN_SOCKET=/tmp/.crate_gunicorn.sock  # must be writable by CRATE_USER
 # http://unix.stackexchange.com/questions/88083/idiomatic-location-for-file-based-sockets-on-debian-systems
 
 #------------------------------------------------------------------------------
@@ -553,8 +553,8 @@ OPTIMAL: proxy Apache through to Gunicorn
         #    ... or, better, via socket $DEFAULT_GUNICORN_SOCKET
         # NOTES
         # - Don't specify trailing slashes.
-        #   If you do, http://host/crate will fail though
-        #   http://host/crate/ will succeed.
+        #   If you do, http://host/crate will fail though;
+        #              http://host/crate/ will succeed.
         # - Using a socket
         #   - this requires Apache 2.4.9, and passes after the '|' character a
         #     URL that determines the Host: value of the request; see

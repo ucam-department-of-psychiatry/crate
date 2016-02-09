@@ -28,6 +28,13 @@ import consent.views
 import research.views
 import userprofile.views
 
+# This is the place for one-time startup code.
+# http://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only
+# So we cache things here that we don't want the user to have to wait for:
+from research.models import research_database_info
+research_database_info.infodictlist
+
+
 urlpatterns = [
     # -------------------------------------------------------------------------
     # Login, other authentication/password stuff
@@ -83,6 +90,12 @@ urlpatterns = [
         name='structure_table_paginated'),
     url(r'^structure_tsv/$', research.views.structure_tsv,
         name='structure_tsv'),
+
+    # -------------------------------------------------------------------------
+    # SQL helpers
+    # -------------------------------------------------------------------------
+    url(r'^sqlhelper_text_anywhere/$', research.views.sqlhelper_text_anywhere,
+        name='sqlhelper_text_anywhere'),
 
     # -------------------------------------------------------------------------
     # Researcher consent functions
