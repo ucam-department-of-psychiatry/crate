@@ -25,6 +25,10 @@ Copyright/licensing:
 """
 
 import importlib
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+# logger.setLevel(logging.DEBUG)
 import pkgutil
 import six
 from six.moves import range
@@ -71,6 +75,8 @@ def merge_dicts(*dict_args):
 # =============================================================================
 
 def convert_to_bool(x, default=None):
+    if isinstance(x, bool):
+        return x
     if not x:  # None, zero, blank string...
         return default
     try:
@@ -165,6 +171,7 @@ def import_submodules(package, recursive=True):
     results = {}
     for loader, name, is_pkg in pkgutil.walk_packages(package.__path__):
         full_name = package.__name__ + '.' + name
+        logger.debug("importing: {}".format(full_name))
         results[full_name] = importlib.import_module(full_name)
         if recursive and is_pkg:
             results.update(import_submodules(full_name))

@@ -30,7 +30,7 @@ import sys
 if sys.version_info > (3,):
     buffer = memoryview
 
-import rnc_web
+from . import rnc_web
 
 
 # =============================================================================

@@ -5,7 +5,7 @@
 
 Author: Rudolf Cardinal (rudolf@pobox.com)
 Created: October 2012
-Last update: 24 Sep 2015
+Last update: 09 Jan 2016
 
 Copyright/licensing:
 
@@ -47,6 +47,7 @@ BASE64_PNG_URL_PREFIX = "data:image/png;base64,"
 PNG_SIGNATURE_HEXSTRING = "89504E470D0A1A0A"
 # ... http://en.wikipedia.org/wiki/Portable_Network_Graphics#Technical_details
 PNG_SIGNATURE_HEX = binascii.unhexlify(PNG_SIGNATURE_HEXSTRING)
+# ... bytes in Python 3; str in Python 2
 
 
 # =============================================================================
@@ -88,7 +89,12 @@ def number_to_dp(number, dp, default="", en_dash_for_minus=True):
     for minus signs."""
     if number is None:
         return default
-    s = u"{:.{precision}f}".format(number, precision=dp)
+    if number == float("inf"):
+        return u"∞"
+    if number == float("-inf"):
+        s = u"-∞"
+    else:
+        s = u"{:.{precision}f}".format(number, precision=dp)
     if en_dash_for_minus:
         s = s.replace("-", u"–")  # hyphen becomes en dash for minus sign
     return s
@@ -308,7 +314,10 @@ def is_valid_png(blob):
 
 def get_png_data_url(blob):
     """Converts a PNG blob into a local URL encapsulating the PNG."""
-    return BASE64_PNG_URL_PREFIX + base64.b64encode(blob)
+    if six.PY3:
+        return BASE64_PNG_URL_PREFIX + base64.b64encode(blob).decode('ascii')
+    else:
+        return BASE64_PNG_URL_PREFIX + base64.b64encode(blob)
 
 
 def get_png_img_html(blob, extra_html_class=None):
@@ -327,8 +336,9 @@ def get_png_img_html(blob, extra_html_class=None):
 #   http://stackoverflow.com/questions/151079
 #   http://greenbytes.de/tech/tc2231/#inlwithasciifilenamepdf
 
-def pdf_result(pdf_binary, extraheaders=[], filename=None):
+def pdf_result(pdf_binary, extraheaders=None, filename=None):
     """Returns (contenttype, extraheaders, data) tuple for a PDF."""
+    extraheaders = extraheaders or []
     if filename:
         extraheaders.append(
             ('content-disposition', 'inline; filename="{}"'.format(filename))
@@ -336,11 +346,16 @@ def pdf_result(pdf_binary, extraheaders=[], filename=None):
     contenttype = 'application/pdf'
     if filename:
         contenttype += '; filename="{}"'.format(filename)
-    return (contenttype, extraheaders, str(pdf_binary))
+    # logger.debug("type(pdf_binary): {}".format(type(pdf_binary)))
+    if six.PY3:
+        return (contenttype, extraheaders, pdf_binary)
+    else:
+        return (contenttype, extraheaders, str(pdf_binary))
 
 
-def zip_result(zip_binary, extraheaders=[], filename=None):
+def zip_result(zip_binary, extraheaders=None, filename=None):
     """Returns (contenttype, extraheaders, data) tuple for a ZIP."""
+    extraheaders = extraheaders or []
     if filename:
         extraheaders.append(
             ('content-disposition', 'inline; filename="{}"'.format(filename))
@@ -348,21 +363,27 @@ def zip_result(zip_binary, extraheaders=[], filename=None):
     contenttype = 'application/zip'
     if filename:
         contenttype += '; filename="{}"'.format(filename)
-    return (contenttype, extraheaders, str(zip_binary))
+    if six.PY3:
+        return (contenttype, extraheaders, zip_binary)
+    else:
+        return (contenttype, extraheaders, str(zip_binary))
 
 
-def html_result(html, extraheaders=[]):
+def html_result(html, extraheaders=None):
     """Returns (contenttype, extraheaders, data) tuple for UTF-8 HTML."""
+    extraheaders = extraheaders or []
     return ('text/html; charset=utf-8', extraheaders, html.encode("utf-8"))
 
 
-def xml_result(xml, extraheaders=[]):
+def xml_result(xml, extraheaders=None):
     """Returns (contenttype, extraheaders, data) tuple for UTF-8 XML."""
+    extraheaders = extraheaders or []
     return ('text/xml; charset=utf-8', extraheaders, xml.encode("utf-8"))
 
 
-def text_result(text, extraheaders=[], filename=None):
+def text_result(text, extraheaders=None, filename=None):
     """Returns (contenttype, extraheaders, data) tuple for UTF-8 text."""
+    extraheaders = extraheaders or []
     if filename:
         extraheaders.append(
             ('content-disposition', 'inline; filename="{}"'.format(filename))
@@ -373,8 +394,9 @@ def text_result(text, extraheaders=[], filename=None):
     return (contenttype, extraheaders, text.encode("utf-8"))
 
 
-def tsv_result(text, extraheaders=[], filename=None):
+def tsv_result(text, extraheaders=None, filename=None):
     """Returns (contenttype, extraheaders, data) tuple for UTF-8 TSV."""
+    extraheaders = extraheaders or []
     if filename:
         extraheaders.append(
             ('content-disposition', 'inline; filename="{}"'.format(filename))
@@ -417,12 +439,12 @@ def print_result_for_plain_cgi_script(contenttype, headers, content,
 # =============================================================================
 
 def wsgi_simple_responder(result, handler, start_response, status='200 OK',
-                          extraheaders=[]):
+                          extraheaders=None):
+    extraheaders = extraheaders or []
     (contenttype, extraheaders2, output) = handler(result)
     response_headers = [('Content-Type', contenttype),
                         ('Content-Length', str(len(output)))]
-    if extraheaders is not None:
-        response_headers.extend(extraheaders)
+    response_headers.extend(extraheaders)
     if extraheaders2 is not None:
         response_headers.extend(extraheaders2)
     start_response(status, response_headers)
