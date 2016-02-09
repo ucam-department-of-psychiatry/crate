@@ -18,14 +18,10 @@ Aim it at your settings file, like this:
     """)
     sys.exit(1)
 
-try:
-    subprocess.check_call([DJANGO_SCRIPT, 'runserver'])
-except:
-    print("""
-
-Something went wrong. Check that you have activated your Python virtual
+print("""
+If the next bit fails, check that you have activated your Python virtual
 environment with
     source /PATH/TO/MY/VENV/bin/activate
+""")
 
-    """)
-    raise
+subprocess.call([DJANGO_SCRIPT, 'runserver'])
