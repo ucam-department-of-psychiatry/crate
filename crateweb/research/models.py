@@ -295,41 +295,108 @@ class ResearchDatabaseInfo(object):
         schemas = settings.RESEARCH_DB_INFO_SCHEMAS
         logger.debug("Fetching/caching database structure "
                      "(for schemas: {})...".format(", ".join(schemas)))
+        # ---------------------------------------------------------------------
+        # Method A. Stupidly slow, e.g. 47s for the query.
+        # ---------------------------------------------------------------------
+        # It's the EXISTS stuff that's slow.
+
+        # sql = translate_sql_qmark_to_percent("""
+        #     SELECT
+        #         c.table_schema,
+        #         c.table_name,
+        #         c.column_name,
+        #         c.is_nullable,
+        #         c.column_type,  /* MySQL: e.g. varchar(32) */
+        #         c.column_comment,  /* MySQL */
+        #         EXISTS (
+        #             SELECT *
+        #             FROM information_schema.statistics s
+        #             WHERE s.table_schema = c.table_schema
+        #             AND s.table_name = c.table_name
+        #             AND s.column_name = c.column_name
+        #         ) AS indexed,
+        #         EXISTS (
+        #             SELECT *
+        #             FROM information_schema.statistics s
+        #             WHERE s.table_schema = c.table_schema
+        #             AND s.table_name = c.table_name
+        #             AND s.column_name = c.column_name
+        #             AND s.index_type LIKE 'FULLTEXT%'
+        #         ) AS indexed_fulltext
+        #     FROM
+        #         information_schema.columns c
+        #     WHERE
+        #         c.table_schema IN ({schema_placeholder})
+        #     ORDER BY
+        #         c.table_schema,
+        #         c.table_name,
+        #         c.column_name
+        # """.format(
+        #     schema_placeholder=",".join(["?"] * len(schemas)),
+        # ))
+        # args = schemas
+
+        # ---------------------------------------------------------------------
+        # Method B. Much faster, e.g. 0.35s for the same thing.
+        # ---------------------------------------------------------------------
+        # http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins  # noqa
+        # (Note that EXISTS() above returns 0 or 1.)
+        # The LEFT JOIN below will produce NULL values for the index columns
+        # for non-indexed fields.
+        # However, you can have more than one index on a column, in which case
+        # the column appears in two rows.
+
         sql = translate_sql_qmark_to_percent("""
             SELECT
-                c.table_schema,
-                c.table_name,
-                c.column_name,
-                c.is_nullable,
-                c.column_type,  /* MySQL: e.g. varchar(32) */
-                c.column_comment,  /* MySQL */
-                EXISTS (
-                    SELECT *
-                    FROM information_schema.statistics s
-                    WHERE s.table_schema = c.table_schema
-                    AND s.table_name = c.table_name
-                    AND s.column_name = c.column_name
-                ) AS indexed,
-                EXISTS (
-                    SELECT *
-                    FROM information_schema.statistics s
-                    WHERE s.table_schema = c.table_schema
-                    AND s.table_name = c.table_name
-                    AND s.column_name = c.column_name
-                    AND s.index_type LIKE 'FULLTEXT%'
-                ) AS indexed_fulltext
-            FROM
-                information_schema.columns c
-            WHERE
-                c.table_schema IN ({schema_placeholder})
+                d.table_schema,
+                d.table_name,
+                d.column_name,
+                d.is_nullable,
+                d.column_type,
+                d.column_comment,
+                d.indexed,
+                MAX(d.indexed_fulltext) AS indexed_fulltext
+            FROM (
+                SELECT
+                    c.table_schema,
+                    c.table_name,
+                    c.column_name,
+                    c.is_nullable,
+                    c.column_type,  /* MySQL: e.g. varchar(32) */
+                    c.column_comment,  /* MySQL */
+                    /* s.index_name, */
+                    /* s.index_type, */
+                    IF(s.index_type IS NOT NULL, 1, 0) AS indexed,
+                    IF(s.index_type LIKE 'FULLTEXT%', 1, 0) AS indexed_fulltext
+                FROM
+                    information_schema.columns c
+                    LEFT JOIN information_schema.statistics s
+                    ON (
+                        c.table_schema = s.table_schema
+                        AND c.table_name = s.table_name
+                        AND c.column_name = s.column_name
+                    )
+                WHERE
+                    c.table_schema IN ({schema_placeholder})
+            ) AS d  /* "Every derived table must have its own alias" */
+            GROUP BY
+                table_schema,
+                table_name,
+                column_name,
+                is_nullable,
+                column_type,
+                column_comment,
+                indexed
             ORDER BY
-                c.table_schema,
-                c.table_name,
-                c.column_name
+                d.table_schema,
+                d.table_name,
+                d.column_name
         """.format(
             schema_placeholder=",".join(["?"] * len(schemas)),
         ))
         args = schemas
+
+        # ---------------------------------------------------------------------
         # We execute this one directly, rather than using the Query class,
         # since this is a system rather than a per-user query.
         cursor = connections['research'].cursor()
@@ -360,7 +427,6 @@ class ResearchDatabaseInfo(object):
             ORDER BY
                 c.table_schema,
                 c.table_name
-
         """.format(
             schema_placeholder=",".join(["?"] * len(schemas)),
         ))
