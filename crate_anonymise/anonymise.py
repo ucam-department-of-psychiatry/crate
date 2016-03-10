@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/anonymise.py
+# crate_anonymise/anonymise.py
 
 """
 Anonymise multiple SQL-based databases using a data dictionary.
@@ -32,7 +32,7 @@ Copyright/licensing:
 # =============================================================================
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 import argparse
 import logging
 import multiprocessing
@@ -150,13 +150,13 @@ def makeadmintable(admindb, tablename, fieldspecs):
 
 def recreate_audit_table(admindb):
     """Create/recreate the audit table (in the admin database)."""
-    logger.debug("recreate_audit_table")
+    log.debug("recreate_audit_table")
     makeadmintable(admindb, config.audit_tablename, AUDIT_FIELDSPECS)
 
 
 def recreate_opt_out_table(admindb):
     """Create/recreate the opt-out table (in the admin database)."""
-    logger.debug("recreate_opt_out_table")
+    log.debug("recreate_opt_out_table")
     OPT_OUT_FIELDSPECS = [
         dict(name=config.mapping_patient_id_fieldname,
              sqltype=BIGINT_UNSIGNED, pk=True, comment="Patient ID"),
@@ -168,7 +168,7 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
     """
     Drop and rebuild the mapping table in the admin database.
     """
-    logger.debug("wipe_and_recreate_mapping_table")
+    log.debug("wipe_and_recreate_mapping_table")
     if not incremental:
         admindb.drop_table(config.secret_map_tablename)
     fieldspecs = [
@@ -204,7 +204,7 @@ def wipe_and_recreate_trid_cache(admindb, incremental=False):
     """
     Drop and rebuild the TRID one-time pad cache in the admin database.
     """
-    logger.debug("wipe_and_recreate_trid_cache")
+    log.debug("wipe_and_recreate_trid_cache")
     if not incremental:
         admindb.drop_table(config.secret_trid_cache_tablename)
     fieldspecs = [
@@ -224,7 +224,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
     Drop and recreate all destination tables (as specified in the DD) in the
     destination database.
     """
-    logger.debug("wipe_and_recreate_destination_db, incremental={}".format(
+    log.debug("wipe_and_recreate_destination_db, incremental={}".format(
         incremental))
     if not destdb.is_mysql():
         dynamic = False
@@ -233,7 +233,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
     for t in config.dd.get_dest_tables():
         # Drop
         if not incremental:
-            logger.debug("dropping table {}".format(t))
+            log.debug("dropping table {}".format(t))
             destdb.drop_table(t)
 
         # Recreate
@@ -274,7 +274,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
                     + " NOT NULL"
                     + " COMMENT 'Transient integer research ID (TRID)'")
                 dest_fieldnames.append(config.trid_fieldname)
-        logger.debug("creating table {}".format(t))
+        log.debug("creating table {}".format(t))
         sql = """
             CREATE TABLE IF NOT EXISTS {table} (
                 {fieldspecs}
@@ -303,7 +303,7 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
                 )
             )
         if extra:
-            logger.warning(
+            log.warning(
                 "Extra fields in destination table {t}: {l}".format(
                     t=t,
                     l=extra,
@@ -336,25 +336,25 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     START = "delete_dest_rows_with_no_src_row: {}.{} -> {}.{}: ".format(
         srcdbname, src_table, config.destination_database, dest_table
     )
-    logger.info(START + "[WARNING: MAY BE SLOW]")
+    log.info(START + "[WARNING: MAY BE SLOW]")
 
     # 0. If there's no source PK, we just delete everythong
     if not pkddr:
-        logger.info("... No source PK; deleting everything")
+        log.info("... No source PK; deleting everything")
         config.destdb.db_exec("DELETE FROM {}".format(dest_table))
         commit(config.destdb)
         return
 
     if SRCFLAG.ADDITION_ONLY in pkddr.src_flags:
-        logger.info("... Table marked as addition-only; not deleting anything")
+        log.info("... Table marked as addition-only; not deleting anything")
         return
 
     # 1. Drop temporary table
-    logger.debug("... dropping temporary table")
+    log.debug("... dropping temporary table")
     config.destdb.drop_table(TEMPTABLE)
 
     # 2. Make temporary table
-    logger.debug("... making temporary table")
+    log.debug("... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
             {pkfield} {sqltype} PRIMARY KEY
@@ -364,17 +364,17 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 3. Populate temporary table, +/- PK translation
     def insert(records):
-        logger.debug(START + "... inserting {} records".format(len(records)))
+        log.debug(START + "... inserting {} records".format(len(records)))
         config.destdb.insert_multiple_records(TEMPTABLE, [PKFIELD], records)
 
     n = srcdb.count_where(src_table)
-    logger.debug("... populating temporary table")
+    log.debug("... populating temporary table")
     i = 0
     records = []
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
         i += 1
         if report_every and i % report_every == 0:
-            logger.debug(START + "... src row# {} / {}".format(i, n))
+            log.debug(START + "... src row# {} / {}".format(i, n))
         if SRCFLAG.PRIMARYPID in pkddr.src_flags:
             pk = config.encrypt_primary_pid(pk)
         elif SRCFLAG.MASTERPID in pkddr.src_flags:
@@ -389,11 +389,11 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     commit(config.destdb)
 
     # 4. Index
-    logger.debug("... creating index on temporary table")
+    log.debug("... creating index on temporary table")
     config.destdb.create_index(TEMPTABLE, PKFIELD)
 
     # 5. DELETE FROM ... WHERE NOT IN ...
-    logger.debug("... deleting from destination where appropriate")
+    log.debug("... deleting from destination where appropriate")
     delete_sql = """
         DELETE FROM {dest_table}
         WHERE {dest_pk} NOT IN (
@@ -408,7 +408,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     config.destdb.db_exec(delete_sql)
 
     # 6. Drop temporary table
-    logger.debug("... dropping temporary table")
+    log.debug("... dropping temporary table")
     config.destdb.drop_table(TEMPTABLE)
 
     # 7. Commit
@@ -498,7 +498,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
 
     # Debug option?
     if config.debug_pid_list:
-        logger.warning("USING MANUALLY SPECIFIED PATIENT ID LIST")
+        log.warning("USING MANUALLY SPECIFIED PATIENT ID LIST")
         for pid in config.debug_pid_list:
             if ntasks == 1 or pid % ntasks == tasknum:
                 yield pid
@@ -548,12 +548,12 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
                     continue
                 processed_ids.add(patient_id)
             # Valid one
-            logger.debug("Found patient id: {}".format(patient_id))
+            log.debug("Found patient id: {}".format(patient_id))
             n_found += 1
             yield patient_id
             # Too many?
             if debuglimit > 0 and n_found >= debuglimit:
-                logger.warning(
+                log.warning(
                     "Not fetching more than {} patients (in total for this "
                     "process) due to debug_max_n_patients limit".format(
                         debuglimit))
@@ -611,7 +611,7 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
         if (debuglimit > 0 and
                 config._rows_inserted_per_table[db_table_tuple] >= debuglimit):
             if not config._warned_re_limits[db_table_tuple]:
-                logger.warning(
+                log.warning(
                     "Table {}.{}: not fetching more than {} rows (in total "
                     "for this process) due to debugging limits".format(
                         dbname, sourcetable, debuglimit))
@@ -621,9 +621,9 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
         yield list(row)  # convert from tuple to list so we can modify it
         row = cursor.fetchone()
         config._rows_inserted_per_table[db_table_tuple] += 1
-    # logger.debug("About to close cursor...")
+    # log.debug("About to close cursor...")
     cursor.close()
-    # logger.debug("... cursor closed")
+    # log.debug("... cursor closed")
     db.java_garbage_collect()  # for testing
 
 
@@ -694,7 +694,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     """
     START = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
     pid = None if patient is None else patient.get_pid()
-    logger.debug(START + "pid={}, incremental={}".format(pid, incremental))
+    log.debug(START + "pid={}, incremental={}".format(pid, incremental))
 
     # Limit the data quantity for debugging?
     srccfg = config.srccfg[sourcedbname]
@@ -720,7 +720,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     destfields = []
     pkfield_index = None
     for i, ddr in enumerate(ddrows):
-        # logger.debug("DD row: {}".format(str(ddr)))
+        # log.debug("DD row: {}".format(str(ddr)))
         if SRCFLAG.PK in ddr.src_flags:
             pkfield_index = i
         sourcefields.append(ddr.src_field)
@@ -736,13 +736,13 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                         pkname=pkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
-            logger.info(START + "processing row {} of task set".format(n))
+            log.info(START + "processing row {} of task set".format(n))
         if addhash:
             srchash = config.hash_list(row)
             if incremental and identical_record_exists_by_hash(
                     destdb, dest_table, ddrows[pkfield_index].dest_field,
                     row[pkfield_index], srchash):
-                logger.debug(
+                log.debug(
                     "... ... skipping unchanged record (identical by hash): "
                     "{sd}.{st}.{spkf} = "
                     "(destination) {dt}.{dpkf} = {pkv}".format(
@@ -759,7 +759,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if incremental and identical_record_exists_by_pk(
                     destdb, dest_table, ddrows[pkfield_index].dest_field,
                     row[pkfield_index]):
-                logger.debug(
+                log.debug(
                     "... ... skipping unchanged record (identical by PK and "
                     "marked as constant): {sd}.{st}.{spkf} = "
                     "(destination) {dt}.{dpkf} = {pkv}".format(
@@ -787,7 +787,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                     value = coerce_to_date(value)
                     value = truncate_date_to_first_of_month(value)
                 except:
-                    logger.warning(
+                    log.warning(
                         "Invalid date received to {ALTERMETHOD.TRUNCATEDATE} "
                         "method: {v}".format(ALTERMETHOD=ALTERMETHOD, v=value))
                     value = None
@@ -819,11 +819,10 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if config._bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True
         if early_commit:
-            logger.info(START + "Triggering early commit based on row/byte "
-                        "count")
+            log.info(START + "Triggering early commit based on row/byte count")
             commit(destdb)
 
-    logger.debug(START + "finished: pid={}".format(pid))
+    log.debug(START + "finished: pid={}".format(pid))
     commit(destdb)
 
 
@@ -853,7 +852,7 @@ def extract_text(value, row, ddr, ddrows):
                                  blob=blob,
                                  extension=extension)
     except Exception as e:
-        logger.error(
+        log.error(
             "Exception from document_to_text: {}".format(e))
         value = None
     return value
@@ -863,7 +862,7 @@ def create_indexes(tasknum=0, ntasks=1):
     """
     Create indexes for the destination tables.
     """
-    logger.info(SEP + "Create indexes")
+    log.info(SEP + "Create indexes")
     for (table, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                           ntasks=ntasks):
         # Process a table as a unit; this makes index creation faster.
@@ -913,14 +912,14 @@ def create_indexes(tasknum=0, ntasks=1):
                 table=table,
                 add_indexes=", ".join(sqlbits_normal),
             )
-            logger.info(sql)
+            log.info(sql)
             config.destdb.db_exec(sql)
         for sqlbit in sqlbits_fulltext:  # must add one by one
             sql = "ALTER TABLE {table} {add_indexes}".format(
                 table=table,
                 add_indexes=sqlbit,
             )
-            logger.info(sql)
+            log.info(sql)
             config.destdb.db_exec(sql)
         # Index creation doesn't require a commit.
 
@@ -954,7 +953,7 @@ class PatientThread(threading.Thread):
                 abort_event=self.abort_event,
                 incremental=self.incremental)
         except Exception as e:
-            logger.exception(
+            log.exception(
                 "Setting subthread_error_event from thread {}".format(
                     self.threadnum))
             self.subthread_error_event.set()
@@ -979,7 +978,7 @@ def patient_processing_fn(sources, destdb, admindb,
     threadprefix = ""
     if ntasks > 1 and not multiprocess:
         threadprefix = "Thread {}: ".format(tasknum)
-        logger.info(
+        log.info(
             threadprefix +
             "Started thread {} (of {} threads, numbered from 0)".format(
                 tasknum, ntasks))
@@ -988,15 +987,15 @@ def patient_processing_fn(sources, destdb, admindb,
         # gen_patient_ids() assigns the work to the appropriate thread/process
         # Check for an abort signal once per patient processed
         if abort_event is not None and abort_event.is_set():
-            logger.error(threadprefix + "aborted")
+            log.error(threadprefix + "aborted")
             return
-        logger.info(
+        log.info(
             threadprefix + "Processing patient ID: {} (incremental={})".format(
                 pid, incremental))
 
         # Opt out?
         if opt_out(pid):
-            logger.info("... opt out")
+            log.info("... opt out")
             continue
 
         # Gather scrubbing information for a patient
@@ -1005,19 +1004,19 @@ def patient_processing_fn(sources, destdb, admindb,
         patient_unchanged = patient.unchanged()
         if incremental:
             if patient_unchanged:
-                logger.debug("Scrubber unchanged; may save some time")
+                log.debug("Scrubber unchanged; may save some time")
             else:
-                logger.debug("Scrubber new or changed; reprocessing in full")
+                log.debug("Scrubber new or changed; reprocessing in full")
 
         # Insert into mapping db
         patient.save_to_mapping_db()
 
         # For each source database/table...
         for d in config.dd.get_source_databases():
-            logger.debug("Processing database: {}".format(d))
+            log.debug("Processing database: {}".format(d))
             db = sources[d]
             for t in config.dd.get_patient_src_tables_with_active_dest(d):
-                logger.debug(
+                log.debug(
                     threadprefix + "Patient {}, processing table {}.{}".format(
                         pid, d, t))
                 process_table(db, d, t, destdb, patient=patient,
@@ -1033,17 +1032,17 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     necessarily 'see' the mapping database.)
     """
     START = "wipe_opt_out_patients"
-    logger.info(START)
+    log.info(START)
     TEMPTABLE = config.temporary_tablename
     PIDFIELD = config.mapping_patient_id_fieldname
     RIDFIELD = config.research_id_fieldname
 
     # 1. Drop temporary table
-    logger.debug("... dropping temporary table")
+    log.debug("... dropping temporary table")
     config.destdb.drop_table(TEMPTABLE)
 
     # 2. Make temporary table
-    logger.debug("... making temporary table")
+    log.debug("... making temporary table")
     create_sql = """
         CREATE TABLE IF NOT EXISTS {table} (
             {rid} {sqltype} PRIMARY KEY
@@ -1054,10 +1053,10 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
 
     # 3. Populate temporary table with RIDs
     def insert(records):
-        logger.debug(START + "... inserting {} records".format(len(records)))
+        log.debug(START + "... inserting {} records".format(len(records)))
         config.destdb.insert_multiple_records(TEMPTABLE, [RIDFIELD], records)
 
-    logger.debug("... populating temporary table")
+    log.debug("... populating temporary table")
     i = 0
     records = []
     gensql = """
@@ -1074,7 +1073,7 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     for rid in config.admindb.gen_fetchfirst(gensql):
         i += 1
         if report_every and i % report_every == 0:
-            logger.debug(START + "... src row# {}".format(i))
+            log.debug(START + "... src row# {}".format(i))
         records.append([rid])
         if i % chunksize == 0:
             insert(records)
@@ -1086,7 +1085,7 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
 
     # 4. For each patient destination table, DELETE FROM ... WHERE IN ...
     for dest_table in config.dd.get_dest_tables_with_patient_info():
-        logger.debug(START + "... deleting from {} where appropriate".format(
+        log.debug(START + "... deleting from {} where appropriate".format(
             dest_table))
         delete_sql = """
             DELETE FROM {dest_table}
@@ -1101,7 +1100,7 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
         config.destdb.db_exec(delete_sql)
 
     # 5. Drop temporary table
-    logger.debug("... dropping temporary table")
+    log.debug("... dropping temporary table")
     config.destdb.drop_table(TEMPTABLE)
 
     # 6. Commit
@@ -1148,20 +1147,20 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
     Copies all non-patient tables.
     If they have an integer PK, the work may be parallelized.
     """
-    logger.info(SEP + "Non-patient tables: (a) with integer PK")
+    log.info(SEP + "Non-patient tables: (a) with integer PK")
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
         db = config.sources[d]
-        logger.info("Processing non-patient table {}.{} (PK: {})...".format(
+        log.info("Processing non-patient table {}.{} (PK: {})...".format(
             d, t, pkname))
         process_table(db, d, t, config.destdb, scrubber=None,
                       incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
         commit(config.destdb)
-    logger.info(SEP + "Non-patient tables: (b) without integer PK")
+    log.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
                                                        ntasks=ntasks):
         db = config.sources[d]
-        logger.info("Processing non-patient table {}.{}...".format(d, t))
+        log.info("Processing non-patient table {}.{}...".format(d, t))
         process_table(db, d, t, config.destdb, scrubber=None,
                       incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)
@@ -1176,28 +1175,28 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
     # We'll use multiple destination tables, so commit right at the end.
 
     def ctrl_c_handler(signum, frame):
-        logger.exception("CTRL-C")
+        log.exception("CTRL-C")
         abort_threads()
 
     def abort_threads():
         abort_event.set()  # threads will notice and terminate themselves
 
-    logger.info(SEP + "Patient tables")
+    log.info(SEP + "Patient tables")
     if nthreads == 1 and nprocesses == 1:
-        logger.info("Single-threaded, single-process mode")
+        log.info("Single-threaded, single-process mode")
         patient_processing_fn(
             config.sources, config.destdb, config.admindb,
             tasknum=0, ntasks=1, multiprocess=False,
             incremental=incremental)
     elif nprocesses > 1:
-        logger.info("PROCESS {} (numbered from zero) OF {} PROCESSES".format(
+        log.info("PROCESS {} (numbered from zero) OF {} PROCESSES".format(
             process, nprocesses))
         patient_processing_fn(
             config.sources, config.destdb, config.admindb,
             tasknum=process, ntasks=nprocesses, multiprocess=True,
             incremental=incremental)
     else:
-        logger.info(SEP + "ENTERING SINGLE-PROCESS, MULTITHREADING MODE")
+        log.info(SEP + "ENTERING SINGLE-PROCESS, MULTITHREADING MODE")
         signal.signal(signal.SIGINT, ctrl_c_handler)
         threads = []
         mainthreadprefix = "Main thread: "
@@ -1218,20 +1217,19 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
                                    incremental)
             thread.start()
             threads.append(thread)
-            logger.info(mainthreadprefix +
-                        "Started thread {}".format(threadnum))
+            log.info(mainthreadprefix + "Started thread {}".format(threadnum))
         # Run; wait for the threads to finish, or crash, or for a user abort
         try:
             running = True
             while running:
-                # logger.debug(mainthreadprefix + "ping")
+                # log.debug(mainthreadprefix + "ping")
                 running = False
                 if subthread_error_event.is_set():
-                    logger.exception(mainthreadprefix + "A thread has crashed")
+                    log.exception(mainthreadprefix + "A thread has crashed")
                     for t in threads:
                         e = t.get_exception()
                         if e:
-                            logger.exception(
+                            log.exception(
                                 mainthreadprefix +
                                 "Found crashed thread {}".format(
                                     t.threadnum))
@@ -1242,24 +1240,24 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
                             running = True
                             t.join(1)  # timeout so it does NOT block
                         else:
-                            logger.debug(
+                            log.debug(
                                 mainthreadprefix +
                                 "Found finished thread {}".format(
                                     t.threadnum))
                 # time.sleep(1)
         except Exception as e:
-            logger.exception(mainthreadprefix +
-                             "Exception detected in main thread")
+            log.exception(mainthreadprefix +
+                          "Exception detected in main thread")
             abort_threads()
             raise e  # will terminate main thread
-        logger.info(SEP + "LEAVING MULTITHREADING MODE")
+        log.info(SEP + "LEAVING MULTITHREADING MODE")
         if abort_event.is_set():
-            logger.exception("Threads terminated abnormally")
+            log.exception("Threads terminated abnormally")
             raise Exception("Threads terminated abnormally")
     if nprocesses > 1:
-        logger.info("Process {}: FINISHED ANONYMISATION".format(process))
+        log.info("Process {}: FINISHED ANONYMISATION".format(process))
     else:
-        logger.info("FINISHED ANONYMISATION")
+        log.info("FINISHED ANONYMISATION")
 
     # Main-thread commit (should be redundant)
     commit(config.destdb)
@@ -1269,23 +1267,23 @@ def show_source_counts():
     """
     Show the number of records in all source tables.
     """
-    logger.info("SOURCE TABLE RECORD COUNTS:")
+    log.info("SOURCE TABLE RECORD COUNTS:")
     for d in config.dd.get_source_databases():
         db = config.sources[d]
         for t in config.dd.get_src_tables(d):
             n = db.count_where(t)
-            logger.info("{}.{}: {} records".format(d, t, n))
+            log.info("{}.{}: {} records".format(d, t, n))
 
 
 def show_dest_counts():
     """
     Show the number of records in all destination tables.
     """
-    logger.info("DESTINATION TABLE RECORD COUNTS:")
+    log.info("DESTINATION TABLE RECORD COUNTS:")
     db = config.destdb
     for t in config.dd.get_dest_tables():
         n = db.count_where(t)
-        logger.info("DESTINATION: {}: {} records".format(t, n))
+        log.info("DESTINATION: {}: {} records".format(t, n))
 
 
 # =============================================================================
@@ -1373,7 +1371,7 @@ Sample usage (having set PYTHONPATH):
                              "integer RID (TRID). Leave blank to use the "
                              "default seed (system time).")
     args = parser.parse_args()
-    # logger.error(args)
+    # log.error(args)
 
     # Demo config?
     if args.democonfig:
@@ -1385,31 +1383,31 @@ Sample usage (having set PYTHONPATH):
         parser.print_help()
         fail()
     if args.nprocesses < 1:
-        logger.error("--nprocesses must be >=1")
+        log.error("--nprocesses must be >=1")
         fail()
     if args.process < 0 or args.process >= args.nprocesses:
-        logger.error(
+        log.error(
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
         fail()
     if args.nprocesses > 1 and args.threads > 1:
-        logger.error("Can't use multithreading and multi-process mode. "
-                     "In multi-process mode, specify --threads=1")
+        log.error("Can't use multithreading and multi-process mode. "
+                  "In multi-process mode, specify --threads=1")
         fail()
     # Inefficient code but helpful error messages:
     if args.threads > 1 and args.dropremake:
-        logger.error("Can't use nthreads > 1 with --dropremake")
+        log.error("Can't use nthreads > 1 with --dropremake")
         fail()
     if args.threads > 1 and args.nonpatienttables:
-        logger.error("Can't use nthreads > 1 with --nonpatienttables")
+        log.error("Can't use nthreads > 1 with --nonpatienttables")
         fail()
     if args.threads > 1 and args.index:
-        logger.error("Can't use nthreads > 1 with --index")
+        log.error("Can't use nthreads > 1 with --index")
         fail()
     if args.nprocesses > 1 and args.dropremake:
-        logger.error("Can't use nprocesses > 1 with --dropremake")
+        log.error("Can't use nprocesses > 1 with --dropremake")
         fail()
     if args.incrementaldd and args.draftdd:
-        logger.error("Can't use --incrementaldd and --draftdd")
+        log.error("Can't use --incrementaldd and --draftdd")
         fail()
 
     everything = not any([args.dropremake, args.nonpatienttables,
@@ -1429,7 +1427,7 @@ Sample usage (having set PYTHONPATH):
     logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
                         level=mainloglevel)
     rnc_log.reset_logformat_timestamped(
-        logger,
+        log,
         extraname=" ".join(mynames),
         level=mainloglevel
     )
@@ -1461,7 +1459,7 @@ Sample usage (having set PYTHONPATH):
 
     # -------------------------------------------------------------------------
 
-    logger.info(SEP + "Starting")
+    log.info(SEP + "Starting")
     start = get_now_utc()
 
     # 1. Drop/remake tables. Single-tasking only.
@@ -1487,10 +1485,10 @@ Sample usage (having set PYTHONPATH):
     if args.index or everything:
         create_indexes(tasknum=args.process, ntasks=args.nprocesses)
 
-    logger.info(SEP + "Finished")
+    log.info(SEP + "Finished")
     end = get_now_utc()
     time_taken = end - start
-    logger.info("Time taken: {} seconds".format(time_taken.total_seconds()))
+    log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
 
 
 # =============================================================================

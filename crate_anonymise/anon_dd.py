@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/anon_dd.py
+# crate_anonymise/anon_dd.py
 
 """
 Data dictionary classes for CRATE anonymiser.
@@ -36,8 +36,7 @@ Copyright/licensing:
 
 import csv
 import logging
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+log = logging.getLogger(__name__)
 import operator
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
 
@@ -63,7 +62,7 @@ from pythonlib.rnc_lang import (
     raise_if_attr_blank,
 )
 
-from anon_constants import (
+from .anon_constants import (
     ALTERMETHOD,
     DEFAULT_INDEX_LEN,
     INDEX,
@@ -413,14 +412,14 @@ class DataDictionaryRow(object):
         try:
             self._check_valid()
         except:
-            logger.exception(
+            log.exception(
                 "Offending DD row [{}]: {}".format(
                     self.get_offender_description(), str(self)))
             raise
 
     def check_prohibited_fieldnames(self, fieldnames):
         if self.dest_field in fieldnames:
-            logger.exception(
+            log.exception(
                 "Offending DD row [{}]: {}".format(
                     self.get_offender_description(), str(self)))
             raise ValueError("Prohibited dest_field name")
@@ -644,7 +643,7 @@ class DataDictionary(object):
         Read DD from file.
         """
         self.rows = []
-        logger.debug("Opening data dictionary: {}".format(filename))
+        log.debug("Opening data dictionary: {}".format(filename))
         with open(filename, 'r') as tsvfile:
             tsv = csv.reader(tsvfile, delimiter='\t')
             headerlist = next(tsv)
@@ -654,13 +653,12 @@ class DataDictionary(object):
                     "(TSV) file with the following row headings:\n" +
                     "\n".join(DataDictionaryRow.ROWNAMES)
                 )
-            logger.debug("Data dictionary has correct header. "
-                         "Loading content...")
+            log.debug("Data dictionary has correct header. Loading content...")
             for rowelements in tsv:
                 ddr = DataDictionaryRow(self.config)
                 ddr.set_from_elements(rowelements)
                 self.rows.append(ddr)
-            logger.debug("... content loaded.")
+            log.debug("... content loaded.")
         self.cache_stuff()
 
     def read_from_source_databases(self, report_every=100,
@@ -668,11 +666,11 @@ class DataDictionary(object):
         """
         Create a draft DD from a source database.
         """
-        logger.info("Reading information for draft data dictionary")
+        log.info("Reading information for draft data dictionary")
         for pretty_dbname, db in self.config.sources.items():
             cfg = self.config.srccfg[pretty_dbname]
             schema = db.get_schema()
-            logger.info("... database nice name = {}, schema = {}".format(
+            log.info("... database nice name = {}, schema = {}".format(
                 pretty_dbname, schema))
             if db.is_sqlserver():
                 sql = """
@@ -693,7 +691,7 @@ class DataDictionary(object):
             for r in db.gen_fetchall(sql, *args):
                 i += 1
                 if report_every and i % report_every == 0:
-                    logger.debug("... reading source field {}".format(i))
+                    log.debug("... reading source field {}".format(i))
                 t = r[0]
                 f = r[1]
                 datatype_short = r[2].upper()
@@ -716,9 +714,9 @@ class DataDictionary(object):
                 if sig not in signatures:
                     self.rows.append(ddr)
                     signatures.append(sig)
-        logger.info("... done")
+        log.info("... done")
         self.cache_stuff()
-        logger.info("Revising draft data dictionary")
+        log.info("Revising draft data dictionary")
         for ddr in self.rows:
             if ddr._from_file:
                 continue
@@ -727,20 +725,20 @@ class DataDictionary(object):
                     not in self.cached_src_tables_w_pt_info[ddr.src_db]):
                 ddr._scrub = False
                 ddr.components_to_alter_method()
-        logger.info("... done")
-        logger.info("Sorting draft data dictionary")
+        log.info("... done")
+        log.info("Sorting draft data dictionary")
         self.rows = sorted(self.rows,
                            key=operator.attrgetter("src_db",
                                                    "src_table",
                                                    "src_field"))
-        logger.info("... done")
+        log.info("... done")
 
     def cache_stuff(self):
         """
         Cache DD information from various perspectives for performance and
         simplicity during actual processing.
         """
-        logger.debug("Caching data dictionary information...")
+        log.debug("Caching data dictionary information...")
         self.cached_dest_tables = SortedSet()
         self.cached_dest_tables_w_pt_info = SortedSet()
         self.cached_source_databases = SortedSet()
@@ -810,7 +808,7 @@ class DataDictionary(object):
 
             # Is it a src_pk row, contributing to src_hash info?
             if SRCFLAG.PK in ddr.src_flags:
-                logger.debug("SRCFLAG.PK found: {}".format(ddr))
+                log.debug("SRCFLAG.PK found: {}".format(ddr))
                 self.cached_pk_ddr[db_t_key] = ddr
                 if rnc_db.is_sqltype_integer(ddr.src_datatype):
                     self.cached_srcdb_table_pairs_to_int_pk[db_t_key] = \
@@ -868,20 +866,20 @@ class DataDictionary(object):
             )
 
         # Debugging
-        logger.debug("cached_srcdb_table_pairs_w_pt_info: {}".format(
+        log.debug("cached_srcdb_table_pairs_w_pt_info: {}".format(
             list(self.cached_srcdb_table_pairs_w_pt_info)))
-        logger.debug("cached_srcdb_table_pairs_wo_pt_info_no_pk: {}".format(
+        log.debug("cached_srcdb_table_pairs_wo_pt_info_no_pk: {}".format(
             self.cached_srcdb_table_pairs_wo_pt_info_no_pk))
-        logger.debug("cached_srcdb_table_pairs_wo_pt_info_int_pk: {}".format(
+        log.debug("cached_srcdb_table_pairs_wo_pt_info_int_pk: {}".format(
             self.cached_srcdb_table_pairs_wo_pt_info_int_pk))
 
-        logger.debug("... cached.")
+        log.debug("... cached.")
 
     def check_against_source_db(self):
         """
         Check DD validity against the source database.
         """
-        logger.debug("Checking DD: source tables...")
+        log.debug("Checking DD: source tables...")
         for d in self.get_source_databases():
             db = self.config.sources[d]
             for t in self.get_src_tables(d):
@@ -955,7 +953,7 @@ class DataDictionary(object):
                         )
                     )
 
-        logger.debug("... source tables checked.")
+        log.debug("... source tables checked.")
 
     def check_valid(self, check_against_source_db, prohibited_fieldnames=[]):
         """
@@ -963,7 +961,7 @@ class DataDictionary(object):
         """
         if prohibited_fieldnames is None:
             prohibited_fieldnames = []
-        logger.info("Checking data dictionary...")
+        log.info("Checking data dictionary...")
         if not self.rows:
             raise ValueError("Empty data dictionary")
         if not self.cached_dest_tables:
@@ -973,12 +971,12 @@ class DataDictionary(object):
         # Individual rows will already have been checked with their own
         # check_valid() method. But now we check collective consistency
 
-        logger.debug("Checking DD: prohibited fieldnames...")
+        log.debug("Checking DD: prohibited fieldnames...")
         if prohibited_fieldnames:
             for r in self.rows:
                 r.check_prohibited_fieldnames(prohibited_fieldnames)
 
-        logger.debug("Checking DD: destination tables...")
+        log.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables():
             sdt = self.get_src_dbs_tables_for_dest_table(t)
             if len(sdt) > 1:
@@ -993,25 +991,25 @@ class DataDictionary(object):
         if check_against_source_db:
             self.check_against_source_db()
 
-        logger.debug("Checking DD: global checks...")
+        log.debug("Checking DD: global checks...")
         self.n_definers = sum(
             [1 if SRCFLAG.DEFINESPRIMARYPIDS in x.src_flags else 0
              for x in self.rows])
         if self.n_definers == 0:
             if all([x.ddgen_allow_no_patient_info
                     for x in self.config.srccfg.itervalues()]):
-                logger.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
-                               "BE COPIED, NOT ANONYMISED.")
+                log.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
+                            "BE COPIED, NOT ANONYMISED.")
             else:
                 raise ValueError(
                     "Must have at least one field with "
                     "src_flags={} set.".format(SRCFLAG.DEFINESPRIMARYPIDS))
         if self.n_definers > 1:
-            logger.warning(
+            log.warning(
                 "Unusual: >1 field with src_flags={} set.".format(
                     SRCFLAG.DEFINESPRIMARYPIDS))
 
-        logger.debug("... DD checked.")
+        log.debug("... DD checked.")
 
     def get_dest_tables(self):
         """Return a SortedSet of all destination tables."""

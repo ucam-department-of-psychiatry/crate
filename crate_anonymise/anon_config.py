@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/anon_config.py
+# crate_anonymise/anon_config.py
 
 """
 Config class for CRATE anonymiser.
@@ -38,8 +38,7 @@ import datetime
 import dateutil
 import dateutil.tz
 import logging
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
+log = logging.getLogger(__name__)
 import os
 import pytz
 import urllib
@@ -320,7 +319,7 @@ min_string_length_to_scrub_with = 2
 #
 # whitelist_filenames = /some/path/short_english_words.txt
 #
-# Here's a suggestion for some of the words you might include:
+# Here's a suggestion for some of the sorts of words you might include:
 #     am
 #     an
 #     as
@@ -1044,7 +1043,7 @@ class Config(object):
         if self.PERSISTENT_CONSTANTS_INITIALIZED:
             self.init_row_counts()
             return
-        logger.info(SEP + "Loading config: {}".format(filename))
+        log.info(SEP + "Loading config: {}".format(filename))
         if filename and environ:
             raise ValueError("Config.set(): mis-called")
         if environ:
@@ -1056,7 +1055,7 @@ class Config(object):
         self.check_valid(include_sources=include_sources)
         self.dd = DataDictionary(self)
         if load_dd:
-            logger.info(SEP + "Loading data dictionary: {}".format(
+            log.info(SEP + "Loading data dictionary: {}".format(
                 self.data_dictionary_filename))
             self.dd.read_from_file(self.data_dictionary_filename)
             self.dd.check_valid(check_against_source_db=include_sources,
@@ -1116,7 +1115,7 @@ class Config(object):
 
     def read_config(self, include_sources=False):
         """Read config from file."""
-        logger.debug("Opening config: {}".format(self.config_filename))
+        log.debug("Opening config: {}".format(self.config_filename))
         parser = configparser.RawConfigParser()
         parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
         read_config_string_options(self, parser, "main", Config.MAIN_HEADINGS)
@@ -1330,7 +1329,7 @@ class Config(object):
                 ensure_valid_field_name(cfg.ddgen_master_pid_fieldname)
 
         # OK!
-        logger.debug("Config validated.")
+        log.debug("Config validated.")
 
     def encrypt_primary_pid(self, pid):
         """Encrypt a primary PID, producing a RID."""

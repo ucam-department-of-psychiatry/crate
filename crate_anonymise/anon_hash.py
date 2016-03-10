@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/anon_hash.py
+# crate_anonymise/anon_hash.py
 
 """
 Config class for CRATE anonymiser.
@@ -143,6 +143,11 @@ class GenericHmacHasher(GenericHasher):
         hmac_obj = hmac.new(key=self.key_bytes, msg=raw_bytes,
                             digestmod=self.digestmod)
         return hmac_obj.hexdigest()
+
+
+class HmacMD5Hasher(GenericHmacHasher):
+    def __init__(self, key):
+        super().__init__(hashlib.md5, key)
 
 
 class HmacSHA256Hasher(GenericHmacHasher):

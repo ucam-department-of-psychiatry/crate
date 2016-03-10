@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/regex.py
+# crate_anonymise/regex.py
 
 """
 Core anonymisation functions for CRATE.
@@ -34,7 +34,6 @@ Copyright/licensing:
 import calendar
 import logging
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.NullHandler())
 import regex  # sudo apt-get install python-regex
 
 

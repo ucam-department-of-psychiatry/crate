@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/make_demo_database.py
+# crate_anonymise/make_demo_database.py
 
 """
 Makes a giant test database for anonymisation testing.
@@ -27,15 +27,12 @@ Copyright/licensing:
 
 """
 
-# from __future__ import division
-# from __future__ import print_function
 import argparse
 import datetime
 import getpass
 import subprocess
 
 import pythonlib.rnc_db as rnc_db
-# rnc_db.set_loglevel(logging.DEBUG)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--host", default="localhost",

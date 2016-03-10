@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/anon_constants.py
+# crate_anonymise/anon_constants.py
 
 """
 Shared constants for CRATE anonymiser.

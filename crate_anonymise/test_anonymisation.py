@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# anonymise/test_anonymisation.py
+# crate_anonymise/test_anonymisation.py
 
 """
 Test the anonymisation for specific databases.
@@ -55,20 +55,18 @@ import collections
 import csv
 import json
 import logging
-logger = logging.getLogger("test_anonymisation")
-logger.addHandler(logging.NullHandler())
-logger.setLevel(logging.DEBUG)
+log = logging.getLogger(__name__)
 import os
 
-from anonymise import (
+from pythonlib.rnc_lang import AttrDict
+from pythonlib.rnc_ui import mkdir_p
+
+from .anonymise import (
     config,
     extract_text,
     Scrubber,
     SRCFLAG,
 )
-from pythonlib.rnc_lang import AttrDict
-from pythonlib.rnc_ui import mkdir_p
-
 
 # =============================================================================
 # Constants
@@ -98,7 +96,7 @@ def get_fieldinfo(args):
         "pid_ddrow": pidrow,
         "text_ddrow": textrow,
     })
-    logger.info("Using fields: {}".format(info))
+    log.info("Using fields: {}".format(info))
     return info
 
 
@@ -137,7 +135,7 @@ def get_patientnum_rawtext(docid, fieldinfo):
         table=table,
         pkfield=pkfield,
     )
-    # logger.debug("RAW: {}, {}".format(query, docid))
+    # log.debug("RAW: {}, {}".format(query, docid))
     row = db.fetchone(query, docid)
     if not row:
         return None, None
@@ -168,7 +166,7 @@ def get_patientnum_anontext(docid, fieldinfo):
         table=table,
         pkfield=pkfield,
     )
-    # logger.debug("ANON: {}, {}".format(query, docid))
+    # log.debug("ANON: {}, {}".format(query, docid))
     result = db.fetchone(query, docid)
     if not result:
         return None, None
@@ -307,15 +305,15 @@ def test_anon(args):
             pidset.add(pid)
     with open(args.scrubfile, 'w') as f:
         f.write(json.dumps(scrubdict, indent=4))
-    logger.info("Finished. See {} for a summary.".format(args.resultsfile))
-    logger.info(
+    log.info("Finished. See {} for a summary.".format(args.resultsfile))
+    log.info(
         "Use meld to compare directories {} and {}".format(
             args.rawdir,
             args.anondir,
         )
     )
-    logger.info("To install meld on Debian/Ubuntu: sudo apt-get install meld")
-    logger.info("{} documents, {} patients".format(len(docids), len(pidset)))
+    log.info("To install meld on Debian/Ubuntu: sudo apt-get install meld")
+    log.info("{} documents, {} patients".format(len(docids), len(pidset)))
 
 
 # =============================================================================
@@ -326,6 +324,9 @@ def main():
     """
     Command-line entry point.
     """
+    logging.basicConfig()
+    logging.getLogger().setLevel(logging.DEBUG)
+
     parser = argparse.ArgumentParser(
         description='Test anonymisation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -363,12 +364,12 @@ def main():
     parser.set_defaults(uniquepatients=True)
 
     args = parser.parse_args()
-    logger.info("Arguments: " + str(args))
+    log.info("Arguments: " + str(args))
 
     # Load/validate config
-    logger.info("Loading config...")
+    log.info("Loading config...")
     config.set(filename=args.config)
-    logger.info("... config loaded")
+    log.info("... config loaded")
 
     # Do it
     test_anon(args)

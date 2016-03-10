@@ -67,6 +67,7 @@ def set_processor(new_processor=WEASYPRINT, wkhtmltopdf_filename=None):
     _wkhtmltopdf_filename = wkhtmltopdf_filename
     logger.info("PDF processor set to: " + processor)
 
+
 def pdf_from_html(html, header_html=None, footer_html=None,
                   wkhtmltopdf_options=None, file_encoding="utf-8"):
     """

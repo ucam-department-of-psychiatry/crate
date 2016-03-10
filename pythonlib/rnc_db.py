@@ -722,7 +722,7 @@ class SQLServer(Flavour):
 # Exceptions
 # =============================================================================
 
-class NoDatabaseError(ConnectionError):
+class NoDatabaseError(Exception):
     """Exception class for when a database is unavailable."""
     def __init__(self, value=""):
         self.value = value
