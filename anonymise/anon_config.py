@@ -61,7 +61,7 @@ from pythonlib.rnc_lang import (
     convert_attrs_to_int,
 )
 
-from anon_constants import (
+from .anon_constants import (
     ALTERMETHOD,
     MAX_PID_STR,
     INDEX,
@@ -71,14 +71,20 @@ from anon_constants import (
     SEP,
     SRCFLAG,
 )
-from anon_dd import (
+from .anon_dd import (
     DataDictionary
 )
-from anon_hash import MD5Hasher, SHA256Hasher, SHA512Hasher
-from anon_regex import (
-    get_number_of_length_n_regex_elements,
-    get_regex_from_elements,
-    get_uk_postcode_regex_elements,
+from .anon_hash import (
+    # MD5Hasher,
+    # SHA256Hasher,
+    # SHA512Hasher,
+    HmacMD5Hasher,
+    HmacSHA256Hasher,
+    HmacSHA512Hasher,
+)
+from .anon_scrub import (
+    NonspecificScrubber,
+    WordList,
 )
 
 # =============================================================================
@@ -241,12 +247,17 @@ data_dictionary_filename = testdd.tsv
 # Encryption phrases/passwords
 # -----------------------------------------------------------------------------
 
-# Hashing method. Options are:
-#   MD5 - produces a 32-character digest; cryptographically poor
-#   SHA256 - produces a 64-character digest; default
-#   SHA512 - produces a 128-character digest
+# PID-to-RID hashing method. Options are:
+#   MD5 - DEPRECATED - produces a 32-character digest; cryptographically poor
+#   SHA256 - DEPRECATED - produces a 64-character digest
+#   SHA512 - DEPRECATED - produces a 128-character digest
+#   HMAC_MD5 - produces a 32-character digest
+#   HMAC_SHA256 - produces a 64-character digest (default)
+#   HMAC_SHA512 - produces a 64-character digest
 
-hash_method = SHA256
+***
+
+hash_method = HMAC_SHA256
 
 per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
 
@@ -301,39 +312,56 @@ min_string_length_for_errors = 4
 
 min_string_length_to_scrub_with = 2
 
+# WHITELIST.
 # Are there any words not to scrub? For example, "the", "road", "street" often
 # appear in addresses, but you might not want them removed. Be careful in case
 # these could be names (e.g. "Lane").
+# Specify these as a list of FILENAMES, where the filenames contain words; e.g.
+#
+# whitelist_filenames = /some/path/short_english_words.txt
+#
+# Here's a suggestion for some of the words you might include:
+#     am
+#     an
+#     as
+#     at
+#     bd
+#     by
+#     he
+#     if
+#     is
+#     it
+#     me
+#     mg
+#     od
+#     of
+#     on
+#     or
+#     re
+#     so
+#     to
+#     us
+#     we
+#     her
+#     him
+#     tds
+#     she
+#     the
+#     you
+#     road
+#     street
 
-words_not_to_scrub = am
-    an
-    as
-    at
-    bd
-    by
-    he
-    if
-    is
-    it
-    me
-    mg
-    od
-    of
-    on
-    or
-    re
-    so
-    to
-    us
-    we
-    her
-    him
-    tds
-    she
-    the
-    you
-    road
-    street
+whitelist_filenames =
+
+# BLACKLIST
+# Are there any words you always want to remove?
+# Specify these as a list of filenames, e.g
+#
+# blacklist_filenames = /some/path/boy_names.txt
+#     /some/path/girl_names.txt
+#     /some/path/common_surnames.txt
+
+blacklist_filenames =
 
 # Nonspecific scrubbing of numbers of a certain length?
 # For example, scrubbing all 11-digit numbers will remove modern UK telephone
@@ -458,6 +486,11 @@ temporary_tablename = _temp_table
 # Usually no need to change the default.
 
 secret_map_tablename = secret_map
+
+# Table name to use for the transient research ID cache (also secret).
+# Usually no need to change the default.
+
+secret_trid_cache_tablename = secret_trid_cache
 
 # Table name to use for the audit trail of various types of access.
 # Usually no need to change the default.
@@ -953,6 +986,7 @@ class Config(object):
         "max_bytes_before_commit",
         "temporary_tablename",
         "secret_map_tablename",
+        "secret_trid_cache_tablename",
         "audit_tablename",
         "opt_out_tablename",
         "destination_database",
@@ -961,7 +995,8 @@ class Config(object):
     ]
     MAIN_MULTILINE_HEADINGS = [
         "scrub_string_suffixes",
-        "words_not_to_scrub",
+        "whitelist_filenames",
+        "blacklist_filenames",
         "scrub_all_numbers_of_n_digits",
         "source_databases",
         "debug_pid_list",
@@ -1107,8 +1142,7 @@ class Config(object):
         convert_attrs_to_int(self, [
             "debug_max_n_patients",
         ], default=0)
-        # Force words_not_to_scrub to lower case for speed later
-        self.words_not_to_scrub = [x.lower() for x in self.words_not_to_scrub]
+
         # These should all be integers:
         self.scrub_all_numbers_of_n_digits = [
             int(x) for x in self.scrub_all_numbers_of_n_digits if int(x) > 0]
@@ -1135,28 +1169,61 @@ class Config(object):
             if include_sources:
                 self.sources[sourcedb_name] = self.get_database(sourcedb_name)
 
-        # Hashers
-        self.primary_pid_hasher = None
-        self.master_pid_hasher = None
-        self.change_detection_hasher = None
+        # Load encryption keys and create hashers
+        assert self.hash_method not in ["MD5", "SHA256", "SHA512"], (
+            "Non-HMAC hashers are deprecated for security reasons.")
+        if self.hash_method == "HMAC_MD5":
+            HashClass = HmacMD5Hasher
+        elif self.hash_method == "HMAC_SHA256" or not self.hash_method:
+            HashClass = HmacSHA256Hasher
+        elif self.hash_method == "HMAC_SHA512":
+            HashClass = HmacSHA512Hasher
+        else:
+            raise ValueError("Unknown value for hash_method")
+        encrypted_length = len(HashClass("dummysalt").hash(MAX_PID_STR))
+        self.SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(encrypted_length)
+        # ... VARCHAR(32) for MD5; VARCHAR(64) for SHA-256; VARCHAR(128) for
+        # SHA-512.
 
-        # Nonspecific scrubber
-        awbo_num = self.anonymise_numbers_at_word_boundaries_only
-        awbo_code = self.anonymise_codes_at_word_boundaries_only
-        nonspecific_elements = [
-            get_number_of_length_n_regex_elements(
-                n,
-                at_word_boundaries_only=awbo_num
-            )
-            for n in self.scrub_all_numbers_of_n_digits
-        ]
-        if self.scrub_all_uk_postcodes:
-            nonspecific_elements.extend(
-                get_uk_postcode_regex_elements(
-                    at_word_boundaries_only=awbo_code
-                )
-            )
-        self.re_nonspecific = get_regex_from_elements(nonspecific_elements)
+        if not self.per_table_patient_id_encryption_phrase:
+            raise ValueError("Missing per_table_patient_id_encryption_phrase")
+        self.primary_pid_hasher = HashClass(
+            self.per_table_patient_id_encryption_phrase)
+
+        if not self.master_patient_id_encryption_phrase:
+            raise ValueError("Missing master_patient_id_encryption_phrase")
+        self.master_pid_hasher = HashClass(
+            self.master_patient_id_encryption_phrase)
+
+        if not self.change_detection_encryption_phrase:
+            raise ValueError("Missing change_detection_encryption_phrase")
+        self.change_detection_hasher = HashClass(
+            self.change_detection_encryption_phrase)
+
+        # Whitelist, blacklist, nonspecific scrubber
+        self.whitelist = WordList(
+            filenames=self.whitelist_filenames,
+            hasher=self.change_detection_hasher,
+        )
+        self.blacklist = WordList(
+            filenames=self.blacklist_filenames,
+            replacement_text=self.replace_nonspecific_info_with,
+            hasher=self.change_detection_hasher,
+            at_word_boundaries_only=(
+                self.anonymise_strings_at_word_boundaries_only),
+            max_errors=0,
+        )
+        self.nonspecific_scrubber = NonspecificScrubber(
+            replacement_text=self.replace_nonspecific_info_with,
+            hasher=self.change_detection_hasher,
+            anonymise_codes_at_word_boundaries_only=(
+                self.anonymise_codes_at_word_boundaries_only),
+            anonymise_numbers_at_word_boundaries_only=(
+                self.anonymise_numbers_at_word_boundaries_only),
+            blacklist=self.blacklist,
+            scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
+            scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
+        )
 
     def get_database(self, section):
         """Return an rnc_db database object from information in a section of
@@ -1183,6 +1250,9 @@ class Config(object):
         if not self.secret_map_tablename:
             raise ValueError("No secret_map_tablename specified.")
         ensure_valid_table_name(self.secret_map_tablename)
+        if not self.secret_trid_cache_tablename:
+            raise ValueError("No secret_trid_cache_tablename specified.")
+        ensure_valid_table_name(self.secret_trid_cache_tablename)
         if not self.audit_tablename:
             raise ValueError("No audit_tablename specified.")
         ensure_valid_table_name(self.audit_tablename)
@@ -1241,36 +1311,6 @@ class Config(object):
         format_datetime(self.NOW_UTC_NO_TZ, self.date_to_text_format)
         format_datetime(self.NOW_UTC_NO_TZ, self.datetime_to_text_format)
 
-        # Load encryption keys
-        if self.hash_method == "MD5":
-            logger.warning("MD5 hasher is cryptographically poor")
-            HashClass = MD5Hasher
-        elif self.hash_method == "SHA256" or not self.hash_method:
-            HashClass = SHA256Hasher
-        elif self.hash_method == "SHA512":
-            HashClass = SHA512Hasher
-        else:
-            raise ValueError("Unknown value for hash_method")
-        encrypted_length = len(HashClass("dummysalt").hash(MAX_PID_STR))
-        self.SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(encrypted_length)
-        # ... VARCHAR(32) for MD5; VARCHAR(64) for SHA-256; VARCHAR(128) for
-        # SHA-512.
-
-        if not self.per_table_patient_id_encryption_phrase:
-            raise ValueError("Missing per_table_patient_id_encryption_phrase")
-        self.primary_pid_hasher = HashClass(
-            self.per_table_patient_id_encryption_phrase)
-
-        if not self.master_patient_id_encryption_phrase:
-            raise ValueError("Missing master_patient_id_encryption_phrase")
-        self.master_pid_hasher = HashClass(
-            self.master_patient_id_encryption_phrase)
-
-        if not self.change_detection_encryption_phrase:
-            raise ValueError("Missing change_detection_encryption_phrase")
-        self.change_detection_hasher = HashClass(
-            self.change_detection_encryption_phrase)
-
         # Source databases
         if not include_sources:
             return
@@ -1313,10 +1353,6 @@ class Config(object):
         dictionary attack. Thus, we should use a better version.
         """
         return self.change_detection_hasher.hash(repr(l))
-
-    def hash_scrubber(self, scrubber):
-        """Return a hash of a scrubber object."""
-        return self.change_detection_hasher.hash(scrubber.get_hash_string())
 
     def load_destination_fields(self, force=False):
         """Fetches field information from the destination database, unless

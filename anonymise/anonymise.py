@@ -25,102 +25,11 @@ Copyright/licensing:
     See the License for the specific language governing permissions and
     limitations under the License.
 
-CHANGE LOG. CHANGE VERSION NUMBER/DATE BELOW IF INCREMENTING.
-
-- v0.13, 2015-10-06
-  - Added TRID.
-
-- v0.12, 2015-09-21
-  - Database interface renamed from mysqldb to mysql, to allow for PyMySQL
-    support as well (backend details otherwise irrelevant to front-end
-    application).
-
-- v0.11, 2015-09-16
-  - Split main source code for simplicity.
-
-- v0.10, 2015-09-02 to 2015-09-13
-  - Opt-out mechanism.
-  - Default hasher changed to SHA256.
-  - Bugfix to datatypes in delete_dest_rows_with_no_src_row().
-
-- v0.09, 2015-07-28
-  - debug_max_n_patients option, used with gen_patient_ids(), to reduce the
-    number of patients processed for "full rebuild" debugging.
-  - debug_pid_list option, similarly
-
-- v0.08, 2015-07-20
-  - SCRUBMETHOD.WORDS renamed SCRUBMETHOD.WORDS
-  - SCRUBMETHOD.PHRASE added
-    ... ddgen_scrubmethod_phrase_fields added
-
-- v0.07, 2015-07-16
-  - regex.ENHANCEMATCH flag tried unsuccessfully (segmentation fault, i.e.
-    internal error in regex module, likely because generated regular
-    expressions got too complicated for it).
-
-- v0.06, 2015-07-14
-  - bugfix: if a source scrub-from value was a number with value '.', the
-    regex went haywire... so regex builders now check for blanks.
-
-- v0.06, 2015-06-25
-  - Option: replace_nonspecific_info_with
-  - Option: scrub_all_numbers_of_n_digits
-  - Option: scrub_all_uk_postcodes
-
-- v0.05, 2015-05-01
-  - Ability to vary audit/secret map tablenames.
-  - Made date element separators broader in anonymisation regex.
-  - min_string_length_for_errors option
-  - min_string_length_to_scrub_with option
-  - words_not_to_scrub option
-  - bugfix: date regex couldn't cope with years prior to 1900
-  - gen_all_values_for_patient() was inefficient in that it would process the
-    same source table multiple times to retrieve different fields.
-  - ddgen_index_fields option
-  - simplification of get_anon_fragments_from_string()
-  - SCRUBMETHOD.CODE, particularly for postcodes. (Not very different from
-    SCRUBMETHOD.NUMERIC, but a little different.)
-  - debug_row_limit applies to patient-based tables (as a per-thread limit);
-    was previously implemented as a per-patient limit, which was silly.
-  - Indirection step in config for destination/admin databases.
-  - ddgen_allow_fulltext_indexing option, for old MySQL versions.
-
-- v0.04, 2015-04-25
-  - Whole bunch of stuff to cope with a limited computer talking to SQL Server
-    with some idiosyncrasies.
-
-- v0.03, 2015-03-19
-  - Bug fix for incremental update (previous version inserted rather than
-    updating when the source content had changed); search for
-    update_on_duplicate_key.
-  - Checks for missing/extra fields in destination.
-  - "No separator" allowed for get_date_regex_elements(), allowing
-    anonymisation of e.g. 19Mar2015, 19800101.
-  - New default at_word_boundaries_only=False for get_date_regex_elements(),
-    allowing anonymisation of ISO8601-format dates (e.g. 1980-10-01T0000), etc.
-  - Similar option for get_code_regex_elements().
-  - Similar option for get_string_regex_elements().
-  - Options in config to control these.
-  - Fuzzy matching for get_string_regex_elements(); string_max_regex_errors
-    option in config. The downside is the potential for greedy matching; for
-    example, if you anonymise "Ronald MacDonald" with "Ronald" and "MacDonald",
-    you can end up with "XXX MacXXX", as the regex greedy-matches "Donald" to
-    "Ronald" with a typo, and therefore fails to process the whole "MacDonald".
-    On the other hand, this protects against simple typos, which are probably
-    more common.
-  - Audit database/table.
-  - Create an incremental update to the data dictionary (i.e. existing DD plus
-    any new fields in the source, with safe draft entries).
-  - Data dictionary optimizations.
-
 """
 
 # =============================================================================
 # Imports
 # =============================================================================
-
-# from __future__ import division
-# from __future__ import print_function
 
 import logging
 logger = logging.getLogger(__name__)
@@ -139,49 +48,24 @@ from pythonlib.rnc_datetime import (
     truncate_date_to_first_of_month,
 )
 import pythonlib.rnc_db as rnc_db
-from pythonlib.rnc_db import (
-    is_sqltype_date,
-    is_sqltype_text_over_one_char,
-)
 from pythonlib.rnc_extract_text import document_to_text
 import pythonlib.rnc_log as rnc_log
 
-from anon_config import Config, DEMO_CONFIG
-from anon_constants import (
+from .anon_config import Config, DEMO_CONFIG
+from .anon_constants import (
     ALTERMETHOD,
+    BIGINT_UNSIGNED,
     INDEX,
-    SCRUBMETHOD,
-    SCRUBSRC,
+    RAW_SCRUBBER_FIELDNAME_PATIENT,
+    RAW_SCRUBBER_FIELDNAME_TP,
     SEP,
     SRCFLAG,
+    TRID_CACHE_PID_FIELDNAME,
+    TRID_CACHE_TRID_FIELDNAME,
+    TRID_TYPE,
 )
-from anon_regex import (
-    get_anon_fragments_from_string,
-    get_code_regex_elements,
-    get_date_regex_elements,
-    get_digit_string_from_vaguely_numeric_string,
-    get_phrase_regex_elements,
-    get_regex_from_elements,
-    get_regex_string_from_elements,
-    get_string_regex_elements,
-    reduce_to_alphanumeric,
-)
-
-# =============================================================================
-# Global constants
-# =============================================================================
-
-VERSION = 0.14
-VERSION_DATE = "2015-11-22"
-
-RAW_SCRUBBER_FIELDNAME_PATIENT = "_raw_scrubber_patient"
-RAW_SCRUBBER_FIELDNAME_TP = "_raw_scrubber_tp"
-BIGINT_UNSIGNED = "BIGINT UNSIGNED"
-TRID_TYPE = "INT UNSIGNED"
-MAX_TRID = 4294967295
-# https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
-# Maximum INT UNSIGNED is              4294967295.
-# Maximum BIGINT UNSIGNED is 18446744073709551615.
+from .anon_patient import Patient
+from .anon_version import VERSION, VERSION_DATE
 
 # =============================================================================
 # Predefined fieldspecs
@@ -204,398 +88,6 @@ AUDIT_FIELDSPECS = [
     dict(name="details", sqltype="TEXT",
          comment="Details of the access"),
 ]
-
-
-# =============================================================================
-# Scrubber
-# =============================================================================
-
-class Scrubber(object):
-    """Class representing a patient-specific scrubber, and also other
-    patient information like PIDs and RIDs."""
-
-    def __init__(self, sources, pid, admindb):
-        """
-        Build the scrubber based on data dictionary information.
-
-            sources: dictionary
-                key: db name
-                value: rnc_db database object
-            pid: integer patient identifier
-        """
-        # ID information
-        self.pid = pid
-        self.mpid = None
-        self.trid = None
-        self.rid = config.encrypt_primary_pid(pid)
-        self.mrid = None
-        # Regex information
-        self.re_patient = None  # re: regular expression
-        self.re_tp = None
-        self.re_patient_elements = set()
-        self.re_tp_elements = set()
-        self.elements_tupleset = set()  # patient?, type, value
-        # Database
-        self.admindb = admindb
-        # Construction. We go through all "scrub-from" fields in the data
-        # dictionary. We collect all values of those fields from the source
-        # database.
-        logger.debug("Building scrubber")
-        db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
-        for (src_db, src_table) in db_table_pair_list:
-            # Build a list of fields for this table, and corresponding lists of
-            # scrub methods and a couple of other flags.
-            ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
-            fields = []
-            scrub_methods = []
-            is_patient = []
-            is_mpid = []
-            for ddr in ddrows:
-                fields.append(ddr.src_field)
-                scrub_methods.append(self.get_scrub_method(ddr.src_datatype,
-                                                           ddr.scrub_method))
-                is_patient.append(ddr.scrub_src == SCRUBSRC.PATIENT)
-                is_mpid.append(SRCFLAG.MASTERPID in ddr.src_flags)
-            # Collect the actual patient-specific values for this table.
-            for vlist in gen_all_values_for_patient(sources, src_db, src_table,
-                                                    fields, pid):
-                for i in range(len(vlist)):
-                    # Add a value, which adds appropriate regex fragment(s).
-                    self.add_value(vlist[i], scrub_methods[i], is_patient[i])
-                    if self.mpid is None and is_mpid[i]:
-                        # We've come across the master ID.
-                        self.mpid = vlist[i]
-                        self.mrid = config.encrypt_master_pid(self.mpid)
-        # We've collected all the regex fragments; now compile the regexes.
-        self.finished_adding()
-
-    @staticmethod
-    def get_scrub_method(datatype_long, scrub_method):
-        """
-        Return the scrub method for a given SQL datatype unless overridden.
-        """
-        if scrub_method:
-            return scrub_method
-        elif is_sqltype_date(datatype_long):
-            return SCRUBMETHOD.DATE
-        elif is_sqltype_text_over_one_char(datatype_long):
-            return SCRUBMETHOD.WORDS
-        else:
-            return SCRUBMETHOD.NUMERIC
-
-    def add_value(self, value, scrub_method, patient=True):
-        """
-        Add a specific value via a specific scrub_method.
-
-        The patient flag controls whether it's treated as a patient value or
-        a third-party value.
-        """
-        if value is None:
-            return
-
-        self.elements_tupleset.add((patient, scrub_method, repr(value)))
-
-        # Note: object reference
-        r = self.re_patient_elements if patient else self.re_tp_elements
-
-        if scrub_method == SCRUBMETHOD.DATE:
-            # Source is a date.
-            try:
-                value = coerce_to_date(value)
-            except Exception as e:
-                logger.warning(
-                    "Invalid date received to Scrubber.add_value(): value={}, "
-                    "exception={}".format(
-                        value, e))
-                return
-            wbo = config.anonymise_dates_at_word_boundaries_only
-            elements = get_date_regex_elements(
-                value, at_word_boundaries_only=wbo)
-
-        elif scrub_method == SCRUBMETHOD.WORDS:
-            # Source is a string containing textual words.
-            # value = unicode(value)  # Python 2
-            value = str(value)
-            strings = get_anon_fragments_from_string(value)
-            wbo = config.anonymise_strings_at_word_boundaries_only
-            elements = []
-            for s in strings:
-                l = len(s)
-                if l < config.min_string_length_to_scrub_with:
-                    # With numbers: if you use the length limit, you may see
-                    # numeric parts of addresses, e.g. 4 Drury Lane as
-                    # 4 [___] [___]. However, if you exempt numbers then you
-                    # mess up a whole bunch of quantitative information, such
-                    # as "the last 4-5 years" getting wiped to "the last
-                    # [___]-5 years". So let's apply the length limit
-                    # consistently.
-                    continue
-                if s.lower() in config.words_not_to_scrub:
-                    continue
-                if l >= config.min_string_length_for_errors:
-                    max_errors = config.string_max_regex_errors
-                else:
-                    max_errors = 0
-                elements.extend(get_string_regex_elements(
-                    s,
-                    config.scrub_string_suffixes,
-                    max_errors=max_errors,
-                    at_word_boundaries_only=wbo))
-
-        elif scrub_method == SCRUBMETHOD.PHRASE:
-            # value = unicode(value)  # Python 2
-            value = str(value)
-            if not value:
-                return
-            l = len(value)
-            if l < config.min_string_length_to_scrub_with:
-                return
-            if value.lower() in config.words_not_to_scrub:
-                return
-            if l >= config.min_string_length_for_errors:
-                max_errors = config.string_max_regex_errors
-            else:
-                max_errors = 0
-            wbo = config.anonymise_strings_at_word_boundaries_only
-            elements = get_phrase_regex_elements(value,
-                                                 max_errors=max_errors,
-                                                 at_word_boundaries_only=wbo)
-
-        elif scrub_method == SCRUBMETHOD.NUMERIC:
-            # Source is a text field containing a number, or an actual number.
-            # Remove everything but the digits
-            # Particular examples: phone numbers, e.g. "(01223) 123456".
-            wbo = config.anonymise_numbers_at_word_boundaries_only
-            elements = get_code_regex_elements(
-                get_digit_string_from_vaguely_numeric_string(str(value)),
-                at_word_boundaries_only=wbo)
-
-        elif scrub_method == SCRUBMETHOD.CODE:
-            # Source is a text field containing an alphanumeric code.
-            # Remove whitespace.
-            # Particular examples: postcodes, e.g. "PE12 3AB".
-            wbo = config.anonymise_codes_at_word_boundaries_only
-            elements = get_code_regex_elements(
-                reduce_to_alphanumeric(str(value)),
-                at_word_boundaries_only=wbo)
-
-        else:
-            raise ValueError("Bug: unknown scrub_method to add_value")
-
-        for element in elements:
-            r.add(element)
-
-    def finished_adding(self):
-        """
-        All components added; build the regexes.
-        """
-        # Create regexes:
-        self.re_patient = get_regex_from_elements(
-            list(self.re_patient_elements))
-        self.re_tp = get_regex_from_elements(
-            list(self.re_tp_elements))
-        # Announce pointlessly
-        if config.debug_scrubbers:
-            logger.debug(
-                "Patient scrubber: {}".format(self.get_patient_regex_string()))
-            logger.debug(
-                "Third party scrubber: {}".format(self.get_tp_regex_string()))
-
-    def get_patient_regex_string(self):
-        """Return the string version of the patient regex."""
-        return get_regex_string_from_elements(self.re_patient_elements)
-
-    def get_tp_regex_string(self):
-        """Return the string version of the third-party regex."""
-        return get_regex_string_from_elements(self.re_tp_elements)
-
-    def get_hash_string(self):
-        """Return a string to be used for scrubber hashing."""
-        return repr(self.re_patient_elements | self.re_tp_elements)
-        # | for union
-
-    def get_hash(self):
-        """Returns a hash of the scrubber."""
-        return config.hash_scrubber(self)
-
-    def get_raw_info(self):
-        """Return a list of (patient?, scrub type, value) tuples."""
-        return list(self.elements_tupleset)
-
-    def scrub(self, text):
-        """Scrub some text and return the scrubbed result."""
-        if text is None:
-            return None
-        if self.re_patient:
-            text = self.re_patient.sub(config.replace_patient_info_with, text)
-        if self.re_tp:
-            text = self.re_tp.sub(config.replace_third_party_info_with, text)
-        if config.re_nonspecific:
-            text = config.re_nonspecific.sub(
-                config.replace_nonspecific_info_with, text)
-        return text
-
-    def get_pid(self):
-        """Return the patient ID (PID)."""
-        return self.pid
-
-    def get_mpid(self):
-        """Return the master patient ID (MPID)."""
-        return self.mpid
-
-    def get_rid(self):
-        """Returns the RID (encrypted PID)."""
-        return self.rid
-
-    def get_mrid(self):
-        """Returns the master RID (encrypted MPID)."""
-        return self.mrid
-
-    def get_trid(self):
-        """Returns the transient integer RID (TRID)."""
-        if self.trid is None:
-            self.fetch_trid()
-        return self.trid
-
-    def unchanged(self):
-        """
-        Has the scrubber changed, compared to the hashed version in the admin
-        database?
-        """
-        sql = """
-            SELECT 1
-            FROM {table}
-            WHERE {patient_id_field} = ?
-            AND {scrubber_hash_field} = ?
-        """.format(
-            table=config.secret_map_tablename,
-            patient_id_field=config.mapping_patient_id_fieldname,
-            scrubber_hash_field=config.source_hash_fieldname,
-        )
-        row = self.admindb.fetchone(sql, self.get_pid(), self.get_hash())
-        return True if row is not None and row[0] == 1 else False
-
-    def patient_in_map(self):
-        """
-        Is the patient in the PID/RID mapping table already?
-        """
-        sql = """
-            SELECT 1
-            FROM {table}
-            WHERE {patient_id_field} = ?
-        """.format(
-            table=config.secret_map_tablename,
-            patient_id_field=config.mapping_patient_id_fieldname,
-        )
-        row = self.admindb.fetchone(sql, self.get_pid())
-        return True if row is not None and row[0] == 1 else False
-
-    def save_to_mapping_db(self):
-        """
-        Insert patient information (including PID, RID, MPID, RID, and scrubber
-        hash) into the mapping database. Establish the TRID as well.
-        """
-        logger.debug("Inserting patient into mapping table")
-        pid = self.get_pid()
-        rid = self.get_rid()
-        mpid = self.get_mpid()
-        mrid = self.get_mrid()
-        scrubber_hash = self.get_hash()
-        if config.save_scrubbers:
-            raw_pt = self.get_patient_regex_string()
-            raw_tp = self.get_tp_regex_string()
-        else:
-            raw_pt = None
-            raw_tp = None
-        if self.patient_in_map():
-            sql = """
-                UPDATE {table}
-                SET {master_id} = ?,
-                    {master_research_id} = ?,
-                    {scrubber_hash} = ?,
-                    {RAW_SCRUBBER_FIELDNAME_PATIENT} = ?,
-                    {RAW_SCRUBBER_FIELDNAME_TP} = ?
-                WHERE {patient_id} = ?
-            """.format(
-                table=config.secret_map_tablename,
-                master_id=config.mapping_master_id_fieldname,
-                master_research_id=config.master_research_id_fieldname,
-                scrubber_hash=config.source_hash_fieldname,
-                patient_id=config.mapping_patient_id_fieldname,
-                RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
-                RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
-            )
-            args = [mpid, mrid, scrubber_hash, raw_pt, raw_tp, pid]
-        else:
-            self.trid = self.make_new_trid()
-            sql = """
-                INSERT INTO {table} (
-                    {patient_id},
-                    {research_id},
-                    {tridfield},
-                    {master_id},
-                    {master_research_id},
-                    {scrubber_hash},
-                    {RAW_SCRUBBER_FIELDNAME_PATIENT},
-                    {RAW_SCRUBBER_FIELDNAME_TP}
-                )
-                VALUES (
-                    ?, ?, ?, ?,
-                    ?, ?, ?, ?
-                )
-            """.format(
-                table=config.secret_map_tablename,
-                patient_id=config.mapping_patient_id_fieldname,
-                research_id=config.research_id_fieldname,
-                tridfield=config.trid_fieldname,
-                master_id=config.mapping_master_id_fieldname,
-                master_research_id=config.master_research_id_fieldname,
-                scrubber_hash=config.source_hash_fieldname,
-                RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
-                RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
-            )
-            args = [pid, rid, self.trid, mpid,
-                    mrid, scrubber_hash, raw_pt, raw_tp]
-        self.admindb.db_exec(sql, *args)
-        self.admindb.commit()
-        # Commit immediately, because other processes may need this table
-        # promptly. Otherwise, get:
-        #   Deadlock found when trying to get lock; try restarting transaction
-
-    def fetch_trid(self):
-        """Fetch TRID from database."""
-        sql = """
-            SELECT {trid_field}
-            FROM {table}
-            WHERE {patient_id_field} = ?
-        """.format(
-            trid_field=config.trid_fieldname,
-            table=config.secret_map_tablename,
-            patient_id_field=config.mapping_patient_id_fieldname,
-        )
-        row = self.admindb.fetchone(sql, self.get_pid())
-        self.trid = row[0] if row is not None else None
-
-    def trid_exists(self, trid):
-        """Does a TRID exist in the database already?"""
-        # http://stackoverflow.com/questions/1676551/best-way-to-test-if-a-row-exists-in-a-mysql-table  # noqa
-        sql = """
-            SELECT EXISTS(SELECT 1 FROM {table} WHERE {trid_field}=?)
-        """.format(
-            table=config.secret_map_tablename,
-            trid_field=config.trid_fieldname,
-        )
-        row = self.admindb.fetchone(sql, trid)
-        return bool(row[0])
-
-    def make_new_trid(self):
-        """Generate an unused TRID."""
-        # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
-        logger.debug("Making TRID...")
-        while True:
-            trid = random.randint(0, MAX_TRID)
-            if not self.trid_exists(trid):
-                return trid
 
 
 # =============================================================================
@@ -706,6 +198,24 @@ def wipe_and_recreate_mapping_table(admindb, incremental=False):
              comment="Raw third-party scrubber (for debugging only)"),
     ]
     makeadmintable(admindb, config.secret_map_tablename, fieldspecs)
+
+
+def wipe_and_recreate_trid_cache(admindb, incremental=False):
+    """
+    Drop and rebuild the TRID one-time pad cache in the admin database.
+    """
+    logger.debug("wipe_and_recreate_trid_cache")
+    if not incremental:
+        admindb.drop_table(config.secret_trid_cache_tablename)
+    fieldspecs = [
+        dict(name=TRID_CACHE_PID_FIELDNAME,
+             sqltype=BIGINT_UNSIGNED, pk=True,
+             comment="Patient ID (PID) (PK)"),
+        dict(name=TRID_CACHE_TRID_FIELDNAME, unique=True, notnull=True,
+             sqltype=TRID_TYPE, autoincrement=True,
+             comment="Transient integer research ID (TRID)"),
+    ]
+    makeadmintable(admindb, config.secret_trid_cache_tablename, fieldspecs)
 
 
 def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
@@ -1052,39 +562,6 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             row = cursor.fetchone()
 
 
-def gen_all_values_for_patient(sources, dbname, table, fields, pid):
-    """
-    Generate all sensitive (scrub_src) values for a given patient, from a given
-    source table. Used to build the scrubber.
-
-        sources: dictionary
-            key: db name
-            value: rnc_db database object
-        dbname: source database name
-        table: source table
-        fields: source fields containing scrub_src information
-        pid: patient ID
-    """
-    cfg = config.srccfg[dbname]
-    if not cfg.ddgen_per_table_pid_field:
-        return
-        # http://stackoverflow.com/questions/13243766
-    logger.debug(
-        "gen_all_values_for_patient: PID {p}, table {d}.{t}, "
-        "fields: {f}".format(
-            d=dbname, t=table, f=",".join(fields), p=pid))
-    db = sources[dbname]
-    sql = rnc_db.get_sql_select_all_fields_by_key(
-        table, fields, cfg.ddgen_per_table_pid_field, delims=db.get_delims())
-    args = [pid]
-    cursor = db.cursor()
-    db.db_exec_with_cursor(cursor, sql, *args)
-    row = cursor.fetchone()
-    while row is not None:
-        yield row
-        row = cursor.fetchone()
-
-
 def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
              pkname=None, tasknum=None, ntasks=None, debuglimit=0):
     """
@@ -1208,14 +685,15 @@ def gen_pks(db, table, pkname):
 #   CONNECTIONS.
 
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
-                  scrubber=None, incremental=False,
+                  patient=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
     """
     Process a table. This can either be a patient table (in which case the
-    scrubber is applied) or not (in which case the table is just copied).
+    patient's scrubber is applied and only rows for that patient are process)
+    or not (in which case the table is just copied).
     """
     START = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
-    pid = None if scrubber is None else scrubber.get_pid()
+    pid = None if patient is None else patient.get_pid()
     logger.debug(START + "pid={}, incremental={}".format(pid, incremental))
 
     # Limit the data quantity for debugging?
@@ -1300,8 +778,8 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                 continue
             value = row[i]
             if SRCFLAG.PRIMARYPID in ddr.src_flags:
-                assert(value == scrubber.get_pid())
-                value = scrubber.get_rid()
+                assert(value == patient.get_pid())
+                value = patient.get_rid()
             elif SRCFLAG.MASTERPID in ddr.src_flags:
                 value = config.encrypt_master_pid(value)
             elif ddr._truncate_date:
@@ -1318,13 +796,13 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
 
             if ddr._scrub:
                 # Main point of anonymisation!
-                value = scrubber.scrub(value)
+                value = patient.scrub(value)
 
             destvalues.append(value)
         if addhash:
             destvalues.append(srchash)
         if addtrid:
-            destvalues.append(scrubber.get_trid())
+            destvalues.append(patient.get_trid())
         destdb.insert_record(dest_table, destfields, destvalues,
                              update_on_duplicate_key=True)
 
@@ -1521,18 +999,18 @@ def patient_processing_fn(sources, destdb, admindb,
             logger.info("... opt out")
             continue
 
-        # Gather scrubbing information
-        scrubber = Scrubber(sources, pid, admindb)
+        # Gather scrubbing information for a patient
+        patient = Patient(sources, pid, admindb, config)
 
-        scrubber_unchanged = scrubber.unchanged()
+        patient_unchanged = patient.unchanged()
         if incremental:
-            if scrubber_unchanged:
+            if patient_unchanged:
                 logger.debug("Scrubber unchanged; may save some time")
             else:
                 logger.debug("Scrubber new or changed; reprocessing in full")
 
         # Insert into mapping db
-        scrubber.save_to_mapping_db()
+        patient.save_to_mapping_db()
 
         # For each source database/table...
         for d in config.dd.get_source_databases():
@@ -1542,8 +1020,8 @@ def patient_processing_fn(sources, destdb, admindb,
                 logger.debug(
                     threadprefix + "Patient {}, processing table {}.{}".format(
                         pid, d, t))
-                process_table(db, d, t, destdb, scrubber=scrubber,
-                              incremental=(incremental and scrubber_unchanged))
+                process_table(db, d, t, destdb, patient=patient,
+                              incremental=(incremental and patient_unchanged))
 
     commit(destdb)
 
@@ -1653,6 +1131,7 @@ def drop_remake(incremental=False):
     recreate_audit_table(config.admindb)
     recreate_opt_out_table(config.admindb)
     wipe_and_recreate_mapping_table(config.admindb, incremental=incremental)
+    wipe_and_recreate_trid_cache(config.admindb, incremental=incremental)
     wipe_and_recreate_destination_db(config.destdb, incremental=incremental)
     if not incremental:
         return

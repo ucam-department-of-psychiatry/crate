@@ -9,6 +9,9 @@ Consider
 
 - pulling research consent info from RiO at point of lookup
 
+- consider function to anonymise against a dictionary of names (for data
+  without linkage to primary records/demographics)
+
 ===============================================================================
 Known bugs elsewhere affecting CRATE
 ===============================================================================
@@ -31,4 +34,3 @@ Known bugs elsewhere affecting CRATE
 
 - SQL Server returns a rowcount of -1; this is normal.
   https://code.google.com/p/pyodbc/wiki/Cursor
-

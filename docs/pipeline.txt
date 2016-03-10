@@ -335,6 +335,8 @@ c)  You're all set.
 ... all too much effort for what you get? Everyone doing it seriously will use
 SQL.
 
+The front end should be accessible via HTTPS only.
+
 ===============================================================================
 6. HOT-SWAPPING TWO DATABASES
 ===============================================================================

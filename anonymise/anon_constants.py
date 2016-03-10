@@ -84,3 +84,15 @@ SRCFLAG = AttrDict(
     CONSTANT="C",
     ADDITION_ONLY="A"
 )
+
+TRID_CACHE_PID_FIELDNAME = "pid"
+TRID_CACHE_TRID_FIELDNAME = "trid"
+
+RAW_SCRUBBER_FIELDNAME_PATIENT = "_raw_scrubber_patient"
+RAW_SCRUBBER_FIELDNAME_TP = "_raw_scrubber_tp"
+BIGINT_UNSIGNED = "BIGINT UNSIGNED"
+TRID_TYPE = "INT UNSIGNED"
+MAX_TRID = 4294967295
+# https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
+# Maximum INT UNSIGNED is              4294967295.
+# Maximum BIGINT UNSIGNED is 18446744073709551615.
