@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/anon_dd.py
+# crate/anonymise/anon_dd.py
 
 """
 Data dictionary classes for CRATE anonymiser.
@@ -40,8 +40,8 @@ log = logging.getLogger(__name__)
 import operator
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
 
-import pythonlib.rnc_db as rnc_db
-from pythonlib.rnc_db import (
+import cardinal_pythonlib.rnc_db as rnc_db
+from cardinal_pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,
     does_sqltype_require_index_len,
     ensure_valid_field_name,
@@ -54,7 +54,7 @@ from pythonlib.rnc_db import (
     is_sqltype_text_of_length_at_least,
     is_sqltype_valid,
 )
-from pythonlib.rnc_lang import (
+from cardinal_pythonlib.rnc_lang import (
     convert_attrs_to_bool,
     convert_attrs_to_int,
     convert_attrs_to_uppercase,
@@ -62,7 +62,7 @@ from pythonlib.rnc_lang import (
     raise_if_attr_blank,
 )
 
-from .anon_constants import (
+from crate.anonymise.constants import (
     ALTERMETHOD,
     DEFAULT_INDEX_LEN,
     INDEX,

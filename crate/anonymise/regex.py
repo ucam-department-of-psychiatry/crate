@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/regex.py
+# crate/anonymise/regex.py
 
 """
 Core anonymisation functions for CRATE.
@@ -33,7 +33,7 @@ Copyright/licensing:
 
 import calendar
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 import regex  # sudo apt-get install python-regex
 
 
@@ -338,7 +338,7 @@ def get_regex_from_elements(elementlist):
         s = get_regex_string_from_elements(elementlist)
         return regex.compile(s, regex.IGNORECASE | regex.UNICODE)
     except:
-        logger.exception(u"Failed regex: {}".format(s))
+        log.exception("Failed regex: elementlist={}".format(elementlist))
         raise
 
 

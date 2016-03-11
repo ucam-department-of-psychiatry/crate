@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/anon_config.py
+# crate/anonymise/anon_config.py
 
 """
 Config class for CRATE anonymiser.
@@ -43,24 +43,24 @@ import os
 import pytz
 import urllib
 
-from pythonlib.rnc_config import (
+from cardinal_pythonlib.rnc_config import (
     read_config_multiline_options,
     read_config_string_options,
 )
-from pythonlib.rnc_datetime import (
+from cardinal_pythonlib.rnc_datetime import (
     format_datetime,
 )
-import pythonlib.rnc_db as rnc_db
-from pythonlib.rnc_db import (
+import cardinal_pythonlib.rnc_db as rnc_db
+from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
-from pythonlib.rnc_lang import (
+from cardinal_pythonlib.rnc_lang import (
     convert_attrs_to_bool,
     convert_attrs_to_int,
 )
 
-from .anon_constants import (
+from crate.anonymise.constants import (
     ALTERMETHOD,
     MAX_PID_STR,
     INDEX,
@@ -70,10 +70,8 @@ from .anon_constants import (
     SEP,
     SRCFLAG,
 )
-from .anon_dd import (
-    DataDictionary
-)
-from .anon_hash import (
+from crate.anonymise.dd import DataDictionary
+from crate.anonymise.hash import (
     # MD5Hasher,
     # SHA256Hasher,
     # SHA512Hasher,
@@ -81,7 +79,7 @@ from .anon_hash import (
     HmacSHA256Hasher,
     HmacSHA512Hasher,
 )
-from .anon_scrub import (
+from crate.anonymise.scrub import (
     NonspecificScrubber,
     WordList,
 )
@@ -1170,7 +1168,8 @@ class Config(object):
 
         # Load encryption keys and create hashers
         assert self.hash_method not in ["MD5", "SHA256", "SHA512"], (
-            "Non-HMAC hashers are deprecated for security reasons.")
+            "Non-HMAC hashers are deprecated for security reasons. You have: "
+            "{}".format(self.hash_method))
         if self.hash_method == "HMAC_MD5":
             HashClass = HmacMD5Hasher
         elif self.hash_method == "HMAC_SHA256" or not self.hash_method:

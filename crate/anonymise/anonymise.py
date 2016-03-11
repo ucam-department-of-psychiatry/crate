@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/anonymise.py
+# crate/anonymise/anonymise.py
 
 """
 Anonymise multiple SQL-based databases using a data dictionary.
@@ -42,17 +42,17 @@ import signal
 import sys
 import threading
 
-from pythonlib.rnc_datetime import (
+from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
     get_now_utc,
     truncate_date_to_first_of_month,
 )
-import pythonlib.rnc_db as rnc_db
-from pythonlib.rnc_extract_text import document_to_text
-import pythonlib.rnc_log as rnc_log
+import cardinal_pythonlib.rnc_db as rnc_db
+from cardinal_pythonlib.rnc_extract_text import document_to_text
+import cardinal_pythonlib.rnc_log as rnc_log
 
-from .anon_config import Config, DEMO_CONFIG
-from .anon_constants import (
+from crate.anonymise.config import Config, DEMO_CONFIG
+from crate.anonymise.constants import (
     ALTERMETHOD,
     BIGINT_UNSIGNED,
     INDEX,
@@ -64,8 +64,8 @@ from .anon_constants import (
     TRID_CACHE_TRID_FIELDNAME,
     TRID_TYPE,
 )
-from .anon_patient import Patient
-from .anon_version import VERSION, VERSION_DATE
+from crate.anonymise.patient import Patient
+from crate.version import VERSION, VERSION_DATE
 
 # =============================================================================
 # Predefined fieldspecs
@@ -1152,7 +1152,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
         db = config.sources[d]
         log.info("Processing non-patient table {}.{} (PK: {})...".format(
             d, t, pkname))
-        process_table(db, d, t, config.destdb, scrubber=None,
+        process_table(db, d, t, config.destdb, patient=None,
                       incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
         commit(config.destdb)
@@ -1161,7 +1161,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
                                                        ntasks=ntasks):
         db = config.sources[d]
         log.info("Processing non-patient table {}.{}...".format(d, t))
-        process_table(db, d, t, config.destdb, scrubber=None,
+        process_table(db, d, t, config.destdb, patient=None,
                       incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)
         commit(config.destdb)
@@ -1426,8 +1426,9 @@ Sample usage (having set PYTHONPATH):
     mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
     logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
                         level=mainloglevel)
+    rootlog = logging.getLogger()
     rnc_log.reset_logformat_timestamped(
-        log,
+        rootlog,
         extraname=" ".join(mynames),
         level=mainloglevel
     )

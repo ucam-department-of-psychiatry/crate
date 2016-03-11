@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/test_anonymisation.py
+# crate/anonymise/test_anonymisation.py
 
 """
 Test the anonymisation for specific databases.
@@ -58,10 +58,10 @@ import logging
 log = logging.getLogger(__name__)
 import os
 
-from pythonlib.rnc_lang import AttrDict
-from pythonlib.rnc_ui import mkdir_p
+from cardinal_pythonlib.rnc_lang import AttrDict
+from cardinal_pythonlib.rnc_ui import mkdir_p
 
-from .anonymise import (
+from crate.anonymise.anonymise import (
     config,
     extract_text,
     Scrubber,

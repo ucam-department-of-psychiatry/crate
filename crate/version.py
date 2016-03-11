@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-# crate_anonymise/anon_scrub.py
+# crate/version.py
 
 """
-Scrubber classes for CRATE anonymiser.
-
 Author: Rudolf Cardinal
 Created at: 22 Nov 2015
 Last update: 9 Mar 2016

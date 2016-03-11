@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/anon_scrub.py
+# crate/anonymise/anon_scrub.py
 
 """
 Scrubber classes for CRATE anonymiser.
@@ -31,16 +31,16 @@ from collections import OrderedDict
 import logging
 log = logging.getLogger(__name__)
 
-from pythonlib.rnc_datetime import (
+from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
 )
-from pythonlib.rnc_db import (
+from cardinal_pythonlib.rnc_db import (
     is_sqltype_date,
     is_sqltype_text_over_one_char,
 )
 
-from .anon_constants import SCRUBMETHOD
-from .anon_regex import (
+from crate.anonymise.constants import SCRUBMETHOD
+from crate.anonymise.regex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
@@ -147,15 +147,14 @@ class WordList(ScrubberBase):
         return self._regex.sub(self.replacement_text, text)
 
     def build_regex(self):
-        elements = [
-            get_string_regex_elements(
+        elements = []
+        for w in self.words:
+            elements.extend(get_string_regex_elements(
                 w,
                 suffixes=self.suffixes,
                 at_word_boundaries_only=self.at_word_boundaries_only,
                 max_errors=self.max_errors
-            )
-            for w in self.words
-        ]
+            ))
         self._regex = get_regex_from_elements(elements)
 
 
@@ -235,7 +234,7 @@ class NonspecificScrubber(ScrubberBase):
 # PersonalizedScrubber
 # =============================================================================
 
-class PersonalizedScrubber(object):
+class PersonalizedScrubber(ScrubberBase):
     """Accepts patient-specific (patient and third-party) information, and
     uses that to scrub text."""
     def __init__(self, replacement_text_patient,
@@ -453,7 +452,7 @@ class PersonalizedScrubber(object):
         return text
 
     def get_hash(self):
-        return self.hasher(self.get_raw_info())
+        return self.hasher.hash(self.get_raw_info())
 
     def get_raw_info(self):
         # This is both a summary for debugging and the basis for our

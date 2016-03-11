@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/anon_patient.py
+# crate/anonymise/anon_patient.py
 
 """
 Patient class for CRATE anonymiser.
@@ -30,9 +30,9 @@ Copyright/licensing:
 import logging
 log = logging.getLogger(__name__)
 
-import rnc_db
+import cardinal_pythonlib.rnc_db as rnc_db
 
-from .anon_constants import (
+from crate.anonymise.constants import (
     MAX_TRID,
     RAW_SCRUBBER_FIELDNAME_PATIENT,
     RAW_SCRUBBER_FIELDNAME_TP,
@@ -41,8 +41,8 @@ from .anon_constants import (
     TRID_CACHE_PID_FIELDNAME,
     TRID_CACHE_TRID_FIELDNAME,
 )
-from .anon_hash import RandomIntegerHasher
-from .anon_scrub import PersonalizedScrubber
+from crate.anonymise.hash import RandomIntegerHasher
+from crate.anonymise.scrub import PersonalizedScrubber
 
 
 # =============================================================================
@@ -156,8 +156,8 @@ class Patient(object):
             is_mpid = []
             for ddr in ddrows:
                 fields.append(ddr.src_field)
-                scrub_methods.append(self.get_scrub_method(ddr.src_datatype,
-                                                           ddr.scrub_method))
+                scrub_methods.append(PersonalizedScrubber.get_scrub_method(
+                    ddr.src_datatype, ddr.scrub_method))
                 is_patient.append(ddr.scrub_src == SCRUBSRC.PATIENT)
                 is_mpid.append(SRCFLAG.MASTERPID in ddr.src_flags)
             # Collect the actual patient-specific values for this table.
@@ -245,7 +245,7 @@ class Patient(object):
         rid = self.get_rid()
         mpid = self.get_mpid()
         mrid = self.get_mrid()
-        scrubber_hash = self.get_hash()
+        scrubber_hash = self.get_scrubber_hash()
         if self.config.save_scrubbers:
             raw_pt = self.scrubber.get_patient_regex_string()
             raw_tp = self.scrubber.get_tp_regex_string()

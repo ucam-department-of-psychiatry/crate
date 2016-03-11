@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/anon_constants.py
+# crate/anonymise/anon_constants.py
 
 """
 Shared constants for CRATE anonymiser.
@@ -27,7 +27,7 @@ Copyright/licensing:
 
 """
 
-from pythonlib.rnc_lang import AttrDict
+from cardinal_pythonlib.rnc_lang import AttrDict
 
 ALTERMETHOD = AttrDict(
     TRUNCATEDATE="truncatedate",

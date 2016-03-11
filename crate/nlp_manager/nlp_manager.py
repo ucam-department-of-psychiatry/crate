@@ -77,32 +77,31 @@ import os
 import subprocess
 import sys
 
-from pythonlib.rnc_config import read_config_string_options
-from anonymise.anon_hash import MD5Hasher
-from pythonlib.rnc_datetime import (
+from cardinal_pythonlib.rnc_config import read_config_string_options
+from cardinal_pythonlib.rnc_datetime import (
     get_now_utc,
     get_now_utc_notz
 )
-import pythonlib.rnc_db as rnc_db
-from pythonlib.rnc_db import (
+import cardinal_pythonlib.rnc_db as rnc_db
+from cardinal_pythonlib.rnc_db import (
     DatabaseConfig,
     ensure_valid_field_name,
     ensure_valid_table_name,
     is_sqltype_valid
 )
-from pythonlib.rnc_lang import (
+from cardinal_pythonlib.rnc_lang import (
     chunks,
     raise_if_attr_blank
 )
-import pythonlib.rnc_log as rnc_log
+import cardinal_pythonlib.rnc_log as rnc_log
+
+from crate.anonymise.hash import MD5Hasher
+from crate.version import VERSION, VERSION_DATE
 
 
 # =============================================================================
 # Global constants
 # =============================================================================
-
-VERSION = 0.02
-VERSION_DATE = "2015-11-25"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))

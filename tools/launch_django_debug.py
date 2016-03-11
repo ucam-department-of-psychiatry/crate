@@ -1,11 +1,11 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import os
 import subprocess
 import sys
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-CRATE_BASE_DIR = os.path.abspath(os.path.join(THIS_DIR, os.pardir))
+CRATE_BASE_DIR = os.path.abspath(os.path.join(THIS_DIR, os.pardir, "crate"))
 CRATE_WEB_DIR = os.path.join(CRATE_BASE_DIR, "crateweb")
 DJANGO_SCRIPT = os.path.join(CRATE_WEB_DIR, "manage.py")
 
@@ -24,4 +24,8 @@ environment with
     source /PATH/TO/MY/VENV/bin/activate
 """)
 
-subprocess.call([DJANGO_SCRIPT, 'runserver'])
+def main():
+    subprocess.call([DJANGO_SCRIPT, 'runserver'])
+
+if __name__ == '__main__':
+    main()

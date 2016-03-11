@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anonymise/__init__.py
+# crate/__init__.py
 
 """
 __init__.py
