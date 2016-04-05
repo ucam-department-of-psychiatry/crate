@@ -258,7 +258,7 @@ chown $CRATE_USER:$CRATE_GROUP $DEST_CRATE_CONF_FILE
 echo "Installing virtual environment..."
 # Note the need to set XDG_CACHE_HOME, or pip will use the wrong user's
 # $HOME variable.
-sudo --user=$CRATE_USER XDG_CACHE_HOME=$DEST_ROOT/.cache "$DEST_ROOT/tools/install_virtualenv.sh" "$DEST_VIRTUALENV"
+sudo --user=$CRATE_USER XDG_CACHE_HOME=$DEST_ROOT/.cache python3 "$DEST_ROOT/tools/install_virtualenv.py" "$DEST_VIRTUALENV"
 echo "... finished installing virtual environment"
 
 echo "Collecting static files"
