@@ -125,6 +125,9 @@ setup(
         'console_scripts': [
             # Format is 'script=module:function".
             'crate_anonymise=crate.anonymise.anonymise:main',
+            'crate_anonymise_multiprocess=crate.anonymise.launch_multiprocess_anonymiser:main',  # noqa
+            'crate_nlp=crate.nlp_manager.nlp_manager:main',
+            'crate_nlp_multiprocess=crate.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_make_demo_database=crate.anonymise.make_demo_database:main',
             'crate_test_anonymisation=crate.anonymise.test_anonymisation:main',
             'crate_launch_django=crate.crateweb.manage:runserver',
