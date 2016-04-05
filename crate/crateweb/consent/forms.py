@@ -6,12 +6,12 @@ logger = logging.getLogger(__name__)
 from django import forms
 from django.conf import settings
 from django.db.models import Q
-from extra.forms import (
+from crate.crateweb.extra.forms import (
     MultipleNhsNumberAreaField,
     MultipleWordAreaField,
     SingleNhsNumberField,
 )
-from .models import (
+from crate.crateweb.consent.models import (
     ClinicianResponse,
     Study,
 )

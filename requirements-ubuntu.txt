@@ -1,6 +1,8 @@
 freetds-bin
 graphviz
 libgraphviz-dev
+libxml2-dev
+libxslt1-dev
 python3
 python3.4-dev
 rabbitmq-server

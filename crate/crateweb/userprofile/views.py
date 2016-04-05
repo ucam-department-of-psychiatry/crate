@@ -2,7 +2,7 @@
 # userprofile/views.py
 
 from django.shortcuts import redirect, render
-from .forms import UserProfileForm
+from crate.crateweb.userprofile.forms import UserProfileForm
 
 
 # =============================================================================

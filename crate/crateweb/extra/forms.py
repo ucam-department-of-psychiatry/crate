@@ -2,7 +2,7 @@
 # extra/forms.py
 
 from django import forms
-from extra.nhs import is_valid_nhs_number
+from crate.crateweb.extra.nhs import is_valid_nhs_number
 
 
 # =============================================================================

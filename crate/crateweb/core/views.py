@@ -2,7 +2,7 @@
 # core/views.py
 
 from django.shortcuts import render
-from core.utils import is_developer
+from crate.crateweb.core.utils import is_developer
 
 
 # =============================================================================

@@ -2,7 +2,7 @@
 # research/views.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
@@ -11,24 +11,24 @@ from django.db import OperationalError, ProgrammingError
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from core.dbfunc import (
+from crate.crateweb.core.dbfunc import (
     dictlist_to_tsv,
     escape_sql_string_literal,
     get_fieldnames_from_cursor,
 )
-from core.utils import is_superuser, paginate
-from .forms import (
+from crate.crateweb.core.utils import is_superuser, paginate
+from crate.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
     PidLookupForm,
     SQLHelperTextAnywhereForm,
 )
-from .html_functions import (
+from crate.crateweb.research.html_functions import (
     highlight_text,
     make_result_element,
     N_CSS_HIGHLIGHT_CLASSES,
 )
-from .models import (
+from crate.crateweb.research.models import (
     Highlight,
     PidLookup,
     Query,
@@ -60,7 +60,7 @@ def query(request):
     """
     Edit or select SQL for current query.
     """
-    # logger.debug("query")
+    # log.debug("query")
     # if this is a POST request we need to process the form data
     all_queries = Query.objects.filter(user=request.user, deleted=False)\
                                .order_by('-active', '-created')
@@ -433,6 +433,15 @@ def structure_tsv(request):
 # SQL helpers
 # =============================================================================
 
+def textmatch(column_name, fragment, as_fulltext):
+    if as_fulltext:
+        return "MATCH({column}) AGAINST ('{fragment}')".format(
+            column=column_name, fragment=fragment)
+    else:
+        return "{column} LIKE '%{fragment}%'".format(
+            column=column_name, fragment=fragment)
+
+
 def sqlhelper_text_anywhere(request):
     # When you forget, go back to:
     # http://www.slideshare.net/pydanny/advanced-django-forms-usage
@@ -440,41 +449,71 @@ def sqlhelper_text_anywhere(request):
         'fkname': settings.SECRET_MAP['RID_FIELD'],
         'min_length': 50,
         'use_fulltext_index': True,
+        'include_content': False,
     }
     form = SQLHelperTextAnywhereForm(request.POST or default_values)
     if form.is_valid():
         fkname = form.cleaned_data['fkname']
         min_length = form.cleaned_data['min_length']
         use_fulltext_index = form.cleaned_data['use_fulltext_index']
+        include_content = form.cleaned_data['include_content']
         fragment = escape_sql_string_literal(form.cleaned_data['fragment'])
         table_queries = []
         tables = research_database_info.tables_containing_field(fkname)
         if not tables:
             return HttpResponse(
                 "No tables containing fieldname: {}".format(fkname))
-        for (schema, table) in tables:
-            elements = []
-            columns = research_database_info.text_columns(
-                schema, table, min_length)
-            for column_name, indexed_fulltext in columns:
-                if indexed_fulltext and use_fulltext_index:
-                    element = "MATCH({column}) AGAINST ('{fragment}')".format(
-                        column=column_name, fragment=fragment)
-                else:
-                    element = "{column} LIKE '%{fragment}%'".format(
-                        column=column_name, fragment=fragment)
-                elements.append(element)
-            table_query = (
-                "SELECT {fkname} FROM {schema}.{table} WHERE ("
-                "\n    {elements}\n)".format(
-                    fkname=fkname,
-                    schema=schema,
-                    table=table,
-                    elements="\n    OR ".join(elements),
+        if include_content:
+            queries = []
+            for (schema, table) in tables:
+                columns = research_database_info.text_columns(
+                    schema, table, min_length)
+                for column_name, indexed_fulltext in columns:
+                    query = (
+                        "SELECT {fkname} AS patient_id, "
+                        "'{table_literal}' AS table_name, "
+                        "'{col_literal}' AS column_name, "
+                        "{column_name} AS content "
+                        "FROM {schema}.{table} WHERE {condition}".format(
+                            fkname=fkname,
+                            table_literal=escape_sql_string_literal(table),
+                            col_literal=escape_sql_string_literal(column_name),
+                            column_name=column_name,
+                            schema=schema,
+                            table=table,
+                            condition=textmatch(
+                                column_name,
+                                fragment,
+                                indexed_fulltext and use_fulltext_index
+                            ),
+                        )
+                    )
+                    queries.append(query)
+            sql = "\nUNION\n".join(queries)
+            sql += "\nORDER BY patient_id".format(fkname)
+        else:
+            for (schema, table) in tables:
+                elements = []
+                columns = research_database_info.text_columns(
+                    schema, table, min_length)
+                for column_name, indexed_fulltext in columns:
+                    element = textmatch(
+                        column_name,
+                        fragment,
+                        indexed_fulltext and use_fulltext_index)
+                    elements.append(element)
+                table_query = (
+                    "SELECT {fkname} FROM {schema}.{table} WHERE ("
+                    "\n    {elements}\n)".format(
+                        fkname=fkname,
+                        schema=schema,
+                        table=table,
+                        elements="\n    OR ".join(elements),
+                    )
                 )
-            )
-            table_queries.append(table_query)
-        sql = "\nUNION\n".join(table_queries)
+                table_queries.append(table_query)
+            sql = "\nUNION\n".join(table_queries)
+            sql += "\nORDER BY {}".format(fkname)
         return HttpResponse(sql, content_type='text/plain')
 
     return render(request, 'sqlhelper_form_text_anywhere.html', {'form': form})

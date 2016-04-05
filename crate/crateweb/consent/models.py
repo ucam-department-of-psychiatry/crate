@@ -4,7 +4,7 @@
 import datetime
 from dateutil.relativedelta import relativedelta
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 import os
 # from audit_log.models import AuthStampedModel  # django-audit-log
 from django import forms
@@ -26,7 +26,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
-from core.constants import (
+from crate.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_FIELD_DESCRIPTION,
     LEN_NAME,
@@ -34,8 +34,12 @@ from core.constants import (
     LEN_TITLE,
     MAX_HASH_LENGTH,
 )
-from core.dbfunc import dictfetchall, dictfetchone, fetchallfirstvalues
-from core.utils import (
+from crate.crateweb.core.dbfunc import (
+    dictfetchall,
+    dictfetchone,
+    fetchallfirstvalues,
+)
+from crate.crateweb.core.utils import (
     get_friendly_date,
     get_initial_surname_tuple_from_string,
     modelrepr,
@@ -43,22 +47,25 @@ from core.utils import (
     string_time_now,
     url_with_querystring,
 )
-from extra.admin import admin_view_url
-from extra.fields import (
+from crate.crateweb.extra.admin import admin_view_url
+from crate.crateweb.extra.fields import (
     auto_delete_files_on_instance_change,
     auto_delete_files_on_instance_delete,
     choice_explanation,
     ContentTypeRestrictedFileField,
     # IsoDateTimeTzField,
 )
-from extra.pdf import get_concatenated_pdf_in_memory, pdf_from_html
-from research.models import get_mpid
-from .storage import privatestorage
-from .tasks import (
+from crate.crateweb.extra.pdf import (
+    get_concatenated_pdf_in_memory,
+    pdf_from_html,
+)
+from crate.crateweb.research.models import get_mpid
+from crate.crateweb.consent.storage import privatestorage
+from crate.crateweb.consent.tasks import (
     email_rdbm_task,
     process_contact_request,
 )
-from .utils import (
+from crate.crateweb.consent.utils import (
     pdf_template_dict,
     validate_researcher_email_domain,
 )
@@ -587,7 +594,7 @@ class PatientLookupBase(models.Model):
     pt_address_7 = models.CharField(
         max_length=LEN_ADDRESS, blank=True,
         verbose_name="Patient address line 7 (country)")
-    pt_telephone = models.CharField(max_length=LEN_PHONE,  blank=True,
+    pt_telephone = models.CharField(max_length=LEN_PHONE, blank=True,
                                     verbose_name="Patient telephone")
     pt_email = models.EmailField(blank=True, verbose_name="Patient email")
 
@@ -619,7 +626,7 @@ class PatientLookupBase(models.Model):
     gp_address_7 = models.CharField(
         max_length=LEN_ADDRESS, blank=True,
         verbose_name="GP address line 7 (country)")
-    gp_telephone = models.CharField(max_length=LEN_PHONE,  blank=True,
+    gp_telephone = models.CharField(max_length=LEN_PHONE, blank=True,
                                     verbose_name="GP telephone")
     gp_email = models.EmailField(blank=True, verbose_name="GP email")
 
@@ -1826,7 +1833,7 @@ class TeamInfo(object):
     """Class only exists to be able to use @cached_property."""
     @cached_property
     def teams(self):
-        logger.debug("Fetching/caching clinical teams")
+        log.debug("Fetching/caching clinical teams")
         if settings.CLINICAL_LOOKUP_DB == 'cpft_rio':
             cursor = connections[settings.CLINICAL_LOOKUP_DB].cursor()
             cursor.execute("""
@@ -2361,8 +2368,8 @@ class ContactRequest(models.Model):
         clinician_requested = not self.request_direct_approach
         extra_form = (clinician_requested
                       and study.subject_form_template_pdf.name)
-        # logger.debug("clinician_requested: {}".format(clinician_requested))
-        # logger.debug("extra_form: {}".format(extra_form))
+        # log.debug("clinician_requested: {}".format(clinician_requested))
+        # log.debug("extra_form: {}".format(extra_form))
         return extra_form
 
     def is_consent_mode_unknown(self):
@@ -2424,7 +2431,7 @@ class ContactRequest(models.Model):
                 html_or_filename_tuple_list.append(
                     ('filename', leaflet.pdf.path))
             except:
-                logger.warn("Missing traffic-light leaflet!")
+                log.warn("Missing traffic-light leaflet!")
                 email_rdbm_task.delay(
                     subject="ERROR FROM RESEARCH DATABASE COMPUTER",
                     text=(
@@ -2438,7 +2445,7 @@ class ContactRequest(models.Model):
             leaflet = Leaflet.objects.get(name=Leaflet.CPFT_TPIR)
             html_or_filename_tuple_list.append(('filename', leaflet.pdf.path))
         except:
-            logger.warn("Missing taking-part-in-research leaflet!")
+            log.warn("Missing taking-part-in-research leaflet!")
             email_rdbm_task.delay(
                 subject="ERROR FROM RESEARCH DATABASE COMPUTER",
                 text=(
@@ -2451,7 +2458,7 @@ class ContactRequest(models.Model):
                                               start_recto=True)
 
     def get_mgr_admin_url(self):
-        from core.admin import mgr_admin_site  # delayed import
+        from crate.crateweb.core.admin import mgr_admin_site  # delayed import
         return admin_view_url(mgr_admin_site, self)
 
 
@@ -2520,7 +2527,7 @@ class ClinicianResponse(models.Model):
     # ... set to settings.CHARITY_AMOUNT_CLINICIAN_RESPONSE upon response
 
     def get_response_explanation(self):
-        # logger.debug("get_response_explanation: {}".format(self.response))
+        # log.debug("get_response_explanation: {}".format(self.response))
         return choice_explanation(self.response, ClinicianResponse.RESPONSES)
 
     @classmethod
@@ -2640,7 +2647,7 @@ class PatientResponse(Decision):
         return patient_response
 
     def process_response(self):
-        # logger.debug("process_response: PatientResponse: {}".format(
+        # log.debug("process_response: PatientResponse: {}".format(
         #     modelrepr(self)))
         if self.response == PatientResponse.YES:
             contact_request = self.contact_request
@@ -2903,7 +2910,7 @@ class Email(models.Model):
 
     def send(self, user=None, resend=False):
         if self.has_been_sent() and not resend:
-            logger.error("Trying to send e-mail twice: ID={}".format(self.id))
+            log.error("Trying to send e-mail twice: ID={}".format(self.id))
             return
         if settings.SAFETY_CATCH_ON:
             self.recipient = settings.DEVELOPER_EMAIL

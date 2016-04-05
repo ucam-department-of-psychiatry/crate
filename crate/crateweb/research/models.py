@@ -7,8 +7,8 @@ from django.conf import settings
 from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 import logging
-logger = logging.getLogger(__name__)
-from core.dbfunc import (
+log = logging.getLogger(__name__)
+from crate.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
     get_fieldnames_from_cursor,
@@ -16,7 +16,10 @@ from core.dbfunc import (
     translate_sql_qmark_to_percent,
     tsv_escape,
 )
-from .html_functions import highlight_text, N_CSS_HIGHLIGHT_CLASSES
+from crate.crateweb.research.html_functions import (
+    highlight_text,
+    N_CSS_HIGHLIGHT_CLASSES,
+)
 
 
 # =============================================================================
@@ -36,6 +39,9 @@ class Query(models.Model):
     """
     Class to query the research database.
     """
+    class Meta:
+        app_label = "research"
+
     id = models.AutoField(primary_key=True)  # automatic
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
     sql = models.TextField(verbose_name='SQL query')
@@ -99,25 +105,25 @@ class Query(models.Model):
 
     def mark_deleted(self):
         if self.deleted:
-            logger.debug("pointless)")
+            log.debug("pointless)")
             return
         self.deleted = True
         self.active = False
-        logger.debug("about to save")
+        log.debug("about to save")
         self.save()
-        logger.debug("saved")
+        log.debug("saved")
 
     def delete_if_permitted(self):
         """If a query has been audited, it isn't properly deleted."""
         if self.deleted:
-            logger.debug("already flagged as deleted")
+            log.debug("already flagged as deleted")
             return
         if self.audited:
-            logger.debug("marking as deleted")
+            log.debug("marking as deleted")
             self.mark_deleted()
         else:
             # actually delete
-            logger.debug("actually deleting")
+            log.debug("actually deleting")
             self.delete()
 
     def audit(self, count_only=False, n_records=0,
@@ -293,8 +299,8 @@ class ResearchDatabaseInfo(object):
     @cached_property
     def infodictlist(self):
         schemas = settings.RESEARCH_DB_INFO_SCHEMAS
-        logger.debug("Fetching/caching database structure "
-                     "(for schemas: {})...".format(", ".join(schemas)))
+        log.debug("Fetching/caching database structure "
+                  "(for schemas: {})...".format(", ".join(schemas)))
         # ---------------------------------------------------------------------
         # Method A. Stupidly slow, e.g. 47s for the query.
         # ---------------------------------------------------------------------
@@ -402,7 +408,7 @@ class ResearchDatabaseInfo(object):
         cursor = connections['research'].cursor()
         cursor.execute(sql, args)
         results = dictfetchall(cursor)
-        logger.debug("... done")
+        log.debug("... done")
         return results
         # Multiple values:
         # - Don't circumvent the parameter protection against SQL injection.
@@ -468,7 +474,7 @@ class PidLookupRouter(object):
         """
         read model PidLookup -> look at database secret
         """
-        # logger.debug("PidLookupRouter: {}".format(model._meta.model_name))
+        # log.debug("PidLookupRouter: {}".format(model._meta.model_name))
         # if model._meta.model_name == PidLookup._meta.model_name:
         if model == PidLookup:
             return 'secret'

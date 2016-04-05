@@ -4,7 +4,7 @@
 from django.conf import settings
 from django.db import models
 from django.dispatch import receiver
-from core.constants import (
+from crate.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_PHONE,
     LEN_TITLE,
@@ -78,7 +78,7 @@ class UserProfile(models.Model):
                                  verbose_name="Address line 6 (postcode)")
     address_7 = models.CharField(max_length=LEN_ADDRESS, blank=True,
                                  verbose_name="Address line 7 (country)")
-    telephone = models.CharField(max_length=LEN_PHONE,  blank=True)
+    telephone = models.CharField(max_length=LEN_PHONE, blank=True)
     # -------------------------------------------------------------------------
     # Clinician-specific bits
     # -------------------------------------------------------------------------

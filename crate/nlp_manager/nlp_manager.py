@@ -67,7 +67,7 @@ TO DO:
 # from __future__ import print_function
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 import argparse
 import codecs
@@ -688,7 +688,7 @@ class NlpController(object):
         Launch the external process.
         """
         args = self.config.progargs
-        logger.info("launching command: " + " ".join(args))
+        log.info("launching command: " + " ".join(args))
         self.p = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
@@ -703,7 +703,7 @@ class NlpController(object):
         # helpful.
 
     def _encode_to_subproc_stdin(self, text):
-        logger.debug("SENDING: " + text)
+        log.debug("SENDING: " + text)
         bytes = text.encode(self.encoding)
         self.p.stdin.write(bytes)
 
@@ -713,7 +713,7 @@ class NlpController(object):
     def _decode_from_subproc_stdout(self):
         bytes = self.p.stdout.readline()
         text = bytes.decode(self.encoding)
-        logger.debug("RECEIVING: " + text)
+        log.debug("RECEIVING: " + text)
         return text
 
     def send(self, text, starting_fields_values={}):
@@ -722,7 +722,7 @@ class NlpController(object):
         """
         self.starting_fields_values = starting_fields_values
         # Send
-        logger.debug("writing: " + text)
+        log.debug("writing: " + text)
         self._encode_to_subproc_stdin(text)
         self._encode_to_subproc_stdin("\n")
         self._encode_to_subproc_stdin(self.input_terminator + "\n")
@@ -732,13 +732,13 @@ class NlpController(object):
                          self.output_terminator + "\n"):
             # ... iterate until the sentinel output_terminator is received
             line = line.rstrip()  # remove trailing newline
-            logger.debug("stdout received: " + line)
+            log.debug("stdout received: " + line)
             self.receive(line)
         self.n_uses += 1
         # Restart subprocess?
         if (self.config.max_external_prog_uses > 0
                 and self.n_uses >= self.config.max_external_prog_uses):
-            logger.info("relaunching app after {} uses".format(self.n_uses))
+            log.info("relaunching app after {} uses".format(self.n_uses))
             self.finish()
             self.start()
             self.n_uses = 0
@@ -759,7 +759,7 @@ class NlpController(object):
         database.
         """
         d = tsv_pairs_to_dict(line)
-        logger.debug("dictionary received: {}".format(d))
+        log.debug("dictionary received: {}".format(d))
         # Merge dictionaries so EXISTING FIELDS/VALUES (starting_fields_values)
         # HAVE PRIORITY.
         # http://stackoverflow.com/questions/38987
@@ -767,14 +767,14 @@ class NlpController(object):
         #   d = dict(d.items() + self.starting_fields_values.items())
         # Python 3, for this situation -- would also work in Python 2!:
         d.update(self.starting_fields_values)
-        logger.debug("dictionary now: {}".format(d))
+        log.debug("dictionary now: {}".format(d))
 
         # Now process it.
         if "_type" not in d.keys():
             raise Exception("_type information not in data received")
         annottype = d["_type"].lower()
         if annottype not in self.config.outputtypemap.keys():
-            logger.warning(
+            log.warning(
                 "Unknown annotation type, skipping: {}".format(annottype))
             return
         ot = self.config.outputtypemap[annottype]
@@ -895,7 +895,7 @@ def delete_where_no_source(config, ifconfig):
     """
 
     # 1. Progress database
-    logger.debug(
+    log.debug(
         "delete_where_no_source... {}.{} -> progressdb".format(
             ifconfig.srcdb,
             ifconfig.srctable,
@@ -916,9 +916,9 @@ def delete_where_no_source(config, ifconfig):
     )
     args = [ifconfig.srcdb, ifconfig.srctable, ifconfig.srcpkfield]
     if not pks:
-        logger.debug("... deleting all")
+        log.debug("... deleting all")
     else:
-        logger.debug("... deleting selectively")
+        log.debug("... deleting selectively")
         value_string = ','.join(['?'] * len(pks))
         sql += " AND srcpkval NOT IN ({})".format(value_string)
         args += pks
@@ -926,7 +926,7 @@ def delete_where_no_source(config, ifconfig):
 
     # 2. Others. Combine in the same function as we re-use the source PKs.
     for otconfig in config.outputtypemap.values():
-        logger.debug(
+        log.debug(
             "delete_where_no_source... {}.{} -> {}.{}".format(
                 ifconfig.srcdb,
                 ifconfig.srctable,
@@ -944,9 +944,9 @@ def delete_where_no_source(config, ifconfig):
         )
         # args will already be correct, from above
         if not pks:
-            logger.debug("... deleting all")
+            log.debug("... deleting all")
         else:
-            logger.debug("... deleting selectively")
+            log.debug("... deleting selectively")
             # value_string already set
             sql += " AND _srcpkval NOT IN ({})".format(value_string)
         destdb.db_exec(sql, *args)
@@ -957,7 +957,7 @@ def delete_from_dest_dbs(config, ifconfig, srcpkval, commit=False):
     For when a record has been updated; wipe older entries for it.
     """
     for otconfig in config.outputtypemap.values():
-        logger.debug(
+        log.debug(
             "delete_from_dest_dbs... {}.{} -> {}.{}".format(
                 ifconfig.srcdb,
                 ifconfig.srctable,
@@ -1041,13 +1041,13 @@ def process_nlp(config, incremental=False, tasknum=0, ntasks=1):
     Main NLP processing function. Fetch text, send it to the GATE app
     (storing the results), and make a note in the progress database.
     """
-    logger.info(SEP + "NLP")
+    log.info(SEP + "NLP")
     controller = NlpController(config, commit=incremental)
     controller.start()
     for ifconfig in config.inputfieldmap.values():
         for pkval, text in gen_text(config, ifconfig,
                                     tasknum=tasknum, ntasks=ntasks):
-            logger.info("Processing {}.{}.{}, {}={}".format(
+            log.info("Processing {}.{}.{}, {}={}".format(
                 ifconfig.srcdb, ifconfig.srctable, ifconfig.srcfield,
                 ifconfig.srcpkfield, pkval
             ))
@@ -1056,7 +1056,7 @@ def process_nlp(config, incremental=False, tasknum=0, ntasks=1):
                     and pk_of_record_in_progressdb(config, ifconfig,
                                                    pkval, srchash)
                     is not None):
-                logger.debug("Record previously processed; skipping")
+                log.debug("Record previously processed; skipping")
                 continue
             starting_fields_values = {
                 "_srcdb": ifconfig.srcdb,
@@ -1085,7 +1085,7 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
     # 1. Progress database
     # -------------------------------------------------------------------------
     if not incremental:
-        logger.debug("progressdb: dropping table {}".format(
+        log.debug("progressdb: dropping table {}".format(
             config.progresstable))
         config.progdb.drop_table(config.progresstable)
     sql = """
@@ -1109,7 +1109,7 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
         SQLTYPE_ENCRYPTED_PID=SQLTYPE_ENCRYPTED_PID,
     )
     # The pk field isn't used.
-    logger.debug(sql)
+    log.debug(sql)
     config.progdb.db_exec_literal(sql)
 
     # -------------------------------------------------------------------------
@@ -1121,7 +1121,7 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
         fancy_ok = db.is_mysql()
         # Drop
         if not incremental:
-            logger.debug("dropping table {}".format(t))
+            log.debug("dropping table {}".format(t))
             db.drop_table(t)
         # Recreate
         fieldspecs = []
@@ -1144,7 +1144,7 @@ def drop_remake(config, incremental=False, dynamic=True, compressed=False):
             compressed=("ROW_FORMAT=COMPRESSED"
                         if compressed and fancy_ok else ""),
         )
-        logger.debug(sql)
+        log.debug(sql)
         db.db_exec_literal(sql)
 
     # -------------------------------------------------------------------------
@@ -1166,7 +1166,7 @@ def create_indexes(config, tasknum=0, ntasks=1):
     Create indexes on destination table(s).
     """
     # Parallelize by table.
-    logger.info(SEP + "Create indexes")
+    log.info(SEP + "Create indexes")
     outputtypes_list = list(config.outputtypemap.values())
     for i in range(len(outputtypes_list)):
         if i % ntasks != tasknum:
@@ -1190,7 +1190,7 @@ def create_indexes(config, tasknum=0, ntasks=1):
             t=t,
             add_indexes=", ".join(sqlbits),
         )
-        logger.debug(sql)
+        log.debug(sql)
         db.db_exec(sql)
 
 
@@ -1258,10 +1258,10 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         parser.print_help()
         fail()
     if args.nprocesses < 1:
-        logger.error("--nprocesses must be >=1")
+        log.error("--nprocesses must be >=1")
         fail()
     if args.process < 0 or args.process >= args.nprocesses:
-        logger.error(
+        log.error(
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
         fail()
 
@@ -1276,7 +1276,7 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     if args.nprocesses > 1:
         mynames.append("process {}".format(args.process))
     rnc_log.reset_logformat_timestamped(
-        logger,
+        log,
         extraname=" ".join(mynames),
         level=logging.DEBUG if args.verbose >= 1 else logging.INFO
     )
@@ -1288,17 +1288,17 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
                         level=mainloglevel)
 
     # Report args
-    logger.debug("arguments: {}".format(args))
+    log.debug("arguments: {}".format(args))
 
     # Load/validate config
-    logger.info("Loading config")
+    log.info("Loading config")
     config = Config(args.configfile,
                     args.nlpname,
                     logtag="_".join(mynames).replace(" ", "_"))
 
     # -------------------------------------------------------------------------
 
-    logger.info("Starting")
+    log.info("Starting")
     start = get_now_utc()
 
     # 1. Drop/remake tables. Single-tasking only.
@@ -1314,10 +1314,10 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     if args.index or everything:
         create_indexes(config, tasknum=args.process, ntasks=args.nprocesses)
 
-    logger.info("Finished")
+    log.info("Finished")
     end = get_now_utc()
     time_taken = end - start
-    logger.info("Time taken: {} seconds".format(time_taken.total_seconds()))
+    log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
 
 
 # =============================================================================

@@ -141,15 +141,15 @@ import argparse
 from operator import itemgetter
 import logging
 from twisted.internet import protocol, reactor
-from twisted.python import log
+from twisted.python import log as twisted_log
 
 LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
 LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
 logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT)
-logger = logging.getLogger("mysql_auditor_proxy")
-logger.setLevel(logging.DEBUG)
+log = logging.getLogger("mysql_auditor_proxy")
+log.setLevel(logging.DEBUG)
 
-observer = log.PythonLoggingObserver(loggerName="twisted")
+observer = twisted_log.PythonLoggingObserver(loggerName="twisted")
 observer.start()
 
 
@@ -270,7 +270,7 @@ class UserFacing(protocol.Protocol):
         self.schema = None
 
     def connectionMade(self):
-        logger.info("UserFacing: connection made")
+        log.info("UserFacing: connection made")
         factory = MysqlFacingFactory(self)
         reactor.connectTCP(self.factory.serveraddr,
                            self.factory.serverport,
@@ -279,7 +279,7 @@ class UserFacing(protocol.Protocol):
     # client -> this (... -> server)
     def dataReceived(self, data):
         # Inspect and fiddle
-        # logger.debug("FROM USER: " + data)
+        # log.debug("FROM USER: " + data)
         if not self.had_packet:
             self.handshake_packet(data)
             self.had_packet = True
@@ -297,8 +297,8 @@ class UserFacing(protocol.Protocol):
         self.transport.write(data)
 
     def handshake_packet(self, data):
-        logger.info("First client -> server packet received")
-        # logger.debug("Contents: " + binascii.hexlify(data))
+        log.info("First client -> server packet received")
+        # log.debug("Contents: " + binascii.hexlify(data))
         sequence_id, data = mysql_packet(data)
         index = 0
         index, capability_flags = get_integer(index, data, 4)
@@ -309,11 +309,11 @@ class UserFacing(protocol.Protocol):
         index, username = get_null_terminated_string(index, data)
         flagmap = map_bitflags(capability_flags, MYSQL_CAPABILITY_FLAGS,
                                indent=4)
-        logger.info("Capability flags 0b{:b}\n{}".format(capability_flags,
-                                                         flagmap))
+        log.info("Capability flags 0b{:b}\n{}".format(capability_flags,
+                                                      flagmap))
         if not capability_flags & MYSQL_CAPABILITY_FLAGS.CLIENT_PROTOCOL_41:
-            logger.error("Unknown MySQL protocol packet")
-        logger.info(
+            log.error("Unknown MySQL protocol packet")
+        log.info(
             "Max packet size {}; character_set {}; username {}".format(
                 max_packet_size,
                 character_set,
@@ -332,16 +332,15 @@ class UserFacing(protocol.Protocol):
         elif command == MYSQL_COMMANDS.COM_INIT_DB:
             index, schema = get_rest_of_packet_string(index, data)
             self.schema = schema
-            logger.info("Schema changed to: {}".format(schema))
+            log.info("Schema changed to: {}".format(schema))
         elif command == MYSQL_COMMANDS.COM_CHANGE_USER:
             index, username = get_null_terminated_string(index, data)
             self.username = username
-            logger.info("User changed to: {}".format(username))
+            log.info("User changed to: {}".format(username))
 
     def audit_query(self, query):
-        logger.info("USER {}, SCHEMA {}, QUERY: {}".format(self.username,
-                                                           self.schema,
-                                                           query))
+        log.info("USER {}, SCHEMA {}, QUERY: {}".format(
+            self.username, self.schema, query))
 
 
 class UserFacingFactory(protocol.ServerFactory):
@@ -358,14 +357,14 @@ class MysqlFacing(protocol.Protocol):
         self.factory = factory
 
     def connectionMade(self):
-        logger.info("MysqlFacing: connection made")
+        log.info("MysqlFacing: connection made")
         self.factory.userfacing.mysqlfacing = self
         self.write(self.factory.userfacing.buffer)
         self.factory.userfacing.buffer = ''
 
     # server -> this (... -> client)
     def dataReceived(self, data):
-        # logger.debug("FROM SERVER: " + data)
+        # log.debug("FROM SERVER: " + data)
         self.factory.userfacing.write(data)
 
     # this -> server
@@ -399,9 +398,9 @@ def main():
     args = parser.parse_args()
 
     # Go
-    logger.info("Will forward incoming requests on port {} to {}:{}".format(
+    log.info("Will forward incoming requests on port {} to {}:{}".format(
         args.listenport, args.mysqlserver, args.mysqlport))
-    logger.info("Starting Twisted.")
+    log.info("Starting Twisted.")
     factory = UserFacingFactory(args.mysqlserver, args.mysqlport)
     reactor.listenTCP(args.listenport, factory)
     reactor.run()

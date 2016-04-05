@@ -9,11 +9,11 @@ from django.forms import (
     IntegerField,
     ModelForm,
 )
-from extra.forms import (
+from crate.crateweb.extra.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
 )
-from .models import Highlight, Query
+from crate.crateweb.research.models import Highlight, Query
 
 
 class AddQueryForm(ModelForm):
@@ -61,4 +61,7 @@ class SQLHelperTextAnywhereForm(forms.Form):
     use_fulltext_index = BooleanField(
         label="Use full-text indexing where available "
         "(faster, but requires whole words)",
+        required=False)
+    include_content = BooleanField(
+        label="Include content from fields where found (slower)",
         required=False)

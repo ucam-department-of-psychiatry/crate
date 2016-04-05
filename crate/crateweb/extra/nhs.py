@@ -2,7 +2,7 @@
 # extra/nhs.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 import random
 
 
@@ -47,30 +47,30 @@ def is_valid_nhs_number(n):
         http://www.datadictionary.nhs.uk/version2/data_dictionary/data_field_notes/n/nhs_number_de.asp  # noqa
     """
     if not isinstance(n, int):
-        logger.debug("is_valid_nhs_number: parameter was not of integer type")
+        log.debug("is_valid_nhs_number: parameter was not of integer type")
         return False
     try:
         s = str(n)
         # Not 10 digits long?
         if len(s) != 10:
-            logger.debug("is_valid_nhs_number: not 10 digits")
+            log.debug("is_valid_nhs_number: not 10 digits")
             return False
 
         main_digits = [int(s[i]) for i in range(9)]
         actual_check_digit = int(s[9])  # tenth digit
         expected_check_digit = nhs_check_digit(main_digits)
         if expected_check_digit == 10:
-            logger.debug("is_valid_nhs_number: calculated check digit invalid")
+            log.debug("is_valid_nhs_number: calculated check digit invalid")
             return False
         if expected_check_digit != actual_check_digit:
-            logger.debug("is_valid_nhs_number: check digit mismatch")
+            log.debug("is_valid_nhs_number: check digit mismatch")
             return False
         # Hooray!
         return True
 
     except Exception as e:
         # Something went wrong.
-        logger.debug("is_valid_nhs_number: exception thrown: {}".format(
+        log.debug("is_valid_nhs_number: exception thrown: {}".format(
             repr(e)))
         return False
 

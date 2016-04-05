@@ -2,7 +2,7 @@
 # extra/admin.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
 from django.core.urlresolvers import reverse
@@ -226,7 +226,7 @@ def admin_view_reverse_fk_links(modeladmin, obj, reverse_fk_set_field,
         current_app = modeladmin.admin_site.name
     links = []
     for linked_obj in linked_objs:
-        # logger.debug("linked_obj: {}".format(linked_obj))
+        # log.debug("linked_obj: {}".format(linked_obj))
         url = reverse(viewname, args=[linked_obj.pk], current_app=current_app)
 
         if use_str:
@@ -235,7 +235,7 @@ def admin_view_reverse_fk_links(modeladmin, obj, reverse_fk_set_field,
             label = "{} {}".format(escape(linked_obj._meta.object_name),
                                    linked_obj.pk)
         links.append('<a href="{}">{}</a>'.format(url, label))
-    # logger.debug("links: {}".format(links))
+    # log.debug("links: {}".format(links))
     return separator.join(links)
 
 

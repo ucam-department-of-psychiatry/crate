@@ -2,7 +2,7 @@
 # core/admin.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 from django import forms
 from django.conf import settings
 from django.contrib import admin
@@ -15,7 +15,7 @@ from django.db.models import Q
 from django.template.defaultfilters import yesno
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy
-from extra.admin import (
+from crate.crateweb.extra.admin import (
     AddOnlyModelAdmin,
     admin_view_fk_link,
     admin_view_reverse_fk_links,
@@ -25,9 +25,9 @@ from extra.admin import (
     disable_bool_icon,
     ReadOnlyModelAdmin,
 )
-from core.utils import replace_in_list
-from userprofile.models import UserProfile
-from consent.models import (
+from crate.crateweb.core.utils import replace_in_list
+from crate.crateweb.userprofile.models import UserProfile
+from crate.crateweb.consent.models import (
     CharityPaymentRecord,
     ClinicianResponse,
     ConsentMode,
@@ -42,12 +42,12 @@ from consent.models import (
     Study,
     TeamRep,
 )
-from consent.tasks import (
+from crate.crateweb.consent.tasks import (
     process_consent_change,
     process_patient_response,
     resend_email,
 )
-from research.models import (
+from crate.crateweb.research.models import (
     QueryAudit,
 )
 
@@ -863,7 +863,7 @@ class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
     def save_model(self, request, obj, form, change):
         obj.recorded_by = request.user
         obj.save()
-        # logger.debug("PatientResponse: {}".format(modelrepr(obj)))
+        # log.debug("PatientResponse: {}".format(modelrepr(obj)))
         transaction.on_commit(
             lambda: process_patient_response.delay(obj.id)
         )  # Asynchronous
@@ -1154,7 +1154,7 @@ res_admin_site.register(ContactRequest, ContactRequestResAdmin)
 Problem with non-superusers not seeing any apps:
 - http://stackoverflow.com/questions/1929707/django-admin-not-seeing-any-app-permission-problem  # noqa
   ... but django.contrib.auth.backends.ModelBackend won't load in INSTALLED_APPS  # noqa
-- logger.debug("registered: {}".format(res_admin_site.is_registered(Leaflet)))
+- log.debug("registered: {}".format(res_admin_site.is_registered(Leaflet)))
   ... OK
   ... and anyway, it works for superusers
 - app_list is blank in the template; this is set in AdminSite.index()

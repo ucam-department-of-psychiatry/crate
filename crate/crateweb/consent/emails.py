@@ -3,7 +3,7 @@
 
 from django.conf import settings
 from django.template.loader import render_to_string
-from .models import ClinicianResponse
+from crate.crateweb.consent.models import ClinicianResponse
 
 
 def email_clinician_html(contact_request):

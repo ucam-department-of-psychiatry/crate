@@ -2,7 +2,7 @@
 # core/auth_views.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.urlresolvers import reverse
@@ -17,7 +17,7 @@ def login_view(request):
     # http://stackoverflow.com/questions/16750464/django-redirect-after-login-not-working-next-not-posting  # noqa
 
     nextpage = request.GET.get('next', reverse('home'))
-    logger.debug("login_view: nextpage: {}".format(nextpage))
+    log.debug("login_view: nextpage: {}".format(nextpage))
     if request.user.is_authenticated():
         return HttpResponseRedirect(nextpage)
     form = AuthenticationForm(

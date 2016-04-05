@@ -10,7 +10,7 @@ from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
 import tempfile
 from django.conf import settings
 from django.http import HttpResponse
-from .serve import serve_buffer
+from crate.crateweb.extra.serve import serve_buffer
 
 
 # =============================================================================

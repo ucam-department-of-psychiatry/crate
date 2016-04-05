@@ -15,7 +15,7 @@ To install in development mode:
     pip install -e .
 
 """
-# https://packaging.python.org/en/latest/distributing/#working-in-development-mode
+# https://packaging.python.org/en/latest/distributing/#working-in-development-mode  # noqa
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/
 # http://jtushman.github.io/blog/2013/06/17/sharing-code-across-applications-with-python/  # noqa
 
@@ -127,6 +127,7 @@ setup(
             'crate_anonymise=crate.anonymise.anonymise:main',
             'crate_make_demo_database=crate.anonymise.make_demo_database:main',
             'crate_test_anonymisation=crate.anonymise.test_anonymisation:main',
+            'crate_launch_django=crate.crateweb.manage:runserver',
         ],
     },
 )

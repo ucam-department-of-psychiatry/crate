@@ -4,7 +4,7 @@
 import datetime
 import dateutil.parser
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 import os
 import pytz
 from django import forms
@@ -47,12 +47,12 @@ class ContentTypeRestrictedFileField(models.FileField):
 
     def clean(self, *args, **kwargs):
         data = super().clean(*args, **kwargs)
-        # logger.debug("data: {}".format(repr(data)))
+        # log.debug("data: {}".format(repr(data)))
         f = data.file
         if not isinstance(f, UploadedFile):  # RNC
             # no new file uploaded; there won't be a content-type to check
             return data
-        # logger.debug("f: {}".format(repr(f)))
+        # log.debug("f: {}".format(repr(f)))
         content_type = f.content_type
         if content_type not in self.content_types:
             raise forms.ValidationError(ugettext_lazy(
@@ -256,7 +256,7 @@ class IsoDateTimeTzField(models.CharField):
         Convert database value to Python value.
         Called when data is loaded from the database.
         """
-        # logger.debug("from_db_value: {}, {}".format(value, type(value)))
+        # log.debug("from_db_value: {}, {}".format(value, type(value)))
         if value is None:
             return value
         if value == '':
@@ -271,7 +271,7 @@ class IsoDateTimeTzField(models.CharField):
         Should raise ValidationError if problems.
         """
         # https://docs.djangoproject.com/en/1.8/howto/custom-model-fields/
-        # logger.debug("to_python: {}, {}".format(value, type(value)))
+        # log.debug("to_python: {}, {}".format(value, type(value)))
         if isinstance(value, datetime.datetime):
             return value
         if value is None:
@@ -288,7 +288,7 @@ class IsoDateTimeTzField(models.CharField):
         Calls to this function are followed by calls to get_db_prep_value(),
         which is for backend-specific conversions.
         """
-        logger.debug("get_prep_value: {}, {}".format(value, type(value)))
+        log.debug("get_prep_value: {}, {}".format(value, type(value)))
         if not value:
             return ''
             # For underlying (database) string types, e.g. VARCHAR, this
@@ -303,11 +303,11 @@ class IsoDateTimeTzField(models.CharField):
         This follows get_prep_value(), and is for backend-specific stuff.
         See notes above.
         """
-        logger.debug("get_db_prep_value: {}, {}".format(value, type(value)))
+        log.debug("get_db_prep_value: {}, {}".format(value, type(value)))
         value = super().get_db_prep_value(value, connection, prepared)
         if value is None:
             return value
-        # logger.debug("connection.settings_dict['ENGINE']: {}".format(
+        # log.debug("connection.settings_dict['ENGINE']: {}".format(
         #              connection.settings_dict['ENGINE']))
         if connection.settings_dict['ENGINE'] == 'django.db.backends.sqlite3':
             return python_utc_datetime_to_sqlite_strftime_string(value)
@@ -318,7 +318,7 @@ class IsoDateTimeTzField(models.CharField):
         Convert Python value to database value for SAVING.
         We save with full timezone information.
         """
-        logger.debug("get_db_prep_save: {}, {}".format(value, type(value)))
+        log.debug("get_db_prep_save: {}, {}".format(value, type(value)))
         if not value:
             return ''
             # For underlying (database) string types, e.g. VARCHAR, this
@@ -507,12 +507,12 @@ class IsoStringToUtcDateTime(models.Transform):
         return DateTimeField()
 
     def as_mysql(self, compiler, connection):
-        logger.debug("IsoStringToUtcDateTime.as_mysql")
+        log.debug("IsoStringToUtcDateTime.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdatetime_mysql(lhs), params
 
     def as_sqlite(self, compiler, connection):
-        logger.debug("IsoStringToUtcDateTime.as_sqlite")
+        log.debug("IsoStringToUtcDateTime.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdatetime_pythonformat_sqlite(lhs), params
 
@@ -529,12 +529,12 @@ class IsoStringToUtcDate(models.Transform):
         return DateField()
 
     def as_mysql(self, compiler, connection):
-        logger.debug("IsoStringToUtcDate.as_mysql")
+        log.debug("IsoStringToUtcDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdate_mysql(lhs), params
 
     def as_sqlite(self, compiler, connection):
-        logger.debug("IsoStringToUtcDate.as_sqlite")
+        log.debug("IsoStringToUtcDate.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdate_sqlite(lhs), params
 
@@ -552,12 +552,12 @@ class IsoStringToSourceDate(models.Transform):
         return DateField()
 
     def as_mysql(self, compiler, connection):
-        logger.debug("IsoStringToSourceDate.as_mysql")
+        log.debug("IsoStringToSourceDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_date_mysql(lhs), params
 
     def as_sqlite(self, compiler, connection):
-        logger.debug("IsoStringToSourceDate.as_sqlite")
+        log.debug("IsoStringToSourceDate.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_date_sqlite(lhs), params
 

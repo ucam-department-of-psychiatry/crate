@@ -2,7 +2,7 @@
 # userprofile/forms.py
 
 from django.forms import ModelForm
-from .models import UserProfile
+from crate.crateweb.userprofile.models import UserProfile
 
 
 class UserProfileForm(ModelForm):

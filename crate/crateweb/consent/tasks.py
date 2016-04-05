@@ -65,7 +65,7 @@ def add(x, y):
 @task(ignore_result=True)
 def resend_email(email_id, user_id):
     User = get_user_model()
-    from consent.models import Email  # delayed import
+    from crate.crateweb.consent.models import Email  # delayed import
     email = Email.objects.get(pk=email_id)
     user = User.objects.get(pk=user_id)
     email.resend(user)
@@ -74,7 +74,7 @@ def resend_email(email_id, user_id):
 @shared_task
 @task(ignore_result=True)
 def process_contact_request(contact_request_id):
-    from consent.models import ContactRequest  # delayed import
+    from crate.crateweb.consent.models import ContactRequest  # delayed import
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
     contact_request = ContactRequest.objects.get(pk=contact_request_id)
     contact_request.process_request()
@@ -83,7 +83,7 @@ def process_contact_request(contact_request_id):
 @shared_task
 @task(ignore_result=True)
 def finalize_clinician_response(clinician_response_id):
-    from consent.models import ClinicianResponse  # delayed import
+    from crate.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
     clinician_response = ClinicianResponse.objects.get(
         pk=clinician_response_id)
     clinician_response.finalize_b()  # second part of processing
@@ -92,7 +92,7 @@ def finalize_clinician_response(clinician_response_id):
 @shared_task
 @task(ignore_result=True)
 def process_consent_change(consent_mode_id):
-    from consent.models import ConsentMode  # delayed import
+    from crate.crateweb.consent.models import ConsentMode  # delayed import
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
     consent_mode.process_change()
 
@@ -100,7 +100,7 @@ def process_consent_change(consent_mode_id):
 @shared_task
 @task(ignore_result=True)
 def process_patient_response(patient_response_id):
-    from consent.models import PatientResponse  # delayed import
+    from crate.crateweb.consent.models import PatientResponse  # delayed import
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
     patient_response.process_response()
 
@@ -120,6 +120,6 @@ def test_email_rdbm_task():
 @shared_task
 @task(ignore_result=True)
 def email_rdbm_task(subject, text):
-    from consent.models import Email  # delayed import
+    from crate.crateweb.consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)
     email.send()

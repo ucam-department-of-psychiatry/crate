@@ -2,7 +2,7 @@
 # core/utils.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 import re
 import urllib
 from django.conf import settings
@@ -10,7 +10,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import QueryDict
 from django.utils import timezone
-from userprofile.models import get_per_page
+from crate.crateweb.userprofile.models import get_per_page
 
 
 # =============================================================================
@@ -105,7 +105,7 @@ def site_absolute_url(path):
     Django URLs.
     """
     url = settings.DJANGO_SITE_ROOT_ABSOLUTE_URL + path
-    logger.debug("site_absolute_url: {} -> {}".format(path, url))
+    log.debug("site_absolute_url: {} -> {}".format(path, url))
     return url
 
 

@@ -2,7 +2,7 @@
 # consent/storage.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from django.core.urlresolvers import get_script_prefix
@@ -14,7 +14,7 @@ class CustomFileSystemStorage(FileSystemStorage):
     def url(self, name):
         if self.base_url is None:
             raise ValueError("This file is not accessible via a URL.")
-        # logger.debug("get_script_prefix(): %s" % get_script_prefix())
+        # log.debug("get_script_prefix(): %s" % get_script_prefix())
         return urljoin(get_script_prefix() + self.base_url,
                        filepath_to_uri(name))
 
@@ -46,5 +46,5 @@ Therefore, let's subclass FileSystemStorage, so we can make the change at
 runtime.
 """
 
-# logger.debug("privatestorage.base_url: %s" % privatestorage.base_url)
-# logger.debug("get_script_prefix(): %s" % get_script_prefix())
+# log.debug("privatestorage.base_url: %s" % privatestorage.base_url)
+# log.debug("get_script_prefix(): %s" % get_script_prefix())

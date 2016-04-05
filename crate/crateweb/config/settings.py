@@ -25,9 +25,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.python.org/2/reference/datamodel.html
 # Verify this with:
 
-# import logging
-# logger = logging.getLogger(__name__)
-# logger.warning("BASE_DIR: {}".format(BASE_DIR))
+import logging
+log = logging.getLogger(__name__)
+# log.warning("BASE_DIR: {}".format(BASE_DIR))
+
+import django
 
 
 # Application definition
@@ -45,9 +47,9 @@ INSTALLED_APPS = (
     'sslserver',  # for SSL testing
     # 'kombu.transport.django',  # for Celery with Django database as broker
 
-    'userprofile',  # for user-specific settings
-    'research',  # the research database query app
-    'consent',  # the consent-to-contact app
+    'crate.crateweb.config.apps.UserProfileAppConfig',  # for user-specific settings  # noqa
+    'crate.crateweb.config.apps.ResearchAppConfig',  # the research database query app  # noqa
+    'crate.crateweb.config.apps.ConsentAppConfig',  # the consent-to-contact app  # noqa
 )
 
 MIDDLEWARE_CLASSES = (
@@ -60,10 +62,10 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     # Additional:
-    'extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
-    'extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
-    'extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
-    'core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
+    'crate.crateweb.extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
+    'crate.crateweb.extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
+    'crate.crateweb.extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
+    'crate.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
 )
 
 # Celery things
@@ -77,7 +79,7 @@ LOGIN_URL = '/login/'  # for LoginRequiredMiddleware
 LOGIN_VIEW_NAME = 'login'  # for LoginRequiredMiddleware
 LOGIN_EXEMPT_URLS = []  # for LoginRequiredMiddleware
 
-ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = 'crate.crateweb.config.urls'
 
 TEMPLATES = [
     {
@@ -90,7 +92,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'research.context_processors.common_context',
+                'crate.crateweb.research.context_processors.common_context',
             ],
             # 'loaders': (
             #     'django.template.loaders.filesystem.Loader',
@@ -101,7 +103,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'config.wsgi.application'
+WSGI_APPLICATION = 'crate.crateweb.config.wsgi.application'
 
 
 # Internationalization
@@ -161,7 +163,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 # Some managed database access goes to the secret mapping database.
 # =============================================================================
 
-DATABASE_ROUTERS = ['research.models.PidLookupRouter']
+DATABASE_ROUTERS = ['crate.crateweb.research.models.PidLookupRouter']
 
 # =============================================================================
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/
@@ -262,6 +264,7 @@ RESEARCHER_FONTSIZE = "10pt"
 if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ
         and os.environ['CRATE_RUN_WITHOUT_LOCAL_SETTINGS'].lower()
         in ['true', '1', 't', 'y', 'yes']):
+    log.info("Running without local settings")
     # We will only get here for the collectstatic command in the Debian
     # postinst file, so we just need the minimum specified.
     CLINICAL_LOOKUP_DB = 'dummy_clinical'
@@ -279,6 +282,7 @@ if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ
         'MAX_RID_LENGTH': 255,
     }
 else:
+    log.info("Loading local settings")
     _loader = importlib.machinery.SourceFileLoader(
         'local_settings',
         os.environ['CRATE_LOCAL_SETTINGS'])
@@ -301,3 +305,6 @@ if CRATE_HTTPS:
     # Instead, YOU SHOULD RESTRICT THE FRONT END. See instructions.txt.
     SESSION_COOKIE_SECURE = True  # cookies only via HTTPS
     CSRF_COOKIE_SECURE = True  # CSRF cookies only via HTTPS
+
+
+django.setup()

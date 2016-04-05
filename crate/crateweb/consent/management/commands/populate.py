@@ -2,7 +2,7 @@
 # consent/management/commands/populate.py
 
 from django.core.management.base import BaseCommand
-from consent.models import Leaflet
+from crate.crateweb.consent.models import Leaflet
 
 
 class Command(BaseCommand):

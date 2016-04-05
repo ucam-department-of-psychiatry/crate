@@ -4,7 +4,7 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseForbidden
-from core.utils import is_developer
+from crate.crateweb.core.utils import is_developer
 
 
 # =============================================================================

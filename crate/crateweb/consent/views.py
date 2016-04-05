@@ -2,31 +2,31 @@
 # consent/views.py
 
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 import mimetypes
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.http import HttpResponse, Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
-from extra.nhs import generate_random_nhs_number
-from extra.pdf import (
+from crate.crateweb.extra.nhs import generate_random_nhs_number
+from crate.crateweb.extra.pdf import (
     serve_concatenated_pdf_from_disk,
     serve_html_or_pdf,
 )
-from extra.serve import serve_buffer, serve_file
-from core.utils import (
+from crate.crateweb.extra.serve import serve_buffer, serve_file
+from crate.crateweb.core.utils import (
     is_developer,
     is_superuser,
 )
 # from research.models import PidLookup
-from .forms import (
+from crate.crateweb.consent.forms import (
     ClinicianResponseForm,
     SingleNhsNumberForm,
     SuperuserSubmitContactRequestForm,
     ResearcherSubmitContactRequestForm,
 )
-from .models import (
+from crate.crateweb.consent.models import (
     CharityPaymentRecord,
     ClinicianResponse,
     ConsentMode,
@@ -39,8 +39,11 @@ from .models import (
     PatientLookup,
     Study,
 )
-from .storage import privatestorage
-from .tasks import finalize_clinician_response, test_email_rdbm_task
+from crate.crateweb.consent.storage import privatestorage
+from crate.crateweb.consent.tasks import (
+    finalize_clinician_response,
+    test_email_rdbm_task,
+)
 
 
 # =============================================================================
@@ -269,7 +272,7 @@ def clinician_response(request, clinician_response_id):
         clinician_response.response_route = ClinicianResponse.ROUTE_WEB
         data = request.POST
     form = ClinicianResponseForm(instance=clinician_response, data=data)
-    # logger.debug("Form data: {}".format(form.data))
+    # log.debug("Form data: {}".format(form.data))
 
     # Token valid? Check raw data. Say goodbye otherwise.
     # - The raw data in the form is not influenced by the form's instance.

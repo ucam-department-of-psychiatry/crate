@@ -2,7 +2,7 @@
 # research/context_processors.py
 
 from django.conf import settings
-from .models import Query
+from crate.crateweb.research.models import Query
 
 
 def common_context(request):
