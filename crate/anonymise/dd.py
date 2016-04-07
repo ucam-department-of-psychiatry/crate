@@ -36,7 +36,6 @@ Copyright/licensing:
 
 import csv
 import logging
-log = logging.getLogger(__name__)
 import operator
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
 
@@ -72,6 +71,8 @@ from crate.anonymise.constants import (
     SCRUBSRC,
     SRCFLAG,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -258,17 +259,17 @@ class DataDictionaryRow(object):
             self.src_flags += SRCFLAG.DEFINESPRIMARYPIDS
 
         # Does the field contain sensitive data?
-        if (self.src_field in cfg.ddgen_scrubsrc_patient_fields
-                or self.src_field == cfg.ddgen_per_table_pid_field
-                or self.src_field == cfg.ddgen_master_pid_fieldname
-                or self.src_field in cfg.ddgen_pid_defining_fieldnames):
+        if (self.src_field in cfg.ddgen_scrubsrc_patient_fields or
+                self.src_field == cfg.ddgen_per_table_pid_field or
+                self.src_field == cfg.ddgen_master_pid_fieldname or
+                self.src_field in cfg.ddgen_pid_defining_fieldnames):
             self.scrub_src = SCRUBSRC.PATIENT
         elif self.src_field in cfg.ddgen_scrubsrc_thirdparty_fields:
             self.scrub_src = SCRUBSRC.THIRDPARTY
-        elif (self.src_field in cfg.ddgen_scrubmethod_code_fields
-                or self.src_field in cfg.ddgen_scrubmethod_date_fields
-                or self.src_field in cfg.ddgen_scrubmethod_number_fields
-                or self.src_field in cfg.ddgen_scrubmethod_phrase_fields):
+        elif (self.src_field in cfg.ddgen_scrubmethod_code_fields or
+                self.src_field in cfg.ddgen_scrubmethod_date_fields or
+                self.src_field in cfg.ddgen_scrubmethod_number_fields or
+                self.src_field in cfg.ddgen_scrubmethod_phrase_fields):
             # We're not sure what sort these are, but it seems conservative to
             # include these! Easy to miss them otherwise, and better to be
             # overly conservative.
@@ -279,13 +280,13 @@ class DataDictionaryRow(object):
         # What kind of sensitive data? Date, text, number, code?
         if not self.scrub_src:
             self.scrub_method = ""
-        elif (is_sqltype_numeric(datatype_full)
-                or self.src_field == cfg.ddgen_per_table_pid_field
-                or self.src_field == cfg.ddgen_master_pid_fieldname
-                or self.src_field in cfg.ddgen_scrubmethod_number_fields):
+        elif (is_sqltype_numeric(datatype_full) or
+                self.src_field == cfg.ddgen_per_table_pid_field or
+                self.src_field == cfg.ddgen_master_pid_fieldname or
+                self.src_field in cfg.ddgen_scrubmethod_number_fields):
             self.scrub_method = SCRUBMETHOD.NUMERIC
-        elif (is_sqltype_date(datatype_full)
-              or self.src_field in cfg.ddgen_scrubmethod_date_fields):
+        elif (is_sqltype_date(datatype_full) or
+                self.src_field in cfg.ddgen_scrubmethod_date_fields):
             self.scrub_method = SCRUBMETHOD.DATE
         elif self.src_field in cfg.ddgen_scrubmethod_code_fields:
             self.scrub_method = SCRUBMETHOD.CODE
@@ -296,10 +297,10 @@ class DataDictionaryRow(object):
 
         # Should we omit it (at least until a human has looked at the DD)?
         self.omit = (
-            (default_omit or bool(self.scrub_src))
-            and not (SRCFLAG.PK in self.src_flags)
-            and not (SRCFLAG.PRIMARYPID in self.src_flags)
-            and not (SRCFLAG.MASTERPID in self.src_flags)
+            (default_omit or bool(self.scrub_src)) and
+            not (SRCFLAG.PK in self.src_flags) and
+            not (SRCFLAG.PRIMARYPID in self.src_flags) and
+            not (SRCFLAG.MASTERPID in self.src_flags)
         )
 
         # Do we want to change the destination fieldname?
@@ -318,8 +319,8 @@ class DataDictionaryRow(object):
         # Do we want to change the destination field SQL type?
         self.dest_datatype = (
             self.config.SQLTYPE_ENCRYPTED_PID
-            if (SRCFLAG.PRIMARYPID in self.src_flags
-                or SRCFLAG.MASTERPID in self.src_flags)
+            if (SRCFLAG.PRIMARYPID in self.src_flags or
+                SRCFLAG.MASTERPID in self.src_flags)
             else rnc_db.full_datatype_to_mysql(datatype_full))
 
         # How should we manipulate the destination?
@@ -341,11 +342,11 @@ class DataDictionaryRow(object):
                     cfg.ddgen_safe_fields_exempt_from_scrubbing):
                 self._scrub = True
         elif (is_sqltype_text_of_length_at_least(
-                datatype_full, cfg.ddgen_min_length_for_scrubbing)
-                and not self.omit
-                and SRCFLAG.PRIMARYPID not in self.src_flags
-                and SRCFLAG.MASTERPID not in self.src_flags
-                and self.src_field not in
+                datatype_full, cfg.ddgen_min_length_for_scrubbing) and
+                not self.omit and
+                SRCFLAG.PRIMARYPID not in self.src_flags and
+                SRCFLAG.MASTERPID not in self.src_flags and
+                self.src_field not in
                 cfg.ddgen_safe_fields_exempt_from_scrubbing):
             self._scrub = True
 
@@ -360,13 +361,13 @@ class DataDictionaryRow(object):
         # Should we index the destination?
         if SRCFLAG.PK in self.src_flags:
             self.index = INDEX.UNIQUE
-        elif (self.dest_field == self.config.research_id_fieldname
-                or SRCFLAG.PRIMARYPID in self.src_flags
-                or SRCFLAG.MASTERPID in self.src_flags
-                or SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags):
+        elif (self.dest_field == self.config.research_id_fieldname or
+                SRCFLAG.PRIMARYPID in self.src_flags or
+                SRCFLAG.MASTERPID in self.src_flags or
+                SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags):
             self.index = INDEX.NORMAL
-        elif (does_sqltype_merit_fulltext_index(self.dest_datatype)
-                and cfg.ddgen_allow_fulltext_indexing):
+        elif (does_sqltype_merit_fulltext_index(self.dest_datatype) and
+                cfg.ddgen_allow_fulltext_indexing):
             self.index = INDEX.FULLTEXT
         elif self.src_field in cfg.ddgen_index_fields:
             self.index = INDEX.NORMAL
@@ -375,8 +376,8 @@ class DataDictionaryRow(object):
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if (does_sqltype_require_index_len(self.dest_datatype)
-                and self.index != INDEX.FULLTEXT)
+            if (does_sqltype_require_index_len(self.dest_datatype) and
+                self.index != INDEX.FULLTEXT)
             else None
         )
 
@@ -453,14 +454,14 @@ class DataDictionaryRow(object):
                 "Field has invalid source data type: {}".format(
                     self.src_datatype))
 
-        if (self.src_field == srccfg.ddgen_per_table_pid_field
-                and not is_sqltype_integer(self.src_datatype)):
+        if (self.src_field == srccfg.ddgen_per_table_pid_field and
+                not is_sqltype_integer(self.src_datatype)):
             raise ValueError(
                 "All fields with src_field = {} should be integer, for work "
                 "distribution purposes".format(self.src_field))
 
-        if (SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags
-                and SRCFLAG.PRIMARYPID not in self.src_flags):
+        if (SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags and
+                SRCFLAG.PRIMARYPID not in self.src_flags):
             raise ValueError(
                 "All fields with src_flags={} set must have src_flags={} "
                 "set".format(
@@ -484,8 +485,8 @@ class DataDictionaryRow(object):
                 "Invalid scrub_src - must be one of [{}]".format(
                     ",".join(valid_scrubsrc)))
 
-        if (self.scrub_src and self.scrub_method
-                and self.scrub_method not in SCRUBMETHOD.values()):
+        if (self.scrub_src and self.scrub_method and
+                self.scrub_method not in SCRUBMETHOD.values()):
             raise ValueError(
                 "Invalid scrub_method - must be blank or one of [{}]".format(
                     ",".join(SCRUBMETHOD.values())))
@@ -518,8 +519,8 @@ class DataDictionaryRow(object):
                         "Primary PID field should have "
                         "dest_field = {}".format(
                             self.config.research_id_fieldname))
-            if (self.src_field == srccfg.ddgen_master_pid_fieldname
-                    and SRCFLAG.MASTERPID not in self.src_flags):
+            if (self.src_field == srccfg.ddgen_master_pid_fieldname and
+                    SRCFLAG.MASTERPID not in self.src_flags):
                 raise ValueError(
                     "All fields with src_field = {} used in output should have"
                     " src_flags={} set".format(
@@ -527,8 +528,8 @@ class DataDictionaryRow(object):
                         SRCFLAG.MASTERPID))
 
             if self._truncate_date:
-                if not (is_sqltype_date(self.src_datatype)
-                        or is_sqltype_text_over_one_char(self.src_datatype)):
+                if not (is_sqltype_date(self.src_datatype) or
+                        is_sqltype_text_over_one_char(self.src_datatype)):
                     raise ValueError("Can't set truncate_date for non-date/"
                                      "non-text field")
             if self._extract_text:
@@ -559,8 +560,8 @@ class DataDictionaryRow(object):
                     raise ValueError("Can't scrub in non-text field or "
                                      "single-character text field")
 
-            if ((SRCFLAG.PRIMARYPID in self.src_flags
-                 or SRCFLAG.MASTERPID in self.src_flags) and
+            if ((SRCFLAG.PRIMARYPID in self.src_flags or
+                 SRCFLAG.MASTERPID in self.src_flags) and
                     self.dest_datatype != self.config.SQLTYPE_ENCRYPTED_PID):
                 raise ValueError(
                     "All src_flags={}/src_flags={} fields used in output must "
@@ -574,9 +575,9 @@ class DataDictionaryRow(object):
                 raise ValueError("Index must be one of: [{}]".format(
                     ",".join(valid_index)))
 
-            if (self.index in [INDEX.NORMAL, INDEX.UNIQUE]
-                    and self.indexlen is None
-                    and does_sqltype_require_index_len(self.dest_datatype)):
+            if (self.index in [INDEX.NORMAL, INDEX.UNIQUE] and
+                    self.indexlen is None and
+                    does_sqltype_require_index_len(self.dest_datatype)):
                 raise ValueError(
                     "Must specify indexlen to index a TEXT or BLOB field")
 
@@ -700,8 +701,8 @@ class DataDictionary(object):
                 if cfg.ddgen_force_lower_case:
                     t = t.lower()
                     f = f.lower()
-                if (t in cfg.ddgen_table_blacklist
-                        or f in cfg.ddgen_field_blacklist):
+                if (t in cfg.ddgen_table_blacklist or
+                        f in cfg.ddgen_field_blacklist):
                     continue
                 ddr = DataDictionaryRow()
                 ddr.set_from_src_db_info(
@@ -816,9 +817,9 @@ class DataDictionary(object):
 
             # Is it a relevant contribution from a source table?
             pt_info = (
-                bool(ddr.scrub_src)
-                or SRCFLAG.PRIMARYPID in ddr.src_flags
-                or SRCFLAG.MASTERPID in ddr.src_flags
+                bool(ddr.scrub_src) or
+                SRCFLAG.PRIMARYPID in ddr.src_flags or
+                SRCFLAG.MASTERPID in ddr.src_flags
             )
             omit = ddr.omit
             if pt_info or not omit:
@@ -850,19 +851,19 @@ class DataDictionary(object):
 
         # Set calculations...
         self.cached_srcdb_table_pairs_wo_pt_info_no_pk = sorted(
-            self.cached_srcdb_table_pairs
-            - self.cached_srcdb_table_pairs_w_pt_info
-            - db_table_pairs_w_int_pk
+            self.cached_srcdb_table_pairs -
+            self.cached_srcdb_table_pairs_w_pt_info -
+            db_table_pairs_w_int_pk
         )
         self.cached_srcdb_table_pairs_wo_pt_info_int_pk = sorted(
-            (self.cached_srcdb_table_pairs
-                - self.cached_srcdb_table_pairs_w_pt_info)
-            & db_table_pairs_w_int_pk
+            (self.cached_srcdb_table_pairs -
+                self.cached_srcdb_table_pairs_w_pt_info) &
+            db_table_pairs_w_int_pk
         )
         for s in self.cached_source_databases:
             self.cached_pt_src_tables_w_dest[s] = sorted(
-                self.cached_src_tables_w_pt_info[s]
-                & src_tables_with_dest[s]  # & is intersection
+                self.cached_src_tables_w_pt_info[s] &
+                src_tables_with_dest[s]  # & is intersection
             )
 
         # Debugging
@@ -1083,8 +1084,8 @@ class DataDictionary(object):
         Return the DD in TSV format.
         """
         return "\n".join(
-            ["\t".join(DataDictionaryRow.ROWNAMES)]
-            + [r.get_tsv() for r in self.rows]
+            ["\t".join(DataDictionaryRow.ROWNAMES)] +
+            [r.get_tsv() for r in self.rows]
         )
 
     def get_src_db_tablepairs(self):

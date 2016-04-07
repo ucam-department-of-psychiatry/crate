@@ -2,7 +2,6 @@
 # core/admin.py
 
 import logging
-log = logging.getLogger(__name__)
 from django import forms
 from django.conf import settings
 from django.contrib import admin
@@ -50,6 +49,8 @@ from crate.crateweb.consent.tasks import (
 from crate.crateweb.research.models import (
     QueryAudit,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -309,8 +310,8 @@ class EmailMgrAdmin(EmailDevAdmin):
     actions = ['resend']
 
     def get_queryset(self, request):
-        qs = super().get_queryset(request).filter(Q(to_researcher=True)
-                                                  | Q(to_patient=True))
+        qs = super().get_queryset(request).filter(Q(to_researcher=True) |
+                                                  Q(to_patient=True))
         return qs
 
     def get_restricted_msg_text(self, obj):
@@ -1101,8 +1102,8 @@ mgr_admin_site.register(User, ExtendedUserMgrAdmin)
 
 class DevAdminSite(admin.AdminSite):
     site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE + ' dev admin')
-    site_header = ugettext_lazy(settings.RESEARCH_DB_TITLE
-                                + ": developer admin")
+    site_header = ugettext_lazy(settings.RESEARCH_DB_TITLE +
+                                ": developer admin")
     index_title = ugettext_lazy(settings.RESEARCH_DB_TITLE +
                                 ' developer administration')
     index_template = 'admin/viewchange_admin_index.html'
@@ -1133,10 +1134,10 @@ dev_admin_site.register(User, ExtendedUserMgrAdmin)
 # =============================================================================
 
 class ResearcherAdminSite(admin.AdminSite):
-    site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE
-                               + ' researcher admin views')
-    site_header = ugettext_lazy(settings.RESEARCH_DB_TITLE
-                                + ": researcher admin")
+    site_title = ugettext_lazy(settings.RESEARCH_DB_TITLE +
+                               ' researcher admin views')
+    site_header = ugettext_lazy(settings.RESEARCH_DB_TITLE +
+                                ": researcher admin")
     index_title = ugettext_lazy("View/manage your studies")
     index_template = 'admin/viewchange_admin_index.html'
     app_index_template = 'admin/viewchange_admin_app_index.html'

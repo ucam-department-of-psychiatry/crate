@@ -2,7 +2,6 @@
 # core/utils.py
 
 import logging
-log = logging.getLogger(__name__)
 import re
 import urllib
 from django.conf import settings
@@ -11,6 +10,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.http import QueryDict
 from django.utils import timezone
 from crate.crateweb.userprofile.models import get_per_page
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

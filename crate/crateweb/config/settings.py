@@ -17,6 +17,12 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import importlib.machinery
 import os
 
+import logging
+
+import django
+
+log = logging.getLogger(__name__)
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # This is the path of the file FROM WHICH THE MODULE WAS LOADED, NOT THE
@@ -25,11 +31,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.python.org/2/reference/datamodel.html
 # Verify this with:
 
-import logging
-log = logging.getLogger(__name__)
 # log.warning("BASE_DIR: {}".format(BASE_DIR))
-
-import django
 
 
 # Application definition
@@ -261,9 +263,9 @@ RESEARCHER_FONTSIZE = "10pt"
 #       from crate_local_settings import *  # noqa
 # Better: import a file named in an environment variable, CRATE_LOCAL_SETTINGS.
 
-if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ
-        and os.environ['CRATE_RUN_WITHOUT_LOCAL_SETTINGS'].lower()
-        in ['true', '1', 't', 'y', 'yes']):
+if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ and
+        os.environ['CRATE_RUN_WITHOUT_LOCAL_SETTINGS'].lower() in
+        ['true', '1', 't', 'y', 'yes']):
     log.info("Running without local settings")
     # We will only get here for the collectstatic command in the Debian
     # postinst file, so we just need the minimum specified.

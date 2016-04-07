@@ -2,12 +2,13 @@
 # core/auth_views.py
 
 import logging
-log = logging.getLogger(__name__)
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import redirect, render
+
+log = logging.getLogger(__name__)
 
 
 def login_view(request):

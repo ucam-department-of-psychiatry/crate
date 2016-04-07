@@ -33,9 +33,9 @@ Copyright/licensing:
 
 import calendar
 import logging
-log = logging.getLogger(__name__)
 import regex  # sudo apt-get install python-regex
 
+log = logging.getLogger(__name__)
 
 # =============================================================================
 # Constants
@@ -277,10 +277,9 @@ def get_string_regex_elements(s, suffixes=None, at_word_boundaries_only=True,
         # ... http://www.gossamer-threads.com/lists/python/python/1002881
     if suffixes:
         suffixstr = (
-            "(?:"
-            + "|".join([escape_literal_string_for_regex(x)
-                        for x in suffixes])
-            + "|)"  # allows for no suffix at all
+            "(?:" +
+            "|".join([escape_literal_string_for_regex(x) for x in suffixes]) +
+            "|)"  # allows for no suffix at all
         )
     else:
         suffixstr = ""

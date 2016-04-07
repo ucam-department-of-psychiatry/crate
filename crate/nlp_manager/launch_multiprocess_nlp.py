@@ -24,7 +24,6 @@
 import argparse
 import atexit
 import logging
-log = logging.getLogger(__name__)
 import multiprocessing
 from multiprocessing.dummy import Pool  # thread pool
 from subprocess import (
@@ -38,6 +37,8 @@ import sys
 import time
 
 from crate.version import VERSION, VERSION_DATE
+
+log = logging.getLogger(__name__)
 
 NLP_MANAGER = 'crate.nlp_manager.nlp_manager'
 

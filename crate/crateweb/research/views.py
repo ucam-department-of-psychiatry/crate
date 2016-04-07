@@ -2,7 +2,6 @@
 # research/views.py
 
 import logging
-log = logging.getLogger(__name__)
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
@@ -34,6 +33,8 @@ from crate.crateweb.research.models import (
     Query,
     research_database_info,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

@@ -7,7 +7,6 @@ from django.conf import settings
 from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 import logging
-log = logging.getLogger(__name__)
 from crate.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
@@ -20,6 +19,8 @@ from crate.crateweb.research.html_functions import (
     highlight_text,
     N_CSS_HIGHLIGHT_CLASSES,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

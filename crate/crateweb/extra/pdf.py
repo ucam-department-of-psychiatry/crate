@@ -3,7 +3,6 @@
 
 import io
 import logging
-logger = logging.getLogger(__name__)
 import os
 import pdfkit  # sudo apt-get install wkhtmltopdf; sudo pip install pdfkit
 from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
@@ -11,6 +10,8 @@ import tempfile
 from django.conf import settings
 from django.http import HttpResponse
 from crate.crateweb.extra.serve import serve_buffer
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================

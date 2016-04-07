@@ -4,7 +4,6 @@
 import datetime
 from dateutil.relativedelta import relativedelta
 import logging
-log = logging.getLogger(__name__)
 import os
 # from audit_log.models import AuthStampedModel  # django-audit-log
 from django import forms
@@ -69,6 +68,8 @@ from crate.crateweb.consent.utils import (
     pdf_template_dict,
     validate_researcher_email_domain,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -173,8 +174,8 @@ class Study(models.Model):
 
     def get_lead_researcher_name_address(self):
         return (
-            [self.lead_researcher.profile.get_title_forename_surname()]
-            + self.lead_researcher.profile.get_address_components()
+            [self.lead_researcher.profile.get_title_forename_surname()] +
+            self.lead_researcher.profile.get_address_components()
         )
 
     def get_lead_researcher_salutation(self):
@@ -189,8 +190,8 @@ class Study(models.Model):
 
     @classmethod
     def filter_studies_for_researcher(self, queryset, user):
-        return queryset.filter(Q(lead_researcher=user)
-                               | Q(researchers__in=[user]))\
+        return queryset.filter(Q(lead_researcher=user) |
+                               Q(researchers__in=[user]))\
                        .distinct()
 
 
@@ -328,19 +329,18 @@ class Decision(models.Model):
         # passed since the lookup) or, especially, lacking capacity, so let's
         # just trust the user
         return (
-            self.decision_signed_by_patient
-            or self.decision_otherwise_directly_authorized_by_patient
+            self.decision_signed_by_patient or
+            self.decision_otherwise_directly_authorized_by_patient
         ) or (
             # Lacks capacity
-            self.decision_lack_capacity_signed_by_representative
-            and self.decision_lack_capacity_signed_by_clinician
+            self.decision_lack_capacity_signed_by_representative and
+            self.decision_lack_capacity_signed_by_clinician
         ) or (
             # Under 16: 2/3 rule
-            int(self.decision_signed_by_patient
-                or self.decision_otherwise_directly_authorized_by_patient)
-            + int(self.decision_under16_signed_by_parent)
-            + int(self.decision_under16_signed_by_clinician)
-            >= 2
+            int(self.decision_signed_by_patient or
+                self.decision_otherwise_directly_authorized_by_patient) +
+            int(self.decision_under16_signed_by_parent) +
+            int(self.decision_under16_signed_by_clinician) >= 2
             # I know the logic overlaps. But there you go.
         )
 
@@ -449,8 +449,8 @@ class ConsentMode(Decision):
             previous = ConsentMode.objects.get(
                 nhs_number=self.nhs_number,
                 current=True)
-            if (previous.consent_mode == ConsentMode.GREEN
-                    and self.consent_mode != ConsentMode.GREEN):
+            if (previous.consent_mode == ConsentMode.GREEN and
+                    self.consent_mode != ConsentMode.GREEN):
                 contact_requests = (
                     ContactRequest.objects
                     .filter(nhs_number=self.nhs_number)
@@ -2013,8 +2013,8 @@ class ContactRequest(models.Model):
         if self.patient_lookup.pt_dob is None:
             self.stop("patient DOB unknown")
             return
-        if (not self.study.include_under_16s
-                and self.patient_lookup.is_under_16()):
+        if (not self.study.include_under_16s and
+                self.patient_lookup.is_under_16()):
             self.stop("patient is under 16 and study not approved for that")
             return
         # Discharged?
@@ -2034,8 +2034,8 @@ class ContactRequest(models.Model):
                 return
         # Maximum number of approaches exceeded?
         if self.consent_mode.max_approaches_per_year > 0:
-            if (self.approaches_in_past_year
-                    >= self.consent_mode.max_approaches_per_year):
+            if (self.approaches_in_past_year >=
+                    self.consent_mode.max_approaches_per_year):
                 self.stop(
                     "patient has had {} approaches in the past year and has "
                     "set a cap of {} per year".format(
@@ -2051,8 +2051,8 @@ class ContactRequest(models.Model):
 
         # Direct?
         self.save()  # makes self.id, needed for FKs
-        if (self.consent_mode.consent_mode == ConsentMode.GREEN
-                and self.request_direct_approach):
+        if (self.consent_mode.consent_mode == ConsentMode.GREEN and
+                self.request_direct_approach):
             letter = Letter.create_researcher_approval(self)  # will save
             self.decided_send_to_researcher = True
             self.clinician_involvement = (
@@ -2166,10 +2166,10 @@ class ContactRequest(models.Model):
         one_year_ago = timezone.now() - datetime.timedelta(days=365)
 
         self.approaches_in_past_year = ContactRequest.objects.filter(
-            Q(decided_send_to_researcher=True)
-            | (Q(decided_send_to_clinician=True)
-               & (Q(clinician_response__response=ClinicianResponse.RESPONSE_A)
-                  | Q(clinician_response__response=ClinicianResponse.RESPONSE_R))),  # noqa
+            Q(decided_send_to_researcher=True) |
+            (Q(decided_send_to_clinician=True) &
+                (Q(clinician_response__response=ClinicianResponse.RESPONSE_A) |
+                 Q(clinician_response__response=ClinicianResponse.RESPONSE_R))),  # noqa
             nhs_number=self.nhs_number,
             created_at__gte=one_year_ago
         ).count()
@@ -2273,8 +2273,8 @@ class ContactRequest(models.Model):
         context = {
             # Letter bits
             'address_from': (
-                settings.RDBM_ADDRESS
-                + [settings.RDBM_TELEPHONE, settings.RDBM_EMAIL]
+                settings.RDBM_ADDRESS +
+                [settings.RDBM_TELEPHONE, settings.RDBM_EMAIL]
             ),
             'address_to': self.study.get_lead_researcher_name_address(),
             'salutation': self.study.get_lead_researcher_salutation(),
@@ -2297,8 +2297,8 @@ class ContactRequest(models.Model):
         context = {
             # Letter bits
             'address_from': (
-                settings.RDBM_ADDRESS
-                + [settings.RDBM_TELEPHONE, settings.RDBM_EMAIL]
+                settings.RDBM_ADDRESS +
+                [settings.RDBM_TELEPHONE, settings.RDBM_EMAIL]
             ),
             'address_to': self.study.get_lead_researcher_name_address(),
             'salutation': self.study.get_lead_researcher_salutation(),
@@ -2366,8 +2366,8 @@ class ContactRequest(models.Model):
     def is_extra_form(self):
         study = self.study
         clinician_requested = not self.request_direct_approach
-        extra_form = (clinician_requested
-                      and study.subject_form_template_pdf.name)
+        extra_form = (clinician_requested and
+                      study.subject_form_template_pdf.name)
         # log.debug("clinician_requested: {}".format(clinician_requested))
         # log.debug("extra_form: {}".format(extra_form))
         return extra_form

@@ -31,8 +31,6 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
-import logging
-log = logging.getLogger(__name__)
 import argparse
 import logging
 import multiprocessing
@@ -66,6 +64,8 @@ from crate.anonymise.constants import (
 )
 from crate.anonymise.patient import Patient
 from crate.version import VERSION, VERSION_DATE
+
+log = logging.getLogger(__name__)
 
 # =============================================================================
 # Predefined fieldspecs
@@ -262,17 +262,17 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
             if SRCFLAG.ADDSRCHASH in r.src_flags:
                 # append a special field
                 fieldspecs.append(
-                    config.source_hash_fieldname
-                    + " " + config.SQLTYPE_ENCRYPTED_PID +
+                    config.source_hash_fieldname + " " +
+                    config.SQLTYPE_ENCRYPTED_PID +
                     " COMMENT 'Hashed amalgamation of all source fields'")
                 dest_fieldnames.append(config.source_hash_fieldname)
             if SRCFLAG.PRIMARYPID in r.src_flags:
                 # append another special field
                 fieldspecs.append(
-                    config.trid_fieldname
-                    + " " + BIGINT_UNSIGNED
-                    + " NOT NULL"
-                    + " COMMENT 'Transient integer research ID (TRID)'")
+                    config.trid_fieldname + " " +
+                    BIGINT_UNSIGNED +
+                    " NOT NULL" +
+                    " COMMENT 'Transient integer research ID (TRID)'")
                 dest_fieldnames.append(config.trid_fieldname)
         log.debug("creating table {}".format(t))
         sql = """

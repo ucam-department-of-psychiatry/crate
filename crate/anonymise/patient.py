@@ -28,7 +28,6 @@ Copyright/licensing:
 """
 
 import logging
-log = logging.getLogger(__name__)
 
 import cardinal_pythonlib.rnc_db as rnc_db
 
@@ -43,6 +42,8 @@ from crate.anonymise.constants import (
 )
 from crate.anonymise.hash import RandomIntegerHasher
 from crate.anonymise.scrub import PersonalizedScrubber
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

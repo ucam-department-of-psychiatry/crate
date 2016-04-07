@@ -55,7 +55,6 @@ import collections
 import csv
 import json
 import logging
-log = logging.getLogger(__name__)
 import os
 
 from cardinal_pythonlib.rnc_lang import AttrDict
@@ -67,6 +66,8 @@ from crate.anonymise.anonymise import (
     Scrubber,
     SRCFLAG,
 )
+
+log = logging.getLogger(__name__)
 
 # =============================================================================
 # Constants
@@ -84,9 +85,9 @@ def get_fieldinfo(args):
     Fetches useful subsets from the data dictionary.
     """
     ddrows = config.dd.get_rows_for_dest_table(args.dsttable)
-    textrow = next(x for x in ddrows
-                   if x.dest_table == args.dsttable
-                   and x.dest_field == args.dstfield)
+    textrow = next(
+        x for x in ddrows
+        if x.dest_table == args.dsttable and x.dest_field == args.dstfield)
     pkrow = next(x for x in ddrows
                  if SRCFLAG.PK in x.src_flags)
     pidrow = next(x for x in ddrows

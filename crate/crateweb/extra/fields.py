@@ -4,7 +4,6 @@
 import datetime
 import dateutil.parser
 import logging
-log = logging.getLogger(__name__)
 import os
 import pytz
 from django import forms
@@ -14,6 +13,8 @@ from django.db.models.fields import DateField, DateTimeField
 from django.template.defaultfilters import filesizeformat
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

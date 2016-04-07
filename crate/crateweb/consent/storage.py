@@ -2,12 +2,13 @@
 # consent/storage.py
 
 import logging
-log = logging.getLogger(__name__)
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
 from django.core.urlresolvers import get_script_prefix
 from django.utils.encoding import filepath_to_uri
 from django.utils.six.moves.urllib.parse import urljoin
+
+log = logging.getLogger(__name__)
 
 
 class CustomFileSystemStorage(FileSystemStorage):

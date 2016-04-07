@@ -2,8 +2,9 @@
 # extra/nhs.py
 
 import logging
-log = logging.getLogger(__name__)
 import random
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

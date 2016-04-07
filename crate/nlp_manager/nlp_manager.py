@@ -66,9 +66,6 @@ TO DO:
 # from __future__ import division
 # from __future__ import print_function
 
-import logging
-log = logging.getLogger(__name__)
-
 import argparse
 import codecs
 import configparser
@@ -98,6 +95,7 @@ import cardinal_pythonlib.rnc_log as rnc_log
 from crate.anonymise.hash import MD5Hasher
 from crate.version import VERSION, VERSION_DATE
 
+log = logging.getLogger(__name__)
 
 # =============================================================================
 # Global constants
@@ -736,8 +734,8 @@ class NlpController(object):
             self.receive(line)
         self.n_uses += 1
         # Restart subprocess?
-        if (self.config.max_external_prog_uses > 0
-                and self.n_uses >= self.config.max_external_prog_uses):
+        if (self.config.max_external_prog_uses > 0 and
+                self.n_uses >= self.config.max_external_prog_uses):
             log.info("relaunching app after {} uses".format(self.n_uses))
             self.finish()
             self.start()
@@ -1052,10 +1050,9 @@ def process_nlp(config, incremental=False, tasknum=0, ntasks=1):
                 ifconfig.srcpkfield, pkval
             ))
             srchash = config.hash(text)
-            if (incremental
-                    and pk_of_record_in_progressdb(config, ifconfig,
-                                                   pkval, srchash)
-                    is not None):
+            if (incremental and
+                    pk_of_record_in_progressdb(config, ifconfig,
+                                               pkval, srchash) is not None):
                 log.debug("Record previously processed; skipping")
                 continue
             starting_fields_values = {

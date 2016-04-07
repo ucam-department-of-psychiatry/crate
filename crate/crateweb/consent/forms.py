@@ -2,7 +2,6 @@
 # consent/forms.py
 
 import logging
-logger = logging.getLogger(__name__)
 from django import forms
 from django.conf import settings
 from django.db.models import Q
@@ -15,6 +14,8 @@ from crate.crateweb.consent.models import (
     ClinicianResponse,
     Study,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SingleNhsNumberForm(forms.Form):

@@ -2,13 +2,14 @@
 # extra/admin.py
 
 import logging
-log = logging.getLogger(__name__)
 from django.contrib import admin
 from django.contrib.admin.views.main import ChangeList
 from django.core.urlresolvers import reverse
 from django.utils.encoding import force_text
 from django.utils.html import escape
 from django.utils.translation import ugettext
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

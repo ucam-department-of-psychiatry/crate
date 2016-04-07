@@ -2,7 +2,6 @@
 # extra/middleware.py
 
 import logging
-logger = logging.getLogger(__name__)
 from re import compile
 import sys
 
@@ -14,6 +13,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
 from django.views.debug import technical_500_response
 from django.utils.cache import add_never_cache_headers
+
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================

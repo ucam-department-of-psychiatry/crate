@@ -38,7 +38,6 @@ import datetime
 import dateutil
 import dateutil.tz
 import logging
-log = logging.getLogger(__name__)
 import os
 import pytz
 import urllib
@@ -83,6 +82,8 @@ from crate.anonymise.scrub import (
     NonspecificScrubber,
     WordList,
 )
+
+log = logging.getLogger(__name__)
 
 # =============================================================================
 # Constants
@@ -1156,8 +1157,8 @@ class Config(object):
         self.srccfg = {}
         self.src_db_names = []
         for sourcedb_name in self.source_databases:
-            if (sourcedb_name == self.destination_database
-                    or sourcedb_name == self.admin_database):
+            if (sourcedb_name == self.destination_database or
+                    sourcedb_name == self.admin_database):
                 raise ValueError("Source database can't be the same as "
                                  "destination or admin database")
             self.src_db_names.append(sourcedb_name)
@@ -1277,8 +1278,9 @@ class Config(object):
             validate_fieldattr(attrname)
             fieldset.add(getattr(self, attrname))
         if len(fieldset) != len(specialfieldlist):
-            raise ValueError("Config: these must all be DIFFERENT fieldnames: "
-                             + ",".join(specialfieldlist))
+            raise ValueError(
+                "Config: these must all be DIFFERENT fieldnames: " +
+                ",".join(specialfieldlist))
 
         # Test strings
         if not self.replace_patient_info_with:

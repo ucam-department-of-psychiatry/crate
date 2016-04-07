@@ -29,7 +29,6 @@ Copyright/licensing:
 
 from collections import OrderedDict
 import logging
-log = logging.getLogger(__name__)
 
 from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
@@ -53,6 +52,8 @@ from crate.anonymise.regex import (
     get_uk_postcode_regex_elements,
     reduce_to_alphanumeric,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

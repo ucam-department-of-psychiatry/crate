@@ -2,7 +2,6 @@
 # consent/views.py
 
 import logging
-log = logging.getLogger(__name__)
 import mimetypes
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
@@ -44,6 +43,8 @@ from crate.crateweb.consent.tasks import (
     finalize_clinician_response,
     test_email_rdbm_task,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -283,8 +284,8 @@ def clinician_response(request, clinician_response_id):
 
     # Already responded?
     if clinician_response.responded:
-        passed_to_pt = (clinician_response.response
-                        == ClinicianResponse.RESPONSE_A)
+        passed_to_pt = (clinician_response.response ==
+                        ClinicianResponse.RESPONSE_A)
         return render(request, 'clinician_already_responded.html', {
             'ClinicianResponse': ClinicianResponse,
             'clinician_response': clinician_response,
@@ -323,14 +324,14 @@ def clinician_response(request, clinician_response_id):
     # If we get here, we need to offer the form up for editing,
     # and mark it as a web response.
     clinician_involvement_requested = (
-        contact_request.clinician_involvement
-        == ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED)
+        contact_request.clinician_involvement ==
+        ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED)
     clinician_involvement_required_yellow = (
-        contact_request.clinician_involvement
-        == ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW)
+        contact_request.clinician_involvement ==
+        ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW)
     clinician_involvement_required_unknown = (
-        contact_request.clinician_involvement
-        == ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN)
+        contact_request.clinician_involvement ==
+        ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN)
     extra_form = contact_request.is_extra_form()
     return render(request, 'clinician_response.html', {
         'clinician_response': clinician_response,
