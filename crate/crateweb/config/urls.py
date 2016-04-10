@@ -36,6 +36,8 @@ import crate.crateweb.userprofile.views as userprofile_views
 # http://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa
 # So we cache things here that we don't want the user to have to wait for:
 from crate.crateweb.research.models import research_database_info
+
+# noinspection PyStatementEffect
 research_database_info.infodictlist
 
 

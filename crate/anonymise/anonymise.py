@@ -112,7 +112,7 @@ def identical_record_exists_by_hash(destdb, dest_table, pkfield, pkvalue,
     )
     args = [pkvalue, hashvalue]
     row = destdb.fetchone(sql, *args)
-    return (row is not None and row[0] == 1)
+    return row is not None and row[0] == 1
 
 
 def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
@@ -129,7 +129,7 @@ def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
     )
     args = [pkvalue]
     row = destdb.fetchone(sql, *args)
-    return (row is not None and row[0] == 1)
+    return row is not None and row[0] == 1
 
 
 # =============================================================================
@@ -157,11 +157,11 @@ def recreate_audit_table(admindb):
 def recreate_opt_out_table(admindb):
     """Create/recreate the opt-out table (in the admin database)."""
     log.debug("recreate_opt_out_table")
-    OPT_OUT_FIELDSPECS = [
+    opt_out_fieldspecs = [
         dict(name=config.mapping_patient_id_fieldname,
              sqltype=BIGINT_UNSIGNED, pk=True, comment="Patient ID"),
     ]
-    makeadmintable(admindb, config.opt_out_tablename, OPT_OUT_FIELDSPECS)
+    makeadmintable(admindb, config.opt_out_tablename, opt_out_fieldspecs)
 
 
 def wipe_and_recreate_mapping_table(admindb, incremental=False):
@@ -486,7 +486,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     # ASSIGNS WORK TO THREADS/PROCESSES, via the simple expedient of processing
     # only those patient ID numbers where patientnum % ntasks == tasknum.
 
-    if ntasks > 1 and tasknum >= ntasks:
+    if 1 < ntasks <= tasknum:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
 
@@ -552,7 +552,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             n_found += 1
             yield patient_id
             # Too many?
-            if debuglimit > 0 and n_found >= debuglimit:
+            if 0 < debuglimit <= n_found:
                 log.warning(
                     "Not fetching more than {} patients (in total for this "
                     "process) due to debug_max_n_patients limit".format(
@@ -562,6 +562,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             row = cursor.fetchone()
 
 
+# noinspection PyProtectedMember
 def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
              pkname=None, tasknum=None, ntasks=None, debuglimit=0):
     """
@@ -608,8 +609,7 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
     row = cursor.fetchone()
     db_table_tuple = (dbname, sourcetable)
     while row is not None:
-        if (debuglimit > 0 and
-                config._rows_inserted_per_table[db_table_tuple] >= debuglimit):
+        if 0 < debuglimit <= config._rows_inserted_per_table[db_table_tuple]:
             if not config._warned_re_limits[db_table_tuple]:
                 log.warning(
                     "Table {}.{}: not fetching more than {} rows (in total "
@@ -684,6 +684,7 @@ def gen_pks(db, table, pkname):
 # - KEY THREADING RULE: ALL THREADS MUST HAVE FULLY INDEPENDENT DATABASE
 #   CONNECTIONS.
 
+# noinspection PyProtectedMember
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                   patient=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
@@ -800,6 +801,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
 
             destvalues.append(value)
         if addhash:
+            # noinspection PyUnboundLocalVariable
             destvalues.append(srchash)
         if addtrid:
             destvalues.append(patient.get_trid())
@@ -826,6 +828,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     commit(destdb)
 
 
+# noinspection PyProtectedMember
 def extract_text(value, row, ddr, ddrows):
     """
     Take a field's value and return extracted text, for file-related fields,

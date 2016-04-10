@@ -154,7 +154,7 @@ class Query(models.Model):
             else:
                 sql = self.sql
             args = self.args
-        return (sql, args)
+        return sql, args
 
     def get_executed_cursor(self, sql_append_raw=None):
         """
@@ -417,7 +417,8 @@ class ResearchDatabaseInfo(object):
         #   also be possible.
         # - http://stackoverflow.com/questions/907806
 
-    def tables_containing_field(self, fieldname):
+    @staticmethod
+    def tables_containing_field(fieldname):
         """
         Returns a list of [schema, table] pairs.
         """
@@ -471,6 +472,7 @@ research_database_info = ResearchDatabaseInfo()
 class PidLookupRouter(object):
     # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/
     # https://newcircle.com/s/post/1242/django_multiple_database_support
+    # noinspection PyMethodMayBeStatic
     def db_for_read(self, model, **hints):
         """
         read model PidLookup -> look at database secret

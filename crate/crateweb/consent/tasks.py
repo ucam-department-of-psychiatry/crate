@@ -55,12 +55,14 @@ Race condition:
 """
 
 
+# noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
 def add(x, y):
     return x + y
 
 
+# noinspection PyCallingNonCallable,PyPep8Naming
 @shared_task
 @task(ignore_result=True)
 def resend_email(email_id, user_id):
@@ -71,6 +73,7 @@ def resend_email(email_id, user_id):
     email.resend(user)
 
 
+# noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
 def process_contact_request(contact_request_id):
@@ -80,6 +83,7 @@ def process_contact_request(contact_request_id):
     contact_request.process_request()
 
 
+# noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
 def finalize_clinician_response(clinician_response_id):
@@ -89,6 +93,7 @@ def finalize_clinician_response(clinician_response_id):
     clinician_response.finalize_b()  # second part of processing
 
 
+# noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
 def process_consent_change(consent_mode_id):
@@ -97,6 +102,7 @@ def process_consent_change(consent_mode_id):
     consent_mode.process_change()
 
 
+# noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
 def process_patient_response(patient_response_id):
@@ -105,6 +111,7 @@ def process_patient_response(patient_response_id):
     patient_response.process_response()
 
 
+# noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
 def test_email_rdbm_task():
@@ -117,6 +124,7 @@ def test_email_rdbm_task():
     email_rdbm_task(subject, text)  # Will this work as a function? Yes.
 
 
+# noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
 def email_rdbm_task(subject, text):

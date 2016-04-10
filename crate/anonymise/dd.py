@@ -104,7 +104,7 @@ class DataDictionaryRow(object):
         "comment",
     ]
 
-    def __init__(self, config):
+    def __init__(self, config=None):
         """
         Set up basic defaults.
         """
@@ -662,6 +662,7 @@ class DataDictionary(object):
             log.debug("... content loaded.")
         self.cache_stuff()
 
+    # noinspection PyProtectedMember
     def read_from_source_databases(self, report_every=100,
                                    default_omit=True):
         """
@@ -876,6 +877,7 @@ class DataDictionary(object):
 
         log.debug("... cached.")
 
+    # noinspection PyProtectedMember
     def check_against_source_db(self):
         """
         Check DD validity against the source database.
@@ -956,7 +958,7 @@ class DataDictionary(object):
 
         log.debug("... source tables checked.")
 
-    def check_valid(self, check_against_source_db, prohibited_fieldnames=[]):
+    def check_valid(self, check_against_source_db, prohibited_fieldnames=None):
         """
         Check DD validity, internally +/- against the source database.
         """

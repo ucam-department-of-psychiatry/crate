@@ -55,6 +55,7 @@ def insert_note(db, patient_id, note):
     """, patient_id, note)
 
 
+# noinspection PyPep8Naming
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", default="localhost",

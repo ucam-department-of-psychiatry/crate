@@ -126,6 +126,7 @@ def get_friendly_date(date):
 def modelrepr(instance):
     """Default repr version of a Django model object, for debugging."""
     elements = []
+    # noinspection PyProtectedMember
     for fieldname in [f.name for f in instance._meta.get_fields()]:
         try:
             value = repr(getattr(instance, fieldname))
@@ -175,32 +176,32 @@ def get_initial_surname_tuple_from_string(s):
     parts = s.split() if s else []
     nparts = len(parts)
     if nparts == 0:
-        return ("", "")
+        return "", ""
     elif "(" in s:
         # something v. odd like "Linton H C (PL)", for Linton Health Centre
         # partners or similar. We can't fix it, but...
-        return ("", parts[0])
+        return "", parts[0]
     elif nparts == 1:
         # hmm... assume "Smith"
-        return ("", parts[0])
+        return "", parts[0]
     elif nparts == 2:
         if len(parts[0]) < len(parts[1]):
             # probably "J Smith"
-            return (parts[0][0], parts[1])
+            return parts[0][0], parts[1]
         else:
             # probably "Smith JKC"
-            return (parts[1][0], parts[0])
+            return parts[1][0], parts[0]
     else:
         # Lots of parts.
         if parts[0].lower() == "dr":
             parts = parts[1:]
-            nparts = nparts - 1
+            nparts -= 1
         if len(parts[0]) < len(parts[-1]):
             # probably "AJ VAN DEN BERG"
-            return (parts[0][0], " ".join(parts[1:]))
+            return parts[0][0], " ".join(parts[1:])
         else:
             # probably "VAN DEN BERG AJ"
-            return (parts[-1][0], " ".join(parts[:-1]))
+            return parts[-1][0], " ".join(parts[:-1])
 
 
 # =============================================================================

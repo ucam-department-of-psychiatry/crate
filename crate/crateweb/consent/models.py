@@ -188,8 +188,8 @@ class Study(models.Model):
             return "Yes (and it is a clinical trial)"
         return "Yes (and it is not a clinical trial)"
 
-    @classmethod
-    def filter_studies_for_researcher(self, queryset, user):
+    @staticmethod
+    def filter_studies_for_researcher(queryset, user):
         return queryset.filter(Q(lead_researcher=user) |
                                Q(researchers__in=[user]))\
                        .distinct()
@@ -962,6 +962,7 @@ def lookup_dummy_clinical(lookup, decisions, secret_decisions):
     except ObjectDoesNotExist:
         decisions.append("Patient not found in dummy lookup")
         return
+    # noinspection PyProtectedMember
     fieldnames = [f.name for f in PatientLookupBase._meta.get_fields()]
     for fieldname in fieldnames:
         setattr(lookup, fieldname, getattr(dummylookup, fieldname))
@@ -2138,10 +2139,9 @@ class ContactRequest(models.Model):
         # ... will also create a ClinicianResponse
         emailtransmission = email.send()
         if not emailtransmission.sent:
-            self.decide("Failed to send e-mail to clinician at {}".format(
-                clinician_emailaddr))
             self.decide(emailtransmission.failure_reason)
-            self.stop()
+            self.stop("Failed to send e-mail to clinician at {}".format(
+                clinician_emailaddr))
             # We don't set decided_send_to_clinician because this attempt has
             # failed, and we don't want to put anyone off trying again
             # immediately.
@@ -2401,13 +2401,12 @@ class ContactRequest(models.Model):
                                 context)
 
     def get_clinician_pack_pdf(self):
-        html_or_filename_tuple_list = []
         # Order should match letter...
 
         # Letter to patient from clinician
-        html_or_filename_tuple_list.append(('html', {
+        html_or_filename_tuple_list = [('html', {
             'html': self.get_letter_clinician_to_pt_re_study()
-        }))
+        })]
         # Study details
         if self.study.study_details_pdf:
             html_or_filename_tuple_list.append(

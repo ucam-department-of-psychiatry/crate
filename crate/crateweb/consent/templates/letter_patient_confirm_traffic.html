@@ -86,39 +86,39 @@
                 <tr>
                     <td>Do you wish to opt out of the use of your information
                     for research even after all details that could identify
-                    you have been removed?</th>
-                    <td>{{ consent_mode.exclude_entirely|yesno }}</th>
+                    you have been removed?</td>
+                    <td>{{ consent_mode.exclude_entirely|yesno }}</td>
                 </tr>
             {% else %}
                 <tr>
                     <td>Are you still willing to be contacted
-                    about research even after being discharged from CPFT entirely?</th>
-                    <td>{{ consent_mode.consent_after_discharge|yesno }}</th>
+                    about research even after being discharged from CPFT entirely?</td>
+                    <td>{{ consent_mode.consent_after_discharge|yesno }}</td>
                 </tr>
                 <tr>
                     <td>Do you prefer to hear about research
-                    by e-mail?</th>
-                    <td>{{ consent_mode.prefers_email|yesno }}</th>
+                    by e-mail?</td>
+                    <td>{{ consent_mode.prefers_email|yesno }}</td>
                 </tr>
                 {% if consent_mode.prefers_email %}
                     <tr>
                         <td>... if so, we have your e-mail
-                        address as:</th>
-                        <td>{{ patient_lookup.pt_email|default:"?" }}</th>
+                        address as:</td>
+                        <td>{{ patient_lookup.pt_email|default:"?" }}</td>
                     </tr>
                 {% endif %}
                 <tr>
                     <td>Do you wish to limit your consent in
-                    some way...</th>
-                    <td class="deadcell"></th>
+                    some way...</td>
+                    <td class="deadcell"></td>
                 </tr>
                 <tr>
-                    <td>... such as an annual limit?</th>
-                    <td>{{ consent_mode.max_approaches_per_year|default:"–" }}</th>
+                    <td>... such as an annual limit?</td>
+                    <td>{{ consent_mode.max_approaches_per_year|default:"–" }}</td>
                 </tr>
                 <tr>
-                    <td>... or in some other way?</th>
-                    <td>{{ consent_mode.other_requests|default:"–" }}</th>
+                    <td>... or in some other way?</td>
+                    <td>{{ consent_mode.other_requests|default:"–" }}</td>
                 </tr>
             {% endif %}
         </tbody>

@@ -101,6 +101,7 @@ def get_fieldinfo(args):
     return info
 
 
+# noinspection PyProtectedMember
 def get_patientnum_rawtext(docid, fieldinfo):
     """
     Fetches the original text for a given document PK, plus the associated

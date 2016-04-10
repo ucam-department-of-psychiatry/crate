@@ -18,7 +18,8 @@ class RestrictAdminMiddleware(object):
     A middleware that restricts different admin sites depending on user
     privileges.
     """
-    def process_request(self, request):
+    @staticmethod
+    def process_request(request):
         if not hasattr(request, 'user'):
             raise ImproperlyConfigured(
                 "Authentication middleware required. Edit your"

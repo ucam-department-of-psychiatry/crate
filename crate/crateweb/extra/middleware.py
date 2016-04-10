@@ -131,7 +131,8 @@ class LoginRequiredMiddleware:
             login_required = False
             # body of view
     """
-    def process_view(self, request, view_func, view_args, view_kwargs):
+    @staticmethod
+    def process_view(request, view_func, view_args, view_kwargs):
         if not hasattr(request, 'user'):
             raise ImproperlyConfigured(
                 "The Login Required middleware requires authentication "

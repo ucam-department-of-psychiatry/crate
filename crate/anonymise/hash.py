@@ -87,6 +87,7 @@ class RandomIntegerHasher(GenericHasher):
         while not success:
             value = self.generate_candidate()
             success = not self.already_exists(value)
+        # noinspection PyUnboundLocalVariable
         self.store(raw, value)
         return value
 

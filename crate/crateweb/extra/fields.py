@@ -58,7 +58,9 @@ class ContentTypeRestrictedFileField(models.FileField):
         if content_type not in self.content_types:
             raise forms.ValidationError(ugettext_lazy(
                 'Filetype not supported.'))
+        # noinspection PyProtectedMember
         if self.max_upload_size is not None and f._size > self.max_upload_size:
+            # noinspection PyProtectedMember
             raise forms.ValidationError(ugettext_lazy(
                 'Please keep filesize under %s. Current filesize %s')
                 % (filesizeformat(self.max_upload_size),
@@ -252,6 +254,7 @@ class IsoDateTimeTzField(models.CharField):
         del kwargs['max_length']
         return name, path, args, kwargs
 
+    # noinspection PyMethodMayBeStatic
     def from_db_value(self, value, expression, connection, context):
         """
         Convert database value to Python value.
@@ -434,6 +437,7 @@ def isodt_lookup_sqlite(lookup, compiler, connection, operator):
     # appropriate thing in get_db_prep_value().
 
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoDateTimeLessThan(models.Lookup):
     lookup_name = 'lt'
@@ -445,6 +449,7 @@ class IsoDateTimeLessThan(models.Lookup):
         return isodt_lookup_sqlite(self, compiler, connection, "<")
 
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoDateTimeLessThanEqual(models.Lookup):
     lookup_name = 'lte'
@@ -456,6 +461,7 @@ class IsoDateTimeLessThanEqual(models.Lookup):
         return isodt_lookup_sqlite(self, compiler, connection, "<=")
 
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoDateTimeExact(models.Lookup):
     lookup_name = 'exact'
@@ -467,6 +473,7 @@ class IsoDateTimeExact(models.Lookup):
         return isodt_lookup_sqlite(self, compiler, connection, "=")
 
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoDateTimeGreaterThan(models.Lookup):
     lookup_name = 'gt'
@@ -478,6 +485,7 @@ class IsoDateTimeGreaterThan(models.Lookup):
         return isodt_lookup_sqlite(self, compiler, connection, ">")
 
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoDateTimeGreaterThanEqual(models.Lookup):
     lookup_name = 'gte'
@@ -493,6 +501,7 @@ class IsoDateTimeGreaterThanEqual(models.Lookup):
 # Transforms
 # -----------------------------------------------------------------------------
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoStringToUtcDateTime(models.Transform):
     """
@@ -518,6 +527,7 @@ class IsoStringToUtcDateTime(models.Transform):
         return iso_string_to_sql_utcdatetime_pythonformat_sqlite(lhs), params
 
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoStringToUtcDate(models.Transform):
     """
@@ -540,6 +550,7 @@ class IsoStringToUtcDate(models.Transform):
         return iso_string_to_sql_utcdate_sqlite(lhs), params
 
 
+# noinspection PyAbstractClass
 @IsoDateTimeTzField.register_lookup
 class IsoStringToSourceDate(models.Transform):
     """

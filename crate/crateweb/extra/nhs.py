@@ -50,30 +50,24 @@ def is_valid_nhs_number(n):
     if not isinstance(n, int):
         log.debug("is_valid_nhs_number: parameter was not of integer type")
         return False
-    try:
-        s = str(n)
-        # Not 10 digits long?
-        if len(s) != 10:
-            log.debug("is_valid_nhs_number: not 10 digits")
-            return False
 
-        main_digits = [int(s[i]) for i in range(9)]
-        actual_check_digit = int(s[9])  # tenth digit
-        expected_check_digit = nhs_check_digit(main_digits)
-        if expected_check_digit == 10:
-            log.debug("is_valid_nhs_number: calculated check digit invalid")
-            return False
-        if expected_check_digit != actual_check_digit:
-            log.debug("is_valid_nhs_number: check digit mismatch")
-            return False
-        # Hooray!
-        return True
-
-    except Exception as e:
-        # Something went wrong.
-        log.debug("is_valid_nhs_number: exception thrown: {}".format(
-            repr(e)))
+    s = str(n)
+    # Not 10 digits long?
+    if len(s) != 10:
+        log.debug("is_valid_nhs_number: not 10 digits")
         return False
+
+    main_digits = [int(s[i]) for i in range(9)]
+    actual_check_digit = int(s[9])  # tenth digit
+    expected_check_digit = nhs_check_digit(main_digits)
+    if expected_check_digit == 10:
+        log.debug("is_valid_nhs_number: calculated check digit invalid")
+        return False
+    if expected_check_digit != actual_check_digit:
+        log.debug("is_valid_nhs_number: check digit mismatch")
+        return False
+    # Hooray!
+    return True
 
 
 def generate_random_nhs_number():
@@ -84,5 +78,6 @@ def generate_random_nhs_number():
         digits.extend([random.randint(0, 9) for _ in range(8)])
         # ... length now 9
         check_digit = nhs_check_digit(digits)
+    # noinspection PyUnboundLocalVariable
     digits.append(check_digit)
     return int("".join([str(d) for d in digits]))

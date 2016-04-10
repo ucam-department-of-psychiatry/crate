@@ -22,8 +22,10 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # Collapsible div
 # =============================================================================
 
-def collapsible_div(tag, contents, extradivclasses=[]):
+def collapsible_div(tag, contents, extradivclasses=None):
     # The HTML pre-hides, rather than using an onload method
+    if extradivclasses is None:
+        extradivclasses = []
     template = loader.get_template('collapsible_div.html')
     context = {
         'extradivclasses': " ".join(extradivclasses),
@@ -33,7 +35,9 @@ def collapsible_div(tag, contents, extradivclasses=[]):
     return template.render(context)  # as HTML
 
 
-def overflow_div(tag, contents, extradivclasses=[]):
+def overflow_div(tag, contents, extradivclasses=None):
+    if extradivclasses is None:
+        extradivclasses = []
     template = loader.get_template('overflow_div.html')
     context = {
         'extradivclasses': " ".join(extradivclasses),

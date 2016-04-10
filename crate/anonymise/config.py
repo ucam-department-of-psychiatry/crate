@@ -31,12 +31,12 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
-import cgi
 import codecs
 import configparser
 import datetime
 import dateutil
 import dateutil.tz
+from html import escape
 import logging
 import os
 import pytz
@@ -1110,13 +1110,13 @@ class Config(object):
         # But not the query string:
         # if environ.get("QUERY_STRING"):
         #    url += "?" + environ.get("QUERY_STRING")
-        self.SCRIPT_PUBLIC_URL_ESCAPED = cgi.escape(url)
+        self.SCRIPT_PUBLIC_URL_ESCAPED = escape(url)
 
     def read_config(self, include_sources=False):
         """Read config from file."""
         log.debug("Opening config: {}".format(self.config_filename))
         parser = configparser.RawConfigParser()
-        parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
+        parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         read_config_string_options(self, parser, "main", Config.MAIN_HEADINGS)
         read_config_multiline_options(self, parser, "main",
                                       Config.MAIN_MULTILINE_HEADINGS)
@@ -1229,7 +1229,7 @@ class Config(object):
         the config file (a section that will contain password and other
         connection information)."""
         parser = configparser.RawConfigParser()
-        parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
+        parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         return rnc_db.get_database_from_configparser(
             parser, section, securely=self.open_databases_securely)
 
@@ -1289,9 +1289,9 @@ class Config(object):
             raise ValueError("Blank replace_third_party_info_with")
         if not self.replace_nonspecific_info_with:
             raise ValueError("Blank replace_nonspecific_info_with")
-        replacements = list(set([self.replace_patient_info_with,
-                                 self.replace_third_party_info_with,
-                                 self.replace_nonspecific_info_with]))
+        replacements = list({self.replace_patient_info_with,
+                             self.replace_third_party_info_with,
+                             self.replace_nonspecific_info_with})
         if len(replacements) != 3:
             raise ValueError(
                 "Inadvisable: replace_patient_info_with, "

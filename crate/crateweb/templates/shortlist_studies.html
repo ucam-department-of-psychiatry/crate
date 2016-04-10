@@ -9,7 +9,7 @@
 <p>
     {% for study in studies %}
         <a href="{% url 'admin:consent_study_change' study.id %}">
-        Study {{ study.id }}: {{ study.title }}<br>
+        Study {{ study.id }}: {{ study.title }}</a><br>
     {% empty %}
         (No studies)
     {% endfor %}

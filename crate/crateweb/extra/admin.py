@@ -73,6 +73,7 @@ class ReadOnlyModelAdmin(admin.ModelAdmin):
     # Make single object view say "View [model]", not "Change [model]"
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}
+        # noinspection PyProtectedMember
         extra_context["title"] = "View %s" % force_text(
             self.model._meta.verbose_name)
         return super().change_view(request, object_id, form_url,
@@ -123,6 +124,7 @@ class AddOnlyModelAdmin(admin.ModelAdmin):
     # Make single object view say "View [model]", not "Change [model]"
     def change_view(self, request, object_id, form_url='', extra_context=None):
         extra_context = extra_context or {}
+        # noinspection PyProtectedMember
         extra_context["title"] = "View %s" % force_text(
             self.model._meta.verbose_name)
         return super().change_view(request, object_id, form_url,
@@ -177,6 +179,7 @@ class AllStaffReadOnlyModelAdmin(ReadOnlyModelAdmin):
 # Links in model admin
 # =============================================================================
 
+# noinspection PyProtectedMember
 def admin_view_url(admin_site, obj, view_type="change", current_app=None):
     app_name = obj._meta.app_label.lower()
     model_name = obj._meta.object_name.lower()
@@ -188,6 +191,7 @@ def admin_view_url(admin_site, obj, view_type="change", current_app=None):
     return url
 
 
+# noinspection PyProtectedMember
 def admin_view_fk_link(modeladmin, obj, fkfield,
                        missing="(None)", use_str=True, view_type="change",
                        current_app=None):
@@ -210,6 +214,7 @@ def admin_view_fk_link(modeladmin, obj, fkfield,
     return '<a href="{}">{}</a>'.format(url, label)
 
 
+# noinspection PyProtectedMember
 def admin_view_reverse_fk_links(modeladmin, obj, reverse_fk_set_field,
                                 missing="(None)", use_str=True,
                                 separator="<br>",
@@ -255,6 +260,7 @@ def disable_bool_icon(fieldname, model):
     #     model._meta.get_field_by_name(fieldname)[0].verbose_name
     # get_field_by_name() deprecated in Django 1.9 and will go in 1.10
     # https://docs.djangoproject.com/en/1.8/ref/models/meta/
+    # noinspection PyProtectedMember
     func.short_description = \
         model._meta.get_field(fieldname).verbose_name
     return func

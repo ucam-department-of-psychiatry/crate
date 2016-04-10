@@ -113,6 +113,9 @@ MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
 SQLTYPE_DB = "VARCHAR({})".format(MAX_SQL_FIELD_LEN)
 
+LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
+
 # =============================================================================
 # Demo config
 # =============================================================================
@@ -475,7 +478,7 @@ class Config(object):
         self.config_filename = filename
         parser = configparser.RawConfigParser()
         parser.optionxform = str  # make it case-sensitive
-        parser.readfp(codecs.open(filename, "r", "utf8"))
+        parser.read_file(codecs.open(filename, "r", "utf8"))
 
         # nlpname
         read_config_string_options(
@@ -571,7 +574,7 @@ class Config(object):
         Return an rnc_db database object from a config file section.
         """
         parser = configparser.RawConfigParser()
-        parser.readfp(codecs.open(self.config_filename, "r", "utf8"))
+        parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         try:  # guard this bit to prevent any password leakage
             dbc = DatabaseConfig(parser, section)
             db = dbc.get_database()
@@ -702,22 +705,24 @@ class NlpController(object):
 
     def _encode_to_subproc_stdin(self, text):
         log.debug("SENDING: " + text)
-        bytes = text.encode(self.encoding)
-        self.p.stdin.write(bytes)
+        bytes_ = text.encode(self.encoding)
+        self.p.stdin.write(bytes_)
 
     def _flush_subproc_stdin(self):
         self.p.stdin.flush()
 
     def _decode_from_subproc_stdout(self):
-        bytes = self.p.stdout.readline()
-        text = bytes.decode(self.encoding)
+        bytes_ = self.p.stdout.readline()
+        text = bytes_.decode(self.encoding)
         log.debug("RECEIVING: " + text)
         return text
 
-    def send(self, text, starting_fields_values={}):
+    def send(self, text, starting_fields_values=None):
         """
         Send text to the external process and receive the result.
         """
+        if starting_fields_values is None:
+            starting_fields_values = {}
         self.starting_fields_values = starting_fields_values
         # Send
         log.debug("writing: " + text)
@@ -734,8 +739,7 @@ class NlpController(object):
             self.receive(line)
         self.n_uses += 1
         # Restart subprocess?
-        if (self.config.max_external_prog_uses > 0 and
-                self.n_uses >= self.config.max_external_prog_uses):
+        if 0 < self.config.max_external_prog_uses <= self.n_uses:
             log.info("relaunching app after {} uses".format(self.n_uses))
             self.finish()
             self.start()
@@ -946,6 +950,7 @@ def delete_where_no_source(config, ifconfig):
         else:
             log.debug("... deleting selectively")
             # value_string already set
+            # noinspection PyUnboundLocalVariable
             sql += " AND _srcpkval NOT IN ({})".format(value_string)
         destdb.db_exec(sql, *args)
 
@@ -998,7 +1003,7 @@ def gen_text(config, ifconfig, tasknum=0, ntasks=1):
     """
     Generate text strings from the input database.
     """
-    if ntasks > 1 and tasknum >= ntasks:
+    if 1 < ntasks <= tasknum:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
     threadcondition = ""
@@ -1174,9 +1179,9 @@ def create_indexes(config, tasknum=0, ntasks=1):
         db = config.databases[ot.destdb]
         t = ot.desttable
         sqlbits = []
-        for i in range(len(ot.indexnames)):
-            n = ot.indexnames[i]
-            d = ot.indexdefs[i]
+        for j in range(len(ot.indexnames)):
+            n = ot.indexnames[j]
+            d = ot.indexdefs[j]
             s = "ADD INDEX {n} ({d})".format(n=n, d=d)
             if db.index_exists(t, n):
                 continue  # because it will crash if you add it again!
@@ -1278,8 +1283,6 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         level=logging.DEBUG if args.verbose >= 1 else logging.INFO
     )
     rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
-    LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
-    LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
     mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
     logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
                         level=mainloglevel)
