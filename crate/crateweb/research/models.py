@@ -472,7 +472,7 @@ research_database_info = ResearchDatabaseInfo()
 class PidLookupRouter(object):
     # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/
     # https://newcircle.com/s/post/1242/django_multiple_database_support
-    # noinspection PyMethodMayBeStatic
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def db_for_read(self, model, **hints):
         """
         read model PidLookup -> look at database secret

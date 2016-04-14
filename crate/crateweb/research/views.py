@@ -2,14 +2,19 @@
 # research/views.py
 
 import logging
+
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
-from django.core.exceptions import ValidationError
+from django.core.exceptions import (
+    ObjectDoesNotExist,
+    ValidationError,
+)
 from django.db import OperationalError, ProgrammingError
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+
 from crate.crateweb.core.dbfunc import (
     dictlist_to_tsv,
     escape_sql_string_literal,
@@ -25,6 +30,7 @@ from crate.crateweb.research.forms import (
 from crate.crateweb.research.html_functions import (
     highlight_text,
     make_result_element,
+    make_collapsible_query,
     N_CSS_HIGHLIGHT_CLASSES,
 )
 from crate.crateweb.research.models import (
@@ -57,7 +63,7 @@ def validate_blank_form(request):
 # Queries
 # =============================================================================
 
-def query(request):
+def edit_select_query(request):
     """
     Edit or select SQL for current query.
     """
@@ -89,6 +95,13 @@ def query(request):
         values['sql'] = active_queries[0].get_original_sql()
     form = AddQueryForm(values)
     queries = paginate(request, all_queries)
+    # profile = request.user.profile
+    for i, q in enumerate(queries):
+        q.formatted_query_safe = make_collapsible_query(
+            q.get_original_sql(),
+            i,
+            collapse_at_n_lines=5,
+        )
     context = {
         'form': form,
         'queries': queries,
@@ -111,7 +124,7 @@ def delete_query(request, query_id):
     return redirect('query')
 
 
-def highlight(request):
+def edit_select_highlight(request):
     """
     Edit or select highlighting for current query.
     """
@@ -173,16 +186,31 @@ def delete_highlight(request, highlight_id):
 
 def count(request, query_id):
     """
-    View COUNT(*) from current query.
+    View COUNT(*) from specific query.
     """
     if query_id is None:
         return render(request, 'no_query_selected.html')
     try:
         query_id = int(query_id)
+        # ... conceivably might raise TypeError (from e.g. None), ValueError
+        # (from e.g. "xyz"), but both should be filtered out by the URL parser
         query = Query.objects.get(id=query_id, user=request.user)
-    except:
+        # ... will return None if not found, but may raise something derived
+        # from ObjectDoesNotExist or (in principle, if this weren't a PK)
+        # MultipleObjectsReturned;
+        # https://docs.djangoproject.com/en/1.9/ref/models/querysets/#django.db.models.query.QuerySet.get  # noqa
+    except ObjectDoesNotExist:
         return render_bad_query_id(request, query_id)
+    return render_resultcount(request, query)
+
+
+def count_current(request):
+    """
+    View COUNT(*) from current query.
+    """
     query = Query.get_active_query_or_none(request)
+    if query is None:
+        return render(request, 'no_query_selected.html')
     return render_resultcount(request, query)
 
 
@@ -195,7 +223,7 @@ def results(request, query_id):
     try:
         query_id = int(query_id)
         query = Query.objects.get(id=query_id, user=request.user)
-    except:
+    except ObjectDoesNotExist:
         return render_bad_query_id(request, query_id)
     profile = request.user.profile
     highlights = Highlight.get_active_highlights(request)
@@ -343,10 +371,10 @@ def render_tsv(request, query):
     if query is None:
         return render_missing_query(request)
     try:
-        tsv = query.make_tsv()
+        tsv_result = query.make_tsv()
     except (ProgrammingError, OperationalError) as exception:
         return render_bad_query(request, query, exception)
-    return HttpResponse(tsv, content_type='text/csv')
+    return HttpResponse(tsv_result, content_type='text/csv')
 
 
 def render_missing_query(request):
@@ -424,10 +452,11 @@ def structure_table_paginated(request):
     return render(request, 'database_structure.html', context)
 
 
+# noinspection PyUnusedLocal
 def structure_tsv(request):
     infodictlist = research_database_info.infodictlist
-    tsv = dictlist_to_tsv(infodictlist)
-    return HttpResponse(tsv, content_type='text/csv')
+    tsv_result = dictlist_to_tsv(infodictlist)
+    return HttpResponse(tsv_result, content_type='text/csv')
 
 
 # =============================================================================

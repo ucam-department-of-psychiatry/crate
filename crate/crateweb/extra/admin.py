@@ -252,6 +252,7 @@ def admin_view_reverse_fk_links(modeladmin, obj, reverse_fk_set_field,
 # ... extended to use closures
 
 def disable_bool_icon(fieldname, model):
+    # noinspection PyUnusedLocal
     def func(self, obj):
         return getattr(obj, fieldname)
     func.boolean = False

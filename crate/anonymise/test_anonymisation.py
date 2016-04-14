@@ -188,6 +188,7 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
 
     # Get scrubbing info
     scrubber = Scrubber(config.sources, patientnum)
+    # *** needs fixing!
     scrubdict[patientnum] = scrubber.get_raw_info()
 
     # Write text

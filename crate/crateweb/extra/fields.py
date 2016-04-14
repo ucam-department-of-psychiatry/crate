@@ -254,7 +254,7 @@ class IsoDateTimeTzField(models.CharField):
         del kwargs['max_length']
         return name, path, args, kwargs
 
-    # noinspection PyMethodMayBeStatic
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def from_db_value(self, value, expression, connection, context):
         """
         Convert database value to Python value.
@@ -516,6 +516,7 @@ class IsoStringToUtcDateTime(models.Transform):
     def output_field(self):
         return DateTimeField()
 
+    # noinspection PyUnusedLocal
     def as_mysql(self, compiler, connection):
         log.debug("IsoStringToUtcDateTime.as_mysql")
         lhs, params = compiler.compile(self.lhs)
@@ -539,6 +540,7 @@ class IsoStringToUtcDate(models.Transform):
     def output_field(self):
         return DateField()
 
+    # noinspection PyUnusedLocal
     def as_mysql(self, compiler, connection):
         log.debug("IsoStringToUtcDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)
@@ -563,6 +565,7 @@ class IsoStringToSourceDate(models.Transform):
     def output_field(self):
         return DateField()
 
+    # noinspection PyUnusedLocal
     def as_mysql(self, compiler, connection):
         log.debug("IsoStringToSourceDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)

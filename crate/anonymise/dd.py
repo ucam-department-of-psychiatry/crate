@@ -224,6 +224,7 @@ class DataDictionaryRow(object):
         self.alter_method_to_components()
         self.check_valid()
 
+    # noinspection PyUnusedLocal
     def set_from_src_db_info(self, db, table, field, datatype_short,
                              datatype_full, cfg, comment=None,
                              default_omit=True):
@@ -233,7 +234,6 @@ class DataDictionaryRow(object):
         # If Unicode, mangle to ASCII:
         table = table.encode("ascii", "ignore")
         field = field.encode("ascii", "ignore")
-        datatype_short = datatype_short.encode("ascii", "ignore")
         datatype_full = datatype_full.encode("ascii", "ignore")
 
         self.src_db = db
@@ -495,13 +495,13 @@ class DataDictionaryRow(object):
             ensure_valid_table_name(self.dest_table)
             if self.dest_table == self.config.temporary_tablename:
                 raise ValueError(
-                    "Destination tables can't be named {f}, as that's the "
+                    "Destination tables can't be named {}, as that's the "
                     "name set in the config's temporary_tablename "
                     "variable".format(self.config.temporary_tablename))
             ensure_valid_field_name(self.dest_field)
             if self.dest_field == self.config.source_hash_fieldname:
                 raise ValueError(
-                    "Destination fields can't be named {f}, as that's the "
+                    "Destination fields can't be named {}, as that's the "
                     "name set in the config's source_hash_fieldname "
                     "variable".format(self.config.source_hash_fieldname))
             if not is_sqltype_valid(self.dest_datatype):
@@ -639,7 +639,7 @@ class DataDictionary(object):
         self.rows = []
         self.cached_srcdb_table_pairs = SortedSet()
 
-    def read_from_file(self, filename, check_against_source_db=True):
+    def read_from_file(self, filename):
         """
         Read DD from file.
         """

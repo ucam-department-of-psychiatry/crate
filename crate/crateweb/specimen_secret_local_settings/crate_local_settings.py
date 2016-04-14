@@ -37,6 +37,7 @@ DEBUG = False
 # ... when False, note that static files must be served properly
 
 
+# noinspection PyUnusedLocal
 def always_show_toolbar(request):
     return True  # Always show toolbar, for debugging only.
 

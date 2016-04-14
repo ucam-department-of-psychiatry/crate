@@ -100,6 +100,7 @@ def serve_concatenated_pdf_from_disk(filenames,
                         as_inline=True)
 
 
+# noinspection PyUnusedLocal
 def get_concatenated_pdf_in_memory(html_or_filename_tuple_list,
                                    start_recto=True,
                                    **kwargs):

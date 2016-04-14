@@ -30,6 +30,8 @@
 
     <h1>Previous queries</h1>
 
+    {% include "expand_collapse_buttons.html" %}
+
     {% if queries %}
         <table>
             <tr>
@@ -45,7 +47,7 @@
                     <td>
                         {% include "action_only_form.html" with action="delete_query" pk=query.id button="Delete" %}
                     </td>
-                    <td><pre>{{ query.get_original_sql }}</pre></td>
+                    <td>{{ query.formatted_query_safe|safe }}</td>
                     <td>
                         {% if query.active %}<b>{% endif %}
                         {{ query.active|yesno }}

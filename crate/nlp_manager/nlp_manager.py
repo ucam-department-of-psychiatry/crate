@@ -92,6 +92,12 @@ from cardinal_pythonlib.rnc_lang import (
 )
 import cardinal_pythonlib.rnc_log as rnc_log
 
+from crate.anonymise.constants import (
+    LOG_DATEFMT,
+    LOG_FORMAT,
+    MAX_PID_STR,
+    SEP,
+)
 from crate.anonymise.hash import MD5Hasher
 from crate.version import VERSION, VERSION_DATE
 
@@ -101,20 +107,15 @@ log = logging.getLogger(__name__)
 # Global constants
 # =============================================================================
 
-MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit
 ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
 SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
 # ... in practice: VARCHAR(32)
 
 FIELDNAME_LEN = 50
-SEP = "=" * 20 + " "
 
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
 SQLTYPE_DB = "VARCHAR({})".format(MAX_SQL_FIELD_LEN)
-
-LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
-LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
 
 # =============================================================================
 # Demo config
@@ -417,8 +418,8 @@ class OutputTypeConfig(object):
             self.dest_datatypes.append(datatype)
         self.destfields = df
 
-        MANDATORY_FIELDS = ["_srcdb", "_srctable", "_srcpkfield", "_srcpkval"]
-        for mandatory in MANDATORY_FIELDS:
+        mandatory_fields = ["_srcdb", "_srctable", "_srcpkfield", "_srcpkval"]
+        for mandatory in mandatory_fields:
             if mandatory not in self.destfields:
                 raise Exception(
                     "For section {}, mandatory destfield {} missing".format(
@@ -583,8 +584,6 @@ class Config(object):
             raise rnc_db.NoDatabaseError(
                 "Problem opening or reading from database {}; details "
                 "concealed for security reasons".format(section))
-        finally:
-            dbc = None
 
     def hash(self, text):
         # Needs to handle Unicode

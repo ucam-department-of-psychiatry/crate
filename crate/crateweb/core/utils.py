@@ -3,7 +3,7 @@
 
 import logging
 import re
-import urllib
+import urllib.parse
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -63,7 +63,7 @@ def url_with_querystring(path, querydict=None, **kwargs):
     if querydict:
         querystring = querydict.urlencode()
     else:
-        querystring = urllib.urlencode(kwargs)
+        querystring = urllib.parse.urlencode(kwargs)
     return path + '?' + querystring
 
 
@@ -120,7 +120,7 @@ def get_friendly_date(date):
     try:
         return date.strftime("%d %B %Y")  # e.g. 03 December 2013
     except Exception as e:
-        raise type(e)(e.message + ' [value was {}]'.format(repr(date)))
+        raise type(e)(str(e) + ' [value was {}]'.format(repr(date)))
 
 
 def modelrepr(instance):

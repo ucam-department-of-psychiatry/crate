@@ -24,7 +24,9 @@ logger = logging.getLogger(__name__)
 # Best Practices for Django 1.8".
 
 class UserBasedExceptionMiddleware(object):
-    def process_exception(self, request, exception):
+    # noinspection PyUnusedLocal
+    @staticmethod
+    def process_exception(request, exception):
         if request.user.is_superuser:
             return technical_500_response(request, *sys.exc_info())
 
@@ -131,6 +133,8 @@ class LoginRequiredMiddleware:
             login_required = False
             # body of view
     """
+
+    # noinspection PyUnusedLocal
     @staticmethod
     def process_view(request, view_func, view_args, view_kwargs):
         if not hasattr(request, 'user'):
@@ -161,6 +165,8 @@ class LoginRequiredMiddleware:
 # http://stackoverflow.com/questions/2095520/fighting-client-side-caching-in-django  # noqa
 
 class DisableClientSideCachingMiddleware(object):
-    def process_response(self, request, response):
+    # noinspection PyUnusedLocal
+    @staticmethod
+    def process_response(request, response):
         add_never_cache_headers(response)
         return response

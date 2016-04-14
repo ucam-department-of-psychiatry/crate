@@ -211,6 +211,7 @@ MYSQL_COMMANDS = AttrDict(
 )
 
 
+# noinspection PyUnusedLocal
 def map_bitflags(value, flagdict, bits=32, indent=0):
     invdictlist = [(v, k) for k, v in flagdict.items()]
     invdictlist = sorted(invdictlist, key=itemgetter(0))

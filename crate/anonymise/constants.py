@@ -46,6 +46,8 @@ INDEX = AttrDict(
     FULLTEXT="F"
 )
 
+LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
+LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
 LONGTEXT = "LONGTEXT"
 
 MAX_PID_STR = "9" * 10  # e.g. NHS numbers are 10-digit

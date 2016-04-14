@@ -195,6 +195,7 @@ class Study(models.Model):
                        .distinct()
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.post_delete, sender=Study)
 def auto_delete_study_files_on_delete(sender, instance, **kwargs):
     """Deletes files from filesystem when Study object is deleted."""
@@ -202,6 +203,7 @@ def auto_delete_study_files_on_delete(sender, instance, **kwargs):
                                          Study.AUTODELETE_OLD_FILE_FIELDS)
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.pre_save, sender=Study)
 def auto_delete_study_files_on_change(sender, instance, **kwargs):
     """Deletes files from filesystem when Study object is changed."""
@@ -272,12 +274,14 @@ class Leaflet(models.Model):
                 obj.save()
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.post_delete, sender=Study)
 def auto_delete_leaflet_files_on_delete(sender, instance, **kwargs):
     """Deletes files from filesystem when Leaflet object is deleted."""
     auto_delete_files_on_instance_delete(instance, ['pdf'])
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.pre_save, sender=Study)
 def auto_delete_leaflet_files_on_change(sender, instance, **kwargs):
     """Deletes files from filesystem when Leaflet object is changed."""
@@ -756,6 +760,7 @@ class PatientLookupBase(models.Model):
         return ", ".join(filter(None, [self.gp_title_forename_surname_str(),
                                        self.gp_address_components_str()]))
 
+    # noinspection PyUnusedLocal
     def set_gp_name_components(self, name, decisions, secret_decisions):
         """
         Takes name, and stores it in the gp_title, gp_first_name, and
@@ -955,6 +960,7 @@ def lookup_patient(nhs_number, source_db=None, save=True,
     return lookup
 
 
+# noinspection PyUnusedLocal
 def lookup_dummy_clinical(lookup, decisions, secret_decisions):
     try:
         dummylookup = DummyPatientSourceInfo.objects.get(
@@ -2429,7 +2435,7 @@ class ContactRequest(models.Model):
                     name=Leaflet.CPFT_TRAFFICLIGHT_CHOICE)
                 html_or_filename_tuple_list.append(
                     ('filename', leaflet.pdf.path))
-            except:
+            except ObjectDoesNotExist:
                 log.warn("Missing traffic-light leaflet!")
                 email_rdbm_task.delay(
                     subject="ERROR FROM RESEARCH DATABASE COMPUTER",
@@ -2443,7 +2449,7 @@ class ContactRequest(models.Model):
         try:
             leaflet = Leaflet.objects.get(name=Leaflet.CPFT_TPIR)
             html_or_filename_tuple_list.append(('filename', leaflet.pdf.path))
-        except:
+        except ObjectDoesNotExist:
             log.warn("Missing taking-part-in-research leaflet!")
             email_rdbm_task.delay(
                 subject="ERROR FROM RESEARCH DATABASE COMPUTER",
@@ -2595,8 +2601,9 @@ class ClinicianResponse(models.Model):
             # ... will save
             self.contact_request.notify_rdbm_of_work(letter)
         elif self.response == ClinicianResponse.RESPONSE_A:
-            letter = Letter.create_request_to_patient(
+            Letter.create_request_to_patient(
                 self.contact_request, rdbm_may_view=False)
+            # ... return value not used
             PatientResponse.create(self.contact_request)
             self.contact_request.notify_rdbm_of_good_progress()
         elif self.response in [ClinicianResponse.RESPONSE_B,
@@ -2783,12 +2790,14 @@ class Letter(models.Model):
         self.save()
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.post_delete, sender=Letter)
 def auto_delete_letter_files_on_delete(sender, instance, **kwargs):
     """Deletes files from filesystem when Letter object is deleted."""
     auto_delete_files_on_instance_delete(instance, ['pdf'])
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.pre_save, sender=Letter)
 def auto_delete_letter_files_on_change(sender, instance, **kwargs):
     """Deletes files from filesystem when Letter object is changed."""
@@ -2994,6 +3003,7 @@ class EmailAttachment(models.Model):
         return attachment
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.post_delete, sender=EmailAttachment)
 def auto_delete_emailattachment_files_on_delete(sender, instance, **kwargs):
     """Deletes files from filesystem when EmailAttachment object is deleted."""
@@ -3001,6 +3011,7 @@ def auto_delete_emailattachment_files_on_delete(sender, instance, **kwargs):
         auto_delete_files_on_instance_delete(instance, ['file'])
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.pre_save, sender=EmailAttachment)
 def auto_delete_emailattachment_files_on_change(sender, instance, **kwargs):
     """Deletes files from filesystem when EmailAttachment object is changed."""

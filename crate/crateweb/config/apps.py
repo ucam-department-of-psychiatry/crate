@@ -14,3 +14,7 @@ class ResearchAppConfig(AppConfig):
 
 class UserProfileAppConfig(AppConfig):
     name = 'crate.crateweb.userprofile'
+
+
+class CoreAppConfig(AppConfig):
+    name = 'crate.crateweb.core'

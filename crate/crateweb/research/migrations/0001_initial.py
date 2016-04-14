@@ -16,7 +16,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='PidLookup',
             fields=[
-                ('pid', models.PositiveIntegerField(serialize=False, primary_key=True, db_column='patient_id')),
+                ('pid', models.PositiveIntegerField(serialize=False, primary_key=True, db_column='patient_id')),  # noqa
                 ('mpid', models.PositiveIntegerField(db_column='nhsnum')),
                 ('rid', models.CharField(max_length=255, db_column='brcid')),
                 ('mrid', models.CharField(max_length=255, db_column='nhshash')),
@@ -31,8 +31,8 @@ class Migration(migrations.Migration):
             name='Highlight',
             fields=[
                 ('id', models.AutoField(serialize=False, primary_key=True)),
-                ('colour', models.PositiveSmallIntegerField(verbose_name='Colour number')),
-                ('text', models.CharField(max_length=255, verbose_name='Text to highlight')),
+                ('colour', models.PositiveSmallIntegerField(verbose_name='Colour number')),  # noqa
+                ('text', models.CharField(max_length=255, verbose_name='Text to highlight')),  # noqa
                 ('active', models.BooleanField(default=True)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],
@@ -42,12 +42,12 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(serialize=False, primary_key=True)),
                 ('sql', models.TextField(verbose_name='SQL query')),
-                ('args', picklefield.fields.PickledObjectField(verbose_name='Pickled arguments', null=True, editable=False)),
-                ('raw', models.BooleanField(verbose_name='SQL is raw, not parameter-substituted', default=False)),
-                ('qmark', models.BooleanField(verbose_name='Parameter-substituted SQL uses ?, not %s, as placeholders', default=True)),
+                ('args', picklefield.fields.PickledObjectField(verbose_name='Pickled arguments', null=True, editable=False)),  # noqa
+                ('raw', models.BooleanField(verbose_name='SQL is raw, not parameter-substituted', default=False)),  # noqa
+                ('qmark', models.BooleanField(verbose_name='Parameter-substituted SQL uses ?, not %s, as placeholders', default=True)),  # noqa
                 ('active', models.BooleanField(default=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('deleted', models.BooleanField(verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.", default=False)),
+                ('deleted', models.BooleanField(verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.", default=False)),  # noqa
                 ('audited', models.BooleanField(default=False)),
                 ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
             ],

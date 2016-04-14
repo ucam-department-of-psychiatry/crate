@@ -15,11 +15,8 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # import datetime
 import importlib.machinery
-import os
-
 import logging
-
-import django
+import os
 
 log = logging.getLogger(__name__)
 
@@ -52,9 +49,11 @@ INSTALLED_APPS = (
     'crate.crateweb.config.apps.UserProfileAppConfig',  # for user-specific settings  # noqa
     'crate.crateweb.config.apps.ResearchAppConfig',  # the research database query app  # noqa
     'crate.crateweb.config.apps.ConsentAppConfig',  # the consent-to-contact app  # noqa
+    'crate.crateweb.config.apps.CoreAppConfig',  # for e.g. the runcpserver command  # noqa
 )
 
 MIDDLEWARE_CLASSES = (
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',  # should be added automatically, but there's a problem (2016-04-14)  # noqa
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -184,25 +183,62 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '%(name)s:%(levelname)s:%(asctime)s:%(module)s:%(message)s'  # noqa
+            'format': '%(name)s:%(levelname)s:%(asctime)s.%(msecs)03d:%(module)s:%(message)s',  # noqa
+            'datefmt': '%Y-%m-%d %H:%M:%S',
         },
         'simple': {
-            'format': '%(name)s:%(levelname)s:%(message)s'
+            'format': '%(name)s:%(levelname)s:%(message)s',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'color': {
+            '()': 'colorlog.ColoredFormatter',
+            'format': '%(log_color)s%(asctime)s.%(msecs)03d:%(name)s:%(levelname)s:%(message)s',  # noqa
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+            'log_colors': {
+                'DEBUG': 'bold_black',
+                'INFO': 'white',
+                'WARNING': 'yellow',
+                'ERROR': 'red',
+                'CRITICAL': 'bold_red',
+            },
+        }
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
         },
     },
     'handlers': {
         'console': {
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            # 'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'color',
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'class': 'django.utils.log.AdminEmailHandler',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
-        'django': {
+        '': {  # root logger; necessary if everything propagates
             'handlers': ['console'],
-            # 'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
+
+        'django': {
+            'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
             'propagate': True,
         },
+
+        # My Django apps:
         'research': {
             'handlers': ['console'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
@@ -219,6 +255,30 @@ LOGGING = {
             'propagate': True,
         },
         'extra': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
+
+        # For CherryPy:
+        '__main__': {  # for our CherryPy launch script, if used
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
+        # Not sure the following are working, despite the docs!
+        # http://docs.cherrypy.org/en/latest/basics.html#play-along-with-your-other-loggers  # noqa
+        'cherrypy_console': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
+        'cherrypy_access': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
+        'cherrypy_error': {
             'handlers': ['console'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
             'propagate': True,
@@ -289,6 +349,7 @@ else:
         'local_settings',
         os.environ['CRATE_LOCAL_SETTINGS'])
     _local_module = _loader.load_module()
+    # noinspection PyUnresolvedReferences
     from local_settings import *  # noqa
 
 # =============================================================================
@@ -307,6 +368,3 @@ if CRATE_HTTPS:
     # Instead, YOU SHOULD RESTRICT THE FRONT END. See instructions.txt.
     SESSION_COOKIE_SECURE = True  # cookies only via HTTPS
     CSRF_COOKIE_SECURE = True  # CSRF cookies only via HTTPS
-
-
-django.setup()

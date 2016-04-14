@@ -168,12 +168,12 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
     if len(year) == 4:
         year = "(?:" + year[0:2] + ")?" + year[2:4]
         # ... converts e.g. 1986 to (19)?86, to match 1986 or 86
-    SEP = "[\W]*"  # zero or more non-alphanumeric characters...
+    sep = "[\W]*"  # zero or more non-alphanumeric characters...
     # Regexes
     basic_regexes = [
-        day + SEP + month + SEP + year,  # e.g. 13 Sep 2014
-        month + SEP + day + SEP + year,  # e.g. Sep 13, 2014
-        year + SEP + month + SEP + day,  # e.g. 2014/09/13
+        day + sep + month + sep + year,  # e.g. 13 Sep 2014
+        month + sep + day + sep + year,  # e.g. Sep 13, 2014
+        year + sep + month + sep + day,  # e.g. 2014/09/13
     ]
     if at_word_boundaries_only:
         return [WB + x + WB for x in basic_regexes]

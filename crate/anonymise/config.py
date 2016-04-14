@@ -40,7 +40,7 @@ from html import escape
 import logging
 import os
 import pytz
-import urllib
+import urllib.parse
 
 from cardinal_pythonlib.rnc_config import (
     read_config_multiline_options,
@@ -1018,6 +1018,24 @@ class Config(object):
         self._warned_re_limits = {}
         self.re_nonspecific = None
 
+        self.NOW_LOCAL_TZ = None
+        self.NOW_UTC_WITH_TZ = None
+        self.NOW_UTC_NO_TZ = None
+        self.NOW_LOCAL_TZ_ISO8601 = None
+        self.TODAY = None
+        self._rows_in_transaction = 0
+        self._bytes_in_transaction = 0
+
+        self.remote_addr = None
+        self.remote_port = None
+        self.SCRIPT_NAME = None
+        self.SERVER_NAME = None
+        self.SCRIPT_PUBLIC_URL_ESCAPED = None
+
+        self.src_db_names = []
+
+        self.primary_pid_hasher = None
+
     def set(self, filename=None, environ=None, include_sources=True,
             load_dd=True, load_destfields=True):
         """Set up process-local storage from the incoming environment (which
@@ -1172,10 +1190,13 @@ class Config(object):
             "Non-HMAC hashers are deprecated for security reasons. You have: "
             "{}".format(self.hash_method))
         if self.hash_method == "HMAC_MD5":
+            # noinspection PyPep8Naming
             HashClass = HmacMD5Hasher
         elif self.hash_method == "HMAC_SHA256" or not self.hash_method:
+            # noinspection PyPep8Naming
             HashClass = HmacSHA256Hasher
         elif self.hash_method == "HMAC_SHA512":
+            # noinspection PyPep8Naming
             HashClass = HmacSHA512Hasher
         else:
             raise ValueError("Unknown value for hash_method")

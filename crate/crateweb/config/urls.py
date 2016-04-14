@@ -67,13 +67,13 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Main query views
     # -------------------------------------------------------------------------
-    url(r'^query/$', research_views.query, name='query'),
+    url(r'^query/$', research_views.edit_select_query, name='query'),
     url(r'^activate_query/(?P<query_id>[0-9]+)/$',
         research_views.activate_query, name='activate_query'),
     url(r'^delete_query/(?P<query_id>[0-9]+)/$',
         research_views.delete_query, name='delete_query'),
     url(r'^highlight/$',
-        research_views.highlight, name='highlight'),
+        research_views.edit_select_highlight, name='highlight'),
     url(r'^activate_highlight/(?P<highlight_id>[0-9]+)/$',
         research_views.activate_highlight, name='activate_highlight'),
     url(r'^deactivate_highlight/(?P<highlight_id>[0-9]+)/$',
@@ -151,7 +151,7 @@ urlpatterns = [
     # Restricted views (token-based); clinicians
     # -------------------------------------------------------------------------
     url(r'^clinician_response/(?P<clinician_response_id>-?[0-9]+)/$',
-        consent_views.clinician_response, name='clinician_response'),
+        consent_views.clinician_response_view, name='clinician_response'),
         # note the -? : allows viewing (and URL-reversing within) an e-mail
         # having a dummy ID of -1.
     url(r'^clinician_pack/(?P<clinician_response_id>[0-9]+)/(?P<token>[a-zA-Z0-9]+)/$',  # noqa

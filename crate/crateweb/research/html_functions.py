@@ -89,7 +89,7 @@ def make_result_element(x, elementnum, highlight_dict=None, collapse_at=None,
                         line_length=None):
     if x is None:
         return ""
-    highlight_dict = {} if highlight_dict is None else highlight_dict
+    highlight_dict = highlight_dict or {}
     x = str(x)
     xlen = len(x)  # before we mess around with it
     if line_length:
@@ -103,3 +103,18 @@ def make_result_element(x, elementnum, highlight_dict=None, collapse_at=None,
         # return collapsible_div(elementnum, x)
         return overflow_div(elementnum, x)
     return x
+
+
+def pre(x=''):
+    return "<pre>{}</pre>".format(x)
+
+
+def make_collapsible_query(x, elementnum, collapse_at_n_lines=5):
+    if x is None:
+        return pre()
+    x = str(x)
+    n_lines = len(x.split('\n'))
+    x = linebreaksbr(escape(x))
+    if collapse_at_n_lines and n_lines >= collapse_at_n_lines:
+        return overflow_div(elementnum, pre(x))
+    return pre(x)

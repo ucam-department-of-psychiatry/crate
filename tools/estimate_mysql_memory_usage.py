@@ -34,7 +34,7 @@ def print_sep():
 def print_val_mb(varname, valstr):
     try:
         mb = "{:15.3f}".format(int(valstr) / (1024 * 1024))
-    except:
+    except (TypeError, ValueError):
         mb = " " * 14 + "?"
     print("| {varname:40s} | {mb} MB |".format(
         varname=varname,
@@ -45,7 +45,7 @@ def print_val_mb(varname, valstr):
 def print_val_int(varname, valstr):
     try:
         x = "{:18d}".format(int(valstr))
-    except:
+    except (TypeError, ValueError):
         x = " " * 14 + "?"
     print("| {varname:40s} | {x} |".format(
         varname=varname,
@@ -54,10 +54,7 @@ def print_val_int(varname, valstr):
 
 
 def print_var_mb(vardict, varname):
-    try:
-        valstr = vardict[varname]
-    except:
-        valstr = None
+    valstr = vardict.get(varname, None)
     print_val_mb(varname, valstr)
 
 

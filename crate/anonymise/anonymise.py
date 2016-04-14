@@ -54,6 +54,8 @@ from crate.anonymise.constants import (
     ALTERMETHOD,
     BIGINT_UNSIGNED,
     INDEX,
+    LOG_DATEFMT,
+    LOG_FORMAT,
     RAW_SCRUBBER_FIELDNAME_PATIENT,
     RAW_SCRUBBER_FIELDNAME_TP,
     SEP,
@@ -66,6 +68,7 @@ from crate.anonymise.patient import Patient
 from crate.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
+
 
 # =============================================================================
 # Predefined fieldspecs
@@ -331,12 +334,12 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     dest_table = config.dd.get_dest_table_for_src_db_table(srcdbname,
                                                            src_table)
     pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
-    TEMPTABLE = config.temporary_tablename
-    PKFIELD = "srcpk"
-    START = "delete_dest_rows_with_no_src_row: {}.{} -> {}.{}: ".format(
+    temptable = config.temporary_tablename
+    pkfield = "srcpk"
+    start = "delete_dest_rows_with_no_src_row: {}.{} -> {}.{}: ".format(
         srcdbname, src_table, config.destination_database, dest_table
     )
-    log.info(START + "[WARNING: MAY BE SLOW]")
+    log.info(start + "[WARNING: MAY BE SLOW]")
 
     # 0. If there's no source PK, we just delete everythong
     if not pkddr:
@@ -351,7 +354,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
 
     # 1. Drop temporary table
     log.debug("... dropping temporary table")
-    config.destdb.drop_table(TEMPTABLE)
+    config.destdb.drop_table(temptable)
 
     # 2. Make temporary table
     log.debug("... making temporary table")
@@ -359,13 +362,13 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         CREATE TABLE IF NOT EXISTS {table} (
             {pkfield} {sqltype} PRIMARY KEY
         )
-    """.format(table=TEMPTABLE, pkfield=PKFIELD, sqltype=pkddr.dest_datatype)
+    """.format(table=temptable, pkfield=pkfield, sqltype=pkddr.dest_datatype)
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table, +/- PK translation
-    def insert(records):
-        log.debug(START + "... inserting {} records".format(len(records)))
-        config.destdb.insert_multiple_records(TEMPTABLE, [PKFIELD], records)
+    def insert(records_):
+        log.debug(start + "... inserting {} records".format(len(records_)))
+        config.destdb.insert_multiple_records(temptable, [pkfield], records_)
 
     n = srcdb.count_where(src_table)
     log.debug("... populating temporary table")
@@ -374,7 +377,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     for pk in gen_pks(srcdb, src_table, pkddr.src_field):
         i += 1
         if report_every and i % report_every == 0:
-            log.debug(START + "... src row# {} / {}".format(i, n))
+            log.debug(start + "... src row# {} / {}".format(i, n))
         if SRCFLAG.PRIMARYPID in pkddr.src_flags:
             pk = config.encrypt_primary_pid(pk)
         elif SRCFLAG.MASTERPID in pkddr.src_flags:
@@ -385,12 +388,12 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
             records = []
     if records:
         insert(records)
-        records = []
+        # records = []
     commit(config.destdb)
 
     # 4. Index
     log.debug("... creating index on temporary table")
-    config.destdb.create_index(TEMPTABLE, PKFIELD)
+    config.destdb.create_index(temptable, pkfield)
 
     # 5. DELETE FROM ... WHERE NOT IN ...
     log.debug("... deleting from destination where appropriate")
@@ -402,14 +405,14 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     """.format(
         dest_table=pkddr.dest_table,
         dest_pk=pkddr.dest_field,
-        pkfield=PKFIELD,
-        temptable=TEMPTABLE,
+        pkfield=pkfield,
+        temptable=temptable,
     )
     config.destdb.db_exec(delete_sql)
 
     # 6. Drop temporary table
     log.debug("... dropping temporary table")
-    config.destdb.drop_table(TEMPTABLE)
+    config.destdb.drop_table(temptable)
 
     # 7. Commit
     commit(config.destdb)
@@ -693,9 +696,9 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     patient's scrubber is applied and only rows for that patient are process)
     or not (in which case the table is just copied).
     """
-    START = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
+    start = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
     pid = None if patient is None else patient.get_pid()
-    log.debug(START + "pid={}, incremental={}".format(pid, incremental))
+    log.debug(start + "pid={}, incremental={}".format(pid, incremental))
 
     # Limit the data quantity for debugging?
     srccfg = config.srccfg[sourcedbname]
@@ -737,7 +740,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                         pkname=pkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
-            log.info(START + "processing row {} of task set".format(n))
+            log.info(start + "processing row {} of task set".format(n))
         if addhash:
             srchash = config.hash_list(row)
             if incremental and identical_record_exists_by_hash(
@@ -787,7 +790,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                 try:
                     value = coerce_to_date(value)
                     value = truncate_date_to_first_of_month(value)
-                except:
+                except (ValueError, OverflowError):
                     log.warning(
                         "Invalid date received to {ALTERMETHOD.TRUNCATEDATE} "
                         "method: {v}".format(ALTERMETHOD=ALTERMETHOD, v=value))
@@ -821,10 +824,10 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if config._bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True
         if early_commit:
-            log.info(START + "Triggering early commit based on row/byte count")
+            log.info(start + "Triggering early commit based on row/byte count")
             commit(destdb)
 
-    log.debug(START + "finished: pid={}".format(pid))
+    log.debug(start + "finished: pid={}".format(pid))
     commit(destdb)
 
 
@@ -1034,15 +1037,15 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     (Slightly complicated by the fact that the destination database can't
     necessarily 'see' the mapping database.)
     """
-    START = "wipe_opt_out_patients"
-    log.info(START)
-    TEMPTABLE = config.temporary_tablename
-    PIDFIELD = config.mapping_patient_id_fieldname
-    RIDFIELD = config.research_id_fieldname
+    start = "wipe_opt_out_patients"
+    log.info(start)
+    temptable = config.temporary_tablename
+    pidfield = config.mapping_patient_id_fieldname
+    ridfield = config.research_id_fieldname
 
     # 1. Drop temporary table
     log.debug("... dropping temporary table")
-    config.destdb.drop_table(TEMPTABLE)
+    config.destdb.drop_table(temptable)
 
     # 2. Make temporary table
     log.debug("... making temporary table")
@@ -1050,14 +1053,14 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
         CREATE TABLE IF NOT EXISTS {table} (
             {rid} {sqltype} PRIMARY KEY
         )
-    """.format(table=TEMPTABLE, rid=RIDFIELD,
+    """.format(table=temptable, rid=ridfield,
                sqltype=config.SQLTYPE_ENCRYPTED_PID)
     config.destdb.db_exec(create_sql)
 
     # 3. Populate temporary table with RIDs
-    def insert(records):
-        log.debug(START + "... inserting {} records".format(len(records)))
-        config.destdb.insert_multiple_records(TEMPTABLE, [RIDFIELD], records)
+    def insert(records_):
+        log.debug(start + "... inserting {} records".format(len(records_)))
+        config.destdb.insert_multiple_records(temptable, [ridfield], records_)
 
     log.debug("... populating temporary table")
     i = 0
@@ -1068,27 +1071,27 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
         INNER JOIN {optouttable}
         ON {mappingtable}.{pid} = {optouttable}.{pid}
     """.format(
-        rid=RIDFIELD,
+        rid=ridfield,
         mappingtable=config.secret_map_tablename,
         optouttable=config.opt_out_tablename,
-        pid=PIDFIELD,
+        pid=pidfield,
     )
     for rid in config.admindb.gen_fetchfirst(gensql):
         i += 1
         if report_every and i % report_every == 0:
-            log.debug(START + "... src row# {}".format(i))
+            log.debug(start + "... src row# {}".format(i))
         records.append([rid])
         if i % chunksize == 0:
             insert(records)
             records = []
     if records:
         insert(records)
-        records = []
+        # records = []
     commit(config.destdb)
 
     # 4. For each patient destination table, DELETE FROM ... WHERE IN ...
     for dest_table in config.dd.get_dest_tables_with_patient_info():
-        log.debug(START + "... deleting from {} where appropriate".format(
+        log.debug(start + "... deleting from {} where appropriate".format(
             dest_table))
         delete_sql = """
             DELETE FROM {dest_table}
@@ -1097,14 +1100,14 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
             )
         """.format(
             dest_table=dest_table,
-            rid=RIDFIELD,
-            temptable=TEMPTABLE,
+            rid=ridfield,
+            temptable=temptable,
         )
         config.destdb.db_exec(delete_sql)
 
     # 5. Drop temporary table
     log.debug("... dropping temporary table")
-    config.destdb.drop_table(TEMPTABLE)
+    config.destdb.drop_table(temptable)
 
     # 6. Commit
     commit(config.destdb)
@@ -1119,7 +1122,7 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     """.format(
         mappingtable=config.secret_map_tablename,
         optouttable=config.opt_out_tablename,
-        pid=PIDFIELD,
+        pid=pidfield,
     ))
     config.admindb.commit()
 
@@ -1177,6 +1180,7 @@ def process_patient_tables(nthreads=1, process=0, nprocesses=1,
     """
     # We'll use multiple destination tables, so commit right at the end.
 
+    # noinspection PyUnusedLocal
     def ctrl_c_handler(signum, frame):
         log.exception("CTRL-C")
         abort_threads()
@@ -1424,8 +1428,6 @@ Sample usage (having set PYTHONPATH):
         mynames.append(args.processcluster)
     if args.nprocesses > 1:
         mynames.append("process {}".format(args.process))
-    LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
-    LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
     mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
     logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
                         level=mainloglevel)

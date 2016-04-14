@@ -92,21 +92,24 @@ setup(
         # For the web front end:
         # ---------------------------------------------------------------------
 
+        # Web app:
         'celery==3.1.19',
-        'Django==1.9.3',
+        'colorlog==2.6.1',
+        'Django==1.9.3',  # "django" versus "Django": neither helps pycharm checking  # noqa
         'django-extensions==1.5.9',
         'django-picklefield==0.3.2',
-        'django-pyodbc-azure==1.9.3.0',
         'django-sslserver==0.15',
         'django-debug-toolbar==1.4',
-        'gunicorn==19.3.0',
-        'mysqlclient==1.3.6',
         'pdfkit==0.5.0',
         'pygraphviz==1.3.1',
         'PyPDF2==1.25.1',
         'pytz==2015.6',
         'python-dateutil==2.4.2',
         'Werkzeug==0.10.4',
+
+        # Serving:
+        'gunicorn==19.3.0',  # UNIX only
+        'cherrypy==5.1.0',  # Cross-platform
 
         # ---------------------------------------------------------------------
         # For the anonymiser/pythonlib:
@@ -119,6 +122,25 @@ setup(
         'python-docx==0.8.5',
         'regex==2015.11.14',
         'sortedcontainers==1.4.2',
+
+        # ---------------------------------------------------------------------
+        # For database connections (see manual):
+        # ---------------------------------------------------------------------
+        # MySQL:
+        'PyMySQL==0.7.2',
+        # 'mysqlclient==1.3.6',  # GPL
+
+        # SQL Server / ODBC route:
+        'django-pyodbc-azure==1.9.3.0',
+        'pyodbc==3.0.10',
+
+        # SQL Server / Embedded FreeTDS route:
+        'django-pymssql==1.7.1',
+        'django-mssql==1.7',
+        'pymssql==2.1.2',
+
+        # PostgreSQL:
+        'psycopg2==2.6.1',
     ],
 
     entry_points={
@@ -130,7 +152,10 @@ setup(
             'crate_nlp_multiprocess=crate.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_make_demo_database=crate.anonymise.make_demo_database:main',
             'crate_test_anonymisation=crate.anonymise.test_anonymisation:main',
+
+            'crate_django_manage=crate.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_launch_django=crate.crateweb.manage:runserver',
+            'crate_launch_cherrypy=crate.crateweb.manage:runcpserver',
         ],
     },
 )

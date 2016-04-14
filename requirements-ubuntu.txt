@@ -1,4 +1,5 @@
 freetds-bin
+freetds-dev
 graphviz
 libgraphviz-dev
 libxml2-dev

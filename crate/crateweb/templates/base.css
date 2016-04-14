@@ -59,10 +59,12 @@ ul {
     color: rgb(0, 0, 150);
 }
 .collapse_detail {
+    margin: 0em;
 }
 .collapse_summary {
-    height: 4em;
+    height: 5em;
     overflow: hidden;
+    margin: 0em;
 }
 
 .consent {
@@ -99,7 +101,13 @@ ul {
 .errorlist {  /* Django forms */
     color: rgb(255, 0, 0);
 }
+.expandcollapsewrapper {
+    display: table;
+    margin: 0em;
+}
 .expandcollapse {
+    display: table-cell;
+    margin: 0em;
 }
 .formtable, .formtable th, .formtable tr, .formtable td {
     border: none;

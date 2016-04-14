@@ -109,6 +109,7 @@ class UserProfile(models.Model):
         return " ".join([self.user.first_name, self.user.last_name])
 
 
+# noinspection PyUnusedLocal
 @receiver(models.signals.post_save, sender=settings.AUTH_USER_MODEL)
 def user_saved_so_create_profile(sender, instance, created, **kwargs):
     UserProfile.objects.get_or_create(user=instance)
