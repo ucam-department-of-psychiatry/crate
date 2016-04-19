@@ -27,7 +27,6 @@ or for a production environment:
 
 PYTHON = sys.executable  # Windows needs this before Python executables
 PYTHONBASE = os.path.basename(PYTHON)
-PIP = shutil.which('pip3')
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, os.pardir))
@@ -96,12 +95,13 @@ if __name__ == '__main__':
         description=DESCRIPTION,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("virtualenv", help="New virtual environment directory")
+    parser.add_argument("package", help="New package directory/tgz")
     parser.add_argument("--virtualenv_minimum_version", default="13.1.2",
                         help="Minimum version of virtualenv tool")
-    parser.add_argument("--skippackagechecks", action="store_true",
-                        help="Skip verification of system packages (use this "
-                             "when calling script from a yum install, for "
-                             "example).")
+    # parser.add_argument("--skippackagechecks", action="store_true",
+    #                     help="Skip verification of system packages (use this "
+    #                          "when calling script from a yum install, for "
+    #                          "example).")
     args = parser.parse_args()
 
     VENV_TOOL = 'virtualenv'
@@ -111,24 +111,24 @@ if __name__ == '__main__':
 
     print("XDG_CACHE_HOME: {}".format(os.environ.get('XDG_CACHE_HOME',
                                                      None)))
-    if not args.skippackagechecks:
-        if DEB:
-            title("Prerequisites, from " + DEB_REQ_FILE)
-            packages = get_lines_without_comments(DEB_REQ_FILE)
-            for package in packages:
-                require_deb(package)
-        # elif RPM:
-        #     title("Prerequisites, from " + RPM_REQ_FILE)
-        #     packages = get_lines_without_comments(RPM_REQ_FILE)
-        #     for package in packages:
-        #         require_rpm(package)
-        else:
-            raise AssertionError("Not DEB; don't know what to do")
-        print('OK')
+    # if not args.skippackagechecks:
+    #     if DEB:
+    #         title("Prerequisites, from " + DEB_REQ_FILE)
+    #         packages = get_lines_without_comments(DEB_REQ_FILE)
+    #         for package in packages:
+    #             require_deb(package)
+    #     # elif RPM:
+    #     #     title("Prerequisites, from " + RPM_REQ_FILE)
+    #     #     packages = get_lines_without_comments(RPM_REQ_FILE)
+    #     #     for package in packages:
+    #     #         require_rpm(package)
+    #     else:
+    #         raise AssertionError("Not DEB; don't know what to do")
+    #     print('OK')
 
     title("Ensuring virtualenv is installed for system"
           " Python ({})".format(PYTHON))
-    check_call([PIP, 'install',
+    check_call([PYTHON, '-m', 'pip', 'install',
                 'virtualenv>={}'.format(args.virtualenv_minimum_version)])
     print('OK')
 
@@ -137,14 +137,17 @@ if __name__ == '__main__':
     check_call([PYTHON, '-m', VENV_TOOL, args.virtualenv])
     print('OK')
 
+    title("Upgrading virtualenv pip, if required")
+    check_call([VENV_PIP, 'install', '--upgrade', 'pip'])
+
     title("Checking version of tools within new virtualenv")
     print(VENV_PYTHON)
     check_call([VENV_PYTHON, '--version'])
     print(VENV_PIP)
     check_call([VENV_PIP, '--version'])
 
-    title("Use pip within the new virtualenv to install dependencies")
-    check_call([VENV_PIP, 'install', '-r', PIP_REQ_FILE])
+    title("Use pip within the new virtualenv to install package")
+    check_call([VENV_PIP, 'install', args.package])
     print('OK')
     print('--- Virtual environment installed successfully')
 

@@ -19,25 +19,57 @@ To install in development mode:
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/
 # http://jtushman.github.io/blog/2013/06/17/sharing-code-across-applications-with-python/  # noqa
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from codecs import open
-from os import path
+import fnmatch
+import os
+import platform
 
-from crate.version import VERSION
+from crate_anon.version import VERSION
 
-here = path.abspath(path.dirname(__file__))
+here = os.path.abspath(os.path.dirname(__file__))
+
+# setup.py is executed on the destination system at install time, so:
+windows = platform.system() == 'Windows'
 
 # -----------------------------------------------------------------------------
 # Get the long description from the README file
 # -----------------------------------------------------------------------------
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+
+# -----------------------------------------------------------------------------
+# Get all filenames
+# -----------------------------------------------------------------------------
+# rootdir = os.path.join(here, 'crate')
+# data_files = []
+# for dir_, subdirs, filenames in os.walk(rootdir):
+#     files = []
+#     reldir = os.path.relpath(dir_, rootdir)
+#     for pattern in ['*.py', '*.html']:
+#         for filename in fnmatch.filter(filenames, pattern):
+#             files.append(filename)
+#     if files:
+#         data_files.append((reldir, files))
+# print(data_files)
+# http://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python  # noqa
+# http://stackoverflow.com/questions/27664504/how-to-add-package-data-recursively-in-python-setup-py  # noqa
+
+# rootdir = os.path.join(here, 'crate', 'crateweb', 'static_collected')
+# static_collected = []
+# for dir_, subdirs, filenames in os.walk(rootdir):
+#     reldir = os.path.normpath(os.path.join(
+#         'static_collected', os.path.relpath(dir_, rootdir)))
+#     for filename in filenames:
+#         if filename in ['.gitignore']:
+#             continue
+#         static_collected.append(os.path.join(reldir, filename))
 
 # -----------------------------------------------------------------------------
 # setup args
 # -----------------------------------------------------------------------------
 setup(
-    name='crate',
+    name='crate-anon',  # 'crate' is taken
 
     version=VERSION,
 
@@ -84,13 +116,48 @@ setup(
 
     keywords='anonymisation',
 
-    packages=['crate'],
+    packages=find_packages(),
+    package_data={
+        '': [
+            'README.md'
+        ],
+        'crate_anon.crateweb': [
+            # Don't use 'static/*', or at the point of installation it gets
+            # upset about "demo_logo" ("can't copy... doesn't exist or not
+            # a regular file). Keep running "python setup.py sdist >/dev/null"
+            # until stderr comes up clean.
+            'consent/templates/*.html',
+            'consent/templates/*.js',
+            'research/templates/*.html',
+            'static/*.gif',
+            'static/*.ico',
+            'static/*.png',
+            'static/demo_logo/*',
+            'templates/*.css',
+            'templates/*.html',
+            'templates/*.js',
+            'templates/admin/*.html',
+            'userprofile/templates/*.html',
+        ],
+        'crate_anon.nlp_manager': [
+            '*.java',
+            '*.sh',
+        ],
+        'crate_anon.mysql_auditor': [
+            '*.conf',
+            '*.lua',
+            '*.sh',
+        ],
+    },
 
     install_requires=[
 
         # ---------------------------------------------------------------------
         # For the web front end:
         # ---------------------------------------------------------------------
+        # Core tools with accessories:
+        'psutil==4.1.0',  # process management
+        'semver==2.4.1',  # comparing semantic versions
 
         # Web app:
         'celery==3.1.19',
@@ -131,8 +198,9 @@ setup(
         # 'mysqlclient==1.3.6',  # GPL
 
         # SQL Server / ODBC route:
-        'django-pyodbc-azure==1.9.3.0',
-        'pyodbc==3.0.10',
+        # *** COME BACK TO THIS *** 'django-pyodbc-azure==1.9.3.0',
+        # 'pyodbc==3.0.10',  # has C prerequisites
+        'pypyodbc==1.3.3',
 
         # SQL Server / Embedded FreeTDS route:
         'django-pymssql==1.7.1',
@@ -141,7 +209,9 @@ setup(
 
         # PostgreSQL:
         'psycopg2==2.6.1',
-    ],
+    ] + ([
+        'pywin32'
+    ] if windows else []),
 
     entry_points={
         'console_scripts': [
@@ -152,6 +222,7 @@ setup(
             'crate_nlp_multiprocess=crate.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_make_demo_database=crate.anonymise.make_demo_database:main',
             'crate_test_anonymisation=crate.anonymise.test_anonymisation:main',
+            'crate_mysql_auditor=crate.mysql_auditor.mysql_auditor:main',
 
             'crate_django_manage=crate.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_launch_django=crate.crateweb.manage:runserver',

@@ -3,7 +3,7 @@
 # Script to set up PYTHONPATH and Java CLASSPATH
 #
 # Author: Rudolf Cardinal
-# Copyright (C) 2015-2015 Rudolf Cardinal.
+# Copyright (C) 2015-2016 Rudolf Cardinal.
 # License: http://www.apache.org/licenses/LICENSE-2.0
 
 warn() {

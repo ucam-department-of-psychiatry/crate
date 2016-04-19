@@ -12,7 +12,8 @@ __pycache__/
 
 # http://stackoverflow.com/questions/3719243/recommended-gitignore-file-for-python-projects
 
-crate.egg-info/
+crate_anon.egg-info/
+dist/
 
 # =============================================================================
 # Specific
