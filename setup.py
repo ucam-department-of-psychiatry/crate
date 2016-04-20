@@ -168,7 +168,7 @@ setup(
         'django-sslserver==0.15',
         'django-debug-toolbar==1.4',
         'pdfkit==0.5.0',
-        'pygraphviz==1.3.1',
+        # 'pygraphviz==1.3.1',  # not used
         'PyPDF2==1.25.1',
         'pytz==2015.6',
         'python-dateutil==2.4.2',
