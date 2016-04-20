@@ -7,7 +7,7 @@ from celery import Celery
 
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE',
-                      'crate.crateweb.config.settings')
+                      'crate_anon.crateweb.config.settings')
 # RNC: note that the module path must be accessible from the PYTHONPATH,
 
 # from django.conf import settings
@@ -23,7 +23,7 @@ app.config_from_object('django.conf:settings')
 # ... REQUIRES that all apps have an __init__.py
 #     https://github.com/celery/celery/issues/2523
 
-app.autodiscover_tasks(['crate.crateweb.consent'])  # simpler!
+app.autodiscover_tasks(['crate_anon.crateweb.consent'])  # simpler!
 
 
 @app.task(bind=True)

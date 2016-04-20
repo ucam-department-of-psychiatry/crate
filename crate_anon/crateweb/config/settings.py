@@ -46,10 +46,10 @@ INSTALLED_APPS = (
     'sslserver',  # for SSL testing
     # 'kombu.transport.django',  # for Celery with Django database as broker
 
-    'crate.crateweb.config.apps.UserProfileAppConfig',  # for user-specific settings  # noqa
-    'crate.crateweb.config.apps.ResearchAppConfig',  # the research database query app  # noqa
-    'crate.crateweb.config.apps.ConsentAppConfig',  # the consent-to-contact app  # noqa
-    'crate.crateweb.config.apps.CoreAppConfig',  # for e.g. the runcpserver command  # noqa
+    'crate_anon.crateweb.config.apps.UserProfileAppConfig',  # for user-specific settings  # noqa
+    'crate_anon.crateweb.config.apps.ResearchAppConfig',  # the research database query app  # noqa
+    'crate_anon.crateweb.config.apps.ConsentAppConfig',  # the consent-to-contact app  # noqa
+    'crate_anon.crateweb.config.apps.CoreAppConfig',  # for e.g. the runcpserver command  # noqa
 )
 
 MIDDLEWARE_CLASSES = (
@@ -63,10 +63,10 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     # Additional:
-    'crate.crateweb.extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
-    'crate.crateweb.extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
-    'crate.crateweb.extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
-    'crate.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
+    'crate_anon.crateweb.extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
+    'crate_anon.crateweb.extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
+    'crate_anon.crateweb.extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
+    'crate_anon.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
 )
 
 # Celery things
@@ -80,7 +80,7 @@ LOGIN_URL = '/login/'  # for LoginRequiredMiddleware
 LOGIN_VIEW_NAME = 'login'  # for LoginRequiredMiddleware
 LOGIN_EXEMPT_URLS = []  # for LoginRequiredMiddleware
 
-ROOT_URLCONF = 'crate.crateweb.config.urls'
+ROOT_URLCONF = 'crate_anon.crateweb.config.urls'
 
 TEMPLATES = [
     {
@@ -93,7 +93,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'crate.crateweb.research.context_processors.common_context',
+                'crate_anon.crateweb.research.context_processors.common_context',
             ],
             # 'loaders': (
             #     'django.template.loaders.filesystem.Loader',
@@ -104,7 +104,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'crate.crateweb.config.wsgi.application'
+WSGI_APPLICATION = 'crate_anon.crateweb.config.wsgi.application'
 
 
 # Internationalization
@@ -164,7 +164,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 # Some managed database access goes to the secret mapping database.
 # =============================================================================
 
-DATABASE_ROUTERS = ['crate.crateweb.research.models.PidLookupRouter']
+DATABASE_ROUTERS = ['crate_anon.crateweb.research.models.PidLookupRouter']
 
 # =============================================================================
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/

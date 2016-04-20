@@ -210,23 +210,23 @@ setup(
         # PostgreSQL:
         'psycopg2==2.6.1',
     ] + ([
-        'pywin32'
+        'pypiwin32'
     ] if windows else []),
 
     entry_points={
         'console_scripts': [
             # Format is 'script=module:function".
-            'crate_anonymise=crate.anonymise.anonymise:main',
-            'crate_anonymise_multiprocess=crate.anonymise.launch_multiprocess_anonymiser:main',  # noqa
-            'crate_nlp=crate.nlp_manager.nlp_manager:main',
-            'crate_nlp_multiprocess=crate.nlp_manager.launch_multiprocess_nlp:main',  # noqa
-            'crate_make_demo_database=crate.anonymise.make_demo_database:main',
-            'crate_test_anonymisation=crate.anonymise.test_anonymisation:main',
-            'crate_mysql_auditor=crate.mysql_auditor.mysql_auditor:main',
+            'crate_anonymise=crate_anon.anonymise.anonymise:main',
+            'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
+            'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
+            'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
+            'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
+            'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
+            'crate_mysql_auditor=crate_anon.mysql_auditor.mysql_auditor:main',
 
-            'crate_django_manage=crate.crateweb.manage:main',  # will cope with argv  # noqa
-            'crate_launch_django=crate.crateweb.manage:runserver',
-            'crate_launch_cherrypy=crate.crateweb.manage:runcpserver',
+            'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
+            'crate_launch_django=crate_anon.crateweb.manage:runserver',
+            'crate_launch_cherrypy=crate_anon.crateweb.manage:runcpserver',
         ],
     },
 )

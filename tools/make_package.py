@@ -206,7 +206,7 @@ for cmd in PREREQUISITES:
 # Source
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCE_ROOT = os.path.abspath(join(THIS_DIR, os.pardir))
-EGG_DIR = join(SOURCE_ROOT, "crate.egg-info")
+EGG_DIR = join(SOURCE_ROOT, "crate_anon.egg-info")
 PACKAGE_DIR = join(SOURCE_ROOT, "built_packages")
 
 # Destination, as seen on the final system

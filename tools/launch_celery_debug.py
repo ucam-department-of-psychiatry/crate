@@ -5,7 +5,7 @@ import subprocess
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DJANGO_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir,
-                                           "crate", "crateweb"))
+                                           "crate_anon", "crateweb"))
 
 
 # http://stackoverflow.com/questions/21666229/celery-auto-reload-on-any-changes
@@ -35,12 +35,12 @@ def get_python_modules(rootdir, prefix=''):
 
 
 def main():
-    modules = get_python_modules(DJANGO_ROOT, prefix="crate.crateweb.")
+    modules = get_python_modules(DJANGO_ROOT, prefix="crate_anon.crateweb.")
     # print("Changing to directory: {}".format(DJANGO_ROOT))
     # os.chdir(DJANGO_ROOT)
     cmdargs = [
         "celery", "worker",
-        "--app=crate.crateweb.consent",
+        "--app=crate_anon.crateweb.consent",
         "--loglevel=debug",
         # "--autoreload",
         "--include={}".format(','.join(modules)),

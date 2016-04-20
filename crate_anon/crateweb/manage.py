@@ -17,7 +17,7 @@ from django.core.management import execute_from_command_line
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE",
-                      "crate.crateweb.config.settings")
+                      "crate_anon.crateweb.config.settings")
 
 # from crate_anon.crateweb.config.settings import MIDDLEWARE_CLASSES
 # print("1. MIDDLEWARE_CLASSES: {}".format(id(MIDDLEWARE_CLASSES)))

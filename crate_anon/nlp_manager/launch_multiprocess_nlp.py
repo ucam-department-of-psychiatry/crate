@@ -40,7 +40,7 @@ from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
 
-NLP_MANAGER = 'crate.nlp_manager.nlp_manager'
+NLP_MANAGER = 'crate_anon.nlp_manager.nlp_manager'
 
 CPUCOUNT = multiprocessing.cpu_count()
 
