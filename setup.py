@@ -186,7 +186,7 @@ setup(
 
         'beautifulsoup4==4.4.1',
         'prettytable==0.7.2',
-        'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
+        # 'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
         # ... https://python-docx.readthedocs.org/en/latest/user/install.html
         'regex==2015.11.14',
         'sortedcontainers==1.4.2',
