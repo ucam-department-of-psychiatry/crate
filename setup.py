@@ -225,6 +225,9 @@ setup(
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
             'crate_mysql_auditor=crate_anon.mysql_auditor.mysql_auditor:main',
 
+            'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_secret_django_key:main'  # noqa
+            'crate_estimate_mysql_memory_usage=crate_anon.tools.crate_estimate_mysql_memory_usage:main'  # noqa
+
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_launch_django=crate_anon.crateweb.manage:runserver',
             'crate_launch_cherrypy=crate_anon.crateweb.manage:runcpserver',
