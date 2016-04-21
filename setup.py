@@ -175,18 +175,19 @@ setup(
         'Werkzeug==0.10.4',
 
         # Serving:
-        'gunicorn==19.3.0',  # UNIX only
+        'gunicorn==19.3.0',  # UNIX only, though will install under Windows
         'cherrypy==5.1.0',  # Cross-platform
 
         # ---------------------------------------------------------------------
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==0.1.0',
+        'cardinal_pythonlib==0.1.3',
 
         'beautifulsoup4==4.4.1',
         'prettytable==0.7.2',
-        'python-docx==0.8.5',
+        'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
+        # ... https://python-docx.readthedocs.org/en/latest/user/install.html
         'regex==2015.11.14',
         'sortedcontainers==1.4.2',
 
