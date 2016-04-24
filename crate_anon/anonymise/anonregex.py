@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anon/anonymise/regex.py
+# crate_anon/anonymise/anonregex.py
 
 """
 Core anonymisation functions for CRATE.

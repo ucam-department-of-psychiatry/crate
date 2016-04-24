@@ -209,7 +209,7 @@ setup(
         'pymssql==2.1.2',
 
         # PostgreSQL:
-        'psycopg2==2.6.1',
+        # *** COME BACK TO THIS *** 'psycopg2==2.6.1',  # has prerequisites (e.g. pg_config executable)  # noqa
     ] + ([
         'pypiwin32'
     ] if windows else []),

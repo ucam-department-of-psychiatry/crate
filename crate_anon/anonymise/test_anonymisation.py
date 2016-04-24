@@ -60,38 +60,37 @@ import os
 from cardinal_pythonlib.rnc_lang import AttrDict
 from cardinal_pythonlib.rnc_ui import mkdir_p
 
-from crate_anon.anonymise.anonymise import (
-    config,
-    extract_text,
-    Scrubber,
-    SRCFLAG,
-)
+from crate_anon.anonymise.anonymise import config, extract_text
+from crate_anon.anonymise.patient import Patient
 
 log = logging.getLogger(__name__)
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-ENCODING = 'utf-8'
 
 
 # =============================================================================
 # Specific tests
 # =============================================================================
 
+# noinspection PyProtectedMember,PyProtectedMember
 def get_fieldinfo(args):
     """
     Fetches useful subsets from the data dictionary.
     """
     ddrows = config.dd.get_rows_for_dest_table(args.dsttable)
-    textrow = next(
-        x for x in ddrows
-        if x.dest_table == args.dsttable and x.dest_field == args.dstfield)
-    pkrow = next(x for x in ddrows
-                 if SRCFLAG.PK in x.src_flags)
-    pidrow = next(x for x in ddrows
-                  if SRCFLAG.PRIMARYPID in x.src_flags)
+    if not ddrows:
+        raise ValueError("No data dictionary rows for destination table "
+                         "{}".format(args.dsttable))
+    try:
+        textrow = next(x for x in ddrows if x.dest_field == args.dstfield)
+    except StopIteration:
+        raise ValueError("No destination field: {}".format(args.dstfield))
+    try:
+        pkrow = next(x for x in ddrows if x._pk)
+    except StopIteration:
+        raise ValueError("No PK field found")
+    try:
+        pidrow = next(x for x in ddrows if x._primary_pid)
+    except StopIteration:
+        raise ValueError("No PID field found")
     info = AttrDict({
         "pk_ddrow": pkrow,
         "pid_ddrow": pidrow,
@@ -187,8 +186,8 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     # patientnum is raw; patientnum2 is hashed
 
     # Get scrubbing info
-    scrubber = Scrubber(config.sources, patientnum)
-    # *** needs fixing!
+    patient = Patient(config.sources, patientnum, config.admindb, config)
+    scrubber = patient.scrubber
     scrubdict[patientnum] = scrubber.get_raw_info()
 
     # Write text
@@ -198,10 +197,10 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
                                 "{}_{}.txt".format(patientnum, docid))
     with open(rawfilename, 'w') as f:
         if rawtext:
-            f.write(rawtext.encode(ENCODING))
+            f.write(rawtext)
     with open(anonfilename, 'w') as f:
         if anontext:
-            f.write(anontext.encode(ENCODING))
+            f.write(anontext)
 
     wordcount = len(rawtext.split()) if rawtext else 0
 
@@ -239,8 +238,8 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     summary["comments"] = ""
 
     if first:
-        csvwriter.writerow(summary.keys())
-    csvwriter.writerow(summary.values())
+        csvwriter.writerow(list(summary.keys()))
+    csvwriter.writerow(list(summary.values()))
 
     return patientnum
 
@@ -298,7 +297,7 @@ def test_anon(args):
     mkdir_p(args.anondir)
     scrubdict = {}
     pidset = set()
-    with open(args.resultsfile, 'wb') as csvfile:
+    with open(args.resultsfile, 'w') as csvfile:
         csvwriter = csv.writer(csvfile, delimiter='\t')
         first = True
         for docid in docids:
@@ -349,6 +348,8 @@ def main():
                         help='Results output CSV file name')
     parser.add_argument('--scrubfile', default='testanon_scrubber.txt',
                         help='Scrubbing information text file name')
+    parser.add_argument('--verbose', '-v', action='count', default=0,
+                        help="Be verbose (use twice for extra verbosity)")
 
     pkgroup = parser.add_mutually_exclusive_group(required=False)
     pkgroup.add_argument('--pkfromsrc', dest='from_src', action='store_true',
@@ -367,11 +368,15 @@ def main():
     parser.set_defaults(uniquepatients=True)
 
     args = parser.parse_args()
+
+    mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    logging.basicConfig(level=mainloglevel)
+
     log.info("Arguments: " + str(args))
 
     # Load/validate config
     log.info("Loading config...")
-    config.set(filename=args.config)
+    config.set(filename=args.config, load_destfields=False)
     log.info("... config loaded")
 
     # Do it

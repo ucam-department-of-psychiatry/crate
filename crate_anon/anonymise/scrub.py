@@ -39,7 +39,7 @@ from cardinal_pythonlib.rnc_db import (
 )
 
 from crate_anon.anonymise.constants import SCRUBMETHOD
-from crate_anon.anonymise.regex import (
+from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
@@ -101,6 +101,8 @@ class WordList(ScrubberBase):
         self.suffixes = suffixes
         self.at_word_boundaries_only = at_word_boundaries_only
         self.max_errors = max_errors
+        self._regex = None
+        self._cached_hash = None
 
         self.words = set()
         # Sets are faster than lists for "is x in s" operations:
@@ -109,7 +111,6 @@ class WordList(ScrubberBase):
             self.add_file(f, clear_cache=False)
         for w in words:
             self.add_word(w, clear_cache=False)
-        self.clear_cache()
 
     def clear_cache(self):
         """Clear cached information."""

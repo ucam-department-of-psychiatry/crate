@@ -10,7 +10,7 @@ try:
     import pymysql
     pymysql.install_as_MySQLdb()
 except ImportError:
-    pass
+    pymysql = None
 
 import django
 from django.core.management import execute_from_command_line

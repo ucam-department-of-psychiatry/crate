@@ -15,7 +15,7 @@ log = logging.getLogger(__name__)
 def home(request):
     # leaflets = [{'key': x[0], 'name': x[1]} for x in Leaflet.LEAFLET_CHOICES]
     # assert False
-    # log.critical("IP Address for debug-toolbar: " + request.META['REMOTE_ADDR'])
+    # log.critical("IP Address for debug-toolbar: " + request.META['REMOTE_ADDR'])  # noqa
     # log.critical("MIDDLEWARE_CLASSES: {}".format(repr(MIDDLEWARE_CLASSES)))
     return render(request, 'home.html', {
         'nav_on_main_menu': True,

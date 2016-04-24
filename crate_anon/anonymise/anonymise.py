@@ -60,7 +60,6 @@ from crate_anon.anonymise.constants import (
     RAW_SCRUBBER_FIELDNAME_PATIENT,
     RAW_SCRUBBER_FIELDNAME_TP,
     SEP,
-    SRCFLAG,
     TRID_CACHE_PID_FIELDNAME,
     TRID_CACHE_TRID_FIELDNAME,
     TRID_TYPE,
@@ -249,9 +248,9 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
             if r.omit:
                 continue
             fs = r.dest_field + " " + r.dest_datatype
-            if SRCFLAG.PRIMARYPID in r.src_flags:
+            if r.primary_pid:
                 fs += " NOT NULL"
-            if SRCFLAG.PK in r.src_flags:
+            if r.pk:
                 fs += " PRIMARY KEY"
             dest_fieldnames.append(r.dest_field)
             if r.comment or config.append_source_info_to_comment:
@@ -263,14 +262,14 @@ def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
                     )
                 fs += " COMMENT " + rnc_db.sql_quote_string(comment)
             fieldspecs.append(fs)
-            if SRCFLAG.ADDSRCHASH in r.src_flags:
+            if r.add_src_hash:
                 # append a special field
                 fieldspecs.append(
                     config.source_hash_fieldname + " " +
                     config.SQLTYPE_ENCRYPTED_PID +
                     " COMMENT 'Hashed amalgamation of all source fields'")
                 dest_fieldnames.append(config.source_hash_fieldname)
-            if SRCFLAG.PRIMARYPID in r.src_flags:
+            if r.primary_pid:
                 # append another special field
                 fieldspecs.append(
                     config.trid_fieldname + " " +
@@ -349,7 +348,7 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         commit(config.destdb)
         return
 
-    if SRCFLAG.ADDITION_ONLY in pkddr.src_flags:
+    if pkddr.addition_only:
         log.info("... Table marked as addition-only; not deleting anything")
         return
 
@@ -379,9 +378,9 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
         i += 1
         if report_every and i % report_every == 0:
             log.debug(start + "... src row# {} / {}".format(i, n))
-        if SRCFLAG.PRIMARYPID in pkddr.src_flags:
+        if pkddr.primary_pid:
             pk = config.encrypt_primary_pid(pk)
-        elif SRCFLAG.MASTERPID in pkddr.src_flags:
+        elif pkddr.master_pid:
             pk = config.encrypt_master_pid(pk)
         records.append([pk])
         if i % chunksize == 0:
@@ -424,8 +423,8 @@ def commit(destdb):
     Execute a COMMIT on the destination database, and reset row counts.
     """
     destdb.commit()
-    config._rows_in_transaction = 0
-    config._bytes_in_transaction = 0
+    config.rows_in_transaction = 0
+    config.bytes_in_transaction = 0
 
 
 # =============================================================================
@@ -515,7 +514,7 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     n_found = 0
     debuglimit = config.debug_max_n_patients
     for ddr in config.dd.rows:
-        if SRCFLAG.DEFINESPRIMARYPIDS not in ddr.src_flags:
+        if not ddr.defines_primary_pids:
             continue
         threadcondition = ""
         if ntasks > 1:
@@ -566,7 +565,6 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
             row = cursor.fetchone()
 
 
-# noinspection PyProtectedMember
 def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
              pkname=None, tasknum=None, ntasks=None, debuglimit=0):
     """
@@ -613,18 +611,18 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
     row = cursor.fetchone()
     db_table_tuple = (dbname, sourcetable)
     while row is not None:
-        if 0 < debuglimit <= config._rows_inserted_per_table[db_table_tuple]:
-            if not config._warned_re_limits[db_table_tuple]:
+        if 0 < debuglimit <= config.rows_inserted_per_table[db_table_tuple]:
+            if not config.warned_re_limits[db_table_tuple]:
                 log.warning(
                     "Table {}.{}: not fetching more than {} rows (in total "
                     "for this process) due to debugging limits".format(
                         dbname, sourcetable, debuglimit))
-                config._warned_re_limits[db_table_tuple] = True
+                config.warned_re_limits[db_table_tuple] = True
             row = None  # terminate while loop
             continue
         yield list(row)  # convert from tuple to list so we can modify it
         row = cursor.fetchone()
-        config._rows_inserted_per_table[db_table_tuple] += 1
+        config.rows_inserted_per_table[db_table_tuple] += 1
     # log.debug("About to close cursor...")
     cursor.close()
     # log.debug("... cursor closed")
@@ -688,7 +686,6 @@ def gen_pks(db, table, pkname):
 # - KEY THREADING RULE: ALL THREADS MUST HAVE FULLY INDEPENDENT DATABASE
 #   CONNECTIONS.
 
-# noinspection PyProtectedMember
 def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                   patient=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
@@ -709,9 +706,9 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         debuglimit = 0
 
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
-    addhash = any([SRCFLAG.ADDSRCHASH in ddr.src_flags for ddr in ddrows])
-    addtrid = any([SRCFLAG.PRIMARYPID in ddr.src_flags for ddr in ddrows])
-    constant = any([SRCFLAG.CONSTANT in ddr.src_flags for ddr in ddrows])
+    addhash = any([ddr.add_src_hash for ddr in ddrows])
+    addtrid = any([ddr.primary_pid for ddr in ddrows])
+    constant = any([ddr.constant for ddr in ddrows])
     # If addhash or constant is true, there will also be at least one non-
     # omitted row, namely the source PK (by the data dictionary's validation
     # process).
@@ -726,7 +723,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     pkfield_index = None
     for i, ddr in enumerate(ddrows):
         # log.debug("DD row: {}".format(str(ddr)))
-        if SRCFLAG.PK in ddr.src_flags:
+        if ddr.pk:
             pkfield_index = i
         sourcefields.append(ddr.src_field)
         if not ddr.omit:
@@ -736,6 +733,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     if addtrid:
         destfields.append(config.trid_fieldname)
     n = 0
+    srchash = None
     for row in gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
                         pkname=pkname, tasknum=tasknum, ntasks=ntasks):
@@ -782,12 +780,12 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if ddr.omit:
                 continue
             value = row[i]
-            if SRCFLAG.PRIMARYPID in ddr.src_flags:
+            if ddr.primary_pid:
                 assert(value == patient.get_pid())
                 value = patient.get_rid()
-            elif SRCFLAG.MASTERPID in ddr.src_flags:
+            elif ddr.master_pid:
                 value = config.encrypt_master_pid(value)
-            elif ddr._truncate_date:
+            elif ddr.truncate_date:
                 try:
                     value = coerce_to_date(value)
                     value = truncate_date_to_first_of_month(value)
@@ -796,16 +794,15 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                         "Invalid date received to {ALTERMETHOD.TRUNCATEDATE} "
                         "method: {v}".format(ALTERMETHOD=ALTERMETHOD, v=value))
                     value = None
-            elif ddr._extract_text:
+            elif ddr.extract_text:
                 value = extract_text(value, row, ddr, ddrows)
 
-            if ddr._scrub:
+            if ddr.scrub:
                 # Main point of anonymisation!
                 value = patient.scrub(value)
 
             destvalues.append(value)
         if addhash:
-            # noinspection PyUnboundLocalVariable
             destvalues.append(srchash)
         if addtrid:
             destvalues.append(patient.get_trid())
@@ -815,14 +812,14 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         # Trigger an early commit?
         early_commit = False
         if config.max_rows_before_commit is not None:
-            config._rows_in_transaction += 1
-            if config._rows_in_transaction >= config.max_rows_before_commit:
+            config.rows_in_transaction += 1
+            if config.rows_in_transaction >= config.max_rows_before_commit:
                 early_commit = True
         if config.max_bytes_before_commit is not None:
-            config._bytes_in_transaction += sys.getsizeof(destvalues)
+            config.bytes_in_transaction += sys.getsizeof(destvalues)
             # ... approximate!
             # Quicker than e.g. len(repr(...)), as judged by a timeit() call.
-            if config._bytes_in_transaction >= config.max_bytes_before_commit:
+            if config.bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True
         if early_commit:
             log.info(start + "Triggering early commit based on row/byte count")
@@ -832,7 +829,6 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     commit(destdb)
 
 
-# noinspection PyProtectedMember
 def extract_text(value, row, ddr, ddrows):
     """
     Take a field's value and return extracted text, for file-related fields,
@@ -841,13 +837,13 @@ def extract_text(value, row, ddr, ddrows):
     filename = None
     blob = None
     extension = None
-    if ddr._extract_from_filename:
+    if ddr.extract_from_filename:
         filename = value
     else:
         blob = value
         extindex = next(
             (i for i, x in enumerate(ddrows)
-                if x.src_field == ddr._extract_ext_field),
+                if x.src_field == ddr.extract_ext_field),
             None)
         if extindex is None:
             raise ValueError(
@@ -902,7 +898,7 @@ def create_indexes(tasknum=0, ntasks=1):
                 else:
                     sqlbits_normal.append(sqlbit)
             # Extra index for TRID?
-            if SRCFLAG.PRIMARYPID in tr.src_flags:
+            if tr.primary_pid:
                 column = config.trid_fieldname
                 idxname = "_idx_{}".format(column)
                 if not config.destdb.index_exists(table, idxname):
@@ -1499,6 +1495,7 @@ Sample usage:
     end = get_now_utc()
     time_taken = end - start
     log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
+    config.dd.debug_cache_hits()
 
 
 # =============================================================================

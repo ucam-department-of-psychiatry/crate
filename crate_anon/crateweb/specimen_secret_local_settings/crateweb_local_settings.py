@@ -31,7 +31,7 @@ FORCE_SCRIPT_NAME = ""
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'  # CHANGE THIS!  # noqa
-# Run tools/generate_new_django_secret_key.py to generate a new one.
+# Run crate_generate_new_django_secret_key to generate a new one.
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False

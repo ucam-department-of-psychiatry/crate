@@ -892,6 +892,16 @@ class DatabaseSafeConfig(object):
 
     def __init__(self, parser, section):
         """Read from a configparser section."""
+        self.ddgen_force_lower_case = None
+        self.ddgen_convert_odd_chars_to_underscore = None
+        self.ddgen_allow_no_patient_info = None
+        self.ddgen_per_table_pid_field = None
+        self.ddgen_master_pid_fieldname = None
+        self.ddgen_constant_content = None
+        self.ddgen_addition_only = None
+        self.ddgen_min_length_for_scrubbing = None
+        self.ddgen_allow_fulltext_indexing = None
+        self.debug_row_limit = None
         read_config_string_options(self, parser, section, [
             "ddgen_force_lower_case",
             "ddgen_convert_odd_chars_to_underscore",
@@ -904,6 +914,23 @@ class DatabaseSafeConfig(object):
             "ddgen_allow_fulltext_indexing",
             "debug_row_limit",
         ])
+
+        self.ddgen_pid_defining_fieldnames = None
+        self.ddgen_pk_fields = None
+        self.ddgen_table_blacklist = None
+        self.ddgen_field_blacklist = None
+        self.ddgen_scrubsrc_patient_fields = None
+        self.ddgen_scrubsrc_thirdparty_fields = None
+        self.ddgen_scrubmethod_code_fields = None
+        self.ddgen_scrubmethod_date_fields = None
+        self.ddgen_scrubmethod_number_fields = None
+        self.ddgen_scrubmethod_phrase_fields = None
+        self.ddgen_safe_fields_exempt_from_scrubbing = None
+        self.ddgen_truncate_date_fields = None
+        self.ddgen_filename_to_text_fields = None
+        self.ddgen_binary_to_text_field_pairs = None
+        self.ddgen_index_fields = None
+        self.debug_limited_tables = None
         read_config_multiline_options(self, parser, section, [
             "ddgen_pk_fields",
             "ddgen_pid_defining_fieldnames",
@@ -922,6 +949,7 @@ class DatabaseSafeConfig(object):
             "ddgen_index_fields",
             "debug_limited_tables",
         ])
+
         convert_attrs_to_bool(self, [
             "ddgen_force_lower_case",
             "ddgen_convert_odd_chars_to_underscore",
@@ -1002,20 +1030,63 @@ class Config(object):
 
     def __init__(self):
         """Set some defaults."""
+        self.data_dictionary_filename = None
+        self.hash_method = None
+        self.ddgen_master_pid_fieldname = None
+        self.per_table_patient_id_encryption_phrase = None
+        self.master_patient_id_encryption_phrase = None
+        self.change_detection_encryption_phrase = None
+        self.replace_patient_info_with = None
+        self.replace_third_party_info_with = None
+        self.replace_nonspecific_info_with = None
+        self.string_max_regex_errors = None
+        self.min_string_length_for_errors = None
+        self.min_string_length_to_scrub_with = None
+        self.scrub_all_uk_postcodes = None
+        self.anonymise_codes_at_word_boundaries_only = None
+        self.anonymise_dates_at_word_boundaries_only = None
+        self.anonymise_numbers_at_word_boundaries_only = None
+        self.anonymise_strings_at_word_boundaries_only = None
+        self.mapping_patient_id_fieldname = None
+        self.research_id_fieldname = None
+        self.trid_fieldname = None
+        self.mapping_master_id_fieldname = None
+        self.master_research_id_fieldname = None
+        self.source_hash_fieldname = None
+        self.date_to_text_format = None
+        self.datetime_to_text_format = None
+        self.append_source_info_to_comment = None
+        self.open_databases_securely = None
+        self.max_rows_before_commit = None
+        self.max_bytes_before_commit = None
+        self.temporary_tablename = None
+        self.secret_map_tablename = None
+        self.secret_trid_cache_tablename = None
+        self.audit_tablename = None
+        self.opt_out_tablename = None
+        self.destination_database = None
+        self.admin_database = None
+        self.debug_max_n_patients = None
+
+        self.scrub_string_suffixes = []
+        self.whitelist_filenames = []
+        self.blacklist_filenames = []
+        self.scrub_all_numbers_of_n_digits = []
+        self.source_databases = []
+        self.debug_pid_list = []
+
         self.config_filename = None
         self.dd = None
-        for x in Config.MAIN_HEADINGS:
-            setattr(self, x, None)
         self.report_every_n_rows = 100
         self.PERSISTENT_CONSTANTS_INITIALIZED = False
         self.DESTINATION_FIELDS_LOADED = False
         self.destfieldinfo = []
-        self._rows_in_transaction = 0
-        self._bytes_in_transaction = 0
+        self.rows_in_transaction = 0
+        self.bytes_in_transaction = 0
         self.debug_scrubbers = False
         self.save_scrubbers = False
-        self._rows_inserted_per_table = {}
-        self._warned_re_limits = {}
+        self.rows_inserted_per_table = {}
+        self.warned_re_limits = {}
         self.re_nonspecific = None
 
         self.NOW_LOCAL_TZ = None
@@ -1023,8 +1094,8 @@ class Config(object):
         self.NOW_UTC_NO_TZ = None
         self.NOW_LOCAL_TZ_ISO8601 = None
         self.TODAY = None
-        self._rows_in_transaction = 0
-        self._bytes_in_transaction = 0
+        self.rows_in_transaction = 0
+        self.bytes_in_transaction = 0
 
         self.remote_addr = None
         self.remote_port = None
@@ -1032,25 +1103,46 @@ class Config(object):
         self.SERVER_NAME = None
         self.SCRIPT_PUBLIC_URL_ESCAPED = None
 
+        self.primary_pid_hasher = None
+        self.master_pid_hasher = None
+
+        self.destdb = None
+        self.admindb = None
+        self.sources = {}
+        self.srccfg = {}
         self.src_db_names = []
 
-        self.primary_pid_hasher = None
+        self.SQLTYPE_ENCRYPTED_PID = None
+        self.change_detection_hasher = None
+        self.whitelist = None
+        self.blacklist = None
+        self.nonspecific_scrubber = None
+
+        self.debug_pid_list = []
+        self.scrub_all_numbers_of_n_digits = []
 
     def set(self, filename=None, environ=None, include_sources=True,
             load_dd=True, load_destfields=True):
         """Set up process-local storage from the incoming environment (which
         may be very fast if already cached) and ensure we have an active
         database connection."""
+        log.info("Setting up config...")
         # 1. Set up process-local storage
         self.set_internal(filename, environ, include_sources=include_sources,
                           load_dd=load_dd)
         if load_destfields:
+            log.info("... loading destination fields")
             self.load_destination_fields()
+
         # 2. Ping MySQL connection, to reconnect if it's timed out.
+        log.info("... pinging admin database")
         self.admindb.ping()
+        log.info("... pinging destination database")
         self.destdb.ping()
+        log.info("... pinging source database(s)")
         for db in self.sources.values():
             db.ping()
+        log.info("... config set up")
 
     def set_internal(self, filename=None, environ=None, include_sources=True,
                      load_dd=True):
@@ -1093,15 +1185,15 @@ class Config(object):
         self.NOW_LOCAL_TZ_ISO8601 = self.NOW_LOCAL_TZ.strftime(
             DATEFORMAT_ISO8601)
         self.TODAY = datetime.date.today()  # fetches the local date
-        self._rows_in_transaction = 0
-        self._bytes_in_transaction = 0
+        self.rows_in_transaction = 0
+        self.bytes_in_transaction = 0
 
     def init_row_counts(self):
         """Initialize row counts for all source tables."""
-        self._rows_inserted_per_table = {}
+        self.rows_inserted_per_table = {}
         for db_table_tuple in self.dd.get_src_db_tablepairs():
-            self._rows_inserted_per_table[db_table_tuple] = 0
-            self._warned_re_limits[db_table_tuple] = False
+            self.rows_inserted_per_table[db_table_tuple] = 0
+            self.warned_re_limits[db_table_tuple] = False
 
     def read_environ(self, environ):
         """Read from the WSGI environment."""

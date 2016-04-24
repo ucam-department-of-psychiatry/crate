@@ -380,6 +380,11 @@ class OutputTypeConfig(object):
         """
         Read config from a configparser section.
         """
+        self.destdb = None
+        self.desttable = None
+        self.destfields = None
+        self.indexdefs = None
+
         read_config_string_options(
             self,
             parser,
@@ -396,10 +401,12 @@ class OutputTypeConfig(object):
             "desttable",
             "destfields",
         ])
+        # noinspection PyUnresolvedReferences
         self.destfields = [x for x in self.destfields.lower().strip().split()]
         self.indexnames = []
 
         if self.indexdefs:
+            # noinspection PyUnresolvedReferences
             self.indexdefs = [x for x in self.indexdefs.strip().split()]
             indexdefs = []
             for c in chunks(self.indexdefs, 2):
@@ -444,6 +451,10 @@ class InputFieldConfig(object):
         """
         Read config from a configparser section.
         """
+        self.srcdb = None
+        self.srctable = None
+        self.srcpkfield = None
+        self.srcfield = None
         read_config_string_options(
             self,
             parser,
@@ -475,10 +486,21 @@ class Config(object):
     Class representing configuration as read from config file.
     """
 
+    # noinspection PyUnresolvedReferences
     def __init__(self, filename, nlpname, logtag=""):
         """
         Read config from file.
         """
+        self.inputfielddefs = None
+        self.outputtypemap = None
+        self.progenvsection = None
+        self.progargs = None
+        self.input_terminator = None
+        self.output_terminator = None
+        self.max_external_prog_uses = None
+        self.progressdb = None
+        self.progresstable = None
+        self.hashphrase = None
 
         self.config_filename = filename
         parser = configparser.RawConfigParser()
@@ -529,6 +551,7 @@ class Config(object):
                 self.databases[dbname] = self.get_database(dbname)
 
         # outputtypemap, databases
+        # noinspection PyUnresolvedReferences
         typepairs = self.outputtypemap.split()
         self.outputtypemap = {}
         for c in chunks(typepairs, 2):
@@ -555,6 +578,7 @@ class Config(object):
             # because passing a "-lt" switch with no parameter will make
             # CrateGatePipeline.java complain and stop
         self.env["NLPLOGTAG"] = logtag
+        # noinspection PyUnresolvedReferences
         self.progargs = self.progargs.format(**self.env)
         self.progargs = [
             x for x in str(self.progargs).split()
@@ -686,6 +710,7 @@ class NlpController(object):
         self.starting_fields_values = {}
         self.n_uses = 0
         self.encoding = encoding
+        self.p = None
 
     def start(self):
         """

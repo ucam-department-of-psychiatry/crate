@@ -93,7 +93,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'crate_anon.crateweb.research.context_processors.common_context',
+                'crate_anon.crateweb.research.context_processors.common_context',  # noqa
             ],
             # 'loaders': (
             #     'django.template.loaders.filesystem.Loader',

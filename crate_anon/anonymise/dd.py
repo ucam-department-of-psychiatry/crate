@@ -35,8 +35,10 @@ Copyright/licensing:
 # =============================================================================
 
 import csv
+from functools import lru_cache
 import logging
 import operator
+
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
 
 import cardinal_pythonlib.rnc_db as rnc_db
@@ -104,16 +106,39 @@ class DataDictionaryRow(object):
         "comment",
     ]
 
-    def __init__(self, config=None):
+    def __init__(self, config):
         """
         Set up basic defaults.
         """
         self.config = config
 
-        for x in DataDictionaryRow.ROWNAMES:
-            setattr(self, x, None)
-        self._signature = None
+        self.src_db = None
+        self.src_table = None
+        self.src_field = None
+        self.src_datatype = None
+        # src_flags: a property; see below
+        self.scrub_src = None
+        self.scrub_method = None
+        self.omit = False
+        # alter_method: a property; see below
+        self.dest_table = None
+        self.dest_field = None
+        self.dest_datatype = None
+        self.index = False
+        self.indexlen = None
+        self.comment = ''
+
         self._from_file = False
+
+        # For src_flags:
+        self._pk = False
+        self._add_src_hash = False
+        self._primary_pid = False
+        self._defines_primary_pids = False
+        self._master_pid = False
+        self._constant = False
+        self._addition_only = False
+
         # For alter_method:
         self._scrub = False
         self._truncate_date = False
@@ -124,39 +149,78 @@ class DataDictionaryRow(object):
     def __lt__(self, other):
         return self.get_signature() < other.get_signature()
 
-    def alter_method_to_components(self):
-        """
-        Convert the alter_method field (from the data dictionary) to a bunch of
-        boolean/simple fields.
-        """
-        self._scrub = False
-        self._truncate_date = False
-        self._extract_text = False
-        self._extract_from_filename = False
-        self._extract_ext_field = ""
-        secondhalf = ""
-        if "=" in self.alter_method:
-            secondhalf = self.alter_method[self.alter_method.index("=") + 1:]
-        if self.alter_method == ALTERMETHOD.TRUNCATEDATE:
-            self._truncate_date = True
-        elif self.alter_method.startswith(ALTERMETHOD.SCRUBIN):
-            self._scrub = True
-        elif self.alter_method.startswith(ALTERMETHOD.BIN2TEXT):
-            self._extract_text = True
-            self._extract_ext_field = secondhalf
-        elif self.alter_method.startswith(ALTERMETHOD.BIN2TEXT_SCRUB):
-            self._extract_text = True
-            self._extract_ext_field = secondhalf
-            self._scrub = True
-        elif self.alter_method.startswith(ALTERMETHOD.FILENAME2TEXT):
-            self._extract_text = True
-            self._extract_from_filename = True
-        elif self.alter_method.startswith(ALTERMETHOD.FILENAME2TEXT_SCRUB):
-            self._extract_text = True
-            self._extract_from_filename = True
-            self._scrub = True
+    @property
+    def pk(self):
+        return self._pk
 
-    def get_alter_method(self):
+    @property
+    def add_src_hash(self):
+        return self._add_src_hash
+
+    @property
+    def primary_pid(self):
+        return self._primary_pid
+
+    @property
+    def defines_primary_pids(self):
+        return self._defines_primary_pids
+
+    @property
+    def master_pid(self):
+        return self._master_pid
+
+    @property
+    def constant(self):
+        return self._constant
+
+    @property
+    def addition_only(self):
+        return self._addition_only
+
+    @property
+    def src_flags(self):
+        return ''.join([
+            SRCFLAG.PK if self._pk else '',
+            SRCFLAG.ADDSRCHASH if self._add_src_hash else '',
+            SRCFLAG.PRIMARYPID if self._primary_pid else '',
+            SRCFLAG.DEFINESPRIMARYPIDS if self._defines_primary_pids else '',
+            SRCFLAG.MASTERPID if self._master_pid else '',
+            SRCFLAG.CONSTANT if self._constant else '',
+            SRCFLAG.ADDITION_ONLY if self._addition_only else '',
+        ])
+
+    @src_flags.setter
+    def src_flags(self, value):
+        self._pk = SRCFLAG.PK in value
+        self._add_src_hash = SRCFLAG.ADDSRCHASH in value
+        self._primary_pid = SRCFLAG.PRIMARYPID in value
+        self._defines_primary_pids = SRCFLAG.DEFINESPRIMARYPIDS in value
+        self._master_pid = SRCFLAG.MASTERPID in value
+        self._constant = SRCFLAG.CONSTANT in value
+        self._addition_only = SRCFLAG.ADDITION_ONLY in value
+
+    @property
+    def scrub(self):
+        return self._scrub
+
+    @property
+    def truncate_date(self):
+        return self._truncate_date
+
+    @property
+    def extract_text(self):
+        return self._extract_text
+
+    @property
+    def extract_from_filename(self):
+        return self._extract_from_filename
+
+    @property
+    def extract_ext_field(self):
+        return self._extract_ext_field
+
+    @property
+    def alter_method(self):
         """
         Return the alter_method field from the working fields.
         """
@@ -178,17 +242,47 @@ class DataDictionaryRow(object):
             return ALTERMETHOD.SCRUBIN
         return ""
 
-    def components_to_alter_method(self):
+    @alter_method.setter
+    def alter_method(self, value):
         """
-        Write the alter_method field from the component (working) fields.
+        Convert the alter_method field (from the data dictionary) to a bunch of
+        boolean/simple fields.
         """
-        self.alter_method = self.get_alter_method()
+        self._scrub = False
+        self._truncate_date = False
+        self._extract_text = False
+        self._extract_from_filename = False
+        self._extract_ext_field = ""
+        secondhalf = ""
+        if "=" in value:
+            secondhalf = value[value.index("=") + 1:]
+        if value == ALTERMETHOD.TRUNCATEDATE:
+            self._truncate_date = True
+        elif value.startswith(ALTERMETHOD.SCRUBIN):
+            self._scrub = True
+        elif value.startswith(ALTERMETHOD.BIN2TEXT):
+            self._extract_text = True
+            self._extract_ext_field = secondhalf
+        elif value.startswith(ALTERMETHOD.BIN2TEXT_SCRUB):
+            self._extract_text = True
+            self._extract_ext_field = secondhalf
+            self._scrub = True
+        elif value.startswith(ALTERMETHOD.FILENAME2TEXT):
+            self._extract_text = True
+            self._extract_from_filename = True
+        elif value.startswith(ALTERMETHOD.FILENAME2TEXT_SCRUB):
+            self._extract_text = True
+            self._extract_from_filename = True
+            self._scrub = True
+
+    @property
+    def from_file(self):
+        return self._from_file
 
     def __str__(self):
         """
         Return a string representation.
         """
-        self.components_to_alter_method()
         return ", ".join(["{}: {}".format(a, getattr(self, a))
                           for a in DataDictionaryRow.ROWNAMES])
 
@@ -221,7 +315,6 @@ class DataDictionaryRow(object):
             "indexlen"
         ])
         self._from_file = True
-        self.alter_method_to_components()
         self.check_valid()
 
     # noinspection PyUnusedLocal
@@ -231,32 +324,33 @@ class DataDictionaryRow(object):
         """
         Create a draft data dictionary row from a field in the source database.
         """
-        # If Unicode, mangle to ASCII:
-        table = table.encode("ascii", "ignore")
-        field = field.encode("ascii", "ignore")
-        datatype_full = datatype_full.encode("ascii", "ignore")
-
         self.src_db = db
         self.src_table = table
         self.src_field = field
         self.src_datatype = datatype_full
 
         # Is the field special, such as a PK?
-        self.src_flags = ""
+        self._pk = False
+        self._add_src_hash = False
+        self._primary_pid = False
+        self._defines_primary_pids = False
+        self._master_pid = False
+        self._constant = False
+        self._addition_only = False
         if self.src_field in cfg.ddgen_pk_fields:
-            self.src_flags += SRCFLAG.PK
+            self._pk = True
             if cfg.ddgen_constant_content:
-                self.src_flags += SRCFLAG.CONSTANT
+                self._constant = True
             else:
-                self.src_flags += SRCFLAG.ADDSRCHASH
+                self._add_src_hash = True
             if cfg.ddgen_addition_only:
-                self.src_flags += SRCFLAG.ADDITION_ONLY
+                self._addition_only = True
         if self.src_field == cfg.ddgen_per_table_pid_field:
-            self.src_flags += SRCFLAG.PRIMARYPID
+            self._primary_pid = True
         if self.src_field == cfg.ddgen_master_pid_fieldname:
-            self.src_flags += SRCFLAG.MASTERPID
+            self._master_pid = True
         if self.src_field in cfg.ddgen_pid_defining_fieldnames:  # unusual!
-            self.src_flags += SRCFLAG.DEFINESPRIMARYPIDS
+            self._defines_primary_pids = True
 
         # Does the field contain sensitive data?
         if (self.src_field in cfg.ddgen_scrubsrc_patient_fields or
@@ -298,15 +392,15 @@ class DataDictionaryRow(object):
         # Should we omit it (at least until a human has looked at the DD)?
         self.omit = (
             (default_omit or bool(self.scrub_src)) and
-            not (SRCFLAG.PK in self.src_flags) and
-            not (SRCFLAG.PRIMARYPID in self.src_flags) and
-            not (SRCFLAG.MASTERPID in self.src_flags)
+            not self._pk and
+            not self._primary_pid and
+            not self._master_pid
         )
 
         # Do we want to change the destination fieldname?
-        if SRCFLAG.PRIMARYPID in self.src_flags:
+        if self._primary_pid:
             self.dest_field = self.config.research_id_fieldname
-        elif SRCFLAG.MASTERPID in self.src_flags:
+        elif self._master_pid:
             self.dest_field = self.config.master_research_id_fieldname
         else:
             self.dest_field = field
@@ -319,9 +413,9 @@ class DataDictionaryRow(object):
         # Do we want to change the destination field SQL type?
         self.dest_datatype = (
             self.config.SQLTYPE_ENCRYPTED_PID
-            if (SRCFLAG.PRIMARYPID in self.src_flags or
-                SRCFLAG.MASTERPID in self.src_flags)
-            else rnc_db.full_datatype_to_mysql(datatype_full))
+            if (self._primary_pid or self._master_pid)
+            else rnc_db.full_datatype_to_mysql(datatype_full)
+        )
 
         # How should we manipulate the destination?
         if self.src_field in cfg.ddgen_truncate_date_fields:
@@ -344,8 +438,8 @@ class DataDictionaryRow(object):
         elif (is_sqltype_text_of_length_at_least(
                 datatype_full, cfg.ddgen_min_length_for_scrubbing) and
                 not self.omit and
-                SRCFLAG.PRIMARYPID not in self.src_flags and
-                SRCFLAG.MASTERPID not in self.src_flags and
+                not self._primary_pid and
+                not self._master_pid and
                 self.src_field not in
                 cfg.ddgen_safe_fields_exempt_from_scrubbing):
             self._scrub = True
@@ -359,12 +453,12 @@ class DataDictionaryRow(object):
             self.dest_table = self.dest_table.translate(ODD_CHARS_TRANSLATE)
 
         # Should we index the destination?
-        if SRCFLAG.PK in self.src_flags:
+        if self._pk:
             self.index = INDEX.UNIQUE
         elif (self.dest_field == self.config.research_id_fieldname or
-                SRCFLAG.PRIMARYPID in self.src_flags or
-                SRCFLAG.MASTERPID in self.src_flags or
-                SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags):
+                self._primary_pid or
+                self._master_pid or
+                self._defines_primary_pids):
             self.index = INDEX.NORMAL
         elif (does_sqltype_merit_fulltext_index(self.dest_datatype) and
                 cfg.ddgen_allow_fulltext_indexing):
@@ -409,7 +503,6 @@ class DataDictionaryRow(object):
         Check internal validity and complain if invalid, showing the source
         of the problem.
         """
-        self.components_to_alter_method()
         try:
             self._check_valid()
         except:
@@ -460,8 +553,7 @@ class DataDictionaryRow(object):
                 "All fields with src_field = {} should be integer, for work "
                 "distribution purposes".format(self.src_field))
 
-        if (SRCFLAG.DEFINESPRIMARYPIDS in self.src_flags and
-                SRCFLAG.PRIMARYPID not in self.src_flags):
+        if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(
                 "All fields with src_flags={} set must have src_flags={} "
                 "set".format(
@@ -469,8 +561,8 @@ class DataDictionaryRow(object):
                     SRCFLAG.PRIMARYPID
                 ))
 
-        if count_bool([SRCFLAG.PRIMARYPID in self.src_flags,
-                       SRCFLAG.MASTERPID in self.src_flags,
+        if count_bool([self._primary_pid,
+                       self._master_pid,
                        bool(self.alter_method)]) > 1:
             raise ValueError(
                 "Field can be any ONE of: src_flags={}, src_flags={}, "
@@ -509,7 +601,7 @@ class DataDictionaryRow(object):
                     "Field has invalid destination data type: "
                     "{}".format(self.dest_datatype))
             if self.src_field == srccfg.ddgen_per_table_pid_field:
-                if SRCFLAG.PRIMARYPID not in self.src_flags:
+                if not self._primary_pid:
                     raise ValueError(
                         "All fields with src_field={} used in output should "
                         "have src_flag={} set".format(self.src_field,
@@ -520,7 +612,7 @@ class DataDictionaryRow(object):
                         "dest_field = {}".format(
                             self.config.research_id_fieldname))
             if (self.src_field == srccfg.ddgen_master_pid_fieldname and
-                    SRCFLAG.MASTERPID not in self.src_flags):
+                    not self._master_pid):
                 raise ValueError(
                     "All fields with src_field = {} used in output should have"
                     " src_flags={} set".format(
@@ -560,8 +652,7 @@ class DataDictionaryRow(object):
                     raise ValueError("Can't scrub in non-text field or "
                                      "single-character text field")
 
-            if ((SRCFLAG.PRIMARYPID in self.src_flags or
-                 SRCFLAG.MASTERPID in self.src_flags) and
+            if ((self._primary_pid or self._master_pid) and
                     self.dest_datatype != self.config.SQLTYPE_ENCRYPTED_PID):
                 raise ValueError(
                     "All src_flags={}/src_flags={} fields used in output must "
@@ -581,8 +672,8 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     "Must specify indexlen to index a TEXT or BLOB field")
 
-        if SRCFLAG.ADDSRCHASH in self.src_flags:
-            if SRCFLAG.PK not in self.src_flags:
+        if self._add_src_hash:
+            if not self._pk:
                 raise ValueError(
                     "src_flags={} can only be set on "
                     "src_flags={} fields".format(
@@ -597,14 +688,14 @@ class DataDictionaryRow(object):
                     "src_flags={} fields require index=={}".format(
                         SRCFLAG.ADDSRCHASH,
                         INDEX.UNIQUE))
-            if SRCFLAG.CONSTANT in self.src_flags:
+            if self._constant:
                 raise ValueError(
                     "cannot mix {} flag with {} flag".format(
                         SRCFLAG.ADDSRCHASH,
                         SRCFLAG.CONSTANT))
 
-        if SRCFLAG.CONSTANT in self.src_flags:
-            if SRCFLAG.PK not in self.src_flags:
+        if self._constant:
+            if not self._pk:
                 raise ValueError(
                     "src_flags={} can only be set on "
                     "src_flags={} fields".format(
@@ -619,6 +710,12 @@ class DataDictionaryRow(object):
                     "src_flags={} fields require index=={}".format(
                         SRCFLAG.CONSTANT,
                         INDEX.UNIQUE))
+
+    def contains_patient_info(self):
+        return bool(self.scrub_src) or self._primary_pid or self._master_pid
+
+    def required(self):
+        return not self.omit or self.contains_patient_info()
 
 
 # =============================================================================
@@ -635,9 +732,9 @@ class DataDictionary(object):
         Set defaults.
         """
         self.config = config
-
         self.rows = []
         self.cached_srcdb_table_pairs = SortedSet()
+        self.n_definers = 0
 
     def read_from_file(self, filename):
         """
@@ -660,9 +757,8 @@ class DataDictionary(object):
                 ddr.set_from_elements(rowelements)
                 self.rows.append(ddr)
             log.debug("... content loaded.")
-        self.cache_stuff()
+        self.clear_caches()
 
-    # noinspection PyProtectedMember
     def read_from_source_databases(self, report_every=100,
                                    default_omit=True):
         """
@@ -705,7 +801,7 @@ class DataDictionary(object):
                 if (t in cfg.ddgen_table_blacklist or
                         f in cfg.ddgen_field_blacklist):
                     continue
-                ddr = DataDictionaryRow()
+                ddr = DataDictionaryRow(self.config)
                 ddr.set_from_src_db_info(
                     pretty_dbname, t, f, datatype_short,
                     datatype_full,
@@ -717,16 +813,15 @@ class DataDictionary(object):
                     self.rows.append(ddr)
                     signatures.append(sig)
         log.info("... done")
-        self.cache_stuff()
+        self.clear_caches()
         log.info("Revising draft data dictionary")
         for ddr in self.rows:
-            if ddr._from_file:
+            if ddr.from_file:
                 continue
             # Don't scrub_in non-patient tables
             if (ddr.src_table
-                    not in self.cached_src_tables_w_pt_info[ddr.src_db]):
+                    not in self.get_src_tables_with_patient_info(ddr.src_db)):
                 ddr._scrub = False
-                ddr.components_to_alter_method()
         log.info("... done")
         log.info("Sorting draft data dictionary")
         self.rows = sorted(self.rows,
@@ -735,149 +830,6 @@ class DataDictionary(object):
                                                    "src_field"))
         log.info("... done")
 
-    def cache_stuff(self):
-        """
-        Cache DD information from various perspectives for performance and
-        simplicity during actual processing.
-        """
-        log.debug("Caching data dictionary information...")
-        self.cached_dest_tables = SortedSet()
-        self.cached_dest_tables_w_pt_info = SortedSet()
-        self.cached_source_databases = SortedSet()
-        self.cached_srcdb_table_pairs = SortedSet()
-        self.cached_srcdb_table_pairs_w_pt_info = SortedSet()  # w = with
-        self.cached_scrub_from_db_table_pairs = SortedSet()
-        self.cached_scrub_from_rows = {}
-        self.cached_src_tables = {}
-        self.cached_src_tables_w_pt_info = {}  # w = with
-        src_tables_with_dest = {}
-        self.cached_pt_src_tables_w_dest = {}
-        self.cached_rows_for_src_table = {}
-        self.cached_rows_for_dest_table = {}
-        self.cached_fieldnames_for_src_table = {}
-        self.cached_src_dbtables_for_dest_table = {}
-        self.cached_pk_ddr = {}
-        self.cached_has_active_destination = {}
-        self.cached_dest_tables_for_src_db_table = {}
-        self.cached_srcdb_table_pairs_to_int_pk = {}  # (db, table): pkname
-        for ddr in self.rows:
-
-            # Database-oriented maps
-            if ddr.src_db not in self.cached_src_tables:
-                self.cached_src_tables[ddr.src_db] = SortedSet()
-            if ddr.src_db not in self.cached_pt_src_tables_w_dest:
-                self.cached_pt_src_tables_w_dest[ddr.src_db] = SortedSet()
-            if ddr.src_db not in self.cached_src_tables_w_pt_info:
-                self.cached_src_tables_w_pt_info[ddr.src_db] = SortedSet()
-            if ddr.src_db not in src_tables_with_dest:
-                src_tables_with_dest[ddr.src_db] = SortedSet()
-
-            # (Database + table)-oriented maps
-            db_t_key = (ddr.src_db, ddr.src_table)
-            if db_t_key not in self.cached_rows_for_src_table:
-                self.cached_rows_for_src_table[db_t_key] = SortedSet()
-            if db_t_key not in self.cached_fieldnames_for_src_table:
-                self.cached_fieldnames_for_src_table[db_t_key] = SortedSet()
-            if db_t_key not in self.cached_dest_tables_for_src_db_table:
-                self.cached_dest_tables_for_src_db_table[db_t_key] = \
-                    SortedSet()
-            if db_t_key not in self.cached_scrub_from_rows:
-                self.cached_scrub_from_rows[db_t_key] = SortedSet()
-
-            # Destination table-oriented maps
-            if ddr.dest_table not in self.cached_src_dbtables_for_dest_table:
-                self.cached_src_dbtables_for_dest_table[ddr.dest_table] = \
-                    SortedSet()
-            if ddr.dest_table not in self.cached_rows_for_dest_table:
-                self.cached_rows_for_dest_table[ddr.dest_table] = SortedSet()
-
-            # Regardless...
-            self.cached_rows_for_src_table[db_t_key].add(ddr)
-            self.cached_fieldnames_for_src_table[db_t_key].add(ddr.src_field)
-            self.cached_srcdb_table_pairs.add(db_t_key)
-            self.cached_src_dbtables_for_dest_table[ddr.dest_table].add(
-                db_t_key)
-            self.cached_rows_for_dest_table[ddr.dest_table].add(ddr)
-
-            if db_t_key not in self.cached_has_active_destination:
-                self.cached_has_active_destination[db_t_key] = False
-
-            # Is it a scrub-from row?
-            if ddr.scrub_src:
-                self.cached_scrub_from_db_table_pairs.add(db_t_key)
-                self.cached_scrub_from_rows[db_t_key].add(ddr)
-                # ... even if omit flag set
-
-            # Is it a src_pk row, contributing to src_hash info?
-            if SRCFLAG.PK in ddr.src_flags:
-                log.debug("SRCFLAG.PK found: {}".format(ddr))
-                self.cached_pk_ddr[db_t_key] = ddr
-                if rnc_db.is_sqltype_integer(ddr.src_datatype):
-                    self.cached_srcdb_table_pairs_to_int_pk[db_t_key] = \
-                        ddr.src_field
-
-            # Is it a relevant contribution from a source table?
-            pt_info = (
-                bool(ddr.scrub_src) or
-                SRCFLAG.PRIMARYPID in ddr.src_flags or
-                SRCFLAG.MASTERPID in ddr.src_flags
-            )
-            omit = ddr.omit
-            if pt_info or not omit:
-                # Ensure our source lists contain that table.
-                self.cached_source_databases.add(ddr.src_db)
-                self.cached_src_tables[ddr.src_db].add(ddr.src_table)
-
-            # Does it indicate that the table contains patient info?
-            if pt_info:
-                self.cached_src_tables_w_pt_info[ddr.src_db].add(
-                    ddr.src_table)
-                self.cached_srcdb_table_pairs_w_pt_info.add(db_t_key)
-
-            # Does it contribute to our destination?
-            if not omit:
-                self.cached_dest_tables.add(ddr.dest_table)
-                self.cached_has_active_destination[db_t_key] = True
-                src_tables_with_dest[ddr.src_db].add(ddr.dest_table)
-                self.cached_dest_tables_for_src_db_table[db_t_key].add(
-                    ddr.dest_table
-                )
-
-            if pt_info and not omit:
-                self.cached_dest_tables_w_pt_info.add(ddr.dest_table)
-
-        db_table_pairs_w_int_pk = set(
-            self.cached_srcdb_table_pairs_to_int_pk.keys()
-        )
-
-        # Set calculations...
-        self.cached_srcdb_table_pairs_wo_pt_info_no_pk = sorted(
-            self.cached_srcdb_table_pairs -
-            self.cached_srcdb_table_pairs_w_pt_info -
-            db_table_pairs_w_int_pk
-        )
-        self.cached_srcdb_table_pairs_wo_pt_info_int_pk = sorted(
-            (self.cached_srcdb_table_pairs -
-                self.cached_srcdb_table_pairs_w_pt_info) &
-            db_table_pairs_w_int_pk
-        )
-        for s in self.cached_source_databases:
-            self.cached_pt_src_tables_w_dest[s] = sorted(
-                self.cached_src_tables_w_pt_info[s] &
-                src_tables_with_dest[s]  # & is intersection
-            )
-
-        # Debugging
-        log.debug("cached_srcdb_table_pairs_w_pt_info: {}".format(
-            list(self.cached_srcdb_table_pairs_w_pt_info)))
-        log.debug("cached_srcdb_table_pairs_wo_pt_info_no_pk: {}".format(
-            self.cached_srcdb_table_pairs_wo_pt_info_no_pk))
-        log.debug("cached_srcdb_table_pairs_wo_pt_info_int_pk: {}".format(
-            self.cached_srcdb_table_pairs_wo_pt_info_int_pk))
-
-        log.debug("... cached.")
-
-    # noinspection PyProtectedMember
     def check_against_source_db(self):
         """
         Check DD validity against the source database.
@@ -901,7 +853,7 @@ class DataDictionary(object):
                 rows = self.get_rows_for_src_table(d, t)
                 fieldnames = self.get_fieldnames_for_src_table(d, t)
 
-                if any([r._scrub or SRCFLAG.MASTERPID in r.src_flags
+                if any([r.scrub or r.master_pid
                         for r in rows if not r.omit]):
                     pidfield = self.config.srccfg[d].ddgen_per_table_pid_field
                     if pidfield not in fieldnames:
@@ -916,17 +868,17 @@ class DataDictionary(object):
                         )
 
                 for r in rows:
-                    if r._extract_text and not r._extract_from_filename:
+                    if r.extract_text and not r.extract_from_filename:
                         extrow = next(
                             (r2 for r2 in rows
-                                if r2.src_field == r._extract_ext_field),
+                                if r2.src_field == r.extract_ext_field),
                             None)
                         if extrow is None:
                             raise ValueError(
                                 "alter_method = {am}, but field {f} not "
                                 "found in the same table".format(
                                     am=r.alter_method,
-                                    f=r._extract_ext_field
+                                    f=r.extract_ext_field
                                 )
                             )
                         if not is_sqltype_text_over_one_char(
@@ -936,12 +888,11 @@ class DataDictionary(object):
                                 " should contain an extension or filename,"
                                 " is not text of >1 character".format(
                                     am=r.alter_method,
-                                    f=r._extract_ext_field
+                                    f=r.extract_ext_field
                                 )
                             )
 
-                n_pks = sum([1 if SRCFLAG.PK in x.src_flags else 0
-                             for x in rows])
+                n_pks = sum([1 if x.pk else 0 for x in rows])
                 if n_pks > 1:
                     raise ValueError(
                         "Table {d}.{t} has >1 source PK set".format(
@@ -967,7 +918,7 @@ class DataDictionary(object):
         log.info("Checking data dictionary...")
         if not self.rows:
             raise ValueError("Empty data dictionary")
-        if not self.cached_dest_tables:
+        if not self.get_dest_tables():
             raise ValueError("Empty data dictionary after removing "
                              "redundant tables")
 
@@ -995,9 +946,8 @@ class DataDictionary(object):
             self.check_against_source_db()
 
         log.debug("Checking DD: global checks...")
-        self.n_definers = sum(
-            [1 if SRCFLAG.DEFINESPRIMARYPIDS in x.src_flags else 0
-             for x in self.rows])
+        self.n_definers = sum([1 if x.defines_primary_pids else 0
+                               for x in self.rows])
         if self.n_definers == 0:
             if all([x.ddgen_allow_no_patient_info
                     for x in self.config.srccfg.itervalues()]):
@@ -1007,79 +957,16 @@ class DataDictionary(object):
                 raise ValueError(
                     "Must have at least one field with "
                     "src_flags={} set.".format(SRCFLAG.DEFINESPRIMARYPIDS))
-        if self.n_definers > 1:
+        elif self.n_definers > 1:
             log.warning(
                 "Unusual: >1 field with src_flags={} set.".format(
                     SRCFLAG.DEFINESPRIMARYPIDS))
 
         log.debug("... DD checked.")
 
-    def get_dest_tables(self):
-        """Return a SortedSet of all destination tables."""
-        return self.cached_dest_tables
-
-    def get_dest_tables_for_src_db_table(self, src_db, src_table):
-        """For a given source database/table, return a SortedSet of destination
-        tables."""
-        return self.cached_dest_tables_for_src_db_table[(src_db, src_table)]
-
-    def get_dest_table_for_src_db_table(self, src_db, src_table):
-        """For a given source database/table, return the single or the first
-        destination table."""
-        return self.cached_dest_tables_for_src_db_table[(src_db, src_table)][0]
-
-    def get_source_databases(self):
-        """Return a SortedSet of source database names."""
-        return self.cached_source_databases
-
-    def get_src_dbs_tables_for_dest_table(self, dest_table):
-        """For a given destination table, return a SortedSet of (dbname, table)
-        tuples."""
-        return self.cached_src_dbtables_for_dest_table[dest_table]
-
-    def get_src_tables(self, src_db):
-        """For a given source database name, return a SortedSet of source
-        tables."""
-        return self.cached_src_tables[src_db]
-
-    def get_patient_src_tables_with_active_dest(self, src_db):
-        """For a given source database name, return a SortedSet of source
-        tables that have an active destination table."""
-        return self.cached_pt_src_tables_w_dest[src_db]
-
-    def get_src_tables_with_patient_info(self, src_db):
-        """For a given source database name, return a SortedSet of source
-        tables that have patient information."""
-        return self.cached_src_tables_w_pt_info[src_db]
-
-    def get_dest_tables_with_patient_info(self):
-        """Return a SortedSet of destination table names that have patient
-        information."""
-        return self.cached_dest_tables_w_pt_info
-
-    def get_rows_for_src_table(self, src_db, src_table):
-        """For a given source database name/table, return a SortedSet of DD
-        rows."""
-        return self.cached_rows_for_src_table[(src_db, src_table)]
-
-    def get_rows_for_dest_table(self, dest_table):
-        """For a given destination table, return a SortedSet of DD rows."""
-        return self.cached_rows_for_dest_table[dest_table]
-
-    def get_fieldnames_for_src_table(self, src_db, src_table):
-        """For a given source database name/table, return a SortedSet of source
-        fields."""
-        return self.cached_fieldnames_for_src_table[(src_db, src_table)]
-
-    def get_scrub_from_db_table_pairs(self):
-        """Return a SortedSet of (source database name, source table) tuples
-        where those fields contain scrub_src (scrub-from) information."""
-        return self.cached_scrub_from_db_table_pairs
-
-    def get_scrub_from_rows(self, src_db, src_table):
-        """Return a SortedSet of DD rows for all fields containing scrub_src
-        (scrub-from) information."""
-        return self.cached_scrub_from_rows[(src_db, src_table)]
+    # =========================================================================
+    # Whole-DD operations
+    # =========================================================================
 
     def get_tsv(self):
         """
@@ -1090,35 +977,292 @@ class DataDictionary(object):
             [r.get_tsv() for r in self.rows]
         )
 
+    # =========================================================================
+    # Global DD queries
+    # =========================================================================
+
+    @lru_cache(maxsize=None)
+    def get_source_databases(self):
+        """Return a SortedSet of source database names."""
+        return SortedSet([
+             ddr.src_db
+             for ddr in self.rows
+             if ddr.required()
+         ])
+
+    @lru_cache(maxsize=None)
+    def get_scrub_from_db_table_pairs(self):
+        """Return a SortedSet of (source database name, source table) tuples
+        where those fields contain scrub_src (scrub-from) information."""
+        return SortedSet([
+            (ddr.src_db, ddr.src_table)
+            for ddr in self.rows
+            if ddr.scrub_src
+        ])
+        # even if omit flag set
+
+    @lru_cache(maxsize=None)
     def get_src_db_tablepairs(self):
         """Return a SortedSet of (source database name, source table) tuples.
         """
-        return self.cached_srcdb_table_pairs
+        return SortedSet([
+            (ddr.src_db, ddr.src_table)
+            for ddr in self.rows
+        ])
 
+    @lru_cache(maxsize=None)
+    def get_src_db_tablepairs_w_pt_info(self):
+        """Return a SortedSet of (source database name, source table) tuples.
+        """
+        return SortedSet([
+            (ddr.src_db, ddr.src_table)
+            for ddr in self.rows
+            if ddr.contains_patient_info()
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_src_db_tablepairs_w_int_pk(self):
+        """Return a SortedSet of (source database name, source table) tuples.
+        """
+        return SortedSet([
+            (ddr.src_db, ddr.src_table)
+            for ddr in self.rows
+            if self.get_pk_ddr(ddr.src_db, ddr.src_table) is not None
+        ])
+
+    @lru_cache(maxsize=None)
     def get_src_dbs_tables_with_no_pt_info_no_pk(self):
         """Return a SortedSet of (source database name, source table) tuples
         where the table has no patient information and no integer PK."""
-        return self.cached_srcdb_table_pairs_wo_pt_info_no_pk
+        return (
+            self.get_src_db_tablepairs() -
+            self.get_src_db_tablepairs_w_pt_info() -
+            self.get_src_db_tablepairs_w_int_pk()
+        )
 
+    @lru_cache(maxsize=None)
     def get_src_dbs_tables_with_no_pt_info_int_pk(self):
         """Return a SortedSet of (source database name, source table) tuples
         where the table has no patient information and has an integer PK."""
-        return self.cached_srcdb_table_pairs_wo_pt_info_int_pk
+        return (
+            (self.get_src_db_tablepairs() -
+                self.get_src_db_tablepairs_w_pt_info()) &  # & is intersection
+            self.get_src_db_tablepairs_w_int_pk()
+        )
 
-    def get_int_pk_name(self, src_db, src_table):
-        """For a given source database name and table, return the field name
-        of the integer PK for that table."""
-        return self.cached_srcdb_table_pairs_to_int_pk[(src_db, src_table)]
+    @lru_cache(maxsize=None)
+    def get_dest_tables(self):
+        """Return a SortedSet of all destination tables."""
+        return SortedSet([
+            ddr.dest_table
+            for ddr in self.rows
+            if not ddr.omit
+        ])
 
+    @lru_cache(maxsize=None)
+    def get_dest_tables_with_patient_info(self):
+        """Return a SortedSet of destination table names that have patient
+        information."""
+        return SortedSet([
+            ddr.dest_table
+            for ddr in self.rows
+            if ddr.contains_patient_info() and not ddr.omit
+        ])
+
+    # =========================================================================
+    # Queries by source DB
+    # =========================================================================
+
+    @lru_cache(maxsize=None)
+    def get_src_tables(self, src_db):
+        """For a given source database name, return a SortedSet of source
+        tables."""
+        return SortedSet([
+            ddr.src_table
+            for ddr in self.rows
+            if ddr.src_db == src_db and ddr.required()
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_src_tables_with_active_dest(self, src_db):
+        """For a given source database name, return a SortedSet of source
+        tables."""
+        return SortedSet([
+            ddr.src_table
+            for ddr in self.rows
+            if ddr.src_db == src_db and not ddr.omit
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_src_tables_with_patient_info(self, src_db):
+        """For a given source database name, return a SortedSet of source
+        tables that have patient information."""
+        return SortedSet([
+            ddr.src_table
+            for ddr in self.rows
+            if ddr.src_db == src_db and ddr.contains_patient_info()
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_patient_src_tables_with_active_dest(self, src_db):
+        """For a given source database name, return a SortedSet of source
+        tables that have an active destination table."""
+        return (
+            self.get_src_tables_with_active_dest(src_db) &
+            self.get_src_tables_with_patient_info(src_db)
+        )
+
+    # =========================================================================
+    # Queries by source DB/table
+    # =========================================================================
+
+    @lru_cache(maxsize=None)
+    def get_dest_tables_for_src_db_table(self, src_db, src_table):
+        """For a given source database/table, return a SortedSet of destination
+        tables."""
+        return SortedSet([
+            ddr.dest_table
+            for ddr in self.rows
+            if (ddr.src_db == src_db and
+                ddr.src_table == src_table and
+                not ddr.omit)
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_dest_table_for_src_db_table(self, src_db, src_table):
+        """For a given source database/table, return the single or the first
+        destination table."""
+        return self.get_dest_tables_for_src_db_table(src_db, src_table)[0]
+
+    @lru_cache(maxsize=None)
+    def get_rows_for_src_table(self, src_db, src_table):
+        """For a given source database name/table, return a SortedSet of DD
+        rows."""
+        return SortedSet([
+            ddr
+            for ddr in self.rows
+            if ddr.src_db == src_db and ddr.src_table == src_table
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_fieldnames_for_src_table(self, src_db, src_table):
+        """For a given source database name/table, return a SortedSet of source
+        fields."""
+        return SortedSet([
+            ddr.src_field
+            for ddr in self.rows
+            if ddr.src_db == src_db and ddr.src_table == src_table
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_scrub_from_rows(self, src_db, src_table):
+        """Return a SortedSet of DD rows for all fields containing scrub_src
+        (scrub-from) information."""
+        return SortedSet([
+            ddr
+            for ddr in self.rows
+            if (ddr.scrub_src and
+                ddr.src_db == src_db and
+                ddr.src_table == src_table)
+        ])
+        # even if omit flag set
+
+    @lru_cache(maxsize=None)
     def get_pk_ddr(self, src_db, src_table):
         """For a given source database name and table, return the DD row
         for the integer PK for that table.
 
         Will return None if no such data dictionary row.
         """
-        return self.cached_pk_ddr.get((src_db, src_table), None)
+        for ddr in self.rows:
+            if (ddr.src_db == src_db and
+                    ddr.src_table == src_table and
+                    ddr.pk and
+                    rnc_db.is_sqltype_integer(ddr.src_datatype)):
+                return ddr
+        return None
 
+    @lru_cache(maxsize=None)
+    def get_int_pk_name(self, src_db, src_table):
+        """For a given source database name and table, return the field name
+        of the integer PK for that table."""
+        ddr = self.get_pk_ddr(src_db, src_table)
+        if ddr is None:
+            return None
+        return ddr.src_field
+
+    @lru_cache(maxsize=None)
     def has_active_destination(self, src_db, src_table):
         """For a given source database name and table: does it have an active
         destination?"""
-        return self.cached_has_active_destination[(src_db, src_table)]
+        for ddr in self.rows:
+            if (ddr.src_db == src_db and
+                    ddr.src_table == src_table and
+                    not ddr.omit):
+                return True
+        return False
+
+    # =========================================================================
+    # Queries by destination table
+    # =========================================================================
+
+    @lru_cache(maxsize=None)
+    def get_src_dbs_tables_for_dest_table(self, dest_table):
+        """For a given destination table, return a SortedSet of (dbname, table)
+        tuples."""
+        return SortedSet([
+            (ddr.src_db, ddr.src_table)
+            for ddr in self.rows
+            if ddr.dest_table == dest_table
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_rows_for_dest_table(self, dest_table):
+        """For a given destination table, return a SortedSet of DD rows."""
+        return SortedSet([
+            ddr
+            for ddr in self.rows
+            if ddr.dest_table == dest_table
+        ])
+
+    # =========================================================================
+    # Clear caches
+    # =========================================================================
+
+    def cached_funcs(self):
+        return [
+            self.get_source_databases,
+            self.get_scrub_from_db_table_pairs,
+            self.get_src_db_tablepairs,
+            self.get_src_db_tablepairs_w_pt_info,
+            self.get_src_db_tablepairs_w_int_pk,
+            self.get_src_dbs_tables_with_no_pt_info_no_pk,
+            self.get_src_dbs_tables_with_no_pt_info_int_pk,
+            self.get_dest_tables,
+            self.get_dest_tables_with_patient_info,
+
+            self.get_src_tables,
+            self.get_src_tables_with_active_dest,
+            self.get_src_tables_with_patient_info,
+            self.get_patient_src_tables_with_active_dest,
+
+            self.get_dest_tables_for_src_db_table,
+            self.get_dest_table_for_src_db_table,
+            self.get_rows_for_src_table,
+            self.get_fieldnames_for_src_table,
+            self.get_scrub_from_rows,
+            self.get_pk_ddr,
+            self.get_int_pk_name,
+            self.has_active_destination,
+
+            self.get_src_dbs_tables_for_dest_table,
+            self.get_rows_for_dest_table,
+        ]
+
+    def clear_caches(self):
+        for func in self.cached_funcs():
+            func.cache_clear()
+
+    def debug_cache_hits(self):
+        for func in self.cached_funcs():
+            log.debug("{}: {}".format(func.__name__, func.cache_info()))
