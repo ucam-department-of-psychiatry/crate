@@ -116,6 +116,7 @@ class Command(BaseCommand):
             translation.activate(settings.LANGUAGE_CODE)
         except AttributeError:
             pass
+        # noinspection PyTypeChecker
         runcpserver(opts)
 
 

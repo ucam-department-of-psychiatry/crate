@@ -522,6 +522,7 @@ class ConsentMode(Decision):
         Will create a letter to patient.
         May create a withdrawal-of-consent letter to researcher.
         """
+        # noinspection PyTypeChecker
         letter = Letter.create_consent_confirmation_to_patient(self)
         # ... will save
         self.notify_rdbm_of_work(letter, to_researcher=False)
@@ -2060,6 +2061,7 @@ class ContactRequest(models.Model):
         self.save()  # makes self.id, needed for FKs
         if (self.consent_mode.consent_mode == ConsentMode.GREEN and
                 self.request_direct_approach):
+            # noinspection PyTypeChecker
             letter = Letter.create_researcher_approval(self)  # will save
             self.decided_send_to_researcher = True
             self.clinician_involvement = (
@@ -2069,6 +2071,7 @@ class ContactRequest(models.Model):
             researcher_emailaddr = self.study.lead_researcher.email
             try:
                 validate_email(researcher_emailaddr)
+                # noinspection PyTypeChecker
                 email = Email.create_researcher_approval_email(self, letter)
                 emailtransmission = email.send()
                 if emailtransmission.sent:
@@ -2141,6 +2144,7 @@ class ContactRequest(models.Model):
             self.decide("WARNING: clinician has already rejected a request "
                         "about this patient/study.")
 
+        # noinspection PyTypeChecker
         email = Email.create_clinician_email(self)
         # ... will also create a ClinicianResponse
         emailtransmission = email.send()
@@ -2184,11 +2188,13 @@ class ContactRequest(models.Model):
         self.consent_withdrawn = True
         self.consent_withdrawn_at = timezone.now()
         self.save()
+        # noinspection PyTypeChecker
         letter = Letter.create_researcher_withdrawal(self)  # will save
         researcher_emailaddr = self.study.lead_researcher.email
         email_succeeded = False
         try:
             validate_email(researcher_emailaddr)
+            # noinspection PyTypeChecker
             email = Email.create_researcher_withdrawal_email(self, letter)
             emailtransmission = email.send()
             email_succeeded = emailtransmission.sent
@@ -2463,7 +2469,7 @@ class ContactRequest(models.Model):
                                               start_recto=True)
 
     def get_mgr_admin_url(self):
-        from crate_anon.crateweb.core.admin import mgr_admin_site  # delayed import
+        from crate_anon.crateweb.core.admin import mgr_admin_site  # delayed import  # noqa
         return admin_view_url(mgr_admin_site, self)
 
 
@@ -2594,6 +2600,7 @@ class ClinicianResponse(models.Model):
         Part B: background.
         """
         if self.response == ClinicianResponse.RESPONSE_R:
+            # noinspection PyTypeChecker
             letter = Letter.create_request_to_patient(
                 self.contact_request, rdbm_may_view=True)
             # ... will save
@@ -2601,6 +2608,7 @@ class ClinicianResponse(models.Model):
             # ... will save
             self.contact_request.notify_rdbm_of_work(letter)
         elif self.response == ClinicianResponse.RESPONSE_A:
+            # noinspection PyTypeChecker
             Letter.create_request_to_patient(
                 self.contact_request, rdbm_may_view=False)
             # ... return value not used
@@ -2657,8 +2665,10 @@ class PatientResponse(Decision):
         #     modelrepr(self)))
         if self.response == PatientResponse.YES:
             contact_request = self.contact_request
+            # noinspection PyTypeChecker
             letter = Letter.create_researcher_approval(contact_request)
             # ... will save
+            # noinspection PyTypeChecker
             email = Email.create_researcher_approval_email(contact_request,
                                                            letter)
             emailtransmission = email.send()

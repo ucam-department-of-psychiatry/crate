@@ -77,7 +77,7 @@ def resend_email(email_id, user_id):
 @shared_task
 @task(ignore_result=True)
 def process_contact_request(contact_request_id):
-    from crate_anon.crateweb.consent.models import ContactRequest  # delayed import
+    from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
     contact_request = ContactRequest.objects.get(pk=contact_request_id)
     contact_request.process_request()
@@ -97,7 +97,7 @@ def finalize_clinician_response(clinician_response_id):
 @shared_task
 @task(ignore_result=True)
 def process_consent_change(consent_mode_id):
-    from crate_anon.crateweb.consent.models import ConsentMode  # delayed import
+    from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
     consent_mode.process_change()
 
@@ -106,7 +106,7 @@ def process_consent_change(consent_mode_id):
 @shared_task
 @task(ignore_result=True)
 def process_patient_response(patient_response_id):
-    from crate_anon.crateweb.consent.models import PatientResponse  # delayed import
+    from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
     patient_response.process_response()
 

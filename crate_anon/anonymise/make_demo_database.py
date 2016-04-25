@@ -35,6 +35,9 @@ import subprocess
 import cardinal_pythonlib.rnc_db as rnc_db
 
 
+ENCODING = 'utf8'
+
+
 def insert_patient(db, patient_id, forename, surname, dob, nhsnum, phone,
                    postcode):
     db.db_exec("""
@@ -121,7 +124,7 @@ def main():
         "-v", "'s",
         "-m", str(NWORDS),
         "/usr/share/dict/words"
-    ]).splitlines()
+    ]).decode(ENCODING).splitlines()
 
     # 2. Open database
 

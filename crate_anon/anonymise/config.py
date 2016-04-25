@@ -42,21 +42,11 @@ import os
 import pytz
 import urllib.parse
 
-from cardinal_pythonlib.rnc_config import (
-    read_config_multiline_options,
-    read_config_string_options,
-)
-from cardinal_pythonlib.rnc_datetime import (
-    format_datetime,
-)
+from cardinal_pythonlib.rnc_datetime import format_datetime
 import cardinal_pythonlib.rnc_db as rnc_db
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
-)
-from cardinal_pythonlib.rnc_lang import (
-    convert_attrs_to_bool,
-    convert_attrs_to_int,
 )
 
 from crate_anon.anonymise.constants import (
@@ -490,11 +480,6 @@ secret_map_tablename = secret_map
 
 secret_trid_cache_tablename = secret_trid_cache
 
-# Table name to use for the audit trail of various types of access.
-# Usually no need to change the default.
-
-audit_tablename = audit
-
 # Table name to use for the opt-out list of patient PKs.
 # Usually no need to change the default.
 
@@ -892,80 +877,68 @@ class DatabaseSafeConfig(object):
 
     def __init__(self, parser, section):
         """Read from a configparser section."""
-        self.ddgen_force_lower_case = None
-        self.ddgen_convert_odd_chars_to_underscore = None
-        self.ddgen_allow_no_patient_info = None
-        self.ddgen_per_table_pid_field = None
-        self.ddgen_master_pid_fieldname = None
-        self.ddgen_constant_content = None
-        self.ddgen_addition_only = None
-        self.ddgen_min_length_for_scrubbing = None
-        self.ddgen_allow_fulltext_indexing = None
-        self.debug_row_limit = None
-        read_config_string_options(self, parser, section, [
-            "ddgen_force_lower_case",
-            "ddgen_convert_odd_chars_to_underscore",
-            "ddgen_allow_no_patient_info",
-            "ddgen_per_table_pid_field",
-            "ddgen_master_pid_fieldname",
-            "ddgen_constant_content",
-            "ddgen_addition_only",
-            "ddgen_min_length_for_scrubbing",
-            "ddgen_allow_fulltext_indexing",
-            "debug_row_limit",
-        ])
+        if not parser.has_section(section):
+            raise ValueError("config missing section: " + section)
 
-        self.ddgen_pid_defining_fieldnames = None
-        self.ddgen_pk_fields = None
-        self.ddgen_table_blacklist = None
-        self.ddgen_field_blacklist = None
-        self.ddgen_scrubsrc_patient_fields = None
-        self.ddgen_scrubsrc_thirdparty_fields = None
-        self.ddgen_scrubmethod_code_fields = None
-        self.ddgen_scrubmethod_date_fields = None
-        self.ddgen_scrubmethod_number_fields = None
-        self.ddgen_scrubmethod_phrase_fields = None
-        self.ddgen_safe_fields_exempt_from_scrubbing = None
-        self.ddgen_truncate_date_fields = None
-        self.ddgen_filename_to_text_fields = None
-        self.ddgen_binary_to_text_field_pairs = None
-        self.ddgen_index_fields = None
-        self.debug_limited_tables = None
-        read_config_multiline_options(self, parser, section, [
-            "ddgen_pk_fields",
-            "ddgen_pid_defining_fieldnames",
-            "ddgen_table_blacklist",
-            "ddgen_field_blacklist",
-            "ddgen_scrubsrc_patient_fields",
-            "ddgen_scrubsrc_thirdparty_fields",
-            "ddgen_scrubmethod_code_fields",
-            "ddgen_scrubmethod_date_fields",
-            "ddgen_scrubmethod_number_fields",
-            "ddgen_scrubmethod_phrase_fields",
-            "ddgen_safe_fields_exempt_from_scrubbing",
-            "ddgen_truncate_date_fields",
-            "ddgen_filename_to_text_fields",
-            "ddgen_binary_to_text_field_pairs",
-            "ddgen_index_fields",
-            "debug_limited_tables",
-        ])
+        def opt_str(option):
+            return parser.get(section, option, fallback=None)
 
-        convert_attrs_to_bool(self, [
-            "ddgen_force_lower_case",
-            "ddgen_convert_odd_chars_to_underscore",
-            "ddgen_allow_fulltext_indexing",
-        ], default=True)
-        convert_attrs_to_bool(self, [
-            "ddgen_allow_no_patient_info",
-            "ddgen_constant_content",
-            "ddgen_addition_only",
-        ], default=False)
-        convert_attrs_to_int(self, [
-            "debug_row_limit",
-            "ddgen_min_length_for_scrubbing",
-        ], default=0)
+        def opt_multiline(option):
+            multiline = parser.get(section, option, fallback='')
+            return [x.strip() for x in multiline.splitlines() if x.strip()]
+
+        def opt_bool(option, default):
+            return parser.getboolean(section, option, fallback=default)
+
+        def opt_int(option, default):
+            return parser.getint(section, option, fallback=default)
+
+        self.ddgen_force_lower_case = opt_bool('ddgen_force_lower_case', True)
+        self.ddgen_convert_odd_chars_to_underscore = opt_bool(
+            'ddgen_convert_odd_chars_to_underscore', True)
+        self.ddgen_allow_no_patient_info = opt_bool(
+            'ddgen_allow_no_patient_info', False)
+        self.ddgen_per_table_pid_field = opt_str('ddgen_per_table_pid_field')
+        self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
+        self.ddgen_constant_content = opt_bool(
+            'ddgen_constant_content', False)
+        self.ddgen_addition_only = opt_bool('ddgen_addition_only', False)
+        self.ddgen_min_length_for_scrubbing = opt_int(
+            'ddgen_min_length_for_scrubbing', 0)
+        self.ddgen_allow_fulltext_indexing = opt_bool(
+            'ddgen_allow_fulltext_indexing', True)
+        self.debug_row_limit = opt_int('debug_row_limit', 0)
+
+        self.ddgen_pid_defining_fieldnames = opt_multiline(
+            'ddgen_pid_defining_fieldnames')
+        self.ddgen_pk_fields = opt_multiline('ddgen_pk_fields')
+        self.ddgen_table_blacklist = opt_multiline('ddgen_table_blacklist')
+        self.ddgen_field_blacklist = opt_multiline('ddgen_field_blacklist')
+        self.ddgen_scrubsrc_patient_fields = opt_multiline(
+            'ddgen_scrubsrc_patient_fields')
+        self.ddgen_scrubsrc_thirdparty_fields = opt_multiline(
+            'ddgen_scrubsrc_thirdparty_fields')
+        self.ddgen_scrubmethod_code_fields = opt_multiline(
+            'ddgen_scrubmethod_code_fields')
+        self.ddgen_scrubmethod_date_fields = opt_multiline(
+            'ddgen_scrubmethod_date_fields')
+        self.ddgen_scrubmethod_number_fields = opt_multiline(
+            'ddgen_scrubmethod_number_fields')
+        self.ddgen_scrubmethod_phrase_fields = opt_multiline(
+            'ddgen_scrubmethod_phrase_fields')
+        self.ddgen_safe_fields_exempt_from_scrubbing = opt_multiline(
+            'ddgen_safe_fields_exempt_from_scrubbing')
+        self.ddgen_truncate_date_fields = opt_multiline(
+            'ddgen_truncate_date_fields')
+        self.ddgen_filename_to_text_fields = opt_multiline(
+            'ddgen_filename_to_text_fields')
+        self.ddgen_index_fields = opt_multiline('ddgen_index_fields')
+        self.debug_limited_tables = opt_multiline('debug_limited_tables')
+
+        ddgen_binary_to_text_field_pairs = opt_multiline(
+            'ddgen_binary_to_text_field_pairs')
         self.bin2text_dict = {}
-        for pair in self.ddgen_binary_to_text_field_pairs:
+        for pair in ddgen_binary_to_text_field_pairs:
             items = [item.strip() for item in pair.split(",")]
             if len(items) != 2:
                 raise ValueError("ddgen_binary_to_text_field_pairs: specify "
@@ -979,54 +952,6 @@ class DatabaseSafeConfig(object):
 
 class Config(object):
     """Class representing the main configuration."""
-
-    MAIN_HEADINGS = [
-        "data_dictionary_filename",
-        "hash_method",
-        "ddgen_master_pid_fieldname",
-        "per_table_patient_id_encryption_phrase",
-        "master_patient_id_encryption_phrase",
-        "change_detection_encryption_phrase",
-        "replace_patient_info_with",
-        "replace_third_party_info_with",
-        "replace_nonspecific_info_with",
-        "string_max_regex_errors",
-        "min_string_length_for_errors",
-        "min_string_length_to_scrub_with",
-        "scrub_all_uk_postcodes",
-        "anonymise_codes_at_word_boundaries_only",
-        "anonymise_dates_at_word_boundaries_only",
-        "anonymise_numbers_at_word_boundaries_only",
-        "anonymise_strings_at_word_boundaries_only",
-        "mapping_patient_id_fieldname",
-        "research_id_fieldname",
-        "trid_fieldname",
-        "mapping_master_id_fieldname",
-        "master_research_id_fieldname",
-        "source_hash_fieldname",
-        "date_to_text_format",
-        "datetime_to_text_format",
-        "append_source_info_to_comment",
-        "open_databases_securely",
-        "max_rows_before_commit",
-        "max_bytes_before_commit",
-        "temporary_tablename",
-        "secret_map_tablename",
-        "secret_trid_cache_tablename",
-        "audit_tablename",
-        "opt_out_tablename",
-        "destination_database",
-        "admin_database",
-        "debug_max_n_patients",
-    ]
-    MAIN_MULTILINE_HEADINGS = [
-        "scrub_string_suffixes",
-        "whitelist_filenames",
-        "blacklist_filenames",
-        "scrub_all_numbers_of_n_digits",
-        "source_databases",
-        "debug_pid_list",
-    ]
 
     def __init__(self):
         """Set some defaults."""
@@ -1062,7 +987,6 @@ class Config(object):
         self.temporary_tablename = None
         self.secret_map_tablename = None
         self.secret_trid_cache_tablename = None
-        self.audit_tablename = None
         self.opt_out_tablename = None
         self.destination_database = None
         self.admin_database = None
@@ -1227,35 +1151,90 @@ class Config(object):
         log.debug("Opening config: {}".format(self.config_filename))
         parser = configparser.RawConfigParser()
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
-        read_config_string_options(self, parser, "main", Config.MAIN_HEADINGS)
-        read_config_multiline_options(self, parser, "main",
-                                      Config.MAIN_MULTILINE_HEADINGS)
-        # Processing of parameters
-        convert_attrs_to_bool(self, [
-            "scrub_all_uk_postcodes",
-            "anonymise_codes_at_word_boundaries_only",
-            "anonymise_dates_at_word_boundaries_only",
-            "anonymise_numbers_at_word_boundaries_only",
-            "anonymise_strings_at_word_boundaries_only",
-            "append_source_info_to_comment",
-            "open_databases_securely",
-        ])
-        convert_attrs_to_int(self, [
-            "string_max_regex_errors",
-            "min_string_length_for_errors",
-            "min_string_length_to_scrub_with",
-            "max_rows_before_commit",
-            "max_bytes_before_commit",
-        ])
-        convert_attrs_to_int(self, [
-            "debug_max_n_patients",
-        ], default=0)
+        section = "main"
 
-        # These should all be integers:
-        self.scrub_all_numbers_of_n_digits = [
-            int(x) for x in self.scrub_all_numbers_of_n_digits if int(x) > 0]
-        self.debug_pid_list = self.debug_pid_list or []  # replace None
-        self.debug_pid_list = [int(x) for x in self.debug_pid_list if x]
+        def opt_str(option):
+            return parser.get(section, option, fallback=None)
+
+        def opt_multiline(option):
+            multiline = parser.get(section, option, fallback='')
+            return [x.strip() for x in multiline.splitlines() if x.strip()]
+
+        def opt_multiline_int(option, minimum=None, maximum=None):
+            values = [int(x) for x in opt_multiline(option) if x]
+            if minimum is not None:
+                values = [x for x in values if x >= minimum]
+            if maximum is not None:
+                values = [x for x in values if x <= maximum]
+            return values
+
+        def opt_bool(option, default):
+            return parser.getboolean(section, option, fallback=default)
+
+        def opt_int(option, default):
+            return parser.getint(section, option, fallback=default)
+
+        self.data_dictionary_filename = opt_str('data_dictionary_filename')
+        self.hash_method = opt_str('hash_method')
+        self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
+        self.per_table_patient_id_encryption_phrase = opt_str(
+            'per_table_patient_id_encryption_phrase')
+        self.master_patient_id_encryption_phrase = opt_str(
+            'master_patient_id_encryption_phrase')
+        self.change_detection_encryption_phrase = opt_str(
+            'change_detection_encryption_phrase')
+        self.replace_patient_info_with = opt_str('replace_patient_info_with')
+        self.replace_third_party_info_with = opt_str(
+            'replace_third_party_info_with')
+        self.replace_nonspecific_info_with = opt_str(
+            'replace_nonspecific_info_with')
+        self.string_max_regex_errors = opt_int('string_max_regex_errors', 0)
+        self.min_string_length_for_errors = opt_int(
+            'min_string_length_for_errors', 1)
+        self.min_string_length_to_scrub_with = opt_int(
+            'min_string_length_to_scrub_with', 2)
+        self.scrub_all_uk_postcodes = opt_bool('scrub_all_uk_postcodes', False)
+        self.anonymise_codes_at_word_boundaries_only = opt_bool(
+            'anonymise_codes_at_word_boundaries_only', True)
+        self.anonymise_dates_at_word_boundaries_only = opt_bool(
+            'anonymise_dates_at_word_boundaries_only', True)
+        self.anonymise_numbers_at_word_boundaries_only = opt_bool(
+            'anonymise_numbers_at_word_boundaries_only', False)
+        self.anonymise_strings_at_word_boundaries_only = opt_bool(
+            'anonymise_strings_at_word_boundaries_only', True)
+        self.mapping_patient_id_fieldname = opt_str(
+            'mapping_patient_id_fieldname')
+        self.research_id_fieldname = opt_str('research_id_fieldname')
+        self.trid_fieldname = opt_str('trid_fieldname')
+        self.mapping_master_id_fieldname = opt_str(
+            'mapping_master_id_fieldname')
+        self.master_research_id_fieldname = opt_str(
+            'master_research_id_fieldname')
+        self.source_hash_fieldname = opt_str('source_hash_fieldname')
+        self.date_to_text_format = opt_str('date_to_text_format')
+        self.datetime_to_text_format = opt_str('datetime_to_text_format')
+        self.append_source_info_to_comment = opt_bool(
+            'append_source_info_to_comment', True)
+        self.open_databases_securely = opt_bool(
+            'open_databases_securely', True)
+        self.max_rows_before_commit = opt_int('max_rows_before_commit', None)
+        self.max_bytes_before_commit = opt_int('max_bytes_before_commit', None)
+        self.temporary_tablename = opt_str('temporary_tablename')
+        self.secret_map_tablename = opt_str('secret_map_tablename')
+        self.secret_trid_cache_tablename = opt_str(
+            'secret_trid_cache_tablename')
+        self.opt_out_tablename = opt_str('opt_out_tablename')
+        self.destination_database = opt_str('destination_database')
+        self.admin_database = opt_str('admin_database')
+        self.debug_max_n_patients = opt_int('debug_max_n_patients', 0)
+
+        self.scrub_string_suffixes = opt_multiline('scrub_string_suffixes')
+        self.whitelist_filenames = opt_multiline('whitelist_filenames')
+        self.blacklist_filenames = opt_multiline('blacklist_filenames')
+        self.scrub_all_numbers_of_n_digits = opt_multiline_int(
+            'scrub_all_numbers_of_n_digits', minimum=1)
+        self.source_databases = opt_multiline('source_databases')
+        self.debug_pid_list = opt_multiline_int('debug_pid_list')
 
         # Databases
         if self.destination_database == self.admin_database:
@@ -1365,9 +1344,6 @@ class Config(object):
         if not self.secret_trid_cache_tablename:
             raise ValueError("No secret_trid_cache_tablename specified.")
         ensure_valid_table_name(self.secret_trid_cache_tablename)
-        if not self.audit_tablename:
-            raise ValueError("No audit_tablename specified.")
-        ensure_valid_table_name(self.audit_tablename)
         if not self.opt_out_tablename:
             raise ValueError("No opt_out_tablename specified.")
         ensure_valid_table_name(self.opt_out_tablename)

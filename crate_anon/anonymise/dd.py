@@ -56,9 +56,8 @@ from cardinal_pythonlib.rnc_db import (
     is_sqltype_valid,
 )
 from cardinal_pythonlib.rnc_lang import (
-    convert_attrs_to_bool,
-    convert_attrs_to_int,
-    convert_attrs_to_uppercase,
+    convert_to_bool,
+    convert_to_int,
     count_bool,
     raise_if_attr_blank,
 )
@@ -294,31 +293,30 @@ class DataDictionaryRow(object):
                                  self.src_table,
                                  self.src_field)
 
-    def set_from_elements(self, elements):
+    def set_from_dict(self, valuedict):
         """
-        Set internal fields from a list of elements representing a row from the
+        Set internal fields from a dict of elements representing a row from the
         TSV data dictionary file.
         """
-        if len(elements) != len(DataDictionaryRow.ROWNAMES):
-            raise ValueError("Bad data dictionary row. Values:\n" +
-                             "\n".join(elements))
-        for i in range(len(elements)):
-            setattr(self, DataDictionaryRow.ROWNAMES[i], elements[i])
-        convert_attrs_to_bool(self, [
-            "omit",
-        ])
-        convert_attrs_to_uppercase(self, [
-            "src_datatype",
-            "dest_datatype",
-        ])
-        convert_attrs_to_int(self, [
-            "indexlen"
-        ])
+        self.src_db = valuedict['src_db']
+        self.src_table = valuedict['src_table']
+        self.src_field = valuedict['src_field']
+        self.src_datatype = valuedict['src_datatype'].upper()
+        self.src_flags = valuedict['src_flags']  # a property
+        self.scrub_src = valuedict['scrub_src']
+        self.scrub_method = valuedict['scrub_method']
+        self.omit = convert_to_bool(valuedict['omit'])
+        self.alter_method = valuedict['alter_method']  # a property
+        self.dest_table = valuedict['dest_table']
+        self.dest_field = valuedict['dest_field']
+        self.dest_datatype = valuedict['dest_datatype'].upper()
+        self.index = valuedict['index']
+        self.indexlen = convert_to_int(valuedict['indexlen'])
+        self.comment = valuedict['comment']
         self._from_file = True
         self.check_valid()
 
-    # noinspection PyUnusedLocal
-    def set_from_src_db_info(self, db, table, field, datatype_short,
+    def set_from_src_db_info(self, db, table, field,
                              datatype_full, cfg, comment=None,
                              default_omit=True):
         """
@@ -744,17 +742,18 @@ class DataDictionary(object):
         log.debug("Opening data dictionary: {}".format(filename))
         with open(filename, 'r') as tsvfile:
             tsv = csv.reader(tsvfile, delimiter='\t')
-            headerlist = next(tsv)
-            if headerlist != DataDictionaryRow.ROWNAMES:
+            headers = next(tsv)
+            if not all(x in headers for x in DataDictionaryRow.ROWNAMES):
                 raise ValueError(
                     "Bad data dictionary file. Must be a tab-separated value "
                     "(TSV) file with the following row headings:\n" +
                     "\n".join(DataDictionaryRow.ROWNAMES)
                 )
             log.debug("Data dictionary has correct header. Loading content...")
-            for rowelements in tsv:
+            for values in tsv:
+                valuedict = dict(zip(headers, values))
                 ddr = DataDictionaryRow(self.config)
-                ddr.set_from_elements(rowelements)
+                ddr.set_from_dict(valuedict)
                 self.rows.append(ddr)
             log.debug("... content loaded.")
         self.clear_caches()
@@ -792,7 +791,7 @@ class DataDictionary(object):
                     log.debug("... reading source field {}".format(i))
                 t = r[0]
                 f = r[1]
-                datatype_short = r[2].upper()
+                # datatype_short = r[2].upper()
                 datatype_full = r[3].upper()
                 c = r[4]
                 if cfg.ddgen_force_lower_case:
@@ -803,7 +802,7 @@ class DataDictionary(object):
                     continue
                 ddr = DataDictionaryRow(self.config)
                 ddr.set_from_src_db_info(
-                    pretty_dbname, t, f, datatype_short,
+                    pretty_dbname, t, f,
                     datatype_full,
                     cfg=cfg,
                     comment=c,

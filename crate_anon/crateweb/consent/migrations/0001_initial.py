@@ -7,7 +7,9 @@ import crate_anon.crateweb.consent.models as consent_models
 import crate_anon.crateweb.consent.storage as consent_storage
 import crate_anon.crateweb.extra.fields as extra_fields
 
-#***warning*** some fields hard-code a local file path in /home/rudolf/... *** CHANGE ***
+# ***warning*** some fields hard-code a local file path in /home/rudolf/...
+# ... edited; no default is OK here; see
+# https://docs.djangoproject.com/en/1.9/ref/files/storage/#the-filesystemstorage-class  # noqa
 
 
 class Migration(migrations.Migration):
@@ -167,7 +169,7 @@ class Migration(migrations.Migration):
             name='EmailAttachment',
             fields=[
                 ('id', models.AutoField(auto_created=True, serialize=False, primary_key=True, verbose_name='ID')),  # noqa
-                ('file', models.FileField(upload_to='', storage=consent_storage.CustomFileSystemStorage(location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage', base_url='download_privatestorage'))),  # noqa
+                ('file', models.FileField(upload_to='', storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
                 ('sent_filename', models.CharField(null=True, max_length=255)),
                 ('content_type', models.CharField(null=True, max_length=255)),
                 ('owns_file', models.BooleanField(default=False)),
@@ -190,7 +192,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, serialize=False, primary_key=True, verbose_name='ID')),  # noqa
                 ('name', models.CharField(choices=[('cpft_tpir', 'CPFT: Taking part in research'), ('nihr_yhrsl', 'NIHR: Your health records save lives'), ('cpft_trafficlight_choice', 'CPFT: traffic-light choice'), ('cpft_clinres', 'CPFT: clinical research')], verbose_name='leaflet name', unique=True, max_length=50)),  # noqa
-                ('pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.leaflet_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage', base_url='download_privatestorage'))),  # noqa
+                ('pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.leaflet_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -198,7 +200,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, serialize=False, primary_key=True, verbose_name='ID')),  # noqa
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='When created')),  # noqa
-                ('pdf', models.FileField(upload_to='', storage=consent_storage.CustomFileSystemStorage(location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage', base_url='download_privatestorage'))),  # noqa
+                ('pdf', models.FileField(upload_to='', storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
                 ('to_clinician', models.BooleanField(default=False)),
                 ('to_researcher', models.BooleanField(default=False)),
                 ('to_patient', models.BooleanField(default=False)),
@@ -307,8 +309,8 @@ class Migration(migrations.Migration):
                 ('rec_reference', models.CharField(blank=True, verbose_name='Research Ethics Committee reference', max_length=50)),  # noqa
                 ('approved_locally', models.BooleanField(verbose_name='Approved by local institution?')),  # noqa
                 ('local_approval_at', models.DateTimeField(blank=True, null=True, verbose_name='When approved by local institution?')),  # noqa
-                ('study_details_pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.study_details_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage', base_url='download_privatestorage'))),  # noqa
-                ('subject_form_template_pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.study_form_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage', base_url='download_privatestorage'))),  # noqa
+                ('study_details_pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.study_details_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
+                ('subject_form_template_pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.study_form_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
                 ('lead_researcher', models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='studies_as_lead')),  # noqa
                 ('researchers', models.ManyToManyField(to=settings.AUTH_USER_MODEL, blank=True, related_name='studies_as_researcher')),  # noqa
             ],

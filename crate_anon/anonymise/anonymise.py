@@ -37,9 +37,9 @@ import multiprocessing
 import operator
 import os
 import random
-import signal
+# import signal
 import sys
-import threading
+# import threading
 
 from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
@@ -68,29 +68,6 @@ from crate_anon.anonymise.patient import Patient
 from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Predefined fieldspecs
-# =============================================================================
-
-AUDIT_FIELDSPECS = [
-    dict(name="id", sqltype=BIGINT_UNSIGNED, pk=True, autoincrement=True,
-         comment="Arbitrary primary key"),
-    dict(name="when_access_utc", sqltype="DATETIME", notnull=True,
-         comment="Date/time of access (UTC)", indexed=True),
-    dict(name="source", sqltype="VARCHAR(20)", notnull=True,
-         comment="Source (e.g. tablet, webviewer)"),
-    dict(name="remote_addr",
-         sqltype="VARCHAR(45)",  # http://stackoverflow.com/questions/166132
-         comment="IP address of the remote computer"),
-    dict(name="user", sqltype="VARCHAR(255)",
-         comment="User name, where applicable"),
-    dict(name="query", sqltype="TEXT",
-         comment="SQL query (with arguments)"),
-    dict(name="details", sqltype="TEXT",
-         comment="Details of the access"),
-]
 
 
 # =============================================================================
@@ -149,12 +126,6 @@ def makeadmintable(admindb, tablename, fieldspecs):
                                    compressed=False)
     if not admindb.mysql_table_using_barracuda(tablename):
         admindb.mysql_convert_table_to_barracuda(tablename, compressed=False)
-
-
-def recreate_audit_table(admindb):
-    """Create/recreate the audit table (in the admin database)."""
-    log.debug("recreate_audit_table")
-    makeadmintable(admindb, config.audit_tablename, AUDIT_FIELDSPECS)
 
 
 def recreate_opt_out_table(admindb):
@@ -425,39 +396,6 @@ def commit(destdb):
     destdb.commit()
     config.rows_in_transaction = 0
     config.bytes_in_transaction = 0
-
-
-# =============================================================================
-# Audit
-# =============================================================================
-
-def audit(details,
-          from_console=False, remote_addr=None, user=None, query=None):
-    """
-    Write an entry to the audit log (in the admin database).
-    """
-    if not remote_addr:
-        remote_addr = config.session.ip_address if config.session else None
-    if not user:
-        user = config.session.user if config.session else None
-    if from_console:
-        source = "console"
-    else:
-        source = "webviewer"
-    config.admindb.db_exec(
-        """
-            INSERT INTO {table}
-                (when_access_utc, source, remote_addr, user, query, details)
-            VALUES
-                (?,?,?,?,?,?)
-        """.format(table=config.audit_tablename),
-        config.NOW_UTC_NO_TZ,  # when_access_utc
-        source,
-        remote_addr,
-        user,
-        query,
-        details
-    )
 
 
 # =============================================================================
@@ -927,45 +865,45 @@ def create_indexes(tasknum=0, ntasks=1):
         # Index creation doesn't require a commit.
 
 
-class PatientThread(threading.Thread):
-    """
-    Class for patient processing in a multithreaded environment.
-    (DEPRECATED: use multiple processes instead.)
-    """
-    def __init__(self, sources, destdb, admindb, nthreads, threadnum,
-                 abort_event, subthread_error_event,
-                 incremental):
-        """Initialize the thread."""
-        threading.Thread.__init__(self)
-        self.sources = sources
-        self.destdb = destdb
-        self.admindb = admindb
-        self.nthreads = nthreads
-        self.threadnum = threadnum
-        self.abort_event = abort_event
-        self.subthread_error_event = subthread_error_event
-        self.exception = None
-        self.incremental = incremental
-
-    def run(self):
-        """Run the thread."""
-        try:
-            patient_processing_fn(
-                self.sources, self.destdb, self.admindb,
-                tasknum=self.threadnum, ntasks=self.nthreads,
-                abort_event=self.abort_event,
-                incremental=self.incremental)
-        except Exception as e:
-            log.exception(
-                "Setting subthread_error_event from thread {}".format(
-                    self.threadnum))
-            self.subthread_error_event.set()
-            self.exception = e
-            raise e  # to kill the thread
-
-    def get_exception(self):
-        """Return stored exception information."""
-        return self.exception
+# class PatientThread(threading.Thread):
+#     """
+#     Class for patient processing in a multithreaded environment.
+#     (DEPRECATED: use multiple processes instead.)
+#     """
+#     def __init__(self, sources, destdb, admindb, nthreads, threadnum,
+#                  abort_event, subthread_error_event,
+#                  incremental):
+#         """Initialize the thread."""
+#         threading.Thread.__init__(self)
+#         self.sources = sources
+#         self.destdb = destdb
+#         self.admindb = admindb
+#         self.nthreads = nthreads
+#         self.threadnum = threadnum
+#         self.abort_event = abort_event
+#         self.subthread_error_event = subthread_error_event
+#         self.exception = None
+#         self.incremental = incremental
+#
+#     def run(self):
+#         """Run the thread."""
+#         try:
+#             patient_processing_fn(
+#                 self.sources, self.destdb, self.admindb,
+#                 tasknum=self.threadnum, ntasks=self.nthreads,
+#                 abort_event=self.abort_event,
+#                 incremental=self.incremental)
+#         except Exception as e:
+#             log.exception(
+#                 "Setting subthread_error_event from thread {}".format(
+#                     self.threadnum))
+#             self.subthread_error_event.set()
+#             self.exception = e
+#             raise e  # to kill the thread
+#
+#     def get_exception(self):
+#         """Return stored exception information."""
+#         return self.exception
 
 
 def patient_processing_fn(sources, destdb, admindb,
@@ -1130,7 +1068,6 @@ def drop_remake(incremental=False):
     If incremental is True, doesn't drop tables; just deletes destination
     information where source information no longer exists.
     """
-    recreate_audit_table(config.admindb)
     recreate_opt_out_table(config.admindb)
     wipe_and_recreate_mapping_table(config.admindb, incremental=incremental)
     wipe_and_recreate_trid_cache(config.admindb, incremental=incremental)
@@ -1170,94 +1107,96 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
         commit(config.destdb)
 
 
-def process_patient_tables(nthreads=1, process=0, nprocesses=1,
+def process_patient_tables(process=0, nprocesses=1,  # nthreads=1,
                            incremental=False):
     """
     Process all patient tables, optionally in a parallel-processing fashion.
     """
     # We'll use multiple destination tables, so commit right at the end.
 
-    # noinspection PyUnusedLocal
-    def ctrl_c_handler(signum, frame):
-        log.exception("CTRL-C")
-        abort_threads()
+    # def ctrl_c_handler(signum, frame):
+    #     log.exception("CTRL-C")
+    #     abort_threads()
 
-    def abort_threads():
-        abort_event.set()  # threads will notice and terminate themselves
+    # def abort_threads():
+    #     abort_event.set()  # threads will notice and terminate themselves
 
     log.info(SEP + "Patient tables")
-    if nthreads == 1 and nprocesses == 1:
+    # if nthreads == 1 and nprocesses == 1:
+    if nprocesses == 1:
         log.info("Single-threaded, single-process mode")
         patient_processing_fn(
             config.sources, config.destdb, config.admindb,
             tasknum=0, ntasks=1, multiprocess=False,
             incremental=incremental)
-    elif nprocesses > 1:
+    # elif nprocesses > 1:
+    else:
         log.info("PROCESS {} (numbered from zero) OF {} PROCESSES".format(
             process, nprocesses))
         patient_processing_fn(
             config.sources, config.destdb, config.admindb,
             tasknum=process, ntasks=nprocesses, multiprocess=True,
             incremental=incremental)
-    else:
-        log.info(SEP + "ENTERING SINGLE-PROCESS, MULTITHREADING MODE")
-        signal.signal(signal.SIGINT, ctrl_c_handler)
-        threads = []
-        mainthreadprefix = "Main thread: "
-        # Start the threads. Each needs its own set of database connections.
-        abort_event = threading.Event()
-        abort_event.clear()
-        subthread_error_event = threading.Event()
-        subthread_error_event.clear()
-        for threadnum in range(nthreads):
-            destdb = config.get_database("destination_database")
-            admindb = config.get_database("admin_database")
-            sources = {}
-            for srcname in config.src_db_names:
-                sources[srcname] = config.get_database(srcname)
-            thread = PatientThread(sources, destdb, admindb,
-                                   nthreads, threadnum,
-                                   abort_event, subthread_error_event,
-                                   incremental)
-            thread.start()
-            threads.append(thread)
-            log.info(mainthreadprefix + "Started thread {}".format(threadnum))
-        # Run; wait for the threads to finish, or crash, or for a user abort
-        try:
-            running = True
-            while running:
-                # log.debug(mainthreadprefix + "ping")
-                running = False
-                if subthread_error_event.is_set():
-                    log.exception(mainthreadprefix + "A thread has crashed")
-                    for t in threads:
-                        e = t.get_exception()
-                        if e:
-                            log.exception(
-                                mainthreadprefix +
-                                "Found crashed thread {}".format(
-                                    t.threadnum))
-                            raise e
-                else:
-                    for t in threads:
-                        if t.is_alive():
-                            running = True
-                            t.join(1)  # timeout so it does NOT block
-                        else:
-                            log.debug(
-                                mainthreadprefix +
-                                "Found finished thread {}".format(
-                                    t.threadnum))
-                # time.sleep(1)
-        except Exception as e:
-            log.exception(mainthreadprefix +
-                          "Exception detected in main thread")
-            abort_threads()
-            raise e  # will terminate main thread
-        log.info(SEP + "LEAVING MULTITHREADING MODE")
-        if abort_event.is_set():
-            log.exception("Threads terminated abnormally")
-            raise Exception("Threads terminated abnormally")
+    # else:
+    #     log.info(SEP + "ENTERING SINGLE-PROCESS, MULTITHREADING MODE")
+    #     signal.signal(signal.SIGINT, ctrl_c_handler)
+    #     threads = []
+    #     mainthreadprefix = "Main thread: "
+    #     # Start the threads. Each needs its own set of database connections.
+    #     abort_event = threading.Event()
+    #     abort_event.clear()
+    #     subthread_error_event = threading.Event()
+    #     subthread_error_event.clear()
+    #     for threadnum in range(nthreads):
+    #         destdb = config.get_database("destination_database")
+    #         admindb = config.get_database("admin_database")
+    #         sources = {}
+    #         for srcname in config.src_db_names:
+    #             sources[srcname] = config.get_database(srcname)
+    #         thread = PatientThread(sources, destdb, admindb,
+    #                                nthreads, threadnum,
+    #                                abort_event, subthread_error_event,
+    #                                incremental)
+    #         thread.start()
+    #         threads.append(thread)
+    #         log.info(mainthreadprefix +
+    #                  "Started thread {}".format(threadnum))
+    #     # Run; wait for the threads to finish, or crash, or for a user abort
+    #     try:
+    #         running = True
+    #         while running:
+    #             # log.debug(mainthreadprefix + "ping")
+    #             running = False
+    #             if subthread_error_event.is_set():
+    #                 log.exception(mainthreadprefix + "A thread has crashed")
+    #                 for t in threads:
+    #                     e = t.get_exception()
+    #                     if e:
+    #                         log.exception(
+    #                             mainthreadprefix +
+    #                             "Found crashed thread {}".format(
+    #                                 t.threadnum))
+    #                         raise e
+    #             else:
+    #                 for t in threads:
+    #                     if t.is_alive():
+    #                         running = True
+    #                         t.join(1)  # timeout so it does NOT block
+    #                     else:
+    #                         log.debug(
+    #                             mainthreadprefix +
+    #                             "Found finished thread {}".format(
+    #                                 t.threadnum))
+    #             # time.sleep(1)
+    #     except Exception as e:
+    #         log.exception(mainthreadprefix +
+    #                       "Exception detected in main thread")
+    #         abort_threads()
+    #         raise e  # will terminate main thread
+    #     log.info(SEP + "LEAVING MULTITHREADING MODE")
+    #     if abort_event.is_set():
+    #         log.exception("Threads terminated abnormally")
+    #         raise Exception("Threads terminated abnormally")
     if nprocesses > 1:
         log.info("Process {}: FINISHED ANONYMISATION".format(process))
     else:
@@ -1316,7 +1255,7 @@ Sample usage:
         prog=os.path.basename(sys.argv[0]),
         version=version,
     )
-    ncpus = multiprocessing.cpu_count()
+    # ncpus = multiprocessing.cpu_count()
 
     parser = argparse.ArgumentParser(
         description=description,
@@ -1327,10 +1266,10 @@ Sample usage:
     parser.add_argument('-r', '--report', nargs="?", type=int, default=1000,
                         help="Report insert progress every n rows in verbose "
                              "mode (default 1000)")
-    parser.add_argument('-t', '--threads', nargs="?", type=int, default=1,
-                        help="For multithreaded mode: number of threads to "
-                             "use (default 1; this machine has {} "
-                             "CPUs)".format(ncpus))
+    # parser.add_argument('-t', '--threads', nargs="?", type=int, default=1,
+    #                     help="For multithreaded mode: number of threads to "
+    #                          "use (default 1; this machine has {} "
+    #                          "CPUs)".format(ncpus))
     parser.add_argument("configfile", nargs="?",
                         help="Configuration file name")
     parser.add_argument("--process", nargs="?", type=int, default=0,
@@ -1396,20 +1335,20 @@ Sample usage:
         log.error(
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
         fail()
-    if args.nprocesses > 1 and args.threads > 1:
-        log.error("Can't use multithreading and multi-process mode. "
-                  "In multi-process mode, specify --threads=1")
-        fail()
+    # if args.nprocesses > 1 and args.threads > 1:
+    #     log.error("Can't use multithreading and multi-process mode. "
+    #               "In multi-process mode, specify --threads=1")
+    #     fail()
     # Inefficient code but helpful error messages:
-    if args.threads > 1 and args.dropremake:
-        log.error("Can't use nthreads > 1 with --dropremake")
-        fail()
-    if args.threads > 1 and args.nonpatienttables:
-        log.error("Can't use nthreads > 1 with --nonpatienttables")
-        fail()
-    if args.threads > 1 and args.index:
-        log.error("Can't use nthreads > 1 with --index")
-        fail()
+    # if args.threads > 1 and args.dropremake:
+    #     log.error("Can't use nthreads > 1 with --dropremake")
+    #     fail()
+    # if args.threads > 1 and args.nonpatienttables:
+    #     log.error("Can't use nthreads > 1 with --nonpatienttables")
+    #     fail()
+    # if args.threads > 1 and args.index:
+    #     log.error("Can't use nthreads > 1 with --index")
+    #     fail()
     if args.nprocesses > 1 and args.dropremake:
         log.error("Can't use nprocesses > 1 with --dropremake")
         fail()
@@ -1482,8 +1421,8 @@ Sample usage:
     #    Process PER PATIENT, across all tables, because we have to synthesize
     #    information to scrub across the entirety of that patient's record.
     if args.patienttables or everything:
-        process_patient_tables(nthreads=args.threads,
-                               process=args.process,
+        process_patient_tables(process=args.process,
+                               # nthreads=args.threads,
                                nprocesses=args.nprocesses,
                                incremental=args.incremental)
 

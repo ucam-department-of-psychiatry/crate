@@ -1034,9 +1034,9 @@ def gen_text(config, ifconfig, tasknum=0, ntasks=1):
     if 1 < ntasks <= tasknum:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
-    threadcondition = ""
+    taskcondition = ""
     if ntasks > 1:
-        threadcondition = """
+        taskcondition = """
             WHERE {pkfield} % {ntasks} = {tasknum}
         """.format(
             pkfield=ifconfig.srcpkfield,
@@ -1046,13 +1046,13 @@ def gen_text(config, ifconfig, tasknum=0, ntasks=1):
     sql = """
         SELECT {pkfield}, {textfield}
         FROM {table}
-        {threadcondition}
+        {taskcondition}
         ORDER BY {pkfield}
     """.format(
         pkfield=ifconfig.srcpkfield,
         textfield=ifconfig.srcfield,
         table=ifconfig.srctable,
-        threadcondition=threadcondition,
+        taskcondition=taskcondition,
     )
     db = config.databases[ifconfig.srcdb]
     cursor = db.cursor()
