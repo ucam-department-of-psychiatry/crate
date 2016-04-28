@@ -463,8 +463,8 @@ def structure_tsv(request):
 # SQL helpers
 # =============================================================================
 
-def textmatch(column_name, fragment, as_fulltext):
-    if as_fulltext:
+def textmatch(column_name, fragment, as_fulltext, dialect='mysql'):
+    if as_fulltext and dialect == 'mysql':
         return "MATCH({column}) AGAINST ('{fragment}')".format(
             column=column_name, fragment=fragment)
     else:

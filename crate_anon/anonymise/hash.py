@@ -29,7 +29,6 @@ Copyright/licensing:
 
 import hashlib
 import hmac
-import random
 
 
 # =============================================================================
@@ -40,56 +39,6 @@ class GenericHasher(object):
     def hash(self, raw):
         """The public interface to a hasher."""
         raise NotImplementedError()
-
-
-# =============================================================================
-# Integer one-time pad, used for transient research ID (TRID).
-# =============================================================================
-
-class RandomIntegerHasher(GenericHasher):
-    """You should have called random.seed() ONCE before using this."""
-    def __init__(self, db, table, inputfield, outputfield,
-                 min_value=None, max_value=None):
-        self.db = db
-        self.table = table
-        self.inputfield = inputfield
-        self.outputfield = outputfield
-        self.min_value = min_value
-        self.max_value = max_value
-        self.already_exists_sql = """
-            SELECT EXISTS(SELECT 1 FROM {table} WHERE {outputfield}=?)
-        """.format(
-            table=self.table,
-            outputfield=self.outputfield,
-        )
-        self.insert_sql = """
-            INSERT INTO {table} ({inputfield}, {outputfield}) VALUES (?, ?)
-        """.format(
-            table=self.table,
-            inputfield=self.inputfield,
-            outputfield=self.outputfield,
-        )
-
-    def already_exists(self, value):
-        row = self.db.fetchone(self.already_exists_sql, value)
-        return bool(row[0])
-
-    def generate_candidate(self):
-        # # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
-        return random.randint(self.min_value, self.max_value)
-
-    def store(self, raw, value):
-        self.db.db_exec(self.insert_sql, raw, value)
-        self.db.commit()
-
-    def hash(self, raw):
-        success = False
-        while not success:
-            value = self.generate_candidate()
-            success = not self.already_exists(value)
-        # noinspection PyUnboundLocalVariable
-        self.store(raw, value)
-        return value
 
 
 # =============================================================================

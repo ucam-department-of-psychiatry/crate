@@ -186,7 +186,7 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     # patientnum is raw; patientnum2 is hashed
 
     # Get scrubbing info
-    patient = Patient(config.sources, patientnum, config.admindb, config)
+    patient = Patient(patientnum)
     scrubber = patient.scrubber
     scrubdict[patientnum] = scrubber.get_raw_info()
 

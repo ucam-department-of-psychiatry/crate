@@ -156,8 +156,10 @@ setup(
         # For the web front end:
         # ---------------------------------------------------------------------
         # Core tools with accessories:
+        'colorlog==2.6.1',  # colour in logs
         'psutil==4.1.0',  # process management
         'semver==2.4.1',  # comparing semantic versions
+        'SQLAlchemy==1.0.12',  # database access
 
         # Web app:
         'celery==3.1.19',
@@ -217,11 +219,12 @@ setup(
     entry_points={
         'console_scripts': [
             # Format is 'script=module:function".
-            'crate_anonymise=crate_anon.anonymise.anonymise:main',
+            'crate_anonymise=crate_anon.anonymise.anonymise_main:main',
             'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
             'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
             'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
+            'crate_print_demo_anon_config=crate_anon.anonymise.print_demo_config:main',  # noqa
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
             'crate_mysql_auditor=crate_anon.mysql_auditor.mysql_auditor:main',
 

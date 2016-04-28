@@ -25,6 +25,42 @@ Copyright/licensing:
     See the License for the specific language governing permissions and
     limitations under the License.
 
+Thoughts on configuration method
+
+-   First version used a Config() class, which initializes with blank values.
+    The anonymise_main.py file creates a config singleton and passes it around.
+    Then when its set() method is called, it reads a config file and
+    instantiates its settings.
+    An option exists to print a draft config without ever reading one from
+    disk.
+
+    Advantage: easy to start the program without a valid config file (e.g. to
+        print one).
+    Disadvantage: modules can't be sure that a config is properly instantiated
+        before they are loaded, so you can't easily define a class according to
+        config settings (you'd have to have a class factory, which gets ugly).
+
+-   The Django method is to have a configuration file (e.g. settings.py, which
+    can import from other things) that is read by Django and then becomes
+    importable by anything at startup as "django.conf.settings". (I've added
+    local settings via an environment variable.) The way Django knows where
+    to look is via this in manage.py:
+
+        os.environ.setdefault("DJANGO_SETTINGS_MODULE",
+                              "crate_anon.crateweb.config.settings")
+
+    Advantage: setting the config file via an environment variable (read when
+        the config file loads) allows guaranteed config existence as other
+        modules start.
+    Further advantage: config filenames not on command line, therefore not
+        visible to ps.
+    Disadvantage: how do you override with a command-line (argparse) setting?
+        ... though: who cares?
+    To print a config using that file: raise an exception on nonexistent
+        config, and catch it with a special entry point script.
+
+-   See also
+    http://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line  # noqa
 """
 
 # =============================================================================
@@ -33,31 +69,26 @@ Copyright/licensing:
 
 import codecs
 import configparser
-import datetime
-import dateutil
-import dateutil.tz
-from html import escape
 import logging
 import os
-import pytz
-import urllib.parse
+import sys
 
-from cardinal_pythonlib.rnc_datetime import format_datetime
-import cardinal_pythonlib.rnc_db as rnc_db
+from sqlalchemy import create_engine, String
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.schema import MetaData
+
+from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
 
 from crate_anon.anonymise.constants import (
-    ALTERMETHOD,
+    CONFIG_ENV_VAR,
+    DEFAULT_MAX_ROWS_BEFORE_COMMIT,
+    DEFAULT_MAX_BYTES_BEFORE_COMMIT,
     MAX_PID_STR,
-    INDEX,
-    LONGTEXT,
-    SCRUBMETHOD,
-    SCRUBSRC,
     SEP,
-    SRCFLAG,
 )
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.hash import (
@@ -72,799 +103,40 @@ from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
     WordList,
 )
-
-log = logging.getLogger(__name__)
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
-DEFAULT_MAX_ROWS_BEFORE_COMMIT = 1000
-DEFAULT_MAX_BYTES_BEFORE_COMMIT = 80 * 1024 * 1024
-
-# =============================================================================
-# Demo config
-# =============================================================================
-
-DEMO_CONFIG = """
-# Configuration file for anonymise.py
-
-# =============================================================================
-# Main settings
-# =============================================================================
-
-[main]
-
-# -----------------------------------------------------------------------------
-# Data dictionary
-# -----------------------------------------------------------------------------
-# Specify a data dictionary in TSV (tab-separated value) format, with a header
-# row. Boolean values can be 0/1, Y/N, T/F, True/False.
-# Columns in the data dictionary:
-#
-#   src_db
-#       Specify the source database.
-#       Database names are those used in source_databases list below; they
-#       don't have to be SQL database names.
-#   src_table
-#       Table name in source database.
-#   src_field
-#       Field name in source database.
-#   src_datatype
-#       SQL data type in source database, e.g. INT, VARCHAR(50).
-#   src_flags
-#       One or more of the following characters:
-#       {SRCFLAG.PK}:  This field is the primary key (PK) for the table it's
-#           in.
-#       {SRCFLAG.ADDSRCHASH}:  Add source hash, for incremental updates?
-#           - May only be set for src_pk fields (which cannot then be omitted
-#             in the destination, and which require the index={INDEX.UNIQUE}
-#             setting, so that a unique index is created for this field).
-#           - If set, a field is added to the destination table, with field
-#             name as set by the config's source_hash_fieldname variable,
-#             containing a hash of the contents of the source record (all
-#             fields that are not omitted, OR contain scrubbing information
-#             (scrub_src). The field is of type VARCHAR and its length is
-#             determined by the hash_method parameter (see below).
-#           - This table is then capable of incremental updates.
-#       {SRCFLAG.CONSTANT}:  Contents are constant (will not change) for a
-#           given PK.
-#           - An alternative to '{SRCFLAG.ADDSRCHASH}'. Can't be used with it.
-#           - Applicable only to src_pk fields, which can't be omitted in the
-#             destination, and which have the same index requirements as
-#             the '{SRCFLAG.ADDSRCHASH}' flag.
-#           - If set, no hash is added to the destination, but the destination
-#             contents are assumed to exist and not to have changed.
-#           - Be CAUTIOUS with this flag, i.e. certain that the contents will
-#             not change.
-#           - Intended for very data-intensive fields, such as BLOB fields
-#             containing binary documents, where hashing would be quite slow
-#             over many gigabytes of data.
-#       {SRCFLAG.ADDITION_ONLY}:  Addition only. It is assumed that records can
-#           only be added, not deleted.
-#       {SRCFLAG.PRIMARYPID}:  Primary patient ID field.
-#           If set,
-#           (a) This field will be used to link records for the same patient
-#               across all tables. It must therefore be present, and marked in
-#               the data dictionary, for ALL tables that contain patient-
-#               identifiable information.
-#           (b) If the field is not omitted: the field will be hashed as the
-#               primary ID (database patient primary key) in the destination,
-#               and a transient research ID (TRID) also added.
-#       {SRCFLAG.DEFINESPRIMARYPIDS}:  This field *defines* primary PIDs.
-#           If set, this row will be used to search for all patient IDs, and
-#           will define them for this database. Only those patients will be
-#           processed (for all tables containing patient info). Typically, this
-#           flag is applied to a SINGLE field in a SINGLE table, usually the
-#           principal patient registration/demographics table.
-#       {SRCFLAG.MASTERPID}:  Master ID (e.g. NHS number). The field will be
-#           hashed with the master PID hasher.
-#
-#   scrub_src
-#       Either "{SCRUBSRC.PATIENT}", "{SCRUBSRC.THIRDPARTY}", or blank.
-#       - If "{SCRUBSRC.PATIENT}", contains patient-identifiable information
-#         that must be removed from "scrub_in" fields.
-#       - If "{SCRUBSRC.THIRDPARTY}", contains identifiable information about
-#         carer/family/other third party, which must be removed from
-#         "scrub_in" fields.
-#   scrub_method
-#       Applicable to scrub_src fields. Manner in which this field should be
-#       treated for scrubbing.
-#       Options:
-#       - "{SCRUBMETHOD.WORDS}": treat as a set of textual words
-#         This is the default for all textual fields (e. CHAR, VARCHAR, TEXT).
-#         Typically used for names.
-#       - "{SCRUBMETHOD.PHRASE}": treat as a textual phrase (a sequence of
-#         words to be replaced only when they occur in sequence). Typically
-#         used for address components.
-#       - "{SCRUBMETHOD.NUMERIC}": treat as number
-#         This is the default for all numeric fields (e.g. INTEGER, FLOAT).
-#         If you have a phone number in a text field, mark it as
-#         "{SCRUBMETHOD.NUMERIC}" here. It will be scrubbed regardless of
-#         spacing/punctuation.
-#       - "{SCRUBMETHOD.CODE}": treat as an alphanumeric code. Suited to
-#         postcodes. Very like "{SCRUBMETHOD.NUMERIC}" but permits non-digits.
-#       - "{SCRUBMETHOD.DATE}": treat as date.
-#         This is the default for all DATE/DATETIME fields.
-#
-#   omit
-#       Boolean. Omit from output entirely?
-#   alter_method
-#       Manner in which to alter the data. Blank, or one of:
-#       - "{ALTERMETHOD.SCRUBIN}": scrub in. Applies to text fields only. The
-#         field will have its contents anonymised (using information from other
-#         fields).
-#       - "{ALTERMETHOD.TRUNCATEDATE}": truncate date to first of the month.
-#         Applicable to text or date-as-text fields.
-#       - "{ALTERMETHOD.BIN2TEXT}=EXTFIELDNAME": convert a binary field (e.g.
-#         VARBINARY, BLOB) to text (e.g. {LONGTEXT}). The field EXTFIELDNAME,
-#         which must be in the same source table, must contain the file
-#         extension (e.g. "pdf", ".pdf") or a filename with that extension
-#         (e.g. "/some/path/mything.pdf").
-#       - "{ALTERMETHOD.BIN2TEXT_SCRUB}=EXTFIELDNAME": ditto, but also scrub
-#         in.
-#       - "{ALTERMETHOD.FILENAME2TEXT}": as for {ALTERMETHOD.BIN2TEXT}, but
-#         the field contains a filename (the contents of which is converted
-#         to text), rather than binary file contents directly.
-#       - "{ALTERMETHOD.FILENAME2TEXT_SCRUB}": ditto, but also scrub in.
-#
-#   dest_table
-#       Table name in destination database.
-#   dest_field
-#       Field name in destination database.
-#   dest_datatype
-#       SQL data type in destination database.
-#   index
-#       One of:
-#       - blank: no index.
-#       - "{INDEX.NORMAL}": normal index on destination.
-#       - "{INDEX.UNIQUE}": unique index on destination.
-#       - "{INDEX.FULLTEXT}": create a FULLTEXT index, for rapid searching
-#         within long text fields. Only applicable to one field per table.
-#   indexlen
-#       Integer. Can be blank. If not, sets the prefix length of the index.
-#       Mandatory in MySQL if you apply a normal (+/- unique) index to a TEXT
-#       or BLOB field. Not required for FULLTEXT indexes.
-#   comment
-#       Field comment, stored in destination database.
-
-data_dictionary_filename = testdd.tsv
-
-# -----------------------------------------------------------------------------
-# Encryption phrases/passwords
-# -----------------------------------------------------------------------------
-
-# PID-to-RID hashing method. Options are:
-#   MD5 - DEPRECATED - produces a 32-character digest; cryptographically poor
-#   SHA256 - DEPRECATED - produces a 64-character digest
-#   SHA512 - DEPRECATED - produces a 128-character digest
-#   HMAC_MD5 - produces a 32-character digest
-#   HMAC_SHA256 - produces a 64-character digest (default)
-#   HMAC_SHA512 - produces a 64-character digest
-
-***
-
-hash_method = HMAC_SHA256
-
-per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
-
-master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
-
-change_detection_encryption_phrase = YETANOTHER
-
-# -----------------------------------------------------------------------------
-# Anonymisation
-# -----------------------------------------------------------------------------
-
-# Patient information will be replaced with this. For example, XXX or [___];
-# the latter is a bit easier to spot, and works better if it directly abuts
-# other text.
-
-replace_patient_info_with = [___]
-
-# Third-party information will be replaced by this. For example, YYY or [...].
-
-replace_third_party_info_with = [...]
-
-# Things to be removed irrespective of patient-specific information will be
-# replaced by this (for example, if you opt to remove all things looking like
-# telephone numbers). For example, ZZZ or [~~~].
-
-replace_nonspecific_info_with = [~~~]
-
-# Strings to append to every "scrub from" string.
-# For example, include "s" if you want to scrub "Roberts" whenever you scrub
-# "Robert".
-# Applies to {SCRUBMETHOD.WORDS}, but not to {SCRUBMETHOD.PHRASE}.
-# Multiline field: https://docs.python.org/2/library/configparser.html
-
-scrub_string_suffixes =
-    s
-
-# Specify maximum number of errors (insertions, deletions, substitutions) in
-# string regex matching. Beware using a high number! Suggest 1-2.
-
-string_max_regex_errors = 1
-
-# Is there a minimum length to apply string_max_regex_errors? For example, if
-# you allow one typo and someone is called Ian, all instances of 'in' or 'an'
-# will be wiped. Note that this apply to scrub-source data.
-
-min_string_length_for_errors = 4
-
-# Is there a minimum length of string to scrub WITH? For example, if you
-# specify 2, you allow two-letter names such as Al to be scrubbed, but you
-# allow initials through, and therefore prevent e.g. 'A' from being scrubbed
-# from the destination. Note that this applies to scrub-source data.
-
-min_string_length_to_scrub_with = 2
-
-# WHITELIST.
-# Are there any words not to scrub? For example, "the", "road", "street" often
-# appear in addresses, but you might not want them removed. Be careful in case
-# these could be names (e.g. "Lane").
-# Specify these as a list of FILENAMES, where the filenames contain words; e.g.
-#
-# whitelist_filenames = /some/path/short_english_words.txt
-#
-# Here's a suggestion for some of the sorts of words you might include:
-#     am
-#     an
-#     as
-#     at
-#     bd
-#     by
-#     he
-#     if
-#     is
-#     it
-#     me
-#     mg
-#     od
-#     of
-#     on
-#     or
-#     re
-#     so
-#     to
-#     us
-#     we
-#     her
-#     him
-#     tds
-#     she
-#     the
-#     you
-#     road
-#     street
-
-whitelist_filenames =
-
-# BLACKLIST
-# Are there any words you always want to remove?
-# Specify these as a list of filenames, e.g
-#
-# blacklist_filenames = /some/path/boy_names.txt
-#     /some/path/girl_names.txt
-#     /some/path/common_surnames.txt
-
-blacklist_filenames =
-
-# Nonspecific scrubbing of numbers of a certain length?
-# For example, scrubbing all 11-digit numbers will remove modern UK telephone
-# numbers in conventional format. To do this, specify
-# scrub_all_numbers_of_n_digits = 11. You could scrub both 10- and 11-digit
-# numbers by specifying both numbers (in multiline format, as above); 10-digit
-# numbers would include all NHS numbers. Avoid using this for short numbers;
-# you may lose valuable numeric data!
-
-scrub_all_numbers_of_n_digits =
-
-# Nonspecific scrubbing of UK postcodes?
-# See https://www.mrs.org.uk/pdf/postcodeformat.pdf ; these can look like
-# FORMAT    EXAMPLE
-# AN NAA    M1 1AA
-# ANN NAA   M60 1NW
-# AAN NAA   CR2 6XH
-# AANN NAA  DN55 1PT
-# ANA NAA   W1A 1HQ
-# AANA NAA  EC1A 1BB
-
-scrub_all_uk_postcodes = False
-
-# Anonymise at word boundaries? True is more conservative; False is more
-# liberal and will deal with accidental word concatenation. With ID numbers,
-# beware if you use a prefix, e.g. people write 'M123456' or 'R123456'; in that
-# case you will need anonymise_numbers_at_word_boundaries_only = False.
-
-anonymise_codes_at_word_boundaries_only = True
-# ... applies to {SCRUBMETHOD.CODE}
-anonymise_dates_at_word_boundaries_only = True
-# ... applies to {SCRUBMETHOD.DATE}
-anonymise_numbers_at_word_boundaries_only = False
-# ... applies to {SCRUBMETHOD.NUMERIC}
-anonymise_strings_at_word_boundaries_only = True
-# ... applies to {SCRUBMETHOD.WORDS} and {SCRUBMETHOD.PHRASE}
-
-# -----------------------------------------------------------------------------
-# Output fields and formatting
-# -----------------------------------------------------------------------------
-
-# Name used for the primary patient ID in the mapping table.
-
-mapping_patient_id_fieldname = patient_id
-
-# Research ID field name. This will be a VARCHAR of length determined by
-# hash_method. Used to replace per_table_patient_id_field.
-
-research_id_fieldname = brcid
-
-# Transient integer research ID (TRID) fieldname.
-# An unsigned integer field with this name will be added to every table
-# containing a primary patient ID (in the source) or research ID (in the
-# destination).
-
-trid_fieldname = trid
-
-# Name used for the master patient ID in the mapping table.
-
-mapping_master_id_fieldname = nhsnum
-
-# Similarly, used to replace ddgen_master_pid_fieldname:
-
-master_research_id_fieldname = nhshash
-
-# Change-detection hash fieldname. This will be a VARCHAR of length determined
-# by hash_method.
-
-source_hash_fieldname = _src_hash
-
-# Date-to-text conversion formats
-
-date_to_text_format = %Y-%m-%d
-# ... ISO-8601, e.g. 2013-07-24
-datetime_to_text_format = %Y-%m-%dT%H:%M:%S
-# ... ISO-8601, e.g. 2013-07-24T20:04:07
-
-# Append source table/field to the comment? Boolean.
-
-append_source_info_to_comment = True
-
-# -----------------------------------------------------------------------------
-# Database password security
-# -----------------------------------------------------------------------------
-
-# Set this to True. Only set it to False to debug database opening failures,
-# under supervision, then set it back to True again afterwards.
-
-open_databases_securely = True
-
-# -----------------------------------------------------------------------------
-# Destination database configuration
-# See the [destination_database] section for connection details.
-# -----------------------------------------------------------------------------
-
-# Specify the maximum number of rows to be processed before a COMMIT is issued
-# on the database transaction. This prevents the transaction growing too large.
-# Default is None (no limit).
-
-max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
-
-# Specify the maximum number of source-record bytes (approximately!) that are
-# processed before a COMMIT is issued on the database transaction. This
-# prevents the transaction growing too large. The COMMIT will be issued *after*
-# this limit has been met/exceeded, so it may be exceeded if the transaction
-# just before the limit takes the cumulative total over the limit.
-# Default is None (no limit).
-
-max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
-
-# We need a temporary table name for incremental updates. This can't be the
-# name of a real destination table.
-
-temporary_tablename = _temp_table
-
-# -----------------------------------------------------------------------------
-# Admin database configuration
-# See the [admin_database] section for connection details.
-# -----------------------------------------------------------------------------
-
-# Table name to use for the secret patient ID to research ID mapping.
-# Usually no need to change the default.
-
-secret_map_tablename = secret_map
-
-# Table name to use for the transient research ID cache (also secret).
-# Usually no need to change the default.
-
-secret_trid_cache_tablename = secret_trid_cache
-
-# Table name to use for the opt-out list of patient PKs.
-# Usually no need to change the default.
-
-opt_out_tablename = opt_out
-
-# -----------------------------------------------------------------------------
-# Choose databases (defined in their own sections).
-# -----------------------------------------------------------------------------
-
-#   Source database list. Can be lots.
-source_databases =
-    mysourcedb1
-    mysourcedb2
-
-#   Destination database. Just one.
-destination_database = my_destination_database
-
-#   Admin database. Just one.
-admin_database = my_admin_database
-
-# -----------------------------------------------------------------------------
-# PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
-# -----------------------------------------------------------------------------
-
-#   Limit the number of patients to be processed? Specify 0 (the default) for
-#   no limit.
-debug_max_n_patients =
-
-#   Specify a list of integer patient IDs, for debugging? If specified, this
-#   list will be used directly (overriding the patient ID source specified in
-#   the data dictionary, and overriding debug_max_n_patients).
-debug_pid_list =
-
-
-# =============================================================================
-# Destination database details. User should have WRITE access.
-# =============================================================================
-
-[my_destination_database]
-
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
-
-# =============================================================================
-# Administrative database. User should have WRITE access.
-# =============================================================================
-
-[my_admin_database]
-
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
-
-# In general, specify some of:
-#   - engine: one of:
-#       mysql
-#       sqlserver
-#   - interface: one of:
-#       mysql [default for mysql engine]
-#       odbc [default otherwise]
-#       jdbc
-#   - host, port, db [for mysql, JDBC]
-#   - dsn, odbc_connection_string [for ODBC]
-#   - username, password
-# ... see rnc_db.py
-
-# =============================================================================
-# SOURCE DATABASE DETAILS BELOW HERE.
-# User should have READ access only for safety.
-# =============================================================================
-
-[mysourcedb1]
-
-# CONNECTION DETAILS
-
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
-
-# INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
-
-#   Force all tables/fields to lower case? Generally a good idea. Boolean;
-#   default is True.
-ddgen_force_lower_case = True
-
-#   Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.
-ddgen_convert_odd_chars_to_underscore = True
-
-#   Allow the absence of patient info? Used to copy databases; WILL NOT
-#   ANONYMISE. Boolean; default is False.
-ddgen_allow_no_patient_info = False
-
-#   Specify the (typically integer) patient identifier present in EVERY
-#   table. It will be replaced by the research ID in the destination
-#   database.
-ddgen_per_table_pid_field = patient_id
-
-#   Master patient ID fieldname. Used for e.g. NHS numbers.
-ddgen_master_pid_fieldname = nhsnum
-
-#   Blacklist any tables when creating new data dictionaries?
-ddgen_table_blacklist =
-
-#   Blacklist any fields (regardless of their table) when creating new data
-#   dictionaries?
-ddgen_field_blacklist =
-
-#   Fieldnames assumed to be their table's PK:
-ddgen_pk_fields =
-
-#   Assume that content stays constant?
-ddgen_constant_content = False
-
-#   Assume that records can only be added, not deleted?
-ddgen_addition_only = False
-
-#   Predefine field(s) that define the existence of patient IDs? UNUSUAL.
-ddgen_pid_defining_fieldnames =
-
-#   Default fields to scrub from
-ddgen_scrubsrc_patient_fields =
-ddgen_scrubsrc_thirdparty_fields =
-
-#   Override default scrubbing methods
-ddgen_scrubmethod_code_fields =
-ddgen_scrubmethod_date_fields =
-ddgen_scrubmethod_number_fields =
-ddgen_scrubmethod_phrase_fields =
-
-#   Known safe fields, exempt from scrubbing
-ddgen_safe_fields_exempt_from_scrubbing =
-
-#   Define minimum text field length for scrubbing (shorter is assumed safe)
-ddgen_min_length_for_scrubbing = 4
-
-#   Other default manipulations
-ddgen_truncate_date_fields =
-
-#   Fields containing filenames, which files should be converted to text
-ddgen_filename_to_text_fields =
-
-#   Fields containing raw binary data from files (binary large objects; BLOBs),
-#   whose contents should be converted to text -- paired with fields in the
-#   same table containing their file extension (e.g. "pdf", ".PDF") or a
-#   filename having that extension.
-#   Specify it as a list of comma-joined pairs, e.g.
-#       ddgen_binary_to_text_field_pairs = binary1field, ext1field
-#           binary2field, ext2field
-#           ...
-ddgen_binary_to_text_field_pairs =
-
-#   Fields to apply an index to
-ddgen_index_fields =
-
-#   Allow full-text index creation? Default true. Disable for databases that
-#   don't support them?
-ddgen_allow_fulltext_indexing = True
-
-# PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
-
-#   Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to
-#   apply to any tables listed in debug_limited_tables. For those tables, only
-#   this many rows will be taken from the source database. Use this, for
-#   example, to reduce the number of large documents fetched.
-#   If you run a multiprocess/multithreaded anonymisation, this limit applies
-#   per *process* (or task), not overall.
-#   Note that these limits DO NOT APPLY to the fetching of patient identifiable
-#   information for anonymisation -- when a patient is processed, all
-#   identifiable information for that patient is trawled.
-debug_row_limit =
-
-#   List of tables to which to apply debug_row_limit (see above).
-debug_limited_tables =
-
-[mysourcedb2]
-
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
-
-ddgen_force_lower_case = True
-ddgen_per_table_pid_field = patient_id
-ddgen_master_pid_fieldname = nhsnum
-ddgen_table_blacklist =
-ddgen_field_blacklist =
-ddgen_pk_fields =
-ddgen_constant_content = False
-ddgen_scrubsrc_patient_fields =
-ddgen_scrubsrc_thirdparty_fields =
-ddgen_scrubmethod_code_fields =
-ddgen_scrubmethod_date_fields =
-ddgen_scrubmethod_number_fields =
-ddgen_scrubmethod_phrase_fields =
-ddgen_safe_fields_exempt_from_scrubbing =
-ddgen_min_length_for_scrubbing = 4
-ddgen_truncate_date_fields =
-ddgen_filename_to_text_fields =
-ddgen_binary_to_text_field_pairs =
-
-[camcops]
-# Example for the CamCOPS anonymisation staging database
-
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
-db = camcops_anon_staging
-
-# FOR EXAMPLE:
-ddgen_force_lower_case = True
-ddgen_per_table_pid_field = _patient_idnum1
-ddgen_pid_defining_fieldnames = _patient_idnum1
-ddgen_master_pid_fieldname = _patient_idnum2
-
-ddgen_table_blacklist =
-
-ddgen_field_blacklist = _patient_iddesc1
-    _patient_idshortdesc1
-    _patient_iddesc2
-    _patient_idshortdesc2
-    _patient_iddesc3
-    _patient_idshortdesc3
-    _patient_iddesc4
-    _patient_idshortdesc4
-    _patient_iddesc5
-    _patient_idshortdesc5
-    _patient_iddesc6
-    _patient_idshortdesc6
-    _patient_iddesc7
-    _patient_idshortdesc7
-    _patient_iddesc8
-    _patient_idshortdesc8
-    id
-    patient_id
-    _device
-    _era
-    _current
-    _when_removed_exact
-    _when_removed_batch_utc
-    _removing_user
-    _preserving_user
-    _forcibly_preserved
-    _predecessor_pk
-    _successor_pk
-    _manually_erased
-    _manually_erased_at
-    _manually_erasing_user
-    _addition_pending
-    _removal_pending
-    _move_off_tablet
-
-ddgen_pk_fields = _pk
-ddgen_constant_content = False
-
-ddgen_scrubsrc_patient_fields = _patient_forename
-    _patient_surname
-    _patient_dob
-    _patient_idnum1
-    _patient_idnum2
-    _patient_idnum3
-    _patient_idnum4
-    _patient_idnum5
-    _patient_idnum6
-    _patient_idnum7
-    _patient_idnum8
-
-ddgen_scrubsrc_thirdparty_fields =
-
-ddgen_scrubmethod_code_fields =
-ddgen_scrubmethod_date_fields = _patient_dob
-ddgen_scrubmethod_number_fields =
-ddgen_scrubmethod_phrase_fields =
-
-ddgen_safe_fields_exempt_from_scrubbing = _device
-    _era
-    _when_added_exact
-    _adding_user
-    _when_removed_exact
-    _removing_user
-    _preserving_user
-    _manually_erased_at
-    _manually_erasing_user
-    when_last_modified
-    when_created
-    when_firstexit
-    clinician_specialty
-    clinician_name
-    clinician_post
-    clinician_professional_registration
-    clinician_contact_details
-# ... now some task-specific ones
-    bdi_scale
-    pause_start_time
-    pause_end_time
-    trial_start_time
-    cue_start_time
-    target_start_time
-    detection_start_time
-    iti_start_time
-    iti_end_time
-    trial_end_time
-    response_time
-    target_time
-    choice_time
-    discharge_date
-    discharge_reason_code
-    diagnosis_psych_1_icd10code
-    diagnosis_psych_1_description
-    diagnosis_psych_2_icd10code
-    diagnosis_psych_2_description
-    diagnosis_psych_3_icd10code
-    diagnosis_psych_3_description
-    diagnosis_psych_4_icd10code
-    diagnosis_psych_4_description
-    diagnosis_medical_1
-    diagnosis_medical_2
-    diagnosis_medical_3
-    diagnosis_medical_4
-    category_start_time
-    category_response_time
-    category_chosen
-    gamble_fixed_option
-    gamble_lottery_option_p
-    gamble_lottery_option_q
-    gamble_start_time
-    gamble_response_time
-    likelihood
-
-ddgen_min_length_for_scrubbing = 4
-
-ddgen_truncate_date_fields = _patient_dob
-ddgen_filename_to_text_fields =
-ddgen_binary_to_text_field_pairs =
-
-""".format(
-    SCRUBSRC=SCRUBSRC,
-    INDEX=INDEX,
-    SCRUBMETHOD=SCRUBMETHOD,
-    ALTERMETHOD=ALTERMETHOD,
-    SRCFLAG=SRCFLAG,
-    LONGTEXT=LONGTEXT,
-    DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
-    DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT
+from crate_anon.anonymise.sqla import (
+    get_table_names,
+    monkeypatch_TableClause,
 )
 
-# For the style:
-#       [source_databases]
-#       source1 = blah
-#       source2 = thing
-# ... you can't have multiple keys with the same name.
-# http://stackoverflow.com/questions/287757
+log = logging.getLogger(__name__)
+monkeypatch_TableClause()
 
 
 # =============================================================================
-# DestinationFieldInfo
+# Convenience object
 # =============================================================================
 
-class DestinationFieldInfo(object):
-    """Class representing information about a destination field."""
+class DatabaseHolder(object):
+    def __init__(self, name, url, srccfg=None, with_session=False,
+                 with_conn=True, reflect=True):
+        self.name = name
+        self.srccfg = srccfg
+        self.engine = create_engine(url)
+        self.conn = None
+        self.session = None
+        self.table_names = []
+        self.metadata = MetaData(bind=self.engine)
+        log.debug(self.engine)  # obscures password
 
-    def __init__(self, table, field, fieldtype, comment):
-        self.table = table
-        self.field = field
-        self.fieldtype = fieldtype
-        self.comment = comment
-
-    def __str__(self):
-        return "table={}, field={}, fieldtype={}, comment={}".format(
-            self.table, self.field, self.fieldtype, self.comment
-        )
+        if with_conn:  # for raw connections
+            self.conn = self.engine.connect()
+        if reflect:
+            self.table_names = get_table_names(self.engine)
+            self.metadata.reflect()
+            self.table_names = [t.name
+                                for t in self.metadata.sorted_tables]
+        if with_session:  # for ORM
+            self.session = sessionmaker(bind=self.engine)()  # for ORM
 
 
 # =============================================================================
@@ -954,201 +226,18 @@ class Config(object):
     """Class representing the main configuration."""
 
     def __init__(self):
-        """Set some defaults."""
-        self.data_dictionary_filename = None
-        self.hash_method = None
-        self.ddgen_master_pid_fieldname = None
-        self.per_table_patient_id_encryption_phrase = None
-        self.master_patient_id_encryption_phrase = None
-        self.change_detection_encryption_phrase = None
-        self.replace_patient_info_with = None
-        self.replace_third_party_info_with = None
-        self.replace_nonspecific_info_with = None
-        self.string_max_regex_errors = None
-        self.min_string_length_for_errors = None
-        self.min_string_length_to_scrub_with = None
-        self.scrub_all_uk_postcodes = None
-        self.anonymise_codes_at_word_boundaries_only = None
-        self.anonymise_dates_at_word_boundaries_only = None
-        self.anonymise_numbers_at_word_boundaries_only = None
-        self.anonymise_strings_at_word_boundaries_only = None
-        self.mapping_patient_id_fieldname = None
-        self.research_id_fieldname = None
-        self.trid_fieldname = None
-        self.mapping_master_id_fieldname = None
-        self.master_research_id_fieldname = None
-        self.source_hash_fieldname = None
-        self.date_to_text_format = None
-        self.datetime_to_text_format = None
-        self.append_source_info_to_comment = None
-        self.open_databases_securely = None
-        self.max_rows_before_commit = None
-        self.max_bytes_before_commit = None
-        self.temporary_tablename = None
-        self.secret_map_tablename = None
-        self.secret_trid_cache_tablename = None
-        self.opt_out_tablename = None
-        self.destination_database = None
-        self.admin_database = None
-        self.debug_max_n_patients = None
+        # Read config from file
+        try:
+            self.config_filename = os.environ[CONFIG_ENV_VAR]
+            assert self.config_filename
+        except (KeyError, AssertionError):
+            print(
+                "You must set the {} environment variable to point to a CRATE "
+                "anonymisation config file. Run crate_print_demo_anon_config "
+                "to see a specimen config.".format(CONFIG_ENV_VAR))
+            sys.exit(1)
 
-        self.scrub_string_suffixes = []
-        self.whitelist_filenames = []
-        self.blacklist_filenames = []
-        self.scrub_all_numbers_of_n_digits = []
-        self.source_databases = []
-        self.debug_pid_list = []
-
-        self.config_filename = None
-        self.dd = None
-        self.report_every_n_rows = 100
-        self.PERSISTENT_CONSTANTS_INITIALIZED = False
-        self.DESTINATION_FIELDS_LOADED = False
-        self.destfieldinfo = []
-        self.rows_in_transaction = 0
-        self.bytes_in_transaction = 0
-        self.debug_scrubbers = False
-        self.save_scrubbers = False
-        self.rows_inserted_per_table = {}
-        self.warned_re_limits = {}
-        self.re_nonspecific = None
-
-        self.NOW_LOCAL_TZ = None
-        self.NOW_UTC_WITH_TZ = None
-        self.NOW_UTC_NO_TZ = None
-        self.NOW_LOCAL_TZ_ISO8601 = None
-        self.TODAY = None
-        self.rows_in_transaction = 0
-        self.bytes_in_transaction = 0
-
-        self.remote_addr = None
-        self.remote_port = None
-        self.SCRIPT_NAME = None
-        self.SERVER_NAME = None
-        self.SCRIPT_PUBLIC_URL_ESCAPED = None
-
-        self.primary_pid_hasher = None
-        self.master_pid_hasher = None
-
-        self.destdb = None
-        self.admindb = None
-        self.sources = {}
-        self.srccfg = {}
-        self.src_db_names = []
-
-        self.SQLTYPE_ENCRYPTED_PID = None
-        self.change_detection_hasher = None
-        self.whitelist = None
-        self.blacklist = None
-        self.nonspecific_scrubber = None
-
-        self.debug_pid_list = []
-        self.scrub_all_numbers_of_n_digits = []
-
-    def set(self, filename=None, environ=None, include_sources=True,
-            load_dd=True, load_destfields=True):
-        """Set up process-local storage from the incoming environment (which
-        may be very fast if already cached) and ensure we have an active
-        database connection."""
-        log.info("Setting up config...")
-        # 1. Set up process-local storage
-        self.set_internal(filename, environ, include_sources=include_sources,
-                          load_dd=load_dd)
-        if load_destfields:
-            log.info("... loading destination fields")
-            self.load_destination_fields()
-
-        # 2. Ping MySQL connection, to reconnect if it's timed out.
-        log.info("... pinging admin database")
-        self.admindb.ping()
-        log.info("... pinging destination database")
-        self.destdb.ping()
-        log.info("... pinging source database(s)")
-        for db in self.sources.values():
-            db.ping()
-        log.info("... config set up")
-
-    def set_internal(self, filename=None, environ=None, include_sources=True,
-                     load_dd=True):
-        """Set up process-local storage. Read from config unless we've done
-        that already in a previous WSGI incarnation."""
-        self.set_always()
-        if self.PERSISTENT_CONSTANTS_INITIALIZED:
-            self.init_row_counts()
-            return
-        log.info(SEP + "Loading config: {}".format(filename))
-        if filename and environ:
-            raise ValueError("Config.set(): mis-called")
-        if environ:
-            self.read_environ(environ)
-        else:
-            self.read_environ(os.environ)
-            self.config_filename = filename
-        self.read_config(include_sources=include_sources)
-        self.check_valid(include_sources=include_sources)
-        self.dd = DataDictionary(self)
-        if load_dd:
-            log.info(SEP + "Loading data dictionary: {}".format(
-                self.data_dictionary_filename))
-            self.dd.read_from_file(self.data_dictionary_filename)
-            self.dd.check_valid(check_against_source_db=include_sources,
-                                prohibited_fieldnames=[
-                                    self.source_hash_fieldname,
-                                    self.trid_fieldname,
-                                ])
-        self.init_row_counts()
-        self.PERSISTENT_CONSTANTS_INITIALIZED = True
-
-    def set_always(self):
-        """Set the things we set every time the script is invoked via WSGI
-        (such as the current time, and some counters)."""
-        localtz = dateutil.tz.tzlocal()
-        self.NOW_LOCAL_TZ = datetime.datetime.now(localtz)
-        self.NOW_UTC_WITH_TZ = self.NOW_LOCAL_TZ.astimezone(pytz.utc)
-        self.NOW_UTC_NO_TZ = self.NOW_UTC_WITH_TZ.replace(tzinfo=None)
-        self.NOW_LOCAL_TZ_ISO8601 = self.NOW_LOCAL_TZ.strftime(
-            DATEFORMAT_ISO8601)
-        self.TODAY = datetime.date.today()  # fetches the local date
-        self.rows_in_transaction = 0
-        self.bytes_in_transaction = 0
-
-    def init_row_counts(self):
-        """Initialize row counts for all source tables."""
-        self.rows_inserted_per_table = {}
-        for db_table_tuple in self.dd.get_src_db_tablepairs():
-            self.rows_inserted_per_table[db_table_tuple] = 0
-            self.warned_re_limits[db_table_tuple] = False
-
-    def read_environ(self, environ):
-        """Read from the WSGI environment."""
-        self.remote_addr = environ.get("REMOTE_ADDR", "")
-        self.remote_port = environ.get("REMOTE_PORT", "")
-        self.SCRIPT_NAME = environ.get("SCRIPT_NAME", "")
-        self.SERVER_NAME = environ.get("SERVER_NAME", "")
-
-        # Reconstruct URL:
-        # http://www.python.org/dev/peps/pep-0333/#url-reconstruction
-        url = environ.get("wsgi.url_scheme", "") + "://"
-        if environ.get("HTTP_HOST"):
-            url += environ.get("HTTP_HOST")
-        else:
-            url += environ.get("SERVER_NAME", "")
-        if environ.get("wsgi.url_scheme") == "https":
-            if environ.get("SERVER_PORT") != "443":
-                url += ':' + environ.get("SERVER_PORT", "")
-        else:
-            if environ.get("SERVER_PORT") != "80":
-                url += ':' + environ.get("SERVER_PORT", "")
-        url += urllib.parse.quote(environ.get("SCRIPT_NAME", ""))
-        url += urllib.parse.quote(environ.get("PATH_INFO", ""))
-        # But not the query string:
-        # if environ.get("QUERY_STRING"):
-        #    url += "?" + environ.get("QUERY_STRING")
-        self.SCRIPT_PUBLIC_URL_ESCAPED = escape(url)
-
-    def read_config(self, include_sources=False):
         """Read config from file."""
-        log.debug("Opening config: {}".format(self.config_filename))
         parser = configparser.RawConfigParser()
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = "main"
@@ -1173,6 +262,16 @@ class Config(object):
 
         def opt_int(option, default):
             return parser.getint(section, option, fallback=default)
+
+        def get_database(section_, name, srccfg_=None, with_session=False,
+                         with_conn=True, reflect=True):
+            url = parser.get(section_, 'url', fallback=None)
+            if not url:
+                return None
+            return DatabaseHolder(name, url, srccfg_,
+                                  with_session=with_session,
+                                  with_conn=with_conn,
+                                  reflect=reflect)
 
         self.data_dictionary_filename = opt_str('data_dictionary_filename')
         self.hash_method = opt_str('hash_method')
@@ -1217,15 +316,11 @@ class Config(object):
             'append_source_info_to_comment', True)
         self.open_databases_securely = opt_bool(
             'open_databases_securely', True)
-        self.max_rows_before_commit = opt_int('max_rows_before_commit', None)
-        self.max_bytes_before_commit = opt_int('max_bytes_before_commit', None)
+        self.max_rows_before_commit = opt_int('max_rows_before_commit',
+                                              DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+        self.max_bytes_before_commit = opt_int('max_bytes_before_commit',
+                                               DEFAULT_MAX_BYTES_BEFORE_COMMIT)
         self.temporary_tablename = opt_str('temporary_tablename')
-        self.secret_map_tablename = opt_str('secret_map_tablename')
-        self.secret_trid_cache_tablename = opt_str(
-            'secret_trid_cache_tablename')
-        self.opt_out_tablename = opt_str('opt_out_tablename')
-        self.destination_database = opt_str('destination_database')
-        self.admin_database = opt_str('admin_database')
         self.debug_max_n_patients = opt_int('debug_max_n_patients', 0)
 
         self.scrub_string_suffixes = opt_multiline('scrub_string_suffixes')
@@ -1233,28 +328,50 @@ class Config(object):
         self.blacklist_filenames = opt_multiline('blacklist_filenames')
         self.scrub_all_numbers_of_n_digits = opt_multiline_int(
             'scrub_all_numbers_of_n_digits', minimum=1)
-        self.source_databases = opt_multiline('source_databases')
         self.debug_pid_list = opt_multiline_int('debug_pid_list')
 
         # Databases
-        if self.destination_database == self.admin_database:
+        destination_database_cfg_section = opt_str('destination_database')
+        admin_database_cfg_section = opt_str('admin_database')
+        if destination_database_cfg_section == admin_database_cfg_section:
             raise ValueError(
                 "Destination and admin databases mustn't be the same")
-        self.destdb = self.get_database(self.destination_database)
-        self.admindb = self.get_database(self.admin_database)
+        source_database_cfg_sections = opt_multiline('source_databases')
+        self.source_db_names = source_database_cfg_sections
+        if destination_database_cfg_section in source_database_cfg_sections:
+            raise ValueError("Destination database mustn't be listed as a "
+                             "source database")
+        if admin_database_cfg_section in source_database_cfg_sections:
+            raise ValueError("Admin database mustn't be listed as a "
+                             "source database")
+        self.destdb = get_database(destination_database_cfg_section,
+                                   name=destination_database_cfg_section,
+                                   with_session=True,
+                                   with_conn=False,
+                                   reflect=False)
+        if not self.destdb:
+            raise ValueError("Destination database misconfigured")
+        self.admindb = get_database(admin_database_cfg_section,
+                                    name=admin_database_cfg_section,
+                                    with_session=True,
+                                    with_conn=False,
+                                    reflect=True)
+        if not self.admindb:
+            raise ValueError("Admin database misconfigured")
         self.sources = {}
-        self.srccfg = {}
-        self.src_db_names = []
-        for sourcedb_name in self.source_databases:
-            if (sourcedb_name == self.destination_database or
-                    sourcedb_name == self.admin_database):
-                raise ValueError("Source database can't be the same as "
-                                 "destination or admin database")
-            self.src_db_names.append(sourcedb_name)
-            self.srccfg[sourcedb_name] = DatabaseSafeConfig(
-                parser, sourcedb_name)
-            if include_sources:
-                self.sources[sourcedb_name] = self.get_database(sourcedb_name)
+        for sourcedb_name in source_database_cfg_sections:
+            log.info("Adding source database: {}".format(sourcedb_name))
+            srccfg = DatabaseSafeConfig(parser, sourcedb_name)
+            srcdb = get_database(sourcedb_name,
+                                 srccfg_=srccfg,
+                                 name=sourcedb_name,
+                                 with_session=True,
+                                 with_conn=False,
+                                 reflect=True)
+            if not srcdb:
+                raise ValueError("Source database {} misconfigured".format(
+                    sourcedb_name))
+            self.sources[sourcedb_name] = srcdb
 
         # Load encryption keys and create hashers
         assert self.hash_method not in ["MD5", "SHA256", "SHA512"], (
@@ -1272,7 +389,9 @@ class Config(object):
         else:
             raise ValueError("Unknown value for hash_method")
         encrypted_length = len(HashClass("dummysalt").hash(MAX_PID_STR))
-        self.SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(encrypted_length)
+
+        self.SqlTypeEncryptedPid = String(encrypted_length)
+        self.sqltype_encrypted_pid_as_sql = str(self.SqlTypeEncryptedPid)
         # ... VARCHAR(32) for MD5; VARCHAR(64) for SHA-256; VARCHAR(128) for
         # SHA-512.
 
@@ -1316,16 +435,34 @@ class Config(object):
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
         )
 
-    def get_database(self, section):
-        """Return an rnc_db database object from information in a section of
-        the config file (a section that will contain password and other
-        connection information)."""
-        parser = configparser.RawConfigParser()
-        parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
-        return rnc_db.get_database_from_configparser(
-            parser, section, securely=self.open_databases_securely)
+        self.dd = DataDictionary(self)
 
-    def check_valid(self, include_sources=False):
+        self.rows_in_transaction = 0
+        self.bytes_in_transaction = 0
+        self.rows_inserted_per_table = {}
+        self.warned_re_limits = {}
+
+        self.report_every_n_rows = 100
+        self.debug_scrubbers = False
+        self.save_scrubbers = False
+
+    def load_dd(self):
+        log.info(SEP + "Loading data dictionary: {}".format(
+            self.data_dictionary_filename))
+        self.dd.read_from_file(self.data_dictionary_filename)
+        self.dd.check_valid(
+            prohibited_fieldnames=[self.source_hash_fieldname,
+                                   self.trid_fieldname])
+        self.init_row_counts()
+
+    def init_row_counts(self):
+        """Initialize row counts for all source tables."""
+        self.rows_inserted_per_table = {}
+        for db_table_tuple in self.dd.get_src_db_tablepairs():
+            self.rows_inserted_per_table[db_table_tuple] = 0
+            self.warned_re_limits[db_table_tuple] = False
+
+    def check_valid(self):
         """Raise exception if config is invalid."""
 
         # Destination databases
@@ -1338,15 +475,6 @@ class Config(object):
         if not self.temporary_tablename:
             raise ValueError("No temporary_tablename specified.")
         ensure_valid_table_name(self.temporary_tablename)
-        if not self.secret_map_tablename:
-            raise ValueError("No secret_map_tablename specified.")
-        ensure_valid_table_name(self.secret_map_tablename)
-        if not self.secret_trid_cache_tablename:
-            raise ValueError("No secret_trid_cache_tablename specified.")
-        ensure_valid_table_name(self.secret_trid_cache_tablename)
-        if not self.opt_out_tablename:
-            raise ValueError("No opt_out_tablename specified.")
-        ensure_valid_table_name(self.opt_out_tablename)
 
         # Test field names
         def validate_fieldattr(name):
@@ -1396,16 +524,11 @@ class Config(object):
             raise ValueError(
                 "min_string_length_to_scrub_with < 1, nonsensical")
 
-        # Test date conversions
-        format_datetime(self.NOW_UTC_NO_TZ, self.date_to_text_format)
-        format_datetime(self.NOW_UTC_NO_TZ, self.datetime_to_text_format)
-
         # Source databases
-        if not include_sources:
-            return
         if not self.sources:
             raise ValueError("No source databases specified.")
-        for dbname, cfg in self.srccfg.items():
+        for dbname, dbinfo in self.sources.items():
+            cfg = dbinfo.srccfg
             if not cfg.ddgen_allow_no_patient_info:
                 if not cfg.ddgen_per_table_pid_field:
                     raise ValueError(
@@ -1431,7 +554,7 @@ class Config(object):
             return None  # or risk of revealing the hash?
         return self.master_pid_hasher.hash(pid)
 
-    def hash_list(self, l):
+    def hash_object(self, l):
         """
         Hashes a list with Python's built-in hash function.
 
@@ -1443,18 +566,25 @@ class Config(object):
         """
         return self.change_detection_hasher.hash(repr(l))
 
-    def load_destination_fields(self, force=False):
-        """Fetches field information from the destination database, unless
-        we've cached that information already."""
-        if self.DESTINATION_FIELDS_LOADED and not force:
-            return
-        # Everything that was in the data dictionary should now be in the
-        # destination, commented... so just process actual destination fields,
-        # which will encompass all oddities including NLP fields.
-        for t in self.destdb.get_all_table_names():
-            for c in self.destdb.fetch_column_names(t):
-                fieldtype = self.destdb.get_column_type(t, c)
-                comment = self.destdb.get_comment(t, c)
-                dfi = DestinationFieldInfo(t, c, fieldtype, comment)
-                self.destfieldinfo.append(dfi)
-        self.DESTINATION_FIELDS_LOADED = True
+    def get_source_db_names(self):
+        return self.source_db_names
+
+    def set_echo(self, echo):
+        self.admindb.engine.echo = echo
+        self.destdb.engine.echo = echo
+        for db in self.sources.values():
+            db.engine.echo = echo
+        # Now, SQLAlchemy will mess things up by adding an additional handler.
+        # So, bye-bye:
+        for logname in ['sqlalchemy.engine.base.Engine',
+                        'sqlalchemy.engine.base.OptionEngine']:
+            logger = logging.getLogger(logname)
+            # log.critical(logger.__dict__)
+            remove_all_logger_handlers(logger)
+
+
+# =============================================================================
+# Singleton config
+# =============================================================================
+
+config = Config()

@@ -31,41 +31,45 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
-import argparse
 import logging
-import multiprocessing
-import operator
-import os
 import random
-# import signal
 import sys
-# import threading
+
+from sqlalchemy.schema import (
+    Column,
+    DDL,
+    Index,
+    MetaData,
+    Table,
+)
+from sqlalchemy.sql import (
+    column,
+    func,
+    select,
+    table,
+)
 
 from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
     get_now_utc,
     truncate_date_to_first_of_month,
 )
-import cardinal_pythonlib.rnc_db as rnc_db
 from cardinal_pythonlib.rnc_extract_text import document_to_text
-import cardinal_pythonlib.rnc_log as rnc_log
 
-from crate_anon.anonymise.config import Config, DEMO_CONFIG
+from crate_anon.anonymise.config import config
 from crate_anon.anonymise.constants import (
     ALTERMETHOD,
-    BIGINT_UNSIGNED,
     INDEX,
-    LOG_DATEFMT,
-    LOG_FORMAT,
-    RAW_SCRUBBER_FIELDNAME_PATIENT,
-    RAW_SCRUBBER_FIELDNAME_TP,
     SEP,
-    TRID_CACHE_PID_FIELDNAME,
-    TRID_CACHE_TRID_FIELDNAME,
-    TRID_TYPE,
 )
+from crate_anon.anonymise.models import OptOut, PatientInfo, TridRecord
 from crate_anon.anonymise.patient import Patient
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.anonymise.sqla import (
+    count_star,
+    get_column_names,
+    index_exists,
+    plain_exists,
+)
 
 log = logging.getLogger(__name__)
 
@@ -74,218 +78,65 @@ log = logging.getLogger(__name__)
 # Database queries
 # =============================================================================
 
-def identical_record_exists_by_hash(destdb, dest_table, pkfield, pkvalue,
+def identical_record_exists_by_hash(dest_table, pkfield, pkvalue,
                                     hashvalue):
     """
     For a given PK in a given destination table, is there a record with the
     specified value for its source hash?
     """
-    sql = """
-        SELECT 1
-        FROM {table}
-        WHERE {pkfield}=?
-        AND {srchashfield}=?
-    """.format(
-        table=dest_table,
-        pkfield=pkfield,
-        srchashfield=config.source_hash_fieldname,
-    )
-    args = [pkvalue, hashvalue]
-    row = destdb.fetchone(sql, *args)
-    return row is not None and row[0] == 1
+    return plain_exists(config.destdb.session,
+                        dest_table,
+                        column(pkfield) == pkvalue,
+                        column(config.source_hash_fieldname) == hashvalue)
 
 
-def identical_record_exists_by_pk(destdb, dest_table, pkfield, pkvalue):
+def identical_record_exists_by_pk(dest_table, pkfield, pkvalue):
     """
     For a given PK in a given destination table, does a record exist?
     """
-    sql = """
-        SELECT 1
-        FROM {table}
-        WHERE {pkfield}=?
-    """.format(
-        table=dest_table,
-        pkfield=pkfield,
-    )
-    args = [pkvalue]
-    row = destdb.fetchone(sql, *args)
-    return row is not None and row[0] == 1
+    return plain_exists(config.destdb.session,
+                        dest_table,
+                        column(pkfield) == pkvalue)
 
 
 # =============================================================================
 # Database actions
 # =============================================================================
 
-def makeadmintable(admindb, tablename, fieldspecs):
-    """Makes a table in the admin database. Uses the MySQL Barracuda
-    settings if available."""
-    admindb.create_or_update_table(tablename,
-                                   fieldspecs,
-                                   drop_superfluous_columns=True,
-                                   dynamic=True,
-                                   compressed=False)
-    if not admindb.mysql_table_using_barracuda(tablename):
-        admindb.mysql_convert_table_to_barracuda(tablename, compressed=False)
-
-
-def recreate_opt_out_table(admindb):
-    """Create/recreate the opt-out table (in the admin database)."""
-    log.debug("recreate_opt_out_table")
-    opt_out_fieldspecs = [
-        dict(name=config.mapping_patient_id_fieldname,
-             sqltype=BIGINT_UNSIGNED, pk=True, comment="Patient ID"),
-    ]
-    makeadmintable(admindb, config.opt_out_tablename, opt_out_fieldspecs)
-
-
-def wipe_and_recreate_mapping_table(admindb, incremental=False):
-    """
-    Drop and rebuild the mapping table in the admin database.
-    """
-    log.debug("wipe_and_recreate_mapping_table")
-    if not incremental:
-        admindb.drop_table(config.secret_map_tablename)
-    fieldspecs = [
-        dict(name=config.mapping_patient_id_fieldname,
-             sqltype=BIGINT_UNSIGNED, pk=True,
-             comment="Patient ID (PID) (PK)"),
-        dict(name=config.research_id_fieldname,
-             sqltype=config.SQLTYPE_ENCRYPTED_PID, notnull=True,
-             comment="Research ID (RID)"),
-        dict(name=config.trid_fieldname, unique=True, notnull=True,
-             sqltype=TRID_TYPE, autoincrement=True,
-             comment="Transient integer research ID (TRID)"),
-        dict(name=config.mapping_master_id_fieldname,
-             sqltype=BIGINT_UNSIGNED,
-             comment="Master patient ID (MPID)"),
-        dict(name=config.master_research_id_fieldname,
-             sqltype=config.SQLTYPE_ENCRYPTED_PID,
-             comment="Master research ID (MRID)"),
-        dict(name=config.source_hash_fieldname,
-             sqltype=config.SQLTYPE_ENCRYPTED_PID,
-             comment="Scrubber hash (for change detection)"),
-        dict(name=RAW_SCRUBBER_FIELDNAME_PATIENT,
-             sqltype="TEXT",
-             comment="Raw patient scrubber (for debugging only)"),
-        dict(name=RAW_SCRUBBER_FIELDNAME_TP,
-             sqltype="TEXT",
-             comment="Raw third-party scrubber (for debugging only)"),
-    ]
-    makeadmintable(admindb, config.secret_map_tablename, fieldspecs)
-
-
-def wipe_and_recreate_trid_cache(admindb, incremental=False):
-    """
-    Drop and rebuild the TRID one-time pad cache in the admin database.
-    """
-    log.debug("wipe_and_recreate_trid_cache")
-    if not incremental:
-        admindb.drop_table(config.secret_trid_cache_tablename)
-    fieldspecs = [
-        dict(name=TRID_CACHE_PID_FIELDNAME,
-             sqltype=BIGINT_UNSIGNED, pk=True,
-             comment="Patient ID (PID) (PK)"),
-        dict(name=TRID_CACHE_TRID_FIELDNAME, unique=True, notnull=True,
-             sqltype=TRID_TYPE, autoincrement=True,
-             comment="Transient integer research ID (TRID)"),
-    ]
-    makeadmintable(admindb, config.secret_trid_cache_tablename, fieldspecs)
-
-
-def wipe_and_recreate_destination_db(destdb, dynamic=True, compressed=False,
-                                     incremental=False):
+def wipe_and_recreate_destination_db(incremental=False):
     """
     Drop and recreate all destination tables (as specified in the DD) in the
     destination database.
     """
-    log.debug("wipe_and_recreate_destination_db, incremental={}".format(
+    log.info("Rebuilding destination database (incremental={})".format(
         incremental))
-    if not destdb.is_mysql():
-        dynamic = False
-        compressed = False
-
-    for t in config.dd.get_dest_tables():
+    engine = config.destdb.engine
+    for tablename in config.dd.get_dest_tables():
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
         # Drop
         if not incremental:
-            log.debug("dropping table {}".format(t))
-            destdb.drop_table(t)
-
-        # Recreate
-        ddr = config.dd.get_rows_for_dest_table(t)
-        ddr = sorted(ddr, key=operator.attrgetter("dest_field"))
-        fieldspecs = []
-        dest_fieldnames = []
-        for r in ddr:
-            if r.omit:
-                continue
-            fs = r.dest_field + " " + r.dest_datatype
-            if r.primary_pid:
-                fs += " NOT NULL"
-            if r.pk:
-                fs += " PRIMARY KEY"
-            dest_fieldnames.append(r.dest_field)
-            if r.comment or config.append_source_info_to_comment:
-                comment = r.comment or ""
-                if config.append_source_info_to_comment:
-                    comment += " [from {t}.{f}]".format(
-                        t=r.src_table,
-                        f=r.src_field,
-                    )
-                fs += " COMMENT " + rnc_db.sql_quote_string(comment)
-            fieldspecs.append(fs)
-            if r.add_src_hash:
-                # append a special field
-                fieldspecs.append(
-                    config.source_hash_fieldname + " " +
-                    config.SQLTYPE_ENCRYPTED_PID +
-                    " COMMENT 'Hashed amalgamation of all source fields'")
-                dest_fieldnames.append(config.source_hash_fieldname)
-            if r.primary_pid:
-                # append another special field
-                fieldspecs.append(
-                    config.trid_fieldname + " " +
-                    BIGINT_UNSIGNED +
-                    " NOT NULL" +
-                    " COMMENT 'Transient integer research ID (TRID)'")
-                dest_fieldnames.append(config.trid_fieldname)
-        log.debug("creating table {}".format(t))
-        sql = """
-            CREATE TABLE IF NOT EXISTS {table} (
-                {fieldspecs}
-            )
-            {dynamic}
-            {compressed}
-            CHARACTER SET utf8
-            COLLATE utf8_general_ci
-        """.format(
-            table=t,
-            fieldspecs=",".join(fieldspecs),
-            dynamic="ROW_FORMAT=DYNAMIC" if dynamic else "",
-            compressed="ROW_FORMAT=COMPRESSED" if compressed else "",
-        )
-        destdb.db_exec_literal(sql)
-        resulting_fieldnames = destdb.fetch_column_names(t)
-        target_set = set(dest_fieldnames)
+            log.info("dropping table {}".format(tablename))
+            sqla_table.drop(engine, checkfirst=True)
+        # Create
+        log.info("creating table {}".format(tablename))
+        sqla_table.create(engine, checkfirst=True)
+        # Check
+        resulting_fieldnames = get_column_names(engine, tablename)
+        target_set = set(sqla_table.columns.keys())
         outcome_set = set(resulting_fieldnames)
         missing = list(target_set - outcome_set)
         extra = list(outcome_set - target_set)
         if missing:
             raise Exception(
                 "Missing fields in destination table {t}: {l}".format(
-                    t=t,
-                    l=missing,
-                )
-            )
+                    t=tablename, l=missing))
         if extra:
             log.warning(
                 "Extra fields in destination table {t}: {l}".format(
-                    t=t,
-                    l=extra,
-                )
-            )
+                    t=tablename, l=extra))
 
 
-def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
+def delete_dest_rows_with_no_src_row(srcdbname, src_table,
                                      report_every=1000, chunksize=10000):
     """
     For a given source database/table, delete any rows in the corresponding
@@ -302,50 +153,52 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
     """
     if not config.dd.has_active_destination(srcdbname, src_table):
         return
-    dest_table = config.dd.get_dest_table_for_src_db_table(srcdbname,
-                                                           src_table)
-    pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
-    temptable = config.temporary_tablename
-    pkfield = "srcpk"
+    dest_table_name = config.dd.get_dest_table_for_src_db_table(srcdbname,
+                                                                src_table)
     start = "delete_dest_rows_with_no_src_row: {}.{} -> {}.{}: ".format(
-        srcdbname, src_table, config.destination_database, dest_table
+        srcdbname, src_table, config.destdb.name, dest_table_name
     )
     log.info(start + "[WARNING: MAY BE SLOW]")
 
-    # 0. If there's no source PK, we just delete everythong
+    metadata = MetaData()  # operate in isolation!
+    destengine = config.destdb.engine
+    destsession = config.destdb.session
+    dest_table = config.dd.get_dest_sqla_table(dest_table_name)
+    pkddr = config.dd.get_pk_ddr(srcdbname, src_table)
+
+    # If there's no source PK, we just delete everything
     if not pkddr:
         log.info("... No source PK; deleting everything")
-        config.destdb.db_exec("DELETE FROM {}".format(dest_table))
-        commit(config.destdb)
+        destsession.execute(dest_table.delete())
+        commit_destdb()
         return
 
     if pkddr.addition_only:
         log.info("... Table marked as addition-only; not deleting anything")
         return
 
-    # 1. Drop temporary table
+    # Drop/create temporary table
+    pkfield = 'srcpk'
+    temptable = Table(
+        config.temporary_tablename,
+        metadata,
+        Column(pkfield, pkddr.get_sqla_dest_coltype(), primary_key=True))
     log.debug("... dropping temporary table")
-    config.destdb.drop_table(temptable)
-
-    # 2. Make temporary table
+    temptable.drop(destengine, checkfirst=True)
     log.debug("... making temporary table")
-    create_sql = """
-        CREATE TABLE IF NOT EXISTS {table} (
-            {pkfield} {sqltype} PRIMARY KEY
-        )
-    """.format(table=temptable, pkfield=pkfield, sqltype=pkddr.dest_datatype)
-    config.destdb.db_exec(create_sql)
+    temptable.create(destengine, checkfirst=True)
 
-    # 3. Populate temporary table, +/- PK translation
+    # Populate temporary table, +/- PK translation
+    n = count_star(config.sources[srcdbname].session, src_table)
+    log.debug("... populating temporary table: {} records to go".format(n))
+
     def insert(records_):
         log.debug(start + "... inserting {} records".format(len(records_)))
-        config.destdb.insert_multiple_records(temptable, [pkfield], records_)
+        destsession.execute(temptable.insert(), records_)
 
-    n = srcdb.count_where(src_table)
-    log.debug("... populating temporary table")
     i = 0
     records = []
-    for pk in gen_pks(srcdb, src_table, pkddr.src_field):
+    for pk in gen_pks(srcdbname, src_table, pkddr.src_field):
         i += 1
         if report_every and i % report_every == 0:
             log.debug(start + "... src row# {} / {}".format(i, n))
@@ -353,49 +206,52 @@ def delete_dest_rows_with_no_src_row(srcdb, srcdbname, src_table,
             pk = config.encrypt_primary_pid(pk)
         elif pkddr.master_pid:
             pk = config.encrypt_master_pid(pk)
-        records.append([pk])
+        records.append({pkfield: pk})
         if i % chunksize == 0:
             insert(records)
             records = []
-    if records:
+    if records:  # remainder
         insert(records)
-        # records = []
-    commit(config.destdb)
+    commit_destdb()
 
     # 4. Index
     log.debug("... creating index on temporary table")
-    config.destdb.create_index(temptable, pkfield)
+    index = Index('_temptable_idx', temptable.columns[pkfield])
+    index.create(destengine)
 
-    # 5. DELETE FROM ... WHERE NOT IN ...
+    # 5. DELETE FROM desttable
+    #    WHERE destpk NOT IN (SELECT srcpk FROM temptable)
     log.debug("... deleting from destination where appropriate")
-    delete_sql = """
-        DELETE FROM {dest_table}
-        WHERE {dest_pk} NOT IN (
-            SELECT {pkfield} FROM {temptable}
+    query = dest_table.delete().where(
+        ~column(pkddr.dest_field).in_(
+            select([temptable.columns[pkfield]])
         )
-    """.format(
-        dest_table=pkddr.dest_table,
-        dest_pk=pkddr.dest_field,
-        pkfield=pkfield,
-        temptable=temptable,
     )
-    config.destdb.db_exec(delete_sql)
+    destengine.execute(query)
+    commit_destdb()
 
     # 6. Drop temporary table
     log.debug("... dropping temporary table")
-    config.destdb.drop_table(temptable)
+    temptable.drop(destengine, checkfirst=True)
 
     # 7. Commit
-    commit(config.destdb)
+    commit_destdb()
 
 
-def commit(destdb):
+def commit_destdb():
     """
     Execute a COMMIT on the destination database, and reset row counts.
     """
-    destdb.commit()
+    config.destdb.session.commit()
     config.rows_in_transaction = 0
     config.bytes_in_transaction = 0
+
+
+def commit_admindb():
+    """
+    Execute a COMMIT on the admin database, which is using ORM sessions.
+    """
+    config.admindb.session.commit()
 
 
 # =============================================================================
@@ -406,9 +262,16 @@ def opt_out(pid):
     """Does this patient wish to opt out?"""
     if pid is None:
         raise ValueError("opt_out(None) is nonsensical")
-    return config.admindb.count_where(
-        config.opt_out_tablename,
-        {config.mapping_patient_id_fieldname: pid}) > 0
+    return OptOut.opting_out(config.admindb.session, pid)
+
+
+def gen_optout_rids():
+    session = config.admindb.session
+    return (
+        session.query(PatientInfo.rid).
+        filter(PatientInfo.pid.in_(session.query(OptOut.pid)))
+    )
+    # ... is itself a generator
 
 
 # =============================================================================
@@ -416,7 +279,7 @@ def opt_out(pid):
 # script can scale to databases of arbitrary size.
 # =============================================================================
 
-def gen_patient_ids(sources, tasknum=0, ntasks=1):
+def gen_patient_ids(tasknum=0, ntasks=1):
     """
     Generate patient IDs.
 
@@ -454,38 +317,25 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
             continue
-        threadcondition = ""
-        if ntasks > 1:
-            threadcondition = """
-                AND {pidfield} % {ntasks} = {tasknum}
-            """.format(
-                pidfield=ddr.src_field,
-                ntasks=ntasks,
-                tasknum=tasknum,
-            )
-        sql = """
-            SELECT DISTINCT {pidfield}
-            FROM {table}
-            WHERE {pidfield} IS NOT NULL
-            {threadcondition}
-            ORDER BY {pidfield}
-        """.format(
-            pidfield=ddr.src_field,
-            table=ddr.src_table,
-            threadcondition=threadcondition,
+        pidcol = column(ddr.src_field)
+        session = config.sources[ddr.src_db].session
+        query = (
+            select([pidcol]).
+            select_from(table(ddr.src_table)).
+            where(pidcol is not None).
+            distinct().
+            order_by(pidcol)
         )
-        db = sources[ddr.src_db]
-        cursor = db.cursor()
-        db.db_exec_with_cursor(cursor, sql)
-        row = cursor.fetchone()
-        while row is not None:
+        if ntasks > 1:
+            query = query.where(func.mod(pidcol, ntasks) == tasknum)
+        result = session.execute(query)
+        for row in result:
             # Extract ID
             patient_id = row[0]
             # Duplicate?
             if keeping_track:
                 if patient_id in processed_ids:
                     # we've done this one already; skip it this time
-                    row = cursor.fetchone()
                     continue
                 processed_ids.add(patient_id)
             # Valid one
@@ -498,12 +348,11 @@ def gen_patient_ids(sources, tasknum=0, ntasks=1):
                     "Not fetching more than {} patients (in total for this "
                     "process) due to debug_max_n_patients limit".format(
                         debuglimit))
+                result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
                 return
-            # Fetch the next
-            row = cursor.fetchone()
 
 
-def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
+def gen_rows(dbname, sourcetable, sourcefields, pid=None,
              pkname=None, tasknum=None, ntasks=None, debuglimit=0):
     """
     Generates rows from a source table
@@ -515,40 +364,21 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
     If the table has a PK and we're operating in a multitasking situation,
     generate just the rows for this task (thread/process).
     """
-    args = []
-    whereconds = []
+    t = config.sources[dbname].metadata.tables[sourcetable]
+    q = select([column(c) for c in sourcefields]).select_from(t)
 
     # Restrict to one patient?
     if pid is not None:
-        whereconds.append("{}=?".format(
-            config.srccfg[dbname].ddgen_per_table_pid_field))
-        args.append(pid)
+        pidcol_name = config.dd.get_pid_name(dbname, sourcetable)
+        q = q.where(column(pidcol_name) == pid)
 
     # Divide up rows across tasks?
     if pkname is not None and tasknum is not None and ntasks is not None:
-        whereconds.append("{pk} % {ntasks} = {tasknum}".format(
-            pk=pkname,
-            ntasks=ntasks,
-            tasknum=tasknum,
-        ))
+        q = q.where(func.mod(column(pkname), ntasks) == tasknum)
 
-    where = ""
-    if whereconds:
-        where = " WHERE " + " AND ".join(whereconds)
-    sql = """
-        SELECT {fields}
-        FROM {table}
-        {where}
-    """.format(
-        fields=",".join(sourcefields),
-        table=sourcetable,
-        where=where,
-    )
-    cursor = db.cursor()
-    db.db_exec_with_cursor(cursor, sql, *args)
-    row = cursor.fetchone()
     db_table_tuple = (dbname, sourcetable)
-    while row is not None:
+    result = config.sources[dbname].session.execute(q)
+    for row in result:
         if 0 < debuglimit <= config.rows_inserted_per_table[db_table_tuple]:
             if not config.warned_re_limits[db_table_tuple]:
                 log.warning(
@@ -556,15 +386,12 @@ def gen_rows(db, dbname, sourcetable, sourcefields, pid=None,
                     "for this process) due to debugging limits".format(
                         dbname, sourcetable, debuglimit))
                 config.warned_re_limits[db_table_tuple] = True
-            row = None  # terminate while loop
-            continue
-        yield list(row)  # convert from tuple to list so we can modify it
-        row = cursor.fetchone()
+            result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+            return
+        yield list(row)
+        # yield dict(zip(row.keys(), row))
+        # see also http://stackoverflow.com/questions/19406859
         config.rows_inserted_per_table[db_table_tuple] += 1
-    # log.debug("About to close cursor...")
-    cursor.close()
-    # log.debug("... cursor closed")
-    db.java_garbage_collect()  # for testing
 
 
 def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
@@ -604,17 +431,21 @@ def gen_nonpatient_tables_with_int_pk():
     db_table_pairs = config.dd.get_src_dbs_tables_with_no_pt_info_int_pk()
     for pair in db_table_pairs:
         db = pair[0]
-        table = pair[1]
-        pkname = config.dd.get_int_pk_name(db, table)
-        yield (db, table, pkname)
+        tablename = pair[1]
+        pkname = config.dd.get_int_pk_name(db, tablename)
+        yield (db, tablename, pkname)
 
 
-def gen_pks(db, table, pkname):
+def gen_pks(srcdbname, tablename, pkname):
     """
     Generate PK values from a table.
     """
-    sql = "SELECT {pk} FROM {table}".format(pk=pkname, table=table)
-    return db.gen_fetchfirst(sql)
+    db = config.sources[srcdbname]
+    t = db.metadata.tables[tablename]
+    q = select([column(pkname)]).select_from(t)
+    result = db.session.execute(q)
+    for row in result:
+        yield row[0]
 
 
 # =============================================================================
@@ -624,7 +455,7 @@ def gen_pks(db, table, pkname):
 # - KEY THREADING RULE: ALL THREADS MUST HAVE FULLY INDEPENDENT DATABASE
 #   CONNECTIONS.
 
-def process_table(sourcedb, sourcedbname, sourcetable, destdb,
+def process_table(sourcedbname, sourcetable,
                   patient=None, incremental=False,
                   pkname=None, tasknum=None, ntasks=None):
     """
@@ -637,7 +468,7 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
     log.debug(start + "pid={}, incremental={}".format(pid, incremental))
 
     # Limit the data quantity for debugging?
-    srccfg = config.srccfg[sourcedbname]
+    srccfg = config.sources[sourcedbname].srccfg
     if sourcetable in srccfg.debug_limited_tables:
         debuglimit = srccfg.debug_row_limit
     else:
@@ -657,63 +488,61 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
         return
     dest_table = ddrows[0].dest_table
     sourcefields = []
-    destfields = []
     pkfield_index = None
+    src_pk_name = None
+    dest_pk_name = None
     for i, ddr in enumerate(ddrows):
         # log.debug("DD row: {}".format(str(ddr)))
         if ddr.pk:
             pkfield_index = i
+            src_pk_name = ddr.src_field
+            dest_pk_name = ddr.dest_field
         sourcefields.append(ddr.src_field)
-        if not ddr.omit:
-            destfields.append(ddr.dest_field)
-    if addhash:
-        destfields.append(config.source_hash_fieldname)
-    if addtrid:
-        destfields.append(config.trid_fieldname)
     n = 0
     srchash = None
-    for row in gen_rows(sourcedb, sourcedbname, sourcetable, sourcefields,
+    sqla_table = config.dd.get_dest_sqla_table(dest_table)
+    session = config.destdb.session
+
+    for row in gen_rows(sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
                         pkname=pkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
             log.info(start + "processing row {} of task set".format(n))
         if addhash:
-            srchash = config.hash_list(row)
+            srchash = config.hash_object(row)
             if incremental and identical_record_exists_by_hash(
-                    destdb, dest_table, ddrows[pkfield_index].dest_field,
-                    row[pkfield_index], srchash):
+                    dest_table, dest_pk_name, row[pkfield_index], srchash):
                 log.debug(
                     "... ... skipping unchanged record (identical by hash): "
                     "{sd}.{st}.{spkf} = "
                     "(destination) {dt}.{dpkf} = {pkv}".format(
                         sd=sourcedbname,
                         st=sourcetable,
-                        spkf=ddrows[pkfield_index].src_field,
+                        spkf=src_pk_name,
                         dt=dest_table,
-                        dpkf=ddrows[pkfield_index].dest_field,
+                        dpkf=dest_pk_name,
                         pkv=row[pkfield_index],
                     )
                 )
                 continue
         if constant:
             if incremental and identical_record_exists_by_pk(
-                    destdb, dest_table, ddrows[pkfield_index].dest_field,
-                    row[pkfield_index]):
+                    dest_table, dest_pk_name, row[pkfield_index]):
                 log.debug(
                     "... ... skipping unchanged record (identical by PK and "
                     "marked as constant): {sd}.{st}.{spkf} = "
                     "(destination) {dt}.{dpkf} = {pkv}".format(
                         sd=sourcedbname,
                         st=sourcetable,
-                        spkf=ddrows[pkfield_index].src_field,
+                        spkf=src_pk_name,
                         dt=dest_table,
-                        dpkf=ddrows[pkfield_index].dest_field,
+                        dpkf=dest_pk_name,
                         pkv=row[pkfield_index],
                     )
                 )
                 continue
-        destvalues = []
+        destvalues = {}
         for i, ddr in enumerate(ddrows):
             if ddr.omit:
                 continue
@@ -738,14 +567,13 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
             if ddr.scrub:
                 # Main point of anonymisation!
                 value = patient.scrub(value)
-
-            destvalues.append(value)
+            destvalues[ddr.dest_field] = value
         if addhash:
-            destvalues.append(srchash)
+            destvalues[config.source_hash_fieldname] = srchash
         if addtrid:
-            destvalues.append(patient.get_trid())
-        destdb.insert_record(dest_table, destfields, destvalues,
-                             update_on_duplicate_key=True)
+            destvalues[config.trid_fieldname] = patient.get_trid()
+        q = sqla_table.insert_on_duplicate().values(destvalues)
+        session.execute(q)
 
         # Trigger an early commit?
         early_commit = False
@@ -761,10 +589,10 @@ def process_table(sourcedb, sourcedbname, sourcetable, destdb,
                 early_commit = True
         if early_commit:
             log.info(start + "Triggering early commit based on row/byte count")
-            commit(destdb)
+            commit_destdb()
 
     log.debug(start + "finished: pid={}".format(pid))
-    commit(destdb)
+    commit_destdb()
 
 
 def extract_text(value, row, ddr, ddrows):
@@ -804,144 +632,83 @@ def create_indexes(tasknum=0, ntasks=1):
     Create indexes for the destination tables.
     """
     log.info(SEP + "Create indexes")
-    for (table, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
-                                                          ntasks=ntasks):
-        # Process a table as a unit; this makes index creation faster.
-        # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
-        sqlbits_normal = []
-        sqlbits_fulltext = []
+    engine = config.destdb.engine
+    for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
+                                                              ntasks=ntasks):
         for tr in tablerows:
-            column = tr.dest_field
-            length = tr.indexlen
-            is_unique = tr.index == INDEX.UNIQUE
-            is_fulltext = tr.index == INDEX.FULLTEXT
-            if is_fulltext:
-                idxname = "_idxft_{}".format(column)
-                sqlbit = "ADD FULLTEXT INDEX {name} ({column})".format(
-                    name=idxname,
-                    column=column,
-                )
-            else:
-                idxname = "_idx_{}".format(column)
-                sqlbit = "ADD {unique} INDEX {name} ({column}{length})".format(
-                    name=idxname,
-                    column=column,
-                    length="" if length is None else "({})".format(length),
-                    unique="UNIQUE" if is_unique else "",
-                )
-            if not config.destdb.index_exists(table, idxname):
-                # because it will crash if you add it again!
-                if is_fulltext:
-                    sqlbits_fulltext.append(sqlbit)
-                else:
-                    sqlbits_normal.append(sqlbit)
+            add_index(engine, tablename, tr.dest_field,
+                      unique=(tr.index == INDEX.UNIQUE),
+                      fulltext=(tr.index == INDEX.FULLTEXT),
+                      length=tr.indexlen)
             # Extra index for TRID?
             if tr.primary_pid:
-                column = config.trid_fieldname
-                idxname = "_idx_{}".format(column)
-                if not config.destdb.index_exists(table, idxname):
-                    sqlbits_normal.append(
-                        "ADD {unique} INDEX {name} ({column})".format(
-                            unique="UNIQUE" if is_unique else "",
-                            name=idxname,
-                            column=column,
-                        )
-                    )
+                add_index(engine, tablename, config.trid_fieldname,
+                          unique=(tr.index == INDEX.UNIQUE))
 
-        if sqlbits_normal:
-            sql = "ALTER TABLE {table} {add_indexes}".format(
-                table=table,
-                add_indexes=", ".join(sqlbits_normal),
+
+def add_index(engine, tablename, colname,
+              unique=False, fulltext=False, length=None):
+    # We used to process a table as a unit; this makes index creation faster
+    # (using ALTER TABLE).
+    # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
+    # ... ignored in transition to SQLAlchemy
+    if fulltext:
+        idxname = "_idxft_{}".format(colname)
+    else:
+        idxname = "_idx_{}".format(colname)
+    if index_exists(engine, tablename, idxname):
+        log.debug("skipping creation of index {} on table {}".format(
+            idxname, tablename))
+        return
+        # because it will crash if you add it again!
+    log.info("Creating index: {}".format(idxname))
+    if fulltext:
+        if engine.dialect.name == 'mysql':
+            log.warning('OK to ignore this warning: '
+                        '"InnoDB rebuilding table to add column FTS_DOC_ID"')
+            # https://dev.mysql.com/doc/refman/5.6/en/innodb-fulltext-index.html
+            sql = (
+                "ALTER TABLE {tablename} "
+                "ADD FULLTEXT INDEX {idxname} ({colname})".format(
+                    tablename=tablename,
+                    idxname=idxname,
+                    colname=colname,
+                )
             )
-            log.info(sql)
-            config.destdb.db_exec(sql)
-        for sqlbit in sqlbits_fulltext:  # must add one by one
-            sql = "ALTER TABLE {table} {add_indexes}".format(
-                table=table,
-                add_indexes=sqlbit,
-            )
-            log.info(sql)
-            config.destdb.db_exec(sql)
-        # Index creation doesn't require a commit.
+            # DDL(sql, bind=engine).execute_if(dialect='mysql')
+            DDL(sql, bind=engine).execute()
+        else:
+            log.error(
+                "Don't know how to make full text index on dialect {}".format(
+                    engine.dialect.name))
+    else:
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
+        sqla_column = sqla_table.columns[colname]
+        index = Index(idxname, sqla_column, unique=unique, mysql_length=length)
+        index.create(engine)
+    # Index creation doesn't require a commit.
 
 
-# class PatientThread(threading.Thread):
-#     """
-#     Class for patient processing in a multithreaded environment.
-#     (DEPRECATED: use multiple processes instead.)
-#     """
-#     def __init__(self, sources, destdb, admindb, nthreads, threadnum,
-#                  abort_event, subthread_error_event,
-#                  incremental):
-#         """Initialize the thread."""
-#         threading.Thread.__init__(self)
-#         self.sources = sources
-#         self.destdb = destdb
-#         self.admindb = admindb
-#         self.nthreads = nthreads
-#         self.threadnum = threadnum
-#         self.abort_event = abort_event
-#         self.subthread_error_event = subthread_error_event
-#         self.exception = None
-#         self.incremental = incremental
-#
-#     def run(self):
-#         """Run the thread."""
-#         try:
-#             patient_processing_fn(
-#                 self.sources, self.destdb, self.admindb,
-#                 tasknum=self.threadnum, ntasks=self.nthreads,
-#                 abort_event=self.abort_event,
-#                 incremental=self.incremental)
-#         except Exception as e:
-#             log.exception(
-#                 "Setting subthread_error_event from thread {}".format(
-#                     self.threadnum))
-#             self.subthread_error_event.set()
-#             self.exception = e
-#             raise e  # to kill the thread
-#
-#     def get_exception(self):
-#         """Return stored exception information."""
-#         return self.exception
-
-
-def patient_processing_fn(sources, destdb, admindb,
-                          tasknum=0, ntasks=1,
-                          abort_event=None, multiprocess=False,
-                          incremental=False):
+def patient_processing_fn(tasknum=0, ntasks=1, incremental=False):
     """
     Iterate through patient IDs;
         build the scrubber for each patient;
         process source data for that patient, scrubbing it;
         insert the patient into the mapping table in the admin database.
     """
-    threadprefix = ""
-    if ntasks > 1 and not multiprocess:
-        threadprefix = "Thread {}: ".format(tasknum)
-        log.info(
-            threadprefix +
-            "Started thread {} (of {} threads, numbered from 0)".format(
-                tasknum, ntasks))
-
-    for pid in gen_patient_ids(sources, tasknum, ntasks):
+    for pid in gen_patient_ids(tasknum, ntasks):
         # gen_patient_ids() assigns the work to the appropriate thread/process
         # Check for an abort signal once per patient processed
-        if abort_event is not None and abort_event.is_set():
-            log.error(threadprefix + "aborted")
-            return
-        log.info(
-            threadprefix + "Processing patient ID: {} (incremental={})".format(
-                pid, incremental))
+        log.info("Processing patient ID: {} (incremental={})".format(
+            pid, incremental))
 
         # Opt out?
         if opt_out(pid):
             log.info("... opt out")
             continue
 
-        # Gather scrubbing information for a patient
-        patient = Patient(sources, pid, admindb, config)
-
+        # Gather scrubbing information for a patient. (Will save.)
+        patient = Patient(pid)
         patient_unchanged = patient.unchanged()
         if incremental:
             if patient_unchanged:
@@ -949,21 +716,17 @@ def patient_processing_fn(sources, destdb, admindb,
             else:
                 log.debug("Scrubber new or changed; reprocessing in full")
 
-        # Insert into mapping db
-        patient.save_to_mapping_db()
-
         # For each source database/table...
         for d in config.dd.get_source_databases():
-            log.debug("Processing database: {}".format(d))
-            db = sources[d]
+            log.debug("Patient {}, processing database: {}".format(pid, d))
             for t in config.dd.get_patient_src_tables_with_active_dest(d):
-                log.debug(
-                    threadprefix + "Patient {}, processing table {}.{}".format(
-                        pid, d, t))
-                process_table(db, d, t, destdb, patient=patient,
+                log.debug("Patient {}, processing table {}.{}".format(
+                    pid, d, t))
+                process_table(d, t,
+                              patient=patient,
                               incremental=(incremental and patient_unchanged))
 
-    commit(destdb)
+    commit_destdb()
 
 
 def wipe_opt_out_patients(report_every=1000, chunksize=10000):
@@ -974,44 +737,33 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     """
     start = "wipe_opt_out_patients"
     log.info(start)
-    temptable = config.temporary_tablename
-    pidfield = config.mapping_patient_id_fieldname
+
+    adminsession = config.admindb.session
+    metadata = MetaData()  # operate in isolation!
+    destengine = config.destdb.engine
+    destsession = config.destdb.session
     ridfield = config.research_id_fieldname
 
-    # 1. Drop temporary table
-    log.debug("... dropping temporary table")
-    config.destdb.drop_table(temptable)
+    # Drop/create temporary table
+    pkfield = 'rid'
+    temptable = Table(
+        config.temporary_tablename,
+        metadata,
+        Column(pkfield, config.SqlTypeEncryptedPid, primary_key=True))
+    log.debug(start + ": 1. dropping temporary table")
+    temptable.drop(destengine, checkfirst=True)  # use engine, not session
+    log.debug(start + ": 2. making temporary table")
+    temptable.create(destengine, checkfirst=True)  # use engine, not session
 
-    # 2. Make temporary table
-    log.debug("... making temporary table")
-    create_sql = """
-        CREATE TABLE IF NOT EXISTS {table} (
-            {rid} {sqltype} PRIMARY KEY
-        )
-    """.format(table=temptable, rid=ridfield,
-               sqltype=config.SQLTYPE_ENCRYPTED_PID)
-    config.destdb.db_exec(create_sql)
+    log.debug(start + ": 3. populating temporary table with RIDs")
 
-    # 3. Populate temporary table with RIDs
     def insert(records_):
         log.debug(start + "... inserting {} records".format(len(records_)))
-        config.destdb.insert_multiple_records(temptable, [ridfield], records_)
+        destsession.execute(temptable.insert(), records_)
 
-    log.debug("... populating temporary table")
     i = 0
     records = []
-    gensql = """
-        SELECT {rid}
-        FROM {mappingtable}
-        INNER JOIN {optouttable}
-        ON {mappingtable}.{pid} = {optouttable}.{pid}
-    """.format(
-        rid=ridfield,
-        mappingtable=config.secret_map_tablename,
-        optouttable=config.opt_out_tablename,
-        pid=pidfield,
-    )
-    for rid in config.admindb.gen_fetchfirst(gensql):
+    for rid in gen_optout_rids():
         i += 1
         if report_every and i % report_every == 0:
             log.debug(start + "... src row# {}".format(i))
@@ -1019,47 +771,39 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
         if i % chunksize == 0:
             insert(records)
             records = []
-    if records:
+    if records:  # remainder
         insert(records)
-        # records = []
-    commit(config.destdb)
+    commit_destdb()
 
-    # 4. For each patient destination table, DELETE FROM ... WHERE IN ...
-    for dest_table in config.dd.get_dest_tables_with_patient_info():
-        log.debug(start + "... deleting from {} where appropriate".format(
-            dest_table))
-        delete_sql = """
-            DELETE FROM {dest_table}
-            WHERE {rid} IN (
-                SELECT {rid} FROM {temptable}
+    log.debug(start + ": 4. creating index on temporary table")
+    index = Index('_temptable_idx', temptable.columns[pkfield])
+    index.create(destengine)  # use engine, not session
+
+    # 5. For each patient destination table,
+    #    DELETE FROM desttable WHERE rid IN (SELECT rid FROM temptable)
+    log.debug(start + ": 5. deleting from destination table by opt-out RID")
+    for dest_table_name in config.dd.get_dest_tables_with_patient_info():
+        log.debug(start + ": ... {}".format(dest_table_name))
+        dest_table = config.dd.get_dest_sqla_table(dest_table_name)
+        query = dest_table.delete().where(
+            column(ridfield).in_(
+                select([temptable.columns[pkfield]])
             )
-        """.format(
-            dest_table=dest_table,
-            rid=ridfield,
-            temptable=temptable,
         )
-        config.destdb.db_exec(delete_sql)
+        destengine.execute(query)
+        commit_destdb()
 
-    # 5. Drop temporary table
-    log.debug("... dropping temporary table")
-    config.destdb.drop_table(temptable)
+    log.debug(start + ": 6. dropping temporary table")
+    temptable.drop(destengine, checkfirst=True)  # use engine, not session
+    commit_destdb()
 
-    # 6. Commit
-    commit(config.destdb)
-
-    # 7. Delete those entries from the mapping table
-    config.admindb.db_exec("""
-        DELETE FROM {mappingtable}
-        WHERE {pid} IN (
-            SELECT {pid}
-            FROM {optouttable}
-        )
-    """.format(
-        mappingtable=config.secret_map_tablename,
-        optouttable=config.opt_out_tablename,
-        pid=pidfield,
-    ))
-    config.admindb.commit()
+    log.debug(start + ": 7. deleting opt-out patients from mapping table")
+    (
+        adminsession.query(PatientInfo).
+        filter(PatientInfo.pid.in_(adminsession.query(OptOut.pid))).
+        delete(synchronize_session=False)
+    )
+    commit_admindb()
 
 
 def drop_remake(incremental=False):
@@ -1068,18 +812,25 @@ def drop_remake(incremental=False):
     If incremental is True, doesn't drop tables; just deletes destination
     information where source information no longer exists.
     """
-    recreate_opt_out_table(config.admindb)
-    wipe_and_recreate_mapping_table(config.admindb, incremental=incremental)
-    wipe_and_recreate_trid_cache(config.admindb, incremental=incremental)
-    wipe_and_recreate_destination_db(config.destdb, incremental=incremental)
+    engine = config.admindb.engine
+    if not incremental:
+        log.info("Dropping admin tables except opt-out")
+        # not OptOut
+        PatientInfo.__table__.drop(engine, checkfirst=True)
+        TridRecord.__table__.drop(engine, checkfirst=True)
+    log.info("Creating admin tables")
+    OptOut.__table__.create(engine, checkfirst=True)
+    PatientInfo.__table__.create(engine, checkfirst=True)
+    TridRecord.__table__.create(engine, checkfirst=True)
+
+    wipe_and_recreate_destination_db(incremental=incremental)
     if not incremental:
         return
     wipe_opt_out_patients()
     for d in config.dd.get_source_databases():
-        db = config.sources[d]
         for t in config.dd.get_src_tables(d):
             delete_dest_rows_with_no_src_row(
-                db, d, t, report_every=config.report_every_n_rows)
+                d, t, report_every=config.report_every_n_rows)
 
 
 def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
@@ -1089,22 +840,20 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
     """
     log.info(SEP + "Non-patient tables: (a) with integer PK")
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
-        db = config.sources[d]
         log.info("Processing non-patient table {}.{} (PK: {})...".format(
             d, t, pkname))
-        process_table(db, d, t, config.destdb, patient=None,
+        process_table(d, t, patient=None,
                       incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
-        commit(config.destdb)
+        commit_destdb()
     log.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
                                                        ntasks=ntasks):
-        db = config.sources[d]
         log.info("Processing non-patient table {}.{}...".format(d, t))
-        process_table(db, d, t, config.destdb, patient=None,
+        process_table(d, t, patient=None,
                       incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)
-        commit(config.destdb)
+        commit_destdb()
 
 
 def process_patient_tables(process=0, nprocesses=1,  # nthreads=1,
@@ -1113,97 +862,23 @@ def process_patient_tables(process=0, nprocesses=1,  # nthreads=1,
     Process all patient tables, optionally in a parallel-processing fashion.
     """
     # We'll use multiple destination tables, so commit right at the end.
-
-    # def ctrl_c_handler(signum, frame):
-    #     log.exception("CTRL-C")
-    #     abort_threads()
-
-    # def abort_threads():
-    #     abort_event.set()  # threads will notice and terminate themselves
-
     log.info(SEP + "Patient tables")
-    # if nthreads == 1 and nprocesses == 1:
     if nprocesses == 1:
         log.info("Single-threaded, single-process mode")
-        patient_processing_fn(
-            config.sources, config.destdb, config.admindb,
-            tasknum=0, ntasks=1, multiprocess=False,
-            incremental=incremental)
-    # elif nprocesses > 1:
+        patient_processing_fn(tasknum=0, ntasks=1, incremental=incremental)
     else:
         log.info("PROCESS {} (numbered from zero) OF {} PROCESSES".format(
             process, nprocesses))
-        patient_processing_fn(
-            config.sources, config.destdb, config.admindb,
-            tasknum=process, ntasks=nprocesses, multiprocess=True,
-            incremental=incremental)
-    # else:
-    #     log.info(SEP + "ENTERING SINGLE-PROCESS, MULTITHREADING MODE")
-    #     signal.signal(signal.SIGINT, ctrl_c_handler)
-    #     threads = []
-    #     mainthreadprefix = "Main thread: "
-    #     # Start the threads. Each needs its own set of database connections.
-    #     abort_event = threading.Event()
-    #     abort_event.clear()
-    #     subthread_error_event = threading.Event()
-    #     subthread_error_event.clear()
-    #     for threadnum in range(nthreads):
-    #         destdb = config.get_database("destination_database")
-    #         admindb = config.get_database("admin_database")
-    #         sources = {}
-    #         for srcname in config.src_db_names:
-    #             sources[srcname] = config.get_database(srcname)
-    #         thread = PatientThread(sources, destdb, admindb,
-    #                                nthreads, threadnum,
-    #                                abort_event, subthread_error_event,
-    #                                incremental)
-    #         thread.start()
-    #         threads.append(thread)
-    #         log.info(mainthreadprefix +
-    #                  "Started thread {}".format(threadnum))
-    #     # Run; wait for the threads to finish, or crash, or for a user abort
-    #     try:
-    #         running = True
-    #         while running:
-    #             # log.debug(mainthreadprefix + "ping")
-    #             running = False
-    #             if subthread_error_event.is_set():
-    #                 log.exception(mainthreadprefix + "A thread has crashed")
-    #                 for t in threads:
-    #                     e = t.get_exception()
-    #                     if e:
-    #                         log.exception(
-    #                             mainthreadprefix +
-    #                             "Found crashed thread {}".format(
-    #                                 t.threadnum))
-    #                         raise e
-    #             else:
-    #                 for t in threads:
-    #                     if t.is_alive():
-    #                         running = True
-    #                         t.join(1)  # timeout so it does NOT block
-    #                     else:
-    #                         log.debug(
-    #                             mainthreadprefix +
-    #                             "Found finished thread {}".format(
-    #                                 t.threadnum))
-    #             # time.sleep(1)
-    #     except Exception as e:
-    #         log.exception(mainthreadprefix +
-    #                       "Exception detected in main thread")
-    #         abort_threads()
-    #         raise e  # will terminate main thread
-    #     log.info(SEP + "LEAVING MULTITHREADING MODE")
-    #     if abort_event.is_set():
-    #         log.exception("Threads terminated abnormally")
-    #         raise Exception("Threads terminated abnormally")
+        patient_processing_fn(tasknum=process, ntasks=nprocesses,
+                              incremental=incremental)
+
     if nprocesses > 1:
         log.info("Process {}: FINISHED ANONYMISATION".format(process))
     else:
         log.info("FINISHED ANONYMISATION")
 
-    # Main-thread commit (should be redundant)
-    commit(config.destdb)
+    # Commit (should be redundant)
+    commit_destdb()
 
 
 def show_source_counts():
@@ -1212,9 +887,9 @@ def show_source_counts():
     """
     log.info("SOURCE TABLE RECORD COUNTS:")
     for d in config.dd.get_source_databases():
-        db = config.sources[d]
+        session = config.sources[d].session
         for t in config.dd.get_src_tables(d):
-            n = db.count_where(t)
+            n = count_star(session, t)
             log.info("{}.{}: {} records".format(d, t, n))
 
 
@@ -1223,9 +898,9 @@ def show_dest_counts():
     Show the number of records in all destination tables.
     """
     log.info("DESTINATION TABLE RECORD COUNTS:")
-    db = config.destdb
+    session = config.destdb.session
     for t in config.dd.get_dest_tables():
-        n = db.count_where(t)
+        n = count_star(session, t)
         log.info("DESTINATION: {}: {} records".format(t, n))
 
 
@@ -1240,94 +915,11 @@ def fail():
     sys.exit(1)
 
 
-def main():
+def anonymise(args):
     """
-    Command-line entry point.
+    Main entry point.
     """
-    version = "Version {} ({})".format(VERSION, VERSION_DATE)
-    description = """
-Database anonymiser. {version}. By Rudolf Cardinal.
-
-Sample usage:
-    {prog} -c > testconfig.ini  # generate sample config file
-    {prog} -d testconfig.ini > testdd.tsv  # generate draft data dict.
-    {prog} testconfig.ini  # run""".format(
-        prog=os.path.basename(sys.argv[0]),
-        version=version,
-    )
-    # ncpus = multiprocessing.cpu_count()
-
-    parser = argparse.ArgumentParser(
-        description=description,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-n", "--version", action="version", version=version)
-    parser.add_argument('--verbose', '-v', action='count', default=0,
-                        help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument('-r', '--report', nargs="?", type=int, default=1000,
-                        help="Report insert progress every n rows in verbose "
-                             "mode (default 1000)")
-    # parser.add_argument('-t', '--threads', nargs="?", type=int, default=1,
-    #                     help="For multithreaded mode: number of threads to "
-    #                          "use (default 1; this machine has {} "
-    #                          "CPUs)".format(ncpus))
-    parser.add_argument("configfile", nargs="?",
-                        help="Configuration file name")
-    parser.add_argument("--process", nargs="?", type=int, default=0,
-                        help="For multiprocess patient-table mode: specify "
-                             "process number")
-    parser.add_argument("--nprocesses", nargs="?", type=int, default=1,
-                        help="For multiprocess patient-table mode: specify "
-                             "total number of processes (launched somehow, of "
-                             "which this is to be one)")
-    parser.add_argument("--processcluster", default="",
-                        help="Process cluster name")
-    parser.add_argument("--democonfig", action="store_true",
-                        help="Print a demo config file (INCLUDES MORE HELP)")
-    parser.add_argument("--draftdd", action="store_true",
-                        help="Print a draft data dictionary")
-    parser.add_argument("--incrementaldd", action="store_true",
-                        help="Print an INCREMENTAL draft data dictionary")
-    parser.add_argument("--makeddpermitbydefaultdangerous",
-                        action="store_true",
-                        help="When creating or adding to a data dictionary, "
-                             "set the 'omit' flag to False. DANGEROUS.")
-    parser.add_argument("--debugscrubbers", action="store_true",
-                        help="Report sensitive scrubbing information, for "
-                             "debugging")
-    parser.add_argument("--savescrubbers", action="store_true",
-                        help="Saves sensitive scrubbing information in admin "
-                             "database, for debugging")
-    parser.add_argument("--count", action="store_true",
-                        help="Count records in source/destination databases, "
-                             "then stop")
-    parser.add_argument("--dropremake", action="store_true",
-                        help="Drop/remake destination tables, then stop")
-    parser.add_argument("--nonpatienttables", action="store_true",
-                        help="Process non-patient tables only")
-    parser.add_argument("--patienttables", action="store_true",
-                        help="Process patient tables only")
-    parser.add_argument("--index", action="store_true",
-                        help="Create indexes only")
-    parser.add_argument("-i", "--incremental", action="store_true",
-                        help="Process only new/changed information, where "
-                             "possible")
-    parser.add_argument("--seed",
-                        help="String to use as the basis of the seed for the "
-                             "random number generator used for the transient "
-                             "integer RID (TRID). Leave blank to use the "
-                             "default seed (system time).")
-    args = parser.parse_args()
-    # log.error(args)
-
-    # Demo config?
-    if args.democonfig:
-        print(DEMO_CONFIG)
-        return
-
     # Validate args
-    if not args.configfile:
-        parser.print_help()
-        fail()
     if args.nprocesses < 1:
         log.error("--nprocesses must be >=1")
         fail()
@@ -1335,20 +927,6 @@ Sample usage:
         log.error(
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
         fail()
-    # if args.nprocesses > 1 and args.threads > 1:
-    #     log.error("Can't use multithreading and multi-process mode. "
-    #               "In multi-process mode, specify --threads=1")
-    #     fail()
-    # Inefficient code but helpful error messages:
-    # if args.threads > 1 and args.dropremake:
-    #     log.error("Can't use nthreads > 1 with --dropremake")
-    #     fail()
-    # if args.threads > 1 and args.nonpatienttables:
-    #     log.error("Can't use nthreads > 1 with --nonpatienttables")
-    #     fail()
-    # if args.threads > 1 and args.index:
-    #     log.error("Can't use nthreads > 1 with --index")
-    #     fail()
     if args.nprocesses > 1 and args.dropremake:
         log.error("Can't use nprocesses > 1 with --dropremake")
         fail()
@@ -1359,31 +937,13 @@ Sample usage:
     everything = not any([args.dropremake, args.nonpatienttables,
                           args.patienttables, args.index])
 
-    # -------------------------------------------------------------------------
-
-    # Verbosity
-    mynames = []
-    if args.processcluster:
-        mynames.append(args.processcluster)
-    if args.nprocesses > 1:
-        mynames.append("process {}".format(args.process))
-    mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
-    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
-                        level=mainloglevel)
-    rootlog = logging.getLogger()
-    rnc_log.reset_logformat_timestamped(
-        rootlog,
-        extraname=" ".join(mynames),
-        level=mainloglevel
-    )
-    rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
-
     # Load/validate config
-    config.set(filename=args.configfile, load_dd=(not args.draftdd),
-               load_destfields=False)
     config.report_every_n_rows = args.report
     config.debug_scrubbers = args.debugscrubbers
     config.save_scrubbers = args.savescrubbers
+    config.set_echo(args.echo)
+    if not args.draftdd:
+        config.load_dd()
 
     if args.draftdd or args.incrementaldd:
         # Note: the difference is that for incrementaldd, the data dictionary
@@ -1393,6 +953,8 @@ Sample usage:
             default_omit=(not args.makeddpermitbydefaultdangerous))
         print(config.dd.get_tsv())
         return
+
+    config.check_valid()
 
     if args.count:
         show_source_counts()
@@ -1434,19 +996,4 @@ Sample usage:
     end = get_now_utc()
     time_taken = end - start
     log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
-    config.dd.debug_cache_hits()
-
-
-# =============================================================================
-# Config instance, as process-local storage
-# =============================================================================
-
-config = Config()
-
-
-# =============================================================================
-# Command-line entry point
-# =============================================================================
-
-if __name__ == '__main__':
-    main()
+    # config.dd.debug_cache_hits()

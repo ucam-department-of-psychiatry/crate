@@ -29,18 +29,14 @@ Copyright/licensing:
 
 import logging
 
-import cardinal_pythonlib.rnc_db as rnc_db
+from sqlalchemy.sql import column, select, table
 
+from crate_anon.anonymise.config import config
 from crate_anon.anonymise.constants import (
-    MAX_TRID,
-    RAW_SCRUBBER_FIELDNAME_PATIENT,
-    RAW_SCRUBBER_FIELDNAME_TP,
     SCRUBSRC,
     SRCFLAG,
-    TRID_CACHE_PID_FIELDNAME,
-    TRID_CACHE_TRID_FIELDNAME,
 )
-from crate_anon.anonymise.hash import RandomIntegerHasher
+from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.scrub import PersonalizedScrubber
 
 log = logging.getLogger(__name__)
@@ -50,7 +46,7 @@ log = logging.getLogger(__name__)
 # Generate identifiable values for a patient
 # =============================================================================
 
-def gen_all_values_for_patient(sources, dbname, table, fields, pid, config):
+def gen_all_values_for_patient(dbname, tablename, fields, pid):
     """
     Generate all sensitive (scrub_src) values for a given patient, from a given
     source table. Used to build the scrubber.
@@ -65,24 +61,24 @@ def gen_all_values_for_patient(sources, dbname, table, fields, pid, config):
 
     Yields rows, where each row is a list of values that matches "fields".
     """
-    cfg = config.srccfg[dbname]
+    cfg = config.sources[dbname].srccfg
     if not cfg.ddgen_per_table_pid_field:
         return
         # http://stackoverflow.com/questions/13243766
     log.debug(
         "gen_all_values_for_patient: PID {p}, table {d}.{t}, "
         "fields: {f}".format(
-            d=dbname, t=table, f=",".join(fields), p=pid))
-    db = sources[dbname]
-    sql = rnc_db.get_sql_select_all_fields_by_key(
-        table, fields, cfg.ddgen_per_table_pid_field, delims=db.get_delims())
-    args = [pid]
-    cursor = db.cursor()
-    db.db_exec_with_cursor(cursor, sql, *args)
-    row = cursor.fetchone()
-    while row is not None:
+            d=dbname, t=tablename, f=",".join(fields), p=pid))
+    session = config.sources[dbname].session
+    query = (
+        select([column(f) for f in fields]).
+        where(column(cfg.ddgen_per_table_pid_field) == pid).
+        select_from(table(tablename))
+    )
+    result = session.execute(query)
+    for row in result:
+        log.debug("... yielding row: {}".format(row))
         yield row
-        row = cursor.fetchone()
 
 
 # =============================================================================
@@ -93,7 +89,7 @@ class Patient(object):
     """Class representing a patient-specific information, such as PIDs, RIDs,
     and scrubbers."""
 
-    def __init__(self, sources, pid, admindb, config, debug=False):
+    def __init__(self, pid, debug=False):
         """
         Build the scrubber based on data dictionary information.
 
@@ -103,14 +99,18 @@ class Patient(object):
             pid: integer patient identifier
         """
         self.pid = pid
-        self.admindb = admindb
-        self.config = config
+        self.session = config.admindb.session
 
-        # ID information
-        self.mpid = None
-        self.trid = None
-        self.rid = config.primary_pid_hasher.hash(pid)
-        self.mrid = None
+        # Fetch or create PatientInfo object
+        self.info = self.session.query(PatientInfo).get(pid)
+        if self.info is None:
+            self.info = PatientInfo(pid=pid)
+            self.info.ensure_rid()
+            self.info.ensure_trid(self.session)
+            self.session.add(self.info)
+            self.session.commit()
+            # prompt commit after insert operations, to ensure no locks
+
         # Scrubber
         self.scrubber = PersonalizedScrubber(
             anonymise_codes_at_word_boundaries_only=(
@@ -133,14 +133,6 @@ class Patient(object):
             string_max_regex_errors=config.string_max_regex_errors,
             whitelist=config.whitelist,
         )
-        # TRID generator
-        self.tridgen = RandomIntegerHasher(
-            admindb,
-            table=config.secret_trid_cache_tablename,
-            inputfield=TRID_CACHE_PID_FIELDNAME,
-            outputfield=TRID_CACHE_TRID_FIELDNAME,
-            min_value=0,
-            max_value=MAX_TRID)
         # Database
         # Construction. We go through all "scrub-from" fields in the data
         # dictionary. We collect all values of those fields from the source
@@ -162,38 +154,45 @@ class Patient(object):
                 is_patient.append(ddr.scrub_src == SCRUBSRC.PATIENT)
                 is_mpid.append(SRCFLAG.MASTERPID in ddr.src_flags)
             # Collect the actual patient-specific values for this table.
-            for vlist in gen_all_values_for_patient(sources, src_db, src_table,
-                                                    fields, pid, config):
-                for i in range(len(vlist)):
-                    self.scrubber.add_value(vlist[i],
+            for values in gen_all_values_for_patient(src_db, src_table,
+                                                     fields, pid):
+                for i, val in enumerate(values):
+                    self.scrubber.add_value(val,
                                             scrub_methods[i],
                                             is_patient[i])
-                    if self.mpid is None and is_mpid[i]:
+                    if is_mpid[i] and self.get_mpid():
                         # We've come across the master ID.
-                        self.mpid = vlist[i]
-                        self.mrid = config.master_pid_hasher.hash(self.mpid)
+                        self.set_mpid(val)
+
+        self._unchanged = self.get_scrubber_hash() == self.info.scrubber_hash
+        self.info.set_scrubber_info(self.scrubber)
+        self.session.commit()
+        # Commit immediately, because other processes may need this table
+        # promptly. Otherwise, might get:
+        #   Deadlock found when trying to get lock; try restarting transaction
 
     def get_pid(self):
         """Return the patient ID (PID)."""
-        return self.pid
+        return self.info.pid
 
     def get_mpid(self):
         """Return the master patient ID (MPID)."""
-        return self.mpid
+        return self.info.mpid
+
+    def set_mpid(self, mpid):
+        self.info.set_mpid(mpid)
 
     def get_rid(self):
         """Returns the RID (encrypted PID)."""
-        return self.rid
+        return self.info.rid
 
     def get_mrid(self):
         """Returns the master RID (encrypted MPID)."""
-        return self.mrid
+        return self.info.mrid
 
     def get_trid(self):
         """Returns the transient integer RID (TRID)."""
-        if self.trid is None:
-            self.fetch_trid()
-        return self.trid
+        return self.info.trid
 
     def get_scrubber_hash(self):
         return self.scrubber.get_hash()
@@ -203,121 +202,7 @@ class Patient(object):
 
     def unchanged(self):
         """
-        Has the scrubber changed, compared to the hashed version in the admin
-        database?
+        Has the scrubber changed, compared to the previous hashed version in
+        the admin database?
         """
-        sql = """
-            SELECT 1
-            FROM {table}
-            WHERE {patient_id_field} = ?
-            AND {scrubber_hash_field} = ?
-        """.format(
-            table=self.config.secret_map_tablename,
-            patient_id_field=self.config.mapping_patient_id_fieldname,
-            scrubber_hash_field=self.config.source_hash_fieldname,
-        )
-        row = self.admindb.fetchone(sql,
-                                    self.get_pid(),
-                                    self.get_scrubber_hash())
-        return True if row is not None and row[0] == 1 else False
-
-    def patient_in_map(self):
-        """
-        Is the patient in the PID/RID mapping table already?
-        """
-        sql = """
-            SELECT 1
-            FROM {table}
-            WHERE {patient_id_field} = ?
-        """.format(
-            table=self.config.secret_map_tablename,
-            patient_id_field=self.config.mapping_patient_id_fieldname,
-        )
-        row = self.admindb.fetchone(sql, self.get_pid())
-        return True if row is not None and row[0] == 1 else False
-
-    def save_to_mapping_db(self):
-        """
-        Insert patient information (including PID, RID, MPID, RID, and scrubber
-        hash) into the mapping database. Establish the TRID as well.
-        """
-        log.debug("Inserting patient into mapping table")
-        pid = self.get_pid()
-        rid = self.get_rid()
-        mpid = self.get_mpid()
-        mrid = self.get_mrid()
-        scrubber_hash = self.get_scrubber_hash()
-        if self.config.save_scrubbers:
-            raw_pt = self.scrubber.get_patient_regex_string()
-            raw_tp = self.scrubber.get_tp_regex_string()
-        else:
-            raw_pt = None
-            raw_tp = None
-        if self.patient_in_map():
-            sql = """
-                UPDATE {table}
-                SET {master_id} = ?,
-                    {master_research_id} = ?,
-                    {scrubber_hash} = ?,
-                    {RAW_SCRUBBER_FIELDNAME_PATIENT} = ?,
-                    {RAW_SCRUBBER_FIELDNAME_TP} = ?
-                WHERE {patient_id} = ?
-            """.format(
-                table=self.config.secret_map_tablename,
-                master_id=self.config.mapping_master_id_fieldname,
-                master_research_id=self.config.master_research_id_fieldname,
-                scrubber_hash=self.config.source_hash_fieldname,
-                patient_id=self.config.mapping_patient_id_fieldname,
-                RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
-                RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
-            )
-            args = [mpid, mrid, scrubber_hash, raw_pt, raw_tp, pid]
-        else:
-            self.trid = self.tridgen.hash(self.pid)
-            sql = """
-                INSERT INTO {table} (
-                    {patient_id},
-                    {research_id},
-                    {tridfield},
-                    {master_id},
-                    {master_research_id},
-                    {scrubber_hash},
-                    {RAW_SCRUBBER_FIELDNAME_PATIENT},
-                    {RAW_SCRUBBER_FIELDNAME_TP}
-                )
-                VALUES (
-                    ?, ?, ?, ?,
-                    ?, ?, ?, ?
-                )
-            """.format(
-                table=self.config.secret_map_tablename,
-                patient_id=self.config.mapping_patient_id_fieldname,
-                research_id=self.config.research_id_fieldname,
-                tridfield=self.config.trid_fieldname,
-                master_id=self.config.mapping_master_id_fieldname,
-                master_research_id=self.config.master_research_id_fieldname,
-                scrubber_hash=self.config.source_hash_fieldname,
-                RAW_SCRUBBER_FIELDNAME_PATIENT=RAW_SCRUBBER_FIELDNAME_PATIENT,
-                RAW_SCRUBBER_FIELDNAME_TP=RAW_SCRUBBER_FIELDNAME_TP,
-            )
-            args = [pid, rid, self.trid, mpid,
-                    mrid, scrubber_hash, raw_pt, raw_tp]
-        self.admindb.db_exec(sql, *args)
-        self.admindb.commit()
-        # Commit immediately, because other processes may need this table
-        # promptly. Otherwise, get:
-        #   Deadlock found when trying to get lock; try restarting transaction
-
-    def fetch_trid(self):
-        """Fetch TRID from database."""
-        sql = """
-            SELECT {trid_field}
-            FROM {table}
-            WHERE {patient_id_field} = ?
-        """.format(
-            trid_field=self.config.trid_fieldname,
-            table=self.config.secret_map_tablename,
-            patient_id_field=self.config.mapping_patient_id_fieldname,
-        )
-        row = self.admindb.fetchone(sql, self.get_pid())
-        self.trid = row[0] if row is not None else None
+        return self._unchanged

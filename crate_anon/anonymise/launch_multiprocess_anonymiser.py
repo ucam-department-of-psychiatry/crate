@@ -43,7 +43,7 @@ from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
 
-ANONYMISER = 'crate_anon.anonymise.anonymise'
+ANONYMISER = 'crate_anon.anonymise.anonymise_main'
 
 CPUCOUNT = multiprocessing.cpu_count()
 
@@ -58,6 +58,8 @@ def start_process(args):
     log.debug(args)
     global processes
     processes.append(Popen(args, stdin=None, stdout=PIPE, stderr=STDOUT))
+    # processes.append(Popen(args, stdin=None, stdout=PIPE, stderr=PIPE))
+    # Can't preserve colour: http://stackoverflow.com/questions/13299550/preserve-colored-output-from-python-os-popen  # noqa
 
 
 def wait_for_processes():
@@ -114,21 +116,26 @@ def main():
     parser.add_argument(
         'mode', choices=('incremental', 'full'),
         help="Processing mode (full or incremental)")
-    parser.add_argument('config', help="Config file")
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
         help="Number of processes (default: {})".format(CPUCOUNT))
     parser.add_argument(
         '--verbose', '-v', action='count', default=0,
         help="Be verbose (use twice for extra verbosity)")
+    parser.add_argument("--echo", action="store_true",
+                        help="Echo SQL")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.DEBUG if args.verbose > 0
                         else logging.INFO)
 
-    common_options = ["--threads=1"] + ["-v"] * args.verbose
+    common_options = ["-v"] * args.verbose
+    if args.echo:
+        common_options.append('--echo')
     if args.mode == 'incremental':
         common_options.append('--incremental')
+    else:
+        common_options.append('--full')
 
     log.debug("common_options: {}".format(common_options))
 
@@ -157,7 +164,7 @@ def main():
     # imports).
     procargs = [
         sys.executable, '-m', ANONYMISER,
-        args.config, '--dropremake', '--processcluster=STRUCTURE'
+        '--dropremake', '--processcluster=STRUCTURE'
     ] + common_options
     log.debug(procargs)
     check_call(procargs)
@@ -171,7 +178,6 @@ def main():
     for procnum in range(nprocesses_patient):
         procargs = [
             sys.executable, '-m', ANONYMISER,
-            args.config,
             '--patienttables',
             '--processcluster=PATIENT',
             '--nprocesses={}'.format(nprocesses_patient),
@@ -181,7 +187,6 @@ def main():
     for procnum in range(nprocesses_nonpatient):
         procargs = [
             sys.executable, '-m', ANONYMISER,
-            args.config,
             '--nonpatienttables',
             '--processcluster=NONPATIENT',
             '--nprocesses={}'.format(nprocesses_nonpatient),
@@ -201,7 +206,6 @@ def main():
     processes = [
         Popen([
             sys.executable, '-m', ANONYMISER,
-            args.config,
             '--index',
             '--processcluster=INDEX',
             '--nprocesses={}'.format(nprocesses_index),

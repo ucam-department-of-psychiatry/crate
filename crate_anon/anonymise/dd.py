@@ -34,12 +34,17 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
+import collections
 import csv
 from functools import lru_cache
 import logging
 import operator
 
 from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
+from sqlalchemy import (
+    Column,
+    Table,
+)
 
 import cardinal_pythonlib.rnc_db as rnc_db
 from cardinal_pythonlib.rnc_db import (
@@ -62,6 +67,7 @@ from cardinal_pythonlib.rnc_lang import (
     raise_if_attr_blank,
 )
 
+# don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
     ALTERMETHOD,
     DEFAULT_INDEX_LEN,
@@ -71,7 +77,9 @@ from crate_anon.anonymise.constants import (
     SCRUBMETHOD,
     SCRUBSRC,
     SRCFLAG,
+    TridType,
 )
+from crate_anon.anonymise.sqla import get_sqla_coltype_from_dialect_str
 
 log = logging.getLogger(__name__)
 
@@ -114,7 +122,8 @@ class DataDictionaryRow(object):
         self.src_db = None
         self.src_table = None
         self.src_field = None
-        self.src_datatype = None
+        self.src_datatype = None  # in SQL string format
+        self._src_sqla_coltype = None
         # src_flags: a property; see below
         self.scrub_src = None
         self.scrub_method = None
@@ -289,9 +298,10 @@ class DataDictionaryRow(object):
         """
         Return a signature based on the source database/table/field.
         """
-        return "{}.{}.{}".format(self.src_db,
-                                 self.src_table,
-                                 self.src_field)
+        return "{}.{}.{}".format(self.src_db, self.src_table, self.src_field)
+
+    def get_dest_signature(self):
+        return "{}.{}".format(self.dest_table, self.dest_field)
 
     def set_from_dict(self, valuedict):
         """
@@ -317,7 +327,7 @@ class DataDictionaryRow(object):
         self.check_valid()
 
     def set_from_src_db_info(self, db, table, field,
-                             datatype_full, cfg, comment=None,
+                             datatype_sqltext, sqla_coltype, cfg, comment=None,
                              default_omit=True):
         """
         Create a draft data dictionary row from a field in the source database.
@@ -325,7 +335,8 @@ class DataDictionaryRow(object):
         self.src_db = db
         self.src_table = table
         self.src_field = field
-        self.src_datatype = datatype_full
+        self.src_datatype = datatype_sqltext
+        self._src_sqla_coltype = sqla_coltype
 
         # Is the field special, such as a PK?
         self._pk = False
@@ -372,12 +383,12 @@ class DataDictionaryRow(object):
         # What kind of sensitive data? Date, text, number, code?
         if not self.scrub_src:
             self.scrub_method = ""
-        elif (is_sqltype_numeric(datatype_full) or
+        elif (is_sqltype_numeric(datatype_sqltext) or
                 self.src_field == cfg.ddgen_per_table_pid_field or
                 self.src_field == cfg.ddgen_master_pid_fieldname or
                 self.src_field in cfg.ddgen_scrubmethod_number_fields):
             self.scrub_method = SCRUBMETHOD.NUMERIC
-        elif (is_sqltype_date(datatype_full) or
+        elif (is_sqltype_date(datatype_sqltext) or
                 self.src_field in cfg.ddgen_scrubmethod_date_fields):
             self.scrub_method = SCRUBMETHOD.DATE
         elif self.src_field in cfg.ddgen_scrubmethod_code_fields:
@@ -410,9 +421,11 @@ class DataDictionaryRow(object):
 
         # Do we want to change the destination field SQL type?
         self.dest_datatype = (
-            self.config.SQLTYPE_ENCRYPTED_PID
+            self.config.sqltype_encrypted_pid_as_sql
             if (self._primary_pid or self._master_pid)
-            else rnc_db.full_datatype_to_mysql(datatype_full)
+            # else rnc_db.full_datatype_to_mysql(datatype_full)
+            # else datatype_full
+            else ''
         )
 
         # How should we manipulate the destination?
@@ -434,7 +447,7 @@ class DataDictionaryRow(object):
                     cfg.ddgen_safe_fields_exempt_from_scrubbing):
                 self._scrub = True
         elif (is_sqltype_text_of_length_at_least(
-                datatype_full, cfg.ddgen_min_length_for_scrubbing) and
+                datatype_sqltext, cfg.ddgen_min_length_for_scrubbing) and
                 not self.omit and
                 not self._primary_pid and
                 not self._master_pid and
@@ -491,10 +504,9 @@ class DataDictionaryRow(object):
         return "\t".join(values)
 
     def get_offender_description(self):
-        offenderdest = "" if not self.omit else " -> {}.{}".format(
-            self.dest_table, self.dest_field)
-        return "{}.{}.{}{}".format(
-            self.src_db, self.src_table, self.src_field, offenderdest)
+        offenderdest = "" if not self.omit else " -> {}".format(
+            self.get_dest_signature())
+        return "{}{}".format(self.get_signature(), offenderdest)
 
     def check_valid(self):
         """
@@ -530,14 +542,14 @@ class DataDictionaryRow(object):
             raise_if_attr_blank(self, [
                 "dest_table",
                 "dest_field",
-                "dest_datatype",
+                # "dest_datatype",
             ])
 
-        if self.src_db not in self.config.src_db_names:
+        if self.src_db not in self.config.get_source_db_names():
             raise ValueError(
                 "Data dictionary row references non-existent source "
                 "database")
-        srccfg = self.config.srccfg[self.src_db]
+        srccfg = self.config.sources[self.src_db].srccfg
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
         if not is_sqltype_valid(self.src_datatype):
@@ -594,7 +606,7 @@ class DataDictionaryRow(object):
                     "Destination fields can't be named {}, as that's the "
                     "name set in the config's source_hash_fieldname "
                     "variable".format(self.config.source_hash_fieldname))
-            if not is_sqltype_valid(self.dest_datatype):
+            if self.dest_datatype and not is_sqltype_valid(self.dest_datatype):
                 raise ValueError(
                     "Field has invalid destination data type: "
                     "{}".format(self.dest_datatype))
@@ -651,13 +663,14 @@ class DataDictionaryRow(object):
                                      "single-character text field")
 
             if ((self._primary_pid or self._master_pid) and
-                    self.dest_datatype != self.config.SQLTYPE_ENCRYPTED_PID):
+                    self.dest_datatype !=
+                    self.config.sqltype_encrypted_pid_as_sql):
                 raise ValueError(
                     "All src_flags={}/src_flags={} fields used in output must "
                     "have destination_datatype = {}".format(
                         SRCFLAG.PRIMARYPID,
                         SRCFLAG.MASTERPID,
-                        self.config.SQLTYPE_ENCRYPTED_PID))
+                        self.config.sqltype_encrypted_pid_as_sql))
 
             valid_index = [INDEX.NORMAL, INDEX.UNIQUE, INDEX.FULLTEXT, ""]
             if self.index not in valid_index:
@@ -666,7 +679,9 @@ class DataDictionaryRow(object):
 
             if (self.index in [INDEX.NORMAL, INDEX.UNIQUE] and
                     self.indexlen is None and
-                    does_sqltype_require_index_len(self.dest_datatype)):
+                    does_sqltype_require_index_len(
+                        self.dest_datatype if self.dest_datatype
+                        else self.src_datatype)):
                 raise ValueError(
                     "Must specify indexlen to index a TEXT or BLOB field")
 
@@ -714,6 +729,32 @@ class DataDictionaryRow(object):
 
     def required(self):
         return not self.omit or self.contains_patient_info()
+
+    def set_src_sqla_coltype(self, sqla_coltype):
+        self._src_sqla_coltype = sqla_coltype
+
+    def get_sqla_dest_coltype(self):
+        if self.dest_datatype:
+            # User (or our autogeneration process) wants to override
+            # the type.
+            return get_sqla_coltype_from_dialect_str(
+                self.config.destdb.engine,
+                self.dest_datatype)
+        else:
+            return self._src_sqla_coltype
+            # Will be autoconverted to the destination dialect.
+
+    def get_sqla_dest_column(self):
+        name = self.dest_field
+        coltype = self.get_sqla_dest_coltype()
+        comment = self.comment or ''
+        kwargs = {'doc': comment}
+        if self._pk:
+            kwargs['primary_key'] = True
+            kwargs['autoincrement'] = False
+        if self.primary_pid:
+            kwargs['nullable'] = False
+        return Column(name, coltype, **kwargs)
 
 
 # =============================================================================
@@ -764,53 +805,47 @@ class DataDictionary(object):
         Create a draft DD from a source database.
         """
         log.info("Reading information for draft data dictionary")
+        signatures = [ddr.get_signature() for ddr in self.rows]
         for pretty_dbname, db in self.config.sources.items():
-            cfg = self.config.srccfg[pretty_dbname]
-            schema = db.get_schema()
-            log.info("... database nice name = {}, schema = {}".format(
-                pretty_dbname, schema))
-            if db.is_sqlserver():
-                sql = """
-                    SELECT table_name, column_name, data_type, {}, NULL
-                    FROM information_schema.columns
-                    WHERE table_schema=?
-                """.format(rnc_db.SQLServer.column_type_expr())
-            else:
-                sql = """
-                    SELECT table_name, column_name, data_type, column_type,
-                        column_comment
-                    FROM information_schema.columns
-                    WHERE table_schema=?
-                """
-            args = [schema]
+            log.info("... database nice name = {}".format(pretty_dbname))
+            cfg = db.srccfg
+            meta = db.metadata
             i = 0
-            signatures = []
-            for r in db.gen_fetchall(sql, *args):
-                i += 1
-                if report_every and i % report_every == 0:
-                    log.debug("... reading source field {}".format(i))
-                t = r[0]
-                f = r[1]
-                # datatype_short = r[2].upper()
-                datatype_full = r[3].upper()
-                c = r[4]
-                if cfg.ddgen_force_lower_case:
-                    t = t.lower()
-                    f = f.lower()
-                if (t in cfg.ddgen_table_blacklist or
-                        f in cfg.ddgen_field_blacklist):
-                    continue
-                ddr = DataDictionaryRow(self.config)
-                ddr.set_from_src_db_info(
-                    pretty_dbname, t, f,
-                    datatype_full,
-                    cfg=cfg,
-                    comment=c,
-                    default_omit=default_omit)
-                sig = ddr.get_signature()
-                if sig not in signatures:
-                    self.rows.append(ddr)
-                    signatures.append(sig)
+            for t in meta.sorted_tables:
+                tablename = t.name
+                for c in t.columns:
+                    i += 1
+                    if report_every and i % report_every == 0:
+                        log.debug("... reading source field {}".format(i))
+                    columnname = c.name
+                    # log.critical("str(coltype) == {}".format(str(c.type)))
+                    # log.critical("repr(coltype) == {}".format(repr(c.type)))
+                    datatype_sqltext = str(c.type)
+                    sqla_coltype = c.type
+                    if cfg.ddgen_force_lower_case:
+                        tablename = tablename.lower()
+                        columnname = columnname.lower()
+                    if (tablename in cfg.ddgen_table_blacklist or
+                            columnname in cfg.ddgen_field_blacklist):
+                        continue
+                    comment = ''  # currently unsupported by SQLAlchemy
+                    if self.config.append_source_info_to_comment:
+                        comment = "[from {t}.{f}]".format(
+                            t=tablename,
+                            f=columnname,
+                        )
+                    ddr = DataDictionaryRow(self.config)
+                    ddr.set_from_src_db_info(
+                        pretty_dbname, tablename, columnname,
+                        datatype_sqltext,
+                        sqla_coltype,
+                        cfg=cfg,
+                        comment=comment,
+                        default_omit=default_omit)
+                    sig = ddr.get_signature()
+                    if sig not in signatures:
+                        self.rows.append(ddr)
+                        signatures.append(sig)
         log.info("... done")
         self.clear_caches()
         log.info("Revising draft data dictionary")
@@ -832,10 +867,12 @@ class DataDictionary(object):
     def check_against_source_db(self):
         """
         Check DD validity against the source database.
+        Also caches SQLAlchemy source column type
         """
         log.debug("Checking DD: source tables...")
         for d in self.get_source_databases():
             db = self.config.sources[d]
+
             for t in self.get_src_tables(d):
 
                 dt = self.get_dest_tables_for_src_db_table(d, t)
@@ -854,7 +891,7 @@ class DataDictionary(object):
 
                 if any([r.scrub or r.master_pid
                         for r in rows if not r.omit]):
-                    pidfield = self.config.srccfg[d].ddgen_per_table_pid_field
+                    pidfield = db.srccfg.ddgen_per_table_pid_field
                     if pidfield not in fieldnames:
                         raise ValueError(
                             "Source table {d}.{t} has a scrub_in or "
@@ -867,6 +904,8 @@ class DataDictionary(object):
                         )
 
                 for r in rows:
+                    r.set_src_sqla_coltype(
+                        db.metadata.tables[t].columns[r.src_field].type)
                     if r.extract_text and not r.extract_from_filename:
                         extrow = next(
                             (r2 for r2 in rows
@@ -897,7 +936,10 @@ class DataDictionary(object):
                         "Table {d}.{t} has >1 source PK set".format(
                             d=d, t=t))
 
-                if not db.table_exists(t):
+                if t not in db.table_names:
+                    log.debug(
+                        "Source database {d} has tables: {tables}".format(
+                            d=d, tables=db.table_names))
                     raise ValueError(
                         "Table {t} missing from source database "
                         "{d}".format(
@@ -908,7 +950,7 @@ class DataDictionary(object):
 
         log.debug("... source tables checked.")
 
-    def check_valid(self, check_against_source_db, prohibited_fieldnames=None):
+    def check_valid(self, prohibited_fieldnames=None):
         """
         Check DD validity, internally +/- against the source database.
         """
@@ -941,8 +983,26 @@ class DataDictionary(object):
                     )
                 )
 
-        if check_against_source_db:
-            self.check_against_source_db()
+        log.debug("Checking DD: duplicate source/destination rows?")
+        src_sigs = []
+        dst_sigs = []
+        for r in self.rows:
+            src_sigs.append(r.get_signature())
+            dst_sigs.append(r.get_dest_signature())
+        src_duplicates = [
+            item for item, count in collections.Counter(src_sigs).items()
+            if count > 1]
+        dst_duplicates = [
+            item for item, count in collections.Counter(dst_sigs).items()
+            if count > 1]
+        if src_duplicates:
+            raise ValueError("Duplicate source rows: {}".format(
+                src_duplicates))
+        if dst_duplicates:
+            raise ValueError("Duplicate source rows: {}".format(
+                dst_duplicates))
+
+        self.check_against_source_db()
 
         log.debug("Checking DD: global checks...")
         self.n_definers = sum([1 if x.defines_primary_pids else 0
@@ -1201,6 +1261,15 @@ class DataDictionary(object):
                 return True
         return False
 
+    @lru_cache(maxsize=None)
+    def get_pid_name(self, src_db, src_table):
+        for ddr in self.rows:
+            if (ddr.src_db == src_db and
+                    ddr.src_table == src_table and
+                    ddr.primary_pid):
+                return ddr.src_field
+        return None
+
     # =========================================================================
     # Queries by destination table
     # =========================================================================
@@ -1221,8 +1290,39 @@ class DataDictionary(object):
         return SortedSet([
             ddr
             for ddr in self.rows
-            if ddr.dest_table == dest_table
+            if ddr.dest_table == dest_table and not ddr.omit
         ])
+
+    # =========================================================================
+    # SQLAlchemy Table objects
+    # =========================================================================
+
+    @lru_cache(maxsize=None)
+    def get_dest_sqla_table(self, tablename):
+        metadata = self.config.destdb.metadata
+        columns = []
+        for ddr in self.get_rows_for_dest_table(tablename):
+            columns.append(ddr.get_sqla_dest_column())
+            if ddr.add_src_hash:
+                columns.append(self.get_srchash_sqla_column())
+            if ddr.primary_pid:
+                columns.append(self.get_trid_sqla_column())
+        return Table(tablename, metadata, *columns)
+
+    def get_srchash_sqla_column(self):
+        return Column(
+            self.config.source_hash_fieldname,
+            self.config.SqlTypeEncryptedPid,
+            doc='Hashed amalgamation of all source fields'
+        )
+
+    def get_trid_sqla_column(self):
+        return Column(
+            self.config.trid_fieldname,
+            TridType,
+            nullable=False,
+            doc='Transient integer research ID (TRID)'
+        )
 
     # =========================================================================
     # Clear caches
@@ -1253,9 +1353,12 @@ class DataDictionary(object):
             self.get_pk_ddr,
             self.get_int_pk_name,
             self.has_active_destination,
+            self.get_pid_name,
 
             self.get_src_dbs_tables_for_dest_table,
             self.get_rows_for_dest_table,
+
+            self.get_dest_sqla_table,
         ]
 
     def clear_caches(self):
