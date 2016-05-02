@@ -25,6 +25,7 @@ from sqlalchemy.orm.exc import NoResultFound
 
 from crate_anon.anonymise.constants import (
     MAX_TRID,
+    MYSQL_TABLE_ARGS,
     PidType,
     TridType,
 )
@@ -39,6 +40,7 @@ AdminBase = declarative_base(metadata=admin_meta)
 
 class PatientInfo(AdminBase):
     __tablename__ = 'secret_map'
+    __table_args__ = MYSQL_TABLE_ARGS
 
     pid = Column(
         'pid', PidType,
@@ -96,6 +98,7 @@ class PatientInfo(AdminBase):
 
 class TridRecord(AdminBase):
     __tablename__ = 'secret_trid_cache'
+    __table_args__ = MYSQL_TABLE_ARGS
 
     pid = Column(
         "pid", PidType,
@@ -136,6 +139,7 @@ class TridRecord(AdminBase):
 
 class OptOut(AdminBase):
     __tablename__ = 'opt_out'
+    __table_args__ = MYSQL_TABLE_ARGS
 
     pid = Column(
         'pid', PidType,

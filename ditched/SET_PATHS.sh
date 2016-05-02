@@ -51,7 +51,7 @@ fi
 THIS_SCRIPT_DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 add_javaclasspath /usr/share/java/mysql.jar
-add_javaclasspath $THIS_SCRIPT_DIR/sqljdbc_4.1/enu/sqljdbc41.jar
+add_javaclasspath ${THIS_SCRIPT_DIR}/sqljdbc_4.1/enu/sqljdbc41.jar
 echo "CLASSPATH (for Java) is now: $CLASSPATH"
 
 PYTHONBASE=`find "$CRATE_VIRTUALENV/lib" -name "python*" | head -1`

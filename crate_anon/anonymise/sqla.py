@@ -215,10 +215,15 @@ def unmonkeypatch_TableClause():
     del TableClause.insert_on_duplicate
 
 
-# http://pythex.org/ !
-RE_INSERT_FIELDNAMES = re.compile(
-    r'^INSERT\sINTO\s(?P<table>\w+)\s+\((?P<columns>[, \w]+)\)\s+VALUES'
+STARTSEPS = '`'
+ENDSEPS = '`'
+INSERT_FIELDNAMES_REGEX = (
+    r'^INSERT\sINTO\s[{startseps}]?(?P<table>\w+)[{endseps}]?\s+'
+    r'\((?P<columns>[, {startseps}{endseps}\w]+)\)\s+VALUES'.format(
+        startseps=STARTSEPS, endseps=ENDSEPS)
 )
+# http://pythex.org/ !
+RE_INSERT_FIELDNAMES = re.compile(INSERT_FIELDNAMES_REGEX)
 
 
 @compiles(InsertOnDuplicate, 'mysql')

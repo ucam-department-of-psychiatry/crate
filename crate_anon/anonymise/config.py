@@ -118,10 +118,10 @@ monkeypatch_TableClause()
 
 class DatabaseHolder(object):
     def __init__(self, name, url, srccfg=None, with_session=False,
-                 with_conn=True, reflect=True):
+                 with_conn=True, reflect=True, encoding='utf-8'):
         self.name = name
         self.srccfg = srccfg
-        self.engine = create_engine(url)
+        self.engine = create_engine(url, encoding=encoding)
         self.conn = None
         self.session = None
         self.table_names = []

@@ -73,6 +73,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_INDEX_LEN,
     INDEX,
     LONGTEXT,
+    MYSQL_TABLE_ARGS,
     ODD_CHARS_TRANSLATE,
     SCRUBMETHOD,
     SCRUBSRC,
@@ -1307,7 +1308,7 @@ class DataDictionary(object):
                 columns.append(self.get_srchash_sqla_column())
             if ddr.primary_pid:
                 columns.append(self.get_trid_sqla_column())
-        return Table(tablename, metadata, *columns)
+        return Table(tablename, metadata, *columns, **MYSQL_TABLE_ARGS)
 
     def get_srchash_sqla_column(self):
         return Column(

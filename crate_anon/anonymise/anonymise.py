@@ -60,6 +60,7 @@ from crate_anon.anonymise.config import config
 from crate_anon.anonymise.constants import (
     ALTERMETHOD,
     INDEX,
+    MYSQL_TABLE_ARGS,
     SEP,
 )
 from crate_anon.anonymise.models import OptOut, PatientInfo, TridRecord
@@ -182,7 +183,9 @@ def delete_dest_rows_with_no_src_row(srcdbname, src_table,
     temptable = Table(
         config.temporary_tablename,
         metadata,
-        Column(pkfield, pkddr.get_sqla_dest_coltype(), primary_key=True))
+        Column(pkfield, pkddr.get_sqla_dest_coltype(), primary_key=True),
+        **MYSQL_TABLE_ARGS
+    )
     log.debug("... dropping temporary table")
     temptable.drop(destengine, checkfirst=True)
     log.debug("... making temporary table")
@@ -605,6 +608,7 @@ def extract_text(value, row, ddr, ddrows):
     extension = None
     if ddr.extract_from_filename:
         filename = value
+        log.debug("extract_text: disk file, filename={}".format(filename))
     else:
         blob = value
         extindex = next(
@@ -616,6 +620,8 @@ def extract_text(value, row, ddr, ddrows):
                 "Bug: missing extension field for "
                 "alter_method={}".format(ddr.alter_method))
         extension = row[extindex]
+        log.debug("extract_text: database blob, extension={}".format(
+            extension))
     try:
         value = document_to_text(filename=filename,
                                  blob=blob,
@@ -749,7 +755,9 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     temptable = Table(
         config.temporary_tablename,
         metadata,
-        Column(pkfield, config.SqlTypeEncryptedPid, primary_key=True))
+        Column(pkfield, config.SqlTypeEncryptedPid, primary_key=True),
+        **MYSQL_TABLE_ARGS
+    )
     log.debug(start + ": 1. dropping temporary table")
     temptable.drop(destengine, checkfirst=True)  # use engine, not session
     log.debug(start + ": 2. making temporary table")

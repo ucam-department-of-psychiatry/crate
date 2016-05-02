@@ -87,7 +87,7 @@ read_config()
     if [ -z "$DAEMON" ]; then
         fail_missing_param DAEMON
     fi
-    if $DAEMON && [ -z "$PID_FILE" ]; then
+    if ${DAEMON} && [ -z "$PID_FILE" ]; then
         fail_missing_param PID_FILE
     fi
 
@@ -113,7 +113,7 @@ read_config()
         --proxy-lua-script=$LUA_SCRIPT
         --verbose-shutdown
     "
-    if $DAEMON ; then
+    if ${DAEMON} ; then
         DAEMON_OPTIONS="
             --daemon
             --keepalive
@@ -146,38 +146,38 @@ case "$2" in
         read_config
         mkdir -pv "$LOGDIR"
         echo "Launching mysql-proxy with auditing script:"
-        echo $CMD
+        echo ${CMD}
         echo "... appending stdout (audit information) to $OUTLOG"
-        if $STDOUT_PLUS_LOG ; then
+        if ${STDOUT_PLUS_LOG} ; then
             echo "... keeping stdout as well"
         fi
         echo "... appending stderr (mysql-proxy log) to $ERRLOG"
-        if $STDERR_PLUS_LOG; then
+        if ${STDERR_PLUS_LOG}; then
             echo "... keeping stderr as well"
         fi
         # We're not using mysql-proxy's --log-file option; we'll do it by hand.
         # http://stackoverflow.com/questions/692000/how-do-i-write-stderr-to-a-file-while-using-tee-with-a-pipe
         # http://mywiki.wooledge.org/BashGuide/InputAndOutput
-        if $STDOUT_PLUS_LOG ; then
-            if $STDERR_PLUS_LOG; then
+        if ${STDOUT_PLUS_LOG} ; then
+            if ${STDERR_PLUS_LOG}; then
                 # tee stdout; tee stderr
-                $CMD > >(tee --append $OUTLOG) 2> >(tee --append $ERRLOG >&2)
+                ${CMD} > >(tee --append ${OUTLOG}) 2> >(tee --append ${ERRLOG} >&2)
             else
                 # tee stdout; file stderr
-                $CMD > >(tee --append $OUTLOG) 2>> $ERRLOG
+                ${CMD} > >(tee --append ${OUTLOG}) 2>> ${ERRLOG}
             fi
         else
-            if $STDERR_PLUS_LOG; then
+            if ${STDERR_PLUS_LOG}; then
                 # file stdout; tee stderr
-                $CMD >> $OUTLOG 2> >(tee --append $ERRLOG >&2)
+                ${CMD} >> ${OUTLOG} 2> >(tee --append ${ERRLOG} >&2)
             else
                 # file stdout; file stderr
-                $CMD >> $OUTLOG 2>> $ERRLOG
+                ${CMD} >> ${OUTLOG} 2>> ${ERRLOG}
             fi
         fi
-        chmod -v 600 $OUTLOG
-        chmod -v 600 $ERRLOG
-        if $DAEMON ; then
+        chmod -v 600 ${OUTLOG}
+        chmod -v 600 ${ERRLOG}
+        if ${DAEMON} ; then
             PID=$(cat "$PID_FILE")
             echo "Running in daemon mode as process $PID."
             echo
@@ -186,7 +186,7 @@ case "$2" in
 
     stop)
         read_config
-        if ! $DAEMON ; then
+        if ! ${DAEMON} ; then
             succeed "No need to stop; not running in daemon mode."
         fi
         if ! [ -f "$PID_FILE" ]; then
@@ -197,7 +197,7 @@ case "$2" in
             fail "Blank process ID"
         fi
         echo "Stopping auditor on process $PID... If this fails, kill it manually (using ps and kill) and remove $PID_FILE"
-        kill $PID
+        kill ${PID}
         rm -f "$PID_FILE"
         echo "Stopped."
         ;;
@@ -205,7 +205,7 @@ case "$2" in
     restart)
         "$0" "$CONFIGFILE" stop
         echo "Waiting $WAIT_TIME_S s..."
-        sleep $WAIT_TIME_S
+        sleep ${WAIT_TIME_S}
         "$0" "$CONFIGFILE" start
         ;;
 
