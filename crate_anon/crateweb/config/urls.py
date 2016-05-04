@@ -37,8 +37,7 @@ import crate_anon.crateweb.userprofile.views as userprofile_views
 # So we cache things here that we don't want the user to have to wait for:
 from crate_anon.crateweb.research.models import research_database_info
 
-# noinspection PyStatementEffect
-research_database_info.infodictlist
+research_database_info.get_infodictlist()
 
 
 urlpatterns = [

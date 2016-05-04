@@ -4,6 +4,8 @@
 # import logging
 import os
 import sys
+# from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
+
 
 # http://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
 try:
@@ -30,8 +32,8 @@ django.setup()
 # print("sys.path: {}".format(sys.path))
 # print("os.environ['DJANGO_SETTINGS_MODULE']: {}".format(
 #     os.environ['DJANGO_SETTINGS_MODULE']))
-# print("os.environ['CRATE_LOCAL_SETTINGS']: {}".format(
-#     os.environ['CRATE_LOCAL_SETTINGS']))
+# print("os.environ['{}']: {}".format(
+#     CRATEWEB_CONFIG_ENV_VAR, os.environ[CRATEWEB_CONFIG_ENV_VAR]))
 
 
 def main(argv=None):

@@ -1,15 +1,16 @@
-{# clinician_response.js #}
-{% comment %}
+// clinician_response.js
+/*
     template parameters:
         option_c_available: Python Boolean as "True" or something else
             ... converted here to Javascript Boolean as true or false
+        option_r_available: similarly
         initial_response
-{% endcomment %}
+*/
 
 var c_available_python = "{{ option_c_available }}";
-var c_available = c_available_python == "True" ? true : false;
+var c_available = c_available_python == "True";
 var r_available_python = "{{ option_r_available }}";
-var r_available = r_available_python == "True" ? true : false;
+var r_available = r_available_python == "True";
 var initial_response = "{{ initial_response }}";
 
 function startup() {

@@ -11,6 +11,7 @@ import sys
 import tempfile
 
 from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
 if sys.version_info[0] < 3:
     raise AssertionError("Need Python 3")
@@ -55,7 +56,7 @@ def workpath(destpath, *args):
         '/home/myuser/debianbuilding/usr/lib/mylib'
     """
     workdir = WORK_DIR
-    assert(workdir)
+    assert workdir
     if destpath[0] == os.sep:
         return join(workdir, destpath[1:], *args)
     else:
@@ -579,7 +580,7 @@ with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), 'w') as outfile:
 
 command = {DEST_VIRTUALENV}/bin/celery worker --app=consent --loglevel=info
 directory = {DEST_DJANGO_ROOT}
-environment = PYTHONPATH="{DEST_ROOT}",CRATE_LOCAL_SETTINGS="{DEST_CRATE_CONF_FILE}"
+environment = PYTHONPATH="{DEST_ROOT}",{CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
 user = {CRATE_USER}
 stdout_logfile = /var/log/supervisor/{PACKAGE}_celery.log
 stderr_logfile = /var/log/supervisor/{PACKAGE}_celery_err.log
@@ -595,7 +596,7 @@ command = {DEST_VIRTUALENV}/bin/gunicorn config.wsgi:application --workers 4 --b
 ;   --bind=127.0.0.1:{DEFAULT_GUNICORN_PORT}
 ;   --bind=unix:{DEFAULT_GUNICORN_SOCKET}
 directory = {DEST_DJANGO_ROOT}
-environment = PYTHONPATH="{DEST_ROOT}",CRATE_LOCAL_SETTINGS="{DEST_CRATE_CONF_FILE}"
+environment = PYTHONPATH="{DEST_ROOT}",{CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
 user = {CRATE_USER}
 stdout_logfile = /var/log/supervisor/{PACKAGE}_gunicorn.log
 stderr_logfile = /var/log/supervisor/{PACKAGE}_gunicorn_err.log
@@ -605,6 +606,7 @@ startsecs = 10
 stopwaitsecs = 60
 
     """.format(
+        CRATEWEB_CONFIG_ENV_VAR=CRATEWEB_CONFIG_ENV_VAR,
         DEST_VIRTUALENV=DEST_VIRTUALENV,
         DEST_DJANGO_ROOT=DEST_DJANGO_ROOT,
         DEST_ROOT=DEST_ROOT,

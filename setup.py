@@ -21,7 +21,7 @@ To install in development mode:
 
 from setuptools import setup, find_packages
 from codecs import open
-import fnmatch
+# import fnmatch
 import os
 import platform
 
@@ -197,18 +197,18 @@ setup(
         # For database connections (see manual):
         # ---------------------------------------------------------------------
         # MySQL:
-        'PyMySQL==0.7.2',
+        # 'PyMySQL==0.7.2',
         # 'mysqlclient==1.3.6',  # GPL
 
         # SQL Server / ODBC route:
         # *** COME BACK TO THIS *** 'django-pyodbc-azure==1.9.3.0',
         # 'pyodbc==3.0.10',  # has C prerequisites
-        'pypyodbc==1.3.3',
+        # 'pypyodbc==1.3.3',
 
         # SQL Server / Embedded FreeTDS route:
-        'django-pymssql==1.7.1',
-        'django-mssql==1.7',
-        'pymssql==2.1.2',
+        # 'django-pymssql==1.7.1',
+        # 'django-mssql==1.7',
+        # 'pymssql==2.1.2',
 
         # PostgreSQL:
         # *** COME BACK TO THIS *** 'psycopg2==2.6.1',  # has prerequisites (e.g. pg_config executable)  # noqa
@@ -226,14 +226,14 @@ setup(
             'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
             'crate_print_demo_anon_config=crate_anon.anonymise.print_demo_config:main',  # noqa
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
-            'crate_mysql_auditor=crate_anon.mysql_auditor.mysql_auditor:main',
+            # 'crate_mysql_auditor=crate_anon.mysql_auditor.mysql_auditor:main',
 
             'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_django_secret_key:main',  # noqa
             'crate_estimate_mysql_memory_usage=crate_anon.tools.estimate_mysql_memory_usage:main',  # noqa
 
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
-            'crate_launch_django=crate_anon.crateweb.manage:runserver',
-            'crate_launch_cherrypy=crate_anon.crateweb.manage:runcpserver',
+            'crate_launch_django_server=crate_anon.crateweb.manage:runserver',
+            'crate_launch_cherrypy_server=crate_anon.crateweb.manage:runcpserver',  # noqa
         ],
     },
 )

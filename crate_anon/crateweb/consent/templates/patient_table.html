@@ -11,7 +11,7 @@
         include_researcher_detail (Boolean)
 {% endcomment %}
 
-<table {% if withdrawal %}class="patient_withdrawal"{% else %}class="patient"{% endif %}>
+<table {% if withdrawal %} class="patient_withdrawal" {% else %} class="patient" {% endif %}>
     {% comment %}
         <colgroup>
             <col style="width:30%">

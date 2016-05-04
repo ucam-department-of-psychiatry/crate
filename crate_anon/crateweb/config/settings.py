@@ -17,6 +17,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import importlib.machinery
 import logging
 import os
+from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
 log = logging.getLogger(__name__)
 
@@ -321,7 +322,7 @@ RESEARCHER_FONTSIZE = "10pt"
 # =============================================================================
 # First attempt: import file with a fixed name from the PYTHONPATH.
 #       from crate_local_settings import *  # noqa
-# Better: import a file named in an environment variable, CRATE_LOCAL_SETTINGS.
+# Better: import a file named in an environment variable.
 
 if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ and
         os.environ['CRATE_RUN_WITHOUT_LOCAL_SETTINGS'].lower() in
@@ -346,17 +347,17 @@ if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ and
         'MAX_RID_LENGTH': 255,
     }
 else:
-    if "CRATE_LOCAL_SETTINGS" not in os.environ:
+    if CRATEWEB_CONFIG_ENV_VAR not in os.environ:
         raise ValueError("""
-    You must set the CRATE_LOCAL_SETTINGS environment variable first.
+    You must set the {e} environment variable first.
     Aim it at your settings file, like this:
 
-    export CRATE_LOCAL_SETTINGS=/etc/crate/my_secret_crate_settings.py
-        """)
+    export {e}=/etc/crate/my_secret_crate_settings.py
+        """.format(e=CRATEWEB_CONFIG_ENV_VAR))
     log.info("Loading local settings")
     _loader = importlib.machinery.SourceFileLoader(
         'local_settings',
-        os.environ['CRATE_LOCAL_SETTINGS'])
+        os.environ[CRATEWEB_CONFIG_ENV_VAR])
     _local_module = _loader.load_module()
     # noinspection PyUnresolvedReferences
     from local_settings import *  # noqa

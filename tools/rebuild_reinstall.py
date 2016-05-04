@@ -3,7 +3,7 @@
 
 import os
 import subprocess
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.version import VERSION  # , VERSION_DATE
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 SOURCE_ROOT = os.path.abspath(os.path.join(THIS_DIR, os.pardir))

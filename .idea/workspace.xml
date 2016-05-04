@@ -6,18 +6,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d4e532a4-be38-4bdd-914b-6711f94ee0a5" name="Default" comment="sqlalc">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/crate_anon/crateweb/config/constants.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" afterPath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/crate.iml" afterPath="$PROJECT_DIR$/.idea/crate.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/anonymise.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/anonymise.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/config.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/config.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/constants.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/constants.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/dd.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/dd.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/models.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/models.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/sqla.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/sqla.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ditched/SET_PATHS.sh" afterPath="$PROJECT_DIR$/ditched/SET_PATHS.sh" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ditched/mysql_auditor/mysql_auditor.sh" afterPath="$PROJECT_DIR$/ditched/mysql_auditor/mysql_auditor.sh" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tools/PUSH_EVERYTHING.sh" afterPath="$PROJECT_DIR$/tools/PUSH_EVERYTHING.sh" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/config/settings.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/config/settings.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/config/urls.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/config/urls.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.html" afterPath="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.html" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.js" afterPath="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/patient_table.html" afterPath="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/patient_table.html" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/manage.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/manage.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/research/models.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/research/models.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/research/templates/page_nav_results.html" afterPath="$PROJECT_DIR$/crate_anon/crateweb/research/templates/page_nav_results.html" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/research/views.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/research/views.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/templates/base.css" afterPath="$PROJECT_DIR$/crate_anon/crateweb/templates/base.css" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/tools/estimate_mysql_memory_usage.py" afterPath="$PROJECT_DIR$/crate_anon/tools/estimate_mysql_memory_usage.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/setup.py" afterPath="$PROJECT_DIR$/setup.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tools/install_virtualenv.py" afterPath="$PROJECT_DIR$/tools/install_virtualenv.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tools/make_package.py" afterPath="$PROJECT_DIR$/tools/make_package.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/tools/rebuild_reinstall.py" afterPath="$PROJECT_DIR$/tools/rebuild_reinstall.py" />
     </list>
     <ignored path="crate.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -46,106 +55,82 @@
       <file leaf-file-name="make_demo_database.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="407">
-              <caret line="161" column="0" selection-start-line="160" selection-start-column="0" selection-end-line="161" selection-end-column="0" />
+            <state relative-caret-position="418">
+              <caret line="178" column="73" selection-start-line="178" selection-start-column="73" selection-end-line="178" selection-end-column="73" />
               <folding>
-                <element signature="e#1292#1307#0" expanded="true" />
-                <marker date="1462173850510" expanded="true" signature="11238:11594" placeholder="SELECT table... tables" />
+                <marker date="1462374055640" expanded="true" signature="11325:11683" placeholder="SELECT table... tables" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="anonymise.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise.py">
+      <file leaf-file-name="clinician_response.html" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="182">
-              <caret line="594" column="27" selection-start-line="594" selection-start-column="27" selection-end-line="594" selection-end-column="27" />
+            <state relative-caret-position="15">
+              <caret line="1" column="12" selection-start-line="1" selection-start-column="12" selection-end-line="1" selection-end-column="12" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="models.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/models.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="630">
+              <caret line="442" column="21" selection-start-line="442" selection-start-column="21" selection-end-line="442" selection-end-column="21" />
               <folding>
-                <element signature="e#1093#1107#0" expanded="true" />
-                <marker date="1462174487313" expanded="true" signature="24729:24812" placeholder="ALTER TABLE missing_value... " />
+                <element signature="e#45#80#0" expanded="true" />
+                <marker date="1462403085347" expanded="true" signature="13022:14153" placeholder="SELECT d.tab... table_schema" />
+                <marker date="1462403085347" expanded="true" signature="13220:13902" placeholder="SELECT c.tab... columns" />
+                <marker date="1462403085347" expanded="true" signature="13343:13372" placeholder="/* MySQL: e.... " />
+                <marker date="1462403085347" expanded="true" signature="13420:13439" placeholder="/* s.index_n... " />
+                <marker date="1462403085347" expanded="true" signature="13448:13467" placeholder="/* s.index_t... " />
+                <marker date="1462403085347" expanded="true" signature="13911:13962" placeholder="/* &quot;Every de... " />
+                <marker date="1462403085347" expanded="true" signature="14811:16366" placeholder="SELECT d.tab... table_schema" />
+                <marker date="1462403085347" expanded="true" signature="15060:16169" placeholder="SELECT c.tab... pg_statio_all_tables" />
+                <marker date="1462403085347" expanded="true" signature="16649:17734" placeholder="SELECT d.tab... name" />
+                <marker date="1462403085347" expanded="true" signature="16849:17551" placeholder="SELECT s.nam... tables" />
+                <marker date="1462403085347" expanded="true" signature="16849:17573" placeholder="SELECT s.nam... tables" />
+                <marker date="1462403085347" expanded="true" signature="19046:19370" placeholder="SELECT c.tab... columns" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="sqla.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/sqla.py">
+      <file leaf-file-name="test_sqla_reflection.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/working/test_sqla_reflection.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="941">
-              <caret line="252" column="6" selection-start-line="252" selection-start-column="6" selection-end-line="252" selection-end-column="6" />
+            <state relative-caret-position="768">
+              <caret line="120" column="63" selection-start-line="120" selection-start-column="63" selection-end-line="120" selection-end-column="63" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="rnc_extract_text.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/../cardinal_pythonlib/cardinal_pythonlib/rnc_extract_text.py">
+      <file leaf-file-name="setup.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/setup.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="328">
-              <caret line="667" column="4" selection-start-line="667" selection-start-column="4" selection-end-line="667" selection-end-column="4" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="constants.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/constants.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="842">
-              <caret line="160" column="0" selection-start-line="160" selection-start-column="0" selection-end-line="160" selection-end-column="16" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/models.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="191">
-              <caret line="27" column="4" selection-start-line="27" selection-start-column="4" selection-end-line="27" selection-end-column="20" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="dd.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/dd.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="660">
-              <caret line="75" column="4" selection-start-line="75" selection-start-column="4" selection-end-line="75" selection-end-column="4" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="install_virtualenv.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tools/install_virtualenv.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="375">
-              <caret line="30" column="0" selection-start-line="30" selection-start-column="0" selection-end-line="30" selection-end-column="56" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="working_anon_config.ini" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/working/working_anon_config.ini">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="551">
-              <caret line="610" column="6" selection-start-line="610" selection-start-column="6" selection-end-line="610" selection-end-column="6" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="config.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/config.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="497">
-              <caret line="119" column="66" selection-start-line="119" selection-start-column="66" selection-end-line="119" selection-end-column="66" />
+            <state relative-caret-position="590">
+              <caret line="205" column="28" selection-start-line="205" selection-start-column="28" selection-end-line="205" selection-end-column="28" />
               <folding>
-                <element signature="e#2894#2907#0" expanded="true" />
+                <element signature="e#443#486#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="views.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/views.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="648">
+              <caret line="504" column="46" selection-start-line="504" selection-start-column="46" selection-end-line="504" selection-end-column="46" />
+              <folding>
+                <element signature="e#44#58#0" expanded="true" />
+                <marker date="1462374649471" expanded="true" signature="17203:17469" placeholder="SELECT {fkna... " />
+                <marker date="1462374649471" expanded="true" signature="17203:17504" placeholder="SELECT missi... missing_value" />
+                <marker date="1462374649471" expanded="true" signature="18826:18871" placeholder="SELECT {fkna... " />
+                <marker date="1462374649471" expanded="true" signature="18826:18913" placeholder="SELECT missi... missing_value" />
               </folding>
             </state>
           </provider>
@@ -167,44 +152,25 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/crate_anon/crateweb/research/context_processors.py" />
-        <option value="$PROJECT_DIR$/tools/rebuild_reinstall.py" />
-        <option value="$PROJECT_DIR$/crate_anon/nlp_manager/constants.py" />
-        <option value="$PROJECT_DIR$/crate_anon/nlp_manager/CrateGatePipeline.java" />
-        <option value="$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py" />
-        <option value="$PROJECT_DIR$/crate_anon/mysql_auditor/mysql_auditor.py" />
-        <option value="$PROJECT_DIR$/working/debug.lua" />
-        <option value="$PROJECT_DIR$/crate_anon/mysql_auditor/query_auditor_mysqlproxy.lua" />
-        <option value="$PROJECT_DIR$/README.rst" />
-        <option value="$PROJECT_DIR$/tools/make_package.py" />
-        <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/celery.py" />
-        <option value="$PROJECT_DIR$/tools/launch_celery_debug.py" />
         <option value="$PROJECT_DIR$/working/test_service_1.py" />
         <option value="$PROJECT_DIR$/tools/generate_new_django_secret_key.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/consent_table.html" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/scrub.py" />
-        <option value="$PROJECT_DIR$/crate_anon/crateweb/config/settings.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/core/views.py" />
-        <option value="$PROJECT_DIR$/crate_anon/tools/estimate_mysql_memory_usage.py" />
         <option value="$PROJECT_DIR$/crate_anon/nlp_manager/launch_multiprocess_nlp.py" />
-        <option value="$PROJECT_DIR$/crate_anon/crateweb/manage.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/migrations/0001_initial.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/core/management/commands/runcpserver.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/models.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/tasks.py" />
-        <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.html" />
         <option value="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
-        <option value="$PROJECT_DIR$/crate_anon/crateweb/research/views.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/exceptions.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/settings.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/print_demo_config.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/hash.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/test_anonymisation.py" />
-        <option value="$PROJECT_DIR$/working/test_sqla_reflection.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/main.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py" />
-        <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/patient.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/launch_multiprocess_anonymiser.py" />
         <option value="$PROJECT_DIR$/tools/PUSH_EVERYTHING.sh" />
@@ -213,11 +179,30 @@
         <option value="$PROJECT_DIR$/crate_anon/anonymise/config.py" />
         <option value="$PROJECT_DIR$/working/working_anon_config.ini" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/constants.py" />
-        <option value="$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/models.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/dd.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/sqla.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/anonymise.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/config/urls.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/config/constants.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/config/settings.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/manage.py" />
+        <option value="$PROJECT_DIR$/crate_anon/tools/estimate_mysql_memory_usage.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/research/templates/database_structure.html" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/research/templates/page_nav_results.html" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.js" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.html" />
+        <option value="$PROJECT_DIR$/tools/make_package.py" />
+        <option value="$PROJECT_DIR$/tools/install_virtualenv.py" />
+        <option value="$PROJECT_DIR$/tools/rebuild_reinstall.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/templates/patient_table.html" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/templates/base.html" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/templates/base.css" />
+        <option value="$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/research/views.py" />
+        <option value="$PROJECT_DIR$/working/test_sqla_reflection.py" />
+        <option value="$PROJECT_DIR$/setup.py" />
+        <option value="$PROJECT_DIR$/crate_anon/crateweb/research/models.py" />
       </list>
     </option>
   </component>
@@ -228,12 +213,12 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="NamedScopeManager">
-    <scope name="crate" pattern="file[crate]:crate_anon//*" />
+    <scope name="crate" pattern="(file[crate]:crate_anon//*||file[crate]:tools//*||file:setup.py||file:README.rst)&amp;&amp;!file[crate]:crate_anon/crateweb/static_collected//*" />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="1199" />
-    <option name="width" value="1202" />
-    <option name="height" value="1604" />
+    <option name="x" value="1200" />
+    <option name="width" value="1200" />
+    <option name="height" value="1600" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -369,7 +354,117 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="anonymise" />
+              <option name="myItemId" value="tools" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate_anon" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crateweb" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate_anon" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crateweb" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="templates" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate_anon" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crateweb" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="research" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate_anon" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crateweb" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="research" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="templates" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate_anon" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crateweb" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="config" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -379,7 +474,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="preferences.sourceCode" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.templateLanguages.PyTemplateLanguageModulesConfigurable" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
     <property name="last_opened_file_path" value="$USER_HOME$/venvs/crate/bin/crate_anonymise" />
     <property name="full.screen.before.presentation.mode" value="false" />
@@ -504,6 +599,12 @@
       <method />
     </configuration>
     <configuration default="true" type="js.build_tools.gulp" factoryName="Gulp.js">
+      <node-interpreter>project</node-interpreter>
+      <node-options />
+      <gulpfile />
+      <tasks />
+      <arguments />
+      <envs />
       <method />
     </configuration>
     <configuration default="true" type="js.build_tools.npm" factoryName="npm">
@@ -689,11 +790,12 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="1199" y="0" width="1202" height="1604" extended-state="6" />
+    <frame x="1200" y="0" width="1200" height="1600" extended-state="6" />
     <editor active="false" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.27037773" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3286945" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -701,17 +803,16 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16083333" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.1749503" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Concurrent Activities Diagram" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32935718" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39960238" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27037773" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.1749503" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Concurrent Activities Diagram" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32935718" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
     </layout>
     <layout-to-restore>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -776,6 +877,11 @@
           <line>5</line>
           <option name="timeStamp" value="7" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="python-line">
+          <url>file://$PROJECT_DIR$/crate_anon/crateweb/manage.py</url>
+          <line>4</line>
+          <option name="timeStamp" value="9" />
+        </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
         <breakpoint type="python-exception">
@@ -784,146 +890,11 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="8" />
+      <option name="time" value="10" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/tasks.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1575">
-          <caret line="108" column="92" selection-start-line="108" selection-start-column="92" selection-end-line="108" selection-end-column="92" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonregex.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="510">
-          <caret line="296" column="0" selection-start-line="296" selection-start-column="0" selection-end-line="296" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../cardinal_pythonlib/cardinal_pythonlib/rnc_db.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="512">
-          <caret line="2583" column="30" selection-start-line="2583" selection-start-column="8" selection-end-line="2583" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/config/apps.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/core/management/commands/runcpserver.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="465">
-          <caret line="33" column="18" selection-start-line="33" selection-start-column="18" selection-end-line="33" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/manage.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="20" column="0" selection-start-line="18" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/exceptions.py" />
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/settings.py" />
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/print_demo_config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="12" column="0" selection-start-line="12" selection-start-column="0" selection-end-line="12" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="484">
-          <caret line="124" column="11" selection-start-line="124" selection-start-column="0" selection-end-line="124" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/views.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="300">
-          <caret line="36" column="18" selection-start-line="36" selection-start-column="4" selection-end-line="36" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/views.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="555">
-          <caret line="37" column="13" selection-start-line="37" selection-start-column="4" selection-end-line="37" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/config/settings.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5040">
-          <caret line="338" column="14" selection-start-line="338" selection-start-column="4" selection-end-line="338" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="376">
-          <caret line="928" column="18" selection-start-line="928" selection-start-column="4" selection-end-line="928" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/scrub.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="240">
-          <caret line="124" column="30" selection-start-line="124" selection-start-column="30" selection-end-line="124" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$USER_HOME$/venvs/crate/lib/python3.4/site-packages/sqlalchemy/sql/compiler.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="27885">
-          <caret line="1864" column="44" selection-start-line="1864" selection-start-column="44" selection-end-line="1864" selection-end-column="44" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/hash.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="433">
-          <caret line="45" column="24" selection-start-line="45" selection-start-column="24" selection-end-line="45" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/config/urls.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="609">
-          <caret line="114" column="20" selection-start-line="114" selection-start-column="11" selection-end-line="114" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="556">
-          <caret line="495" column="37" selection-start-line="495" selection-start-column="27" selection-end-line="495" selection-end-column="37" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/working/test_sqla_reflection.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="285">
-          <caret line="40" column="34" selection-start-line="40" selection-start-column="34" selection-end-line="40" selection-end-column="34" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/patient.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="495">
-          <caret line="33" column="0" selection-start-line="33" selection-start-column="0" selection-end-line="33" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/test_anonymisation.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4500">
@@ -935,13 +906,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="660">
           <caret line="59" column="4" selection-start-line="59" selection-start-column="4" selection-end-line="59" selection-end-column="4" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/setup.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2280">
-          <caret line="158" column="44" selection-start-line="158" selection-start-column="44" selection-end-line="158" selection-end-column="44" />
         </state>
       </provider>
     </entry>
@@ -987,13 +951,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="11" column="18" selection-start-line="11" selection-start-column="18" selection-end-line="11" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/static_collected/debug_toolbar/js/toolbar.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1785">
@@ -1001,35 +958,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="345">
-          <caret line="23" column="43" selection-start-line="23" selection-start-column="43" selection-end-line="23" selection-end-column="43" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/static_collected/admin/js/vendor/jquery/jquery.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="10740">
-          <caret line="728" column="4" selection-start-line="728" selection-start-column="4" selection-end-line="728" selection-end-column="4" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/decision_form_to_patient_re_study.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1530">
-          <caret line="102" column="0" selection-start-line="102" selection-start-column="0" selection-end-line="102" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/working/crateweb/crate_filestorage/letter/cr21_res_approve_20151105T050036Z.pdf.html">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1428">
           <caret line="115" column="4" selection-start-line="115" selection-start-column="4" selection-end-line="115" selection-end-column="10" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1037,7 +969,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1428">
           <caret line="135" column="20" selection-start-line="135" selection-start-column="20" selection-end-line="135" selection-end-column="20" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1045,7 +976,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1428">
           <caret line="518" column="20" selection-start-line="518" selection-start-column="20" selection-end-line="518" selection-end-column="20" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1053,7 +983,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1452">
           <caret line="167" column="8" selection-start-line="167" selection-start-column="8" selection-end-line="167" selection-end-column="8" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1061,7 +990,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1320">
           <caret line="88" column="4" selection-start-line="88" selection-start-column="4" selection-end-line="88" selection-end-column="4" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1070,22 +998,14 @@
         <state relative-caret-position="1247">
           <caret line="112" column="0" selection-start-line="110" selection-start-column="0" selection-end-line="112" selection-end-column="0" />
           <folding>
-            <element signature="e#160#175#0" expanded="true" />
+            <element signature="e#160#175#0" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tools/install_virtualenv.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="375">
-          <caret line="30" column="0" selection-start-line="30" selection-start-column="0" selection-end-line="30" selection-end-column="56" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/../cardinal_pythonlib/cardinal_pythonlib/rnc_extract_text.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="328">
+        <state relative-caret-position="9990">
           <caret line="667" column="4" selection-start-line="667" selection-start-column="4" selection-end-line="667" selection-end-column="4" />
           <folding />
         </state>
@@ -1093,7 +1013,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/working/working_anon_config.ini">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="551">
+        <state relative-caret-position="9150">
           <caret line="610" column="6" selection-start-line="610" selection-start-column="6" selection-end-line="610" selection-end-column="6" />
           <folding />
         </state>
@@ -1101,28 +1021,17 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/config.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="497">
+        <state relative-caret-position="1785">
           <caret line="119" column="66" selection-start-line="119" selection-start-column="66" selection-end-line="119" selection-end-column="66" />
           <folding>
-            <element signature="e#2894#2907#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="407">
-          <caret line="161" column="0" selection-start-line="160" selection-start-column="0" selection-end-line="161" selection-end-column="0" />
-          <folding>
-            <element signature="e#1292#1307#0" expanded="true" />
-            <marker date="1462173850510" expanded="true" signature="11238:11594" placeholder="SELECT table... tables" />
+            <element signature="e#2894#2907#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/constants.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="842">
+        <state relative-caret-position="2295">
           <caret line="160" column="0" selection-start-line="160" selection-start-column="0" selection-end-line="160" selection-end-column="16" />
           <folding />
         </state>
@@ -1130,7 +1039,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/models.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="191">
+        <state relative-caret-position="405">
           <caret line="27" column="4" selection-start-line="27" selection-start-column="4" selection-end-line="27" selection-end-column="20" />
           <folding />
         </state>
@@ -1146,7 +1055,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/sqla.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="941">
+        <state relative-caret-position="3615">
           <caret line="252" column="6" selection-start-line="252" selection-start-column="6" selection-end-line="252" selection-end-column="6" />
           <folding />
         </state>
@@ -1154,11 +1063,274 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="182">
+        <state relative-caret-position="8325">
           <caret line="594" column="27" selection-start-line="594" selection-start-column="27" selection-end-line="594" selection-end-column="27" />
           <folding>
-            <element signature="e#1093#1107#0" expanded="true" />
+            <element signature="e#1093#1107#0" expanded="false" />
             <marker date="1462174487313" expanded="true" signature="24729:24812" placeholder="ALTER TABLE missing_value... " />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/manage.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="525">
+          <caret line="35" column="0" selection-start-line="35" selection-start-column="0" selection-end-line="35" selection-end-column="0" />
+          <folding>
+            <element signature="e#53#62#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/config/settings.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="300">
+          <caret line="20" column="0" selection-start-line="19" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
+          <folding>
+            <element signature="e#392#418#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/config/constants.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="51" selection-start-line="2" selection-start-column="27" selection-end-line="2" selection-end-column="51" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/venvs/crate/lib/python3.4/site-packages/prettytable.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="633">
+          <caret line="1442" column="18" selection-start-line="1442" selection-start-column="18" selection-end-line="1442" selection-end-column="18" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/tools/estimate_mysql_memory_usage.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="839">
+          <caret line="98" column="0" selection-start-line="98" selection-start-column="0" selection-end-line="98" selection-end-column="0" />
+          <folding>
+            <element signature="e#324#339#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/config/urls.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="424">
+          <caret line="88" column="33" selection-start-line="88" selection-start-column="24" selection-end-line="88" selection-end-column="33" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/templates/database_structure.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="930">
+          <caret line="62" column="0" selection-start-line="62" selection-start-column="0" selection-end-line="62" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/templates/page_nav_results.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" column="48" selection-start-line="7" selection-start-column="48" selection-end-line="7" selection-end-column="48" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/static_collected/admin/js/vendor/jquery/jquery.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="838">
+          <caret line="1309" column="0" selection-start-line="1309" selection-start-column="0" selection-end-line="1309" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" column="0" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/decision_form_to_patient_re_study.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="609">
+          <caret line="66" column="12" selection-start-line="66" selection-start-column="12" selection-end-line="66" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/make_package.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="358">
+          <caret line="58" column="10" selection-start-line="58" selection-start-column="10" selection-end-line="58" selection-end-column="10" />
+          <folding>
+            <element signature="e#54#65#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="18" column="0" selection-start-line="18" selection-start-column="0" selection-end-line="18" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/install_virtualenv.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" column="2" selection-start-line="5" selection-start-column="2" selection-end-line="5" selection-end-column="2" />
+          <folding>
+            <element signature="e#24#39#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tools/rebuild_reinstall.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" column="42" selection-start-line="5" selection-start-column="42" selection-end-line="5" selection-end-column="42" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/base.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="335">
+          <caret line="142" column="0" selection-start-line="142" selection-start-column="0" selection-end-line="142" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/templates/action_only_form.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="14" selection-start-line="2" selection-start-column="14" selection-end-line="2" selection-end-column="14" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/base.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="210">
+          <caret line="14" column="19" selection-start-line="14" selection-start-column="19" selection-end-line="14" selection-end-column="19" />
+          <folding>
+            <marker date="1460326287753" expanded="true" signature="272:322" placeholder="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="418">
+          <caret line="178" column="73" selection-start-line="178" selection-start-column="73" selection-end-line="178" selection-end-column="73" />
+          <folding>
+            <marker date="1462374055640" expanded="true" signature="11325:11683" placeholder="SELECT table... tables" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/patient_table.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" column="27" selection-start-line="13" selection-start-column="27" selection-end-line="13" selection-end-column="27" />
+          <folding>
+            <marker date="1462373834570" expanded="false" signature="500:509" placeholder="..." />
+            <marker date="1462373834570" expanded="false" signature="536:545" placeholder="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="15">
+          <caret line="1" column="12" selection-start-line="1" selection-start-column="12" selection-end-line="1" selection-end-column="12" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/base_root.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="30">
+          <caret line="2" column="0" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/login.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="330">
+          <caret line="22" column="0" selection-start-line="22" selection-start-column="0" selection-end-line="22" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/pdf.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="195">
+          <caret line="13" column="0" selection-start-line="13" selection-start-column="0" selection-end-line="13" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/views.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="648">
+          <caret line="504" column="46" selection-start-line="504" selection-start-column="46" selection-end-line="504" selection-end-column="46" />
+          <folding>
+            <element signature="e#44#58#0" expanded="true" />
+            <marker date="1462374649471" expanded="true" signature="17203:17469" placeholder="SELECT {fkna... " />
+            <marker date="1462374649471" expanded="true" signature="17203:17504" placeholder="SELECT missi... missing_value" />
+            <marker date="1462374649471" expanded="true" signature="18826:18871" placeholder="SELECT {fkna... " />
+            <marker date="1462374649471" expanded="true" signature="18826:18913" placeholder="SELECT missi... missing_value" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/working/test_sqla_reflection.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="768">
+          <caret line="120" column="63" selection-start-line="120" selection-start-column="63" selection-end-line="120" selection-end-column="63" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/setup.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="590">
+          <caret line="205" column="28" selection-start-line="205" selection-start-column="28" selection-end-line="205" selection-end-column="28" />
+          <folding>
+            <element signature="e#443#486#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="630">
+          <caret line="442" column="21" selection-start-line="442" selection-start-column="21" selection-end-line="442" selection-end-column="21" />
+          <folding>
+            <element signature="e#45#80#0" expanded="true" />
+            <marker date="1462403085347" expanded="true" signature="13022:14153" placeholder="SELECT d.tab... table_schema" />
+            <marker date="1462403085347" expanded="true" signature="13220:13902" placeholder="SELECT c.tab... columns" />
+            <marker date="1462403085347" expanded="true" signature="13343:13372" placeholder="/* MySQL: e.... " />
+            <marker date="1462403085347" expanded="true" signature="13420:13439" placeholder="/* s.index_n... " />
+            <marker date="1462403085347" expanded="true" signature="13448:13467" placeholder="/* s.index_t... " />
+            <marker date="1462403085347" expanded="true" signature="13911:13962" placeholder="/* &quot;Every de... " />
+            <marker date="1462403085347" expanded="true" signature="14811:16366" placeholder="SELECT d.tab... table_schema" />
+            <marker date="1462403085347" expanded="true" signature="15060:16169" placeholder="SELECT c.tab... pg_statio_all_tables" />
+            <marker date="1462403085347" expanded="true" signature="16649:17734" placeholder="SELECT d.tab... name" />
+            <marker date="1462403085347" expanded="true" signature="16849:17551" placeholder="SELECT s.nam... tables" />
+            <marker date="1462403085347" expanded="true" signature="16849:17573" placeholder="SELECT s.nam... tables" />
+            <marker date="1462403085347" expanded="true" signature="19046:19370" placeholder="SELECT c.tab... columns" />
           </folding>
         </state>
       </provider>

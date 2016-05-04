@@ -104,7 +104,8 @@ DT_FORMATS = [
 ]
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DOCDIR = os.path.join(CURRENT_DIR, os.pardir, os.pardir, "testdocs_for_text_extraction")
+DEFAULT_DOCDIR = os.path.join(CURRENT_DIR, os.pardir, os.pardir,
+                              "testdocs_for_text_extraction")
 DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, 'doctest.doc')
 DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, 'doctest.docx')
 DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, 'doctest.odt')
@@ -171,10 +172,11 @@ class FilenameDoc(Base):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("url",
-        help="SQLAlchemy database URL. Append ?charset=utf8, e.g. "
-        "mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 . "
-        "WARNING: If you get the error 'MySQL has gone away', increase the "
-        "max_allowed_packet parameter in my.cnf (e.g. to 32M).")
+        help=(
+            "SQLAlchemy database URL. Append ?charset=utf8, e.g. "
+            "mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 ."
+            " WARNING: If you get the error 'MySQL has gone away', increase "
+            "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."))
     parser.add_argument(
         "--size", type=int, default=0, choices=[0, 1, 2],
         help="Make small (0), medium (1), or large (2) database")
@@ -206,9 +208,6 @@ def main():
         n_patients = 1000
         notes_per_patient = 100
         words_per_note = 1000
-    log.info("n_patients={}, notes_per_patient={}, words_per_note={}".format(
-        n_patients, notes_per_patient, words_per_note))
-
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
     logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
                         level=loglevel)
@@ -216,6 +215,11 @@ def main():
     rootlogger.setLevel(loglevel)
     rootlogger.handlers = []
     rootlogger.addHandler(COLOUR_HANDLER)
+
+    # 0. Announce intentions
+
+    log.info("n_patients={}, notes_per_patient={}, words_per_note={}".format(
+        n_patients, notes_per_patient, words_per_note))
 
     # 1. Get words
 
@@ -357,7 +361,7 @@ Bob Hope visited Seattle.
                 table_rows,
                 data_length,
                 index_length,
-                ROUND(((data_length + index_length) / 1024 / 1024), 2)
+                ROUND(((data_length + index_length) / (1024 * 1024)), 2)
                   AS "Size_MB"
             FROM
                 information_schema.tables
@@ -366,10 +370,8 @@ Bob Hope visited Seattle.
         rows = session.execute(text(sql))
         for r in rows:
             print(
-                "table={}, rows={}, data_length={}, index_length={}, "
-                "size_MB={}".format(
-                    r[0], r[1], r[2], r[3], r[4],
-                )
+                "schema={}, table={}, rows={}, data_length={}, "
+                "index_length={}, size_MB={}".format(*r)
             )
 
 

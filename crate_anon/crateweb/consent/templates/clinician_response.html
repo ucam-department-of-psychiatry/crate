@@ -21,7 +21,8 @@
 
 {% block extrahead %}
     <script>
-        {% include "clinician_response.js" with initial_response=clinician_response.response option_c_available=option_c_available option_r_available=option_r_available %}
+        {% include "clinician_response.js" with initial_response=clinician_response.response %}
+        // passed through: option_c_available, option_r_available
     </script>
 {% endblock %}
 {% block onload %}onload="startup()"{% endblock %}

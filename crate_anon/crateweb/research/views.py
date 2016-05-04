@@ -433,20 +433,25 @@ def render_lookup(request,
 # =============================================================================
 
 def structure_table_long(request):
+    infodictlist = research_database_info.get_infodictlist()
+    rowcount = len(infodictlist)
     context = {
         'paginated': False,
-        'infodictlist': research_database_info.infodictlist,
+        'infodictlist': infodictlist,
+        'rowcount': rowcount,
         'default_schema': settings.DATABASES['research']['NAME'],
     }
     return render(request, 'database_structure.html', context)
 
 
 def structure_table_paginated(request):
-    infodictlist = research_database_info.infodictlist
+    infodictlist = research_database_info.get_infodictlist()
+    rowcount = len(infodictlist)
     infodictlist = paginate(request, infodictlist)
     context = {
         'paginated': True,
         'infodictlist': infodictlist,
+        'rowcount': rowcount,
         'default_schema': settings.DATABASES['research']['NAME'],
     }
     return render(request, 'database_structure.html', context)
@@ -454,7 +459,7 @@ def structure_table_paginated(request):
 
 # noinspection PyUnusedLocal
 def structure_tsv(request):
-    infodictlist = research_database_info.infodictlist
+    infodictlist = research_database_info.get_infodictlist()
     tsv_result = dictlist_to_tsv(infodictlist)
     return HttpResponse(tsv_result, content_type='text/csv')
 
@@ -500,11 +505,12 @@ def sqlhelper_text_anywhere(request):
                     schema, table, min_length)
                 for column_name, indexed_fulltext in columns:
                     query = (
-                        "SELECT {fkname} AS patient_id, "
-                        "'{table_literal}' AS table_name, "
-                        "'{col_literal}' AS column_name, "
-                        "{column_name} AS content "
-                        "FROM {schema}.{table} WHERE {condition}".format(
+                        "SELECT {fkname} AS patient_id,"
+                        "\n    '{table_literal}' AS table_name,"
+                        "\n    '{col_literal}' AS column_name,"
+                        "\n    {column_name} AS content"
+                        "\nFROM {schema}.{table}"
+                        "\nWHERE {condition}".format(
                             fkname=fkname,
                             table_literal=escape_sql_string_literal(table),
                             col_literal=escape_sql_string_literal(column_name),

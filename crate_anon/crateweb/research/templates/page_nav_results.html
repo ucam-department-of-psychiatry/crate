@@ -4,6 +4,6 @@
 {% load humanize %}
 
 {% block current %}
-    Page {{ items.number }} of {{ items.paginator.num_pages }}.
+    Page {{ items.number }} of {{ items.paginator.num_pages }}
     (<b>{{ rowcount|intcomma }}</b> rows found).
 {% endblock %}

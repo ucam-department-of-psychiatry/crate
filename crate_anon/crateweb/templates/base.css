@@ -8,7 +8,7 @@ body {
     line-height: 1.2em;
 }
 div {
-    margin: 0.5em 0em;
+    margin: 0.5em 0;
 }
 em {
     color: rgb(0, 114, 198);
@@ -19,13 +19,13 @@ em {
     font-style: normal;
 }
 pre {
-    margin: 0px;
+    margin: 0;
 }
 table {
     display: table;  /* with table-cell, auto-resizing goes wrong */
     border-collapse: collapse;
     vertical-align: top;
-    margin: 0.5em 0em;
+    margin: 0.5em 0;
     /* width: 100%; */
 }
 tr {
@@ -39,10 +39,10 @@ th, td {
     padding: 0.1em 0.3em;
 }
 p {
-    margin: 0.5em 0em;
+    margin: 0.5em 0;
 }
 ul {
-    margin: 0.25em 0em;
+    margin: 0.25em 0;
 }
 
 .addresses {
@@ -59,12 +59,12 @@ ul {
     color: rgb(0, 0, 150);
 }
 .collapse_detail {
-    margin: 0em;
+    margin: 0;
 }
 .collapse_summary {
     height: 5em;
     overflow: hidden;
-    margin: 0em;
+    margin: 0;
 }
 
 .consent {
@@ -72,7 +72,7 @@ ul {
     background-color: rgb(230, 230, 230);
     border: 0.5mm solid black;
     padding: 0.5em;
-    margin: 0.5em 0em;
+    margin: 0.5em 0;
 }
 .consent tr, .consent th, .consent td {
     border-style: none;
@@ -98,16 +98,18 @@ ul {
 .error {
     color: rgb(255, 0, 0);
 }
+
+/*noinspection CssUnusedSymbol*/
 .errorlist {  /* Django forms */
     color: rgb(255, 0, 0);
 }
 .expandcollapsewrapper {
     display: table;
-    margin: 0em;
+    margin: 0;
 }
 .expandcollapse {
     display: table-cell;
-    margin: 0em;
+    margin: 0;
 }
 .formtable, .formtable th, .formtable tr, .formtable td {
     border: none;
@@ -134,8 +136,11 @@ ul {
 
 /* yellow and red are typically used by browsers for all-instances and
    instance-at-the-cursor with Ctrl-F */
+/*noinspection CssUnusedSymbol*/
 .highlight0 { background-color: #0F0; }
+/*noinspection CssUnusedSymbol*/
 .highlight1 { background-color: #88F; }
+/*noinspection CssUnusedSymbol*/
 .highlight2 { background-color: #F0F; }
 /* If altering: change also N_CSS_HIGHLIGHT_CLASSES in the source */
 
@@ -181,9 +186,7 @@ ul {
     font-style: italic;
 }
 .patientprefs {
-    border-width: 0.5mm;
-    border-color: block;
-    border-style: solid;
+    border: 0.5mm solid block;
 }
 .patientprefs tr {
     border-style: none;
@@ -205,7 +208,6 @@ ul {
 }
 .signature tr, .signature th, .signature td {
     border: 0.5mm none black;
-    border-style: none;
 }
 .signature_label {
     text-align: right;

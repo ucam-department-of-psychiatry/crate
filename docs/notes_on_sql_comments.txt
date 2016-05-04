@@ -1,0 +1,158 @@
+For column comments, I think the various DDLs are as follows:
+
+Oracle
+======
+
+1. Adding during table creation:
+
+    not possible?
+
+2. Adding comments later:
+
+    COMMENT ON TABLE sometable IS 'This is a table comment';
+    COMMENT ON COLUMN sometable.somecol IS 'This is a column comment';
+
+3. Retrieving:
+
+    SELECT table_name, comments FROM all_tab_comments WHERE table_name = 'sometable';
+    SELECT column_name, comments FROM all_col_comments WHERE table_name = 'sometable';
+
+4. References
+
+    https://docs.oracle.com/cd/B19306_01/server.102/b14200/statements_4009.htm
+    https://docs.oracle.com/cd/B28359_01/server.111/b28320/statviews_1036.htm
+    https://docs.oracle.com/cd/B19306_01/server.102/b14237/statviews_2095.htm
+    Note also alternative views (DBA_*, USER_* rather than ALL_*).
+
+MySQL
+=====
+
+1. Adding during table creation:
+
+    CREATE TABLE sometable (somecol INTEGER COMMENT 'this is a column comment') COMMENT 'this is a table comment';
+
+2. Adding comments later:
+
+    ALTER TABLE sometable COMMENT 'this is a table comment too';
+    ALTER TABLE sometable CHANGE somecol somecol INTEGER COMMENT 'this is a column comment too';
+
+3. Retrieving:
+
+    SELECT table_schema, table_name, table_comment FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'sometable';
+    SELECT table_schema, column_name, column_comment FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'sometable';
+
+4. References
+
+    http://dev.mysql.com/doc/refman/5.7/en/create-table.html
+    http://dev.mysql.com/doc/refman/5.7/en/tables-table.html
+    http://dev.mysql.com/doc/refman/5.7/en/columns-table.html
+
+PostgreSQL
+==========
+
+1. Adding during table creation:
+
+    not possible?
+
+2. Adding comments later:
+
+    COMMENT ON TABLE sometable IS 'This is a table comment';
+    COMMENT ON COLUMN sometable.somecol IS 'This is a column comment';
+
+3. Retrieving:
+
+    (Uses internal OIDs to reference table number.)
+
+    SELECT t.table_schema, t.table_name, pgd.description
+    FROM pg_catalog.pg_statio_all_tables AS st
+    INNER JOIN pg_catalog.pg_description pgd ON (pgd.objoid = st.relid)
+    INNER JOIN information_schema.tables t ON (
+        pgd.objsubid = 0 AND
+        t.table_schema = st.schemaname AND
+        t.table_name = st.relname)
+    WHERE t.table_name = 'sometable';
+
+    SELECT c.table_schema, c.table_name, c.column_name, pgd.description
+    FROM pg_catalog.pg_statio_all_tables AS st
+    INNER JOIN pg_catalog.pg_description pgd ON (pgd.objoid = st.relid)
+    INNER JOIN information_schema.columns c ON (
+        pgd.objsubid = c.ordinal_position AND
+        c.table_schema = st.schemaname AND
+        c.table_name = st.relname)
+    WHERE c.table_name = 'sometable';
+
+4. References
+
+    http://www.postgresql.org/docs/9.1/static/sql-createtable.html
+    http://www.postgresql.org/docs/9.2/static/sql-comment.html
+    http://stackoverflow.com/questions/343138/retrieving-comments-from-a-postgresql-db
+    http://www.postgresql.org/docs/8.3/static/catalog-pg-description.html
+    http://www.postgresql.org/docs/9.2/static/monitoring-stats.html#PG-STATIO-ALL-TABLES-VIEW
+
+MSSQL (SQL Server)
+==================
+
+- Unsupported in SQL. Possible using "extended properties". A bit nasty, but...
+
+1. Adding during table creation:
+
+    not possible?
+
+2. Adding comments later:
+
+    EXEC sys.sp_addextendedproperty
+        @name=N'Description',
+        @value=N'This is a table comment',
+        @level0type=N'SCHEMA',
+        @level0name=N'dbo',
+        @level1type=N'TABLE',
+        @level1name=N'sometable'
+    GO
+    EXEC sys.sp_addextendedproperty
+        @name=N'Description',
+        @value=N'This is a column comment',
+        @level0type=N'SCHEMA',
+        @level0name=N'dbo',
+        @level1type=N'TABLE',
+        @level1name=N'sometable',
+        @level2type=N'COLUMN',
+        @level2name=N'somecol'
+    GO
+
+3. Retrieving:
+
+    SELECT
+        s.name AS schema_name,
+        t.name AS table_name,
+        CONVERT(VARCHAR(1000), x.value) AS table_comment -- is of type SQL_VARIANT
+    FROM sys.tables t
+    LEFT JOIN sys.extended_properties x ON t.object_id = x.major_id
+    LEFT JOIN sys.schemas s on t.schema_id = s.schema_id
+    WHERE x.minor_id = 0 AND t.name = 'sometable';
+
+    SELECT
+        s.name AS schema_name,
+        t.name AS table_name,
+        c.name AS column_name,
+        CONVERT(VARCHAR(1000), x.value) AS column_comment
+    FROM sys.columns c
+    LEFT JOIN sys.extended_properties x ON (
+        c.object_id = x.major_id AND
+        c.column_id = x.minor_id
+    )
+    LEFT JOIN sys.tables t ON c.object_id = t.object_id
+    LEFT JOIN sys.schemas s on t.schema_id = s.schema_id
+    WHERE t.name = 'sometable';
+
+4. References
+
+    http://stackoverflow.com/questions/4586842/sql-comments-on-create-table-on-sql-server-2008
+    https://msdn.microsoft.com/en-us/library/ms180047.aspx
+    https://mrsql.wordpress.com/tag/sp_addextendedproperty/
+
+SQLite
+======
+
+- Unsupported.
+
+    http://www.sqlite.org/lang.html
