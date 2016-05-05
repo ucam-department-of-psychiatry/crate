@@ -63,60 +63,66 @@ TO DO:
 # Imports
 # =============================================================================
 
-# from __future__ import division
-# from __future__ import print_function
-
 import argparse
+import ast
 import codecs
 import configparser
+from functools import lru_cache
 import logging
 import os
 import subprocess
 import sys
 
-from cardinal_pythonlib.rnc_config import read_config_string_options
 from cardinal_pythonlib.rnc_datetime import (
     get_now_utc,
     get_now_utc_notz
 )
-import cardinal_pythonlib.rnc_db as rnc_db
 from cardinal_pythonlib.rnc_db import (
-    DatabaseConfig,
     ensure_valid_field_name,
     ensure_valid_table_name,
     is_sqltype_valid
 )
-from cardinal_pythonlib.rnc_lang import (
-    chunks,
-    raise_if_attr_blank
-)
-import cardinal_pythonlib.rnc_log as rnc_log
+from cardinal_pythonlib.rnc_lang import chunks
+
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.schema import Column, Index, MetaData, Table
+from sqlalchemy.sql import column, func, select, table
+from sqlalchemy.types import BigInteger, DateTime, String
 
 from crate_anon.anonymise.constants import (
-    LOG_DATEFMT,
-    LOG_FORMAT,
     MAX_PID_STR,
+    MYSQL_TABLE_ARGS,
     SEP,
 )
-from crate_anon.anonymise.hash import MD5Hasher
+from crate_anon.anonymise.dbholder import DatabaseHolder
+from crate_anon.anonymise.hash import HmacMD5Hasher
+from crate_anon.anonymise.logsupport import configure_logger_for_colour
+from crate_anon.anonymise.sqla import (
+    add_index,
+    get_sqla_coltype_from_dialect_str,
+    index_exists,
+)
 from crate_anon.version import VERSION, VERSION_DATE
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
 log = logging.getLogger(__name__)
 
+progress_meta = MetaData()
+ProgressBase = declarative_base(metadata=progress_meta)
+
 # =============================================================================
 # Global constants
 # =============================================================================
 
-ENCRYPTED_OUTPUT_LENGTH = len(MD5Hasher("dummysalt").hash(MAX_PID_STR))
-SQLTYPE_ENCRYPTED_PID = "VARCHAR({})".format(ENCRYPTED_OUTPUT_LENGTH)
-# ... in practice: VARCHAR(32)
+HashClass = HmacMD5Hasher
+encrypted_length = len(HashClass("dummysalt").hash(MAX_PID_STR))
+SqlTypeHash = String(encrypted_length)
 
-FIELDNAME_LEN = 50
+NLP_CONFIG_ENV_VAR = 'CRATE_NLP_CONFIG'
 
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
-SQLTYPE_DB = "VARCHAR({})".format(MAX_SQL_FIELD_LEN)
+SqlTypeDb = String(MAX_SQL_FIELD_LEN)
 
 # =============================================================================
 # Demo config
@@ -128,15 +134,15 @@ DEMO_CONFIG = ("""
 # =============================================================================
 # Overview
 # =============================================================================
-# - NOTE THAT THE FOLLOWING FIELDNAMES ARE USED AS STANDARD:
+# - NOTE THAT THE FOLLOWING FIELDNAMES ARE USED AS STANDARD, AND WILL BE
+#   AUTOCREATED:
 #
 #   From nlp_manager.py:
-#       _srcdb      {SQLTYPE_DB}     Source database name (*)
-#       _srctable   {SQLTYPE_DB}         Source table name (*)
-#       _srcpkfield {SQLTYPE_DB}         Source primary key (PK) field name (*)
-#       _srcpkval   INT             Source PK value (*)
-#       _srcfield   {SQLTYPE_DB}         Source field containing text content
-#   (*) Mandatory.
+#       _srcdb      {SqlTypeDb}     Source database name
+#       _srctable   {SqlTypeDb}         Source table name
+#       _srcpkfield {SqlTypeDb}         Source primary key (PK) field name
+#       _srcpkval   INT             Source PK value
+#       _srcfield   {SqlTypeDb}         Source field containing text content
 #
 #   From CrateGatePipeline.java:
 #       _type       VARCHAR     Annotation type name
@@ -145,7 +151,7 @@ DEMO_CONFIG = ("""
 #       _end        INT         End position in the content
 #       _content    TEXT        Full content. (You don't have to keep this!)
 #
-#   The length of the VARCHAR fields is set by the FIELDNAME_LEN constant.
+#   The length of the VARCHAR fields is set by the MAX_SQL_FIELD_LEN constant.
 #
 #   Then individual GATE annotation systems might add their own fields.
 #   For example, the ANNIE example has a "Person" annotation.
@@ -243,7 +249,6 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
 # -----------------------------------------------------------------------------
 
 progressdb = MY_DESTINATION_DATABASE
-progresstable = nlp_progress
 hashphrase = doesnotmatter
 
 # =============================================================================
@@ -274,12 +279,12 @@ NLPPROGDIR = /home/myuser/somewhere/crate/nlp_manager/compiled_nlp_classes
 destdb = MY_DESTINATION_DATABASE
 desttable = PERSON
 destfields =
-    _srcdb      {SQLTYPE_DB}
-    _srctable   {SQLTYPE_DB}
-    _srcpkfield {SQLTYPE_DB}
+    _srcdb      {SqlTypeDb}
+    _srctable   {SqlTypeDb}
+    _srcpkfield {SqlTypeDb}
     _srcpkval   INT
-    _srcfield   {SQLTYPE_DB}
-    _type       {SQLTYPE_DB}
+    _srcfield   {SqlTypeDb}
+    _type       {SqlTypeDb}
     _id         INT
     _start      INT
     _end        INT
@@ -291,23 +296,22 @@ destfields =
     kind        VARCHAR(100)
 
 indexdefs =
-    _idx_srctable _srctable(10)
-    _idx_srctable _srcpkfield
-    _idx_srcpkval _srcpkval
+    firstname   64
+    surname     64
 
-# ... a set of (indexname, indexdef) pairs
+# ... a set of (indexed field, index length) pairs; length can be "None"
 
 [output_location]
 
 destdb = MY_DESTINATION_DATABASE
 desttable = LOCATION
 destfields =
-    _srcdb      {SQLTYPE_DB}
-    _srctable   {SQLTYPE_DB}
-    _srcpkfield {SQLTYPE_DB}
+    _srcdb      {SqlTypeDb}
+    _srctable   {SqlTypeDb}
+    _srcpkfield {SqlTypeDb}
     _srcpkval   INT
-    _srcfield   {SQLTYPE_DB}
-    _type       {SQLTYPE_DB}
+    _srcfield   {SqlTypeDb}
+    _type       {SqlTypeDb}
     _id         INT
     _start      INT
     _end        INT
@@ -316,9 +320,8 @@ destfields =
     loctype     VARCHAR(100)
 
 indexdefs =
-    _srctable
-    _srcpkfield
-    _srcpkval
+    rule    100
+    loctype 100
 
 # =============================================================================
 # Input field definitions, referred to within the NLP definition, and cross-
@@ -342,27 +345,18 @@ srcfield = PN_TEXT
 # =============================================================================
 # Database definitions, each in its own section
 # =============================================================================
+# Use SQLAlchemy URLs: http://docs.sqlalchemy.org/en/latest/core/engines.html
 
 [MY_SOURCE_DATABASE]
 
-engine = mysql
-host = localhost
-port = 3306
-user = ANONTEST
-password = XXX
-db = ANONYMOUS_OUTPUT
+url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 
 [MY_DESTINATION_DATABASE]
 
-engine = mysql
-host = localhost
-port = 3306
-user = ANONTEST
-password = XXX
-db = ANONYMOUS_OUTPUT
+url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 
 """.format(
-    SQLTYPE_DB=SQLTYPE_DB,
+    SqlTypeDb=SqlTypeDb,
     CLASSNAME=GATE_PIPELINE_CLASSNAME,
 ))
 
@@ -380,66 +374,69 @@ class OutputTypeConfig(object):
         """
         Read config from a configparser section.
         """
-        self.destdb = None
-        self.desttable = None
-        self.destfields = None
-        self.indexdefs = None
+        if not parser.has_section(section):
+            raise ValueError("config missing section: " + section)
 
-        read_config_string_options(
-            self,
-            parser,
-            section,
-            [
-                "destdb",
-                "desttable",
-                "destfields",
-                "indexdefs",
-            ],
-            enforce_str=True)
-        raise_if_attr_blank(self, [
-            "destdb",
-            "desttable",
-            "destfields",
-        ])
-        # noinspection PyUnresolvedReferences
-        self.destfields = [x for x in self.destfields.lower().strip().split()]
-        self.indexnames = []
+        def opt_str(option, required=False):
+            s = parser.get(section, option, fallback=None)
+            if required and not s:
+                raise ValueError("Missing: {}".format(option))
+            return s
 
-        if self.indexdefs:
-            # noinspection PyUnresolvedReferences
-            self.indexdefs = [x for x in self.indexdefs.strip().split()]
-            indexdefs = []
-            for c in chunks(self.indexdefs, 2):
-                n = c[0]
-                idxdef = c[1]
-                self.indexnames.append(n)
-                indexdefs.append(idxdef)
-            self.indexdefs = indexdefs
+        def opt_strlist(option, required=False, lower=True):
+            text = parser.get(section, option, fallback='')
+            if lower:
+                text = text.lower()
+            opts = [x.strip() for x in text.strip().split() if x.strip()]
+            if required and not opts:
+                raise ValueError("Missing: {}".format(option))
+            return opts
 
-        df = []
+        self.destdb = opt_str('destdb', required=True)
+
+        self.desttable = opt_str('desttable', required=True)
+        ensure_valid_table_name(self.desttable)
+
+        self.destfields = []
         self.dest_datatypes = []
-        for c in chunks(self.destfields, 2):
+        dest_fields_datatypes = opt_strlist('destfields', required=True)
+        for c in chunks(dest_fields_datatypes, 2):
             field = c[0]
             datatype = c[1].upper()
             ensure_valid_field_name(field)
             if not is_sqltype_valid(datatype):
                 raise Exception(
                     "Invalid datatype for {}: {}".format(field, datatype))
-            df.append(field)
+            self.destfields.append(field)
             self.dest_datatypes.append(datatype)
-        self.destfields = df
 
-        mandatory_fields = ["_srcdb", "_srctable", "_srcpkfield", "_srcpkval"]
-        for mandatory in mandatory_fields:
-            if mandatory not in self.destfields:
+        special_fields = ["_srcdb", "_srctable", "_srcpkfield", "_srcpkval",
+                          "_srcfield"]
+        for special in special_fields:
+            if special in self.destfields:
                 raise Exception(
-                    "For section {}, mandatory destfield {} missing".format(
+                    "For section {}, special destfield {} is auto-supplied; "
+                    "do not add it manually".format(
                         section,
-                        mandatory,
+                        special,
                     )
                 )
 
-        ensure_valid_table_name(self.desttable)
+        self.indexfields = []
+        self.indexlengths = []
+        indexdefs = opt_strlist('indexdefs')
+        if indexdefs:
+            for c in chunks(indexdefs, 2):  # pairs: field, length
+                lengthstr = c[1]
+                try:
+                    length = ast.literal_eval(lengthstr)
+                    if length is not None:
+                        length = int(length)
+                except ValueError:
+                    raise ValueError(
+                        "Bad index length: {}".format(lengthstr))
+                self.indexfields.append(c[0])
+                self.indexlengths.append(length)
 
 
 class InputFieldConfig(object):
@@ -451,27 +448,16 @@ class InputFieldConfig(object):
         """
         Read config from a configparser section.
         """
-        self.srcdb = None
-        self.srctable = None
-        self.srcpkfield = None
-        self.srcfield = None
-        read_config_string_options(
-            self,
-            parser,
-            section,
-            [
-                "srcdb",
-                "srctable",
-                "srcpkfield",
-                "srcfield",
-            ],
-            enforce_str=True)
-        raise_if_attr_blank(self, [
-            "srcdb",
-            "srctable",
-            "srcpkfield",
-            "srcfield",
-        ])
+        def opt_str(option):
+            s = parser.get(section, option, fallback=None)
+            if not s:
+                raise ValueError("Missing: {}".format(option))
+            return s
+
+        self.srcdb = opt_str('srcdb')
+        self.srctable = opt_str('srctable')
+        self.srcpkfield = opt_str('srcpkfield')
+        self.srcfield = opt_str('srcfield')
         ensure_valid_table_name(self.srctable)
         ensure_valid_field_name(self.srcpkfield)
         ensure_valid_field_name(self.srcfield)
@@ -487,60 +473,71 @@ class Config(object):
     """
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, filename, nlpname, logtag=""):
+    def __init__(self, nlpname, logtag=""):
         """
         Read config from file.
         """
-        self.inputfielddefs = None
-        self.outputtypemap = None
-        self.progenvsection = None
-        self.progargs = None
-        self.input_terminator = None
-        self.output_terminator = None
-        self.max_external_prog_uses = None
-        self.progressdb = None
-        self.progresstable = None
-        self.hashphrase = None
+        log.info("Loading config for section: {}".format(nlpname))
+        # Get filename
+        try:
+            self.config_filename = os.environ[NLP_CONFIG_ENV_VAR]
+            assert self.config_filename
+        except (KeyError, AssertionError):
+            print(
+                "You must set the {} environment variable to point to a CRATE "
+                "anonymisation config file. Run crate_print_demo_anon_config "
+                "to see a specimen config.".format(NLP_CONFIG_ENV_VAR))
+            sys.exit(1)
 
-        self.config_filename = filename
+        # Read config from file.
         parser = configparser.RawConfigParser()
         parser.optionxform = str  # make it case-sensitive
-        parser.read_file(codecs.open(filename, "r", "utf8"))
+        parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
+        section = nlpname
 
-        # nlpname
-        read_config_string_options(
-            self,
-            parser,
-            nlpname,
-            [
-                "inputfielddefs",
-                "outputtypemap",
-                "progenvsection",
-                "progargs",
-                "input_terminator",
-                "output_terminator",
-                "max_external_prog_uses",
-                "progressdb",
-                "progresstable",
-                "hashphrase",
-            ],
-            enforce_str=True)
-        raise_if_attr_blank(self, [
-            "inputfielddefs",
-            "outputtypemap",
-            "progargs",
-            "input_terminator",
-            "output_terminator",
-            "progressdb",
-            "progresstable",
-            "hashphrase",
-        ])
+        def opt_str(option, required=False, default=None):
+            s = parser.get(section, option, fallback=default)
+            if required and not s:
+                raise ValueError("Missing: {} in section {}".format(option,
+                                                                    section))
+            return s
 
-        self.inputfieldmap = {}
-        self.databases = {}
+        def opt_strlist(option, required=False, lower=True):
+            text = parser.get(section, option, fallback='')
+            if lower:
+                text = text.lower()
+            opts = [s.strip() for s in text.strip().split() if s.strip()]
+            if required and not opts:
+                raise ValueError("Missing: {} in section {}".format(option,
+                                                                    section))
+            return opts
+
+        def opt_int(option, default):
+            return parser.getint(nlpname, option, fallback=default)
+
+        def get_database(name_and_cfg_section, with_session=True,
+                         with_conn=False, reflect=False):
+            url = parser.get(name_and_cfg_section, 'url', fallback=None)
+            if not url:
+                raise ValueError(
+                    "Missing 'url' parameter in section {}".format(
+                        name_and_cfg_section))
+            return DatabaseHolder(name_and_cfg_section, url, srccfg=None,
+                                  with_session=with_session,
+                                  with_conn=with_conn,
+                                  reflect=reflect)
+
+        self.max_external_prog_uses = opt_int('max_external_prog_uses',
+                                              default=0)
+        self.progressdb = opt_str('progressdb', required=True)
+        self.input_terminator = opt_str('input_terminator', required=True)
+        self.output_terminator = opt_str('output_terminator', required=True)
 
         # inputfielddefs, inputfieldmap, databases
-        self.inputfielddefs = [x for x in self.inputfielddefs.split()]
+        self.inputfieldmap = {}
+        self.databases = {}
+        self.inputfielddefs = opt_strlist('inputfielddefs', required=True,
+                                          lower=False)
         for x in self.inputfielddefs:
             if x in self.inputfieldmap.keys():
                 continue
@@ -548,74 +545,60 @@ class Config(object):
             self.inputfieldmap[x] = c
             dbname = c.srcdb
             if dbname not in self.databases.keys():
-                self.databases[dbname] = self.get_database(dbname)
+                self.databases[dbname] = get_database(dbname)
 
         # outputtypemap, databases
-        # noinspection PyUnresolvedReferences
-        typepairs = self.outputtypemap.split()
+        typepairs = opt_strlist('outputtypemap', required=True, lower=False)
         self.outputtypemap = {}
         for c in chunks(typepairs, 2):
             annottype = c[0]
-            section = c[1]
+            outputsection = c[1]
             if annottype != annottype.lower():
                 raise Exception(
                     "Section {}: annotation types in outputtypemap must be in "
                     "lower case: change {}".format(section, annottype))
-            c = OutputTypeConfig(parser, section)
+            c = OutputTypeConfig(parser, outputsection)
             self.outputtypemap[annottype] = c
             dbname = c.destdb
             if dbname not in self.databases.keys():
-                self.databases[dbname] = self.get_database(dbname)
+                self.databases[dbname] = get_database(dbname)
 
         # progenvsection, env, progargs, logtag
         self.env = os.environ.copy()
+        self.progenvsection = opt_str('progenvsection')
         if self.progenvsection:
             newitems = [(str(k), str(v))
                         for k, v in parser.items(self.progenvsection)]
             self.env = dict(list(self.env.items()) + newitems)
-        if not logtag:
-            logtag = "."
-            # because passing a "-lt" switch with no parameter will make
-            # CrateGatePipeline.java complain and stop
+        progargs = opt_str('progargs', required=True)
+        logtag = logtag or '.'
+        # ... because passing a "-lt" switch with no parameter will make
+        # CrateGatePipeline.java complain and stop
         self.env["NLPLOGTAG"] = logtag
-        # noinspection PyUnresolvedReferences
-        self.progargs = self.progargs.format(**self.env)
-        self.progargs = [
-            x for x in str(self.progargs).split()
-        ]
+        formatted_progargs = progargs.format(**self.env)
+        self.progargs = formatted_progargs.split()
 
-        # max_external_prog_uses
-        if self.max_external_prog_uses is None:
-            self.max_external_prog_uses = 0
-        else:
-            self.max_external_prog_uses = int(self.max_external_prog_uses)
-
-        # progressdb, progresstable, hashphrase
-        self.progdb = self.get_database(self.progressdb)
-        ensure_valid_field_name(self.progresstable)
-        self.hasher = MD5Hasher(self.hashphrase)
+        # progressdb, hashphrase
+        self.progdb = get_database(self.progressdb)
+        self.hashphrase = opt_str('hashphrase', required=True)
+        self.hasher = HashClass(self.hashphrase)
 
         # other
         self.now = get_now_utc_notz()
 
-    def get_database(self, section):
-        """
-        Return an rnc_db database object from a config file section.
-        """
-        parser = configparser.RawConfigParser()
-        parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
-        try:  # guard this bit to prevent any password leakage
-            dbc = DatabaseConfig(parser, section)
-            db = dbc.get_database()
-            return db
-        except:
-            raise rnc_db.NoDatabaseError(
-                "Problem opening or reading from database {}; details "
-                "concealed for security reasons".format(section))
-
     def hash(self, text):
-        # Needs to handle Unicode
-        return self.hasher.hash(text.encode("utf8"))
+        return self.hasher.hash(text)
+
+    def set_echo(self, echo):
+        self.progdb.engine.echo = echo
+        for db in self.databases.values():
+            db.engine.echo = echo
+        # Now, SQLAlchemy will mess things up by adding an additional handler.
+        # So, bye-bye:
+        for logname in ['sqlalchemy.engine.base.Engine',
+                        'sqlalchemy.engine.base.OptionEngine']:
+            logger = logging.getLogger(logname)
+            logger.handlers = []
 
 
 # =============================================================================
@@ -699,14 +682,13 @@ class NlpController(object):
     # -------------------------------------------------------------------------
     # Interprocess comms
     # -------------------------------------------------------------------------
-    def __init__(self, config, commit=False, encoding='utf8'):
-        """
-        Initializes from the config.
-        """
-        self.config = config
+    def __init__(self, progargs, input_terminator, output_terminator,
+                 max_external_prog_uses, commit=False, encoding='utf8'):
+        self.progargs = progargs
+        self.input_terminator = input_terminator
+        self.output_terminator = output_terminator
+        self.max_external_prog_uses = max_external_prog_uses
         self.commit = commit
-        self.input_terminator = self.config.input_terminator
-        self.output_terminator = self.config.output_terminator
         self.starting_fields_values = {}
         self.n_uses = 0
         self.encoding = encoding
@@ -716,7 +698,7 @@ class NlpController(object):
         """
         Launch the external process.
         """
-        args = self.config.progargs
+        args = self.progargs
         log.info("launching command: " + " ".join(args))
         self.p = subprocess.Popen(
             args,
@@ -767,7 +749,7 @@ class NlpController(object):
             self.receive(line)
         self.n_uses += 1
         # Restart subprocess?
-        if 0 < self.config.max_external_prog_uses <= self.n_uses:
+        if 0 < self.max_external_prog_uses <= self.n_uses:
             log.info("relaunching app after {} uses".format(self.n_uses))
             self.finish()
             self.start()
@@ -782,6 +764,25 @@ class NlpController(object):
     # -------------------------------------------------------------------------
     # Input processing
     # -------------------------------------------------------------------------
+
+    @lru_cache(maxsize=None)
+    def get_blah(self, annottype):
+        annottype = annottype.lower()
+        ok = False
+        destfields = []
+        session = None
+        sqla_table = None
+        if annottype not in config.outputtypemap.keys():
+            log.warning(
+                "Unknown annotation type, skipping: {}".format(annottype))
+        else:
+            ok = True
+            ot = config.outputtypemap[annottype]
+            destfields = ot.destfields
+            session = config.databases[ot.destdb].session
+            engine = config.databases[ot.destdb].engine
+            sqla_table = get_dest_sqla_table(engine, ot)
+        return ok, destfields, session, sqla_table
 
     def receive(self, line):
         """
@@ -798,23 +799,19 @@ class NlpController(object):
         # Python 3, for this situation -- would also work in Python 2!:
         d.update(self.starting_fields_values)
         log.debug("dictionary now: {}".format(d))
-
-        # Now process it.
-        if "_type" not in d.keys():
-            raise Exception("_type information not in data received")
-        annottype = d["_type"].lower()
-        if annottype not in self.config.outputtypemap.keys():
-            log.warning(
-                "Unknown annotation type, skipping: {}".format(annottype))
+        try:
+            annottype = d['_type']
+        except KeyError:
+            raise ValueError("_type information not in data received")
+        ok, destfields, session, sqla_table = self.get_blah(annottype)
+        if not ok:
             return
-        ot = self.config.outputtypemap[annottype]
         # Restrict to fields we know about
-        d = dict((k, d[k]) for k in ot.destfields if k in d)
-        db = self.config.databases[ot.destdb]
-        table = ot.desttable
-        db.insert_record_by_dict(table, d)
+        d = dict((k, d[k]) for k in destfields if k in d)
+        insertquery = sqla_table.insert().values(d)
+        session.execute(insertquery)
         if self.commit:
-            db.commit()  # or we get deadlocks
+            session.commit()  # or we get deadlocks
 
     # -------------------------------------------------------------------------
     # Test
@@ -833,93 +830,115 @@ class NlpController(object):
 
 
 # =============================================================================
+# Models
+# =============================================================================
+
+class NlpRecord(ProgressBase):
+    __tablename__ = 'crate_nlp_progress'
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    pk = Column(
+        'pk', BigInteger, primary_key=True, autoincrement=True,
+        doc="PK of NLP record (no specific use)")
+    srcdb = Column(
+        'srcdb', SqlTypeDb,
+        doc="Source database")
+    srctable = Column(
+        'srctable', SqlTypeDb,
+        doc="Source table name")
+    srcpkfield = Column(
+        'srcpkfield', SqlTypeDb,
+        doc="Primary key column name in source table")
+    srcpkval = Column(
+        'srcpkval', BigInteger,
+        doc="Primary key value in source table")
+    srcfield = Column(
+        'srcfield', SqlTypeDb,
+        doc="Name of column in source field containing actual data")
+    whenprocessedutc = Column(
+        'whenprocessedutc', DateTime,
+        doc="Time that NLP record was processed")
+    srchash = Column(
+        'srchash', SqlTypeHash,
+        doc='Secure hash of source field contents')
+
+
+@lru_cache(maxsize=None)
+def get_dest_sqla_table(engine, otconfig):
+    metadata = config.databases[otconfig.destdb].metadata
+    columns = [
+        Column('_srcdb', SqlTypeDb),
+        Column('_srctable', SqlTypeDb),
+        Column('_srcpkfield', SqlTypeDb),
+        Column('_srcpkval', BigInteger),
+        Column('_srcfield', SqlTypeDb),
+    ]
+    for i in range(len(otconfig.destfields)):
+        colname = otconfig.destfields[i]
+        datatype = get_sqla_coltype_from_dialect_str(
+            engine, otconfig.dest_datatypes[i])
+        col = Column(colname, datatype)
+        columns.append(col)
+    return Table(otconfig.desttable, metadata,
+                 *columns, **MYSQL_TABLE_ARGS)
+
+
+# =============================================================================
 # Database queries
 # =============================================================================
 
-def pk_of_record_in_progressdb(config, ifconfig, srcpkval, srchash=None):
-    """
-    Find the PK of a source record in the progress database.
-
-    Inputs of None cause that field to be skipped in the check.
-    With srchash=None, checks for record existence.
-    With srchash, checks for matching hash too.
-    """
-    sql = """
-        SELECT pk
-        FROM {table}
-        WHERE srcdb = ?
-        AND srctable = ?
-        AND srcpkfield = ?
-        AND srcpkval = ?
-        AND srcfield = ?
-    """.format(
-        table=config.progresstable,
+def get_progress_record(ifconfig, srcpkval, srchash=None):
+    session = config.progdb.session
+    query = (
+        session.query(NlpRecord).
+        filter(NlpRecord.srcdb == ifconfig.srcdb).
+        filter(NlpRecord.srctable == ifconfig.srctable).
+        filter(NlpRecord.srcpkfield == ifconfig.srcpkfield).
+        filter(NlpRecord.srcpkval == srcpkval).
+        filter(NlpRecord.srcfield == ifconfig.srcfield)
     )
-    args = [ifconfig.srcdb, ifconfig.srctable, ifconfig.srcpkfield, srcpkval,
-            ifconfig.srcfield]
     if srchash is not None:
-        sql += " AND srchash = ?"
-        args.append(srchash)
-    return config.progdb.fetchvalue(sql, *args)
+        query = query.filter(NlpRecord.srchash == srchash)
+    return query.one_or_none()
 
 
 # =============================================================================
 # Database operations
 # =============================================================================
 
-def insert_into_progress_db(config, ifconfig, srcpkval, srchash, commit=False):
+def insert_into_progress_db(ifconfig, srcpkval, srchash, commit=False):
     """
     Make a note in the progress database that we've processed a source record.
     """
-    pk = pk_of_record_in_progressdb(config, ifconfig, srcpkval, srchash=None)
-    args = [
-        ifconfig.srcdb,
-        ifconfig.srctable,
-        ifconfig.srcpkfield,
-        srcpkval,
-        ifconfig.srcfield,
-        config.now,
-        srchash
-    ]
-    if pk is not None:
-        sql = """
-            UPDATE {table}
-            SET srcdb = ?,
-                srctable = ?,
-                srcpkfield = ?,
-                srcpkval = ?,
-                srcfield = ?,
-                whenprocessedutc = ?,
-                srchash = ?
-            WHERE pk = ?
-        """.format(
-            table=config.progresstable,
+    session = config.progdb.session
+    progrec = get_progress_record(ifconfig, srcpkval, srchash=None)
+    if progrec is None:
+        progrec = NlpRecord(
+            srcdb=ifconfig.srcdb,
+            srctable=ifconfig.srctable,
+            srcpkfield=ifconfig.srcpkfield,
+            srcpkval=srcpkval,
+            srcfield=ifconfig.srcfield,
+            whenprocessedutc=config.now,
+            srchash=srchash,
         )
-        args.append(pk)
+        session.add(progrec)
     else:
-        sql = """
-            INSERT INTO {table} (
-                srcdb, srctable, srcpkfield, srcpkval, srcfield,
-                whenprocessedutc, srchash
-            ) VALUES (
-                ?, ?, ?, ?, ?,
-                ?, ?
-            )
-        """.format(
-            table=config.progresstable,
-        )
-    config.progdb.db_exec(sql, *args)
+        progrec.whenprocessedutc = config.now
+        progrec.srchash = srchash
     if commit:
-        config.progdb.commit()
+        session.commit()
     # Commit immediately, because other processes may need this table promptly.
 
 
-def delete_where_no_source(config, ifconfig):
+def delete_where_no_source(ifconfig):
     """
     Delete destination records where source records no longer exist.
 
     - Can't do this in a single SQL command, since the engine can't necessarily
       see both databases.
+    - Can't use a single temporary table, since the progress database isn't
+      necessarily the same as any of the destination database(s).
     - Can't do this in a multiprocess way, because we're trying to do a
       DELETE WHERE NOT IN.
     """
@@ -930,29 +949,22 @@ def delete_where_no_source(config, ifconfig):
             ifconfig.srcdb,
             ifconfig.srctable,
         ))
-    srcdb = config.databases[ifconfig.srcdb]
-    sql = "SELECT {srcpkfield} FROM {srctable}".format(
-        srcpkfield=ifconfig.srcpkfield,
-        srctable=ifconfig.srctable,
+    progsession = config.progdb.session
+    src_pks = list(gen_src_pks(ifconfig))
+    prog_deletion_query = (
+        progsession.query(NlpRecord).
+        filter(NlpRecord.srcdb == ifconfig.srcdb).
+        filter(NlpRecord.srctable == ifconfig.srctable).
+        filter(NlpRecord.srcpkfield == ifconfig.srcpkfield)
     )
-    pks = srcdb.fetchallfirstvalues(sql)
-    sql = """
-        DELETE FROM {progresstable}
-        WHERE srcdb = ?
-        AND srctable = ?
-        AND srcpkfield = ?
-    """.format(
-        progresstable=config.progresstable,
-    )
-    args = [ifconfig.srcdb, ifconfig.srctable, ifconfig.srcpkfield]
-    if not pks:
-        log.debug("... deleting all")
-    else:
+    if src_pks:
         log.debug("... deleting selectively")
-        value_string = ','.join(['?'] * len(pks))
-        sql += " AND srcpkval NOT IN ({})".format(value_string)
-        args += pks
-    config.progdb.db_exec(sql, *args)
+        prog_deletion_query = prog_deletion_query.filter(
+            ~NlpRecord.srcpkval.in_(src_pks)
+        )
+    else:
+        log.debug("... deleting all")
+    progsession.execute(prog_deletion_query)
 
     # 2. Others. Combine in the same function as we re-use the source PKs.
     for otconfig in config.outputtypemap.values():
@@ -963,27 +975,32 @@ def delete_where_no_source(config, ifconfig):
                 otconfig.destdb,
                 otconfig.desttable,
             ))
-        destdb = config.databases[otconfig.destdb]
-        sql = """
-            DELETE FROM {desttable}
-            WHERE _srcdb = ?
-            AND _srctable = ?
-            AND _srcpkfield = ?
-        """.format(
-            desttable=otconfig.desttable,
+        destsession = config.databases[otconfig.destdb].session
+        destengine = config.databases[otconfig.destdb].engine
+        desttable = get_dest_sqla_table(destengine, otconfig)
+        # noinspection PyProtectedMember
+        dest_deletion_query = (
+            desttable.delete().
+            where(desttable.c._srcdb == ifconfig.srcdb).
+            where(desttable.c._srctable == ifconfig.srctable).
+            where(desttable.c._srcpkfield == ifconfig.srcpkfield)
         )
-        # args will already be correct, from above
-        if not pks:
-            log.debug("... deleting all")
-        else:
+        if src_pks:
             log.debug("... deleting selectively")
-            # value_string already set
-            # noinspection PyUnboundLocalVariable
-            sql += " AND _srcpkval NOT IN ({})".format(value_string)
-        destdb.db_exec(sql, *args)
+            # noinspection PyProtectedMember
+            dest_deletion_query = dest_deletion_query.where(
+                ~desttable.c._srcpkval.in_(src_pks)
+            )
+        else:
+            log.debug("... deleting all")
+        destsession.execute(dest_deletion_query)
+        destsession.commit()
+
+    # 3. Clean up.
+    progsession.commit()
 
 
-def delete_from_dest_dbs(config, ifconfig, srcpkval, commit=False):
+def delete_from_dest_dbs(ifconfig, srcpkval, commit=False):
     """
     For when a record has been updated; wipe older entries for it.
     """
@@ -995,99 +1012,120 @@ def delete_from_dest_dbs(config, ifconfig, srcpkval, commit=False):
                 otconfig.destdb,
                 otconfig.desttable,
             ))
-        destdb = config.databases[otconfig.destdb]
-        sql = """
-            DELETE FROM {desttable}
-            WHERE _srcdb = ?
-            AND _srctable = ?
-            AND _srcpkfield = ?
-            AND _srcpkval = ?
-        """.format(
-            desttable=otconfig.desttable,
+        destsession = config.databases[otconfig.destdb].session
+        destengine = config.databases[otconfig.destdb].engine
+        desttable = get_dest_sqla_table(destengine, otconfig)
+        # noinspection PyProtectedMember
+        delquery = (
+            desttable.delete().
+            where(desttable.c._srcdb == ifconfig.srcdb).
+            where(desttable.c._srctable == ifconfig.srctable).
+            where(desttable.c._srcpkfield == ifconfig.srcpkfield).
+            where(desttable.c._srcpkval == srcpkval)
         )
-        args = [ifconfig.srcdb, ifconfig.srctable, ifconfig.srcpkfield,
-                srcpkval]
-        destdb.db_exec(sql, *args)
+        destsession.execute(delquery)
         if commit:
-            destdb.commit()
+            destsession.commit()
         # ... or we get deadlocks
         # http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
 
 
-def commit_all(config):
+def commit_all():
     """
     Execute a COMMIT on all databases.
     """
-    config.progdb.commit()
+    config.progdb.session.commit()
     for db in config.databases.values():
-        db.commit()
+        db.session.commit()
 
 
 # =============================================================================
 # Generators
 # =============================================================================
 
-def gen_text(config, ifconfig, tasknum=0, ntasks=1):
+def gen_src_pks(ifconfig):
+    session = config.databases[ifconfig.srcdb].session
+    query = (
+        select([column(ifconfig.srcpkfield)]).
+        select_from(table(ifconfig.srctable))
+    )
+    result = session.execute(query)
+    for row in result:
+        yield row[0]
+
+
+def gen_text(ifconfig, tasknum=0, ntasks=1):
     """
     Generate text strings from the input database.
     """
     if 1 < ntasks <= tasknum:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
-    taskcondition = ""
-    if ntasks > 1:
-        taskcondition = """
-            WHERE {pkfield} % {ntasks} = {tasknum}
-        """.format(
-            pkfield=ifconfig.srcpkfield,
-            ntasks=ntasks,
-            tasknum=tasknum,
-        )
-    sql = """
-        SELECT {pkfield}, {textfield}
-        FROM {table}
-        {taskcondition}
-        ORDER BY {pkfield}
-    """.format(
-        pkfield=ifconfig.srcpkfield,
-        textfield=ifconfig.srcfield,
-        table=ifconfig.srctable,
-        taskcondition=taskcondition,
+    session = config.databases[ifconfig.srcdb].session
+    pkcol = column(ifconfig.srcpkfield)
+    query = (
+        select([pkcol,
+                column(ifconfig.srcfield)]).
+        select_from(table(ifconfig.srctable)).
+        order_by(pkcol)
     )
-    db = config.databases[ifconfig.srcdb]
-    cursor = db.cursor()
-    db.db_exec_with_cursor(cursor, sql)
-    row = cursor.fetchone()
-    while row is not None:
-        yield row[0], row[1]
-        row = cursor.fetchone()
+    if ntasks > 1:
+        query = query.where(func.mod(pkcol, ntasks) == tasknum)
+    return session.execute(query)  # ... a generator itself
+
+
+def get_count_max(ifconfig):
+    """Used for progress monitoring"""
+    session = config.databases[ifconfig.srcdb].session
+    pkcol = column(ifconfig.srcpkfield)
+    query = (
+        select([func.count(), func.max(pkcol)]).
+        select_from(table(ifconfig.srctable)).
+        order_by(pkcol)
+    )
+    result = session.execute(query)
+    return result.fetchone()  # count, maximum
 
 
 # =============================================================================
 # Core functions
 # =============================================================================
 
-def process_nlp(config, incremental=False, tasknum=0, ntasks=1):
+def process_nlp(incremental=False, tasknum=0, ntasks=1):
     """
     Main NLP processing function. Fetch text, send it to the GATE app
     (storing the results), and make a note in the progress database.
     """
     log.info(SEP + "NLP")
-    controller = NlpController(config, commit=incremental)
+    controller = NlpController(
+        progargs=config.progargs,
+        input_terminator=config.input_terminator,
+        output_terminator=config.output_terminator,
+        max_external_prog_uses=config.max_external_prog_uses,
+        commit=incremental
+    )
     controller.start()
     for ifconfig in config.inputfieldmap.values():
-        for pkval, text in gen_text(config, ifconfig,
+        count, maximum = get_count_max(ifconfig)
+        for pkval, text in gen_text(ifconfig,
                                     tasknum=tasknum, ntasks=ntasks):
-            log.info("Processing {}.{}.{}, {}={}".format(
-                ifconfig.srcdb, ifconfig.srctable, ifconfig.srcfield,
-                ifconfig.srcpkfield, pkval
-            ))
+            log.info(
+                "Processing {db}.{t}.{c}, {pkf}={pkv} "
+                "(max={maximum}, n={count})".format(
+                    db=ifconfig.srcdb,
+                    t=ifconfig.srctable,
+                    c=ifconfig.srcfield,
+                    pkf=ifconfig.srcpkfield,
+                    pkv=pkval,
+                    maximum=maximum,
+                    count=count,
+                )
+            )
             srchash = config.hash(text)
-            if (incremental and
-                    pk_of_record_in_progressdb(config, ifconfig,
-                                               pkval, srchash) is not None):
-                log.debug("Record previously processed; skipping")
-                continue
+            if incremental:
+                if get_progress_record(ifconfig, pkval, srchash) is not None:
+                    log.debug("Record previously processed; skipping")
+                    continue
             starting_fields_values = {
                 "_srcdb": ifconfig.srcdb,
                 "_srctable": ifconfig.srctable,
@@ -1096,102 +1134,67 @@ def process_nlp(config, incremental=False, tasknum=0, ntasks=1):
                 "_srcfield": ifconfig.srcfield,
             }
             if incremental:
-                delete_from_dest_dbs(config, ifconfig, pkval,
+                delete_from_dest_dbs(ifconfig, pkval,
                                      commit=incremental)
             controller.send(text, starting_fields_values)
-            insert_into_progress_db(config, ifconfig, pkval, srchash,
+            insert_into_progress_db(ifconfig, pkval, srchash,
                                     commit=incremental)
     controller.finish()
-    commit_all(config)
+    commit_all()
 
 
-def drop_remake(config, incremental=False, dynamic=True, compressed=False):
+def drop_remake(incremental=False):
     """
     Drop output tables and recreate them.
     """
-
     # Not parallel.
     # -------------------------------------------------------------------------
     # 1. Progress database
     # -------------------------------------------------------------------------
+    progengine = config.progdb.engine
     if not incremental:
-        log.debug("progressdb: dropping table {}".format(
-            config.progresstable))
-        config.progdb.drop_table(config.progresstable)
-    sql = """
-        CREATE TABLE IF NOT EXISTS {t} (
-            pk INT PRIMARY KEY AUTO_INCREMENT,
-            srcdb {SQLTYPE_DB},
-            srctable {SQLTYPE_DB},
-            srcpkfield {SQLTYPE_DB},
-            srcpkval INT,
-            srcfield {SQLTYPE_DB},
-
-            whenprocessedutc DATETIME,
-            srchash {SQLTYPE_ENCRYPTED_PID},
-
-            UNIQUE INDEX _idx1 (srcdb, srctable, srcpkfield, srcpkval,
-                                srcfield)
-        )
-    """.format(
-        t=config.progresstable,
-        SQLTYPE_DB=SQLTYPE_DB,
-        SQLTYPE_ENCRYPTED_PID=SQLTYPE_ENCRYPTED_PID,
-    )
-    # The pk field isn't used.
-    log.debug(sql)
-    config.progdb.db_exec_literal(sql)
+        log.debug("Dropping admin tables")
+        NlpRecord.__table__.drop(progengine, checkfirst=True)
+    log.info("Creating admin tables")
+    NlpRecord.__table__.create(progengine, checkfirst=True)
+    log.info("Creating admin indexes")
+    idxname = '_idx1'
+    if not index_exists(progengine, NlpRecord.__table__.name, idxname):
+        index = Index(idxname,
+                      NlpRecord.srcdb,
+                      NlpRecord.srctable,
+                      NlpRecord.srcpkfield,
+                      NlpRecord.srcpkval,
+                      NlpRecord.srcfield,
+                      unique=True)
+        index.create(progengine)
 
     # -------------------------------------------------------------------------
     # 2. Output database(s)
     # -------------------------------------------------------------------------
-    for ot in config.outputtypemap.values():
-        db = config.databases[ot.destdb]
-        t = ot.desttable
-        fancy_ok = db.is_mysql()
-        # Drop
+    for otconfig in config.outputtypemap.values():
+        destengine = config.databases[otconfig.destdb].engine
+        sqla_table = get_dest_sqla_table(destengine, otconfig)
         if not incremental:
-            log.debug("dropping table {}".format(t))
-            db.drop_table(t)
-        # Recreate
-        fieldspecs = []
-        for i in range(len(ot.destfields)):
-            f = ot.destfields[i]
-            dt = ot.dest_datatypes[i]
-            fieldspecs.append(f + " " + dt)
-        sql = """
-            CREATE TABLE IF NOT EXISTS {table} (
-                {fieldspecs}
-            )
-            {dynamic}
-            {compressed}
-            CHARACTER SET utf8
-            COLLATE utf8_general_ci
-        """.format(
-            table=t,
-            fieldspecs=",".join(fieldspecs),
-            dynamic="ROW_FORMAT=DYNAMIC" if dynamic and fancy_ok else "",
-            compressed=("ROW_FORMAT=COMPRESSED"
-                        if compressed and fancy_ok else ""),
-        )
-        log.debug(sql)
-        db.db_exec_literal(sql)
+            log.info("dropping table {}".format(sqla_table.name))
+            sqla_table.drop(destengine, checkfirst=True)
+        log.info("creating table {}".format(sqla_table.name))
+        sqla_table.create(destengine, checkfirst=True)
 
     # -------------------------------------------------------------------------
     # 3. Delete WHERE NOT IN for incremental
     # -------------------------------------------------------------------------
-
     if incremental:
         for ifconfig in config.inputfieldmap.values():
-            delete_where_no_source(config, ifconfig)
+            delete_where_no_source(ifconfig)
 
     # -------------------------------------------------------------------------
     # 4. Overall commit
     # -------------------------------------------------------------------------
-    commit_all(config)
+    commit_all()
 
 
-def create_indexes(config, tasknum=0, ntasks=1):
+def create_indexes(tasknum=0, ntasks=1):
     """
     Create indexes on destination table(s).
     """
@@ -1202,26 +1205,23 @@ def create_indexes(config, tasknum=0, ntasks=1):
         if i % ntasks != tasknum:
             continue
         ot = outputtypes_list[i]
-        if not ot.indexdefs:
+        if not ot.indexfields:
             continue
-        db = config.databases[ot.destdb]
-        t = ot.desttable
-        sqlbits = []
-        for j in range(len(ot.indexnames)):
-            n = ot.indexnames[j]
-            d = ot.indexdefs[j]
-            s = "ADD INDEX {n} ({d})".format(n=n, d=d)
-            if db.index_exists(t, n):
-                continue  # because it will crash if you add it again!
-            sqlbits.append(s)
-        if not sqlbits:
-            continue
-        sql = "ALTER TABLE {t} {add_indexes}".format(
-            t=t,
-            add_indexes=", ".join(sqlbits),
-        )
-        log.debug(sql)
-        db.db_exec(sql)
+        engine = config.databases[ot.destdb].engine
+        sqla_table = get_dest_sqla_table(engine, ot)
+        # Default indexes for most mandatory fields
+        add_index(engine, sqla_table.columns['_srcdb'],
+                  unique=False, length=MAX_SQL_FIELD_LEN)
+        add_index(engine, sqla_table.columns['_srctable'],
+                  unique=False, length=MAX_SQL_FIELD_LEN)
+        add_index(engine, sqla_table.columns['_srcpkfield'],
+                  unique=False, length=MAX_SQL_FIELD_LEN)
+        add_index(engine, sqla_table.columns['_srcpkval'],
+                  unique=False, length=None)
+        for j in range(len(ot.indexfields)):
+            add_index(engine, sqla_table.columns[ot.indexfields[j]],
+                      unique=False, fulltext=False,
+                      length=ot.indexlengths[j])
 
 
 # =============================================================================
@@ -1249,9 +1249,7 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     parser.add_argument("-n", "--version", action="version", version=version)
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument("configfile", nargs="?",
-                        help="Configuration file name")
-    parser.add_argument("nlpname", nargs="?",
+    parser.add_argument("nlpname",
                         help="NLP definition name (from config file)")
     parser.add_argument("--process", nargs="?", type=int, default=0,
                         help="For multiprocess patient-table mode: specify "
@@ -1267,12 +1265,18 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     parser.add_argument("--incremental", action="store_true",
                         help="Process only new/changed information, where "
                              "possible")
+    parser.add_argument("--full",
+                        dest="incremental", action="store_false",
+                        help="Drop and remake everything")
+    parser.set_defaults(incremental=True)
     parser.add_argument("--dropremake", action="store_true",
                         help="Drop/remake destination tables only")
     parser.add_argument("--nlp", action="store_true",
                         help="Perform NLP processing only")
     parser.add_argument("--index", action="store_true",
                         help="Create indexes only")
+    parser.add_argument("--echo", action="store_true",
+                        help="Echo SQL")
     args = parser.parse_args()
 
     # Demo config?
@@ -1281,9 +1285,6 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         return
 
     # Validate args
-    if not args.configfile:
-        parser.print_help()
-        fail()
     if not args.nlpname:
         parser.print_help()
         fail()
@@ -1304,25 +1305,19 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     if args.processcluster:
         mynames.append(args.processcluster)
     if args.nprocesses > 1:
-        mynames.append("process {}".format(args.process))
-    rnc_log.reset_logformat_timestamped(
-        log,
-        extraname=" ".join(mynames),
-        level=logging.DEBUG if args.verbose >= 1 else logging.INFO
-    )
-    rnc_db.set_loglevel(logging.DEBUG if args.verbose >= 2 else logging.INFO)
-    mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
-    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
-                        level=mainloglevel)
+        mynames.append("proc{}".format(args.process))
+    loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    rootlogger = logging.getLogger()
+    configure_logger_for_colour(rootlogger, level=loglevel, extranames=mynames)
 
     # Report args
     log.debug("arguments: {}".format(args))
 
     # Load/validate config
-    log.info("Loading config")
-    config = Config(args.configfile,
-                    args.nlpname,
+    global config
+    config = Config(args.nlpname,
                     logtag="_".join(mynames).replace(" ", "_"))
+    config.set_echo(args.echo)
 
     # -------------------------------------------------------------------------
 
@@ -1331,22 +1326,28 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
 
     # 1. Drop/remake tables. Single-tasking only.
     if args.dropremake or everything:
-        drop_remake(config, incremental=args.incremental)
+        drop_remake(incremental=args.incremental)
 
     # 2. NLP
     if args.nlp or everything:
-        process_nlp(config, incremental=args.incremental,
+        process_nlp(incremental=args.incremental,
                     tasknum=args.process, ntasks=args.nprocesses)
 
     # 3. Indexes.
     if args.index or everything:
-        create_indexes(config, tasknum=args.process, ntasks=args.nprocesses)
+        create_indexes(tasknum=args.process, ntasks=args.nprocesses)
 
     log.info("Finished")
     end = get_now_utc()
     time_taken = end - start
     log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
 
+
+# =============================================================================
+# Config singleton (set in main)
+# =============================================================================
+
+config = None
 
 # =============================================================================
 # Command-line entry point

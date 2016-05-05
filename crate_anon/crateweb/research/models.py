@@ -487,50 +487,50 @@ ORDER BY
         elif vendor == 'microsoft':  # SQL Server
             sql = translate_sql_qmark_to_percent("""
 SELECT
-	d.table_schema,
-	d.table_name,
-	d.column_name,
-	d.is_nullable,
-	d.column_type,
-	d.column_comment,
-	CASE WHEN COUNT(d.index_id) > 0 THEN 1 ELSE 0 END AS indexed,
-	0 AS indexed_fulltext
+    d.table_schema,
+    d.table_name,
+    d.column_name,
+    d.is_nullable,
+    d.column_type,
+    d.column_comment,
+    CASE WHEN COUNT(d.index_id) > 0 THEN 1 ELSE 0 END AS indexed,
+    0 AS indexed_fulltext
 FROM (
-	SELECT
-		s.name AS table_schema,
-		ta.name AS table_name,
-		c.name AS column_name,
-		c.is_nullable,
-		UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')'
-			AS column_type,
-		CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT
-		i.index_id
+    SELECT
+        s.name AS table_schema,
+        ta.name AS table_name,
+        c.name AS column_name,
+        c.is_nullable,
+        UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')'
+            AS column_type,
+        CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT
+        i.index_id
 	FROM sys.tables ta
-	INNER JOIN sys.schemas s on ta.schema_id = s.schema_id
-	INNER JOIN sys.columns c ON c.object_id = ta.object_id
-	INNER JOIN sys.types ty ON ty.system_type_id = c.system_type_id
-	LEFT JOIN sys.extended_properties x ON (
-		c.object_id = x.major_id
-		AND c.column_id = x.minor_id
-	)
-	LEFT JOIN sys.index_columns i ON (
-		c.object_id = i.object_id
-		AND c.column_id = i.column_id
-	)
-	WHERE s.name IN ({schema_placeholder})
+    INNER JOIN sys.schemas s on ta.schema_id = s.schema_id
+    INNER JOIN sys.columns c ON c.object_id = ta.object_id
+    INNER JOIN sys.types ty ON ty.system_type_id = c.system_type_id
+    LEFT JOIN sys.extended_properties x ON (
+        c.object_id = x.major_id
+        AND c.column_id = x.minor_id
+    )
+    LEFT JOIN sys.index_columns i ON (
+        c.object_id = i.object_id
+        AND c.column_id = i.column_id
+    )
+    WHERE s.name IN ({schema_placeholder})
 ) AS d
 GROUP BY
-	table_schema,
-	table_name,
-	column_name,
-	is_nullable,
-	column_type,
-	column_comment
+    table_schema,
+    table_name,
+    column_name,
+    is_nullable,
+    column_type,
+    column_comment
 ORDER BY
     table_schema,
     table_name,
     column_name
-                    """.format(schema_placeholder=schema_placeholder))
+                    """.format(schema_placeholder=schema_placeholder))  # noqa
             args = schemas
 
         # ---------------------------------------------------------------------

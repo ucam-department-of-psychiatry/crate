@@ -8,27 +8,8 @@ import logging
 import os
 import sys
 
-from crate_anon.anonymise.constants import (
-    COLOUR_HANDLER,
-    LOG_DATEFMT,
-    LOG_FORMAT,
-)
+from crate_anon.anonymise.logsupport import configure_logger_for_colour
 from crate_anon.version import VERSION, VERSION_DATE
-
-
-# =============================================================================
-# Helper functions
-# =============================================================================
-
-def configure_logger_for_colour(log, remove_existing=True):
-    """
-    Applies a preconfigured datetime/colour scheme to a logger.
-    Should ONLY be called from the "if __name__ == 'main'" script:
-        https://docs.python.org/3.4/howto/logging.html#library-config
-    """
-    if remove_existing:
-        log.handlers = []  # http://stackoverflow.com/questions/7484454
-    log.addHandler(COLOUR_HANDLER)
 
 
 # =============================================================================
@@ -100,8 +81,7 @@ Sample usage:
                              "possible")
     parser.add_argument("-f", "--full",
                         dest="incremental", action="store_false",
-                        help="Process only new/changed information, where "
-                             "possible")
+                        help="Drop and remake everything")
     parser.set_defaults(incremental=True)
     parser.add_argument("--seed",
                         help="String to use as the basis of the seed for the "
@@ -119,19 +99,10 @@ Sample usage:
     if args.processcluster:
         mynames.append(args.processcluster)
     if args.nprocesses > 1:
-        mynames.append("process {}".format(args.process))
+        mynames.append("proc{}".format(args.process))
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
-    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
-                        level=loglevel)
     rootlogger = logging.getLogger()
-    rootlogger.setLevel(loglevel)
-    configure_logger_for_colour(rootlogger)  # configure root logger
-
-    # rnc_log.reset_logformat_timestamped(
-    #     rootlogger,
-    #     extraname=" ".join(mynames),
-    #     level=mainloglevel
-    # )
+    configure_logger_for_colour(rootlogger, loglevel, extranames=mynames)
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import

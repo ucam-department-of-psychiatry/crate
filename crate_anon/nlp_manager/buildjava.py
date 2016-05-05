@@ -12,6 +12,7 @@ License: http://www.apache.org/licenses/LICENSE-2.0
 import argparse
 import glob
 import os
+import re
 import shutil
 import stat
 import subprocess
@@ -27,6 +28,11 @@ def moveglob(src, dest, allow_nothing=False):
     if something or allow_nothing:
         return
     raise ValueError("No files found matching: {}".format(src))
+
+
+def rmglob(pattern):
+    for f in glob.glob(pattern):
+        os.remove(f)
 
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -83,6 +89,7 @@ def main():
 
     subprocess.check_call([args.javac] + javac_options + [SOURCE_FILE])
     os.makedirs(args.builddir, exist_ok=True)
+    rmglob(os.path.join(args.builddir, '*.class'))
     moveglob(os.path.join(THIS_DIR, '*.class'), args.builddir)
 
     # JAR build and run

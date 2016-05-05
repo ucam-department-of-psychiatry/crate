@@ -27,9 +27,6 @@ Copyright/licensing:
 
 """
 
-import logging
-
-from colorlog import ColoredFormatter
 from sqlalchemy import (
     BigInteger,
     Integer,
@@ -42,10 +39,6 @@ from cardinal_pythonlib.rnc_lang import AttrDict
 # =============================================================================
 
 LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
-COLOUR_LOG_FORMAT = (
-    "%(cyan)s%(asctime)s.%(msecs)03d %(name)s:%(levelname)s: "
-    "%(log_color)s%(message)s"
-)
 LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
 
 LOG_COLORS = {
@@ -55,17 +48,6 @@ LOG_COLORS = {
     'ERROR': 'red',
     'CRITICAL': 'red,bg_white',
 }
-COLOUR_FORMATTER = ColoredFormatter(
-    COLOUR_LOG_FORMAT,
-    datefmt=LOG_DATEFMT,
-    reset=True,
-    log_colors=LOG_COLORS,
-    secondary_log_colors={},
-    style='%'
-)
-COLOUR_HANDLER = logging.StreamHandler()
-COLOUR_HANDLER.setLevel(logging.DEBUG)
-COLOUR_HANDLER.setFormatter(COLOUR_FORMATTER)
 
 # =============================================================================
 # Cosmetic

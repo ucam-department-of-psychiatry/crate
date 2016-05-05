@@ -35,9 +35,9 @@ import logging
 import random
 import sys
 
+from sortedcontainers import SortedSet
 from sqlalchemy.schema import (
     Column,
-    DDL,
     Index,
     MetaData,
     Table,
@@ -68,7 +68,7 @@ from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.sqla import (
     count_star,
     get_column_names,
-    index_exists,
+    add_index,
     plain_exists,
 )
 
@@ -273,8 +273,7 @@ def gen_optout_rids():
     return (
         session.query(PatientInfo.rid).
         filter(PatientInfo.pid.in_(session.query(OptOut.pid)))
-    )
-    # ... is itself a generator
+    )  # ... is itself a generator
 
 
 # =============================================================================
@@ -404,7 +403,8 @@ def gen_index_row_sets_by_table(tasknum=0, ntasks=1):
     """
     indexrows = [ddr for ddr in config.dd.rows
                  if ddr.index and not ddr.omit]
-    tables = list(set([r.dest_table for r in indexrows]))
+    tables = SortedSet([r.dest_table for r in indexrows])
+    # must sort for parallel processing consistency: set() order varies
     for i, t in enumerate(tables):
         if i % ntasks != tasknum:
             continue
@@ -419,6 +419,7 @@ def gen_nonpatient_tables_without_int_pk(tasknum=0, ntasks=1):
     (b) don't have an integer PK.
     """
     db_table_pairs = config.dd.get_src_dbs_tables_with_no_pt_info_no_pk()
+    # ... returns a SortedSet, so safe to divide parallel processing like this:
     for i, pair in enumerate(db_table_pairs):
         if i % ntasks != tasknum:
             continue
@@ -641,58 +642,17 @@ def create_indexes(tasknum=0, ntasks=1):
     engine = config.destdb.engine
     for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                               ntasks=ntasks):
+        sqla_table = config.dd.get_dest_sqla_table(tablename)
         for tr in tablerows:
-            add_index(engine, tablename, tr.dest_field,
+            sqla_column = sqla_table.columns[tr.dest_field]
+            add_index(engine, sqla_column,
                       unique=(tr.index == INDEX.UNIQUE),
                       fulltext=(tr.index == INDEX.FULLTEXT),
                       length=tr.indexlen)
             # Extra index for TRID?
             if tr.primary_pid:
-                add_index(engine, tablename, config.trid_fieldname,
+                add_index(engine, sqla_table.columns[config.trid_fieldname],
                           unique=(tr.index == INDEX.UNIQUE))
-
-
-def add_index(engine, tablename, colname,
-              unique=False, fulltext=False, length=None):
-    # We used to process a table as a unit; this makes index creation faster
-    # (using ALTER TABLE).
-    # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
-    # ... ignored in transition to SQLAlchemy
-    if fulltext:
-        idxname = "_idxft_{}".format(colname)
-    else:
-        idxname = "_idx_{}".format(colname)
-    if index_exists(engine, tablename, idxname):
-        log.debug("skipping creation of index {} on table {}".format(
-            idxname, tablename))
-        return
-        # because it will crash if you add it again!
-    log.info("Creating index: {}".format(idxname))
-    if fulltext:
-        if engine.dialect.name == 'mysql':
-            log.warning('OK to ignore this warning: '
-                        '"InnoDB rebuilding table to add column FTS_DOC_ID"')
-            # https://dev.mysql.com/doc/refman/5.6/en/innodb-fulltext-index.html
-            sql = (
-                "ALTER TABLE {tablename} "
-                "ADD FULLTEXT INDEX {idxname} ({colname})".format(
-                    tablename=tablename,
-                    idxname=idxname,
-                    colname=colname,
-                )
-            )
-            # DDL(sql, bind=engine).execute_if(dialect='mysql')
-            DDL(sql, bind=engine).execute()
-        else:
-            log.error(
-                "Don't know how to make full text index on dialect {}".format(
-                    engine.dialect.name))
-    else:
-        sqla_table = config.dd.get_dest_sqla_table(tablename)
-        sqla_column = sqla_table.columns[colname]
-        index = Index(idxname, sqla_column, unique=unique, mysql_length=length)
-        index.create(engine)
-    # Index creation doesn't require a commit.
 
 
 def patient_processing_fn(tasknum=0, ntasks=1, incremental=False):

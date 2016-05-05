@@ -186,7 +186,7 @@ ul {
     font-style: italic;
 }
 .patientprefs {
-    border: 0.5mm solid block;
+    border: 0.5mm solid black;
 }
 .patientprefs tr {
     border-style: none;

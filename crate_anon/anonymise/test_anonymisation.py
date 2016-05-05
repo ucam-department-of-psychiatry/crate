@@ -61,6 +61,7 @@ from cardinal_pythonlib.rnc_lang import AttrDict
 from cardinal_pythonlib.rnc_ui import mkdir_p
 
 from crate_anon.anonymise.anonymise import config, extract_text
+from crate_anon.anonymise.logsupport import configure_logger_for_colour
 from crate_anon.anonymise.patient import Patient
 
 log = logging.getLogger(__name__)
@@ -326,9 +327,6 @@ def main():
     """
     Command-line entry point.
     """
-    logging.basicConfig()
-    logging.getLogger().setLevel(logging.DEBUG)
-
     parser = argparse.ArgumentParser(
         description='Test anonymisation',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -369,8 +367,9 @@ def main():
 
     args = parser.parse_args()
 
-    mainloglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
-    logging.basicConfig(level=mainloglevel)
+    loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    rootlogger = logging.getLogger()
+    configure_logger_for_colour(rootlogger, loglevel)
 
     log.info("Arguments: " + str(args))
 

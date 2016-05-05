@@ -7,6 +7,7 @@ import re
 
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.schema import DDL, Index
 from sqlalchemy.sql import exists, func, select, table
 from sqlalchemy.sql.expression import (
     ClauseElement,
@@ -89,12 +90,55 @@ def get_column_names(engine, tablename):
 
 
 # =============================================================================
-# Does an index exist?
+# Indexes
 # =============================================================================
 
 def index_exists(engine, tablename, indexname):
     insp = Inspector.from_engine(engine)
     return any([i['name'] == indexname for i in insp.get_indexes(tablename)])
+
+
+def add_index(engine, sqla_column, unique=False, fulltext=False, length=None):
+    # We used to process a table as a unit; this makes index creation faster
+    # (using ALTER TABLE).
+    # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
+    # ... ignored in transition to SQLAlchemy
+    colname = sqla_column.name
+    tablename = sqla_column.table.name
+    if fulltext:
+        idxname = "_idxft_{}".format(colname)
+    else:
+        idxname = "_idx_{}".format(colname)
+    if index_exists(engine, tablename, idxname):
+        log.debug("skipping creation of index {} on table {}".format(
+            idxname, tablename))
+        return
+        # because it will crash if you add it again!
+    log.info("Creating index {i} on {t}.{c}".format(i=idxname, t=tablename,
+                                                    c=colname))
+    if fulltext:
+        if engine.dialect.name == 'mysql':
+            log.warning('OK to ignore this warning: '
+                        '"InnoDB rebuilding table to add column FTS_DOC_ID"')
+            # https://dev.mysql.com/doc/refman/5.6/en/innodb-fulltext-index.html
+            sql = (
+                "ALTER TABLE {tablename} "
+                "ADD FULLTEXT INDEX {idxname} ({colname})".format(
+                    tablename=tablename,
+                    idxname=idxname,
+                    colname=colname,
+                )
+            )
+            # DDL(sql, bind=engine).execute_if(dialect='mysql')
+            DDL(sql, bind=engine).execute()
+        else:
+            log.error(
+                "Don't know how to make full text index on dialect {}".format(
+                    engine.dialect.name))
+    else:
+        index = Index(idxname, sqla_column, unique=unique, mysql_length=length)
+        index.create(engine)
+    # Index creation doesn't require a commit.
 
 
 # =============================================================================

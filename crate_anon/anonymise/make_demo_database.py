@@ -66,12 +66,10 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import text
 
 from crate_anon.anonymise.constants import (
-    COLOUR_HANDLER,
-    LOG_DATEFMT,
-    LOG_FORMAT,
     MYSQL_CHARSET,
     MYSQL_TABLE_ARGS,
 )
+from crate_anon.anonymise.logsupport import configure_logger_for_colour
 
 log = logging.getLogger(__name__)
 metadata = MetaData()
@@ -171,27 +169,32 @@ class FilenameDoc(Base):
 # noinspection PyPep8Naming
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("url",
+    parser.add_argument(
+        "url",
         help=(
             "SQLAlchemy database URL. Append ?charset=utf8, e.g. "
             "mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 ."
             " WARNING: If you get the error 'MySQL has gone away', increase "
             "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."))
     parser.add_argument(
-        "--size", type=int, default=0, choices=[0, 1, 2],
-        help="Make small (0), medium (1), or large (2) database")
+        "--size", type=int, default=0, choices=[0, 1, 2, 3],
+        help="Make tiny (0), small (1), medium (2), or large (3) database")
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument("--echo", action="store_true",
                         help="Echo SQL")
-    parser.add_argument("--doctest_doc", default=DOCTEST_DOC,
-                        help="Test file for .DOC")
-    parser.add_argument("--doctest_docx", default=DOCTEST_DOCX,
-                        help="Test file for .DOCX")
-    parser.add_argument("--doctest_odt", default=DOCTEST_ODT,
-                        help="Test file for .ODT")
-    parser.add_argument("--doctest_pdf", default=DOCTEST_PDF,
-                        help="Test file for .PDF")
+    parser.add_argument(
+        "--doctest_doc", default=DOCTEST_DOC,
+        help="Test file for .DOC (default: {})".format(DOCTEST_DOC))
+    parser.add_argument(
+        "--doctest_docx", default=DOCTEST_DOCX,
+        help="Test file for .DOCX (default: {})".format(DOCTEST_DOCX))
+    parser.add_argument(
+        "--doctest_odt", default=DOCTEST_ODT,
+        help="Test file for .ODT (default: {})".format(DOCTEST_ODT))
+    parser.add_argument(
+        "--doctest_pdf", default=DOCTEST_PDF,
+        help="Test file for .PDF (default: {})".format(DOCTEST_PDF))
     args = parser.parse_args()
 
     nwords = 10000
@@ -203,18 +206,20 @@ def main():
         n_patients = 100
         notes_per_patient = 5
         words_per_note = 100
-    else:
-        # about 1.9 Gb
+    elif args.size == 2:
+        n_patients = 100
+        notes_per_patient = 100
+        words_per_note = 1000
+    elif args.size == 3:
+        # about 1.4 Gb
         n_patients = 1000
         notes_per_patient = 100
         words_per_note = 1000
+    else:
+        assert False, "Bad size parameter"
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
-    logging.basicConfig(format=LOG_FORMAT, datefmt=LOG_DATEFMT,
-                        level=loglevel)
     rootlogger = logging.getLogger()
-    rootlogger.setLevel(loglevel)
-    rootlogger.handlers = []
-    rootlogger.addHandler(COLOUR_HANDLER)
+    configure_logger_for_colour(rootlogger, level=loglevel)
 
     # 0. Announce intentions
 
@@ -234,6 +239,7 @@ def main():
     # 2. Open database
 
     log.info("Opening database.")
+    log.debug("URL: {}".format(args.url))
     engine = create_engine(args.url, echo=args.echo, encoding=MYSQL_CHARSET)
     session = sessionmaker(bind=engine)()
 

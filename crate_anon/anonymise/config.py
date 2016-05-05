@@ -73,9 +73,7 @@ import logging
 import os
 import sys
 
-from sqlalchemy import create_engine, String
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.schema import MetaData
+from sqlalchemy import String
 
 from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
 from cardinal_pythonlib.rnc_db import (
@@ -90,6 +88,7 @@ from crate_anon.anonymise.constants import (
     MAX_PID_STR,
     SEP,
 )
+from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.hash import (
     # MD5Hasher,
@@ -103,40 +102,10 @@ from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
     WordList,
 )
-from crate_anon.anonymise.sqla import (
-    get_table_names,
-    monkeypatch_TableClause,
-)
+from crate_anon.anonymise.sqla import monkeypatch_TableClause
 
 log = logging.getLogger(__name__)
 monkeypatch_TableClause()
-
-
-# =============================================================================
-# Convenience object
-# =============================================================================
-
-class DatabaseHolder(object):
-    def __init__(self, name, url, srccfg=None, with_session=False,
-                 with_conn=True, reflect=True, encoding='utf-8'):
-        self.name = name
-        self.srccfg = srccfg
-        self.engine = create_engine(url, encoding=encoding)
-        self.conn = None
-        self.session = None
-        self.table_names = []
-        self.metadata = MetaData(bind=self.engine)
-        log.debug(self.engine)  # obscures password
-
-        if with_conn:  # for raw connections
-            self.conn = self.engine.connect()
-        if reflect:
-            self.table_names = get_table_names(self.engine)
-            self.metadata.reflect()
-            self.table_names = [t.name
-                                for t in self.metadata.sorted_tables]
-        if with_session:  # for ORM
-            self.session = sessionmaker(bind=self.engine)()  # for ORM
 
 
 # =============================================================================
@@ -226,7 +195,10 @@ class Config(object):
     """Class representing the main configuration."""
 
     def __init__(self):
-        # Read config from file
+        """
+        Read config from file
+        """
+        # Get filename
         try:
             self.config_filename = os.environ[CONFIG_ENV_VAR]
             assert self.config_filename
@@ -237,7 +209,7 @@ class Config(object):
                 "to see a specimen config.".format(CONFIG_ENV_VAR))
             sys.exit(1)
 
-        """Read config from file."""
+        # Read config from file.
         parser = configparser.RawConfigParser()
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = "main"

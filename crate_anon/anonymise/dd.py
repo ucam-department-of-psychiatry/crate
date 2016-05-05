@@ -40,13 +40,12 @@ from functools import lru_cache
 import logging
 import operator
 
-from sortedcontainers import SortedSet  # sudo pip install sortedcontainers
+from sortedcontainers import SortedSet
 from sqlalchemy import (
     Column,
     Table,
 )
 
-import cardinal_pythonlib.rnc_db as rnc_db
 from cardinal_pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,
     does_sqltype_require_index_len,
@@ -1238,7 +1237,7 @@ class DataDictionary(object):
             if (ddr.src_db == src_db and
                     ddr.src_table == src_table and
                     ddr.pk and
-                    rnc_db.is_sqltype_integer(ddr.src_datatype)):
+                    is_sqltype_integer(ddr.src_datatype)):
                 return ddr
         return None
 

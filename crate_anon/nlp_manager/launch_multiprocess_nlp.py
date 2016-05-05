@@ -25,17 +25,20 @@ import argparse
 import atexit
 import logging
 import multiprocessing
-from multiprocessing.dummy import Pool  # thread pool
 from subprocess import (
     check_call,
-    PIPE,
     Popen,
-    STDOUT,
-    TimeoutExpired,
 )
 import sys
 import time
 
+from crate_anon.anonymise.logsupport import configure_logger_for_colour
+from crate_anon.anonymise.subproc import (
+    start_process,
+    wait_for_processes,
+    kill_child_processes,
+    processes,
+)
 from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
@@ -45,60 +48,6 @@ NLP_MANAGER = 'crate_anon.nlp_manager.nlp_manager'
 CPUCOUNT = multiprocessing.cpu_count()
 
 DEFAULT_NLP_NAME = 'name_location_nlp'
-
-processes = []
-
-
-# =============================================================================
-# Subprocess handling
-# =============================================================================
-
-def start_process(args):
-    log.debug(args)
-    global processes
-    processes.append(Popen(args, stdin=None, stdout=PIPE, stderr=STDOUT))
-
-
-def wait_for_processes():
-    global processes
-    Pool(len(processes)).map(print_lines, processes)
-    for p in processes:
-        retcode = p.wait()
-        # log.critical("retcode: {}".format(retcode))
-        if retcode > 0:
-            fail()
-    processes = []
-
-
-def print_lines(process):
-    out, err = process.communicate()
-    if out:
-        for line in out.decode("utf-8").splitlines():
-            print(line)
-    if err:
-        for line in err.decode("utf-8").splitlines():
-            print(line)
-
-
-def kill_child_processes():
-    timeout_sec = 5
-    for p in processes:
-        try:
-            p.wait(timeout_sec)
-        except TimeoutExpired:
-            p.terminate()  # please stop
-            try:
-                p.wait(timeout=timeout_sec)
-            except TimeoutExpired:
-                # failed to close
-                p.kill()  # you're dead
-
-
-def fail():
-    print()
-    print("PROCESS FAILED; EXITING ALL")
-    print()
-    sys.exit(1)  # will call the atexit handler and kill everything else
 
 
 # =============================================================================
@@ -113,26 +62,30 @@ def main():
     parser.add_argument(
         'mode', choices=('incremental', 'full'),
         help="Processing mode (full or incremental)")
-    parser.add_argument('config', help="Config file")
     parser.add_argument(
         "--nlpname", "-a", default=DEFAULT_NLP_NAME,
         help="NLP processing name, from the config file (default: {})".format(
-            DEFAULT_NLP_NAME)
-    )
+            DEFAULT_NLP_NAME))
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
         help="Number of processes (default: {})".format(CPUCOUNT))
     parser.add_argument(
         '--verbose', '-v', action='count', default=0,
         help="Be verbose (use twice for extra verbosity)")
+    parser.add_argument(
+        "--echo", action="store_true",
+        help="Echo SQL")
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose > 0
-                        else logging.INFO)
+    loglevel = logging.DEBUG if args.verbose > 0 else logging.INFO
+    rootlogger = logging.getLogger()
+    configure_logger_for_colour(rootlogger, loglevel)
 
     common_options = ["-v"] * args.verbose
     if args.mode == 'incremental':
         common_options.append('--incremental')
+    else:
+        common_options.append('--full')
 
     log.debug("common_options: {}".format(common_options))
 
@@ -160,8 +113,9 @@ def main():
     # imports).
     procargs = [
         sys.executable, '-m', NLP_MANAGER,
-        args.config, args.nlpname,
-        '--dropremake', '--processcluster=STRUCTURE'
+        args.nlpname,
+        '--dropremake',
+        '--processcluster', 'STRUCTURE'
     ] + common_options
     log.debug(procargs)
     check_call(procargs)
@@ -170,14 +124,13 @@ def main():
     # Now run lots of things simultaneously:
     # -------------------------------------------------------------------------
     # (a) patient tables
-    global processes
-    processes = []
+    processes.clear()
     for procnum in range(nprocesses_main):
         procargs = [
             sys.executable, '-m', NLP_MANAGER,
-            args.config, args.nlpname,
+            args.nlpname,
             '--nlp',
-            '--processcluster=NLP',
+            '--processcluster', 'NLP',
             '--nprocesses={}'.format(nprocesses_main),
             '--process={}'.format(procnum)
         ] + common_options
@@ -192,16 +145,16 @@ def main():
     # Now do the indexing, if nothing else failed.
     # (Always fastest to index last.)
     # -------------------------------------------------------------------------
-    processes = [
+    processes.extend([
         Popen([
             sys.executable, '-m', NLP_MANAGER,
-            args.config, args.nlpname,
+            args.nlpname,
             '--index',
             '--processcluster=INDEX',
             '--nprocesses={}'.format(nprocesses_index),
             '--process={}'.format(procnum)
         ] + common_options) for procnum in range(nprocesses_index)
-    ]
+    ])
 
     wait_for_processes()
 
