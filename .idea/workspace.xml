@@ -1,30 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="AnalysisUIOptions">
-    <option name="SCOPE_TYPE" value="8" />
+    <option name="SCOPE_TYPE" value="3" />
     <option name="CUSTOM_SCOPE_NAME" value="crate" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d4e532a4-be38-4bdd-914b-6711f94ee0a5" name="Default" comment="sqlalc">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/crate_anon/anonymise/dbholder.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/crate_anon/anonymise/logsupport.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/crate_anon/anonymise/subproc.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ditched/database_interfaces_rnc_db.odt" afterPath="$PROJECT_DIR$/ditched/database_interfaces_rnc_db.odt" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" afterPath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/anonymise.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/anonymise.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/config.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/config.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/constants.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/constants.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/dd.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/dd.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/launch_multiprocess_anonymiser.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/launch_multiprocess_anonymiser.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/sqla.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/sqla.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/test_anonymisation.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/test_anonymisation.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/research/models.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/research/models.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/templates/base.css" afterPath="$PROJECT_DIR$/crate_anon/crateweb/templates/base.css" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/launch_multiprocess_nlp.py" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/launch_multiprocess_nlp.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
     </list>
     <ignored path="crate.iws" />
@@ -51,11 +33,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="nlp_manager.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="nlp_manager.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="571">
-              <caret line="1000" column="0" selection-start-line="1000" selection-start-column="0" selection-end-line="1000" selection-end-column="0" />
+            <state relative-caret-position="77">
+              <caret line="1124" column="13" selection-start-line="1124" selection-start-column="13" selection-end-line="1124" selection-end-column="13" />
               <folding>
                 <element signature="e#2235#2250#0" expanded="true" />
               </folding>
@@ -63,10 +45,20 @@
           </provider>
         </entry>
       </file>
+      <file leaf-file-name="CrateGatePipeline.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/CrateGatePipeline.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="512">
+              <caret line="450" column="25" selection-start-line="450" selection-start-column="20" selection-end-line="450" selection-end-column="25" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="buildjava.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="46">
+            <state relative-caret-position="0">
               <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
               <folding>
                 <element signature="e#235#250#0" expanded="true" />
@@ -78,11 +70,9 @@
       <file leaf-file-name="launch_multiprocess_nlp.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/launch_multiprocess_nlp.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="403">
+            <state relative-caret-position="0">
               <caret line="30" column="0" selection-start-line="30" selection-start-column="0" selection-end-line="30" selection-end-column="0" />
-              <folding>
-                <marker date="1462487171547" expanded="true" signature="1597:5892" placeholder="..." />
-              </folding>
+              <folding />
             </state>
           </provider>
         </entry>
@@ -90,7 +80,7 @@
       <file leaf-file-name="dbholder.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/dbholder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="165">
+            <state relative-caret-position="0">
               <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
               <folding>
                 <element signature="e#23#37#0" expanded="true" />
@@ -102,7 +92,7 @@
       <file leaf-file-name="base.css" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/base.css">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="350">
+            <state relative-caret-position="0">
               <caret line="188" column="0" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
               <folding />
             </state>
@@ -112,7 +102,7 @@
       <file leaf-file-name="pdf.css" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/pdf.css">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="90">
+            <state relative-caret-position="0">
               <caret line="6" column="4" selection-start-line="6" selection-start-column="4" selection-end-line="6" selection-end-column="4" />
               <folding />
             </state>
@@ -122,17 +112,17 @@
       <file leaf-file-name="launch_multiprocess_anonymiser.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/launch_multiprocess_anonymiser.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="358">
+            <state relative-caret-position="0">
               <caret line="35" column="4" selection-start-line="35" selection-start-column="4" selection-end-line="35" selection-end-column="4" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test_anonymisation.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="test_anonymisation.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/test_anonymisation.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="688">
+            <state relative-caret-position="2518">
               <caret line="326" column="7" selection-start-line="326" selection-start-column="7" selection-end-line="326" selection-end-column="7" />
               <folding>
                 <marker date="1462454099147" expanded="true" signature="4284:4348" placeholder="SELECT missi... missing_value" />
@@ -147,22 +137,10 @@
       <file leaf-file-name="anonymise.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="376">
+            <state relative-caret-position="0">
               <caret line="554" column="48" selection-start-line="554" selection-start-column="40" selection-end-line="554" selection-end-column="48" />
               <folding>
                 <element signature="e#1093#1107#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="subproc.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/subproc.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="465">
-              <caret line="31" column="22" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="22" />
-              <folding>
-                <element signature="e#23#37#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -233,8 +211,8 @@
         <option value="$PROJECT_DIR$/crate_anon/anonymise/dbholder.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/templates/base.css" />
         <option value="$PROJECT_DIR$/crate_anon/nlp_manager/launch_multiprocess_nlp.py" />
-        <option value="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
         <option value="$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py" />
+        <option value="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
       </list>
     </option>
   </component>
@@ -368,7 +346,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.templateLanguages.PyTemplateLanguageModulesConfigurable" />
+    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
     <property name="last_opened_file_path" value="$USER_HOME$/venvs/crate/bin/crate_anonymise" />
     <property name="full.screen.before.presentation.mode" value="false" />
@@ -693,7 +671,6 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.1749503" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27037773" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -702,6 +679,7 @@
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.27037773" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3286945" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -794,13 +772,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/static_collected/admin/css/base.css">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1428">
-          <caret line="518" column="20" selection-start-line="518" selection-start-column="20" selection-end-line="518" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/static_collected/admin/js/urlify.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1452">
@@ -826,7 +797,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="9150">
           <caret line="610" column="6" selection-start-line="610" selection-start-column="6" selection-end-line="610" selection-end-column="6" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -844,9 +814,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="300">
           <caret line="20" column="0" selection-start-line="19" selection-start-column="0" selection-end-line="20" selection-end-column="0" />
-          <folding>
-            <element signature="e#392#418#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -854,7 +821,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
           <caret line="2" column="51" selection-start-line="2" selection-start-column="27" selection-end-line="2" selection-end-column="51" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -869,9 +835,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="839">
           <caret line="98" column="0" selection-start-line="98" selection-start-column="0" selection-end-line="98" selection-end-column="0" />
-          <folding>
-            <element signature="e#324#339#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -879,7 +842,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="424">
           <caret line="88" column="33" selection-start-line="88" selection-start-column="24" selection-end-line="88" selection-end-column="33" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -887,7 +849,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="930">
           <caret line="62" column="0" selection-start-line="62" selection-start-column="0" selection-end-line="62" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -895,7 +856,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
           <caret line="7" column="48" selection-start-line="7" selection-start-column="48" selection-end-line="7" selection-end-column="48" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -910,7 +870,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="5" column="0" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -918,7 +877,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="609">
           <caret line="66" column="12" selection-start-line="66" selection-start-column="12" selection-end-line="66" selection-end-column="12" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -926,9 +884,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="358">
           <caret line="58" column="10" selection-start-line="58" selection-start-column="10" selection-end-line="58" selection-end-column="10" />
-          <folding>
-            <element signature="e#54#65#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -936,7 +891,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="270">
           <caret line="18" column="0" selection-start-line="18" selection-start-column="0" selection-end-line="18" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -944,9 +898,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="5" column="2" selection-start-line="5" selection-start-column="2" selection-end-line="5" selection-end-column="2" />
-          <folding>
-            <element signature="e#24#39#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -954,7 +905,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="5" column="42" selection-start-line="5" selection-start-column="42" selection-end-line="5" selection-end-column="42" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -962,7 +912,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
           <caret line="2" column="14" selection-start-line="2" selection-start-column="14" selection-end-line="2" selection-end-column="14" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -970,9 +919,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="210">
           <caret line="14" column="19" selection-start-line="14" selection-start-column="19" selection-end-line="14" selection-end-column="19" />
-          <folding>
-            <marker date="1460326287753" expanded="true" signature="272:322" placeholder="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -980,10 +926,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="195">
           <caret line="13" column="27" selection-start-line="13" selection-start-column="27" selection-end-line="13" selection-end-column="27" />
-          <folding>
-            <marker date="1462373834570" expanded="false" signature="500:509" placeholder="..." />
-            <marker date="1462373834570" expanded="false" signature="536:545" placeholder="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -991,7 +933,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="15">
           <caret line="1" column="12" selection-start-line="1" selection-start-column="12" selection-end-line="1" selection-end-column="12" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -999,7 +940,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
           <caret line="2" column="0" selection-start-line="2" selection-start-column="0" selection-end-line="2" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1007,7 +947,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="330">
           <caret line="22" column="0" selection-start-line="22" selection-start-column="0" selection-end-line="22" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1022,9 +961,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3060">
           <caret line="205" column="28" selection-start-line="205" selection-start-column="28" selection-end-line="205" selection-end-column="28" />
-          <folding>
-            <element signature="e#443#486#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1032,13 +968,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="7005">
           <caret line="504" column="46" selection-start-line="504" selection-start-column="46" selection-end-line="504" selection-end-column="46" />
-          <folding>
-            <element signature="e#44#58#0" expanded="false" />
-            <marker date="1462374649471" expanded="true" signature="17203:17469" placeholder="SELECT {fkna... " />
-            <marker date="1462374649471" expanded="true" signature="17203:17504" placeholder="SELECT missi... missing_value" />
-            <marker date="1462374649471" expanded="true" signature="18826:18871" placeholder="SELECT {fkna... " />
-            <marker date="1462374649471" expanded="true" signature="18826:18913" placeholder="SELECT missi... missing_value" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1046,21 +975,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="718">
           <caret line="532" column="78" selection-start-line="532" selection-start-column="78" selection-end-line="532" selection-end-column="78" />
-          <folding>
-            <element signature="e#45#80#0" expanded="false" />
-            <marker date="1462445806103" expanded="true" signature="13022:14153" placeholder="SELECT d.tab... table_schema" />
-            <marker date="1462445806103" expanded="true" signature="13220:13902" placeholder="SELECT c.tab... columns" />
-            <marker date="1462445806103" expanded="true" signature="13343:13372" placeholder="/* MySQL: e.... " />
-            <marker date="1462445806103" expanded="true" signature="13420:13439" placeholder="/* s.index_n... " />
-            <marker date="1462445806103" expanded="true" signature="13448:13467" placeholder="/* s.index_t... " />
-            <marker date="1462445806103" expanded="true" signature="13911:13962" placeholder="/* &quot;Every de... " />
-            <marker date="1462445806103" expanded="true" signature="14811:16366" placeholder="SELECT d.tab... table_schema" />
-            <marker date="1462445806103" expanded="true" signature="15060:16169" placeholder="SELECT c.tab... pg_statio_all_tables" />
-            <marker date="1462445806103" expanded="true" signature="16649:17878" placeholder="SELECT d.tab... name" />
-            <marker date="1462445806103" expanded="true" signature="16876:17677" placeholder="SELECT s.nam... tables" />
-            <marker date="1462445806103" expanded="true" signature="16876:17699" placeholder="SELECT s.nam... tables" />
-            <marker date="1462445806103" expanded="true" signature="19198:19522" placeholder="SELECT c.tab... columns" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1068,9 +982,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="420">
           <caret line="28" column="31" selection-start-line="28" selection-start-column="4" selection-end-line="28" selection-end-column="31" />
-          <folding>
-            <element signature="e#23#37#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1078,7 +989,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="453">
           <caret line="146" column="4" selection-start-line="146" selection-start-column="4" selection-end-line="146" selection-end-column="4" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1094,9 +1004,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2520">
           <caret line="172" column="14" selection-start-line="172" selection-start-column="8" selection-end-line="172" selection-end-column="14" />
-          <folding>
-            <element signature="e#891#946#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1112,9 +1019,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="19095">
           <caret line="1303" column="0" selection-start-line="1302" selection-start-column="0" selection-end-line="1303" selection-end-column="0" />
-          <folding>
-            <element signature="e#1165#1183#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1122,9 +1026,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="285">
           <caret line="38" column="0" selection-start-line="38" selection-start-column="0" selection-end-line="38" selection-end-column="0" />
-          <folding>
-            <element signature="e#526#540#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1133,7 +1034,7 @@
         <state relative-caret-position="705">
           <caret line="47" column="0" selection-start-line="47" selection-start-column="0" selection-end-line="47" selection-end-column="0" />
           <folding>
-            <element signature="e#2894#2907#0" expanded="true" />
+            <element signature="e#2894#2907#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1150,9 +1051,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="373">
           <caret line="220" column="36" selection-start-line="220" selection-start-column="36" selection-end-line="220" selection-end-column="36" />
-          <folding>
-            <marker date="1462445806151" expanded="true" signature="11548:11906" placeholder="SELECT table... tables" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1169,17 +1067,17 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/subproc.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="465">
+        <state relative-caret-position="0">
           <caret line="31" column="22" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="22" />
           <folding>
-            <element signature="e#23#37#0" expanded="true" />
+            <element signature="e#23#37#0" expanded="false" />
           </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/dbholder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
+        <state relative-caret-position="0">
           <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
           <folding>
             <element signature="e#23#37#0" expanded="true" />
@@ -1189,7 +1087,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/pdf.css">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="90">
+        <state relative-caret-position="0">
           <caret line="6" column="4" selection-start-line="6" selection-start-column="4" selection-end-line="6" selection-end-column="4" />
           <folding />
         </state>
@@ -1197,7 +1095,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/templates/base.css">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="350">
+        <state relative-caret-position="0">
           <caret line="188" column="0" selection-start-line="188" selection-start-column="0" selection-end-line="188" selection-end-column="0" />
           <folding />
         </state>
@@ -1205,35 +1103,23 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/launch_multiprocess_nlp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="403">
+        <state relative-caret-position="0">
           <caret line="30" column="0" selection-start-line="30" selection-start-column="0" selection-end-line="30" selection-end-column="0" />
-          <folding>
-            <marker date="1462487171547" expanded="true" signature="1597:5892" placeholder="..." />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/launch_multiprocess_anonymiser.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="358">
+        <state relative-caret-position="0">
           <caret line="35" column="4" selection-start-line="35" selection-start-column="4" selection-end-line="35" selection-end-column="4" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="571">
-          <caret line="1000" column="0" selection-start-line="1000" selection-start-column="0" selection-end-line="1000" selection-end-column="0" />
-          <folding>
-            <element signature="e#2235#2250#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="46">
+        <state relative-caret-position="0">
           <caret line="10" column="0" selection-start-line="10" selection-start-column="0" selection-end-line="10" selection-end-column="0" />
           <folding>
             <element signature="e#235#250#0" expanded="true" />
@@ -1243,7 +1129,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="376">
+        <state relative-caret-position="0">
           <caret line="554" column="48" selection-start-line="554" selection-start-column="40" selection-end-line="554" selection-end-column="48" />
           <folding>
             <element signature="e#1093#1107#0" expanded="true" />
@@ -1253,13 +1139,31 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/test_anonymisation.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="688">
+        <state relative-caret-position="2518">
           <caret line="326" column="7" selection-start-line="326" selection-start-column="7" selection-end-line="326" selection-end-column="7" />
           <folding>
             <marker date="1462454099147" expanded="true" signature="4284:4348" placeholder="SELECT missi... missing_value" />
             <marker date="1462454099147" expanded="true" signature="5197:5276" placeholder="SELECT missi... missing_value" />
             <marker date="1462454099147" expanded="true" signature="8822:8963" placeholder="SELECT MIN(m... missing_value" />
             <marker date="1462454099147" expanded="true" signature="9203:9294" placeholder="SELECT missi... missing_value" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/CrateGatePipeline.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="512">
+          <caret line="450" column="25" selection-start-line="450" selection-start-column="20" selection-end-line="450" selection-end-column="25" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="77">
+          <caret line="1124" column="13" selection-start-line="1124" selection-start-column="13" selection-end-line="1124" selection-end-column="13" />
+          <folding>
+            <element signature="e#2235#2250#0" expanded="true" />
           </folding>
         </state>
       </provider>

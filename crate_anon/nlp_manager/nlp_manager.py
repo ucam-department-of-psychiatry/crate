@@ -138,6 +138,7 @@ DEMO_CONFIG = ("""
 #   AUTOCREATED:
 #
 #   From nlp_manager.py:
+#       _pk         INT             PK within this table.
 #       _srcdb      {SqlTypeDb}     Source database name
 #       _srctable   {SqlTypeDb}         Source table name
 #       _srcpkfield {SqlTypeDb}         Source primary key (PK) field name
@@ -145,11 +146,14 @@ DEMO_CONFIG = ("""
 #       _srcfield   {SqlTypeDb}         Source field containing text content
 #
 #   From CrateGatePipeline.java:
-#       _type       VARCHAR     Annotation type name
-#       _id         INT         Annotation ID
+#       _type       VARCHAR     Annotation type name (e.g. 'Person')
+#       _id         INT         Annotation ID, from GATE. Not clear that this
+#                               is particularly useful.
 #       _start      INT         Start position in the content
 #       _end        INT         End position in the content
-#       _content    TEXT        Full content. (You don't have to keep this!)
+#       _content    TEXT        Full content marked as relevant. (Not the
+#                               entire content of the source field.)
+#                               (You don't have to keep this!)
 #
 #   The length of the VARCHAR fields is set by the MAX_SQL_FIELD_LEN constant.
 #
@@ -274,6 +278,8 @@ NLPPROGDIR = /home/myuser/somewhere/crate/nlp_manager/compiled_nlp_classes
 # (fieldname, datatype) pairs.
 # Anything from the output that matches what's below (in case-insensitive
 # fashion) will be kept, and anything else will be discarded.
+# Similarly, if any fields below are present in the 'copyfields' from the
+# source, they will be copied.
 # -----------------------------------------------------------------------------
 
 destdb = MY_DESTINATION_DATABASE
@@ -294,6 +300,8 @@ destfields =
     surname     VARCHAR(100)
     gender      VARCHAR(6)
     kind        VARCHAR(100)
+    RID_FIELD   VARCHAR(64)
+    TRID_FIELD  INT
 
 indexdefs =
     firstname   64
@@ -318,6 +326,8 @@ destfields =
     _content    TEXT
     rule        VARCHAR(100)
     loctype     VARCHAR(100)
+    RID_FIELD   VARCHAR(64)
+    TRID_FIELD  INT
 
 indexdefs =
     rule    100
@@ -325,7 +335,8 @@ indexdefs =
 
 # =============================================================================
 # Input field definitions, referred to within the NLP definition, and cross-
-# referencing database definitions
+# referencing database definitions.
+# The 'copyfields' are optional.
 # =============================================================================
 
 [INPUT_FIELD_CLINICAL_DOCUMENTS]
@@ -334,6 +345,8 @@ srcdb = MY_SOURCE_DATABASE
 srctable = EXTRACTED_CLINICAL_DOCUMENTS
 srcpkfield = DOCUMENT_PK
 srcfield = DOCUMENT_TEXT
+copyfields = RID_FIELD
+    TRID_FIELD
 
 [INPUT_FIELD_PROGRESS_NOTES]
 
@@ -341,6 +354,8 @@ srcdb = MY_SOURCE_DATABASE
 srctable = PROGRESS_NOTES
 srcpkfield = PN_PK
 srcfield = PN_TEXT
+copyfields = RID_FIELD
+    TRID_FIELD
 
 # =============================================================================
 # Database definitions, each in its own section
@@ -422,12 +437,23 @@ class OutputTypeConfig(object):
                     )
                 )
 
+        allfields = special_fields + self.destfields
+        if len(allfields) != len(set(allfields)):
+            raise ValueError(
+                "Duplicate field in section {} (or field overlaps "
+                "with {})".format(section, special_fields))
+
         self.indexfields = []
         self.indexlengths = []
         indexdefs = opt_strlist('indexdefs')
         if indexdefs:
             for c in chunks(indexdefs, 2):  # pairs: field, length
+                indexfieldname = c[0]
                 lengthstr = c[1]
+                if indexfieldname not in allfields:
+                    raise ValueError(
+                        "Index field {} not in destination fields {}".format(
+                            indexfieldname, allfields))
                 try:
                     length = ast.literal_eval(lengthstr)
                     if length is not None:
@@ -435,7 +461,7 @@ class OutputTypeConfig(object):
                 except ValueError:
                     raise ValueError(
                         "Bad index length: {}".format(lengthstr))
-                self.indexfields.append(c[0])
+                self.indexfields.append(indexfieldname)
                 self.indexlengths.append(length)
 
 
@@ -454,13 +480,27 @@ class InputFieldConfig(object):
                 raise ValueError("Missing: {}".format(option))
             return s
 
+        def opt_strlist(option, required=False, lower=True):
+            text = parser.get(section, option, fallback='')
+            if lower:
+                text = text.lower()
+            opts = [x.strip() for x in text.strip().split() if x.strip()]
+            if required and not opts:
+                raise ValueError("Missing: {}".format(option))
+            return opts
+
         self.srcdb = opt_str('srcdb')
         self.srctable = opt_str('srctable')
         self.srcpkfield = opt_str('srcpkfield')
         self.srcfield = opt_str('srcfield')
+        self.copyfields = opt_strlist('copyfields')
         ensure_valid_table_name(self.srctable)
         ensure_valid_field_name(self.srcpkfield)
         ensure_valid_field_name(self.srcfield)
+        allfields = [self.srcpkfield, self.srcfield] + self.copyfields
+        if len(allfields) != len(set(allfields)):
+            raise ValueError(
+                "Field overlap in InputFieldConfig: {}".format(section))
 
 
 # =============================================================================
@@ -778,10 +818,10 @@ class NlpController(object):
         else:
             ok = True
             ot = config.outputtypemap[annottype]
-            destfields = ot.destfields
             session = config.databases[ot.destdb].session
             engine = config.databases[ot.destdb].engine
             sqla_table = get_dest_sqla_table(engine, ot)
+            destfields = sqla_table.columns.keys()
         return ok, destfields, session, sqla_table
 
     def receive(self, line):
@@ -867,6 +907,7 @@ class NlpRecord(ProgressBase):
 def get_dest_sqla_table(engine, otconfig):
     metadata = config.databases[otconfig.destdb].metadata
     columns = [
+        Column('_pk', BigInteger, primary_key=True, autoincrement=True),
         Column('_srcdb', SqlTypeDb),
         Column('_srctable', SqlTypeDb),
         Column('_srcpkfield', SqlTypeDb),
@@ -1057,15 +1098,18 @@ def gen_src_pks(ifconfig):
 def gen_text(ifconfig, tasknum=0, ntasks=1):
     """
     Generate text strings from the input database.
+    Return value is: pk, text, copyfields...
     """
     if 1 < ntasks <= tasknum:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
     session = config.databases[ifconfig.srcdb].session
     pkcol = column(ifconfig.srcpkfield)
+    selectcols = [pkcol, column(ifconfig.srcfield)]
+    for extracol in ifconfig.copyfields:
+        selectcols.append(column(extracol))
     query = (
-        select([pkcol,
-                column(ifconfig.srcfield)]).
+        select(selectcols).
         select_from(table(ifconfig.srctable)).
         order_by(pkcol)
     )
@@ -1107,8 +1151,24 @@ def process_nlp(incremental=False, tasknum=0, ntasks=1):
     controller.start()
     for ifconfig in config.inputfieldmap.values():
         count, maximum = get_count_max(ifconfig)
-        for pkval, text in gen_text(ifconfig,
-                                    tasknum=tasknum, ntasks=ntasks):
+        for row in gen_text(ifconfig, tasknum=tasknum, ntasks=ntasks):
+            pkval = row[0]
+            text = row[1]
+            copyvals = list(row[2:])
+            fieldnames = [
+                "_srcdb",
+                "_srctable",
+                "_srcpkfield",
+                "_srcfield",
+                "_srcpkval",
+            ] + ifconfig.copyfields
+            values = [
+                ifconfig.srcdb,
+                ifconfig.srctable,
+                ifconfig.srcpkfield,
+                ifconfig.srcfield,
+                pkval,
+            ] + copyvals
             log.info(
                 "Processing {db}.{t}.{c}, {pkf}={pkv} "
                 "(max={maximum}, n={count})".format(
@@ -1126,13 +1186,7 @@ def process_nlp(incremental=False, tasknum=0, ntasks=1):
                 if get_progress_record(ifconfig, pkval, srchash) is not None:
                     log.debug("Record previously processed; skipping")
                     continue
-            starting_fields_values = {
-                "_srcdb": ifconfig.srcdb,
-                "_srctable": ifconfig.srctable,
-                "_srcpkfield": ifconfig.srcpkfield,
-                "_srcpkval": pkval,
-                "_srcfield": ifconfig.srcfield,
-            }
+            starting_fields_values = list(zip(fieldnames, values))
             if incremental:
                 delete_from_dest_dbs(ifconfig, pkval,
                                      commit=incremental)
