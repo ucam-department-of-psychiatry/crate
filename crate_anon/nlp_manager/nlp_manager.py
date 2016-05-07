@@ -770,10 +770,15 @@ class NlpController(object):
     def send(self, text, starting_fields_values=None):
         """
         Send text to the external process and receive the result.
+        Associated data -- in starting_fields_values -- is kept in the Python
+        environment, so we can't get any problems with garbling it to/from
+        the Java program. All we send to the subprocess is the text (and an
+        input_terminator). Then, we may receive MULTIPLE sets of data back
+        ("your text contains the following 7 people/drug references/whatever"),
+        followed eventually by the output_terminator, at which point this set
+        is complete.
         """
-        if starting_fields_values is None:
-            starting_fields_values = {}
-        self.starting_fields_values = starting_fields_values
+        self.starting_fields_values = starting_fields_values or {}
         # Send
         log.debug("writing: " + text)
         self._encode_to_subproc_stdin(text)
@@ -806,7 +811,7 @@ class NlpController(object):
     # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
-    def get_blah(self, annottype):
+    def get_dest_info(self, annottype):
         annottype = annottype.lower()
         ok = False
         destfields = []
@@ -833,17 +838,13 @@ class NlpController(object):
         log.debug("dictionary received: {}".format(d))
         # Merge dictionaries so EXISTING FIELDS/VALUES (starting_fields_values)
         # HAVE PRIORITY.
-        # http://stackoverflow.com/questions/38987
-        # Python 2: one method was:
-        #   d = dict(d.items() + self.starting_fields_values.items())
-        # Python 3, for this situation -- would also work in Python 2!:
         d.update(self.starting_fields_values)
         log.debug("dictionary now: {}".format(d))
         try:
             annottype = d['_type']
         except KeyError:
             raise ValueError("_type information not in data received")
-        ok, destfields, session, sqla_table = self.get_blah(annottype)
+        ok, destfields, session, sqla_table = self.get_dest_info(annottype)
         if not ok:
             return
         # Restrict to fields we know about
