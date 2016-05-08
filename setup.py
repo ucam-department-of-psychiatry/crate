@@ -156,6 +156,7 @@ setup(
         # For the web front end:
         # ---------------------------------------------------------------------
         # Core tools with accessories:
+        'arrow==0.7.0',  # better datetime
         'colorlog==2.6.1',  # colour in logs
         'psutil==4.1.0',  # process management
         'semver==2.4.1',  # comparing semantic versions
@@ -194,24 +195,21 @@ setup(
         'sortedcontainers==1.4.2',
 
         # ---------------------------------------------------------------------
-        # For database connections (see manual):
+        # For database connections (see manual): install manually
         # ---------------------------------------------------------------------
-        # MySQL:
-        # 'PyMySQL==0.7.2',
-        # 'mysqlclient==1.3.6',  # GPL
-
+        # MySQL: one of:
+        #   'PyMySQL',
+        #   'mysqlclient',
         # SQL Server / ODBC route:
-        # *** COME BACK TO THIS *** 'django-pyodbc-azure==1.9.3.0',
-        # 'pyodbc==3.0.10',  # has C prerequisites
-        # 'pypyodbc==1.3.3',
-
+        #   'django-pyodbc-azure',
+        #   'pyodbc',  # has C prerequisites
+        #   'pypyodbc==1.3.3',
         # SQL Server / Embedded FreeTDS route:
-        # 'django-pymssql==1.7.1',
-        # 'django-mssql==1.7',
-        # 'pymssql==2.1.2',
-
+        #   'django-pymssql',
+        #   'django-mssql',
+        #   'pymssql',
         # PostgreSQL:
-        # *** COME BACK TO THIS *** 'psycopg2==2.6.1',  # has prerequisites (e.g. pg_config executable)  # noqa
+        #   'psycopg2',  # has prerequisites (e.g. pg_config executable)
     ] + ([
         'pypiwin32'
     ] if windows else []),
