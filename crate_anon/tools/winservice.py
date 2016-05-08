@@ -148,8 +148,9 @@ class CratewebService(win32serviceutil.ServiceFramework):
         super().__init__(args)
         # create an event to listen for stop requests on
         self.h_stop_event = win32event.CreateEvent(None, 0, 0, None)
-        
-    def log(self, msg):
+
+    @staticmethod
+    def log(msg):
         servicemanager.LogInfoMsg(str(msg))
 
     # called when we're being shut down
@@ -169,10 +170,11 @@ class CratewebService(win32serviceutil.ServiceFramework):
         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
                               servicemanager.PYS_SERVICE_STARTED,
                               (self._svc_name_, ''))
-        self.test_service()
-        # self.main()
+        # self.test_service()  # test service
+        self.main()  # real service
         
     def test_service(self, filename=TEST_FILENAME, period_ms=TEST_PERIOD_MS):
+        # A test service. This works!
         def write(msg):
             f.write('{}: {}\n'.format(arrow.now(), msg))
             f.flush()
@@ -193,20 +195,8 @@ class CratewebService(win32serviceutil.ServiceFramework):
         self.log("Test service FINISHED.")
 
     def main(self):
-    
         # Actual main service code.
-        f = open(filename, 'w+')
-        retcode = None
-
-        # if the stop event hasn't been fired keep looping
-        while retcode != win32event.WAIT_OBJECT_0:
-            f.write('TEST DATA\n')
-            f.flush()
-            # block for 5 seconds and listen for a stop event
-            retcode = win32event.WaitForSingleObject(self.h_stop_event, 5000)
-
-        f.write('SHUTTING DOWN\n')
-        f.close()
+        pass  # ***
 
 
 def main():
