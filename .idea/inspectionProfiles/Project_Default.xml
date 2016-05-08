@@ -4,7 +4,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="16">
+          <list size="17">
             <item index="0" class="java.lang.String" itemvalue="django" />
             <item index="1" class="java.lang.String" itemvalue="pytz" />
             <item index="2" class="java.lang.String" itemvalue="celery" />
@@ -21,6 +21,7 @@
             <item index="13" class="java.lang.String" itemvalue="colorlog" />
             <item index="14" class="java.lang.String" itemvalue="prettytable" />
             <item index="15" class="java.lang.String" itemvalue="servicemanager" />
+            <item index="16" class="java.lang.String" itemvalue="arrow" />
           </list>
         </value>
       </option>
@@ -31,6 +32,7 @@
           <option value="win32service" />
           <option value="win32serviceutil" />
           <option value="win32event" />
+          <option value="winerror" />
         </list>
       </option>
     </inspection_tool>

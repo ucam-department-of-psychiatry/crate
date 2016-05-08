@@ -93,6 +93,10 @@ If the debug script succeeds but the start command doesn't...
       else seems to work. Continues to work when the PATH doesn't include the
       virtual environment.
 
+    - However, it breaks the "debug" option. The "debug" option reads the
+      registry about the INSTALLED service to establish the name of the program
+      that it runs. It assumes PythonService.exe.
+
 
 Script parameters:
     If you run this script with no parameters, you'll see this:
@@ -127,8 +131,12 @@ import win32event  # part of pypiwin32
 import win32service  # part of pypiwin32
 import win32serviceutil  # part of pypiwin32
 
+from crate_anon.anonymise.subproc import (
+    run_multiple_processes
+)
 
-TEST_FILENAME = r'D:\test_win_svc.txt'
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+TEST_FILENAME = r'C:\test_win_svc.txt'
 TEST_PERIOD_MS = 5000
 
 
@@ -144,8 +152,9 @@ class CratewebService(win32serviceutil.ServiceFramework):
     _exe_name_ = sys.executable  # python.exe in the virtualenv
     _exe_args_ = '"{}"'.format(os.path.realpath(__file__))  # this script
 
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, args=None):
+        if args is not None:
+            super().__init__(args)
         # create an event to listen for stop requests on
         self.h_stop_event = win32event.CreateEvent(None, 0, 0, None)
 
@@ -164,6 +173,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
     # called when service is started
     # noinspection PyPep8Naming
     def SvcDoRun(self):
+        print("hello")
         # No need to self.ReportServiceStatus(win32service.SERVICE_RUNNING);
         # that is done by the framework (see win32serviceutil.py).
         # Similarly, no need to report a SERVICE_STOP_PENDING on exit.
@@ -172,9 +182,9 @@ class CratewebService(win32serviceutil.ServiceFramework):
                               (self._svc_name_, ''))
         # self.test_service()  # test service
         self.main()  # real service
-        
+
     def test_service(self, filename=TEST_FILENAME, period_ms=TEST_PERIOD_MS):
-        # A test service. This works!
+        # A test service. This works! (As long as you can write to the file.)
         def write(msg):
             f.write('{}: {}\n'.format(arrow.now(), msg))
             f.flush()
@@ -196,19 +206,35 @@ class CratewebService(win32serviceutil.ServiceFramework):
 
     def main(self):
         # Actual main service code.
-        pass  # ***
+        django_script = os.path.join(CURRENT_DIR, os.pardir, 'crateweb',
+                                     'manage.py')
+        celery_script = os.path.join(CURRENT_DIR, 'launch_django_debug.py')
+        django_args = [
+            sys.executable,
+            django_script,
+            'runcpserver'
+        ]
+        celery_args = [
+            sys.executable,
+            celery_script,
+        ]
+        args_list = [django_args, celery_args]
+        run_multiple_processes(args_list)
+        win32event.WaitForSingleObject(self.h_stop_event, win32event.INFINITE)
+
+    def debug(self):
+        self.main()
 
 
-def main():
-    # Called as an entry point (see setup.py).
-
+def generic_service_main(cls, name):
     # https://mail.python.org/pipermail/python-win32/2008-April/007299.html
-    if len(sys.argv) == 1:
+    argc = len(sys.argv)
+    if argc == 1:
         try:
             print("Trying to start service directly...")
             evtsrc_dll = os.path.abspath(servicemanager.__file__)
-            servicemanager.PrepareToHostSingle(CratewebService)
-            servicemanager.Initialize('aservice', evtsrc_dll)
+            servicemanager.PrepareToHostSingle(cls)
+            servicemanager.Initialize(name, evtsrc_dll)
             servicemanager.StartServiceCtrlDispatcher()
         except win32service.error as details:
             print("Failed: {}".format(details))
@@ -216,8 +242,16 @@ def main():
             errnum = details.winerror
             if errnum == winerror.ERROR_FAILED_SERVICE_CONTROLLER_CONNECT:
                 win32serviceutil.usage()
+    elif argc == 2 and sys.argv[1] == 'debug':
+        s = cls()
+        s.debug()
     else:
-        win32serviceutil.HandleCommandLine(CratewebService)
+        win32serviceutil.HandleCommandLine(cls)
+
+
+def main():
+    # Called as an entry point (see setup.py).
+    generic_service_main(CratewebService, 'CratewebService')
 
 
 if __name__ == '__main__':

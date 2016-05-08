@@ -25,19 +25,13 @@ import argparse
 import atexit
 import logging
 import multiprocessing
-from subprocess import (
-    check_call,
-    Popen,
-)
 import sys
 import time
 
 from crate_anon.anonymise.logsupport import configure_logger_for_colour
 from crate_anon.anonymise.subproc import (
-    start_process,
-    wait_for_processes,
-    kill_child_processes,
-    processes,
+    check_call_process,
+    run_multiple_processes,
 )
 from crate_anon.version import VERSION, VERSION_DATE
 
@@ -96,9 +90,6 @@ def main():
     # Setup
     # -------------------------------------------------------------------------
 
-    # Kill all subprocesses if this script is aborted
-    atexit.register(kill_child_processes)
-
     # Start.
     time_start = time.time()
 
@@ -117,14 +108,13 @@ def main():
         '--dropremake',
         '--processcluster', 'STRUCTURE'
     ] + common_options
-    log.debug(procargs)
-    check_call(procargs)
+    check_call_process(procargs)
 
     # -------------------------------------------------------------------------
     # Now run lots of things simultaneously:
     # -------------------------------------------------------------------------
     # (a) patient tables
-    processes.clear()
+    args_list = []
     for procnum in range(nprocesses_main):
         procargs = [
             sys.executable, '-m', NLP_MANAGER,
@@ -134,10 +124,8 @@ def main():
             '--nprocesses={}'.format(nprocesses_main),
             '--process={}'.format(procnum)
         ] + common_options
-        start_process(procargs)
-
-    # Wait for them all to finish
-    wait_for_processes()
+        args_list.append(procargs)
+    run_multiple_processes(args_list)  # Wait for them all to finish
 
     time_middle = time.time()
 
@@ -145,18 +133,17 @@ def main():
     # Now do the indexing, if nothing else failed.
     # (Always fastest to index last.)
     # -------------------------------------------------------------------------
-    processes.extend([
-        Popen([
+    args_list = [
+        [
             sys.executable, '-m', NLP_MANAGER,
             args.nlpname,
             '--index',
             '--processcluster=INDEX',
             '--nprocesses={}'.format(nprocesses_index),
             '--process={}'.format(procnum)
-        ] + common_options) for procnum in range(nprocesses_index)
-    ])
-
-    wait_for_processes()
+        ] + common_options for procnum in range(nprocesses_index)
+    ]
+    run_multiple_processes(args_list)  # Wait for them all to finish
 
     # -------------------------------------------------------------------------
     # Finished.
