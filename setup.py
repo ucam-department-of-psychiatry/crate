@@ -234,6 +234,8 @@ setup(
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_launch_django_server=crate_anon.crateweb.manage:runserver',
             'crate_launch_cherrypy_server=crate_anon.crateweb.manage:runcpserver',  # noqa
+            'crate_windows_service=crate_anon.tools.winservice:main',
+            # noqa
         ],
     },
 )

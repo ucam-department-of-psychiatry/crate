@@ -4,7 +4,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="15">
+          <list size="16">
             <item index="0" class="java.lang.String" itemvalue="django" />
             <item index="1" class="java.lang.String" itemvalue="pytz" />
             <item index="2" class="java.lang.String" itemvalue="celery" />
@@ -20,8 +20,18 @@
             <item index="12" class="java.lang.String" itemvalue="sqlalchemy" />
             <item index="13" class="java.lang.String" itemvalue="colorlog" />
             <item index="14" class="java.lang.String" itemvalue="prettytable" />
+            <item index="15" class="java.lang.String" itemvalue="servicemanager" />
           </list>
         </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="win32service" />
+          <option value="win32serviceutil" />
+          <option value="win32event" />
+        </list>
       </option>
     </inspection_tool>
     <inspection_tool class="SpellCheckingInspection" enabled="false" level="TYPO" enabled_by_default="false">
