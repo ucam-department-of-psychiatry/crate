@@ -41,9 +41,7 @@ def kill_child_processes():
 
 
 def fail():
-    print()
-    print("PROCESS FAILED; EXITING ALL")
-    print()
+    print("\nPROCESS FAILED; EXITING ALL\n")
     sys.exit(1)  # will call the atexit handler and kill everything else
 
 
@@ -56,28 +54,60 @@ def check_call_process(args):
     check_call(args)
 
 
-def start_process(args):
+def start_process(args, stdin=None, stdout=None, stderr=None):
+    """
+
+    Args:
+        args: program and its arguments, as a list
+        stdin: typically None
+        stdout: use None to perform no routing, which preserves console colour!
+            Otherwise, specify somewhere to route stdout. See subprocess
+            documentation. If either is PIPE, you'll need to deal with the
+            output.
+        stderr: As above. You can use stderr=STDOUT to route stderr to the same
+            place as stdout.
+
+    Returns:
+        The process object (which is also stored in processes).
+    """
     log.debug(args)
     global processes
-    processes.append(Popen(args))  # preserves colour!
-    # processes.append(Popen(args, stdin=None, stdout=PIPE, stderr=STDOUT))
-    # processes.append(Popen(args, stdin=None, stdout=PIPE, stderr=PIPE))
+    proc = Popen(args, stdin=stdin, stdout=stdout, stderr=stderr)
+    # proc = Popen(args, stdin=None, stdout=PIPE, stderr=STDOUT)
+    # proc = Popen(args, stdin=None, stdout=PIPE, stderr=PIPE)
     # Can't preserve colour: http://stackoverflow.com/questions/13299550/preserve-colored-output-from-python-os-popen  # noqa
+    processes.append(proc)
+    return proc
 
 
-def wait_for_processes(die_on_failure=True):
+def wait_for_processes(die_on_failure=True, timeout_sec=1):
+    """
+    If die_on_failure is True, then whenever a subprocess returns failure,
+    all are killed.
+
+    If timeout_sec is None, the function waits for its first process to
+    complete, then waits for the second, etc. So a subprocess dying does not
+    trigger a full quit instantly (or potentially for ages).
+
+    If timeout_sec is something else, each process is tried for that time;
+    if it quits within that time, well and good (successful quit -> continue
+    waiting for the others; failure -> kill everything, if die_on_failure);
+    if it doesn't, we try the next. That is much more responsive.
+    """
     global processes
-    if die_on_failure:
-        atexit.register(kill_child_processes)
-    Pool(len(processes)).map(print_lines, processes)
-    for p in processes:
-        retcode = p.wait()
-        # log.critical("retcode: {}".format(retcode))
-        if die_on_failure and retcode > 0:
-            fail()
+    Pool(len(processes)).map(print_lines, processes)  # in case of PIPE
+    something_running = True
+    while something_running:
+        something_running = False
+        for p in processes:
+            try:
+                retcode = p.wait(timeout=timeout_sec)
+                # log.critical("retcode: {}".format(retcode))
+                if die_on_failure and retcode > 0:
+                    fail()  # exit this process, therefore kill its children
+            except TimeoutExpired:
+                something_running = True
     processes.clear()
-    if die_on_failure:
-        atexit.register(kill_child_processes)
 
 
 def print_lines(process):

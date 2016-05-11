@@ -1283,13 +1283,6 @@ def create_indexes(tasknum=0, ntasks=1):
 # Main
 # =============================================================================
 
-def fail():
-    """
-    Exit with a failure code.
-    """
-    sys.exit(1)
-
-
 def main():
     """
     Command-line entry point.
@@ -1340,16 +1333,11 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         return
 
     # Validate args
-    if not args.nlpname:
-        parser.print_help()
-        fail()
     if args.nprocesses < 1:
-        log.error("--nprocesses must be >=1")
-        fail()
+        raise ValueError("--nprocesses must be >=1")
     if args.process < 0 or args.process >= args.nprocesses:
-        log.error(
+        raise ValueError(
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
-        fail()
 
     everything = not any([args.dropremake, args.nlp, args.index])
 

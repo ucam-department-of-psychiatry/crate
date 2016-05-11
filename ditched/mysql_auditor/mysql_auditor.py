@@ -542,7 +542,7 @@ class App:
                 elif fd == p.stderr.fileno():
                     line = p.stderr.readline().decode(self.encoding).rstrip()
                     print("STDERR: " + line)
-            if p.poll() != None:
+            if p.poll() is not None:
                 break
         # program ended
 

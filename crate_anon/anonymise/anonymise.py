@@ -876,31 +876,20 @@ def show_dest_counts():
 # Main
 # =============================================================================
 
-def fail():
-    """
-    Exit with a failure code.
-    """
-    sys.exit(1)
-
-
 def anonymise(args):
     """
     Main entry point.
     """
     # Validate args
     if args.nprocesses < 1:
-        log.error("--nprocesses must be >=1")
-        fail()
+        raise ValueError("--nprocesses must be >=1")
     if args.process < 0 or args.process >= args.nprocesses:
-        log.error(
+        raise ValueError(
             "--process argument must be from 0 to (nprocesses - 1) inclusive")
-        fail()
     if args.nprocesses > 1 and args.dropremake:
-        log.error("Can't use nprocesses > 1 with --dropremake")
-        fail()
+        raise ValueError("Can't use nprocesses > 1 with --dropremake")
     if args.incrementaldd and args.draftdd:
-        log.error("Can't use --incrementaldd and --draftdd")
-        fail()
+        raise ValueError("Can't use --incrementaldd and --draftdd")
 
     everything = not any([args.dropremake, args.nonpatienttables,
                           args.patienttables, args.index])

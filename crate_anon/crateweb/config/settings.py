@@ -19,6 +19,13 @@ import logging
 import os
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
+# http://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
+try:
+    import pymysql
+    pymysql.install_as_MySQLdb()
+except ImportError:
+    pymysql = None
+
 log = logging.getLogger(__name__)
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)

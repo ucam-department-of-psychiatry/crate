@@ -560,15 +560,14 @@ debug_pid_list =
 # =============================================================================
 # Destination database details. User should have WRITE access.
 # =============================================================================
+# Use SQLAlchemy URLs: see http://docs.sqlalchemy.org/en/latest/core/engines.html
+# You may need to install additional drivers, e.g.
+#       pip install SOME_DRIVER
+# ... see the documentation.
 
 [my_destination_database]
 
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
+url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
 
 # =============================================================================
 # Administrative database. User should have WRITE access.
@@ -576,25 +575,7 @@ db = XXX
 
 [my_admin_database]
 
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
-
-# In general, specify some of:
-#   - engine: one of:
-#       mysql
-#       sqlserver
-#   - interface: one of:
-#       mysql [default for mysql engine]
-#       odbc [default otherwise]
-#       jdbc
-#   - host, port, db [for mysql, JDBC]
-#   - dsn, odbc_connection_string [for ODBC]
-#   - username, password
-# ... see rnc_db.py
+url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
 
 # =============================================================================
 # SOURCE DATABASE DETAILS BELOW HERE.
@@ -605,12 +586,7 @@ db = XXX
 
 # CONNECTION DETAILS
 
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
+url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
 
 # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
 
@@ -709,12 +685,7 @@ debug_limited_tables =
 
 [mysourcedb2]
 
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
+url = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
 
 ddgen_force_lower_case = True
 ddgen_per_table_pid_field = patient_id
@@ -738,13 +709,7 @@ ddgen_binary_to_text_field_pairs =
 [camcops]
 # Example for the CamCOPS anonymisation staging database
 
-engine = mysql
-host = localhost
-port = 3306
-user = XXX
-password = XXX
-db = XXX
-db = camcops_anon_staging
+url = mysql+mysqldb://username:password@127.0.0.1:3306/camcops_databasename?charset=utf8
 
 # FOR EXAMPLE:
 ddgen_force_lower_case = True
