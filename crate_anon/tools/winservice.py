@@ -291,7 +291,7 @@ class ProcessManager(object):
             self.procargs, self.logfile_out, self.logfile_err))
         self.open_logs()
         creationflags = CREATE_NEW_PROCESS_GROUP if WINDOWS else 0
-        self.warning("creationflags: {}".format(creationflags))
+        # self.warning("creationflags: {}".format(creationflags))
         self.process = subprocess.Popen(self.procargs, stdin=None,
                                         stdout=self.stdout, stderr=self.stderr,
                                         creationflags=creationflags)
@@ -315,6 +315,14 @@ class ProcessManager(object):
     def terminate(self):
         if not self.running:
             return
+
+        # --- Already closed by itself?
+        try:
+            self.wait(0)
+            return
+        except subprocess.TimeoutExpired:  # failed to close
+            pass
+
         if not WINDOWS:
             self.warning("Asking process to stop (SIGTERM)")
             self.process.terminate()  # soft kill under POSIX
@@ -399,11 +407,15 @@ class ProcessManager(object):
         """Will raise subprocess.TimeoutExpired if the process continues to
         run."""
         retcode = self.process.wait(timeout=timeout)
+        # We won't get further unless the process has stopped.
         if retcode > 0:
             self.error(
                 "FAILED (return code {}). "
                 "Logs were: {} (stdout), {} (stderr)".format(
                     retcode, self.logfile_out, self.logfile_err))
+        else:
+            self.info("Finished.")
+        self.running = False
         return retcode
 
 
@@ -585,6 +597,8 @@ class CratewebService(win32serviceutil.ServiceFramework):
             else:
                 something_running = False
                 for pmgr in self.process_managers:
+                    if subproc_failed:
+                        break
                     try:
                         retcode = pmgr.wait(timeout=subproc_run_timeout_sec)
                         if retcode > 0:
