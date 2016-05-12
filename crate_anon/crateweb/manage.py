@@ -3,12 +3,13 @@
 
 # import logging
 import os
+import shlex
 import sys
-# from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
-
 
 import django
 from django.core.management import execute_from_command_line
+
+from crate_anon.crateweb.config.constants import CHERRYPY_EXTRA_ARGS_ENV_VAR
 
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE",
@@ -45,6 +46,8 @@ def runserver():
 def runcpserver():
     argv = sys.argv[:]  # copy
     argv.insert(1, 'runcpserver')
+    extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ''))
+    argv.extend(extraargs)
     main(argv)
 
 
