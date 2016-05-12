@@ -6,10 +6,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d4e532a4-be38-4bdd-914b-6711f94ee0a5" name="Default" comment="sqlalc">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" afterPath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/config/constants.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/config/constants.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/crateweb/manage.py" afterPath="$PROJECT_DIR$/crate_anon/crateweb/manage.py" />
     </list>
     <ignored path="crate.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -62,20 +59,48 @@
       <file leaf-file-name="winservice.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/tools/winservice.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="984">
+            <state relative-caret-position="9300">
               <caret line="625" column="41" selection-start-line="625" selection-start-column="41" selection-end-line="625" selection-end-column="41" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="manage.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="manage.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/manage.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="795">
-              <caret line="53" column="26" selection-start-line="53" selection-start-column="26" selection-end-line="53" selection-end-column="26" />
+            <state relative-caret-position="825">
+              <caret line="55" column="0" selection-start-line="55" selection-start-column="0" selection-end-line="55" selection-end-column="0" />
               <folding>
                 <element signature="e#53#62#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="models.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/models.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="573">
+              <caret line="146" column="54" selection-start-line="146" selection-start-column="24" selection-end-line="146" selection-end-column="54" />
+              <folding>
+                <marker date="1461533313180" expanded="true" signature="45231:45654" placeholder="SELECT Clien... Client_Demographic_Details" />
+                <marker date="1461533313180" expanded="true" signature="46654:47039" placeholder="SELECT title... Client_Name_History" />
+                <marker date="1461533313180" expanded="true" signature="47824:48373" placeholder="SELECT Addre... Client_Address_History" />
+                <marker date="1461533313180" expanded="true" signature="49123:49604" placeholder="SELECT GP_Na... Client_GP_History" />
+                <marker date="1461533313180" expanded="true" signature="50746:51250" placeholder="SELECT Care_... CPA_CareCoordinator" />
+                <marker date="1461533313180" expanded="true" signature="52339:52930" placeholder="SELECT Refer... Main_Referral_Data" />
+                <marker date="1461533313180" expanded="true" signature="54137:54579" placeholder="SELECT HCP_U... Referral_Staff_History" />
+                <marker date="1461533313180" expanded="true" signature="55554:55852" placeholder="SELECT Team_... Referral_Team_History" />
+                <marker date="1461533313180" expanded="true" signature="57534:57974" placeholder="SELECT Care_... CPA_CareCoordinator" />
+                <marker date="1461533313180" expanded="true" signature="58961:59447" placeholder="SELECT Refer... Main_Referral_Data" />
+                <marker date="1461533313180" expanded="true" signature="60555:60933" placeholder="SELECT HCP_U... Referral_Staff_History" />
+                <marker date="1461533313180" expanded="true" signature="61816:62050" placeholder="SELECT Team_... Referral_Team_History" />
+                <marker date="1461533313180" expanded="true" signature="64176:64590" placeholder="SELECT patie... mpi" />
+                <marker date="1461533313180" expanded="true" signature="65846:66240" placeholder="SELECT -- do... Address" />
+                <marker date="1461533313180" expanded="true" signature="66930:67494" placeholder="SELECT -- so... PracticeGP" />
+                <marker date="1461533313180" expanded="true" signature="68471:69225" placeholder="SELECT -- pa... CDLPatient" />
+                <marker date="1461533313180" expanded="true" signature="72133:72208" placeholder="SELECT DISTI... Referral_Team_History" />
               </folding>
             </state>
           </provider>
@@ -106,7 +131,7 @@
       <file leaf-file-name="make_package.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/tools/make_package.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1590">
+            <state relative-caret-position="10305">
               <caret line="697" column="44" selection-start-line="697" selection-start-column="44" selection-end-line="697" selection-end-column="44" />
               <folding />
             </state>
@@ -133,16 +158,6 @@
                 <marker date="1462970861441" expanded="true" signature="32844:32845" placeholder="..." />
                 <marker date="1462970861441" expanded="true" signature="32844:35243" placeholder="..." />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="anonymise_main.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1305">
-              <caret line="93" column="0" selection-start-line="33" selection-start-column="0" selection-end-line="93" selection-end-column="0" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -227,10 +242,9 @@
     <scope name="crate" pattern="(file[crate]:crate_anon//*||file[crate]:tools//*||file:setup.py||file:README.rst)&amp;&amp;!file[crate]:crate_anon/crateweb/static_collected//*" />
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-1" />
     <option name="y" value="48" />
-    <option name="width" value="1202" />
-    <option name="height" value="1556" />
+    <option name="width" value="1200" />
+    <option name="height" value="1552" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -273,6 +287,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -373,6 +389,28 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
+              <option name="myItemId" value="consent" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crate_anon" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="crateweb" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
               <option name="myItemId" value="config" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
@@ -397,8 +435,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -718,7 +754,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1" y="48" width="1202" height="1556" extended-state="6" />
+    <frame x="0" y="48" width="1200" height="1552" extended-state="6" />
     <editor active="false" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24916667" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -726,7 +762,6 @@
       <window_info id="LuaJ" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17453799" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -738,6 +773,7 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.27036276" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3286945" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.17453799" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Concurrent Activities Diagram" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32935718" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39960238" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -828,13 +864,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/templates/database_structure.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="930">
-          <caret line="62" column="0" selection-start-line="62" selection-start-column="0" selection-end-line="62" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/templates/page_nav_results.html">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
@@ -1084,9 +1113,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1410">
           <caret line="104" column="0" selection-start-line="104" selection-start-column="0" selection-end-line="104" selection-end-column="0" />
-          <folding>
-            <element signature="e#23#36#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1159,13 +1185,12 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="393">
           <caret line="135" column="66" selection-start-line="135" selection-start-column="66" selection-end-line="135" selection-end-column="66" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/tools/winservice.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="984">
+        <state relative-caret-position="9300">
           <caret line="625" column="41" selection-start-line="625" selection-start-column="41" selection-end-line="625" selection-end-column="41" />
           <folding />
         </state>
@@ -1173,7 +1198,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/tools/make_package.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1590">
+        <state relative-caret-position="10305">
           <caret line="697" column="44" selection-start-line="697" selection-start-column="44" selection-end-line="697" selection-end-column="44" />
           <folding />
         </state>
@@ -1189,10 +1214,36 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/manage.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="795">
-          <caret line="53" column="26" selection-start-line="53" selection-start-column="26" selection-end-line="53" selection-end-column="26" />
+        <state relative-caret-position="825">
+          <caret line="55" column="0" selection-start-line="55" selection-start-column="0" selection-end-line="55" selection-end-column="0" />
           <folding>
             <element signature="e#53#62#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="573">
+          <caret line="146" column="54" selection-start-line="146" selection-start-column="24" selection-end-line="146" selection-end-column="54" />
+          <folding>
+            <marker date="1461533313180" expanded="true" signature="45231:45654" placeholder="SELECT Clien... Client_Demographic_Details" />
+            <marker date="1461533313180" expanded="true" signature="46654:47039" placeholder="SELECT title... Client_Name_History" />
+            <marker date="1461533313180" expanded="true" signature="47824:48373" placeholder="SELECT Addre... Client_Address_History" />
+            <marker date="1461533313180" expanded="true" signature="49123:49604" placeholder="SELECT GP_Na... Client_GP_History" />
+            <marker date="1461533313180" expanded="true" signature="50746:51250" placeholder="SELECT Care_... CPA_CareCoordinator" />
+            <marker date="1461533313180" expanded="true" signature="52339:52930" placeholder="SELECT Refer... Main_Referral_Data" />
+            <marker date="1461533313180" expanded="true" signature="54137:54579" placeholder="SELECT HCP_U... Referral_Staff_History" />
+            <marker date="1461533313180" expanded="true" signature="55554:55852" placeholder="SELECT Team_... Referral_Team_History" />
+            <marker date="1461533313180" expanded="true" signature="57534:57974" placeholder="SELECT Care_... CPA_CareCoordinator" />
+            <marker date="1461533313180" expanded="true" signature="58961:59447" placeholder="SELECT Refer... Main_Referral_Data" />
+            <marker date="1461533313180" expanded="true" signature="60555:60933" placeholder="SELECT HCP_U... Referral_Staff_History" />
+            <marker date="1461533313180" expanded="true" signature="61816:62050" placeholder="SELECT Team_... Referral_Team_History" />
+            <marker date="1461533313180" expanded="true" signature="64176:64590" placeholder="SELECT patie... mpi" />
+            <marker date="1461533313180" expanded="true" signature="65846:66240" placeholder="SELECT -- do... Address" />
+            <marker date="1461533313180" expanded="true" signature="66930:67494" placeholder="SELECT -- so... PracticeGP" />
+            <marker date="1461533313180" expanded="true" signature="68471:69225" placeholder="SELECT -- pa... CDLPatient" />
+            <marker date="1461533313180" expanded="true" signature="72133:72208" placeholder="SELECT DISTI... Referral_Team_History" />
           </folding>
         </state>
       </provider>
