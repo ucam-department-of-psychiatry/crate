@@ -7,7 +7,13 @@ from django.contrib.auth import get_user_model
 from django.core.urlresolvers import set_script_prefix
 
 """
+===============================================================================
+See also celery.py, which defines the app
+===============================================================================
+
+===============================================================================
 If you get a "received unregistered task" error:
+===============================================================================
 1.  Restart the Celery worker. That may fix it.
 2.  If that fails, consider: SPECIFY ABSOLUTE NAMES FOR TASKS.
     e.g. with @shared_task(name="myfuncname")
@@ -16,8 +22,9 @@ If you get a "received unregistered task" error:
     error.
     http://docs.celeryq.org/en/latest/userguide/tasks.html#task-names
 
+===============================================================================
 Acknowledgement/not doing things more than once:
-
+===============================================================================
 - http://docs.celeryproject.org/en/latest/userguide/tasks.html
 - default is to acknowledge on receipt of request, not after task completion;
   that prevents things from happening more than once.
@@ -27,8 +34,9 @@ Acknowledgement/not doing things more than once:
 - We'll stick with the default (slightly less reliable but won't be run more
   than once).
 
+===============================================================================
 Circular imports:
-
+===============================================================================
 - http://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models  # noqa
 - The potential circularity is:
     - At launch, Celery must import tasks, which could want to import models.
@@ -36,7 +44,9 @@ Circular imports:
 - Simplest solution is to keep tasks very simple (as below) and use delayed
   imports here.
 
+===============================================================================
 Race condition:
+===============================================================================
 - Django:
     (1) existing object
     (2) amend with form
@@ -50,7 +60,7 @@ Race condition:
 - SOLUTION:
   https://docs.djangoproject.com/en/dev/topics/db/transactions/#django.db.transaction.on_commit  # noqa
     from django.db import transaction
-    transaction.on_commit(lamba: blah.delay(blah))
+    transaction.on_commit(lambda: blah.delay(blah))
   Requires Django 1.9. As of 2015-11-21, that means 1.9rc1
 """
 

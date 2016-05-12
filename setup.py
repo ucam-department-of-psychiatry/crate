@@ -163,13 +163,14 @@ setup(
         'SQLAlchemy==1.0.12',  # database access
 
         # Web app:
-        'celery==3.1.19',
+        'celery==3.1.23',
         'colorlog==2.6.1',
         'Django==1.9.3',  # "django" versus "Django": neither helps pycharm checking  # noqa
         'django-extensions==1.5.9',
         'django-picklefield==0.3.2',
         'django-sslserver==0.15',
         'django-debug-toolbar==1.4',
+        'flower==0.9.1',  # debug Celery; web server; only runs explicitly
         'pdfkit==0.5.0',
         # 'pygraphviz==1.3.1',  # not used
         'PyPDF2==1.25.1',
@@ -211,20 +212,19 @@ setup(
         # PostgreSQL:
         #   'psycopg2',  # has prerequisites (e.g. pg_config executable)
     ] + ([
-        'pypiwin32'
+        'pypiwin32==219'
     ] if windows else []),
 
     entry_points={
         'console_scripts': [
             # Format is 'script=module:function".
-            'crate_anonymise=crate_anon.anonymise.anonymise_main:main',
-            'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
-            'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
-            'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
             'crate_print_demo_anon_config=crate_anon.anonymise.print_demo_config:main',  # noqa
+            'crate_anonymise=crate_anon.anonymise.anonymise_main:main',
+            'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
-            # 'crate_mysql_auditor=crate_anon.mysql_auditor.mysql_auditor:main',
+            'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
+            'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
 
             'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_django_secret_key:main',  # noqa
             'crate_estimate_mysql_memory_usage=crate_anon.tools.estimate_mysql_memory_usage:main',  # noqa
@@ -233,9 +233,9 @@ setup(
             'crate_launch_django_server=crate_anon.crateweb.manage:runserver',
             'crate_launch_cherrypy_server=crate_anon.crateweb.manage:runcpserver',  # noqa
             'crate_launch_celery=crate_anon.tools.launch_celery:main',
-            # noqa
+            'crate_launch_flower=crate_anon.tools.launch_flower:main',
+
             'crate_windows_service=crate_anon.tools.winservice:main',
-            # noqa
         ],
     },
 )
