@@ -8,6 +8,8 @@ import logging
 import os
 import sys
 
+from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
+
 from crate_anon.anonymise.logsupport import configure_logger_for_colour
 from crate_anon.version import VERSION, VERSION_DATE
 
@@ -90,6 +92,11 @@ Sample usage:
                              "default seed (system time).")
     parser.add_argument("--echo", action="store_true",
                         help="Echo SQL")
+    parser.add_argument(
+        "--checkextractor", nargs='*',
+        help="File extensions to check for availability of a text extractor "
+             "(use a '.' prefix, and use the special extension 'None' to "
+             "check the fallback processor")
     args = parser.parse_args()
 
     # -------------------------------------------------------------------------
@@ -103,6 +110,16 @@ Sample usage:
     loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, loglevel, extranames=mynames)
+
+    # Check text converters
+    if args.checkextractor:
+        for ext in args.checkextractor:
+            if ext.lower() == 'none':
+                ext = None
+            available = is_text_extractor_available(ext)
+            print("Text extractor for extension {} present: {}".format(
+                ext, available))
+        return
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import

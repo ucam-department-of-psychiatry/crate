@@ -6,7 +6,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d4e532a4-be38-4bdd-914b-6711f94ee0a5" name="Default" comment="sqlalc">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" afterPath="$PROJECT_DIR$/docs/CRATE_MANUAL.odt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py" afterPath="$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/version.py" afterPath="$PROJECT_DIR$/crate_anon/version.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/setup.py" afterPath="$PROJECT_DIR$/setup.py" />
     </list>
     <ignored path="crate.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -32,30 +36,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="launch_celery.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/tools/launch_celery.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1320">
-              <caret line="93" column="0" selection-start-line="93" selection-start-column="0" selection-end-line="93" selection-end-column="0" />
-              <folding>
-                <marker date="1463054363397" expanded="true" signature="23:56" placeholder="import ..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="celery.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/celery.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="15">
-              <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
-              <folding>
-                <element signature="e#64#73#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="winservice.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/tools/winservice.py">
           <provider selected="true" editor-type-id="text-editor">
@@ -78,11 +58,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="models.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/models.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="573">
-              <caret line="146" column="54" selection-start-line="146" selection-start-column="24" selection-end-line="146" selection-end-column="54" />
+            <state relative-caret-position="4905">
+              <caret line="330" column="29" selection-start-line="330" selection-start-column="29" selection-end-line="330" selection-end-column="29" />
               <folding>
                 <marker date="1461533313180" expanded="true" signature="45231:45654" placeholder="SELECT Clien... Client_Demographic_Details" />
                 <marker date="1461533313180" expanded="true" signature="46654:47039" placeholder="SELECT title... Client_Name_History" />
@@ -106,14 +86,22 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="settings.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/config/settings.py">
+      <file leaf-file-name="letter_patient_from_clinician_re_study.html" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/letter_patient_from_clinician_re_study.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="975">
-              <caret line="68" column="0" selection-start-line="68" selection-start-column="0" selection-end-line="68" selection-end-column="0" />
-              <folding>
-                <element signature="e#392#418#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="960">
+              <caret line="64" column="22" selection-start-line="64" selection-start-column="22" selection-end-line="64" selection-end-column="22" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="config.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/config.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="4545">
+              <caret line="338" column="24" selection-start-line="338" selection-start-column="24" selection-end-line="338" selection-end-column="24" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -121,9 +109,31 @@
       <file leaf-file-name="setup.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/setup.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2505">
-              <caret line="168" column="8" selection-start-line="168" selection-start-column="8" selection-end-line="168" selection-end-column="8" />
+            <state relative-caret-position="1044">
+              <caret line="188" column="34" selection-start-line="188" selection-start-column="34" selection-end-line="188" selection-end-column="34" />
               <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="version.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/crate_anon/version.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="420">
+              <caret line="28" column="26" selection-start-line="28" selection-start-column="26" selection-end-line="28" selection-end-column="26" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="anonymise_main.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1059">
+              <caret line="115" column="39" selection-start-line="115" selection-start-column="39" selection-end-line="115" selection-end-column="39" />
+              <folding>
+                <element signature="e#160#175#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -148,20 +158,6 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="anonymise.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="12570">
-              <caret line="877" column="0" selection-start-line="877" selection-start-column="0" selection-end-line="877" selection-end-column="0" />
-              <folding>
-                <element signature="e#1093#1107#0" expanded="true" />
-                <marker date="1462970861441" expanded="true" signature="32844:32845" placeholder="..." />
-                <marker date="1462970861441" expanded="true" signature="32844:35243" placeholder="..." />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
     </leaf>
   </component>
   <component name="FileTemplateManagerImpl">
@@ -178,7 +174,6 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/crate_anon/crateweb/core/management/commands/runcpserver.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/models.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/consent/tasks.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/exceptions.py" />
@@ -211,7 +206,6 @@
         <option value="$PROJECT_DIR$/crate_anon/anonymise/test_anonymisation.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/dd.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/config.py" />
-        <option value="$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/sqla.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/launch_multiprocess_anonymiser.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/dbholder.py" />
@@ -223,12 +217,14 @@
         <option value="$PROJECT_DIR$/ditched/mysql_auditor/mysql_auditor.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/constants.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/subproc.py" />
-        <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/crate_anon/tools/launch_celery.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/config/settings.py" />
         <option value="$PROJECT_DIR$/crate_anon/tools/winservice.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/config/constants.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/manage.py" />
+        <option value="$PROJECT_DIR$/setup.py" />
+        <option value="$PROJECT_DIR$/crate_anon/version.py" />
+        <option value="$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py" />
       </list>
     </option>
   </component>
@@ -287,8 +283,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -349,98 +343,20 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
             <PATH_ELEMENT>
-              <option name="myItemId" value="tools" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate_anon" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crateweb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate_anon" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crateweb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="consent" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate_anon" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crateweb" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="config" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="crate_anon" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
               <option name="myItemId" value="anonymise" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
       </pane>
+      <pane id="Scratches" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
-    <property name="last_opened_file_path" value="$USER_HOME$/venvs/crate/bin/crate_anonymise" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../cardinal_pythonlib" />
     <property name="full.screen.before.presentation.mode" value="false" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="js-jscs-nodeInterpreter" value="/usr/local/bin/node" />
@@ -755,7 +671,7 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="48" width="1200" height="1552" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24916667" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -864,14 +780,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/research/templates/page_nav_results.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="105">
-          <caret line="7" column="48" selection-start-line="7" selection-start-column="48" selection-end-line="7" selection-end-column="48" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/static_collected/admin/js/vendor/jquery/jquery.js" />
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/clinician_response.js">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
@@ -993,16 +901,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/config.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="705">
-          <caret line="47" column="0" selection-start-line="47" selection-start-column="0" selection-end-line="47" selection-end-column="0" />
-          <folding>
-            <element signature="e#2894#2907#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/make_demo_database.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="373">
@@ -1116,23 +1014,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1305">
-          <caret line="93" column="0" selection-start-line="33" selection-start-column="0" selection-end-line="93" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="12570">
           <caret line="877" column="0" selection-start-line="877" selection-start-column="0" selection-end-line="877" selection-end-column="0" />
-          <folding>
-            <element signature="e#1093#1107#0" expanded="true" />
-            <marker date="1462970861441" expanded="true" signature="32844:32845" placeholder="..." />
-            <marker date="1462970861441" expanded="true" signature="32844:35243" placeholder="..." />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1148,16 +1033,8 @@
         <state relative-caret-position="15">
           <caret line="1" column="0" selection-start-line="1" selection-start-column="0" selection-end-line="1" selection-end-column="0" />
           <folding>
-            <element signature="e#64#73#0" expanded="true" />
+            <element signature="e#64#73#0" expanded="false" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/setup.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2505">
-          <caret line="168" column="8" selection-start-line="168" selection-start-column="8" selection-end-line="168" selection-end-column="8" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1176,7 +1053,7 @@
         <state relative-caret-position="975">
           <caret line="68" column="0" selection-start-line="68" selection-start-column="0" selection-end-line="68" selection-end-column="0" />
           <folding>
-            <element signature="e#392#418#0" expanded="true" />
+            <element signature="e#392#418#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -1222,10 +1099,18 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/config.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4545">
+          <caret line="338" column="24" selection-start-line="338" selection-start-column="24" selection-end-line="338" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/models.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="573">
-          <caret line="146" column="54" selection-start-line="146" selection-start-column="24" selection-end-line="146" selection-end-column="54" />
+        <state relative-caret-position="4905">
+          <caret line="330" column="29" selection-start-line="330" selection-start-column="29" selection-end-line="330" selection-end-column="29" />
           <folding>
             <marker date="1461533313180" expanded="true" signature="45231:45654" placeholder="SELECT Clien... Client_Demographic_Details" />
             <marker date="1461533313180" expanded="true" signature="46654:47039" placeholder="SELECT title... Client_Name_History" />
@@ -1244,6 +1129,40 @@
             <marker date="1461533313180" expanded="true" signature="66930:67494" placeholder="SELECT -- so... PracticeGP" />
             <marker date="1461533313180" expanded="true" signature="68471:69225" placeholder="SELECT -- pa... CDLPatient" />
             <marker date="1461533313180" expanded="true" signature="72133:72208" placeholder="SELECT DISTI... Referral_Team_History" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/crateweb/consent/templates/letter_patient_from_clinician_re_study.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="960">
+          <caret line="64" column="22" selection-start-line="64" selection-start-column="22" selection-end-line="64" selection-end-column="22" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/setup.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1044">
+          <caret line="188" column="34" selection-start-line="188" selection-start-column="34" selection-end-line="188" selection-end-column="34" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/version.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="420">
+          <caret line="28" column="26" selection-start-line="28" selection-start-column="26" selection-end-line="28" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/anonymise_main.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1059">
+          <caret line="115" column="39" selection-start-line="115" selection-start-column="39" selection-end-line="115" selection-end-column="39" />
+          <folding>
+            <element signature="e#160#175#0" expanded="true" />
           </folding>
         </state>
       </provider>
