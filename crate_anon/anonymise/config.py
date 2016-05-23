@@ -286,8 +286,6 @@ class Config(object):
         self.datetime_to_text_format = opt_str('datetime_to_text_format')
         self.append_source_info_to_comment = opt_bool(
             'append_source_info_to_comment', True)
-        self.open_databases_securely = opt_bool(
-            'open_databases_securely', True)
         self.max_rows_before_commit = opt_int('max_rows_before_commit',
                                               DEFAULT_MAX_ROWS_BEFORE_COMMIT)
         self.max_bytes_before_commit = opt_int('max_bytes_before_commit',
@@ -301,6 +299,8 @@ class Config(object):
         self.scrub_all_numbers_of_n_digits = opt_multiline_int(
             'scrub_all_numbers_of_n_digits', minimum=1)
         self.debug_pid_list = opt_multiline_int('debug_pid_list')
+        self.extract_text_plain = opt_bool('extract_text_plain', False)
+        self.extract_text_width = opt_int('extract_text_width', 80)
 
         # Databases
         destination_database_cfg_section = opt_str('destination_database')

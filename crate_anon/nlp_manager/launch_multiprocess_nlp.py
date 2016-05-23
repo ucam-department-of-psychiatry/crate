@@ -22,7 +22,7 @@
 # http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
 
 import argparse
-import atexit
+# import atexit
 import logging
 import multiprocessing
 import sys

@@ -1,12 +1,15 @@
+antiword
 freetds-bin
 freetds-dev
 graphviz
 libgraphviz-dev
 libxml2-dev
 libxslt1-dev
+poppler-utils
 python3
 python3.4-dev
 rabbitmq-server
 supervisor
 tdsodbc
+unrtf
 unixodbc-bin

@@ -626,7 +626,9 @@ def extract_text(value, row, ddr, ddrows):
     try:
         value = document_to_text(filename=filename,
                                  blob=blob,
-                                 extension=extension)
+                                 extension=extension,
+                                 plain=config.extract_text_plain,
+                                 width=config.extract_text_width)
     except Exception as e:
         log.error(
             "Exception from document_to_text: {}".format(e))

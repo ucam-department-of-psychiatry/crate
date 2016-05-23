@@ -12,7 +12,7 @@ License: http://www.apache.org/licenses/LICENSE-2.0
 import argparse
 import glob
 import os
-import re
+# import re
 import shutil
 import stat
 import subprocess
