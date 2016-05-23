@@ -132,7 +132,10 @@ class DatabaseSafeConfig(object):
             return parser.getboolean(section, option, fallback=default)
 
         def opt_int(option, default):
-            return parser.getint(section, option, fallback=default)
+            try:
+                return parser.getint(section, option, fallback=default)
+            except ValueError:  # e.g. invalid literal for int() with base 10
+                return default
 
         self.ddgen_force_lower_case = opt_bool('ddgen_force_lower_case', True)
         self.ddgen_convert_odd_chars_to_underscore = opt_bool(
@@ -233,7 +236,10 @@ class Config(object):
             return parser.getboolean(section, option, fallback=default)
 
         def opt_int(option, default):
-            return parser.getint(section, option, fallback=default)
+            try:
+                return parser.getint(section, option, fallback=default)
+            except ValueError:  # e.g. invalid literal for int() with base 10
+                return default
 
         def get_database(section_, name, srccfg_=None, with_session=False,
                          with_conn=True, reflect=True):
