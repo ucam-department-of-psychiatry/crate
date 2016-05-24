@@ -6,7 +6,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d4e532a4-be38-4bdd-914b-6711f94ee0a5" name="Default" comment="sqlalc">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/.gitignore" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/.gitignore" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
     </list>
     <ignored path="crate.iws" />
@@ -93,7 +92,7 @@
         <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="411">
-              <caret line="741" column="54" selection-start-line="741" selection-start-column="54" selection-end-line="741" selection-end-column="54" />
+              <caret line="618" column="8" selection-start-line="618" selection-start-column="8" selection-end-line="618" selection-end-column="8" />
               <folding />
             </state>
           </provider>
@@ -1157,7 +1156,7 @@
     <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="411">
-          <caret line="741" column="54" selection-start-line="741" selection-start-column="54" selection-end-line="741" selection-end-column="54" />
+          <caret line="618" column="8" selection-start-line="618" selection-start-column="8" selection-end-line="618" selection-end-column="8" />
           <folding />
         </state>
       </provider>

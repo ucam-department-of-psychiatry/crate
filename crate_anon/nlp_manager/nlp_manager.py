@@ -616,7 +616,8 @@ class Config(object):
         # CrateGatePipeline.java complain and stop
         self.env["NLPLOGTAG"] = logtag
         formatted_progargs = progargs.format(**self.env)
-        self.progargs = formatted_progargs.split()
+        # self.progargs = formatted_progargs.split()
+        self.progargs = shlex.split(formatted_progargs)
 
         # progressdb, hashphrase
         self.progdb = get_database(self.progressdb)
