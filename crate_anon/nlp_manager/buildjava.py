@@ -12,6 +12,7 @@ License: http://www.apache.org/licenses/LICENSE-2.0
 import argparse
 import glob
 import os
+import platform
 import shlex
 import shutil
 import stat
@@ -34,15 +35,32 @@ def rmglob(pattern):
     for f in glob.glob(pattern):
         os.remove(f)
 
-
+WINDOWS = platform.system == 'Windows'
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
-DEFAULT_RUNSCRIPT = os.path.join(THIS_DIR, 'runjavademo.sh')
+DEFAULT_RUNSCRIPT = os.path.join(
+    THIS_DIR, 'runjavademo' + ('.bat' if WINDOWS else '.sh'))
 DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'software',
                                'GATE_Developer_8.0')
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
+
+
+
+def hack_shlex_quote(x):
+    # shlex.quote should make something suitable for shell escaping. However,
+    # it quotes using ', while Windows needs ".
+    #
+    # http://stackoverflow.com/questions/4748344/whats-the-reverse-of-shlex-split  # noqa
+    # http://bugs.python.org/issue9723
+    # https://hg.python.org/cpython/file/83f477471351/Lib/shlex.py#l278
+    # https://docs.python.org/3/library/shlex.html#shlex.quote
+    # https://github.com/rg3/youtube-dl/issues/5889
+    x = shlex.quote(x)
+    if WINDOWS:
+        x = x.replace("'", '"')
+    return x
 
 
 def main():
@@ -124,15 +142,17 @@ def main():
         [args.java] + java_options + [GATE_PIPELINE_CLASSNAME] + prog_args
     )
     democommand_2_args = democommand_args +  debug_options_2
-    democommand = ' '.join(shlex.quote(x) for x in democommand_args)
-    democommand_2 = ' '.join(shlex.quote(x) for x in democommand_2_args)
+    democommand = ' '.join(hack_shlex_quote(x) for x in democommand_args)
+    democommand_2 = ' '.join(hack_shlex_quote(x) for x in democommand_2_args)
+    comment = 'REM ' if WINDOWS else '# '
     with open(args.script, 'w') as outfile:
-        print('#!/bin/bash', file=outfile)
-        print('', file=outfile)
+        if not WINDOWS:
+            print('#!/bin/bash', file=outfile)
+            print('', file=outfile)
         print(democommand, file=outfile)
         print('', file=outfile)
-        print('# For extra verbosity:', file=outfile)
-        print('# ' + democommand_2, file=outfile)
+        print(comment + 'For extra verbosity:', file=outfile)
+        print(comment + democommand_2, file=outfile)
     os.chmod(args.script,
              stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR |
              stat.S_IRGRP | stat.S_IWGRP | stat.S_IXGRP |
