@@ -568,7 +568,7 @@ def process_table(sourcedbname, sourcetable,
             elif ddr.extract_text:
                 value = extract_text(value, row, ddr, ddrows)
 
-            if ddr.scrub:
+            if ddr.scrub and value is not None:
                 # Main point of anonymisation!
                 value = patient.scrub(value)
             destvalues[ddr.dest_field] = value
