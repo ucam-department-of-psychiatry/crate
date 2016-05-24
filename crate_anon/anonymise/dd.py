@@ -1008,8 +1008,8 @@ class DataDictionary(object):
         self.n_definers = sum([1 if x.defines_primary_pids else 0
                                for x in self.rows])
         if self.n_definers == 0:
-            if all([x.ddgen_allow_no_patient_info
-                    for x in self.config.srccfg.itervalues()]):
+            if all([db.srccfg.ddgen_allow_no_patient_info
+                    for pretty_dbname, db in self.config.sources.items()]):
                 log.warning("NO PATIENT-DEFINING FIELD! DATABASE(S) WILL "
                             "BE COPIED, NOT ANONYMISED.")
             else:
