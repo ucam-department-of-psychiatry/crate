@@ -87,7 +87,9 @@ def main():
     debug_options_2 = ['-wg', 'wholexml_', '-wa', 'annotxml_']
     prog_args = ['-g', appfile] + features + eol_options + debug_options_1
 
-    subprocess.check_call([args.javac] + javac_options + [SOURCE_FILE])
+    cmdargs = [args.javac] + javac_options + [SOURCE_FILE]
+    print("Executing command: {}".format(cmdargs))
+    subprocess.check_call(cmdargs)
     os.makedirs(args.builddir, exist_ok=True)
     rmglob(os.path.join(args.builddir, '*.class'))
     moveglob(os.path.join(THIS_DIR, '*.class'), args.builddir)
