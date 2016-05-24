@@ -37,7 +37,9 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="393">
               <caret line="432" column="0" selection-start-line="432" selection-start-column="0" selection-end-line="432" selection-end-column="0" />
-              <folding />
+              <folding>
+                <marker date="1464047398643" expanded="true" signature="4738:4936" placeholder="..." />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -57,7 +59,9 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="444">
               <caret line="448" column="33" selection-start-line="448" selection-start-column="20" selection-end-line="448" selection-end-column="33" />
-              <folding />
+              <folding>
+                <marker date="1464121115498" expanded="true" signature="4794:5176" placeholder="..." />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -75,8 +79,8 @@
       <file leaf-file-name="buildjava.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="720">
-              <caret line="90" column="48" selection-start-line="90" selection-start-column="48" selection-end-line="90" selection-end-column="48" />
+            <state relative-caret-position="540">
+              <caret line="42" column="0" selection-start-line="42" selection-start-column="0" selection-end-line="42" selection-end-column="0" />
               <folding>
                 <element signature="e#235#250#0" expanded="true" />
               </folding>
@@ -119,7 +123,10 @@
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="879">
               <caret line="227" column="0" selection-start-line="227" selection-start-column="0" selection-end-line="227" selection-end-column="0" />
-              <folding />
+              <folding>
+                <marker date="1464121853883" expanded="true" signature="7364:8861" placeholder="..." />
+                <marker date="1464121853883" expanded="true" signature="7393:8854" placeholder="..." />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -1092,7 +1099,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="393">
           <caret line="432" column="0" selection-start-line="432" selection-start-column="0" selection-end-line="432" selection-end-column="0" />
-          <folding />
+          <folding>
+            <marker date="1464047398643" expanded="true" signature="4738:4936" placeholder="..." />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1124,7 +1133,9 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="444">
           <caret line="448" column="33" selection-start-line="448" selection-start-column="20" selection-end-line="448" selection-end-column="33" />
-          <folding />
+          <folding>
+            <marker date="1464121115498" expanded="true" signature="4794:5176" placeholder="..." />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -1132,14 +1143,17 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="879">
           <caret line="227" column="0" selection-start-line="227" selection-start-column="0" selection-end-line="227" selection-end-column="0" />
-          <folding />
+          <folding>
+            <marker date="1464121853883" expanded="true" signature="7364:8861" placeholder="..." />
+            <marker date="1464121853883" expanded="true" signature="7393:8854" placeholder="..." />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="720">
-          <caret line="90" column="48" selection-start-line="90" selection-start-column="48" selection-end-line="90" selection-end-column="48" />
+        <state relative-caret-position="540">
+          <caret line="42" column="0" selection-start-line="42" selection-start-column="0" selection-end-line="42" selection-end-column="0" />
           <folding>
             <element signature="e#235#250#0" expanded="true" />
           </folding>
