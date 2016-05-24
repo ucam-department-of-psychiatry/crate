@@ -35,7 +35,7 @@ def rmglob(pattern):
     for f in glob.glob(pattern):
         os.remove(f)
 
-WINDOWS = platform.system == 'Windows'
+WINDOWS = platform.system() == 'Windows'
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
