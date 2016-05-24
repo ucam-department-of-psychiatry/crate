@@ -73,7 +73,8 @@ def main():
     gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
     classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
-    classpath_options = ['-classpath', '"{}"'.format(classpath)]
+    # classpath_options = ['-classpath', '"{}"'.format(classpath)]
+    classpath_options = ['-classpath', classpath]
     javac_options = (
         ['-Xlint:unchecked'] +
         (['-verbose'] if args.verbose > 0 else []) +
