@@ -103,6 +103,7 @@ class WordList(ScrubberBase):
         self.max_errors = max_errors
         self._regex = None
         self._cached_hash = None
+        self._regex_built = False
 
         self.words = set()
         # Sets are faster than lists for "is x in s" operations:
@@ -144,8 +145,10 @@ class WordList(ScrubberBase):
         return self._cached_hash
 
     def scrub(self, text):
-        if not self._regex:
+        if not self._regex_built:
             self.build_regex()
+        if not self._regex:
+            return text
         return self._regex.sub(self.replacement_text, text)
 
     def build_regex(self):
@@ -158,6 +161,7 @@ class WordList(ScrubberBase):
                 max_errors=self.max_errors
             ))
         self._regex = get_regex_from_elements(elements)
+        self._regex_built = True
 
 
 # =============================================================================
@@ -209,7 +213,6 @@ class NonspecificScrubber(ScrubberBase):
     def scrub(self, text):
         if not self._regex_built:
             self.build_regex()
-
         if self.blacklist:
             text = self.blacklist.scrub(text)
         if not self._regex:  # possible; may be blank
