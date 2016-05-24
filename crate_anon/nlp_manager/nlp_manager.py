@@ -739,7 +739,7 @@ class NlpController(object):
         Launch the external process.
         """
         args = self.progargs
-        log.info("launching command: " + " ".join(args))
+        log.info("launching command: {}".format(args))
         self.p = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,

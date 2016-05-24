@@ -6,7 +6,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d4e532a4-be38-4bdd-914b-6711f94ee0a5" name="Default" comment="sqlalc">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/.gitignore" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/.gitignore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" afterPath="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
     </list>
     <ignored path="crate.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -76,7 +77,7 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="buildjava.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="buildjava.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="705">
@@ -88,21 +89,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="dbholder.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/dbholder.py">
+      <file leaf-file-name="nlp_manager.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="375">
-              <caret line="31" column="19" selection-start-line="31" selection-start-column="19" selection-end-line="31" selection-end-column="19" />
+            <state relative-caret-position="411">
+              <caret line="741" column="54" selection-start-line="741" selection-start-column="54" selection-end-line="741" selection-end-column="54" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="working_anon_config.ini" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/working/working_anon_config.ini">
+      <file leaf-file-name="dbholder.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/dbholder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="288">
-              <caret line="335" column="0" selection-start-line="335" selection-start-column="0" selection-end-line="335" selection-end-column="0" />
+            <state relative-caret-position="375">
+              <caret line="31" column="19" selection-start-line="31" selection-start-column="19" selection-end-line="31" selection-end-column="19" />
               <folding />
             </state>
           </provider>
@@ -188,7 +189,6 @@
         <option value="$PROJECT_DIR$/crate_anon/anonymise/launch_multiprocess_anonymiser.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/dbholder.py" />
         <option value="$PROJECT_DIR$/crate_anon/crateweb/templates/base.css" />
-        <option value="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
         <option value="$PROJECT_DIR$/ditched/mysql_auditor/mysql_auditor.py" />
         <option value="$PROJECT_DIR$/crate_anon/anonymise/subproc.py" />
         <option value="$PROJECT_DIR$/crate_anon/tools/launch_celery.py" />
@@ -208,6 +208,7 @@
         <option value="$PROJECT_DIR$/crate_anon/anonymise/scrub.py" />
         <option value="$PROJECT_DIR$/setup.py" />
         <option value="$PROJECT_DIR$/crate_anon/nlp_manager/buildjava.py" />
+        <option value="$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py" />
       </list>
     </option>
   </component>
@@ -904,13 +905,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="393">
-          <caret line="1285" column="0" selection-start-line="1285" selection-start-column="0" selection-end-line="1285" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/crate_anon/anonymise/subproc.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1410">
@@ -1157,6 +1151,14 @@
           <folding>
             <element signature="e#235#250#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/crate_anon/nlp_manager/nlp_manager.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="411">
+          <caret line="741" column="54" selection-start-line="741" selection-start-column="54" selection-end-line="741" selection-end-column="54" />
+          <folding />
         </state>
       </provider>
     </entry>
