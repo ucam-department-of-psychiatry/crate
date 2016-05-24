@@ -12,7 +12,7 @@ License: http://www.apache.org/licenses/LICENSE-2.0
 import argparse
 import glob
 import os
-# import re
+import shlex
 import shutil
 import stat
 import subprocess
@@ -73,7 +73,6 @@ def main():
     gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
     classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
-    # classpath_options = ['-classpath', '"{}"'.format(classpath)]
     classpath_options = ['-classpath', classpath]
     javac_options = (
         ['-Xlint:unchecked'] +
@@ -121,13 +120,12 @@ def main():
     # need to to find GATE), you must also include the directory of your
     # MyThing.class file.
 
-    democommand = "{java} {jopts} {classname} {progargs}".format(
-        java=args.java,
-        classname=GATE_PIPELINE_CLASSNAME,
-        jopts=" ".join(java_options),
-        progargs=" ".join(prog_args),
+    democommand_args = (
+        [args.java] + java_options + [GATE_PIPELINE_CLASSNAME] + prog_args
     )
-    democommand_2 = democommand + ' ' + ' '.join(debug_options_2)
+    democommand_2_args = democommand_args +  debug_options_2
+    democommand = ' '.join(shlex.quote(x) for x in democommand_args)
+    democommand_2 = ' '.join(shlex.quote(x) for x in democommand_2_args)
     with open(args.script, 'w') as outfile:
         print('#!/bin/bash', file=outfile)
         print('', file=outfile)
