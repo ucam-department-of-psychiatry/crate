@@ -784,12 +784,12 @@ class NlpController(object):
         # Send
         log.debug("writing: " + text)
         self._encode_to_subproc_stdin(text)
-        self._encode_to_subproc_stdin("\n")
-        self._encode_to_subproc_stdin(self.input_terminator + "\n")
+        self._encode_to_subproc_stdin(os.linesep)
+        self._encode_to_subproc_stdin(self.input_terminator + os.linesep)
         self._flush_subproc_stdin()  # required in the Python 3 system
         # Receive
         for line in iter(self._decode_from_subproc_stdout,
-                         self.output_terminator + "\n"):
+                         self.output_terminator + os.linesep):
             # ... iterate until the sentinel output_terminator is received
             line = line.rstrip()  # remove trailing newline
             log.debug("stdout received: " + line)
