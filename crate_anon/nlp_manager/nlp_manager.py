@@ -766,7 +766,7 @@ class NlpController(object):
     def _decode_from_subproc_stdout(self):
         bytes_ = self.p.stdout.readline()
         text = bytes_.decode(self.encoding)
-        log.debug("RECEIVING: " + text)
+        log.debug("RECEIVING: " + repr(text))
         return text
 
     def send(self, text, starting_fields_values=None):
