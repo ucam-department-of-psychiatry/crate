@@ -23,14 +23,7 @@ def main():
     Command-line entry point.
     """
     version = "Version {} ({})".format(VERSION, VERSION_DATE)
-    description = """
-Database anonymiser. {version}. By Rudolf Cardinal.
-
-Sample usage:
-    {prog} -c > testconfig.ini  # generate sample config file
-    {prog} -d testconfig.ini > testdd.tsv  # generate draft data dict.
-    {prog} testconfig.ini  # run""".format(
-        prog=os.path.basename(sys.argv[0]),
+    description = "Database anonymiser. {version}. By Rudolf Cardinal.".format(
         version=version,
     )
 
