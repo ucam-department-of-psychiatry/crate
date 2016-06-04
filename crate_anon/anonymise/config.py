@@ -109,6 +109,19 @@ monkeypatch_TableClause()
 
 
 # =============================================================================
+# Ancillary functions
+# =============================================================================
+
+def sizeof_fmt(num, suffix='B'):
+    # http://stackoverflow.com/questions/1094841
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
+# =============================================================================
 # Config/databases
 # =============================================================================
 
@@ -423,6 +436,14 @@ class Config(object):
         self.report_every_n_rows = 100
         self.debug_scrubbers = False
         self.save_scrubbers = False
+        
+        self.src_bytes_read = 0
+        self.dest_bytes_written = 0
+        
+    def overall_progress(self):
+        return "{} read, {} written".format(
+            sizeof_fmt(self.src_bytes_read),
+            sizeof_fmt(self.dest_bytes_written))
 
     def load_dd(self):
         log.info(SEP + "Loading data dictionary: {}".format(

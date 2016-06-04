@@ -160,7 +160,7 @@ setup(
         'colorlog==2.6.1',  # colour in logs
         'psutil==4.1.0',  # process management
         'semver==2.4.1',  # comparing semantic versions
-        'SQLAlchemy==1.0.12',  # database access
+        'SQLAlchemy>=1.0.12',  # database access
 
         # Web app:
         'celery==3.1.23',

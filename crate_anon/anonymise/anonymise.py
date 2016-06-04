@@ -390,6 +390,8 @@ def gen_rows(dbname, sourcetable, sourcefields, pid=None,
                 config.warned_re_limits[db_table_tuple] = True
             result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
             return
+        src_bytes = sys.getsizeof(row)  # ... approximate!
+        config.src_bytes_read += src_bytes
         yield list(row)
         # yield dict(zip(row.keys(), row))
         # see also http://stackoverflow.com/questions/19406859
@@ -512,7 +514,8 @@ def process_table(sourcedbname, sourcetable,
                         pkname=pkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
-            log.info(start + "processing row {} of task set".format(n))
+            log.info(start + "processing row {} of task set ({})".format(
+                n, config.overall_progress()))
         if addhash:
             srchash = config.hash_object(row)
             if incremental and identical_record_exists_by_hash(
@@ -586,8 +589,9 @@ def process_table(sourcedbname, sourcetable,
             if config.rows_in_transaction >= config.max_rows_before_commit:
                 early_commit = True
         if config.max_bytes_before_commit is not None:
-            config.bytes_in_transaction += sys.getsizeof(destvalues)
-            # ... approximate!
+            dest_bytes = sys.getsizeof(destvalues)  # ... approximate!
+            config.bytes_in_transaction += dest_bytes
+            config.dest_bytes_written += dest_bytes
             # Quicker than e.g. len(repr(...)), as judged by a timeit() call.
             if config.bytes_in_transaction >= config.max_bytes_before_commit:
                 early_commit = True

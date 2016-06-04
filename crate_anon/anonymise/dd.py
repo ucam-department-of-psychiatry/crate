@@ -552,10 +552,14 @@ class DataDictionaryRow(object):
         srccfg = self.config.sources[self.src_db].srccfg
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
-        if not is_sqltype_valid(self.src_datatype):
-            raise ValueError(
-                "Field has invalid source data type: {}".format(
-                    self.src_datatype))
+        
+        # REMOVED 2016-06-04; fails with complex SQL Server types, which can
+        # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.
+        #
+        # if not is_sqltype_valid(self.src_datatype):
+        #     raise ValueError(
+        #         "Field has invalid source data type: {}".format(
+        #             self.src_datatype))
 
         if (self.src_field == srccfg.ddgen_per_table_pid_field and
                 not is_sqltype_integer(self.src_datatype)):
@@ -818,6 +822,7 @@ class DataDictionary(object):
                     if report_every and i % report_every == 0:
                         log.debug("... reading source field {}".format(i))
                     columnname = c.name
+                    # import pdb; pdb.set_trace()
                     # log.critical("str(coltype) == {}".format(str(c.type)))
                     # log.critical("repr(coltype) == {}".format(repr(c.type)))
                     datatype_sqltext = str(c.type)
