@@ -863,10 +863,9 @@ class DataDictionary(object):
                 ddr._scrub = False
         log.info("... done")
         log.info("Sorting draft data dictionary")
-        self.rows = sorted(self.rows,
-                           key=operator.attrgetter("src_db",
-                                                   "src_table",
-                                                   "src_field"))
+        self.rows = sorted(
+            self.rows,
+            key=operator.attrgetter("src_db", "src_table", "src_field"))
         log.info("... done")
 
     def check_against_source_db(self):
@@ -884,12 +883,7 @@ class DataDictionary(object):
                 if len(dt) > 1:
                     raise ValueError(
                         "Source table {d}.{t} maps to >1 destination "
-                        "table: {dt}".format(
-                            d=d,
-                            t=t,
-                            dt=", ".join(dt),
-                        )
-                    )
+                        "table: {dt}".format(d=d, t=t, dt=", ".join(dt)))
 
                 rows = self.get_rows_for_src_table(d, t)
                 fieldnames = self.get_fieldnames_for_src_table(d, t)
@@ -901,14 +895,10 @@ class DataDictionary(object):
                         raise ValueError(
                             "Source table {d}.{t} has a scrub_in or "
                             "src_flags={f} field but no {p} field".format(
-                                d=d,
-                                t=t,
-                                f=SRCFLAG.MASTERPID,
-                                p=pidfield,
-                            )
-                        )
+                                d=d, t=t, f=SRCFLAG.MASTERPID, p=pidfield))
 
                 for r in rows:
+                    import pdb; pdb.set_trace()
                     r.set_src_sqla_coltype(
                         db.metadata.tables[t].columns[r.src_field].type)
                     if r.extract_text and not r.extract_from_filename:
@@ -921,9 +911,7 @@ class DataDictionary(object):
                                 "alter_method = {am}, but field {f} not "
                                 "found in the same table".format(
                                     am=r.alter_method,
-                                    f=r.extract_ext_field
-                                )
-                            )
+                                    f=r.extract_ext_field))
                         if not is_sqltype_text_over_one_char(
                                 extrow.src_datatype):
                             raise ValueError(
@@ -931,9 +919,7 @@ class DataDictionary(object):
                                 " should contain an extension or filename,"
                                 " is not text of >1 character".format(
                                     am=r.alter_method,
-                                    f=r.extract_ext_field
-                                )
-                            )
+                                    f=r.extract_ext_field))
 
                 n_pks = sum([1 if x.pk else 0 for x in rows])
                 if n_pks > 1:
@@ -947,11 +933,7 @@ class DataDictionary(object):
                             d=d, tables=db.table_names))
                     raise ValueError(
                         "Table {t} missing from source database "
-                        "{d}".format(
-                            t=t,
-                            d=d
-                        )
-                    )
+                        "{d}".format(t=t, d=d))
 
         log.debug("... source tables checked.")
 
