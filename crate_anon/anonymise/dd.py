@@ -413,6 +413,8 @@ class DataDictionaryRow(object):
             self.dest_field = self.config.master_research_id_fieldname
         else:
             self.dest_field = field
+        if cfg.ddgen_force_lower_case:
+            self.dest_field = self.dest_field.lower()
         if cfg.ddgen_convert_odd_chars_to_underscore:
             self.dest_field = str(self.dest_field)  # if this fails,
             # there's a Unicode problem
@@ -458,6 +460,8 @@ class DataDictionaryRow(object):
         # Manipulate the destination table name?
         # http://stackoverflow.com/questions/10017147
         self.dest_table = table
+        if cfg.ddgen_force_lower_case:
+            self.dest_table = self.dest_table.lower()
         if cfg.ddgen_convert_odd_chars_to_underscore:
             self.dest_table = str(self.dest_table)  # if this fails,
             # there's a Unicode problem
@@ -827,9 +831,10 @@ class DataDictionary(object):
                     # log.critical("repr(coltype) == {}".format(repr(c.type)))
                     datatype_sqltext = str(c.type)
                     sqla_coltype = c.type
-                    if cfg.ddgen_force_lower_case:
-                        tablename = tablename.lower()
-                        columnname = columnname.lower()
+                    # Do not manipulate the case of SOURCE tables/columns.
+                    # If you do, they can fail to match the SQLAlchemy
+                    # introspection and cause a crash.
+                    # Changed to be a destination manipulation (2016-06-04).
                     if (tablename in cfg.ddgen_table_blacklist or
                             columnname in cfg.ddgen_field_blacklist):
                         continue
@@ -898,7 +903,6 @@ class DataDictionary(object):
                                 d=d, t=t, f=SRCFLAG.MASTERPID, p=pidfield))
 
                 for r in rows:
-                    import pdb; pdb.set_trace()
                     r.set_src_sqla_coltype(
                         db.metadata.tables[t].columns[r.src_field].type)
                     if r.extract_text and not r.extract_from_filename:
