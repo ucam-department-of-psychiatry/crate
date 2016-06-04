@@ -671,8 +671,8 @@ def patient_processing_fn(tasknum=0, ntasks=1, incremental=False):
     for pid in gen_patient_ids(tasknum, ntasks):
         # gen_patient_ids() assigns the work to the appropriate thread/process
         # Check for an abort signal once per patient processed
-        log.info("Processing patient ID: {} (incremental={})".format(
-            pid, incremental))
+        log.info("Processing patient ID: {} (incremental={}) ({})".format(
+            pid, incremental, config.overall_progress()))
 
         # Opt out?
         if opt_out(pid):
@@ -814,8 +814,8 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
     """
     log.info(SEP + "Non-patient tables: (a) with integer PK")
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
-        log.info("Processing non-patient table {}.{} (PK: {})...".format(
-            d, t, pkname))
+        log.info("Processing non-patient table {}.{} (PK: {}) ({})...".format(
+            d, t, pkname, config.overall_progress()))
         process_table(d, t, patient=None,
                       incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
@@ -823,7 +823,8 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
     log.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
                                                        ntasks=ntasks):
-        log.info("Processing non-patient table {}.{}...".format(d, t))
+        log.info("Processing non-patient table {}.{} ({})...".format(
+            d, t, config.overall_progress()))
         process_table(d, t, patient=None,
                       incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)
