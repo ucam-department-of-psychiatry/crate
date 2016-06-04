@@ -821,6 +821,7 @@ class DataDictionary(object):
             i = 0
             for t in meta.sorted_tables:
                 tablename = t.name
+                log.info("... ... table: {}".format(tablename))
                 for c in t.columns:
                     i += 1
                     if report_every and i % report_every == 0:

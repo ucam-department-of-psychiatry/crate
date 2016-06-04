@@ -585,13 +585,6 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?chars
 
 # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
 
-    # Force all tables/fields to lower case? Generally a good idea. Boolean;
-    # default is True.
-ddgen_force_lower_case = True
-
-    # Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.
-ddgen_convert_odd_chars_to_underscore = True
-
     # Allow the absence of patient info? Used to copy databases; WILL NOT
     # ANONYMISE. Boolean; default is False.
 ddgen_allow_no_patient_info = False
@@ -661,6 +654,15 @@ ddgen_index_fields =
     # Allow full-text index creation? Default true. Disable for databases that
     # don't support them?
 ddgen_allow_fulltext_indexing = True
+
+# DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
+
+    # Force all destination tables/fields to lower case? Generally a good idea.
+    # Boolean; default is True.
+ddgen_force_lower_case = True
+
+    # Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.
+ddgen_convert_odd_chars_to_underscore = True
 
 # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
 
