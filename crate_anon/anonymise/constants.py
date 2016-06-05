@@ -156,7 +156,7 @@ MYSQL_TABLE_ARGS = {
 
 # noinspection PyPep8
 DEMO_CONFIG = """
-# Configuration file for anonymise.py
+# Configuration file for CRATE anonymiser (crate_anonymise).
 
 # =============================================================================
 # Main settings
@@ -583,6 +583,10 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charse
 # User should have READ access only for safety.
 # =============================================================================
 
+# -----------------------------------------------------------------------------
+# Source database example 1
+# -----------------------------------------------------------------------------
+
 [mysourcedb1]
 
 # CONNECTION DETAILS
@@ -686,6 +690,10 @@ debug_row_limit =
     # List of tables to which to apply debug_row_limit (see above).
 debug_limited_tables =
 
+# -----------------------------------------------------------------------------
+# Source database example 2
+# -----------------------------------------------------------------------------
+
 [mysourcedb2]
 
 url = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8
@@ -708,6 +716,10 @@ ddgen_min_length_for_scrubbing = 4
 ddgen_truncate_date_fields =
 ddgen_filename_to_text_fields =
 ddgen_binary_to_text_field_pairs =
+
+# -----------------------------------------------------------------------------
+# Source database example 3
+# -----------------------------------------------------------------------------
 
 [camcops]
 # Example for the CamCOPS anonymisation staging database

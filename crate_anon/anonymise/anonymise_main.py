@@ -5,8 +5,6 @@
 # using the config object.
 import argparse
 import logging
-import os
-import sys
 
 from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
 

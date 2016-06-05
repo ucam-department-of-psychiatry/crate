@@ -303,9 +303,9 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
 # =============================================================================
 
 def convert_sqla_type_for_dialect(coltype, dialect):
-    if (type(coltype) in [sqltypes.VARCHAR, sqltypes.NVARCHAR]
-            and coltype.length is None
-            and dialect.name == 'mysql'):
+    if (type(coltype) in [sqltypes.VARCHAR, sqltypes.NVARCHAR] and
+            coltype.length is None and
+            dialect.name == 'mysql'):
         # SQL Server can have NVARCHAR() and VARCHAR(), with no length.
         # MySQL can't. Failure to convert gives:
         # 'NVARCHAR requires a length on dialect mysql'
