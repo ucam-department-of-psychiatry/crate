@@ -99,6 +99,11 @@ for i in range(127, 256):
     ODD_CHARS_TRANSLATE[i] = '_'
 ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 
+DECISION = AttrDict(
+    OMIT="OMIT",
+    INCLUDE="include"
+)
+
 SCRUBMETHOD = AttrDict(
     WORDS="words",
     PHRASE="phrase",
@@ -251,8 +256,9 @@ DEMO_CONFIG = """
 #     - "{SCRUBMETHOD.DATE}": treat as date.
 #       This is the default for all DATE/DATETIME fields.
 #
-# omit
-#     Boolean. Omit from output entirely?
+# decision
+#     Either "{DECISION.OMIT}" (omit from output entirely) or
+#     "{DECISION.INCLUDE}", to include. Case sensitive, for safety.
 # alter_method
 #     Manner in which to alter the data. Blank, or one of:
 #     - "{ALTERMETHOD.SCRUBIN}": scrub in. Applies to text fields only. The
@@ -842,7 +848,8 @@ ddgen_binary_to_text_field_pairs =
     SRCFLAG=SRCFLAG,
     LONGTEXT=LONGTEXT,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
-    DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT
+    DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+    DECISION=DECISION,
 )
 
 # For the style:

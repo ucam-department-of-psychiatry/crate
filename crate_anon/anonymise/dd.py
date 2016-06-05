@@ -45,6 +45,7 @@ from sqlalchemy import (
     Column,
     Table,
 )
+from sqlalchemy.sql import sqltypes
 
 from cardinal_pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,
@@ -60,7 +61,6 @@ from cardinal_pythonlib.rnc_db import (
     is_sqltype_valid,
 )
 from cardinal_pythonlib.rnc_lang import (
-    convert_to_bool,
     convert_to_int,
     count_bool,
     raise_if_attr_blank,
@@ -69,6 +69,7 @@ from cardinal_pythonlib.rnc_lang import (
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
     ALTERMETHOD,
+    DECISION,
     DEFAULT_INDEX_LEN,
     INDEX,
     LONGTEXT,
@@ -102,7 +103,7 @@ class DataDictionaryRow(object):
         "scrub_src",
         "scrub_method",
 
-        "omit",
+        "decision",
         "alter_method",
 
         "dest_table",
@@ -127,7 +128,7 @@ class DataDictionaryRow(object):
         # src_flags: a property; see below
         self.scrub_src = None
         self.scrub_method = None
-        self.omit = False
+        self.omit = False  # in the DD file, this is 'decision'
         # alter_method: a property; see below
         self.dest_table = None
         self.dest_field = None
@@ -286,6 +287,20 @@ class DataDictionaryRow(object):
     @property
     def from_file(self):
         return self._from_file
+    
+    @property
+    def decision(self):
+        return DECISION.OMIT if self.omit else DECISION.INCLUDE
+
+    @decision.setter
+    def decision(self, value):
+        if value == DECISION.OMIT:
+            self.omit = True
+        elif value == DECISION.INCLUDE:
+            self.omit = False
+        else:
+            raise ValueError("decision was {}; must be one of {}".format(
+                value, [DECISION.OMIT, DECISION.INCLUDE]))
 
     def __str__(self):
         """
@@ -315,7 +330,7 @@ class DataDictionaryRow(object):
         self.src_flags = valuedict['src_flags']  # a property
         self.scrub_src = valuedict['scrub_src']
         self.scrub_method = valuedict['scrub_method']
-        self.omit = convert_to_bool(valuedict['omit'])
+        self.decision = valuedict['decision']  # a property; actually, 'omit'
         self.alter_method = valuedict['alter_method']  # a property
         self.dest_table = valuedict['dest_table']
         self.dest_field = valuedict['dest_field']
@@ -665,10 +680,13 @@ class DataDictionaryRow(object):
                             "field containing extension (or filename with "
                             "extension) in the alter_method parameter".format(
                                 ALTERMETHOD=ALTERMETHOD))
-            if self._scrub and not self._extract_text:
-                if not is_sqltype_text_over_one_char(self.src_datatype):
-                    raise ValueError("Can't scrub in non-text field or "
-                                     "single-character text field")
+
+            # This error/warning too hard to be sure of with SQL Server odd
+            # string types:
+            # if self._scrub and not self._extract_text:
+            #     if not is_sqltype_text_over_one_char(self.src_datatype):
+            #         raise ValueError("Can't scrub in non-text field or "
+            #                          "single-character text field")
 
             if ((self._primary_pid or self._master_pid) and
                     self.dest_datatype !=
@@ -749,9 +767,18 @@ class DataDictionaryRow(object):
                 self.config.destdb.engine,
                 self.dest_datatype)
         else:
-            return self._src_sqla_coltype
+            # Return the SQLAlchemy column type class determined from the
+            # source database by reflection.
             # Will be autoconverted to the destination dialect.
-
+            ct = self._src_sqla_coltype
+            if (type(ct) in [sqltypes.VARCHAR, sqltypes.NVARCHAR]
+                    and ct.length is None):
+                # SQL Server problem 2016-06-05:
+                # 'NVARCHAR requires a length on dialect mysql'
+                return sqltypes.Text()
+            else:
+                return ct
+            
     def get_sqla_dest_column(self):
         name = self.dest_field
         coltype = self.get_sqla_dest_coltype()
@@ -795,8 +822,13 @@ class DataDictionary(object):
             if not all(x in headers for x in DataDictionaryRow.ROWNAMES):
                 raise ValueError(
                     "Bad data dictionary file. Must be a tab-separated value "
-                    "(TSV) file with the following row headings:\n" +
-                    "\n".join(DataDictionaryRow.ROWNAMES)
+                    "(TSV) file with the following row headings:\n"
+                    "{}\n\n"
+                    "but yours are:\n"
+                    "{}".format(
+                        "\n".join(DataDictionaryRow.ROWNAMES),
+                        "\n".join(headers)
+                    )
                 )
             log.debug("Data dictionary has correct header. Loading content...")
             for values in tsv:
