@@ -17,9 +17,9 @@ MYSQL_DEFAULT_USER = 'root'
 UNITS_MB = 'Mb'
 
 
-def get_mysql_vars(host, port, user):
+def get_mysql_vars(mysql, host, port, user):
     cmdargs = [
-        "mysql",
+        mysql,
         "-h", host,
         "-P", str(port),
         "-e", "SHOW VARIABLES; SHOW STATUS",
@@ -61,6 +61,9 @@ def add_blank_row(table):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
+        "--mysql", default="mysql",
+        help="MySQL program (default=mysql)")
+    parser.add_argument(
         "--host", default="127.0.0.1",
         help="MySQL server/host (prefer '127.0.0.1' to 'localhost')")
     parser.add_argument(
@@ -72,6 +75,7 @@ def main():
     args = parser.parse_args()
 
     vardict = get_mysql_vars(
+        mysql=args.mysql,
         host=args.host,
         port=args.port,
         user=args.user,

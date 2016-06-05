@@ -8,7 +8,7 @@ import re
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import DDL, Index
-from sqlalchemy.sql import exists, func, select, table
+from sqlalchemy.sql import exists, func, select, sqltypes, table
 from sqlalchemy.sql.expression import (
     ClauseElement,
     Insert,
@@ -149,29 +149,29 @@ RE_COLTYPE_WITH_PARAMS = re.compile(r'(?P<type>\w+)\((?P<size>\w+)\)')
 # http://www.w3schools.com/sql/sql_create_table.asp
 
 
-def _get_sqla_coltype_class_from_str(engine, coltype):
+def _get_sqla_coltype_class_from_str(coltype, dialect):
     """
     As-is/lower-case search.
     For example, the SQLite dialect uses upper case, and the
     MySQL dialect uses lower case.
     """
-    ischema_names = engine.dialect.ischema_names
+    ischema_names = dialect.ischema_names
     try:
         return ischema_names[coltype]
     except KeyError:
         return ischema_names[coltype.lower()]
 
 
-def get_sqla_coltype_from_dialect_str(engine, coltype):
+def get_sqla_coltype_from_dialect_str(coltype, dialect):
     """
     Args:
-        engine: a SQLAlchemy engine
+        dialect: a SQLAlchemy dialect class
         coltype: a str() representation, e.g. from str(c['type']) where
             c is an instance of sqlalchemy.sql.schema.Column.
     Returns:
         a Python object that is a subclass of sqlalchemy.types.TypeEngine
     Example:
-        get_sqla_coltype_from_string(engine, 'INTEGER(11)')
+        get_sqla_coltype_from_string('INTEGER(11)', engine.dialect)
             -> Integer(length=11)
 
     Notes:
@@ -208,11 +208,11 @@ def get_sqla_coltype_from_dialect_str(engine, coltype):
         size = ast.literal_eval(m.group('size'))
     else:
         basetype = coltype.upper()
-    cls = _get_sqla_coltype_class_from_str(engine, basetype)
+    cls = _get_sqla_coltype_class_from_str(basetype, dialect)
     # Special cases
     if basetype == 'DATETIME' and size:
         # First argument to DATETIME() is timezone, so...
-        if engine.dialect.name == 'mysql':
+        if dialect.name == 'mysql':
             kwargs = {'fsp': size}
         else:
             pass
@@ -223,11 +223,11 @@ def get_sqla_coltype_from_dialect_str(engine, coltype):
     except TypeError:
         return cls()
 
-# get_sqla_coltype_from_dialect_str(engine, "INTEGER")
-# get_sqla_coltype_from_dialect_str(engine, "INTEGER(11)")
-# get_sqla_coltype_from_dialect_str(engine, "VARCHAR(50)")
-# get_sqla_coltype_from_dialect_str(engine, "DATETIME")
-# get_sqla_coltype_from_dialect_str(engine, "DATETIME(6)")
+# get_sqla_coltype_from_dialect_str("INTEGER", engine.dialect)
+# get_sqla_coltype_from_dialect_str("INTEGER(11)", engine.dialect)
+# get_sqla_coltype_from_dialect_str("VARCHAR(50)", engine.dialect)
+# get_sqla_coltype_from_dialect_str("DATETIME", engine.dialect)
+# get_sqla_coltype_from_dialect_str("DATETIME(6)", engine.dialect)
 
 
 # =============================================================================
@@ -296,3 +296,19 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
     s += ' ON DUPLICATE KEY UPDATE {}'.format(updates)
     # log.critical(s)
     return s
+
+
+# =============================================================================
+# Do special dialect conversions on SQLAlchemy SQL types (of class type)
+# =============================================================================
+
+def convert_sqla_type_for_dialect(coltype, dialect):
+    if (type(coltype) in [sqltypes.VARCHAR, sqltypes.NVARCHAR]
+            and coltype.length is None
+            and dialect.name == 'mysql'):
+        # SQL Server can have NVARCHAR() and VARCHAR(), with no length.
+        # MySQL can't. Failure to convert gives:
+        # 'NVARCHAR requires a length on dialect mysql'
+        return sqltypes.Text()
+    else:
+        return coltype

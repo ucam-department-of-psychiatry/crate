@@ -45,7 +45,6 @@ from sqlalchemy import (
     Column,
     Table,
 )
-from sqlalchemy.sql import sqltypes
 
 from cardinal_pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,
@@ -80,7 +79,10 @@ from crate_anon.anonymise.constants import (
     SRCFLAG,
     TridType,
 )
-from crate_anon.anonymise.sqla import get_sqla_coltype_from_dialect_str
+from crate_anon.anonymise.sqla import (
+    convert_sqla_type_for_dialect,
+    get_sqla_coltype_from_dialect_str,
+)
 
 log = logging.getLogger(__name__)
 
@@ -760,24 +762,19 @@ class DataDictionaryRow(object):
         self._src_sqla_coltype = sqla_coltype
 
     def get_sqla_dest_coltype(self):
+        dialect = self.config.destdb.engine.dialect
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
             # the type.
-            return get_sqla_coltype_from_dialect_str(
-                self.config.destdb.engine,
-                self.dest_datatype)
+            return get_sqla_coltype_from_dialect_str(self.dest_datatype,
+                                                     dialect)
         else:
             # Return the SQLAlchemy column type class determined from the
             # source database by reflection.
             # Will be autoconverted to the destination dialect.
-            ct = self._src_sqla_coltype
-            if (type(ct) in [sqltypes.VARCHAR, sqltypes.NVARCHAR]
-                    and ct.length is None):
-                # SQL Server problem 2016-06-05:
-                # 'NVARCHAR requires a length on dialect mysql'
-                return sqltypes.Text()
-            else:
-                return ct
+            # With some exceptions, addressed as below:
+            return convert_sqla_type_for_dialect(self._src_sqla_coltype,
+                                                 dialect)
             
     def get_sqla_dest_column(self):
         name = self.dest_field
