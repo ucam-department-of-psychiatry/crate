@@ -373,10 +373,10 @@ def gen_rows(dbname, sourcetable, sourcefields, pid=None,
     if pid is not None:
         pidcol_name = config.dd.get_pid_name(dbname, sourcetable)
         q = q.where(column(pidcol_name) == pid)
-
-    # Divide up rows across tasks?
-    if pkname is not None and tasknum is not None and ntasks is not None:
-        q = q.where(func.mod(column(pkname), ntasks) == tasknum)
+    else:
+        # For non-patient tables: divide up rows across tasks?
+        if pkname is not None and tasknum is not None and ntasks is not None:
+            q = q.where(func.mod(column(pkname), ntasks) == tasknum)
 
     db_table_tuple = (dbname, sourcetable)
     result = config.sources[dbname].session.execute(q)
