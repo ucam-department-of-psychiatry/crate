@@ -1299,7 +1299,7 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     parser.add_argument("-n", "--version", action="version", version=version)
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument("nlpname",
+    parser.add_argument("nlpname", nargs="?", default=None,
                         help="NLP definition name (from config file)")
     parser.add_argument("--process", nargs="?", type=int, default=0,
                         help="For multiprocess patient-table mode: specify "
@@ -1333,6 +1333,9 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     if args.democonfig:
         print(DEMO_CONFIG)
         return
+    if args.nlpname is None:
+        raise ValueError(
+            "Must specify nlpname parameter (unless --democonfig used)")
 
     # Validate args
     if args.nprocesses < 1:
