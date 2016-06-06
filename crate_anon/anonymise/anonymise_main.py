@@ -9,6 +9,10 @@ import logging
 from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
 
 from crate_anon.anonymise.logsupport import configure_logger_for_colour
+from crate_anon.anonymise.constants import (
+    DEFAULT_CHUNKSIZE,
+    DEFAULT_REPORT_EVERY,
+)
 from crate_anon.version import VERSION, VERSION_DATE
 
 
@@ -25,8 +29,6 @@ def main():
         version=version,
     )
 
-    DEFAULT_REPORT_EVERY = 10000
-
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -37,6 +39,11 @@ def main():
                         default=DEFAULT_REPORT_EVERY,
                         help="Report insert progress every n rows in verbose "
                              "mode (default {})".format(DEFAULT_REPORT_EVERY))
+    parser.add_argument('--chunksize', nargs="?", type=int,
+                        default=DEFAULT_CHUNKSIZE,
+                        help="Number of records copied in a chunk when copying"
+                             " PKs from one database to another"
+                             " (default {})".format(DEFAULT_CHUNKSIZE))
     parser.add_argument("--process", nargs="?", type=int, default=0,
                         help="For multiprocess patient-table mode: specify "
                              "process number")

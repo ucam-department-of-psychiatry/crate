@@ -83,6 +83,8 @@ from cardinal_pythonlib.rnc_db import (
 
 from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
+    DEFAULT_CHUNKSIZE,
+    DEFAULT_REPORT_EVERY,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT,
     MAX_PID_STR,
@@ -433,7 +435,8 @@ class Config(object):
         self.rows_inserted_per_table = {}
         self.warned_re_limits = {}
 
-        self.report_every_n_rows = 10000
+        self.report_every_n_rows = DEFAULT_REPORT_EVERY
+        self.chunksize = DEFAULT_CHUNKSIZE
         self.debug_scrubbers = False
         self.save_scrubbers = False
         

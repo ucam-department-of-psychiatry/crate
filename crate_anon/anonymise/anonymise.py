@@ -59,6 +59,8 @@ from cardinal_pythonlib.rnc_extract_text import document_to_text
 from crate_anon.anonymise.config import config
 from crate_anon.anonymise.constants import (
     ALTERMETHOD,
+    DEFAULT_CHUNKSIZE,
+    DEFAULT_REPORT_EVERY,
     INDEX,
     MYSQL_TABLE_ARGS,
     SEP,
@@ -138,7 +140,8 @@ def wipe_and_recreate_destination_db(incremental=False):
 
 
 def delete_dest_rows_with_no_src_row(srcdbname, src_table,
-                                     report_every=10000, chunksize=1000000):
+                                     report_every=DEFAULT_REPORT_EVERY,
+                                     chunksize=DEFAULT_CHUNKSIZE):
     """
     For a given source database/table, delete any rows in the corresponding
     destination table where there is no corresponding source row.
@@ -803,7 +806,8 @@ def drop_remake(incremental=False):
     for d in config.dd.get_source_databases():
         for t in config.dd.get_src_tables(d):
             delete_dest_rows_with_no_src_row(
-                d, t, report_every=config.report_every_n_rows)
+                d, t, report_every=config.report_every_n_rows,
+                chunksize=config.chunksize)
 
 
 def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
@@ -902,6 +906,7 @@ def anonymise(args):
 
     # Load/validate config
     config.report_every_n_rows = args.report
+    config.chunksize = args.chunksize
     config.debug_scrubbers = args.debugscrubbers
     config.save_scrubbers = args.savescrubbers
     config.set_echo(args.echo)
