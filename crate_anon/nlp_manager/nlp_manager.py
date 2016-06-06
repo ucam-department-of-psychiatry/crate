@@ -130,7 +130,7 @@ SqlTypeDb = String(MAX_SQL_FIELD_LEN)
 # =============================================================================
 
 DEMO_CONFIG = ("""
-# Configuration file for nlp_manager.py
+# Configuration file for CRATE NLP manager (crate_nlp).
 
 # =============================================================================
 # Overview
@@ -207,9 +207,9 @@ outputtypemap =
 progenvsection = MY_ENV_SECTION
 
 progargs = java
-    -classpath {{NLPPROGDIR}}:{{GATEDIR}}/bin/gate.jar:{{GATEDIR}}/lib/*
+    -classpath "{{NLPPROGDIR}}":"{{GATEDIR}}/bin/gate.jar":"{{GATEDIR}}/lib/*"
     {CLASSNAME}
-    -g {{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp
+    -g "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
     -a Person
     -a Location
     -it END_OF_TEXT_FOR_NLP
@@ -220,6 +220,13 @@ progargs = java
 # ... to which the text will be passed via stdin
 # ... and the result will be expected via stdout, as a set of TSV
 #     lines corresponding to the fields in destfields below
+
+# NOTE IN PARTICULAR:
+# - Use double quotes to encapsulate any filename that may have spaces within
+#   it (e.g. C:/Program Files/...).
+# - Use a forward slash director separator, even under Windows.
+# - Under Windows, use a semicolon to separate parts of the Java classpath.
+#   Under Linux, use a colon.
 
 # -----------------------------------------------------------------------------
 # The external program is slow, because NLP is slow. Therefore, we set up the
@@ -265,7 +272,7 @@ hashphrase = doesnotmatter
 [MY_ENV_SECTION]
 
 GATEDIR = /home/myuser/GATE_Developer_8.0
-NLPPROGDIR = /home/myuser/somewhere/crate/nlp_manager/compiled_nlp_classes
+NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
 
 # =============================================================================
 # Output types
@@ -294,10 +301,12 @@ destfields =
     rule        VARCHAR(100)
     firstname   VARCHAR(100)
     surname     VARCHAR(100)
-    gender      VARCHAR(6)
+    gender      VARCHAR(7)
     kind        VARCHAR(100)
     RID_FIELD   VARCHAR(64)
     TRID_FIELD  INT
+
+# ... longest gender: "unknown" (7)
 
 indexdefs =
     firstname   64
