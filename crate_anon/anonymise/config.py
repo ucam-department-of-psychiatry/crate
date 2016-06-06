@@ -433,7 +433,7 @@ class Config(object):
         self.rows_inserted_per_table = {}
         self.warned_re_limits = {}
 
-        self.report_every_n_rows = 100
+        self.report_every_n_rows = 10000
         self.debug_scrubbers = False
         self.save_scrubbers = False
         

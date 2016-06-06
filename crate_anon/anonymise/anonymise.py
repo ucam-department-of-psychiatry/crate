@@ -138,7 +138,7 @@ def wipe_and_recreate_destination_db(incremental=False):
 
 
 def delete_dest_rows_with_no_src_row(srcdbname, src_table,
-                                     report_every=1000, chunksize=10000):
+                                     report_every=10000, chunksize=1000000):
     """
     For a given source database/table, delete any rows in the corresponding
     destination table where there is no corresponding source row.
@@ -157,8 +157,7 @@ def delete_dest_rows_with_no_src_row(srcdbname, src_table,
     dest_table_name = config.dd.get_dest_table_for_src_db_table(srcdbname,
                                                                 src_table)
     start = "delete_dest_rows_with_no_src_row: {}.{} -> {}.{}: ".format(
-        srcdbname, src_table, config.destdb.name, dest_table_name
-    )
+        srcdbname, src_table, config.destdb.name, dest_table_name)
     log.info(start + "[WARNING: MAY BE SLOW]")
 
     metadata = MetaData()  # operate in isolation!

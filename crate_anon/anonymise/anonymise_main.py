@@ -25,15 +25,18 @@ def main():
         version=version,
     )
 
+    DEFAULT_REPORT_EVERY = 10000
+
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-n", "--version", action="version", version=version)
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument('-r', '--report', nargs="?", type=int, default=1000,
+    parser.add_argument('-r', '--report', nargs="?", type=int,
+                        default=DEFAULT_REPORT_EVERY,
                         help="Report insert progress every n rows in verbose "
-                             "mode (default 1000)")
+                             "mode (default {})".format(DEFAULT_REPORT_EVERY))
     parser.add_argument("--process", nargs="?", type=int, default=0,
                         help="For multiprocess patient-table mode: specify "
                              "process number")
