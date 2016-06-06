@@ -910,7 +910,8 @@ def get_dest_sqla_table(engine, otconfig):
     for i in range(len(otconfig.destfields)):
         colname = otconfig.destfields[i]
         datatype = get_sqla_coltype_from_dialect_str(
-            engine, otconfig.dest_datatypes[i])
+            otconfig.dest_datatypes[i],
+            engine.dialect)
         col = Column(colname, datatype)
         columns.append(col)
     return Table(otconfig.desttable, metadata,
