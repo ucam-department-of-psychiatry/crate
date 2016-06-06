@@ -195,20 +195,20 @@ outputtypemap =
 # -----------------------------------------------------------------------------
 # NLP is done by an external program.
 # Here we specify a program and associated arguments. The example shows how to
-# use Java to launch a specific Java program ({{CLASSNAME}}), having set
+# use Java to launch a specific Java program ({CLASSNAME}), having set
 # a path to find other Java classes, and then to pass arguments to the program
 # itself.
 # -----------------------------------------------------------------------------
 # Substitutable parameters:
 #   {{X}}         Substitutes variable X from the environment.
 #   {{NLPLOGTAG}} Additional environment variable that indicates the process
-#               being run; used to label the output from {{CLASSNAME}}.
+#               being run; used to label the output from {CLASSNAME}.
 
 progenvsection = MY_ENV_SECTION
 
 progargs = java
     -classpath {{NLPPROGDIR}}:{{GATEDIR}}/bin/gate.jar:{{GATEDIR}}/lib/*
-    {{CLASSNAME}}
+    {CLASSNAME}
     -g {{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp
     -a Person
     -a Location
@@ -286,11 +286,6 @@ NLPPROGDIR = /home/myuser/somewhere/crate/nlp_manager/compiled_nlp_classes
 destdb = MY_DESTINATION_DATABASE
 desttable = PERSON
 destfields =
-    _srcdb      {SqlTypeDb}
-    _srctable   {SqlTypeDb}
-    _srcpkfield {SqlTypeDb}
-    _srcpkval   INT
-    _srcfield   {SqlTypeDb}
     _type       {SqlTypeDb}
     _id         INT
     _start      INT
@@ -315,11 +310,6 @@ indexdefs =
 destdb = MY_DESTINATION_DATABASE
 desttable = LOCATION
 destfields =
-    _srcdb      {SqlTypeDb}
-    _srctable   {SqlTypeDb}
-    _srcpkfield {SqlTypeDb}
-    _srcpkval   INT
-    _srcfield   {SqlTypeDb}
     _type       {SqlTypeDb}
     _id         INT
     _start      INT
