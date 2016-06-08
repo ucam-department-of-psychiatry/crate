@@ -10,6 +10,7 @@ from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
 
 from crate_anon.anonymise.logsupport import configure_logger_for_colour
 from crate_anon.anonymise.constants import (
+    CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
 )
@@ -33,6 +34,9 @@ def main():
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-n", "--version", action="version", version=version)
+    parser.add_argument("--config",
+                        help="Config file (overriding environment "
+                             "variable {})".format(CONFIG_ENV_VAR))
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument('-r', '--report', nargs="?", type=int,
@@ -121,6 +125,9 @@ def main():
             print("Text extractor for extension {} present: {}".format(
                 ext, available))
         return
+    
+    if args.config:
+        os.environ[CONFIG_ENV_VAR] = args.config
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import

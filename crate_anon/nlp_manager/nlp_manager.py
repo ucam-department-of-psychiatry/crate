@@ -1288,6 +1288,9 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("-n", "--version", action="version", version=version)
+    parser.add_argument("--config",
+                        help="Config file (overriding environment "
+                             "variable {})".format(NLP_CONFIG_ENV_VAR))
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument("nlpname", nargs="?", default=None,
@@ -1327,6 +1330,8 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
     if args.nlpname is None:
         raise ValueError(
             "Must specify nlpname parameter (unless --democonfig used)")
+    if args.config:
+        os.environ[NLP_CONFIG_ENV_VAR] = args.config
 
     # Validate args
     if args.nprocesses < 1:

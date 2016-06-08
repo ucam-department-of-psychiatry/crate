@@ -55,7 +55,7 @@ public class CrateGatePipeline {
     private String m_input_terminator = m_default_input_terminator;
     private String m_output_terminator = m_default_output_terminator;
     private File m_gapp_file = null;
-    private String m_encoding = null;  // null: use system default
+    private String m_file_encoding = null;  // null: use system default
     private int m_verbose = 0;
     private String m_annotxml_filename_stem = null;
     private String m_gatexml_filename_stem = null;
@@ -66,6 +66,8 @@ public class CrateGatePipeline {
     // Internal
     private String m_logprefix = m_defaultlogprefix;
     private int m_count = 0;
+    private String m_std_encoding = "UTF-8";
+    private PrintStream m_out = null;
 
     // GATE things
     private CorpusController m_controller = null;
@@ -77,6 +79,7 @@ public class CrateGatePipeline {
 
     public CrateGatePipeline(String args[])
             throws GateException, IOException, ResourceInstantiationException {
+        m_out = new PrintStream(System.out, true, m_std_encoding);
         m_args = args;
         process_args();
         if (m_verbose > 0) {
@@ -178,7 +181,7 @@ public class CrateGatePipeline {
                     break;
                 case "-e":
                     if (nleft < 1) fail(insufficient);
-                    m_encoding = m_args[i++];
+                    m_file_encoding = m_args[i++];
                     break;
                 case "-g":
                     if (nleft < 1) fail(insufficient);
@@ -257,7 +260,7 @@ public class CrateGatePipeline {
 
     private StdinResult read_stdin() throws IOException {
         BufferedReader br = new BufferedReader(
-            new InputStreamReader(System.in));
+            new InputStreamReader(System.in, m_std_encoding));
         StringBuffer sb = new StringBuffer();
         String line;
         boolean finished_this = false;
@@ -290,11 +293,13 @@ public class CrateGatePipeline {
     }
 
     private void print(String msg) {
-        System.out.print(msg);
+        // System.out.print(msg);
+        m_out.print(msg);
     }
 
     private void println(String msg) {
-        System.out.println(msg);
+        // System.out.println(msg);
+        m_out.println(msg);
     }
 
     private void writeToFile(String filename, String contents)
@@ -304,10 +309,10 @@ public class CrateGatePipeline {
         FileOutputStream fos = new FileOutputStream(file);
         BufferedOutputStream bos = new BufferedOutputStream(fos);
         OutputStreamWriter out;
-        if (m_encoding == null) {
+        if (m_file_encoding == null) {
             out = new OutputStreamWriter(bos);
         } else {
-            out = new OutputStreamWriter(bos, m_encoding);
+            out = new OutputStreamWriter(bos, m_file_encoding);
         }
         out.write(contents);
         out.close();
@@ -468,7 +473,7 @@ public class CrateGatePipeline {
         }
 
         // Primary output
-        print_map_as_tsv_line(outputmap, System.out);
+        print_map_as_tsv_line(outputmap, m_out);
 
         // Send to file as well?
         if (outtsv != null) {

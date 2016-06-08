@@ -109,6 +109,7 @@ def main():
         os.makedirs(args.builddir, exist_ok=True)
         rmglob(os.path.join(args.builddir, '*.class'))
         moveglob(os.path.join(THIS_DIR, '*.class'), args.builddir)
+        log.info("Output *.class files are in {}".format(args.builddir))
 
     # JAR build and run
     # mkdir -p jarbuild

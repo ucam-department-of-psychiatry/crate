@@ -220,7 +220,7 @@ setup(
             # Format is 'script=module:function".
             'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
             'crate_print_demo_anon_config=crate_anon.anonymise.print_demo_config:main',  # noqa
-            'crate_anonymise=crate_anon.anonymise.anonymise_main:main',
+            'crate_anonymise=crate_anon.anonymise.anonymise_cli:main',
             'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
             'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
