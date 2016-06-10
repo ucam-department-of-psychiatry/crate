@@ -53,7 +53,8 @@ LOG_COLORS = {
 # Cosmetic
 # =============================================================================
 
-SEP = "=" * 20 + " "
+BIGSEP = "=" * 20 + " "
+SEP = "-" * 20 + " "
 
 # =============================================================================
 # Defaults for command-line options
@@ -131,7 +132,8 @@ SRCFLAG = AttrDict(
     DEFINESPRIMARYPIDS="*",
     MASTERPID="M",
     CONSTANT="C",
-    ADDITION_ONLY="A"
+    ADDITION_ONLY="A",
+    OPTOUT="!"
 )
 
 PidType = BigInteger
@@ -188,11 +190,15 @@ DEMO_CONFIG = """
 #     Field name in source database.
 # src_datatype
 #     SQL data type in source database, e.g. INT, VARCHAR(50).
+#
 # src_flags
 #     One or more of the following characters:
-#     {SRCFLAG.PK}:  This field is the primary key (PK) for the table it's
-#         in.
-#     {SRCFLAG.ADDSRCHASH}:  Add source hash, for incremental updates?
+#
+#     {SRCFLAG.PK}
+#         This field is the primary key (PK) for the table it's in.
+#
+#     {SRCFLAG.ADDSRCHASH}
+#         Add source hash, for incremental updates?
 #         - May only be set for src_pk fields (which cannot then be omitted
 #           in the destination, and which require the index={INDEX.UNIQUE}
 #           setting, so that a unique index is created for this field).
@@ -203,8 +209,9 @@ DEMO_CONFIG = """
 #           (scrub_src). The field is of type VARCHAR and its length is
 #           determined by the hash_method parameter (see below).
 #         - This table is then capable of incremental updates.
-#     {SRCFLAG.CONSTANT}:  Contents are constant (will not change) for a
-#         given PK.
+#
+#     {SRCFLAG.CONSTANT}
+#         Contents are constant (will not change) for a given PK.
 #         - An alternative to '{SRCFLAG.ADDSRCHASH}'. Can't be used with it.
 #         - Applicable only to src_pk fields, which can't be omitted in the
 #           destination, and which have the same index requirements as
@@ -216,10 +223,13 @@ DEMO_CONFIG = """
 #         - Intended for very data-intensive fields, such as BLOB fields
 #           containing binary documents, where hashing would be quite slow
 #           over many gigabytes of data.
-#     {SRCFLAG.ADDITION_ONLY}:  Addition only. It is assumed that records can
-#         only be added, not deleted.
-#     {SRCFLAG.PRIMARYPID}:  Primary patient ID field.
-#         If set,
+#
+#     {SRCFLAG.ADDITION_ONLY}
+#         Addition only. It is assumed that records can only be added, not
+#         deleted.
+#
+#     {SRCFLAG.PRIMARYPID}
+#         Primary patient ID field. If set,
 #         (a) This field will be used to link records for the same patient
 #             across all tables. It must therefore be present, and marked in
 #             the data dictionary, for ALL tables that contain patient-
@@ -227,63 +237,97 @@ DEMO_CONFIG = """
 #         (b) If the field is not omitted: the field will be hashed as the
 #             primary ID (database patient primary key) in the destination,
 #             and a transient research ID (TRID) also added.
-#     {SRCFLAG.DEFINESPRIMARYPIDS}:  This field *defines* primary PIDs.
-#         If set, this row will be used to search for all patient IDs, and
-#         will define them for this database. Only those patients will be
-#         processed (for all tables containing patient info). Typically, this
-#         flag is applied to a SINGLE field in a SINGLE table, usually the
-#         principal patient registration/demographics table.
-#     {SRCFLAG.MASTERPID}:  Master ID (e.g. NHS number). The field will be
-#         hashed with the master PID hasher.
+#
+#     {SRCFLAG.DEFINESPRIMARYPIDS}
+#         This field *defines* primary PIDs. If set, this row will be used to
+#         search for all patient IDs, and will define them for this database.
+#         Only those patients will be processed (for all tables containing
+#         patient info). Typically, this flag is applied to a SINGLE field in a
+#         SINGLE table, usually the principal patient registration/demographics
+#         table.
+#
+#     {SRCFLAG.MASTERPID}
+#         Master ID (e.g. NHS number).
+#         The field will be hashed with the master PID hasher.
+#
+#     {SRCFLAG.OPTOUT}
+#         This field is used to mark that the patient wishes to opt out
+#         entirely. It must be in a field that also has a primary patient ID
+#         field (because that's the ID that will be omitted). If the opt-out
+#         field contains a value that's defined in the optout_col_values
+#         setting (see below), that patient will be opted out entirely from
+#         the anonymised database.
 #
 # scrub_src
 #     Either "{SCRUBSRC.PATIENT}", "{SCRUBSRC.THIRDPARTY}", or blank.
-#     - If "{SCRUBSRC.PATIENT}", contains patient-identifiable information
-#       that must be removed from "scrub_in" fields.
-#     - If "{SCRUBSRC.THIRDPARTY}", contains identifiable information about
-#       carer/family/other third party, which must be removed from
+#     - "{SCRUBSRC.PATIENT}":
+#       Contains patient-identifiable information that must be removed from
 #       "scrub_in" fields.
+#     - "{SCRUBSRC.THIRDPARTY}":
+#       Contains identifiable information about carer/family/other third party,
+#       which must be removed from "scrub_in" fields.
+#
 # scrub_method
 #     Applicable to scrub_src fields. Manner in which this field should be
 #     treated for scrubbing.
 #     Options:
-#     - "{SCRUBMETHOD.WORDS}": treat as a set of textual words
-#       This is the default for all textual fields (e. CHAR, VARCHAR, TEXT).
-#       Typically used for names.
-#     - "{SCRUBMETHOD.PHRASE}": treat as a textual phrase (a sequence of
-#       words to be replaced only when they occur in sequence). Typically
-#       used for address components.
-#     - "{SCRUBMETHOD.NUMERIC}": treat as number
-#       This is the default for all numeric fields (e.g. INTEGER, FLOAT).
-#       If you have a phone number in a text field, mark it as
-#       "{SCRUBMETHOD.NUMERIC}" here. It will be scrubbed regardless of
-#       spacing/punctuation.
-#     - "{SCRUBMETHOD.CODE}": treat as an alphanumeric code. Suited to
-#       postcodes. Very like "{SCRUBMETHOD.NUMERIC}" but permits non-digits.
-#     - "{SCRUBMETHOD.DATE}": treat as date.
-#       This is the default for all DATE/DATETIME fields.
+#
+#     - "{SCRUBMETHOD.WORDS}"
+#       Treat as a set of textual words. This is the default for all textual
+#       fields (e.g. CHAR, VARCHAR, TEXT). Typically used for names.
+#
+#     - "{SCRUBMETHOD.PHRASE}"
+#       Treat as a textual phrase (a sequence of words to be replaced only when
+#       they occur in sequence). Typically used for address components.
+#
+#     - "{SCRUBMETHOD.NUMERIC}"
+#       Treat as a number. This is the default for all numeric fields (e.g.
+#       INTEGER, FLOAT). If you have a phone number in a text field, use this
+#       method; it will be scrubbed regardless of spacing/punctuation.
+#
+#     - "{SCRUBMETHOD.CODE}"
+#       Teat as an alphanumeric code. Suited to postcodes. Very like the
+#       numeric method, but permits non-digits.
+#
+#     - "{SCRUBMETHOD.DATE}"
+#       Treat as a date. This is the default for all DATE/DATETIME fields.
 #
 # decision
-#     Either "{DECISION.OMIT}" (omit from output entirely) or
-#     "{DECISION.INCLUDE}", to include. Case sensitive, for safety.
+#     One of:
+#     - "{DECISION.OMIT}": omit the field from the output entirely;
+#     - "{DECISION.INCLUDE}": include it.
+#     This is case sensitive, for safety.
+#
 # alter_method
 #     Manner in which to alter the data. Blank, or one of:
-#     - "{ALTERMETHOD.SCRUBIN}": scrub in. Applies to text fields only. The
-#       field will have its contents anonymised (using information from other
-#       fields).
-#     - "{ALTERMETHOD.TRUNCATEDATE}": truncate date to first of the month.
-#       Applicable to text or date-as-text fields.
-#     - "{ALTERMETHOD.BIN2TEXT}=EXTFIELDNAME": convert a binary field (e.g.
-#       VARBINARY, BLOB) to text (e.g. {LONGTEXT}). The field EXTFIELDNAME,
-#       which must be in the same source table, must contain the file
-#       extension (e.g. "pdf", ".pdf") or a filename with that extension
-#       (e.g. "/some/path/mything.pdf").
-#     - "{ALTERMETHOD.BIN2TEXT_SCRUB}=EXTFIELDNAME": ditto, but also scrub
-#       in.
-#     - "{ALTERMETHOD.FILENAME2TEXT}": as for {ALTERMETHOD.BIN2TEXT}, but
-#       the field contains a filename (the contents of which is converted
-#       to text), rather than binary file contents directly.
-#     - "{ALTERMETHOD.FILENAME2TEXT_SCRUB}": ditto, but also scrub in.
+#
+#     - "{ALTERMETHOD.SCRUBIN}"
+#       Scrub in. Applies to text fields only. The field will have its contents
+#       anonymised (using information from other fields). Use this for any
+#       text field that end users might store free-text comments in.
+#
+#     - "{ALTERMETHOD.TRUNCATEDATE}"
+#       Truncate this date to the first of the month. Applicable to text or
+#       date-as-text fields.
+#
+#     - "{ALTERMETHOD.BIN2TEXT}=EXTFIELDNAME"
+#       Convert a binary field (e.g. VARBINARY, BLOB) to text (e.g. LONGTEXT).
+#       The binary data is taken to be the representation of a document.
+#       The field EXTFIELDNAME, which must be in the same source table, must
+#       contain the file extension (e.g. "pdf", ".pdf") or a filename with that
+#       extension (e.g. "/some/path/mything.pdf"), so that the anonymiser knows
+#       how to treat the binary data to extract text from it.
+#
+#     - "{ALTERMETHOD.BIN2TEXT_SCRUB}=EXTFIELDNAME"
+#       Ditto, but also scrub in.
+#
+#     - "{ALTERMETHOD.FILENAME2TEXT}"
+#       As for the binary-to-text option, but the field contains a filename
+#       (the contents of which is converted to text), rather than containing
+#       binary data directly.
+#
+#     - "{ALTERMETHOD.FILENAME2TEXT_SCRUB}"
+#       Ditto, but also scrub in.
 #
 # dest_table
 #     Table name in destination database.
@@ -295,10 +339,13 @@ DEMO_CONFIG = """
 # index
 #     One of:
 #     - blank: no index.
-#     - "{INDEX.NORMAL}": normal index on destination.
-#     - "{INDEX.UNIQUE}": unique index on destination.
-#     - "{INDEX.FULLTEXT}": create a FULLTEXT index, for rapid searching
-#       within long text fields. Only applicable to one field per table.
+#     - "{INDEX.NORMAL}"
+#       ... create a normal index on the destination field.
+#     - "{INDEX.UNIQUE}"
+#       ... create a unique index on the destination field.
+#     - "{INDEX.FULLTEXT}"
+#       ... create a FULLTEXT index, for rapid searching within long text
+#       fields. Only applicable to one field per table.
 # indexlen
 #     Integer. Can be blank. If not, sets the prefix length of the index.
 #     Mandatory in MySQL if you apply a normal (+/- unique) index to a TEXT
@@ -563,6 +610,28 @@ debug_max_n_patients =
     # the data dictionary, and overriding debug_max_n_patients).
 debug_pid_list =
 
+# =============================================================================
+# Opting out entirely
+# =============================================================================
+# Patients who elect to opt out entirely have their PIDs stored in the OptOut
+# table of the admin database. ENTRIES ARE NEVER REMOVED FROM THIS LIST BY
+# CRATE. It can be populated in three ways:
+#   1. Manually, by adding a PID to the column opt_out.pid).
+#   2. By maintaining a text file list of integer PIDs. Any PIDs in this file
+#      are added to the opt-out list.
+#   3. By flagging a source database field as indicating an opt-out, using the
+#      src_flags = "{SRCFLAG.OPTOUT}" marker.
+
+    # If you set this, the file is scanned for any integers, taken to be PIDs
+    # of patients who wish to opt out.
+optout_filename =
+
+    # If you mark a field in the data dictionary as an opt-out field (see
+    # above), that says "the field tells you whether the patient opts out or
+    # not". But is it "opt out" or "not"? If the actual value matches one
+    # below, then it's "opt out". Specify a LIST OF PYTHON VALUES; for example:
+    #       optout_col_values = [True, 'Yes', 'Y']
+optout_col_values =
 
 # =============================================================================
 # Destination database details. User should have WRITE access.

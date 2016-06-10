@@ -54,7 +54,7 @@ def count_star(session, tablename):
 # http://stackoverflow.com/questions/15381604
 # http://docs.sqlalchemy.org/en/latest/orm/query.html
 
-def plain_exists(session, tablename, *criteria):
+def exists_plain(session, tablename, *criteria):
     # works if you pass a connection or a session
     exists_clause = exists().select_from(table(tablename))
     for criterion in criteria:
@@ -63,7 +63,7 @@ def plain_exists(session, tablename, *criteria):
     return session.execute(query).scalar()
 
 
-def orm_exists(session, ormclass, *criteria):
+def exists_orm(session, ormclass, *criteria):
     # http://docs.sqlalchemy.org/en/latest/orm/query.html
     q = session.query(ormclass)
     for criterion in criteria:

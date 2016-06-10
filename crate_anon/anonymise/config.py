@@ -28,7 +28,7 @@ Copyright/licensing:
 Thoughts on configuration method
 
 -   First version used a Config() class, which initializes with blank values.
-    The anonymise_main.py file creates a config singleton and passes it around.
+    The anonymise_cli.py file creates a config singleton and passes it around.
     Then when its set() method is called, it reads a config file and
     instantiates its settings.
     An option exists to print a draft config without ever reading one from
@@ -67,6 +67,7 @@ Thoughts on configuration method
 # Imports
 # =============================================================================
 
+import ast
 import codecs
 import configparser
 import logging
@@ -256,6 +257,19 @@ class Config(object):
             except ValueError:  # e.g. invalid literal for int() with base 10
                 return default
 
+        def opt_pyvalue_list(option, default=None):
+            default = default or []
+            strvalue = opt_str(option)
+            if not strvalue:
+                return default
+            pyvalue = ast.literal_eval(strvalue)
+            # Now, make sure it's a list:
+            # http://stackoverflow.com/questions/1835018
+            if not isinstance(pyvalue, list):
+                raise ValueError("Option {} must evaluate to a Python list "
+                                 "using ast.literal_eval()".format(option))
+            return pyvalue
+
         def get_database(section_, name, srccfg_=None, with_session=False,
                          with_conn=True, reflect=True):
             url = parser.get(section_, 'url', fallback=None)
@@ -322,6 +336,8 @@ class Config(object):
         self.debug_pid_list = opt_multiline_int('debug_pid_list')
         self.extract_text_plain = opt_bool('extract_text_plain', False)
         self.extract_text_width = opt_int('extract_text_width', 80)
+        self.optout_filename = opt_str('optout_filename')
+        self.optout_col_values = opt_pyvalue_list('optout_col_values')
 
         # Databases
         destination_database_cfg_section = opt_str('destination_database')

@@ -39,7 +39,7 @@ from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
 
-ANONYMISER = 'crate_anon.anonymise.anonymise_main'
+ANONYMISER = 'crate_anon.anonymise.anonymise_cli'
 
 CPUCOUNT = multiprocessing.cpu_count()
 
@@ -103,6 +103,15 @@ def main():
     procargs = [
         sys.executable, '-m', ANONYMISER,
         '--dropremake', '--processcluster=STRUCTURE'
+    ] + common_options
+    check_call_process(procargs)
+
+    # -------------------------------------------------------------------------
+    # Build opt-out lists. Only run one copy of this!
+    # -------------------------------------------------------------------------
+    procargs = [
+        sys.executable, '-m', ANONYMISER,
+        '--optout', '--processcluster=OPTOUT'
     ] + common_options
     check_call_process(procargs)
 

@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/anonymise_main.py
+# crate_anon/anonymise/anonymise_cli.py
 
 # Uses a delayed import (see below), so we can set up logging before
 # using the config object.
 import argparse
 import logging
+import os
 
 from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
 
@@ -76,6 +77,8 @@ def main():
                              "then stop")
     parser.add_argument("--dropremake", action="store_true",
                         help="Drop/remake destination tables, then stop")
+    parser.add_argument("--optout", action="store_true",
+                        help="Build opt-out list, then stop")
     parser.add_argument("--nonpatienttables", action="store_true",
                         help="Process non-patient tables only")
     parser.add_argument("--patienttables", action="store_true",

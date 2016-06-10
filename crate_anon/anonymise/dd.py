@@ -149,6 +149,7 @@ class DataDictionaryRow(object):
         self._master_pid = False
         self._constant = False
         self._addition_only = False
+        self._opt_out_info = False
 
         # For alter_method:
         self._scrub = False
@@ -189,6 +190,10 @@ class DataDictionaryRow(object):
         return self._addition_only
 
     @property
+    def opt_out_info(self):
+        return self._opt_out_info
+
+    @property
     def src_flags(self):
         return ''.join([
             SRCFLAG.PK if self._pk else '',
@@ -198,6 +203,7 @@ class DataDictionaryRow(object):
             SRCFLAG.MASTERPID if self._master_pid else '',
             SRCFLAG.CONSTANT if self._constant else '',
             SRCFLAG.ADDITION_ONLY if self._addition_only else '',
+            SRCFLAG.OPTOUT if self._opt_out_info else '',
         ])
 
     @src_flags.setter
@@ -209,6 +215,7 @@ class DataDictionaryRow(object):
         self._master_pid = SRCFLAG.MASTERPID in value
         self._constant = SRCFLAG.CONSTANT in value
         self._addition_only = SRCFLAG.ADDITION_ONLY in value
+        self._opt_out_info = SRCFLAG.OPTOUT in value
 
     @property
     def scrub(self):
@@ -591,20 +598,19 @@ class DataDictionaryRow(object):
         if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(
                 "All fields with src_flags={} set must have src_flags={} "
-                "set".format(
-                    SRCFLAG.DEFINESPRIMARYPIDS,
-                    SRCFLAG.PRIMARYPID
-                ))
+                "set".format(SRCFLAG.DEFINESPRIMARYPIDS, SRCFLAG.PRIMARYPID))
+
+        if self._opt_out_info and not self.config.optout_col_values:
+            raise ValueError(
+                "Fields with src_flags={} exist, but config's "
+                "optout_col_values setting is empty".format(SRCFLAG.OPTOUT))
 
         if count_bool([self._primary_pid,
                        self._master_pid,
                        bool(self.alter_method)]) > 1:
             raise ValueError(
                 "Field can be any ONE of: src_flags={}, src_flags={}, "
-                "alter_method".format(
-                    SRCFLAG.PRIMARYPID,
-                    SRCFLAG.MASTERPID
-                ))
+                "alter_method".format(SRCFLAG.PRIMARYPID, SRCFLAG.MASTERPID))
 
         valid_scrubsrc = [SCRUBSRC.PATIENT, SCRUBSRC.THIRDPARTY, ""]
         if self.scrub_src not in valid_scrubsrc:
@@ -992,6 +998,15 @@ class DataDictionary(object):
             for r in self.rows:
                 r.check_prohibited_fieldnames(prohibited_fieldnames)
 
+        log.debug("Checking DD: source tables...")
+        for t in self.get_optout_defining_fields():
+            pidfield_name = t[3]
+            if not pidfield_name:
+                raise ValueError(
+                    "Field {}.{}.{} has src_flags={} set, but that table does "
+                    "not have a primary patient ID field".format(
+                        t[0], t[1], t[2], SRCFLAG.OPTOUT))
+
         log.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables():
             sdt = self.get_src_dbs_tables_for_dest_table(t)
@@ -1147,6 +1162,17 @@ class DataDictionary(object):
             ddr.dest_table
             for ddr in self.rows
             if ddr.contains_patient_info() and not ddr.omit
+        ])
+
+    @lru_cache(maxsize=None)
+    def get_optout_defining_fields(self):
+        """Return a SortedSet of (src_db, src_table, optout_definer, pidfield)
+        tuples."""
+        return SortedSet([
+            (ddr.src_db, ddr.src_table, ddr.src_field,
+                self.get_pid_name(ddr.src_db, ddr.src_table))
+            for ddr in self.rows
+            if ddr.opt_out_info
         ])
 
     # =========================================================================
@@ -1360,6 +1386,7 @@ class DataDictionary(object):
             self.get_src_dbs_tables_with_no_pt_info_int_pk,
             self.get_dest_tables,
             self.get_dest_tables_with_patient_info,
+            self.get_optout_defining_fields,
 
             self.get_src_tables,
             self.get_src_tables_with_active_dest,

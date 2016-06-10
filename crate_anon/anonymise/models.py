@@ -30,7 +30,7 @@ from crate_anon.anonymise.constants import (
     TridType,
 )
 from crate_anon.anonymise.config import config
-from crate_anon.anonymise.sqla import orm_exists
+from crate_anon.anonymise.sqla import exists_orm
 
 
 log = logging.getLogger(__name__)
@@ -148,4 +148,11 @@ class OptOut(AdminBase):
 
     @classmethod
     def opting_out(cls, session, pid):
-        return orm_exists(session, cls, cls.pid == pid)
+        return exists_orm(session, cls, cls.pid == pid)
+
+    @classmethod
+    def add(cls, session, pid):
+        log.debug("Adding opt-out for PID {}".format(pid))
+        newthing = cls(pid=pid)
+        session.merge(newthing)
+        # http://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa

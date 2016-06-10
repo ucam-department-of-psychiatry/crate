@@ -51,6 +51,7 @@ import subprocess
 from sqlalchemy import (
     create_engine,
     BigInteger,
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -124,6 +125,7 @@ class Patient(Base):
     nhsnum = Column(BigInteger)
     phone = Column(String(50))
     postcode = Column(String(50))
+    optout = Column(Boolean, default=False)
 
 
 class Note(Base):
@@ -168,6 +170,7 @@ class FilenameDoc(Base):
 
 # noinspection PyPep8Naming
 def main():
+    default_size = 0
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "url",
@@ -177,8 +180,9 @@ def main():
             " WARNING: If you get the error 'MySQL has gone away', increase "
             "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."))
     parser.add_argument(
-        "--size", type=int, default=0, choices=[0, 1, 2, 3],
-        help="Make tiny (0), small (1), medium (2), or large (3) database")
+        "--size", type=int, default=default_size, choices=[0, 1, 2, 3],
+        help="Make tiny (0), small (1), medium (2), or large (3) database "
+             "(default={})".format(default_size))
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument("--echo", action="store_true",
@@ -295,7 +299,7 @@ His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
         surname="",
         dob=datetime.datetime(day=11, month=11, year=1911),
         nhsnum=123456,
-        phone="(01223)-123456",
+        phone="(01223)-234567",
         postcode="CB2 3EB",
     )
     session.add(p2)

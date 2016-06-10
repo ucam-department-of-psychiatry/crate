@@ -59,19 +59,24 @@ from cardinal_pythonlib.rnc_extract_text import document_to_text
 from crate_anon.anonymise.config import config
 from crate_anon.anonymise.constants import (
     ALTERMETHOD,
+    BIGSEP,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
     INDEX,
     MYSQL_TABLE_ARGS,
     SEP,
 )
-from crate_anon.anonymise.models import OptOut, PatientInfo, TridRecord
+from crate_anon.anonymise.models import (
+    OptOut,
+    PatientInfo,
+    TridRecord,
+)
 from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.sqla import (
     count_star,
     get_column_names,
     add_index,
-    plain_exists,
+    exists_plain,
 )
 
 log = logging.getLogger(__name__)
@@ -87,7 +92,7 @@ def identical_record_exists_by_hash(dest_table, pkfield, pkvalue,
     For a given PK in a given destination table, is there a record with the
     specified value for its source hash?
     """
-    return plain_exists(config.destdb.session,
+    return exists_plain(config.destdb.session,
                         dest_table,
                         column(pkfield) == pkvalue,
                         column(config.source_hash_fieldname) == hashvalue)
@@ -97,7 +102,7 @@ def identical_record_exists_by_pk(dest_table, pkfield, pkvalue):
     """
     For a given PK in a given destination table, does a record exist?
     """
-    return plain_exists(config.destdb.session,
+    return exists_plain(config.destdb.session,
                         dest_table,
                         column(pkfield) == pkvalue)
 
@@ -271,11 +276,15 @@ def opt_out(pid):
 
 
 def gen_optout_rids():
+    # If a patient opts out, we need to be able to wipe their information from
+    # the database, and hence look up their RID for that purpose.
     session = config.admindb.session
-    return (
+    result = (
         session.query(PatientInfo.rid).
         filter(PatientInfo.pid.in_(session.query(OptOut.pid)))
-    )  # ... is itself a generator
+    )
+    for row in result:
+        yield row[0]
 
 
 # =============================================================================
@@ -705,9 +714,11 @@ def patient_processing_fn(tasknum=0, ntasks=1, incremental=False):
 
 def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     """
-    Delete any data from patients that have opted out.
+    Delete any data from patients that have opted out (after their data was
+    processed on a previous occasion).
     (Slightly complicated by the fact that the destination database can't
-    necessarily 'see' the mapping database.)
+    necessarily 'see' the mapping database, so we need to cache the RID keys in
+    the destination database temporarily.)
     """
     start = "wipe_opt_out_patients"
     log.info(start)
@@ -734,6 +745,9 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     log.debug(start + ": 3. populating temporary table with RIDs")
 
     def insert(records_):
+        # records_: a list of dictionaries
+        # http://docs.sqlalchemy.org/en/latest/core/tutorial.html
+        log.critical(repr(records_))
         log.debug(start + "... inserting {} records".format(len(records_)))
         destsession.execute(temptable.insert(), records_)
 
@@ -743,7 +757,7 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
         i += 1
         if report_every and i % report_every == 0:
             log.debug(start + "... src row# {}".format(i))
-        records.append([rid])
+        records.append({pkfield: rid})  # a row is a dict of values
         if i % chunksize == 0:
             insert(records)
             records = []
@@ -788,6 +802,7 @@ def drop_remake(incremental=False):
     If incremental is True, doesn't drop tables; just deletes destination
     information where source information no longer exists.
     """
+    log.info(SEP + "Creating database structure +/- deleting dead data")
     engine = config.admindb.engine
     if not incremental:
         log.info("Dropping admin tables except opt-out")
@@ -802,12 +817,67 @@ def drop_remake(incremental=False):
     wipe_and_recreate_destination_db(incremental=incremental)
     if not incremental:
         return
-    wipe_opt_out_patients()
     for d in config.dd.get_source_databases():
         for t in config.dd.get_src_tables(d):
             delete_dest_rows_with_no_src_row(
                 d, t, report_every=config.report_every_n_rows,
                 chunksize=config.chunksize)
+
+
+def gen_opt_out_pids_from_file():
+    if config.optout_filename:
+        log.info("... {}".format(config.optout_filename))
+        with open(config.optout_filename) as f:
+            contents = f.read()
+            pids = [int(x) for x in contents.split() if x.isdigit()]
+        for pid in pids:
+            yield pid
+    else:
+        log.info("... no opt-out disk file in use")
+
+
+def gen_opt_out_pids_from_database():
+    defining_fields = config.dd.get_optout_defining_fields()
+    if not defining_fields:
+        log.info("... no opt-out-defining fields in data dictionary")
+        return
+    for t in defining_fields:
+        src_db = t[0]
+        src_table = t[1]
+        optout_colname = t[2]
+        pid_colname = t[3]
+        session = config.sources[src_db].session
+        log.info("... {}.{}.{} ({})".format(src_db, src_table, optout_colname,
+                                            pid_colname))
+        sqla_table = table(src_table)
+        optout_defining_col = column(optout_colname)
+        pidcol = column(pid_colname)
+        query = (
+            select([pidcol]).
+            select_from(sqla_table).
+            where(optout_defining_col.in_(config.optout_col_values)).
+            distinct().
+            order_by(pidcol)
+        )
+        result = session.execute(query)
+        for row in result:
+            pid = row[0]
+            yield pid
+
+
+def setup_opt_out(incremental=False):
+    log.info(SEP + "Managing opt-outs")
+    adminsession = config.admindb.session
+    log.info("Hunting for opt-out patients from disk file...")
+    for pid in gen_opt_out_pids_from_file():
+        OptOut.add(adminsession, pid)
+    log.info("Hunting for opt-out patients from database...")
+    for pid in gen_opt_out_pids_from_database():
+        OptOut.add(adminsession, pid)
+    adminsession.commit()
+    if not incremental:
+        return
+    wipe_opt_out_patients()
 
 
 def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
@@ -901,7 +971,7 @@ def anonymise(args):
     if args.incrementaldd and args.draftdd:
         raise ValueError("Can't use --incrementaldd and --draftdd")
 
-    everything = not any([args.dropremake, args.nonpatienttables,
+    everything = not any([args.dropremake, args.optout, args.nonpatienttables,
                           args.patienttables, args.index])
 
     # Load/validate config
@@ -934,20 +1004,24 @@ def anonymise(args):
 
     # -------------------------------------------------------------------------
 
-    log.info(SEP + "Starting")
+    log.info(BIGSEP + "Starting")
     start = get_now_utc()
 
     # 1. Drop/remake tables. Single-tasking only.
     if args.dropremake or everything:
         drop_remake(incremental=args.incremental)
 
-    # 2. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
+    # 2. Deal with opt-outs
+    if args.optout or everything:
+        setup_opt_out(incremental=args.incremental)
+
+    # 3. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
     if args.nonpatienttables or everything:
         process_nonpatient_tables(tasknum=args.process,
                                   ntasks=args.nprocesses,
                                   incremental=args.incremental)
 
-    # 3. Tables with patient info. (This bit supports multithreading.)
+    # 4. Tables with patient info. (This bit supports multithreading.)
     #    Process PER PATIENT, across all tables, because we have to synthesize
     #    information to scrub across the entirety of that patient's record.
     if args.patienttables or everything:
@@ -956,11 +1030,11 @@ def anonymise(args):
                                nprocesses=args.nprocesses,
                                incremental=args.incremental)
 
-    # 4. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
+    # 5. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
     if args.index or everything:
         create_indexes(tasknum=args.process, ntasks=args.nprocesses)
 
-    log.info(SEP + "Finished")
+    log.info(BIGSEP + "Finished")
     end = get_now_utc()
     time_taken = end - start
     log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
