@@ -137,8 +137,8 @@ class TridRecord(AdminBase):
                 session.rollback()
 
 
-class OptOut(AdminBase):
-    __tablename__ = 'opt_out'
+class OptOutPid(AdminBase):
+    __tablename__ = 'opt_out_pid'
     __table_args__ = MYSQL_TABLE_ARGS
 
     pid = Column(
@@ -156,3 +156,23 @@ class OptOut(AdminBase):
         newthing = cls(pid=pid)
         session.merge(newthing)
         # http://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
+
+
+class OptOutMpid(AdminBase):
+    __tablename__ = 'opt_out_mpid'
+    __table_args__ = MYSQL_TABLE_ARGS
+
+    mpid = Column(
+        'mpid', PidType,
+        primary_key=True,
+        doc="Patient ID")
+
+    @classmethod
+    def opting_out(cls, session, mpid):
+        return exists_orm(session, cls, cls.mpid == mpid)
+
+    @classmethod
+    def add(cls, session, mpid):
+        log.debug("Adding opt-out for MPID {}".format(mpid))
+        newthing = cls(mpid=mpid)
+        session.merge(newthing)

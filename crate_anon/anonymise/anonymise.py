@@ -45,6 +45,7 @@ from sqlalchemy.schema import (
 from sqlalchemy.sql import (
     column,
     func,
+    or_,
     select,
     table,
 )
@@ -67,7 +68,8 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.anonymise.models import (
-    OptOut,
+    OptOutMpid,
+    OptOutPid,
     PatientInfo,
     TridRecord,
 )
@@ -268,11 +270,18 @@ def commit_admindb():
 # Opt-out
 # =============================================================================
 
-def opt_out(pid):
+def opting_out_pid(pid):
     """Does this patient wish to opt out?"""
     if pid is None:
-        raise ValueError("opt_out(None) is nonsensical")
-    return OptOut.opting_out(config.admindb.session, pid)
+        return False
+    return OptOutPid.opting_out(config.admindb.session, pid)
+
+
+def opting_out_mpid(mpid):
+    """Does this patient wish to opt out?"""
+    if mpid is None:
+        return False
+    return OptOutMpid.opting_out(config.admindb.session, mpid)
 
 
 def gen_optout_rids():
@@ -281,7 +290,12 @@ def gen_optout_rids():
     session = config.admindb.session
     result = (
         session.query(PatientInfo.rid).
-        filter(PatientInfo.pid.in_(session.query(OptOut.pid)))
+        filter(
+            or_(
+                PatientInfo.pid.in_(session.query(OptOutPid.pid)),
+                PatientInfo.mpid.in_(session.query(OptOutMpid.mpid))
+            )
+        )
     )
     for row in result:
         yield row[0]
@@ -685,13 +699,21 @@ def patient_processing_fn(tasknum=0, ntasks=1, incremental=False):
         log.info("Processing patient ID: {} (incremental={}) ({})".format(
             pid, incremental, config.overall_progress()))
 
-        # Opt out?
-        if opt_out(pid):
-            log.info("... opt out")
+        # Opt out based on PID?
+        if opting_out_pid(pid):
+            log.info("... opt out based on PID")
             continue
+        # MPID information won't be present until we scan all the fields (which
+        # we do as we build the scrubber).
 
         # Gather scrubbing information for a patient. (Will save.)
         patient = Patient(pid)
+
+        # Opt out based on MPID?
+        if opting_out_mpid(patient.get_mpid()):
+            log.info("... opt out based on MPID")
+            continue
+
         patient_unchanged = patient.unchanged()
         if incremental:
             if patient_unchanged:
@@ -747,7 +769,6 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     def insert(records_):
         # records_: a list of dictionaries
         # http://docs.sqlalchemy.org/en/latest/core/tutorial.html
-        log.critical(repr(records_))
         log.debug(start + "... inserting {} records".format(len(records_)))
         destsession.execute(temptable.insert(), records_)
 
@@ -790,7 +811,12 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     log.debug(start + ": 7. deleting opt-out patients from mapping table")
     (
         adminsession.query(PatientInfo).
-        filter(PatientInfo.pid.in_(adminsession.query(OptOut.pid))).
+        filter(
+            or_(
+                PatientInfo.pid.in_(adminsession.query(OptOutPid.pid)),
+                PatientInfo.mpid.in_(adminsession.query(OptOutMpid.mpid))
+            )
+        ).
         delete(synchronize_session=False)
     )
     commit_admindb()
@@ -810,7 +836,8 @@ def drop_remake(incremental=False):
         PatientInfo.__table__.drop(engine, checkfirst=True)
         TridRecord.__table__.drop(engine, checkfirst=True)
     log.info("Creating admin tables")
-    OptOut.__table__.create(engine, checkfirst=True)
+    OptOutPid.__table__.create(engine, checkfirst=True)
+    OptOutMpid.__table__.create(engine, checkfirst=True)
     PatientInfo.__table__.create(engine, checkfirst=True)
     TridRecord.__table__.create(engine, checkfirst=True)
 
@@ -824,56 +851,77 @@ def drop_remake(incremental=False):
                 chunksize=config.chunksize)
 
 
-def gen_opt_out_pids_from_file():
-    if config.optout_filename:
-        log.info("... {}".format(config.optout_filename))
-        with open(config.optout_filename) as f:
-            contents = f.read()
-            pids = [int(x) for x in contents.split() if x.isdigit()]
+def gen_integers_from_file(filename):
+    for line in open(filename):
+        pids = [int(x) for x in line.split() if x.isdigit()]
         for pid in pids:
             yield pid
+
+
+def gen_opt_out_pids_from_file(mpid=False):
+    if mpid:
+        text = "MPID"
+        filenames = config.optout_mpid_filenames
     else:
-        log.info("... no opt-out disk file in use")
+        text = "PID"
+        filenames = config.optout_pid_filenames
+    if not filenames:
+        log.info("... no opt-out {} disk files in use".format(text))
+    else:
+        for filename in filenames:
+            log.info("... {} file: {}".format(text, filename))
+            yield(gen_integers_from_file(filename))
 
 
-def gen_opt_out_pids_from_database():
+def gen_opt_out_pids_from_database(mpid=False):
+    text = "MPID" if mpid else "PID"
+    found_one = False
     defining_fields = config.dd.get_optout_defining_fields()
-    if not defining_fields:
-        log.info("... no opt-out-defining fields in data dictionary")
-        return
     for t in defining_fields:
-        src_db = t[0]
-        src_table = t[1]
-        optout_colname = t[2]
-        pid_colname = t[3]
+        (src_db, src_table, optout_colname, pid_colname, mpid_colname) = t
+        id_colname = mpid_colname if mpid else pid_colname
+        if not id_colname:
+            continue
+        found_one = True
         session = config.sources[src_db].session
-        log.info("... {}.{}.{} ({})".format(src_db, src_table, optout_colname,
-                                            pid_colname))
+        log.info("... {}.{}.{} ({}={})".format(
+            src_db, src_table, optout_colname, text, id_colname))
         sqla_table = table(src_table)
         optout_defining_col = column(optout_colname)
-        pidcol = column(pid_colname)
+        idcol = column(id_colname)
         query = (
-            select([pidcol]).
+            select([idcol]).
             select_from(sqla_table).
             where(optout_defining_col.in_(config.optout_col_values)).
             distinct().
-            order_by(pidcol)
+            order_by(idcol)
         )
         result = session.execute(query)
         for row in result:
             pid = row[0]
             yield pid
+    if not found_one:
+        log.info("... no opt-out-defining {} fields in data "
+                 "dictionary".format(text))
+        return
 
 
 def setup_opt_out(incremental=False):
     log.info(SEP + "Managing opt-outs")
     adminsession = config.admindb.session
+
     log.info("Hunting for opt-out patients from disk file...")
     for pid in gen_opt_out_pids_from_file():
-        OptOut.add(adminsession, pid)
+        OptOutPid.add(adminsession, pid)
+    for mpid in gen_opt_out_pids_from_file(mpid=True):
+        OptOutMpid.add(adminsession, mpid)
+
     log.info("Hunting for opt-out patients from database...")
     for pid in gen_opt_out_pids_from_database():
-        OptOut.add(adminsession, pid)
+        OptOutPid.add(adminsession, pid)
+    for mpid in gen_opt_out_pids_from_database(mpid=True):
+        OptOutMpid.add(adminsession, mpid)
+
     adminsession.commit()
     if not incremental:
         return
@@ -889,6 +937,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
         log.info("Processing non-patient table {}.{} (PK: {}) ({})...".format(
             d, t, pkname, config.overall_progress()))
+        # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
                       pkname=pkname, tasknum=tasknum, ntasks=ntasks)
@@ -898,6 +947,7 @@ def process_nonpatient_tables(tasknum=0, ntasks=1, incremental=False):
                                                        ntasks=ntasks):
         log.info("Processing non-patient table {}.{} ({})...".format(
             d, t, config.overall_progress()))
+        # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
                       pkname=None, tasknum=None, ntasks=None)

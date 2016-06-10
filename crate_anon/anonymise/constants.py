@@ -622,9 +622,13 @@ debug_pid_list =
 #   3. By flagging a source database field as indicating an opt-out, using the
 #      src_flags = "{SRCFLAG.OPTOUT}" marker.
 
-    # If you set this, the file is scanned for any integers, taken to be PIDs
-    # of patients who wish to opt out.
-optout_filename =
+    # If you set this, each line of the file(s) is scanned for an integer,
+    # taken to the PID of a patient who wishes to opt out.
+optout_pid_filenames =
+
+    # If you set this, each line of the file(s) is scanned for an integer,
+    # taken to the MPID of a patient who wishes to opt out.
+optout_mpid_filenames =
 
     # If you mark a field in the data dictionary as an opt-out field (see
     # above), that says "the field tells you whether the patient opts out or

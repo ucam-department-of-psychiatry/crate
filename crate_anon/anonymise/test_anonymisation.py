@@ -302,6 +302,7 @@ def test_anon(args):
         csvwriter = csv.writer(csvfile, delimiter='\t')
         first = True
         for docid in docids:
+            # noinspection PyTypeChecker
             pid = process_doc(docid, args, fieldinfo, csvwriter, first,
                               scrubdict)
             first = False

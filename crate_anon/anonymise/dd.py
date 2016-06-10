@@ -1000,12 +1000,13 @@ class DataDictionary(object):
 
         log.debug("Checking DD: source tables...")
         for t in self.get_optout_defining_fields():
-            pidfield_name = t[3]
-            if not pidfield_name:
+            (src_db, src_table, optout_colname, pid_colname, mpid_colname) = t
+            if not pid_colname and not mpid_colname:
                 raise ValueError(
                     "Field {}.{}.{} has src_flags={} set, but that table does "
-                    "not have a primary patient ID field".format(
-                        t[0], t[1], t[2], SRCFLAG.OPTOUT))
+                    "not have a primary patient ID field or a master patient "
+                    "ID field".format(src_db, src_table, optout_colname,
+                                      SRCFLAG.OPTOUT))
 
         log.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables():
@@ -1025,9 +1026,11 @@ class DataDictionary(object):
         for r in self.rows:
             src_sigs.append(r.get_signature())
             dst_sigs.append(r.get_dest_signature())
+        # noinspection PyArgumentList
         src_duplicates = [
             item for item, count in collections.Counter(src_sigs).items()
             if count > 1]
+        # noinspection PyArgumentList
         dst_duplicates = [
             item for item, count in collections.Counter(dst_sigs).items()
             if count > 1]
@@ -1170,7 +1173,8 @@ class DataDictionary(object):
         tuples."""
         return SortedSet([
             (ddr.src_db, ddr.src_table, ddr.src_field,
-                self.get_pid_name(ddr.src_db, ddr.src_table))
+                self.get_pid_name(ddr.src_db, ddr.src_table),
+                self.get_mpid_name(ddr.src_db, ddr.src_table))
             for ddr in self.rows
             if ddr.opt_out_info
         ])
@@ -1317,6 +1321,15 @@ class DataDictionary(object):
                 return ddr.src_field
         return None
 
+    @lru_cache(maxsize=None)
+    def get_mpid_name(self, src_db, src_table):
+        for ddr in self.rows:
+            if (ddr.src_db == src_db and
+                    ddr.src_table == src_table and
+                    ddr.master_pid):
+                return ddr.src_field
+        return None
+
     # =========================================================================
     # Queries by destination table
     # =========================================================================
@@ -1402,6 +1415,7 @@ class DataDictionary(object):
             self.get_int_pk_name,
             self.has_active_destination,
             self.get_pid_name,
+            self.get_mpid_name,
 
             self.get_src_dbs_tables_for_dest_table,
             self.get_rows_for_dest_table,

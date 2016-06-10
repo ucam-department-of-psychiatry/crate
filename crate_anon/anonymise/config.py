@@ -336,7 +336,8 @@ class Config(object):
         self.debug_pid_list = opt_multiline_int('debug_pid_list')
         self.extract_text_plain = opt_bool('extract_text_plain', False)
         self.extract_text_width = opt_int('extract_text_width', 80)
-        self.optout_filename = opt_str('optout_filename')
+        self.optout_pid_filenames = opt_multiline('optout_pid_filenames')
+        self.optout_mpid_filenames = opt_multiline('optout_mpid_filenames')
         self.optout_col_values = opt_pyvalue_list('optout_col_values')
 
         # Databases
