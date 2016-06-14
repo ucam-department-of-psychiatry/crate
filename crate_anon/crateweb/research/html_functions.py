@@ -7,7 +7,7 @@ from django.utils.html import escape
 from django.template import loader
 from django.template.defaultfilters import linebreaksbr
 import logging
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 N_CSS_HIGHLIGHT_CLASSES = 3  # named highlight0, highlight1, ... highlight<n-1>

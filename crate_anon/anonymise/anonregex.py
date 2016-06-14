@@ -351,7 +351,7 @@ import regex
 
 import logging
 logging.basicConfig()  # just in case nobody else has done this
-logger = logging.getLogger("anonymise")
+log = logging.getLogger("anonymise")
 
 testnumber = 34
 testnumber_as_text = "123456"

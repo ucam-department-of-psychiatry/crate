@@ -3,7 +3,7 @@
 
 from collections import OrderedDict
 # import logging
-# logger = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 import re
 
 COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")

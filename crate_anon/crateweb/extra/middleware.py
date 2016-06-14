@@ -14,7 +14,7 @@ from django.core.urlresolvers import reverse
 from django.views.debug import technical_500_response
 from django.utils.cache import add_never_cache_headers
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 # =============================================================================

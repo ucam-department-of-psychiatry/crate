@@ -15,7 +15,7 @@ from crate_anon.crateweb.consent.models import (
     Study,
 )
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 class SingleNhsNumberForm(forms.Form):

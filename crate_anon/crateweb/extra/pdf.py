@@ -11,7 +11,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from crate_anon.crateweb.extra.serve import serve_buffer
 
-logger = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
