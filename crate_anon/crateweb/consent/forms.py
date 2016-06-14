@@ -38,9 +38,12 @@ def get_queryset_possible_contact_studies():
 class AbstractContactRequestForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
-        study = cleaned_data.get("study")
-        request_direct_approach = cleaned_data.get("request_direct_approach")
 
+        study = cleaned_data.get("study")
+        if not study:
+            raise forms.ValidationError("Must specify study")
+
+        request_direct_approach = cleaned_data.get("request_direct_approach")
         if request_direct_approach and not study.request_direct_approach:
             raise forms.ValidationError(
                 "Study not approved for direct approach.")

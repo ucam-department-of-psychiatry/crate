@@ -2942,7 +2942,7 @@ class Email(models.Model):
                                    to=[self.recipient])
                 msg.content_subtype = "html"  # Main content is now text/html
             else:
-                # Separate text/HTML
+                # Text only, or separate text/HTML
                 msg = EmailMultiAlternatives(subject=self.subject,
                                              body=self.msg_text,
                                              from_email=self.sender,

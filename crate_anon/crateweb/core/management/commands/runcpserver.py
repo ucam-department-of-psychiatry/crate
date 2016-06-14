@@ -235,7 +235,10 @@ def start_server(opts):
 
     log.info("Starting on host: {}".format(opts.host))
     log.info("Starting on port: {}".format(opts.port))
-    log.info("Static files will be at: {}".format(CRATE_STATIC_URL_PATH))
+    log.info("Static files will be served from filesystem path: {}".format(
+        settings.STATIC_ROOT))
+    log.info("Static files will be served at URL path: {}".format(
+        CRATE_STATIC_URL_PATH))
     log.info("CRATE will be at: {}".format(opts.root_path))
     log.info("Thread pool size: {}".format(opts.threads))
 

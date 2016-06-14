@@ -165,7 +165,7 @@ setup(
         # Web app:
         'celery==3.1.23',
         'colorlog==2.6.1',
-        'Django==1.9.3',  # "django" versus "Django": neither helps pycharm checking  # noqa
+        'Django>=1.9.3',  # "django" versus "Django": neither helps pycharm checking  # noqa
         'django-extensions==1.5.9',
         'django-picklefield==0.3.2',
         'django-sslserver==0.15',

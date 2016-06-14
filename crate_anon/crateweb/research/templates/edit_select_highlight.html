@@ -6,16 +6,12 @@
 
     {% include "query_nav.html" %}
 
-    {% if query_selected %}
-        <h1>Currently selected SQL</h1>
-        <pre>{{ sql }}</pre>
-
-        <h1>Proceed to results</h1>
-        {% comment %}
-            <div><a href="{% url 'count' current_query_id %}">Preview count</a></div>
-        {% endcomment %}
-        <div><a href="{% url 'results' current_query_id %}">View results</a></div>
-    {% endif %}
+    <h1>Current highlighting</h1>
+    <ul>
+        {% for h in highlight_descriptions %}
+            <li>{{ h|safe }}</li>
+        {% endfor %}
+    </ul>
 
     <h1>Add a new highlight</h1>
 
@@ -75,16 +71,20 @@
         <div>None.</div>
     {% endif %}
 
-    <h1>Current highlighting</h1>
-    <ul>
-        {% for h in highlight_descriptions %}
-            <li>{{ h|safe }}</li>
-        {% endfor %}
-    </ul>
-
     <h1>Colour examples</h1>
     {% for colour in colourlist %}
         <div class="highlight{{ colour }}">Colour {{ colour }}</div>
     {% endfor %}
+
+    {% if query_selected %}
+        <h1>Currently selected SQL</h1>
+        <pre>{{ sql }}</pre>
+
+        <h1>Proceed to results</h1>
+        {% comment %}
+            <div><a href="{% url 'count' current_query_id %}">Preview count</a></div>
+        {% endcomment %}
+        <div><a href="{% url 'results' current_query_id %}">View results</a></div>
+    {% endif %}
 
 {% endblock %}

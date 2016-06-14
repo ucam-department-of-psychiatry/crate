@@ -20,7 +20,7 @@ DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://mymachine.mydomain"  # example for Apach
 # DJANGO_SITE_ROOT_ABSOLUTE_URL = "http://localhost:8000"  # for the Django dev server  # noqa
 
 FORCE_SCRIPT_NAME = ""
-# FORCE_SCRIPT_NAME = "/crate"  # example for Apache non-root hosting
+# FORCE_SCRIPT_NAME = "/crate"  # example for CherryPy or Apache non-root hosting  # noqa
 
 # =============================================================================
 # Site security
@@ -171,8 +171,14 @@ MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
 # General settings for sending e-mail from Django
 # https://docs.djangoproject.com/en/1.8/ref/settings/#email-backend
 
+#   default backend:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#   bugfix for servers that only support TLSv1:
+# EMAIL_BACKEND = 'crate_anon.crateweb.core.mail.SmtpEmailBackendTls1'
+
 EMAIL_HOST = 'smtp.somewhere.nhs.uk'
-EMAIL_PORT = '587'
+EMAIL_PORT = 587  # usually 25 (plain SMTP) or 587 (STARTTLS)
+# ... see https://www.fastmail.com/help/technical/ssltlsstarttls.html
 EMAIL_HOST_USER = 'myuser'
 EMAIL_HOST_PASSWORD = 'mypassword'
 EMAIL_USE_TLS = True
