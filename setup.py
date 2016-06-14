@@ -235,6 +235,7 @@ setup(
             'crate_launch_cherrypy_server=crate_anon.crateweb.manage:runcpserver',  # noqa
             'crate_launch_celery=crate_anon.tools.launch_celery:main',
             'crate_launch_flower=crate_anon.tools.launch_flower:main',
+            'crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main',
 
             'crate_windows_service=crate_anon.tools.winservice:main',
         ],
