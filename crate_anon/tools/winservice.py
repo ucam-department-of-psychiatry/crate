@@ -506,6 +506,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
 
     def service(self):
         # Read from environment
+        # self.info(repr(os.environ))
         try:
             logdir = os.environ[ENVVAR]
         except KeyError:
@@ -520,9 +521,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
                 KEY_NAME: 'Django/CherryPy',
                 KEY_PROCARGS: [
                     sys.executable,
-                    os.path.join(CURRENT_DIR, os.pardir, 'crateweb',
-                                 'manage.py'),
-                    'runcpserver'
+                    os.path.join(CURRENT_DIR, 'launch_cherrypy_server.py'),
                 ],
                 KEY_LOG_OUT: djangolog,
                 KEY_LOG_ERR: djangolog,

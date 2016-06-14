@@ -232,7 +232,11 @@ setup(
 
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_launch_django_server=crate_anon.crateweb.manage:runserver',
-            'crate_launch_cherrypy_server=crate_anon.crateweb.manage:runcpserver',  # noqa
+            'crate_launch_cherrypy_server=crate_anon.tools.launch_cherrypy_server:main',  # noqa
+            # ... a separate script with ":main" rather than
+            # "crate_anon.crateweb.manage:runcpserver" so that we can launch
+            # the "runcpserver" function from our Windows service, and have it
+            # deal with the CherryPy special environment variable
             'crate_launch_celery=crate_anon.tools.launch_celery:main',
             'crate_launch_flower=crate_anon.tools.launch_flower:main',
             'crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main',
