@@ -190,10 +190,16 @@ Current method tries a variety of things under Windows:
 ... which are progressively less graceful in terms of child processes getting
 to clean up. Still, it works (usually at one of the two TASKKILL stages).
 
+"The specified service is marked for deletion"
+===============================================================================
+http://stackoverflow.com/questions/20561990
+
 """  # noqa
 
+import atexit
 import ctypes
 import os
+import logging
 import platform
 import subprocess
 import sys
@@ -215,6 +221,8 @@ import win32event  # part of pypiwin32
 import win32service  # part of pypiwin32
 import win32serviceutil  # part of pypiwin32
 
+log = logging.getLogger(__name__)
+
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 ENVVAR = 'CRATE_WINSERVICE_LOGDIR'
 KEY_NAME = 'name'
@@ -227,7 +235,8 @@ WINDOWS = platform.system() == 'Windows'
 
 
 class ProcessManager(object):
-    def __init__(self, details, procnum, nprocs, kill_timeout_sec=5):
+    def __init__(self, details, procnum, nprocs, kill_timeout_sec=5,
+                 debugging=False):
         self.name = details[KEY_NAME]
         self.procargs = details[KEY_PROCARGS]
         self.logfile_out = details.get(KEY_LOG_OUT, None) or None
@@ -239,6 +248,7 @@ class ProcessManager(object):
         self.running = False
         self.stdout = None
         self.stderr = None
+        self.debugging = debugging
 
     @property
     def fullname(self):
@@ -247,21 +257,35 @@ class ProcessManager(object):
         if self.running:
             fullname += " (PID={})".format(self.process.pid)
         return fullname
+    
+    def debug(self, msg):
+        if self.debugging:
+            s = "{}: {}".format(self.fullname, msg)
+            log.debug(s)
 
     def info(self, msg):
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
-        servicemanager.LogInfoMsg("{}: {}".format(self.fullname, msg))
+        s = "{}: {}".format(self.fullname, msg)
+        servicemanager.LogInfoMsg(s)
+        if self.debugging:
+            log.info(s)
 
     def warning(self, msg):
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
-        servicemanager.LogWarningMsg("{}: {}".format(self.fullname, msg))
+        s = "{}: {}".format(self.fullname, msg)
+        servicemanager.LogWarningMsg(s)
+        if self.debugging:
+            log.warning(s)
 
     def error(self, msg):
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
-        servicemanager.LogErrorMsg("{}: {}".format(self.fullname, msg))
+        s = "{}: {}".format(self.fullname, msg)
+        servicemanager.LogErrorMsg(s)
+        if self.debugging:
+            log.warning(s)
 
     def open_logs(self):
         if self.logfile_out:
@@ -437,18 +461,25 @@ class CratewebService(win32serviceutil.ServiceFramework):
         # create an event to listen for stop requests on
         self.h_stop_event = win32event.CreateEvent(None, 0, 0, None)
         self.process_managers = []
+        self.debugging = False
+        
+    def debug(self, msg):
+        if self.debugging:
+            log.debug(msg)    
 
-    @staticmethod
-    def info(msg):
+    def info(self, msg):
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
         servicemanager.LogInfoMsg(str(msg))
+        if self.debugging:
+            log.info(msg)
 
-    @staticmethod
-    def error(msg):
+    def error(self, msg):
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
         servicemanager.LogErrorMsg(str(msg))
+        if self.debugging:
+            log.error(msg)
 
     # called when we're being shut down
     # noinspection PyPep8Naming
@@ -461,11 +492,11 @@ class CratewebService(win32serviceutil.ServiceFramework):
     # called when service is started
     # noinspection PyPep8Naming
     def SvcDoRun(self):
-        print("hello")
         # No need to self.ReportServiceStatus(win32service.SERVICE_RUNNING);
         # that is done by the framework (see win32serviceutil.py).
         # Similarly, no need to report a SERVICE_STOP_PENDING on exit.
         # noinspection PyUnresolvedReferences
+        self.debug("Sending PYS_SERVICE_STARTED message")
         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
                               servicemanager.PYS_SERVICE_STARTED,
                               (self._svc_name_, ''))
@@ -493,7 +524,8 @@ class CratewebService(win32serviceutil.ServiceFramework):
         f.close()
         self.info("Test service FINISHED.")
 
-    def debug(self):
+    def run_debug(self):
+        self.debugging = True
         self.main()
 
     def main(self):
@@ -570,14 +602,23 @@ class CratewebService(win32serviceutil.ServiceFramework):
         """
         # *** autorestart?
 
+        # https://stackoverflow.com/questions/16333054
+        def cleanup():
+            self.debug("atexit function called: cleaning up")
+            for pmgr in self.process_managers:
+                pmgr.stop()
+
+        atexit.register(cleanup)
+            
         # Set up process info
         self.process_managers = []
         n = len(procdetails)
         for i, details in enumerate(procdetails):
             pmgr = ProcessManager(details, i + 1, n,
-                                  kill_timeout_sec=kill_timeout_sec)
+                                  kill_timeout_sec=kill_timeout_sec,
+                                  debugging=self.debugging)
             self.process_managers.append(pmgr)
-
+            
         # Start processes
         for pmgr in self.process_managers:
             pmgr.start()
@@ -638,13 +679,14 @@ def generic_service_main(cls, name):
                 win32serviceutil.usage()
     elif argc == 2 and sys.argv[1] == 'debug':
         s = cls()
-        s.debug()
+        s.run_debug()
     else:
         win32serviceutil.HandleCommandLine(cls)
 
 
 def main():
     # Called as an entry point (see setup.py).
+    logging.basicConfig(level=logging.DEBUG)
     generic_service_main(CratewebService, 'CratewebService')
 
 
