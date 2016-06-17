@@ -74,7 +74,7 @@ CONFIG_ENV_VAR = 'CRATE_ANON_CONFIG'
 # =============================================================================
 
 ALTERMETHOD = AttrDict(
-    TRUNCATEDATE="truncatedate",
+    TRUNCATEDATE="truncate_date",
     SCRUBIN="scrub",
     BIN2TEXT="binary_to_text",
     FILENAME2TEXT="filename_to_text",
@@ -415,18 +415,18 @@ extract_text_width = 80
 # Anonymisation
 # -----------------------------------------------------------------------------
 
-    # Patient information will be replaced with this. For example, XXX or
-    # [ ___]; the latter is a bit easier to spot, and works better if it
-    # directly abuts other text.
-replace_patient_info_with = [___]
+    # Patient information will be replaced with this. For example, XXXXXX or
+    # [___] or [__PPP__] or [__ZZZ__]; the bracketed forms can be a bit easier
+    # to spot, and work better if they directly abut other text.
+replace_patient_info_with = [__PPP__]
 
     # Third-party information will be replaced by this.
-    # For example, YYY or [...].
-replace_third_party_info_with = [...]
+    # For example, YYYYYY or [...] or [__TTT__] or [__QQQ__].
+replace_third_party_info_with = [__TTT__]
 
     # Things to be removed irrespective of patient-specific information will be
     # replaced by this (for example, if you opt to remove all things looking
-    # like telephone numbers). For example, ZZZ or [~~~].
+    # like telephone numbers). For example, ZZZZZZ or [~~~].
 replace_nonspecific_info_with = [~~~]
 
     # Strings to append to every "scrub from" string.
