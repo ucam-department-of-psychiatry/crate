@@ -986,6 +986,8 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
     ---------------------------------------------------------------------------
     For speed, RiO needs these indexes:
 
+    USE my_database_name;
+
     CREATE INDEX _idx_cdd_nhs ON Client_Demographic_Details (NHS_Number);
     CREATE INDEX _idx_cnh_id ON Client_Name_History (Client_ID);
     CREATE INDEX _idx_cnh_eff ON Client_Name_History (Effective_Date);
@@ -1160,10 +1162,15 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
             FROM Client_Demographic_Details
             WHERE
                 NHS_Number = %s -- CHAR comparison
-                AND NOT Deleted_Flag
+                AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
         """,
         [str(lookup.nhs_number)]
     )
+    # Can't use "NOT Deleted_Flag" with SQL Server; you get
+    # "An expression of non-boolean type specified in a context where a
+    # condition is expected, near 'Deleted_Flag'."
+    # The field is of type INTEGER NULL, but SQL Server won't auto-cast it
+    # to something boolean.
     rows = dictfetchall(cursor)
     if not rows:
         decisions.append(
