@@ -1039,8 +1039,10 @@ class UserProfileInline(admin.StackedInline):
               'telephone',
               'address_1', 'address_2', 'address_3', 'address_4',
               'address_5', 'address_6', 'address_7',
-              'get_studies_as_lead', 'get_studies_as_researcher')
-    readonly_fields = ('get_studies_as_lead', 'get_studies_as_researcher')
+              'get_studies_as_lead', 'get_studies_as_researcher',
+              'enough_info_for_researcher')
+    readonly_fields = ('get_studies_as_lead', 'get_studies_as_researcher',
+                       'enough_info_for_researcher')
 
     def get_studies_as_lead(self, obj):
         studies = obj.user.studies_as_lead.all()
@@ -1054,9 +1056,35 @@ class UserProfileInline(admin.StackedInline):
     get_studies_as_researcher.short_description = "Studies as researcher"
     get_studies_as_researcher.allow_tags = True
 
+    def enough_info_for_researcher(self, obj):
+        return (
+            bool(obj.title) and
+            bool(obj.user.first_name) and
+            bool(obj.user.last_name)
+        )
+    enough_info_for_researcher.short_description = (
+        "Enough info for researcher status (title, firstname, lastname)?"
+    )
+    enough_info_for_researcher.boolean = True
+
 
 class ExtendedUserMgrAdmin(UserAdmin):
     inlines = [UserProfileInline]
+    list_display = (
+        'username', 'email', 'first_name', 'last_name', 'is_staff',
+        'enough_info_for_researcher',
+    )
+
+    def enough_info_for_researcher(self, obj):
+        return (
+            bool(obj.profile.title) and
+            bool(obj.first_name) and
+            bool(obj.last_name)
+        )
+    enough_info_for_researcher.short_description = (
+        "Enough researcher info?"
+    )
+    enough_info_for_researcher.boolean = True
 
 
 # =============================================================================

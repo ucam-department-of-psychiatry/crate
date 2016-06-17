@@ -74,7 +74,7 @@ class PatientInfo(AdminBase):
         assert self.pid is not None
         if self.rid:
             return
-        self.rid = config.primary_pid_hasher.hash(self.pid)
+        self.rid = config.encrypt_primary_pid(self.pid)
 
     def ensure_trid(self, session):
         assert self.pid is not None
@@ -84,7 +84,7 @@ class PatientInfo(AdminBase):
 
     def set_mpid(self, mpid):
         self.mpid = mpid
-        self.mrid = config.master_pid_hasher.hash(self.mpid)
+        self.mrid = config.encrypt_master_pid(self.mpid)
 
     def set_scrubber_info(self, scrubber):
         self.scrubber_hash = scrubber.get_hash()

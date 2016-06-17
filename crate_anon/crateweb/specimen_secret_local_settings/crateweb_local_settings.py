@@ -242,8 +242,14 @@ WKHTMLTOPDF_FILENAME = ''
 
 PDF_LOGO_ABS_URL = 'http://localhost/crate_logo'
 # ... path on local machine, read by wkhtmltopdf
+# Examples:
+#   [if you're running a web server] 'http://localhost/crate_logo'
+#   [Linux root path] file:///home/myuser/myfile.png
+#   [Windows root path] file:///c:/path/to/myfile.png
+
 PDF_LOGO_WIDTH = "75%"
 # ... must be suitable for an <img> tag, but "150mm" isn't working; "75%" is.
+# ... tune this to your logo file (see PDF_LOGO_ABS_URL)
 
 # =============================================================================
 # Donations to charity

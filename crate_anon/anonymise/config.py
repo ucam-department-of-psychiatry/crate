@@ -567,11 +567,11 @@ class Config(object):
         """Encrypt a primary PID, producing a RID."""
         return self.primary_pid_hasher.hash(pid)
 
-    def encrypt_master_pid(self, pid):
+    def encrypt_master_pid(self, mpid):
         """Encrypt a master PID, producing a master RID."""
-        if pid is None:
+        if mpid is None:
             return None  # or risk of revealing the hash?
-        return self.master_pid_hasher.hash(pid)
+        return self.master_pid_hasher.hash(mpid)
 
     def hash_object(self, l):
         """

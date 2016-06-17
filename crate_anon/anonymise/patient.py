@@ -160,7 +160,7 @@ class Patient(object):
                     self.scrubber.add_value(val,
                                             scrub_methods[i],
                                             is_patient[i])
-                    if is_mpid[i] and self.get_mpid():
+                    if is_mpid[i] and self.get_mpid() is None:
                         # We've come across the master ID.
                         self.set_mpid(val)
 

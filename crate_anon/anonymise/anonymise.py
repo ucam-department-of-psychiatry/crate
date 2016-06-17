@@ -694,7 +694,6 @@ def html_untag(text):
     return HTML_TAG_RE.sub('', text)
 
 
-
 def create_indexes(tasknum=0, ntasks=1):
     """
     Create indexes for the destination tables.
