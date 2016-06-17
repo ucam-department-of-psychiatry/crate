@@ -91,6 +91,87 @@ log = logging.getLogger(__name__)
 # DataDictionaryRow
 # =============================================================================
 
+class AlterMethod(object):
+    def __init__(self, text_value=None,
+                 scrub=False, truncate_date=False,
+                 extract_from_filename=False, extract_from_blob=False,
+                 extract_ext_field="",
+                 # html_escape=False,
+                 html_unescape=False,
+                 html_untag=False):
+        self.scrub = scrub
+        self.truncate_date = truncate_date
+        self.extract_text = (extract_from_filename or extract_from_blob)
+        self.extract_from_blob = extract_from_blob
+        self.extract_from_filename = extract_from_filename
+        self.extract_ext_field = extract_ext_field
+        # self.html_escape = html_escape
+        self.html_unescape = html_unescape
+        self.html_untag = html_untag
+        if text_value is not None:
+            self.set_from_text(text_value)
+
+    def set_from_text(self, value):
+        """
+        Convert the alter_method field (from the data dictionary) to a bunch of
+        boolean/simple fields.
+        """
+        self.scrub = False
+        self.truncate_date = False
+        self.extract_text = False
+        self.extract_from_blob = False
+        self.extract_from_filename = False
+        self.extract_ext_field = ""
+        if value == ALTERMETHOD.TRUNCATEDATE:
+            self.truncate_date = True
+        elif value == ALTERMETHOD.SCRUBIN:
+            self.scrub = True
+        elif value.startswith(ALTERMETHOD.BIN2TEXT):
+            if "=" not in value:
+                raise ValueError(
+                    "Bad format for alter method: {}".format(value))
+            secondhalf = value[value.index("=") + 1:]
+            if not secondhalf:
+                raise ValueError(
+                    "Missing filename/extension field in alter method: "
+                    "{}".format(value))
+            self.extract_text = True
+            self.extract_from_blob = True
+            self.extract_ext_field = secondhalf
+        elif value == ALTERMETHOD.FILENAME2TEXT:
+            self.extract_text = True
+            self.extract_from_filename = True
+        # elif value == ALTERMETHOD.HTML_ESCAPE:
+        #     self.html_escape = True
+        elif value == ALTERMETHOD.HTML_UNESCAPE:
+            self.html_unescape = True
+        elif value == ALTERMETHOD.HTML_UNTAG:
+            self.html_untag = True
+        else:
+            raise ValueError("Bad alter_method part: {}".format(value))
+
+    def get_text(self):
+        """
+        Return the alter_method fragment from the working fields.
+        """
+        if self.truncate_date:
+            return ALTERMETHOD.TRUNCATEDATE
+        if self.scrub:
+            return ALTERMETHOD.SCRUBIN
+        if self.extract_text:
+            if self.extract_from_blob:
+                return ALTERMETHOD.BIN2TEXT + "=" + self.extract_ext_field
+            else:
+                return ALTERMETHOD.FILENAME2TEXT
+        # if self.html_escape:
+        #     return ALTERMETHOD.HTML_ESCAPE
+        if self.html_unescape:
+            return ALTERMETHOD.HTML_UNESCAPE
+        if self.html_untag:
+            return ALTERMETHOD.HTML_UNTAG
+        return ""
+
+
 class DataDictionaryRow(object):
     """
     Class representing a single row of a data dictionary.
@@ -151,12 +232,7 @@ class DataDictionaryRow(object):
         self._addition_only = False
         self._opt_out_info = False
 
-        # For alter_method:
-        self._scrub = False
-        self._truncate_date = False
-        self._extract_text = False
-        self._extract_from_filename = False
-        self._extract_ext_field = ""
+        self._alter_methods = []
 
     def __lt__(self, other):
         return self.get_signature() < other.get_signature()
@@ -218,47 +294,11 @@ class DataDictionaryRow(object):
         self._opt_out_info = SRCFLAG.OPTOUT in value
 
     @property
-    def scrub(self):
-        return self._scrub
-
-    @property
-    def truncate_date(self):
-        return self._truncate_date
-
-    @property
-    def extract_text(self):
-        return self._extract_text
-
-    @property
-    def extract_from_filename(self):
-        return self._extract_from_filename
-
-    @property
-    def extract_ext_field(self):
-        return self._extract_ext_field
-
-    @property
     def alter_method(self):
         """
         Return the alter_method field from the working fields.
         """
-        if self._truncate_date:
-            return ALTERMETHOD.TRUNCATEDATE
-        if self._extract_text:
-            if self._extract_ext_field:
-                if self._scrub:
-                    return (ALTERMETHOD.BIN2TEXT_SCRUB + "=" +
-                            self._extract_ext_field)
-                else:
-                    return ALTERMETHOD.BIN2TEXT + "=" + self._extract_ext_field
-            else:
-                if self._scrub:
-                    return ALTERMETHOD.FILENAME2TEXT_SCRUB
-                else:
-                    return ALTERMETHOD.FILENAME2TEXT
-        if self._scrub:
-            return ALTERMETHOD.SCRUBIN
-        return ""
+        return ",".join([x.get_text() for x in self._alter_methods])
 
     @alter_method.setter
     def alter_method(self, value):
@@ -266,32 +306,42 @@ class DataDictionaryRow(object):
         Convert the alter_method field (from the data dictionary) to a bunch of
         boolean/simple fields.
         """
-        self._scrub = False
-        self._truncate_date = False
-        self._extract_text = False
-        self._extract_from_filename = False
-        self._extract_ext_field = ""
-        secondhalf = ""
-        if "=" in value:
-            secondhalf = value[value.index("=") + 1:]
-        if value == ALTERMETHOD.TRUNCATEDATE:
-            self._truncate_date = True
-        elif value.startswith(ALTERMETHOD.SCRUBIN):
-            self._scrub = True
-        elif value.startswith(ALTERMETHOD.BIN2TEXT):
-            self._extract_text = True
-            self._extract_ext_field = secondhalf
-        elif value.startswith(ALTERMETHOD.BIN2TEXT_SCRUB):
-            self._extract_text = True
-            self._extract_ext_field = secondhalf
-            self._scrub = True
-        elif value.startswith(ALTERMETHOD.FILENAME2TEXT):
-            self._extract_text = True
-            self._extract_from_filename = True
-        elif value.startswith(ALTERMETHOD.FILENAME2TEXT_SCRUB):
-            self._extract_text = True
-            self._extract_from_filename = True
-            self._scrub = True
+        # Get the list of elements in the user's order.
+        self._alter_methods = []
+        elements = [x.strip() for x in value.split(",") if x]
+        methods = []
+        for e in elements:
+            methods.append(AlterMethod(e))
+        # Now establish order. Text extraction first; everything else in order.
+        text_extraction_indices = []
+        for i, am in enumerate(methods):
+            if am.extract_text:
+                text_extraction_indices.append(i)
+        for index in sorted(text_extraction_indices, reverse=True):
+            # Go in reverse order of index.
+            self._alter_methods.append(methods[index])
+            del methods[index]
+        self._alter_methods.extend(methods)
+        # Now, checks:
+        have_text_extraction = False
+        have_truncate_date = False
+        for am in self._alter_methods:
+            if not am.truncate_date and have_truncate_date:
+                raise ValueError("Date truncation must stand alone in "
+                                 "alter_method: {}".format(value))
+            if am.extract_text and have_text_extraction:
+                raise ValueError("Can only have one text extraction method in "
+                                 "{}".format(value))
+            if am.truncate_date:
+                have_truncate_date = True
+            if am.extract_text:
+                have_text_extraction = True
+
+    def get_alter_methods(self):
+        return self._alter_methods
+
+    def being_scrubbed(self):
+        return any(am.scrub for am in self._alter_methods)
 
     @property
     def from_file(self):
@@ -456,22 +506,21 @@ class DataDictionaryRow(object):
 
         # How should we manipulate the destination?
         if self.src_field in cfg.ddgen_truncate_date_fields:
-            self._truncate_date = True
+            self._alter_methods.append(AlterMethod(truncate_date=True))
         elif self.src_field in cfg.ddgen_filename_to_text_fields:
-            self._extract_text = True
-            self._extract_from_filename = True
+            self._alter_methods.append(AlterMethod(extract_from_filename=True))
             self.dest_datatype = LONGTEXT
             if (self.src_field not in
                     cfg.ddgen_safe_fields_exempt_from_scrubbing):
-                self._scrub = True
+                self._alter_methods.append(AlterMethod(scrub=True))
         elif self.src_field in cfg.bin2text_dict.keys():
-            self._extract_text = True
-            self._extract_from_filename = False
-            self._extract_ext_field = cfg.bin2text_dict[self.src_field]
+            self._alter_methods.append(AlterMethod(
+                extract_from_blob=True,
+                extract_ext_field=cfg.bin2text_dict[self.src_field]))
             self.dest_datatype = LONGTEXT
             if (self.src_field not in
                     cfg.ddgen_safe_fields_exempt_from_scrubbing):
-                self._scrub = True
+                self._alter_methods.append(AlterMethod(scrub=True))
         elif (is_sqltype_text_of_length_at_least(
                 datatype_sqltext, cfg.ddgen_min_length_for_scrubbing) and
                 not self.omit and
@@ -479,7 +528,7 @@ class DataDictionaryRow(object):
                 not self._master_pid and
                 self.src_field not in
                 cfg.ddgen_safe_fields_exempt_from_scrubbing):
-            self._scrub = True
+            self._alter_methods.append(AlterMethod(scrub=True))
 
         # Manipulate the destination table name?
         # http://stackoverflow.com/questions/10017147
@@ -660,33 +709,25 @@ class DataDictionaryRow(object):
                         srccfg.ddgen_master_pid_fieldname,
                         SRCFLAG.MASTERPID))
 
-            if self._truncate_date:
-                if not (is_sqltype_date(self.src_datatype) or
-                        is_sqltype_text_over_one_char(self.src_datatype)):
-                    raise ValueError("Can't set truncate_date for non-date/"
-                                     "non-text field")
-            if self._extract_text:
-                if self._extract_from_filename:
+            for am in self._alter_methods:
+                if am.truncate_date:
+                    if not (is_sqltype_date(self.src_datatype) or
+                            is_sqltype_text_over_one_char(self.src_datatype)):
+                        raise ValueError("Can't set truncate_date for "
+                                         "non-date/non-text field")
+                if am.extract_from_filename:
                     if not is_sqltype_text_over_one_char(self.src_datatype):
                         raise ValueError(
-                            "For alter_method = {ALTERMETHOD.FILENAME2TEXT} or"
-                            " {ALTERMETHOD.FILENAME2TEXT_SCRUB}, source field "
-                            "must contain filename and therefore must be text "
-                            "type of >1 character".format(
+                            "For alter_method = {ALTERMETHOD.FILENAME2TEXT}, "
+                            "source field must contain filename and therefore "
+                            "must be text type of >1 character".format(
                                 ALTERMETHOD=ALTERMETHOD))
-                else:
+                if am.extract_from_blob:
                     if not is_sqltype_binary(self.src_datatype):
                         raise ValueError(
                             "For alter_method = {ALTERMETHOD.BIN2TEXT} or "
                             "{ALTERMETHOD.BIN2TEXT_SCRUB}, source field "
                             "must be of binary type".format(
-                                ALTERMETHOD=ALTERMETHOD))
-                    if not self._extract_ext_field:
-                        raise ValueError(
-                            "For alter_method = {ALTERMETHOD.BIN2TEXT} or "
-                            "{ALTERMETHOD.BIN2TEXT_SCRUB}, must also specify "
-                            "field containing extension (or filename with "
-                            "extension) in the alter_method parameter".format(
                                 ALTERMETHOD=ALTERMETHOD))
 
             # This error/warning too hard to be sure of with SQL Server odd
@@ -929,7 +970,7 @@ class DataDictionary(object):
                 rows = self.get_rows_for_src_table(d, t)
                 fieldnames = self.get_fieldnames_for_src_table(d, t)
 
-                if any([r.scrub or r.master_pid
+                if any([r.being_scrubbed() or r.master_pid
                         for r in rows if not r.omit]):
                     pidfield = db.srccfg.ddgen_per_table_pid_field
                     if pidfield not in fieldnames:
@@ -941,25 +982,26 @@ class DataDictionary(object):
                 for r in rows:
                     r.set_src_sqla_coltype(
                         db.metadata.tables[t].columns[r.src_field].type)
-                    if r.extract_text and not r.extract_from_filename:
-                        extrow = next(
-                            (r2 for r2 in rows
-                                if r2.src_field == r.extract_ext_field),
-                            None)
-                        if extrow is None:
-                            raise ValueError(
-                                "alter_method = {am}, but field {f} not "
-                                "found in the same table".format(
-                                    am=r.alter_method,
-                                    f=r.extract_ext_field))
-                        if not is_sqltype_text_over_one_char(
-                                extrow.src_datatype):
-                            raise ValueError(
-                                "alter_method = {am}, but field {f}, which"
-                                " should contain an extension or filename,"
-                                " is not text of >1 character".format(
-                                    am=r.alter_method,
-                                    f=r.extract_ext_field))
+                    for am in r.get_alter_methods():
+                        if am.extract_from_blob:
+                            extrow = next(
+                                (r2 for r2 in rows
+                                    if r2.src_field == am.extract_ext_field),
+                                None)
+                            if extrow is None:
+                                raise ValueError(
+                                    "alter_method = {am}, but field {f} not "
+                                    "found in the same table".format(
+                                        am=r.alter_method,
+                                        f=am.extract_ext_field))
+                            if not is_sqltype_text_over_one_char(
+                                    extrow.src_datatype):
+                                raise ValueError(
+                                    "alter_method = {am}, but field {f}, which"
+                                    " should contain an extension or filename,"
+                                    " is not text of >1 character".format(
+                                        am=r.alter_method,
+                                        f=r.extract_ext_field))
 
                 n_pks = sum([1 if x.pk else 0 for x in rows])
                 if n_pks > 1:

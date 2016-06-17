@@ -31,9 +31,12 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
+import html
 import logging
 import random
+import regex
 import sys
+# import xml.etree
 
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import (
@@ -584,21 +587,30 @@ def process_table(sourcedbname, sourcetable,
                 value = patient.get_rid()
             elif ddr.master_pid:
                 value = config.encrypt_master_pid(value)
-            elif ddr.truncate_date:
-                try:
-                    value = coerce_to_date(value)
-                    value = truncate_date_to_first_of_month(value)
-                except (ValueError, OverflowError):
-                    log.warning(
-                        "Invalid date received to {ALTERMETHOD.TRUNCATEDATE} "
-                        "method: {v}".format(ALTERMETHOD=ALTERMETHOD, v=value))
-                    value = None
-            elif ddr.extract_text:
-                value = extract_text(value, row, ddr, ddrows)
 
-            if ddr.scrub and value is not None:
-                # Main point of anonymisation!
-                value = patient.scrub(value)
+            for alter_method in ddr.get_alter_methods():
+                if alter_method.scrub:
+                    if value is not None:
+                        # Main point of anonymisation!
+                        value = patient.scrub(value)
+                elif alter_method.truncate_date:
+                    try:
+                        value = coerce_to_date(value)
+                        value = truncate_date_to_first_of_month(value)
+                    except (ValueError, OverflowError):
+                        log.warning(
+                            "Invalid date received to "
+                            "{ALTERMETHOD.TRUNCATEDATE} method: {v}".format(
+                                ALTERMETHOD=ALTERMETHOD, v=value))
+                        value = None
+                elif alter_method.extract_text:
+                    value = extract_text(value, row, alter_method, ddrows)
+                # elif alter_method.html_escape:
+                #     value = html.escape(value)
+                elif alter_method.html_unescape:
+                    value = html.unescape(value)
+                elif alter_method.html_untag:
+                    value = html_untag(value)
             destvalues[ddr.dest_field] = value
         if addhash:
             destvalues[config.source_hash_fieldname] = srchash
@@ -628,7 +640,7 @@ def process_table(sourcedbname, sourcetable,
     commit_destdb()
 
 
-def extract_text(value, row, ddr, ddrows):
+def extract_text(value, row, alter_method, ddrows):
     """
     Take a field's value and return extracted text, for file-related fields,
     where the DD row indicates that this field contains a filename or a BLOB.
@@ -636,19 +648,19 @@ def extract_text(value, row, ddr, ddrows):
     filename = None
     blob = None
     extension = None
-    if ddr.extract_from_filename:
+    if alter_method.extract_from_filename:
         filename = value
         log.debug("extract_text: disk file, filename={}".format(filename))
     else:
         blob = value
         extindex = next(
             (i for i, x in enumerate(ddrows)
-                if x.src_field == ddr.extract_ext_field),
+                if x.src_field == alter_method.extract_ext_field),
             None)
         if extindex is None:
             raise ValueError(
                 "Bug: missing extension field for "
-                "alter_method={}".format(ddr.alter_method))
+                "alter_method={}".format(alter_method.get_text()))
         extension = row[extindex]
         log.debug("extract_text: database blob, extension={}".format(
             extension))
@@ -659,10 +671,28 @@ def extract_text(value, row, ddr, ddrows):
                                  plain=config.extract_text_plain,
                                  width=config.extract_text_width)
     except Exception as e:
-        log.error(
-            "Exception from document_to_text: {}".format(e))
+        log.error("Exception from document_to_text: {}".format(e))
         value = None
     return value
+
+
+HTML_TAG_RE = regex.compile('<[^>]*>')
+
+
+def html_untag(text):
+    # Lots of ways...
+    # -- xml.etree, for well-formed XML
+    #    http://stackoverflow.com/questions/9662346
+    # return ''.join(xml.etree.ElementTree.fromstring(text).itertext())
+    # -- html.parser
+    #    http://stackoverflow.com/questions/753052
+    # -- lxml (but needs source build on Windows):
+    #    http://www.neuraladvance.com/removing-html-from-python-strings.html
+    #    http://lxml.de/
+    # -- regex/re
+    #    http://stackoverflow.com/questions/3662142
+    return HTML_TAG_RE.sub('', text)
+
 
 
 def create_indexes(tasknum=0, ntasks=1):

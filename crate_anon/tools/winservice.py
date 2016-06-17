@@ -605,8 +605,8 @@ class CratewebService(win32serviceutil.ServiceFramework):
         # https://stackoverflow.com/questions/16333054
         def cleanup():
             self.debug("atexit function called: cleaning up")
-            for pmgr in self.process_managers:
-                pmgr.stop()
+            for pmgr_ in self.process_managers:
+                pmgr_.stop()
 
         atexit.register(cleanup)
             

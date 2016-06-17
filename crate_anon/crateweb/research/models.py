@@ -200,7 +200,7 @@ class Query(models.Model):
         return tsv
 
     def dictfetchall(self):
-        """Generates all results as a list of dicts."""
+        """Generates all results as a list of OrderedDicts."""
         cursor = self.get_executed_cursor()
         return dictfetchall(cursor)
 
@@ -544,7 +544,7 @@ ORDER BY
         # since this is a system rather than a per-user query.
         cursor = connection.cursor()
         cursor.execute(sql, args)
-        results = dictfetchall(cursor)
+        results = dictfetchall(cursor)  # list of OrderedDicts
         log.debug("... done")
         return results
         # Multiple values:
@@ -552,6 +552,22 @@ ORDER BY
         # - Too much hassle to use Django's ORM model here, though that would
         #   also be possible.
         # - http://stackoverflow.com/questions/907806
+
+    @lru_cache(maxsize=None)
+    def get_infodictlist_by_tables(self):
+        log.debug("... STARTING")
+        idl = self.get_infodictlist()
+        log.debug("... MIDWAY")
+        schema_table_idl = []
+        for schema, table in sorted(set((x['table_schema'], x['table_name'])
+                                        for x in idl)):
+            log.debug("schema={}, table={}".format(schema, table))
+            dictlist = [i for i in idl if i['table_schema'] == schema and
+                        i['table_name'] == table]
+            schema_table_idl.append((schema, table, dictlist))
+        # log.debug(repr(schema_table_idl))
+        log.debug("... FINISHING")
+        return schema_table_idl
 
     @lru_cache(maxsize=1000)
     def tables_containing_field(self, fieldname):

@@ -284,6 +284,9 @@ His phone number was 0122-312-3456, or 01223-123456, or (01223) 123456,
 or 01223 123 456, or 01223 123456.
 His NHS number was 123.456 or possibly 12 34 56.
 His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
+
+Some HTML encoding is &amp; and &lt;.
+An HTML tag is <a href="http://somewhere">this link</a>.
         """
     )
     session.add(n1)

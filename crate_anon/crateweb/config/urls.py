@@ -93,6 +93,8 @@ urlpatterns = [
     url(r'^structure_table_paginated/$',
         research_views.structure_table_paginated,
         name='structure_table_paginated'),
+    url(r'^structure_tree/$', research_views.structure_tree,
+        name='structure_tree'),
     url(r'^structure_tsv/$', research_views.structure_tsv,
         name='structure_tsv'),
 

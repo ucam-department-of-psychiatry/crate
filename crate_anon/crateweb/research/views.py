@@ -14,6 +14,7 @@ from django.db import OperationalError, ProgrammingError
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 
 from crate_anon.crateweb.core.dbfunc import (
     dictlist_to_tsv,
@@ -28,6 +29,8 @@ from crate_anon.crateweb.research.forms import (
     SQLHelperTextAnywhereForm,
 )
 from crate_anon.crateweb.research.html_functions import (
+    collapsible_div_contentdiv,
+    collapsible_div_spanbutton,
     highlight_text,
     make_result_element,
     make_collapsible_query,
@@ -81,12 +84,20 @@ def edit_select_query(request):
             identical_queries = all_queries.filter(sql=sql)
             if identical_queries:
                 identical_queries[0].activate()
+                query_id = identical_queries[0].id
             else:
                 query = Query(sql=sql, raw=True, user=request.user,
                               active=True)
                 query.save()
+                query_id = query.id
             # redirect to a new URL:
-            return redirect('query')
+            if 'submit_add' in request.POST:
+                return redirect('query')
+            elif 'submit_run' in request.POST:
+                return redirect('results', query_id)
+            else:
+                log.critical("Bug in edit_select_query")
+                return redirect('query')
 
     # if a GET (or any other method) we'll create a blank form
     values = {}
@@ -457,6 +468,31 @@ def structure_table_paginated(request):
     return render(request, 'database_structure.html', context)
 
 
+def structure_tree(request):
+    schema_table_idl = research_database_info.get_infodictlist_by_tables()
+    content = ""
+    for i, (schema, tablename, infodictlist) in enumerate(schema_table_idl):
+        html_table = render_to_string('database_structure_table.html',
+                                      {'infodictlist': infodictlist})
+        tag = str(i)
+        cd_button = collapsible_div_spanbutton(tag)
+        cd_content = collapsible_div_contentdiv(tag, html_table)
+        content += (
+            '<div class="titlecolour">{button} {schema}.<b>{table}</b></div>'
+            '{cd}'.format(
+                schema=schema,
+                table=tablename,
+                button=cd_button,
+                cd=cd_content,
+            )
+        )
+    context = {
+        'content': content,
+        'default_schema': settings.DATABASES['research']['NAME'],
+    }
+    return render(request, 'database_structure_tree.html', context)
+
+
 # noinspection PyUnusedLocal
 def structure_tsv(request):
     infodictlist = research_database_info.get_infodictlist()
@@ -550,6 +586,6 @@ def sqlhelper_text_anywhere(request):
                 table_queries.append(table_query)
             sql = "\nUNION\n".join(table_queries)
             sql += "\nORDER BY {}".format(fkname)
-        return HttpResponse(sql, content_type='text/plain')
+        return render(request, 'sql_fragment.html', {'sql': sql})
 
     return render(request, 'sqlhelper_form_text_anywhere.html', {'form': form})

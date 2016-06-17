@@ -112,7 +112,7 @@ def fetchallfirstvalues(cursor):
 
 
 def gendicts(cursor, arraysize=1000):
-    """Generate all rows from a cursor as a list of dicts."""
+    """Generate all rows from a cursor as a list of OrderedDicts."""
     columns = get_fieldnames_from_cursor(cursor)
     return (
         OrderedDict(zip(columns, row))
@@ -121,7 +121,7 @@ def gendicts(cursor, arraysize=1000):
 
 
 def dictfetchall(cursor):
-    """Return all rows from a cursor as a list of dicts."""
+    """Return all rows from a cursor as a list of OrderedDicts."""
     columns = get_fieldnames_from_cursor(cursor)
     return [
         OrderedDict(zip(columns, row))
@@ -131,7 +131,7 @@ def dictfetchall(cursor):
 
 def dictfetchone(cursor):
     """
-    Return the next row from a cursor as a dict, or None
+    Return the next row from a cursor as an OrderedDict, or None
     """
     columns = get_fieldnames_from_cursor(cursor)
     row = cursor.fetchone()

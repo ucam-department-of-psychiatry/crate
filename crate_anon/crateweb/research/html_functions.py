@@ -22,11 +22,31 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # Collapsible div
 # =============================================================================
 
-def collapsible_div(tag, contents, extradivclasses=None):
+def collapsible_div_with_divbutton(tag, contents, extradivclasses=None):
     # The HTML pre-hides, rather than using an onload method
     if extradivclasses is None:
         extradivclasses = []
-    template = loader.get_template('collapsible_div.html')
+    template = loader.get_template('collapsible_div_with_divbutton.html')
+    context = {
+        'extradivclasses': " ".join(extradivclasses),
+        'tag': tag,
+        'contents': contents,
+    }
+    return template.render(context)  # as HTML
+
+
+def collapsible_div_spanbutton(tag):
+    template = loader.get_template('collapsible_div_spanbutton.html')
+    context = {
+        'tag': tag,
+    }
+    return template.render(context)  # as HTML
+
+
+def collapsible_div_contentdiv(tag, contents, extradivclasses=None):
+    if extradivclasses is None:
+        extradivclasses = []
+    template = loader.get_template('collapsible_div_contentdiv.html')
     context = {
         'extradivclasses': " ".join(extradivclasses),
         'tag': tag,
@@ -86,23 +106,37 @@ def make_highlight_replacement_regex(n=0):
 
 
 def make_result_element(x, elementnum, highlight_dict=None, collapse_at=None,
-                        line_length=None):
+                        line_length=None, keep_existing_newlines=True):
+    # return escape(repr(x))
     if x is None:
         return ""
     highlight_dict = highlight_dict or {}
     x = str(x)
     xlen = len(x)  # before we mess around with it
+    # textwrap.wrap will absorb existing newlines
+    if keep_existing_newlines:
+        input_lines = x.split("\n")
+    else:
+        input_lines = [x]
     if line_length:
-        x = "\n".join(textwrap.wrap(x, width=line_length))
-    x = linebreaksbr(escape(x))
+        output_lines = []
+        for line in input_lines:
+            if line:
+                output_lines.extend(textwrap.wrap(line, width=line_length))
+            else:  # blank line; textwrap.wrap will swallow it
+                output_lines.append('')
+    else:
+        output_lines = input_lines
+    # return escape(repr(output_lines))
+    output = linebreaksbr(escape("\n".join(output_lines)))
+    # return escape(repr(output))
     for n, highlight_list in highlight_dict.items():
         find = get_regex_from_highlights(highlight_list)
         replace = make_highlight_replacement_regex(n)
-        x = find.sub(replace, x)
+        output = find.sub(replace, output)
     if collapse_at and xlen >= collapse_at:
-        # return collapsible_div(elementnum, x)
-        return overflow_div(elementnum, x)
-    return x
+        return overflow_div(elementnum, output)
+    return output
 
 
 def pre(x=''):

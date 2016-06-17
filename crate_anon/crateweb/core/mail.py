@@ -37,8 +37,9 @@ class SmtpEmailBackendTls1(EmailBackend):
         if not self.use_tls:
             raise ValueError("This backend is specifically for TLS.")
         # self.use_ssl will be False, by the superclass's checks
-        
-    def _protocol(self):
+
+    @staticmethod
+    def _protocol():
         return ssl.PROTOCOL_TLSv1
 
     def open(self):

@@ -21,6 +21,9 @@ em {
 pre {
     margin: 0;
 }
+span {
+    display: inline;
+}
 table {
     display: table;  /* with table-cell, auto-resizing goes wrong */
     border-collapse: collapse;
@@ -109,6 +112,10 @@ ul {
 }
 .expandcollapse {
     display: table-cell;
+    margin: 0;
+}
+.expandcollapse_span {
+    display: inline;
     margin: 0;
 }
 .formtable, .formtable th, .formtable tr, .formtable td {

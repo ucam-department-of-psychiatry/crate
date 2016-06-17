@@ -1,0 +1,15 @@
+{# database_structure_tree.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Research database structure: tree form</h1>
+
+    <p>Default schema: {{ default_schema }}</p>
+
+    {% include "expand_collapse_buttons.html" %}
+
+    {{ content | safe }}
+
+{% endblock %}

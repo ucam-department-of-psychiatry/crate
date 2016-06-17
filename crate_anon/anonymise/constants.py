@@ -77,9 +77,10 @@ ALTERMETHOD = AttrDict(
     TRUNCATEDATE="truncatedate",
     SCRUBIN="scrub",
     BIN2TEXT="binary_to_text",
-    BIN2TEXT_SCRUB="binary_to_text_scrub",
     FILENAME2TEXT="filename_to_text",
-    FILENAME2TEXT_SCRUB="filename_to_text_scrub"
+    # HTML_ESCAPE="html_escape",
+    HTML_UNESCAPE="html_unescape",
+    HTML_UNTAG="html_untag",
 )
 
 DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
@@ -178,7 +179,8 @@ DEMO_CONFIG = """
 # -----------------------------------------------------------------------------
 # Specify a data dictionary in TSV (tab-separated value) format, with a header
 # row. Boolean values can be 0/1, Y/N, T/F, True/False.
-# Columns in the data dictionary:
+# Columns in the data dictionary (which can be in any order as long as the
+# header row matches the data):
 #
 # src_db
 #     Specify the source database.
@@ -299,7 +301,7 @@ DEMO_CONFIG = """
 #     This is case sensitive, for safety.
 #
 # alter_method
-#     Manner in which to alter the data. Blank, or one of:
+#     Manner in which to alter the data. Blank, or one or more of:
 #
 #     - "{ALTERMETHOD.SCRUBIN}"
 #       Scrub in. Applies to text fields only. The field will have its contents
@@ -318,16 +320,29 @@ DEMO_CONFIG = """
 #       extension (e.g. "/some/path/mything.pdf"), so that the anonymiser knows
 #       how to treat the binary data to extract text from it.
 #
-#     - "{ALTERMETHOD.BIN2TEXT_SCRUB}=EXTFIELDNAME"
-#       Ditto, but also scrub in.
-#
 #     - "{ALTERMETHOD.FILENAME2TEXT}"
 #       As for the binary-to-text option, but the field contains a filename
 #       (the contents of which is converted to text), rather than containing
 #       binary data directly.
 #
-#     - "{ALTERMETHOD.FILENAME2TEXT_SCRUB}"
-#       Ditto, but also scrub in.
+#     - "{ALTERMETHOD.HTML_UNESCAPE}"
+#       HTML encoding is removed, e.g. convert "&amp;" to "&" and "&lt;" to "<"
+#
+#     - "{ALTERMETHOD.HTML_UNTAG}"
+#       HTML tags are removed, e.g. from
+#           <a href="http://somewhere">see link</a>
+#       to
+#           see link
+#
+#     You can specify multiple options separated by commas.
+#     Not all are compatible (e.g. scrubbing is for text; date truncation is
+#     for dates).
+#     If there's more than one, text extraction from BLOBs/files is performed
+#     first. After that, they are executed in sequence.
+#     A typical combination might be:
+#           {ALTERMETHOD.FILENAME2TEXT},{ALTERMETHOD.SCRUBIN}
+#     or:
+#           {ALTERMETHOD.HTML_UNTAG},{ALTERMETHOD.HTML_UNESCAPE},{ALTERMETHOD.SCRUBIN}
 #
 # dest_table
 #     Table name in destination database.
