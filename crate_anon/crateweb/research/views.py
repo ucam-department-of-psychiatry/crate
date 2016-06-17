@@ -10,7 +10,7 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
-from django.db import OperationalError, ProgrammingError
+from django.db import DatabaseError
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -296,6 +296,13 @@ def pidlookup(request):
 #     H3 = Highlight(pk=3, text="October", colour=1, user=request.user)
 #     H3.save()
 
+# EXCEPTIONS FOR HOMEBREW SQL.
+# You can see:
+# - django.db.ProgrammingError
+# - django.db.OperationalError
+# - InternalError (?django.db.utils.InternalError)
+# ... but I think all are subclasses of django.db.utils.DatabaseError
+
 
 def render_resultcount(request, query):
     """
@@ -305,7 +312,8 @@ def render_resultcount(request, query):
         return render_missing_query(request)
     try:
         cursor = query.get_executed_cursor()
-    except (ProgrammingError, OperationalError) as exception:
+    # See above re exception classes
+    except DatabaseError as exception:
         query.audit(count_only=True, failed=True,
                     fail_msg=str(exception))
         return render_bad_query(request, query, exception)
@@ -340,7 +348,7 @@ def render_resultset(request, query, highlights,
         return render_missing_query(request)
     try:
         cursor = query.get_executed_cursor()
-    except (ProgrammingError, OperationalError) as exception:
+    except DatabaseError as exception:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
     rowcount = cursor.rowcount
@@ -383,7 +391,7 @@ def render_tsv(request, query):
         return render_missing_query(request)
     try:
         tsv_result = query.make_tsv()
-    except (ProgrammingError, OperationalError) as exception:
+    except DatabaseError as exception:
         return render_bad_query(request, query, exception)
     return HttpResponse(tsv_result, content_type='text/csv')
 
