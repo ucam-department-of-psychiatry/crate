@@ -148,6 +148,9 @@ def serve_concatenated_pdf_from_memory(html_or_filename_tuple_list,
 # Create PDFs from HTML
 # =============================================================================
 
+FIX_PDFKIT_ENCODING_BUG = True  # needs to be True for pdfkit==0.5.0
+
+
 def pdf_from_html(html, header_html=None, footer_html=None,
                   wkhtmltopdf_filename=None, wkhtmltopdf_options=None,
                   output_path=None):
@@ -175,7 +178,14 @@ def pdf_from_html(html, header_html=None, footer_html=None,
     if not wkhtmltopdf_filename:
         config = None
     else:
-        config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_filename)
+        if FIX_PDFKIT_ENCODING_BUG:
+            config = pdfkit.configuration(
+                wkhtmltopdf=wkhtmltopdf_filename.encode('utf-8'))
+            # the bug is that pdfkit.pdfkit.PDFKit.__init__ will attempt to
+            # decode the string in its configuration object;
+            # https://github.com/JazzCore/python-pdfkit/issues/32
+        else:
+            config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_filename)
     # Temporary files that a subprocess can read:
     #   http://stackoverflow.com/questions/15169101
     # wkhtmltopdf requires its HTML files to have ".html" extensions:
