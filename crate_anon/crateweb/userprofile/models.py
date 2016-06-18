@@ -9,6 +9,11 @@ from crate_anon.crateweb.core.constants import (
     LEN_PHONE,
     LEN_TITLE,
 )
+from crate_anon.crateweb.extra.salutation import (
+    forename_surname,
+    salutation,
+    title_forename_surname,
+)
 
 
 # =============================================================================
@@ -96,17 +101,15 @@ class UserProfile(models.Model):
                             self.address_7]))
 
     def get_title_forename_surname(self):
-        return " ".join(filter(None, [self.title, self.user.first_name,
-                                      self.user.last_name]))
+        return title_forename_surname(self.title, self.user.first_name,
+                                      self.user.last_name)
 
-    def get_title_surname(self):
-        if self.title.lower() == "sir":  # frivolous!
-            return " ".join([self.title, self.user.first_name])
-        else:
-            return " ".join([self.title, self.user.last_name])
+    def get_salutation(self):
+        return salutation(self.title, self.user.first_name,
+                          self.user.last_name, assume_dr=True)
 
     def get_forename_surname(self):
-        return " ".join([self.user.first_name, self.user.last_name])
+        return forename_surname(self.user.first_name, self.user.last_name)
 
 
 # noinspection PyUnusedLocal

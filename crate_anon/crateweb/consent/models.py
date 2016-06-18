@@ -58,6 +58,11 @@ from crate_anon.crateweb.extra.pdf import (
     get_concatenated_pdf_in_memory,
     pdf_from_html,
 )
+from crate_anon.crateweb.extra.salutation import (
+    forename_surname,
+    salutation,
+    title_forename_surname,
+)
 from crate_anon.crateweb.research.models import get_mpid
 from crate_anon.crateweb.consent.storage import privatestorage
 from crate_anon.crateweb.consent.tasks import (
@@ -179,7 +184,7 @@ class Study(models.Model):
         )
 
     def get_lead_researcher_salutation(self):
-        return self.lead_researcher.profile.get_title_surname()
+        return self.lead_researcher.profile.get_salutation()
 
     def get_involves_lack_of_capacity(self):
         if not self.include_lack_capacity:
@@ -484,7 +489,7 @@ class ConsentMode(Decision):
             # Letter bits
             'address_from': settings.RDBM_ADDRESS + [settings.RDBM_EMAIL],
             'address_to': patient_lookup.pt_name_address_components(),
-            'salutation': patient_lookup.pt_title_surname_str(),
+            'salutation': patient_lookup.pt_salutation(),
             'signatory_name': settings.RDBM_NAME,
             'signatory_title': settings.RDBM_TITLE,
             # Specific bits
@@ -681,18 +686,23 @@ class PatientLookupBase(models.Model):
         abstract = True
 
     # -------------------------------------------------------------------------
+    # Generic title stuff
+    # -------------------------------------------------------------------------
+
+    # -------------------------------------------------------------------------
     # Patient
     # -------------------------------------------------------------------------
 
-    def pt_title_surname_str(self):
-        return " ".join(filter(None, [self.pt_title, self.pt_last_name]))
+    def pt_salutation(self):
+        return salutation(self.pt_title, self.pt_first_name, self.pt_last_name,
+                          sex=self.pt_sex)
 
     def pt_title_forename_surname_str(self):
-        return " ".join(filter(None, [self.pt_title, self.pt_first_name,
-                                      self.pt_last_name]))
+        return title_forename_surname(self.pt_title, self.pt_first_name,
+                                      self.pt_last_name)
 
     def pt_forename_surname_str(self):
-        return " ".join(filter(None, [self.pt_first_name, self.pt_last_name]))
+        return forename_surname(self.pt_first_name, self.pt_last_name)
 
     def pt_address_components(self):
         return list(filter(None, [
@@ -740,8 +750,9 @@ class PatientLookupBase(models.Model):
     # -------------------------------------------------------------------------
 
     def gp_title_forename_surname_str(self):
-        return " ".join(filter(None, [self.gp_title, self.gp_first_name,
-                                      self.gp_last_name]))
+        return title_forename_surname(self.gp_title, self.gp_first_name,
+                                      self.gp_last_name, always_title=True,
+                                      assume_dr=True)
 
     def gp_address_components(self):
         return list(filter(None, [
@@ -901,7 +912,7 @@ class PatientLookup(PatientLookupBase):
             # Letter bits
             'address_from': self.clinician_address_components(),
             'address_to': self.pt_name_address_components(),
-            'salutation': self.pt_title_surname_str(),
+            'salutation': self.pt_salutation(),
             'signatory_name': self.clinician_title_forename_surname_str(),
             'signatory_title': self.clinician_signatory_title,
             # Specific bits
@@ -913,17 +924,23 @@ class PatientLookup(PatientLookupBase):
                                 context)
 
 
-def make_cpft_email_address(forename, surname):
+def make_forename_surname_email_address(forename, surname, domain,
+                                        default=''):
     if not forename or not surname:  # in case one is None
-        return None
+        return default
     forename = forename.replace(" ", "")
-    surname = forename.replace(" ", "")
+    surname = surname.replace(" ", "")
     if not forename or not surname:  # in case one is empty
-        return None
+        return default
     if len(forename) == 1:
         # Initial only; that won't do.
-        return None
-    return "{}.{}@cpft.nhs.uk".format(forename, surname)
+        return default
+    return "{}.{}@{}".format(forename, surname, domain)
+
+
+def make_cpft_email_address(forename, surname, default=''):
+    return make_forename_surname_email_address(forename, surname,
+                                               "cpft.nhs.uk", default)
 
 
 def lookup_patient(nhs_number, source_db=None, save=True,
@@ -1328,7 +1345,11 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
         lookup.clinician_first_name = \
             row['Care_Coordinator_User_first_name'] or ''
         lookup.clinician_last_name = row['Care_Coordinator_User_surname'] or ''
-        lookup.clinician_email = row['Care_Coordinator_User_email'] or ''
+        lookup.clinician_email = (
+            row['Care_Coordinator_User_email'] or
+            make_cpft_email_address(lookup.clinician_first_name,
+                                    lookup.clinician_last_name)
+        )
         lookup.clinician_is_consultant = bool(
             row['Care_Coordinator_User_Consultant_Flag'])
         lookup.clinician_signatory_title = "Care coordinator"
@@ -1372,7 +1393,11 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
             row['Referred_Consultant_User_first_name'] or ''
         lookup.clinician_last_name = \
             row['Referred_Consultant_User_surname'] or ''
-        lookup.clinician_email = row['Referred_Consultant_User_email'] or ''
+        lookup.clinician_email = (
+            row['Referred_Consultant_User_email'] or
+            make_cpft_email_address(lookup.clinician_first_name,
+                                    lookup.clinician_last_name)
+        )
         lookup.clinician_is_consultant = \
             bool(row['Referred_Consultant_User_Consultant_Flag'])
         # ... would be odd if this were not true!
@@ -1414,7 +1439,11 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
         lookup.clinician_title = row['HCP_User_title'] or ''
         lookup.clinician_first_name = row['HCP_User_first_name'] or ''
         lookup.clinician_last_name = row['HCP_User_surname'] or ''
-        lookup.clinician_email = row['HCP_User_email'] or ''
+        lookup.clinician_email = (
+            row['HCP_User_email'] or
+            make_cpft_email_address(lookup.clinician_first_name,
+                                    lookup.clinician_last_name)
+        )
         lookup.clinician_is_consultant = bool(row['HCP_User_Consultant_Flag'])
         lookup.clinician_signatory_title = "Clinician"
         return
@@ -1501,7 +1530,11 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
         lookup.clinician_first_name = \
             row['Care_Coordinator_User_first_name'] or ''
         lookup.clinician_last_name = row['Care_Coordinator_User_surname'] or ''
-        lookup.clinician_email = row['Care_Coordinator_User_email'] or ''
+        lookup.clinician_email = (
+            row['Care_Coordinator_User_email'] or
+            make_cpft_email_address(lookup.clinician_first_name,
+                                    lookup.clinician_last_name)
+        )
         lookup.clinician_is_consultant = bool(
             row['Care_Coordinator_User_Consultant_Flag'])
         lookup.clinician_signatory_title = "Care coordinator"
@@ -1540,7 +1573,11 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
             row['Referred_Consultant_User_first_name'] or ''
         lookup.clinician_last_name = \
             row['Referred_Consultant_User_surname'] or ''
-        lookup.clinician_email = row['Referred_Consultant_User_email'] or ''
+        lookup.clinician_email = (
+            row['Referred_Consultant_User_email'] or
+            make_cpft_email_address(lookup.clinician_first_name,
+                                    lookup.clinician_last_name)
+        )
         lookup.clinician_is_consultant = \
             bool(row['Referred_Consultant_User_Consultant_Flag'])
         # ... would be odd if this were not true!
@@ -1578,7 +1615,11 @@ def lookup_cpft_rio(lookup, decisions, secret_decisions):
         lookup.clinician_title = row['HCP_User_title'] or ''
         lookup.clinician_first_name = row['HCP_User_first_name'] or ''
         lookup.clinician_last_name = row['HCP_User_surname'] or ''
-        lookup.clinician_email = row['HCP_User_email'] or ''
+        lookup.clinician_email = (
+            row['HCP_User_email'] or
+            make_cpft_email_address(lookup.clinician_first_name,
+                                    lookup.clinician_last_name)
+        )
         lookup.clinician_is_consultant = bool(row['HCP_User_Consultant_Flag'])
         lookup.clinician_signatory_title = "Clinician"
         return
@@ -1808,13 +1849,12 @@ def lookup_cpft_crs(lookup, decisions, secret_decisions):
             row['carecoordinatormobilenumber'] or ''
         ])
         careco_email = (
-            row['carecoordinatoremailaddress'] or make_cpft_email_address(
-                row['carecoordinatorfirstname'],
-                row['carecoordinatorlastname'])
+            row['carecoordinatoremailaddress'] or
+            make_cpft_email_address(row['carecoordinatorfirstname'],
+                                    row['carecoordinatorlastname'])
         )
-        cons_email = make_cpft_email_address(
-            row['consultantfirstname'],
-            row['consultantlastname'])
+        cons_email = make_cpft_email_address(row['consultantfirstname'],
+                                             row['consultantlastname'])
         if careco_email:
             # Use care coordinator information
             lookup.clinician_found = True
@@ -2364,7 +2404,7 @@ class ContactRequest(models.Model):
             # Letter bits
             'address_from': patient_lookup.clinician_address_components(),
             'address_to': patient_lookup.pt_name_address_components(),
-            'salutation': patient_lookup.pt_title_surname_str(),
+            'salutation': patient_lookup.pt_salutation(),
             'signatory_name':
             patient_lookup.clinician_title_forename_surname_str(),
             'signatory_title': patient_lookup.clinician_signatory_title,
