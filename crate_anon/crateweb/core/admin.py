@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 # core/admin.py
 
+# NOTE that
+# - Objects for which a user is not authorized, via get_queryset(), will
+#   causes an Http404 error.
+# - You can't filter on Python properties via the Django QuerySet ORM.
+
 import logging
 from django import forms
 from django.conf import settings
@@ -314,26 +319,27 @@ class EmailMgrAdmin(EmailDevAdmin):
                                                   Q(to_patient=True))
         return qs
 
+    @staticmethod
+    def rdbm_may_view(self, obj):
+        return obj.to_patient or obj.to_researcher
+
     def get_restricted_msg_text(self, obj):
-        if obj.to_patient or obj.to_researcher:
-            return obj.msg_text
-        else:
+        if not self.rdbm_may_view(obj):
             return "(Not authorized)"
+        return obj.msg_text
     get_restricted_msg_text.short_description = "Message text"
 
     def get_restricted_msg_html(self, obj):
-        if obj.to_patient or obj.to_researcher:
-            return self.get_view_msg_html(obj)
-        else:
+        if not self.rdbm_may_view(obj):
             return "(Not authorized)"
+        return self.get_view_msg_html(obj)
     get_restricted_msg_html.short_description = "Message HTML"
     get_restricted_msg_html.allow_tags = True
 
     def get_restricted_attachments(self, obj):
-        if obj.to_patient or obj.to_researcher:
-            return self.get_view_attachments(obj)
-        else:
+        if not self.rdbm_may_view(obj):
             return "(Not authorized)"
+        return self.get_view_attachments(obj)
     get_restricted_attachments.short_description = "Attachments"
     get_restricted_attachments.allow_tags = True
 
