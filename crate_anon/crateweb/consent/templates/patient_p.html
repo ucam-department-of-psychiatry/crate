@@ -2,7 +2,7 @@
 {# parameters: patient_lookup #}
 
 <p class="patient_details">
-    Date of birth: {{ patient_lookup.pt_dob }}<br>
+    Date of birth: {{ patient_lookup.pt_dob|date }}<br>
 
     NHS number: {{ patient_lookup.nhs_number }}.
     {% if patient_lookup.pt_local_id_description %}

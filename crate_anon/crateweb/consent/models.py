@@ -811,7 +811,7 @@ class PatientLookupBase(models.Model):
                                       self.clinician_last_name)
 
     def clinician_address_components(self):
-        return [
+        return list(filter(None, [
             self.clinician_address_1,
             self.clinician_address_2,
             self.clinician_address_3,
@@ -819,10 +819,10 @@ class PatientLookupBase(models.Model):
             self.clinician_address_5,
             self.clinician_address_6,
             self.clinician_address_7,
-        ]
+        ]))
 
     def clinician_address_components_str(self):
-        return ", ".join(filter(None, self.clinician_address_components()))
+        return ", ".join(self.clinician_address_components())
 
     def clinician_name_address_str(self):
         return ", ".join(filter(None, [
