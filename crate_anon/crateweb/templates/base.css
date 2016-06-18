@@ -232,6 +232,9 @@ ul {
 .titlecolour {
     color: rgb(0, 114, 198);
 }
+.underline {
+    text-decoration: underline;
+}
 .queryresult {
     /* font-family: Georgia, "Times New Roman", Times, serif; */
     font-family: "Times New Roman", Times, serif;

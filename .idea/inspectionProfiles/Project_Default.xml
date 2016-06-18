@@ -33,6 +33,7 @@
           <option value="win32serviceutil" />
           <option value="win32event" />
           <option value="winerror" />
+          <option value="servicemanager" />
         </list>
       </option>
     </inspection_tool>

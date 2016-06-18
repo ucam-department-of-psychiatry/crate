@@ -40,7 +40,6 @@ from crate_anon.crateweb.core.dbfunc import (
 )
 from crate_anon.crateweb.core.utils import (
     get_friendly_date,
-    get_initial_surname_tuple_from_string,
     modelrepr,
     site_absolute_url,
     string_time_now,
@@ -60,6 +59,7 @@ from crate_anon.crateweb.extra.pdf import (
 )
 from crate_anon.crateweb.extra.salutation import (
     forename_surname,
+    get_initial_surname_tuple_from_string,
     salutation,
     title_forename_surname,
 )
@@ -697,11 +697,11 @@ class PatientLookupBase(models.Model):
         return salutation(self.pt_title, self.pt_first_name, self.pt_last_name,
                           sex=self.pt_sex)
 
-    def pt_title_forename_surname_str(self):
+    def pt_title_forename_surname(self):
         return title_forename_surname(self.pt_title, self.pt_first_name,
                                       self.pt_last_name)
 
-    def pt_forename_surname_str(self):
+    def pt_forename_surname(self):
         return forename_surname(self.pt_first_name, self.pt_last_name)
 
     def pt_address_components(self):
@@ -720,7 +720,7 @@ class PatientLookupBase(models.Model):
 
     def pt_name_address_components(self):
         return [
-            self.pt_title_forename_surname_str()
+            self.pt_title_forename_surname()
         ] + self.pt_address_components()
 
     def get_id_numbers_html_bold(self):
@@ -749,7 +749,7 @@ class PatientLookupBase(models.Model):
     # GP
     # -------------------------------------------------------------------------
 
-    def gp_title_forename_surname_str(self):
+    def gp_title_forename_surname(self):
         return title_forename_surname(self.gp_title, self.gp_first_name,
                                       self.gp_last_name, always_title=True,
                                       assume_dr=True)
@@ -769,7 +769,7 @@ class PatientLookupBase(models.Model):
         return ", ".join(self.gp_address_components())
 
     def gp_name_address_str(self):
-        return ", ".join(filter(None, [self.gp_title_forename_surname_str(),
+        return ", ".join(filter(None, [self.gp_title_forename_surname(),
                                        self.gp_address_components_str()]))
 
     # noinspection PyUnusedLocal
@@ -801,14 +801,14 @@ class PatientLookupBase(models.Model):
     # Clinician
     # -------------------------------------------------------------------------
 
-    def clinician_title_surname_str(self):
-        return " ".join(filter(None, [self.clinician_title,
-                                      self.clinician_last_name]))
+    def clinician_salutation(self):
+        return salutation(self.clinician_title, self.clinician_first_name,
+                          self.clinician_last_name, assume_dr=True)
 
-    def clinician_title_forename_surname_str(self):
-        return " ".join(filter(None, [self.clinician_title,
+    def clinician_title_forename_surname(self):
+        return title_forename_surname(self.clinician_title,
                                       self.clinician_first_name,
-                                      self.clinician_last_name]))
+                                      self.clinician_last_name)
 
     def clinician_address_components(self):
         return [
@@ -826,7 +826,7 @@ class PatientLookupBase(models.Model):
 
     def clinician_name_address_str(self):
         return ", ".join(filter(None, [
-            self.clinician_title_forename_surname_str(),
+            self.clinician_title_forename_surname(),
             self.clinician_address_components_str()]))
 
 
@@ -913,7 +913,7 @@ class PatientLookup(PatientLookupBase):
             'address_from': self.clinician_address_components(),
             'address_to': self.pt_name_address_components(),
             'salutation': self.pt_salutation(),
-            'signatory_name': self.clinician_title_forename_surname_str(),
+            'signatory_name': self.clinician_title_forename_surname(),
             'signatory_title': self.clinician_signatory_title,
             # Specific bits
             'settings': settings,
@@ -2406,7 +2406,7 @@ class ContactRequest(models.Model):
             'address_to': patient_lookup.pt_name_address_components(),
             'salutation': patient_lookup.pt_salutation(),
             'signatory_name':
-            patient_lookup.clinician_title_forename_surname_str(),
+            patient_lookup.clinician_title_forename_surname(),
             'signatory_title': patient_lookup.clinician_signatory_title,
             # Specific bits
             'contact_request': self,

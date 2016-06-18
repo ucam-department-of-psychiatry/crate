@@ -64,16 +64,16 @@
     {% include "signature_box_patient.html" with patient_lookup=patient_lookup %}
 
     {% if patient_lookup.is_under_15 %}
-        <p><u>As you are under 16, please also fill in the box on the next
-        page.</u></p>
+        <p><span class="underline">As you are under 16, please also fill in the
+        box on the next page.</span></p>
     {% elif patient_lookup.is_under_16 %}
         {# Might have been sent out with 16th birthday approaching, etc. #}
-        <p><u>If you are under 16, or another adult is making decisions on
-        your behalf</u>, please also fill in the relevant box on the next
-        page.</p>
+        <p><span class="underline">If you are under 16, or another adult is
+        making decisions on your behalf</span>, please also fill in the
+        relevant box on the next page.</p>
     {% else %}
-        <p><u>If another adult is making decisions on your behalf</u>,
-        please also fill in the box on the next page.</p>
+        <p><span class="underline">If another adult is making decisions on your
+        behalf</span>, please also fill in the box on the next page.</p>
     {% endif %}
 
     <p><em>Please return

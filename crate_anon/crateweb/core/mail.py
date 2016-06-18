@@ -40,6 +40,7 @@ class SmtpEmailBackendTls1(EmailBackend):
 
     @staticmethod
     def _protocol():
+        # noinspection PyUnresolvedReferences
         return ssl.PROTOCOL_TLSv1
 
     def open(self):
