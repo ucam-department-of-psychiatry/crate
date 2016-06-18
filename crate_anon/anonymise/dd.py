@@ -89,7 +89,7 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# DataDictionaryRow
+# AlterMethod
 # =============================================================================
 
 class AlterMethod(object):
@@ -173,6 +173,10 @@ class AlterMethod(object):
         return ""
 
 
+# =============================================================================
+# DataDictionaryRow
+# =============================================================================
+
 class DataDictionaryRow(object):
     """
     Class representing a single row of a data dictionary.
@@ -239,6 +243,10 @@ class DataDictionaryRow(object):
         self._exclusion_values = []
 
         self._alter_methods = []
+
+    # -------------------------------------------------------------------------
+    # Comparisons and properties
+    # -------------------------------------------------------------------------
 
     def __lt__(self, other):
         return self.get_signature() < other.get_signature()
@@ -368,9 +376,6 @@ class DataDictionaryRow(object):
     def get_alter_methods(self):
         return self._alter_methods
 
-    def being_scrubbed(self):
-        return any(am.scrub for am in self._alter_methods)
-
     @property
     def from_file(self):
         return self._from_file
@@ -389,6 +394,10 @@ class DataDictionaryRow(object):
             raise ValueError("decision was {}; must be one of {}".format(
                 value, [DECISION.OMIT, DECISION.INCLUDE]))
 
+    # -------------------------------------------------------------------------
+    # Representations
+    # -------------------------------------------------------------------------
+
     def __str__(self):
         """
         Return a string representation.
@@ -404,6 +413,23 @@ class DataDictionaryRow(object):
 
     def get_dest_signature(self):
         return "{}.{}".format(self.dest_table, self.dest_field)
+
+    def get_tsv(self):
+        """
+        Return a TSV row for writing.
+        """
+        values = []
+        for x in DataDictionaryRow.ROWNAMES:
+            v = getattr(self, x)
+            if v is None:
+                v = ""
+            v = str(v)
+            values.append(v)
+        return "\t".join(values)
+
+    # -------------------------------------------------------------------------
+    # Setting
+    # -------------------------------------------------------------------------
 
     def set_from_dict(self, valuedict):
         """
@@ -597,23 +623,14 @@ class DataDictionaryRow(object):
         self._from_file = False
         self.check_valid()
 
-    def get_tsv(self):
-        """
-        Return a TSV row for writing.
-        """
-        values = []
-        for x in DataDictionaryRow.ROWNAMES:
-            v = getattr(self, x)
-            if v is None:
-                v = ""
-            v = str(v)
-            values.append(v)
-        return "\t".join(values)
-
     def get_offender_description(self):
         offenderdest = "" if not self.omit else " -> {}".format(
             self.get_dest_signature())
         return "{}{}".format(self.get_signature(), offenderdest)
+
+    # -------------------------------------------------------------------------
+    # Validation
+    # -------------------------------------------------------------------------
 
     def check_valid(self):
         """
@@ -829,11 +846,31 @@ class DataDictionaryRow(object):
                         SRCFLAG.CONSTANT,
                         INDEX.UNIQUE))
 
+    # -------------------------------------------------------------------------
+    # Anonymisation decisions
+    # -------------------------------------------------------------------------
+
+    def being_scrubbed(self):
+        return any(am.scrub for am in self._alter_methods)
+
     def contains_patient_info(self):
         return bool(self.scrub_src) or self._primary_pid or self._master_pid
 
     def required(self):
         return not self.omit or self.contains_patient_info()
+
+    def skip_row_by_value(self, value):
+        if self._inclusion_values and value not in self._inclusion_values:
+            # log.debug("skipping row based on inclusion_values")
+            return True
+        if value in self._exclusion_values:
+            # log.debug("skipping row based on exclusion_values")
+            return True
+        return False
+
+    # -------------------------------------------------------------------------
+    # SQLAlchemy types
+    # -------------------------------------------------------------------------
 
     def set_src_sqla_coltype(self, sqla_coltype):
         self._src_sqla_coltype = sqla_coltype

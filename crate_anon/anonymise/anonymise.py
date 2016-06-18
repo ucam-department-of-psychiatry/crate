@@ -582,12 +582,8 @@ def process_table(sourcedbname, sourcetable,
             if ddr.omit:
                 continue  # skip column
             value = row[i]
-            if ddr.inclusion_values and value not in ddr.inclusion_values:
-                # log.debug("skipping row based on inclusion_values")
-                destvalues = {}
-                break  # skip row
-            if ddr.exclusion_values and value in ddr.exclusion_values:
-                # log.debug("skipping row based on exclusion_values")
+            if ddr.skip_row_by_value(value):
+                # log.debug("skipping row based on inclusion/exclusion values")
                 destvalues = {}
                 break  # skip row
             # NOTE: would be most efficient if ddrows were ordered with
