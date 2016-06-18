@@ -167,6 +167,8 @@ MYSQL_TABLE_ARGS = {
 # noinspection PyPep8
 DEMO_CONFIG = """
 # Configuration file for CRATE anonymiser (crate_anonymise).
+#
+# Boolean values can be 0/1, Y/N, T/F, True/False.
 
 # =============================================================================
 # Main settings
@@ -178,7 +180,7 @@ DEMO_CONFIG = """
 # Data dictionary
 # -----------------------------------------------------------------------------
 # Specify a data dictionary in TSV (tab-separated value) format, with a header
-# row. Boolean values can be 0/1, Y/N, T/F, True/False.
+# row.
 # Columns in the data dictionary (which can be in any order as long as the
 # header row matches the data):
 #
@@ -299,6 +301,27 @@ DEMO_CONFIG = """
 #     - "{DECISION.OMIT}": omit the field from the output entirely;
 #     - "{DECISION.INCLUDE}": include it.
 #     This is case sensitive, for safety.
+#
+# inclusion_values
+#     - Either blank, or an expression that evaluates to a Python iterable
+#       (e.g. list or tuple) with Python's ast.literal_eval() function (see
+#       https://docs.python.org/3.4/library/ast.html).
+#     - Examples:
+#           [None, 0]
+#           [True, 1, 'yes', 'true', 'Yes', 'True']
+#     - If this is not blank/None, then it serves as a ROW INCLUSION LIST -
+#       the source row will only be processed if the field's value is one of
+#       the inclusion values.
+#     - It applies to the raw value from the database (before any
+#       transformation via alter_method).
+#     - This is not applied to scrub_src fields (which contribute to the
+#       scrubber regardless.
+#     - Note that "[None]" is a list with one member, None, whereas "None"
+#       is equivalent to leaving the field blank.
+#
+# exclusion_values
+#     - As for inclusion_values, but the row is excluded if the field's value
+#       is in the exclusion_values list.
 #
 # alter_method
 #     Manner in which to alter the data. Blank, or one or more of:
@@ -457,8 +480,7 @@ min_string_length_to_scrub_with = 2
     # Are there any words not to scrub? For example, "the", "road", "street"
     # often appear in addresses, but you might not want them removed. Be
     # careful in case these could be names (e.g. "Lane").
-    # Specify these as a list of FILENAMES, where the filenames contain words;
-    # e.g.
+    # Specify these as a list of FILENAMES, where the files contain words; e.g.
     #
     # whitelist_filenames = /some/path/short_english_words.txt
     #
@@ -525,7 +547,7 @@ scrub_all_uk_postcodes = False
 
     # Anonymise at word boundaries? True is more conservative; False is more
     # liberal and will deal with accidental word concatenation. With ID
-    # numbers, beware if you use a prefix, e.g. people write 'M123456' or
+    # numbers, beware if you use a prefix, e.g. if people write 'M123456' or
     # 'R123456'; in that case you will need
     #       anonymise_numbers_at_word_boundaries_only = False.
 anonymise_codes_at_word_boundaries_only = True

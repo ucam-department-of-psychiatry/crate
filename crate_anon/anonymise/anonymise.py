@@ -580,8 +580,19 @@ def process_table(sourcedbname, sourcetable,
         destvalues = {}
         for i, ddr in enumerate(ddrows):
             if ddr.omit:
-                continue
+                continue  # skip column
             value = row[i]
+            if ddr.inclusion_values and value not in ddr.inclusion_values:
+                # log.debug("skipping row based on inclusion_values")
+                destvalues = {}
+                break  # skip row
+            if ddr.exclusion_values and value in ddr.exclusion_values:
+                # log.debug("skipping row based on exclusion_values")
+                destvalues = {}
+                break  # skip row
+            # NOTE: would be most efficient if ddrows were ordered with
+            # inclusion/exclusion fields first. (Not yet done automatically.)
+
             if ddr.primary_pid:
                 assert(value == patient.get_pid())
                 value = patient.get_rid()
@@ -612,10 +623,15 @@ def process_table(sourcedbname, sourcetable,
                 elif alter_method.html_untag:
                     value = html_untag(value)
             destvalues[ddr.dest_field] = value
+
+        if not destvalues:  # e.g. if exclusion/inclusion criteria failed
+            continue  # next row
+
         if addhash:
             destvalues[config.source_hash_fieldname] = srchash
         if addtrid:
             destvalues[config.trid_fieldname] = patient.get_trid()
+
         q = sqla_table.insert_on_duplicate().values(destvalues)
         session.execute(q)
 

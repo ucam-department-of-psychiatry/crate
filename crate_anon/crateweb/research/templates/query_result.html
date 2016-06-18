@@ -12,14 +12,14 @@
 
     <table>
         <tr>
-            <th></th>
+            <th><i>#</i></th>
             {% for field in fieldnames %}
                 <th>{{ field }}</th>
             {% endfor %}
         </tr>
         {% for row in rows %}
             <tr>
-                <td><i>{{ rows.start_index|add:forloop.counter0 }}</i></td>
+                <td><b><i>{{ rows.start_index|add:forloop.counter0 }}</i></b></td>
                 {% for col in row %}
                     <td class="queryresult">{{ col|safe }}</td>
                 {% endfor %}

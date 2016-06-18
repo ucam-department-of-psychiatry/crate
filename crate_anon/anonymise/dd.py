@@ -34,6 +34,7 @@ Copyright/licensing:
 # Imports
 # =============================================================================
 
+import ast
 import collections
 import csv
 from functools import lru_cache
@@ -187,6 +188,8 @@ class DataDictionaryRow(object):
         "scrub_method",
 
         "decision",
+        "inclusion_values",
+        "exclusion_values",
         "alter_method",
 
         "dest_table",
@@ -231,6 +234,9 @@ class DataDictionaryRow(object):
         self._constant = False
         self._addition_only = False
         self._opt_out_info = False
+
+        self._inclusion_values = []
+        self._exclusion_values = []
 
         self._alter_methods = []
 
@@ -292,6 +298,28 @@ class DataDictionaryRow(object):
         self._constant = SRCFLAG.CONSTANT in value
         self._addition_only = SRCFLAG.ADDITION_ONLY in value
         self._opt_out_info = SRCFLAG.OPTOUT in value
+
+    @property
+    def inclusion_values(self):
+        return self._inclusion_values
+
+    @inclusion_values.setter
+    def inclusion_values(self, value):
+        if value:
+            self._inclusion_values = ast.literal_eval(value) or []
+        else:
+            self._inclusion_values = []
+
+    @property
+    def exclusion_values(self):
+        return self._exclusion_values
+
+    @exclusion_values.setter
+    def exclusion_values(self, value):
+        if value:
+            self._exclusion_values = ast.literal_eval(value) or []
+        else:
+            self._exclusion_values = []
 
     @property
     def alter_method(self):
@@ -390,6 +418,8 @@ class DataDictionaryRow(object):
         self.scrub_src = valuedict['scrub_src']
         self.scrub_method = valuedict['scrub_method']
         self.decision = valuedict['decision']  # a property; actually, 'omit'
+        self.inclusion_values = valuedict['inclusion_values']  # a property
+        self.exclusion_values = valuedict['exclusion_values']  # a property
         self.alter_method = valuedict['alter_method']  # a property
         self.dest_table = valuedict['dest_table']
         self.dest_field = valuedict['dest_field']
@@ -868,7 +898,7 @@ class DataDictionary(object):
                     "Bad data dictionary file. Must be a tab-separated value "
                     "(TSV) file with the following row headings:\n"
                     "{}\n\n"
-                    "but yours are:\n"
+                    "but yours are:\n\n"
                     "{}".format(
                         "\n".join(DataDictionaryRow.ROWNAMES),
                         "\n".join(headers)
