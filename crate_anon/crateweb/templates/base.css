@@ -65,6 +65,7 @@ ul {
     margin: 0;
 }
 .collapse_summary {
+    background-color: rgb(240, 240, 255);
     height: 5em;
     overflow: hidden;
     margin: 0;
@@ -238,4 +239,22 @@ ul {
 .queryresult {
     /* font-family: Georgia, "Times New Roman", Times, serif; */
     font-family: "Times New Roman", Times, serif;
+}
+.ditto {
+    font-style: italic;
+    font-weight: bold;
+    text-align: center;
+    background-color: rgb(230, 230, 230);
+}
+.stripy_odd {
+}
+.stripy_even {
+    background-color: rgb(245, 255, 230);
+}
+.sql {
+    background-color: rgb(230, 230, 255);
+}
+.warning {
+    font-weight: bold;
+    color: rgb(255, 0, 0);
 }

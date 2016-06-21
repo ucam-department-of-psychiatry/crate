@@ -6,7 +6,7 @@
 
     {% include "query_nav.html" %}
 
-    <h1>Edit/create SQL query</h1>
+    <h1>Create/edit SQL query</h1>
 
     <form action="{% url 'query' %}" method="post">
         {% csrf_token %}
@@ -19,14 +19,21 @@
 
     <h2>Tips</h2>
     <ul>
+        <li>If you’re new to SQL, try a tutorial such as those by
+            <a href="http://sqlzoo.net/">SQLZoo</a>,
+            <a href="http://www.sql-tutorial.net/">SQL-Tutorial</a>,
+            <a href="https://www.codecademy.com/learn/learn-sql">Codecademy</a>, or
+            <a href="http://www.w3schools.com/sql/">W3Schools</a>.</li>
+
         <li>The research database runs MySQL.</li>
 
-        <li>Append <b><code>LIMIT n</code></b> or
-        <b><code>LIMIT start, n</code></b> to limit the results, where
-        <code>offset</code> is numbered from 0 (not 1), and <code>n</code> is the
-        number of records to retrieve (so <code>LIMIT 50</code> or
-        <code>LIMIT 0, 50</code> retrieves the first 50 records, and
-        <code>LIMIT 50, 50</code> retrieves the next 50).</li>
+        <li>Append <b><code>LIMIT row_count</code></b> or
+            <b><code>LIMIT offset, row_count</code></b> to limit the results,
+            where <code>offset</code> is numbered from 0 (not 1), and
+            <code>row_count</code> is the number of records to retrieve
+            (so <code>LIMIT 50</code> or <code>LIMIT 0, 50</code> retrieves
+            the first 50 records, and <code>LIMIT 50, 50</code> retrieves the
+            next 50).</li>
     </ul>
 
     <h1>Previous queries</h1>
@@ -64,7 +71,7 @@
                 </tr>
             {% endfor %}
         </table>
-        {% include "page_nav.html" with items=queries %}
+        {% include "page_nav.html" with page=queries %}
 
     {% else %}
         <div>None.</div>

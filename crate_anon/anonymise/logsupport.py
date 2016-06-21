@@ -37,3 +37,10 @@ def configure_logger_for_colour(log, level=logging.INFO, remove_existing=False,
         log.handlers = []  # http://stackoverflow.com/questions/7484454
     log.addHandler(get_colour_handler(extranames))
     log.setLevel(level)
+
+
+def main_only_quicksetup_rootlogger(level=logging.DEBUG):
+    # Nasty. Only call from "if __name__ == '__main__'" clauses!
+    rootlogger = logging.getLogger()
+    configure_logger_for_colour(rootlogger, level)
+    logging.basicConfig(level=logging.DEBUG)

@@ -4,19 +4,19 @@
     <span class="step-links">
         <span class="current">
             {% block current %}
-            Page {{ items.number }} of {{ items.paginator.num_pages }}.
+            Page {{ page.number }} of {{ page.paginator.num_pages }}.
             {% endblock %}
         </span>
         [
-        {% if items.has_previous %}
+        {% if page.has_previous %}
             <a href="?page=1">first</a>
-            | <a href="?page={{ items.previous_page_number }}">previous</a>
+            | <a href="?page={{ page.previous_page_number }}">previous</a>
         {% else %}
             first | previous
         {% endif %}
         |
-        {% if items.has_next %}
-            <a href="?page={{ items.next_page_number }}">next</a>
+        {% if page.has_next %}
+            <a href="?page={{ page.next_page_number }}">next</a>
             | <a href="?page=-1">last</a>
         {% else %}
             next | last

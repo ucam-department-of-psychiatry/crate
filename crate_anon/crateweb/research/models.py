@@ -3,11 +3,15 @@
 
 from collections import OrderedDict
 from functools import lru_cache
+import logging
+import os
+
 from django.db import connections, models
 from django.conf import settings
 # from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
-import logging
+
+from crate_anon.anonymise.constants import CONFIG_ENV_VAR
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
@@ -287,6 +291,37 @@ class Highlight(models.Model):
     def deactivate(self):
         self.active = False
         self.save()
+
+
+# =============================================================================
+# Information about the data dictionary, if used
+# =============================================================================
+
+@lru_cache(maxsize=None)
+def get_anon_config():
+    config_filename = settings.CRATE_ANON_CONFIG
+    if not config_filename:
+        return None
+    os.environ[CONFIG_ENV_VAR] = config_filename
+    from crate_anon.anonymise.config import config  # DELAYED IMPORT for envvar
+    return config
+
+
+@lru_cache(maxsize=None)
+def get_data_dictionary():
+    config = get_anon_config()
+    if not config:
+        return None
+    config.load_dd()
+    return config.dd
+
+
+@lru_cache(maxsize=None)
+def get_trid_fieldname():
+    config = get_anon_config()
+    if not config:
+        return None
+    return config.trid_fieldname
 
 
 # =============================================================================

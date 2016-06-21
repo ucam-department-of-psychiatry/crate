@@ -2,14 +2,20 @@
 
 <div>
     [
+    {% if nav_on_querybuilder %}
+        <b>Query builder</b>
+    {% else %}
+        <a href="{% url 'build_query' %}">Query builder</a>
+    {% endif %}
+    |
     {% if nav_on_query %}
-        SQL
+        <b>SQL</b>
     {% else %}
         <a href="{% url 'query' %}">SQL</a>
     {% endif %}
     |
     {% if nav_on_highlight %}
-        highlighting
+        <b>highlighting</b>
     {% else %}
         <a href="{% url 'highlight' %}">highlighting</a>
     {% endif %}
@@ -23,13 +29,13 @@
 {% endcomment %}
     |
     {% if nav_on_results or not query_selected %}
-        view results
+        <b>view results</b>
     {% else %}
         <a href="{% url 'results' current_query_id %}">view results</a>
     {% endif %}
     |
     {% if not query_selected %}
-        export as TSV
+        <b>export as TSV</b>
     {% else %}
         <a href="{% url 'tsv' %}">export as TSV</a>
     {% endif %}

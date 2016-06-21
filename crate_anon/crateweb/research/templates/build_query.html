@@ -1,0 +1,38 @@
+{# build_query.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Build a simple query</h1>
+    <p>For more advanced queries, see the
+        <a href="{% url 'query' %}">SQL view</a>.</p>
+
+    <h2>Current query</h2>
+    <pre class="sql">{{ sql }}</pre>
+
+    <p>*** NEEDS SAVE BUTTON + RUN BUTTON ***</p>
+
+    <h2>Build your query!</h2>
+    {% include "expand_collapse_buttons.html" %}
+    {{ builder|safe }}
+
+    <h2>Tips</h2>
+    <ul>
+        <li>This query builder only looks at fields in the <b>data
+            dictionary</b> that was used to create the research database,
+            and then still only tables that are connected to patients (not
+            “system” tables with no connection to a patient). If you want to
+            explore all the tables, explore the database structure using the
+            options on the <a href="{% url 'home' %}">Main menu</a>,
+            and use the <a href="{% url 'query' %}">SQL view</a> to create
+            a more complex query.</li>
+
+        <li>This query builder parses the SQL you start with, and then
+            adds more pieces. It is less powerful than arbitrary SQL.</li>
+    </ul>
+
+
+{% endblock %}

@@ -129,6 +129,11 @@ RESEARCH_DB_INFO_SCHEMAS = [
     'anonymous_output',
 ]
 
+# Data dictionary (TSV file used by CRATE anonymiser) is pointed to by this
+# file. If you specify None, that's fine, but the assisted query builder will
+# be disabled.
+CRATE_ANON_CONFIG = None
+
 # Configuration of the secret mapping database (as set during initial
 # anonymisation)
 SECRET_MAP = {

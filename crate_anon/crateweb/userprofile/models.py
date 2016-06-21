@@ -57,6 +57,8 @@ class UserProfile(models.Model):
         default=400,
         verbose_name="Number of characters beyond which results field starts "
                      "collapsed (0 for none)")
+    sql_scratchpad = models.TextField(
+        verbose_name='SQL scratchpad for query builder')
 
     # -------------------------------------------------------------------------
     # Developer
@@ -84,6 +86,7 @@ class UserProfile(models.Model):
     address_7 = models.CharField(max_length=LEN_ADDRESS, blank=True,
                                  verbose_name="Address line 7 (country)")
     telephone = models.CharField(max_length=LEN_PHONE, blank=True)
+
     # -------------------------------------------------------------------------
     # Clinician-specific bits
     # -------------------------------------------------------------------------

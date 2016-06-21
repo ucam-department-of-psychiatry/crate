@@ -36,6 +36,7 @@ def collapsible_div_with_divbutton(tag, contents, extradivclasses=None):
 
 
 def collapsible_div_spanbutton(tag):
+    tag = str(tag)
     template = loader.get_template('collapsible_div_spanbutton.html')
     context = {
         'tag': tag,
@@ -44,6 +45,7 @@ def collapsible_div_spanbutton(tag):
 
 
 def collapsible_div_contentdiv(tag, contents, extradivclasses=None):
+    tag = str(tag)
     if extradivclasses is None:
         extradivclasses = []
     template = loader.get_template('collapsible_div_contentdiv.html')

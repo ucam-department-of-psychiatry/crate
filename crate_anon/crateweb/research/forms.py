@@ -1,19 +1,25 @@
 #!/usr/bin/env python3
 # research/forms.py
 
+import logging
+
 from django import forms
 from django.conf import settings
 from django.forms import (
     BooleanField,
     CharField,
+    DateField,
     IntegerField,
     ModelForm,
 )
+from django.forms.widgets import HiddenInput
 from crate_anon.crateweb.extra.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
 )
 from crate_anon.crateweb.research.models import Highlight, Query
+
+log = logging.getLogger(__name__)
 
 
 class AddQueryForm(ModelForm):
@@ -65,3 +71,28 @@ class SQLHelperTextAnywhereForm(forms.Form):
     include_content = BooleanField(
         label="Include content from fields where found (slower)",
         required=False)
+
+
+class QueryBuilderColumnForm(forms.Form):
+    table = CharField(label="Table", required=True)
+    column = CharField(label="Column", required=True)
+
+    int_value = IntegerField(label="Value (integer)", required=False)
+    date_value = DateField(label="Value (date)", required=False)
+    string_value = CharField(label="Value (string)", required=False)
+
+    def __init__(self, table, column,
+                 as_integer=True, as_date=False, as_string=False):
+        super().__init__(initial=dict(table=table, column=column))
+        self.as_integer = as_integer
+        self.as_date = as_date
+        self.as_string = as_string
+
+        self.fields['table'].widget = HiddenInput()
+        self.fields['column'].widget = HiddenInput()
+        if not as_integer:
+            self.fields['int_value'].widget = HiddenInput()
+        if not as_date:
+            self.fields['date_value'].widget = HiddenInput()
+        if not as_string:
+            self.fields['string_value'].widget = HiddenInput()

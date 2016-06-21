@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # research/views.py
 
+from functools import lru_cache
 import logging
 
 from django import forms
@@ -15,6 +16,7 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
 
 from crate_anon.crateweb.core.dbfunc import (
     dictlist_to_tsv,
@@ -26,6 +28,7 @@ from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
     PidLookupForm,
+    QueryBuilderColumnForm,
     SQLHelperTextAnywhereForm,
 )
 from crate_anon.crateweb.research.html_functions import (
@@ -37,6 +40,8 @@ from crate_anon.crateweb.research.html_functions import (
     N_CSS_HIGHLIGHT_CLASSES,
 )
 from crate_anon.crateweb.research.models import (
+    get_data_dictionary,
+    get_trid_fieldname,
     Highlight,
     PidLookup,
     Query,
@@ -65,6 +70,85 @@ def validate_blank_form(request):
 # =============================================================================
 # Queries
 # =============================================================================
+
+NO_QUERY_BUILDER_AVAILABLE = """
+    <p class="warning">No query builder available.
+        (No data dictionary specified.)</p>
+"""
+
+
+@lru_cache(maxsize=None)
+def query_builder_html():
+    dd = get_data_dictionary()
+    if not dd:
+        return NO_QUERY_BUILDER_AVAILABLE
+    html = ""
+    tag = 0
+    for table in dd.get_dest_tables_with_patient_info():
+        html_table = ''
+        for ddr in dd.get_rows_for_dest_table(table):
+            column = ddr.dest_field
+            comment = '<i> – {}</i>'.format(ddr.comment) if ddr.comment else ''
+            form = QueryBuilderColumnForm(table=table, column=column)
+            html_form = render_to_string('builder_column_form.html',
+                                         {'form': form})
+            # The CSRF token requires a "request=request" token to
+            # render_to_string. But that would prevent us from caching.
+            html_column = '<div class="indent">{html_form}</div>'.format(
+                html_form=html_form,
+            )
+            column_button = collapsible_div_spanbutton(tag)
+            column_div = collapsible_div_contentdiv(tag, html_column)
+            tag += 1
+            html_table += (
+                """
+                    <div class="indent">
+                        <div>{button}
+                            <span class="titlecolour">{table}.<b>{column}</b>
+                                </span>
+                            {comment}</div>
+                        {cd}
+                    </div>
+                """.format(
+                    table=table,
+                    column=column,
+                    button=column_button,
+                    comment=comment,
+                    cd=column_div,
+                )
+            )
+
+        table_button = collapsible_div_spanbutton(tag)
+        table_div = collapsible_div_contentdiv(tag, html_table)
+        tag += 1
+
+        html += (
+            '<div class="titlecolour">{button} <b>{table}</b></div>'
+            '{td}'.format(
+                table=table,
+                button=table_button,
+                td=table_div,
+        )
+    )
+    return html
+
+
+@csrf_exempt
+def build_query(request):
+    """
+    Assisted query builder, based on the data dictionary.
+    """
+    profile = request.user.profile
+    sql = profile.sql_scratchpad
+    builder = query_builder_html()
+    trid_fieldname = get_trid_fieldname()
+    context = {
+        'nav_on_querybuilder': True,
+        'sql': sql or ' ',
+        'builder': builder,
+    }
+    return render(request, 'build_query.html', context)
+
 
 def edit_select_query(request):
     """
@@ -342,7 +426,8 @@ def get_highlight_descriptions(highlight_dict):
 
 
 def render_resultset(request, query, highlights,
-                     collapse_at=None, line_length=None):
+                     collapse_at=None, line_length=None, ditto=True,
+                     ditto_html='″'):
     # Query
     if query is None:
         return render_missing_query(request)
@@ -355,30 +440,58 @@ def render_resultset(request, query, highlights,
     query.audit(n_records=rowcount)
     fieldnames = get_fieldnames_from_cursor(cursor)
     rows = cursor.fetchall()
+    row_indexes = list(range(len(rows)))
+    # We don't need to process all rows before we paginate.
+    page = paginate(request, row_indexes)
+    start_index = page.start_index() - 1
+    end_index = page.end_index() - 1
+    display_rows = rows[start_index:end_index + 1]
     # Highlights
     highlight_dict = Highlight.as_ordered_dict(highlights)
     highlight_descriptions = get_highlight_descriptions(highlight_dict)
-    # Views
-    elementnum = 0
-    processedrows = []
-    for row in rows:
-        pr = []
-        for value in row:
-            processedvalue = make_result_element(
-                value,
-                elementnum,
-                highlight_dict=highlight_dict,
-                collapse_at=collapse_at,
-                line_length=line_length
-            )
+    # Table
+    ditto_cell = '    <td class="queryresult ditto">{}</td>\n'.format(
+        ditto_html)
+    elementnum = 0  # used for collapsing divs/buttons
+    table_html = '<table>\n'
+    table_html += '  <tr>\n'
+    table_html += '    <th><i>#</i></th>\n'
+    for field in fieldnames:
+        table_html += '    <th>{}</th>\n'.format(field)
+    table_html += '  </tr>\n'
+    for row_index, row in enumerate(display_rows):
+        table_html += '  <tr class="{}">\n'.format(
+            "stripy_even" if row_index % 2 == 0 else "stripy_odd"
+        )
+        # Row number
+        table_html += '    <td><b><i>{}</i></b></td>\n'.format(
+            row_index + start_index + 1)
+        # Values
+        for col_index, value in enumerate(row):
+            if (row_index > 0 and ditto and
+                    value == display_rows[row_index - 1][col_index]):
+                table_html += ditto_cell
+            else:
+                table_html += (
+                    '    <td class="queryresult">{}</td>\n'.format(
+                        make_result_element(
+                            value,
+                            elementnum,
+                            highlight_dict=highlight_dict,
+                            collapse_at=collapse_at,
+                            line_length=line_length
+                        )
+                    )
+                )
             elementnum += 1
-            pr.append(processedvalue)
-        processedrows.append(pr)
-    displayrows = paginate(request, processedrows)
+        table_html += '  </tr>\n'
+    table_html += '</table>\n'
+    # Render
     context = {
         'fieldnames': fieldnames,
         'highlight_descriptions': highlight_descriptions,
-        'rows': displayrows,
+        'table_html': table_html,
+        'page': page,
         'rowcount': rowcount,
         'sql': query.get_original_sql(),
         'nav_on_results': True,
@@ -476,7 +589,8 @@ def structure_table_paginated(request):
     return render(request, 'database_structure.html', context)
 
 
-def structure_tree(request):
+@lru_cache(maxsize=None)
+def get_structure_tree_html():
     schema_table_idl = research_database_info.get_infodictlist_by_tables()
     content = ""
     for i, (schema, tablename, infodictlist) in enumerate(schema_table_idl):
@@ -494,8 +608,12 @@ def structure_tree(request):
                 cd=cd_content,
             )
         )
+    return content
+
+
+def structure_tree(request):
     context = {
-        'content': content,
+        'content': get_structure_tree_html(),
         'default_schema': settings.DATABASES['research']['NAME'],
     }
     return render(request, 'database_structure_tree.html', context)

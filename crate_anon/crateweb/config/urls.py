@@ -66,6 +66,7 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Main query views
     # -------------------------------------------------------------------------
+    url(r'^build_query/$', research_views.build_query, name='build_query'),
     url(r'^query/$', research_views.edit_select_query, name='query'),
     url(r'^activate_query/(?P<query_id>[0-9]+)/$',
         research_views.activate_query, name='activate_query'),

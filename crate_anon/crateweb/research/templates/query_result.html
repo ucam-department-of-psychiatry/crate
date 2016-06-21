@@ -10,35 +10,11 @@
 
     {% include "expand_collapse_buttons.html" %}
 
-    <table>
-        <tr>
-            <th><i>#</i></th>
-            {% for field in fieldnames %}
-                <th>{{ field }}</th>
-            {% endfor %}
-        </tr>
-        {% for row in rows %}
-            <tr>
-                <td><b><i>{{ rows.start_index|add:forloop.counter0 }}</i></b></td>
-                {% for col in row %}
-                    <td class="queryresult">{{ col|safe }}</td>
-                {% endfor %}
-            </tr>
-        {% endfor %}
-    </table>
+    {{ table_html|safe }}
 
-    {% include "page_nav_results.html" with items=rows %}
+    {% include "page_nav_results.html" with page=page %}
 
     <h1>SQL</h1>
     <pre>{{ sql }}</pre>
-
-    {% comment %}
-    <h1>Highlighting</h1>
-    <ul>
-        {% for h in highlight_descriptions %}
-            <li>{{ h|safe }}</li>
-        {% endfor %}
-    </ul>
-    {% endcomment %}
 
 {% endblock %}

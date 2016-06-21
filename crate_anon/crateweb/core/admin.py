@@ -320,7 +320,7 @@ class EmailMgrAdmin(EmailDevAdmin):
         return qs
 
     @staticmethod
-    def rdbm_may_view(self, obj):
+    def rdbm_may_view(obj):
         return obj.to_patient or obj.to_researcher
 
     def get_restricted_msg_text(self, obj):

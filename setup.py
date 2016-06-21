@@ -173,9 +173,11 @@ setup(
         'flower==0.9.1',  # debug Celery; web server; only runs explicitly
         'pdfkit==0.5.0',
         # 'pygraphviz==1.3.1',  # not used
+        'pyparsing==2.1.5',  # generic grammar parser
         'PyPDF2==1.25.1',
         'pytz==2015.6',
         'python-dateutil==2.4.2',
+        'sqlparse==0.1.19',
         'Werkzeug==0.10.4',
 
         # Serving:
