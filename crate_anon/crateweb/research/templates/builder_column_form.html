@@ -1,6 +1,7 @@
 {# builder_column_form.html #}
 
 <form action="{% url 'build_query' %}" method="post">
+    {% csrf_token %}
     <input type="submit" name="add_result_column"
            value="Add to output (SELECT/FROM)" />
     <table class="formtable">

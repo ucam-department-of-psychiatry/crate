@@ -13,6 +13,12 @@
     <h2>Current query</h2>
     <pre class="sql">{{ sql }}</pre>
 
+    <form action="{% url 'build_query' %}" method="post">
+        {% csrf_token %}
+        <input type="submit" name="global_clear" value="Clear" />
+    </form>
+
+
     <p>*** NEEDS SAVE BUTTON + RUN BUTTON ***</p>
 
     <h2>Build your query!</h2>

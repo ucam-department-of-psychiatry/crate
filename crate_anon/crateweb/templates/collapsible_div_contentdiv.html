@@ -2,6 +2,8 @@
 
 <div class="collapse_detail {{ extradivclasses }}"
         id="collapse_detail_{{ tag }}"
-        style="display:none">
+        {% if collapsed %}
+            style="display:none"
+        {% endif %}>
     {{ contents|safe }}
 </div>

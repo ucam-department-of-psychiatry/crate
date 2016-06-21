@@ -47,6 +47,7 @@ from crate_anon.crateweb.research.models import (
     Query,
     research_database_info,
 )
+from crate_anon.crateweb.research.sql_writer import add_to_select
 
 log = logging.getLogger(__name__)
 
@@ -77,8 +78,8 @@ NO_QUERY_BUILDER_AVAILABLE = """
 """
 
 
-@lru_cache(maxsize=None)
-def query_builder_html():
+def query_builder_html(request, working_table=None, working_column=None,
+                       working_form=None):
     dd = get_data_dictionary()
     if not dd:
         return NO_QUERY_BUILDER_AVAILABLE
@@ -86,19 +87,31 @@ def query_builder_html():
     tag = 0
     for table in dd.get_dest_tables_with_patient_info():
         html_table = ''
+        table_collapsed = True
         for ddr in dd.get_rows_for_dest_table(table):
             column = ddr.dest_field
+            column_collapsed = True
             comment = '<i> – {}</i>'.format(ddr.comment) if ddr.comment else ''
-            form = QueryBuilderColumnForm(table=table, column=column)
+            if working_table == table and working_column == column:
+                column_collapsed = False
+                table_collapsed = False
+                form = working_form
+            else:
+                form = QueryBuilderColumnForm(table=table, column=column)
             html_form = render_to_string('builder_column_form.html',
-                                         {'form': form})
+                                         {'form': form},
+                                         request=request)
             # The CSRF token requires a "request=request" token to
-            # render_to_string. But that would prevent us from caching.
+            # render_to_string. That prevent us from caching.
+            # But we can't cache if we're going to have some forms
+            # (differentially) non-collapsed at the start, e.g. on form POST.
             html_column = '<div class="indent">{html_form}</div>'.format(
                 html_form=html_form,
             )
-            column_button = collapsible_div_spanbutton(tag)
-            column_div = collapsible_div_contentdiv(tag, html_column)
+            column_button = collapsible_div_spanbutton(
+                tag, collapsed=column_collapsed)
+            column_div = collapsible_div_contentdiv(tag, html_column,
+                                                    collapsed=column_collapsed)
             tag += 1
             html_table += (
                 """
@@ -118,8 +131,10 @@ def query_builder_html():
                 )
             )
 
-        table_button = collapsible_div_spanbutton(tag)
-        table_div = collapsible_div_contentdiv(tag, html_table)
+        table_button = collapsible_div_spanbutton(tag,
+                                                  collapsed=table_collapsed)
+        table_div = collapsible_div_contentdiv(tag, html_table,
+                                               collapsed=table_collapsed)
         tag += 1
 
         html += (
@@ -133,18 +148,40 @@ def query_builder_html():
     return html
 
 
-@csrf_exempt
 def build_query(request):
     """
     Assisted query builder, based on the data dictionary.
     """
     profile = request.user.profile
-    sql = profile.sql_scratchpad
-    builder = query_builder_html()
-    trid_fieldname = get_trid_fieldname()
+    profile.sql_scratchpad
+    table = None
+    column = None
+    working_form = None
+    if request.method == 'POST':
+        if 'global_clear' in request.POST:
+            profile.sql_scratchpad = ''
+            profile.save()
+        else:
+            form = QueryBuilderColumnForm(request.POST)
+            working_form = form
+            table = request.POST.get('table', None)
+            column = request.POST.get('column', None)
+            if form.is_valid():
+                if 'add_result_column' in request.POST:
+                    trid_fieldname = get_trid_fieldname()  # ***
+                    profile.sql_scratchpad = add_to_select(
+                        profile.sql_scratchpad,
+                        table=table,
+                        column=column
+                    )
+                    profile.save()
+    builder = query_builder_html(request,
+                                 working_table=table,
+                                 working_column=column,
+                                 working_form=working_form)
     context = {
         'nav_on_querybuilder': True,
-        'sql': sql or ' ',
+        'sql': profile.sql_scratchpad or ' ',
         'builder': builder,
     }
     return render(request, 'build_query.html', context)

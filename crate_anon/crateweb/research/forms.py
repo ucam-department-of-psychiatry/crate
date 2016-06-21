@@ -81,18 +81,20 @@ class QueryBuilderColumnForm(forms.Form):
     date_value = DateField(label="Value (date)", required=False)
     string_value = CharField(label="Value (string)", required=False)
 
-    def __init__(self, table, column,
-                 as_integer=True, as_date=False, as_string=False):
-        super().__init__(initial=dict(table=table, column=column))
-        self.as_integer = as_integer
-        self.as_date = as_date
-        self.as_string = as_string
+    def __init__(self, *args, **kwargs):
+        table = kwargs.pop('table', None)
+        column = kwargs.pop('column', None)
+        self.as_integer = kwargs.pop('as_integer', True)
+        self.as_date = kwargs.pop('as_date', False)
+        self.as_string = kwargs.pop('as_string', False)
+        kwargs['initial'] = dict(table=table, column=column)
+        super().__init__(*args, **kwargs)
 
         self.fields['table'].widget = HiddenInput()
         self.fields['column'].widget = HiddenInput()
-        if not as_integer:
+        if not self.as_integer:
             self.fields['int_value'].widget = HiddenInput()
-        if not as_date:
+        if not self.as_date:
             self.fields['date_value'].widget = HiddenInput()
-        if not as_string:
+        if not self.as_string:
             self.fields['string_value'].widget = HiddenInput()

@@ -6,10 +6,17 @@
     <img class="plusminus_image"
             id="collapse_img_{{ tag }}"
             alt=""
-            src="{% static 'plus.gif' %}">
+            {% if collapsed %}
+                src="{% static 'plus.gif' %}"
+            {% else %}"
+                src="{% static 'minus.gif' %}"
+            {% endif %}
+        >
 </div>
 <div class="collapse_detail {{ extradivclasses }}"
         id="collapse_detail_{{ tag }}"
-        style="display:none">
+        {% if collapsed %}
+            style="display:none"
+        {% endif %}>
     {{ contents|safe }}
 </div>

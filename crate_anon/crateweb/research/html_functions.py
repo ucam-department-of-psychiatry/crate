@@ -22,7 +22,8 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # Collapsible div
 # =============================================================================
 
-def collapsible_div_with_divbutton(tag, contents, extradivclasses=None):
+def collapsible_div_with_divbutton(tag, contents, extradivclasses=None,
+                                   collapsed=True):
     # The HTML pre-hides, rather than using an onload method
     if extradivclasses is None:
         extradivclasses = []
@@ -31,20 +32,23 @@ def collapsible_div_with_divbutton(tag, contents, extradivclasses=None):
         'extradivclasses': " ".join(extradivclasses),
         'tag': tag,
         'contents': contents,
+        'collapsed': collapsed,
     }
     return template.render(context)  # as HTML
 
 
-def collapsible_div_spanbutton(tag):
+def collapsible_div_spanbutton(tag, collapsed=True):
     tag = str(tag)
     template = loader.get_template('collapsible_div_spanbutton.html')
     context = {
         'tag': tag,
+        'collapsed': collapsed,
     }
     return template.render(context)  # as HTML
 
 
-def collapsible_div_contentdiv(tag, contents, extradivclasses=None):
+def collapsible_div_contentdiv(tag, contents, extradivclasses=None,
+                               collapsed=True):
     tag = str(tag)
     if extradivclasses is None:
         extradivclasses = []
@@ -53,6 +57,7 @@ def collapsible_div_contentdiv(tag, contents, extradivclasses=None):
         'extradivclasses': " ".join(extradivclasses),
         'tag': tag,
         'contents': contents,
+        'collapsed': collapsed,
     }
     return template.render(context)  # as HTML
 

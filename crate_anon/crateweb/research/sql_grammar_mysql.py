@@ -86,6 +86,7 @@ def delim_list(expr_, delim=",", combine=False,
                combine_adjacent=False,
                suppress_delim=False):
     # A better version of delimitedList
+    # BUT SEE ALSO ALTERNATIVE: http://stackoverflow.com/questions/37926516
     name = str(expr_) + " [" + str(delim) + " " + str(expr_) + "]..."
     if combine:
         return Combine(expr_ + ZeroOrMore(delim + expr_),
@@ -95,6 +96,7 @@ def delim_list(expr_, delim=",", combine=False,
             return (expr_ + ZeroOrMore(Suppress(delim) + expr_)).setName(name)
         else:
             return (expr_ + ZeroOrMore(delim + expr_)).setName(name)
+
 
 WORD_BOUNDARY = r"\b"
 
@@ -116,7 +118,7 @@ def make_pyparsing_regex(regex_str, caseless=False, name=None):
     return result
 
 
-def make_words_regex(words_as_string, caseless=False, name=None, debug=True):
+def make_words_regex(words_as_string, caseless=False, name=None, debug=False):
     regex_str = multiple_words_regex_element(words_as_string)
     if debug:
         log.debug(regex_str)
@@ -124,7 +126,7 @@ def make_words_regex(words_as_string, caseless=False, name=None, debug=True):
 
 
 def make_regex_except_words(word_pattern, negative_words_str, caseless=False,
-                            name=None, debug=True):
+                            name=None, debug=False):
     # http://regexr.com/
     negative_words = negative_words_str.split()
     regex_str = r"(?!{negative}){positive}".format(
