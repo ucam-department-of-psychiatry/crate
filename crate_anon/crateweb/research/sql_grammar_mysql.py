@@ -46,7 +46,7 @@ from pyparsing import (
     # commaSeparatedList,
     cStyleComment,
     # downcaseTokens,
-    # delimitedList,
+    delimitedList,
     Forward,
     Group,
     # hexnums,
@@ -99,6 +99,8 @@ def delim_list(expr_, delim=",", combine=False,
 
 
 WORD_BOUNDARY = r"\b"
+# The meaning of \b:
+# http://stackoverflow.com/questions/4213800/is-there-something-like-a-counter-variable-in-regular-expression-replace/4214173#4214173  # noqa
 
 
 def word_regex_element(word):
@@ -107,7 +109,7 @@ def word_regex_element(word):
 
 def multiple_words_regex_element(words_as_string):
     wordlist = words_as_string.split()
-    return WORD_BOUNDARY + "|".join(wordlist) + WORD_BOUNDARY
+    return WORD_BOUNDARY + "(" + "|".join(wordlist) + ")" + WORD_BOUNDARY
 
 
 def make_pyparsing_regex(regex_str, caseless=False, name=None):
@@ -118,7 +120,7 @@ def make_pyparsing_regex(regex_str, caseless=False, name=None):
     return result
 
 
-def make_words_regex(words_as_string, caseless=False, name=None, debug=False):
+def make_words_regex(words_as_string, caseless=False, name=None, debug=True):
     regex_str = multiple_words_regex_element(words_as_string)
     if debug:
         log.debug(regex_str)
@@ -130,7 +132,7 @@ def make_regex_except_words(word_pattern, negative_words_str, caseless=False,
     # http://regexr.com/
     negative_words = negative_words_str.split()
     regex_str = r"(?!{negative}){positive}".format(
-        negative=(WORD_BOUNDARY + "|".join(negative_words) + WORD_BOUNDARY),
+        negative=multiple_words_regex_element(negative_words_str),
         positive=(WORD_BOUNDARY + word_pattern + WORD_BOUNDARY),
     )
     if debug:
@@ -140,7 +142,7 @@ def make_regex_except_words(word_pattern, negative_words_str, caseless=False,
 
 def sql_keyword(word):
     regex_str = word_regex_element(word)
-    return make_pyparsing_regex(regex_str, caseless=True).setName(word)
+    return make_pyparsing_regex(regex_str, caseless=True, name=word)
 
 
 def bracket(fragment):
@@ -444,8 +446,11 @@ bind_parameter = Literal('?')
 variable = Regex(r"@[a-zA-Z0-9.$_]+").setName("variable")
 
 # http://dev.mysql.com/doc/refman/5.7/en/functions.html
-argument_list = delim_list(expr, combine=True).setName("arglist")
+argument_list = (
+    delimitedList(expr).setName("arglist").setParseAction(', '.join)
+)
 # ... we don't care about sub-parsing the argument list, so use combine=True
+# or setParseAction: http://stackoverflow.com/questions/37926516
 function_call = Combine(function_name + LPAR) + argument_list + RPAR
 
 # http://dev.mysql.com/doc/refman/5.7/en/partitioning-selection.html
@@ -610,7 +615,7 @@ join_op = Group(
 join_source = Forward()
 single_source = (
     (
-        table_spec +
+        table_spec.copy().setResultsName("from_tables", listAllMatches=True) +
         Optional(PARTITION + partition_list) +
         Optional(Optional(AS) + table_alias) +
         Optional(index_hint_list)
@@ -618,16 +623,19 @@ single_source = (
     (select_statement + Optional(AS) + table_alias) +
     (LPAR + join_source + RPAR)
 )
-join_source << (
+join_source << Group(
     single_source + ZeroOrMore(join_op + single_source + join_constraint)
-)
+)("join_source")
+# ... must have a Group to append to it later, it seems
+# ... but name it "join_source" here, or it gets enclosed in a further list
+#     when you name it later
 
 result_column = (
     '*' |
     Combine(table_name + '.' + '*') |
     column_spec |
     expr + Optional(Optional(AS) + column_alias)
-)
+).setResultsName("select_columns", listAllMatches=True)
 
 select_core = (
     SELECT +
@@ -640,9 +648,9 @@ select_core = (
     Optional(SQL_BUFFER_RESULT) +
     Optional(SQL_CACHE | SQL_NO_CACHE) +
     Optional(SQL_CALC_FOUND_ROWS) +
-    Group(delim_list(result_column))("columns") +
+    Group(delim_list(result_column))("select_expression") +
     Optional(
-        FROM + Group(join_source)("join_source") +
+        FROM + join_source +
         Optional(PARTITION + partition_list) +
         Group(Optional(WHERE + expr("where_expr")))("where_clause") +
         Optional(
@@ -710,7 +718,7 @@ sql_grammar = select_statement
 # See also: parser.runTests()
 
 def test_succeed(parser, text, target=None, skip_target=True, show_raw=False,
-                 verbose=False):
+                 verbose=True):
     if target is None:
         target = text
     try:
@@ -719,7 +727,7 @@ def test_succeed(parser, text, target=None, skip_target=True, show_raw=False,
         if show_raw:
             log.debug("... raw: {}".format(p))
         if verbose:
-            log.debug("... dump: \n{}".format(p.dump()))
+            log.debug("... dump:\n{}".format(p.dump()))
     except ParseException as exception:
         log.debug("Failure on: {} [parser: {}]".format(text, parser))
         print(statement_and_failure_marker(text, exception))
@@ -853,6 +861,16 @@ def pyparsing_bugtest_delimited_list_combine(fix_problem=True):
 
 def unit_tests(test_expr=False):
     # -------------------------------------------------------------------------
+    # pyparsing tests
+    # -------------------------------------------------------------------------
+    log.info("Testing pyparsing elements")
+    regexp_for = Regex(r"\bfor\b", flags=re.IGNORECASE)
+    test_succeed(regexp_for, "for")
+    test_fail(regexp_for, "blandford")
+    test_fail(regexp_for, "upfor")
+    test_fail(regexp_for, "forename")
+
+    # -------------------------------------------------------------------------
     # Literals
     # -------------------------------------------------------------------------
     log.info("Testing boolean_literal")
@@ -910,12 +928,22 @@ def unit_tests(test_expr=False):
     # Identifiers
     # -------------------------------------------------------------------------
 
+    log.info("Testing FOR")
+    print(FOR.pattern)
+    test_succeed(FOR, "for")
+    test_fail(FOR, "thingfor")  # shouldn't match FOR
+    test_fail(FOR, "forename")  # shouldn't match FOR
+
     log.info("Testing keyword")
+    print(keyword.pattern)
     test_succeed(keyword, "TABLE")
+    test_fail(keyword, "thingfor")  # shouldn't match FOR
+    test_fail(keyword, "forename")  # shouldn't match FOR
 
     log.info("Testing bare_identifier_word")
     test_succeed(bare_identifier_word, "blah")
     test_fail(bare_identifier_word, "FROM")
+    test_succeed(bare_identifier_word, "forename")
 
     log.info("Testing identifier")
     test_succeed(identifier, "blah")
@@ -935,6 +963,7 @@ def unit_tests(test_expr=False):
 
     log.info("Testing column_spec")
     test_succeed(column_spec, "mycol")
+    test_succeed(column_spec, "forename")
     test_succeed(column_spec, "mytable.mycol")
     test_succeed(column_spec, "t1.a")
     test_succeed(column_spec, "`my silly table`.`my silly column`")
@@ -944,11 +973,11 @@ def unit_tests(test_expr=False):
     log.info("Testing variable")
     test_succeed(variable, "@myvar")
 
-    # log.info("Testing argument_list")
-    # test_succeed(argument_list, "@myvar, 5")
+    log.info("Testing argument_list")
+    test_succeed(argument_list, "@myvar, 5")
 
-    # log.info("Testing function_call")
-    # test_succeed(function_call, "myfunc(@myvar, 5)")
+    log.info("Testing function_call")
+    test_succeed(function_call, "myfunc(@myvar, 5)")
 
     log.info("Testing index_list")
     test_succeed(index_list, "idx1, idx2")
@@ -1042,6 +1071,7 @@ def main():
 
     # pyparsing_bugtest_delimited_list_combine()
     unit_tests(test_expr=False)
+
 
 
 if __name__ == '__main__':

@@ -168,11 +168,12 @@ def build_query(request):
             column = request.POST.get('column', None)
             if form.is_valid():
                 if 'add_result_column' in request.POST:
-                    trid_fieldname = get_trid_fieldname()  # ***
+                    trid_fieldname = get_trid_fieldname()
                     profile.sql_scratchpad = add_to_select(
                         profile.sql_scratchpad,
                         table=table,
-                        column=column
+                        column=column,
+                        inner_join_to_first_on_keyfield=trid_fieldname,
                     )
                     profile.save()
     builder = query_builder_html(request,

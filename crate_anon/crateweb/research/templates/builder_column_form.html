@@ -5,15 +5,8 @@
     <input type="submit" name="add_result_column"
            value="Add to output (SELECT/FROM)" />
     <table class="formtable">
-        {{ form.as_p }}
+        {{ form.as_table }}
     </table>
-    {% if form.as_integer %}
-        <p>INTEGER!</p>
-    {% elif form.as_date %}
-        <p>DATE!</p>
-    {% elif form.as_string %}
-        <p>STRING!</p>
-    {% endif %}
     <input type="submit" name="add_where"
            value="Set condition (WHERE)" />
 </form>

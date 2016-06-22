@@ -34,44 +34,54 @@ def sql_datetime_literal(dt, subsecond=False):
 
 def parser_add_result_column(parsed, column):
     # Presupposes at least one column already in the SELECT statement.
-    newcol = column_spec.parseString(column)
-    existing_columns = parsed.columns[0]
-    log.critical(parsed.dump())
-    log.critical("adding column: {}".format(repr(newcol)))
-    log.critical("existing columns: {}".format(repr(existing_columns)))
-    if newcol not in existing_columns:
-        # *** test not working
-        log.critical("... doesn't exist; adding")
-        parsed.columns.extend([",", newcol])
-    else:
-        log.critical("... skipping column; exists")
+
+    existing_columns = parsed.select_expression.select_columns.asList()
+    # log.critical(parsed.dump())
+    # log.critical("existing columns: {}".format(repr(existing_columns)))
+    # log.critical("adding column: {}".format(column))
+    if column not in existing_columns:
+        # log.critical("... doesn't exist; adding")
+        newcol = column_spec.parseString(column)[0]
+        parsed.select_expression.extend([",", newcol])
+    # else:
+    #     log.critical("... skipping column; exists")
+    # log.critical(parsed.dump())
     return parsed
 
 
 def parser_add_from_table(parsed, table, join_type="INNER JOIN",
                           join_condition=None):
     # Presupposes at least one table already in the FROM clause.
-    parsed_join = join_op.parseString(join_type)  # e.g. INNER JOIN
-    parsed_table = table_spec.parseString(table)
-    log.critical("adding table: {}".format(repr(parsed_table)))
-    js = parsed.join_source
-    log.critical("js: {}".format(repr(js)))
-    if parsed_table in parsed.join_source:  # already there
-        # ... complex nested list... this worked out using repr!
-        log.critical("field already present")
+    # log.critical(parsed.dump())
+    existing_tables = parsed.join_source.from_tables.asList()
+    # log.critical("existing tables: {}".format(existing_tables))
+    # log.critical("adding table: {}".format(table))
+    if table in existing_tables:  # already there
+        # log.critical("field already present")
         return parsed
+    parsed_join = join_op.parseString(join_type)[0]  # e.g. INNER JOIN
+    parsed_table = table_spec.parseString(table)[0]
     extrabits = [parsed_join, parsed_table]
     if join_condition:  # e.g. ON x = y
-        extrabits.append(join_constraint.parseString(join_condition))
+        extrabits.append(join_constraint.parseString(join_condition)[0])
     parsed.join_source.extend(extrabits)
+    # log.critical(parsed.dump())
     return parsed
+
+
+def get_first_from_table(parsed):
+    existing_tables = parsed.join_source.from_tables.asList()
+    if existing_tables:
+        return existing_tables[0]
+    return None
 
 
 def add_to_select(sql,
                   table=None, column=None,
+                  inner_join_to_first_on_keyfield=None,  # overrides others
                   join_type="NATURAL JOIN", join_condition=None,
-                  where_expression=None,
-                  formatted=True, debug=True):
+                  where_type="AND", where_expression=None,
+                  formatted=True, debug=False, debug_verbose=False):
     # The caller should specify the column as table.column
     # Specify EITHER table and column and join information, OR where info.
     if debug:
@@ -88,7 +98,7 @@ def add_to_select(sql,
             raise ValueError("Blank starting SQL but no SELECT table/column")
     else:
         p = select_statement.parseString(sql)
-        if debug:
+        if debug and debug_verbose:
             log.debug("start dump:\n" + p.dump())
 
         # ---------------------------------------------------------------------
@@ -96,6 +106,17 @@ def add_to_select(sql,
         # ---------------------------------------------------------------------
         if column and table:
             p = parser_add_result_column(p, colspec)
+            if inner_join_to_first_on_keyfield:
+                first_table = get_first_from_table(p)
+                if first_table:
+                    join_type = "INNER JOIN"
+                    join_condition = (
+                        "ON {new}.{keyfield}={first}.{keyfield}".format(
+                            new=table,
+                            first=first_table,
+                            keyfield=inner_join_to_first_on_keyfield,
+                        )
+                    )
             p = parser_add_from_table(p, table, join_type, join_condition)
 
         # ---------------------------------------------------------------------
@@ -104,14 +125,14 @@ def add_to_select(sql,
         if where_expression:
             cond = expr.parseString(where_expression)
             if p.where_clause:
-                extra = ["AND", "(", cond, ")"]
+                extra = [where_type, "(", cond, ")"]
                 p.where_clause.where_expr.extend(extra)
             else:
                 # No WHERE as yet
                 extra = ["WHERE", "(", cond, ")"]
                 p.where_clause.extend(extra)
 
-        if debug:
+        if debug and debug_verbose:
             log.debug("end dump:\n" + p.dump())
         result = text_from_parsed(p, formatted=formatted)
     if debug:
@@ -122,6 +143,8 @@ def add_to_select(sql,
 def unit_tests():
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
                   table="t2", column="c")
+    add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
+                  table="t1", column="a")
     add_to_select("", table="t2", column="c")
     add_to_select("SELECT t1.a, t1.b FROM t1",
                   where_expression="t1.col2 < 3")
