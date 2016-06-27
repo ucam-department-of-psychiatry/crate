@@ -11,20 +11,33 @@
         <a href="{% url 'query' %}">SQL view</a>.</p>
 
     <h2>Current query</h2>
-    <pre class="sql">{{ sql }}</pre>
+    {% if parse_error %}
+        <div class="warning">SQL FAILED TO PARSE. Please clear the query.
+            Error was: {{ parse_error }}</div>
+    {% endif %}
+    {% if sql %}
+        <pre class="sql">{{ sql }}</pre>
+        <form action="{% url 'build_query' %}" method="post">
+            {% csrf_token %}
+            <input type="submit" name="global_clear" value="Clear" />
+            {% if not parse_error %}
+                <input type="submit" name="global_toggle_distinct"
+                       value="Toggle DISTINCT" />
+                <input type="submit" name="global_save" value="Save as query" />
+                <input type="submit" name="global_run" value="Run" />
+            {% endif %}
+        </form>
+    {% else %}
+        {# single space to show the area visually #}
+        <pre class="sql"> </pre>
+    {% endif %}
 
-    <form action="{% url 'build_query' %}" method="post">
-        {% csrf_token %}
-        <input type="submit" name="global_clear" value="Clear" />
-    </form>
-
-
-    <p>*** NEEDS SAVE BUTTON + RUN BUTTON ***</p>
-
-    <h2>Build your query!</h2>
-    <p>Explore the tree below and add columns or conditions.</p>
-    {% include "expand_collapse_buttons.html" %}
-    {{ builder|safe }}
+    {% if not parse_error %}
+        <h2>Build your query!</h2>
+        <p>Explore the tree below and add columns or conditions.</p>
+        {% include "expand_collapse_buttons.html" %}
+        {{ builder|safe }}
+    {% endif %}
 
     <h2>Tips</h2>
     <ul>
@@ -39,7 +52,16 @@
 
         <li>This query builder parses the SQL you start with, and then
             adds more pieces. It is less powerful than arbitrary SQL.</li>
-    </ul>
 
+        <li>
+            The things that are are better done with raw SQL include:
+            <ul>
+                <li>Combining expressions with OR, or in complex ways.</li>
+                <li>Restricting to a set of values with IN.</li>
+                <li>Finding information about patients P that “have” something
+                    (e.g. a diagnosis) using EXISTS.</li>
+            </ul>
+        </li>
+    </ul>
 
 {% endblock %}

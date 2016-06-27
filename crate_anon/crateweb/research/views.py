@@ -16,7 +16,9 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
+# from django.views.decorators.csrf import csrf_exempt
+from pyparsing import ParseException
+from sqlalchemy.sql import sqltypes
 
 from crate_anon.crateweb.core.dbfunc import (
     dictlist_to_tsv,
@@ -28,7 +30,7 @@ from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
     PidLookupForm,
-    QueryBuilderColumnForm,
+    QueryBuilderColForm,
     SQLHelperTextAnywhereForm,
 )
 from crate_anon.crateweb.research.html_functions import (
@@ -47,7 +49,12 @@ from crate_anon.crateweb.research.models import (
     Query,
     research_database_info,
 )
-from crate_anon.crateweb.research.sql_writer import add_to_select
+from crate_anon.crateweb.research.sql_writer import (
+    add_to_select,
+    sql_date_literal,
+    sql_string_literal,
+    toggle_distinct,
+)
 
 log = logging.getLogger(__name__)
 
@@ -78,8 +85,43 @@ NO_QUERY_BUILDER_AVAILABLE = """
 """
 
 
-def query_builder_html(request, working_table=None, working_column=None,
-                       working_form=None):
+def make_query_builder_form(ddr, working_form=None,
+                            offer_where=False):
+    sqla_type = ddr.get_sqla_dest_coltype()
+    if isinstance(sqla_type, sqltypes.Float):
+        datatype = QueryBuilderColForm.DATATYPE_FLOAT
+    elif (isinstance(sqla_type, sqltypes.Date) or
+            isinstance(sqla_type, sqltypes.DateTime)):
+        datatype = QueryBuilderColForm.DATATYPE_DATE
+    elif isinstance(sqla_type, sqltypes.String):
+        if ddr.using_fulltext_index():
+            datatype = QueryBuilderColForm.DATATYPE_STRING_FULLTEXT
+        else:
+            datatype = QueryBuilderColForm.DATATYPE_STRING
+    elif isinstance(sqla_type, sqltypes.Integer):
+        datatype = QueryBuilderColForm.DATATYPE_INTEGER
+    else:
+        datatype = QueryBuilderColForm.DATATYPE_UNKNOWN
+    # log.critical("{}.{}: {} -> {}".format(
+    #     ddr.dest_table, ddr.dest_field, repr(sqla_type), datatype))
+
+    matched = (
+        working_form and
+        ddr.dest_table == working_form.data.get('table', None) and
+        ddr.dest_field == working_form.data.get('column', None)
+    )
+    if matched:
+        form = working_form
+        # log.critical("... matched, using existing form")
+    else:
+        form = QueryBuilderColForm(table=ddr.dest_table,
+                                   column=ddr.dest_field,
+                                   datatype=datatype,
+                                   offer_where=offer_where)
+    return form, matched
+
+
+def query_builder_html(request, working_form=None, offer_where=False):
     dd = get_data_dictionary()
     if not dd:
         return NO_QUERY_BUILDER_AVAILABLE
@@ -89,15 +131,13 @@ def query_builder_html(request, working_table=None, working_column=None,
         html_table = ''
         table_collapsed = True
         for ddr in dd.get_rows_for_dest_table(table):
-            column = ddr.dest_field
-            column_collapsed = True
-            comment = '<i> – {}</i>'.format(ddr.comment) if ddr.comment else ''
-            if working_table == table and working_column == column:
-                column_collapsed = False
+            form, matched = make_query_builder_form(ddr,
+                                                    working_form=working_form,
+                                                    offer_where=offer_where)
+            column_collapsed = not matched
+            if matched:
                 table_collapsed = False
-                form = working_form
-            else:
-                form = QueryBuilderColumnForm(table=table, column=column)
+            comment = '<i> – {}</i>'.format(ddr.comment) if ddr.comment else ''
             html_form = render_to_string('builder_column_form.html',
                                          {'form': form},
                                          request=request)
@@ -124,27 +164,26 @@ def query_builder_html(request, working_table=None, working_column=None,
                     </div>
                 """.format(
                     table=table,
-                    column=column,
+                    column=ddr.dest_field,
                     button=column_button,
                     comment=comment,
                     cd=column_div,
                 )
             )
 
-        table_button = collapsible_div_spanbutton(tag,
-                                                  collapsed=table_collapsed)
-        table_div = collapsible_div_contentdiv(tag, html_table,
-                                               collapsed=table_collapsed)
+        table_button = collapsible_div_spanbutton(
+            tag, collapsed=table_collapsed)
+        table_div = collapsible_div_contentdiv(
+            tag, html_table, collapsed=table_collapsed)
         tag += 1
-
         html += (
             '<div class="titlecolour">{button} <b>{table}</b></div>'
             '{td}'.format(
                 table=table,
                 button=table_button,
                 td=table_div,
+            )
         )
-    )
     return html
 
 
@@ -153,39 +192,103 @@ def build_query(request):
     Assisted query builder, based on the data dictionary.
     """
     profile = request.user.profile
-    profile.sql_scratchpad
-    table = None
-    column = None
-    working_form = None
+    parse_error = ''
+    form = None
     if request.method == 'POST':
-        if 'global_clear' in request.POST:
-            profile.sql_scratchpad = ''
-            profile.save()
-        else:
-            form = QueryBuilderColumnForm(request.POST)
-            working_form = form
-            table = request.POST.get('table', None)
-            column = request.POST.get('column', None)
-            if form.is_valid():
-                if 'add_result_column' in request.POST:
+        try:
+            if 'global_clear' in request.POST:
+                profile.sql_scratchpad = ''
+                profile.save()
+            elif 'global_toggle_distinct' in request.POST:
+                profile.sql_scratchpad = toggle_distinct(profile.sql_scratchpad)
+                profile.save()
+            elif 'global_save' in request.POST:
+                return submit_query(request, profile.sql_scratchpad, run=False)
+            elif 'global_run' in request.POST:
+                return submit_query(request, profile.sql_scratchpad, run=True)
+            else:
+                form = QueryBuilderColForm(request.POST, request.FILES)
+                if form.is_valid():
+                    # log.critical("is_valid")
+                    table = form.cleaned_data['table']
+                    column = form.cleaned_data['column']
                     trid_fieldname = get_trid_fieldname()
-                    profile.sql_scratchpad = add_to_select(
-                        profile.sql_scratchpad,
-                        table=table,
-                        column=column,
-                        inner_join_to_first_on_keyfield=trid_fieldname,
-                    )
+                    if 'add_result_column' in request.POST:
+                        profile.sql_scratchpad = add_to_select(
+                            profile.sql_scratchpad,
+                            table=table,
+                            column=column,
+                            inner_join_to_first_on_keyfield=trid_fieldname,
+                        )
+                    elif 'add_where' in request.POST:
+                        datatype = form.cleaned_data['datatype']
+                        op = form.cleaned_data['comparison_type']
+                        if op in QueryBuilderColForm.FILE_REQUIRED:
+                            value = form.file_values_list
+                            # log.critical(repr(value))
+                        else:
+                            value = form.get_cleaned_where_value()
+                            if datatype in QueryBuilderColForm.STRING_TYPES:
+                                value = sql_string_literal(value)
+                            elif datatype == QueryBuilderColForm.DATATYPE_DATE:
+                                value = sql_date_literal(value)
+                        where_expression = "{tab}.{col} {op} {val}".format(
+                            tab=table, col=column, op=op, val=value)
+                        # log.critical(where_expression)
+                        profile.sql_scratchpad = add_to_select(
+                            profile.sql_scratchpad,
+                            where_type="AND",
+                            where_expression=where_expression,
+                            where_table=table,
+                            inner_join_to_first_on_keyfield=trid_fieldname,
+                        )
+                    else:
+                        raise ValueError("Bad form command!")
                     profile.save()
+                else:
+                    pass
+                    # log.critical("not is_valid")
+        except ParseException as e:
+            parse_error = str(e)
+
+    offer_where = bool(profile.sql_scratchpad)  # existing SELECT?
     builder = query_builder_html(request,
-                                 working_table=table,
-                                 working_column=column,
-                                 working_form=working_form)
+                                 working_form=form,
+                                 offer_where=offer_where)
     context = {
         'nav_on_querybuilder': True,
-        'sql': profile.sql_scratchpad or ' ',
+        'sql': profile.sql_scratchpad,
         'builder': builder,
+        'parse_error': parse_error,
     }
     return render(request, 'build_query.html', context)
+
+
+def get_all_queries(request):
+    return Query.objects.filter(user=request.user, deleted=False)\
+                        .order_by('-active', '-created')
+
+
+def submit_query(request, sql, run=False):
+    """
+    Ancillary function to add a query, and redirect to the editing or
+    run page.
+    """
+    all_queries = get_all_queries(request)
+    identical_queries = all_queries.filter(sql=sql)
+    if identical_queries:
+        identical_queries[0].activate()
+        query_id = identical_queries[0].id
+    else:
+        query = Query(sql=sql, raw=True, user=request.user,
+                      active=True)
+        query.save()
+        query_id = query.id
+    # redirect to a new URL:
+    if run:
+        return redirect('results', query_id)
+    else:
+        return redirect('query')
 
 
 def edit_select_query(request):
@@ -194,35 +297,30 @@ def edit_select_query(request):
     """
     # log.debug("query")
     # if this is a POST request we need to process the form data
-    all_queries = Query.objects.filter(user=request.user, deleted=False)\
-                               .order_by('-active', '-created')
     if request.method == 'POST':
         # create a form instance and populate it with data from the request:
         form = AddQueryForm(request.POST)
         # check whether it's valid:
         if form.is_valid():
+            cmd_run = 'submit_run' in request.POST
+            cmd_add = 'submit_add' in request.POST
+            cmd_builder = 'submit_builder' in request.POST
             # process the data in form.cleaned_data as required
             sql = form.cleaned_data['sql']
-            identical_queries = all_queries.filter(sql=sql)
-            if identical_queries:
-                identical_queries[0].activate()
-                query_id = identical_queries[0].id
+            if cmd_add or cmd_run:
+                run = 'submit_run' in request.POST
+                return submit_query(request, sql, run)
+            elif cmd_builder:
+                profile = request.user.profile
+                profile.sql_scratchpad = sql
+                profile.save()
+                return redirect('build_query')
             else:
-                query = Query(sql=sql, raw=True, user=request.user,
-                              active=True)
-                query.save()
-                query_id = query.id
-            # redirect to a new URL:
-            if 'submit_add' in request.POST:
-                return redirect('query')
-            elif 'submit_run' in request.POST:
-                return redirect('results', query_id)
-            else:
-                log.critical("Bug in edit_select_query")
-                return redirect('query')
+                raise ValueError("Bad command!")
 
     # if a GET (or any other method) we'll create a blank form
     values = {}
+    all_queries = get_all_queries(request)
     active_queries = all_queries.filter(active=True)
     if active_queries:
         values['sql'] = active_queries[0].get_original_sql()

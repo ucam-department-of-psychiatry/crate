@@ -7,6 +7,11 @@
     <div>
         <h1>Main menu</h1>
 
+        {% if safety_catch_on and user.is_superuser %}
+            <div class="warning">Safety catch on: routing e-mails to
+                {{ developer_email }}</div>
+        {%  endif %}
+
         <h2>Research database</h2>
         <ul>
             <li>Main query functions: {% include "query_nav.html" %}</li>

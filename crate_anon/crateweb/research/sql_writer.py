@@ -8,7 +8,7 @@ from crate_anon.anonymise.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.crateweb.research.sql_grammar_mysql import (
     column_spec,
     expr,
-    flatten,
+    # flatten,
     join_constraint,
     join_op,
     select_statement,
@@ -76,14 +76,65 @@ def get_first_from_table(parsed):
     return None
 
 
+def toggle_distinct(sql, formatted=True, debug=False, debug_verbose=False):
+    p = select_statement.parseString(sql)
+    if debug:
+        log.info("START: {}".format(sql))
+        if debug_verbose:
+            log.debug("start dump:\n" + p.dump())
+    # log.critical(repr(p.select_specifier))
+    if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
+        # log.critical("Already has DISTINCT")
+        del p.select_specifier[:]
+    else:
+        # log.critical("Does not already have DISTINCT")
+        p.select_specifier.append('DISTINCT')
+    result = text_from_parsed(p, formatted=formatted)
+    if debug:
+        log.info("END: {}".format(result))
+        if debug_verbose:
+            log.debug("end dump:\n" + p.dump())
+    return result
+
+
 def add_to_select(sql,
                   table=None, column=None,
                   inner_join_to_first_on_keyfield=None,  # overrides others
                   join_type="NATURAL JOIN", join_condition=None,
-                  where_type="AND", where_expression=None,
+                  where_type="AND", where_expression=None, where_table=None,
+                  bracket_where=False,
                   formatted=True, debug=False, debug_verbose=False):
-    # The caller should specify the column as table.column
-    # Specify EITHER table and column and join information, OR where info.
+    """
+    This function encapsulates our query builder's common operations.
+    One premise is that SQL parsing is relatively slow, so we should do this
+    only once. We parse; add bits to the parsed structure as required; then
+    re-convert to text.
+
+    If you specify table/column, elements will be added to SELECT and FROM
+    unless they already exist.
+
+    If you specify where_expression, elements will be added to WHERE.
+    In this situation, you should also specify where_table; if the where_table
+    isn't yet in the FROM clause, this will be added as well (according to
+    inner_join_to_first_on_keyfield, join_type, and join_condition).
+    """
+
+    def get_join_type_condition(jointable):
+        _join_type = join_type
+        _join_condition = join_condition
+        if inner_join_to_first_on_keyfield:
+            first_table = get_first_from_table(p)
+            if first_table:
+                _join_type = "INNER JOIN"
+                _join_condition = (
+                    "ON {new}.{keyfield}={first}.{keyfield}".format(
+                        new=jointable,
+                        first=first_table,
+                        keyfield=inner_join_to_first_on_keyfield,
+                    )
+                )
+        return _join_type, _join_condition
+
     if debug:
         log.info("START: {}".format(sql))
     colspec = "{}.{}".format(table, column)
@@ -106,31 +157,32 @@ def add_to_select(sql,
         # ---------------------------------------------------------------------
         if column and table:
             p = parser_add_result_column(p, colspec)
-            if inner_join_to_first_on_keyfield:
-                first_table = get_first_from_table(p)
-                if first_table:
-                    join_type = "INNER JOIN"
-                    join_condition = (
-                        "ON {new}.{keyfield}={first}.{keyfield}".format(
-                            new=table,
-                            first=first_table,
-                            keyfield=inner_join_to_first_on_keyfield,
-                        )
-                    )
-            p = parser_add_from_table(p, table, join_type, join_condition)
+            jt, jc = get_join_type_condition(table)
+            p = parser_add_from_table(p, table, jt, jc)
 
         # ---------------------------------------------------------------------
         # WHERE
         # ---------------------------------------------------------------------
         if where_expression:
+            # log.critical(where_expression)
             cond = expr.parseString(where_expression)
+            # log.critical(cond)
             if p.where_clause:
-                extra = [where_type, "(", cond, ")"]
+                if bracket_where:
+                    extra = [where_type, "(", cond, ")"]
+                else:
+                    extra = [where_type, cond]
                 p.where_clause.where_expr.extend(extra)
             else:
                 # No WHERE as yet
-                extra = ["WHERE", "(", cond, ")"]
+                if bracket_where:
+                    extra = ["WHERE", "(", cond, ")"]
+                else:
+                    extra = ["WHERE", cond]
                 p.where_clause.extend(extra)
+            if where_table:
+                jt, jc = get_join_type_condition(where_table)
+                p = parser_add_from_table(p, where_table, jt, jc)
 
         if debug and debug_verbose:
             log.debug("end dump:\n" + p.dump())

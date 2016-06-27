@@ -600,7 +600,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
         Returns:
             None
         """
-        # *** autorestart?
+        # NOT YET IMPLEMENTED: Windows service autorestart
 
         # https://stackoverflow.com/questions/16333054
         def cleanup():

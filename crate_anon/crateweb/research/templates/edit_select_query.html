@@ -15,11 +15,14 @@
         </table>
         <input type="submit" name="submit_add" value="Add" />
         <input type="submit" name="submit_run" value="Run" />
+        <input type="submit" name="submit_builder"
+               value="Send to query builder" />
     </form>
-    <p> *** NEEDS "SEND TO QUERY BUILDER" BUTTON</p>
 
     <h2>Tips</h2>
     <ul>
+        <li>Most browsers will let you resize the SQL edit box; try dragging
+            the corner.</li>
         <li>If you’re new to SQL, try a tutorial such as those by
             <a href="http://sqlzoo.net/">SQLZoo</a>,
             <a href="http://www.sql-tutorial.net/">SQL-Tutorial</a>,
@@ -35,6 +38,9 @@
             (so <code>LIMIT 50</code> or <code>LIMIT 0, 50</code> retrieves
             the first 50 records, and <code>LIMIT 50, 50</code> retrieves the
             next 50).</li>
+
+        <li>The query builder is not as sophisticated as raw SQL, so it may
+            fail to alter complex SQL properly.</li>
     </ul>
 
     <h1>Previous queries</h1>

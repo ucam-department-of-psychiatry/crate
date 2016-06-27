@@ -508,7 +508,7 @@ A.  Short answer: fixed internally (in rnc_db.py) by reconfiguring the SQL
     import bcrypt  # sudo apt-get install python3-bcrypt
     import configparser  # was: import ConfigParser
     import dateutil  # sudo apt-get install python3-dateutil
-    import M2Crypto  # sudo apt-get install swig; sudo pip3 install M2Crypto  # *** INSTALLS BUT FAILS TO IMPORT
+    import M2Crypto  # sudo apt-get install swig; sudo pip3 install M2Crypto  # INSTALLS BUT FAILS TO IMPORT
     import pytz  # sudo pip3 install pytz
     import regex  # sudo apt-get install python3-regex
     import sortedcontainers  # sudo pip3 install sortedcontainers

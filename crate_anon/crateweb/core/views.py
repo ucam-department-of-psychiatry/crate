@@ -2,6 +2,7 @@
 # core/views.py
 
 import logging
+from django.conf import settings
 from django.shortcuts import render
 from crate_anon.crateweb.core.utils import is_developer
 
@@ -20,5 +21,7 @@ def home(request):
     return render(request, 'home.html', {
         'nav_on_main_menu': True,
         'is_developer': is_developer(request.user),
+        'safety_catch_on': settings.SAFETY_CATCH_ON,
+        'developer_email': settings.DEVELOPER_EMAIL,
         # 'leaflets': leaflets,
     })

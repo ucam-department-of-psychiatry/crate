@@ -280,7 +280,7 @@ class DaemonRunner:
 
         self.app = app
         self.daemon_context = DaemonContext()
-        # *** deal with sudo here
+        # !!! would need to deal with sudo here
         self.daemon_context.stdin = open(app.stdin_path, 'rt')
         console = '/dev/tty'
         # RNC hacks for /dev/tty
@@ -477,7 +477,7 @@ class App:
     def __init__(self, args):
         self.args = args
         self.encoding = 'utf8'
-        # ***
+        # !!! would need more here
         self.stdin_path = '/dev/null'
         self.stdout_path = '/dev/tty'
         self.stderr_path = '/dev/tty'

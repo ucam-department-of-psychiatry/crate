@@ -902,6 +902,13 @@ class DataDictionaryRow(object):
             kwargs['nullable'] = False
         return Column(name, coltype, **kwargs)
 
+    # -------------------------------------------------------------------------
+    # Other
+    # -------------------------------------------------------------------------
+
+    def using_fulltext_index(self):
+        return self.index == INDEX.FULLTEXT
+
 
 # =============================================================================
 # DataDictionary

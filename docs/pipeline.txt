@@ -393,7 +393,7 @@ a)  MYSQL RAW ACCESS.
 
 b)  FRONT END.
 
-    The nascent front end will also audit queries. ***
+    The nascent front end will also audit queries.
     (Since this runs a web service that in principle can have access to proper
     data, it's probably better to run a username system rather than rely on
     MySQL usernames alone. Therefore, it can use a single username, and a

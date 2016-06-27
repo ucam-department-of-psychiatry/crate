@@ -1,12 +1,15 @@
 {# builder_column_form.html #}
 
-<form action="{% url 'build_query' %}" method="post">
+<form action="{% url 'build_query' %}" method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    <input type="submit" name="add_result_column"
-           value="Add to output (SELECT/FROM)" />
     <table class="formtable">
         {{ form.as_table }}
     </table>
-    <input type="submit" name="add_where"
-           value="Set condition (WHERE)" />
+    {% if form.offering_where %}
+        {# First "submit" button takes the Enter key #}
+        <input type="submit" name="add_where"
+               value="Set condition (WHERE)" />
+    {% endif %}
+    <input type="submit" name="add_result_column"
+           value="Add to output (SELECT/FROM)" />
 </form>

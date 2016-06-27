@@ -120,7 +120,7 @@ def make_pyparsing_regex(regex_str, caseless=False, name=None):
     return result
 
 
-def make_words_regex(words_as_string, caseless=False, name=None, debug=True):
+def make_words_regex(words_as_string, caseless=False, name=None, debug=False):
     regex_str = multiple_words_regex_element(words_as_string)
     if debug:
         log.debug(regex_str)
@@ -130,7 +130,6 @@ def make_words_regex(words_as_string, caseless=False, name=None, debug=True):
 def make_regex_except_words(word_pattern, negative_words_str, caseless=False,
                             name=None, debug=False):
     # http://regexr.com/
-    negative_words = negative_words_str.split()
     regex_str = r"(?!{negative}){positive}".format(
         negative=multiple_words_regex_element(negative_words_str),
         positive=(WORD_BOUNDARY + word_pattern + WORD_BOUNDARY),
@@ -522,10 +521,12 @@ match_expr = (
 # http://dev.mysql.com/doc/refman/5.7/en/operator-precedence.html
 expr_term = (
     INTERVAL + expr + time_unit |
-    Optional(EXISTS) + LPAR + select_statement + RPAR |
-    # ... e.g. a = EXISTS(SELECT ...)
-    # ... e.g. a IN (SELECT ...)
     # "{" + identifier + expr + "}" |  # see MySQL notes; antique ODBC syntax
+    Optional(EXISTS) + LPAR + select_statement + RPAR |
+    # ... e.g. mycol = EXISTS(SELECT ...)
+    # ... e.g. mycol IN (SELECT ...)
+    LPAR + delim_list(expr) + RPAR |
+    # ... e.g. mycol IN (1, 2, 3)
     case_expr |
     match_expr |
     bind_parameter |
@@ -639,7 +640,7 @@ result_column = (
 
 select_core = (
     SELECT +
-    Optional(ALL | DISTINCT | DISTINCTROW) +
+    Group(Optional(ALL | DISTINCT | DISTINCTROW))("select_specifier") +
     Optional(HIGH_PRIORITY) +
     Optional(MAX_STATEMENT_TIME + '=' + integer) +
     Optional(STRAIGHT_JOIN) +
@@ -652,7 +653,7 @@ select_core = (
     Optional(
         FROM + join_source +
         Optional(PARTITION + partition_list) +
-        Group(Optional(WHERE + expr("where_expr")))("where_clause") +
+        Group(Optional(WHERE + Group(expr)("where_expr")))("where_clause") +
         Optional(
             GROUP + BY +
             delim_list(ordering_term +
@@ -785,7 +786,7 @@ def flatten(*args):
             yield x
 
 
-def text_from_parsed(parsetree, formatted=True, indent_spaces=4):
+def text_from_parsed(parsetree, formatted=True, indent_width=4):
     nested_list = parsetree.asList()
     flattened_list = flatten(nested_list)
     plain_str = " ".join(flattened_list)
@@ -793,7 +794,8 @@ def text_from_parsed(parsetree, formatted=True, indent_spaces=4):
         return plain_str
 
     # Forget my feeble efforts for now (below) and use sqlparse:
-    return sqlparse.format(plain_str, reindent=True)
+    return sqlparse.format(plain_str, reindent=True,
+                           indent_width=indent_width)
 
     # result = ""
     # newline_before = ["SELECT", "FROM", "WHERE", "GROUP"]
@@ -848,7 +850,7 @@ def statement_and_failure_marker(text, parse_exception):
 # noinspection PyUnboundLocalVariable
 def pyparsing_bugtest_delimited_list_combine(fix_problem=True):
     if fix_problem:
-        # noinspection PyPep8Naming
+        # noinspection PyPep8Naming,PyShadowingNames
         delimitedList = delim_list
     word = Word(alphanums)
     word_list_no_combine = delimitedList(word, combine=False)
@@ -1011,6 +1013,8 @@ def unit_tests(test_expr=False):
     test_succeed(expr_term, "mycol")
     test_succeed(expr_term, "myfunc(myvar, 8)")
     test_succeed(expr_term, "INTERVAL 5 MICROSECOND")
+    test_succeed(expr_term, "(SELECT 1)")
+    test_succeed(expr_term, "(1, 2, 3)")
 
     if test_expr:
         log.info("Testing expr")
@@ -1034,7 +1038,8 @@ def unit_tests(test_expr=False):
         test_succeed(expr, "a % b")
         test_succeed(expr, "a ^ b")
         test_succeed(expr, "a ^ (b + (c - d) / e)")
-        test_succeed(expr, "a NOT IN (SELECT 1)")  # *** failing
+        test_succeed(expr, "a NOT IN (SELECT 1)")
+        test_succeed(expr, "a IN (1, 2, 3)")
         test_succeed(expr, "a IS NULL")
         test_fail(expr, "IS NULL")
         test_succeed(expr, "(a * (b - 3)) > (d - 2)")
@@ -1056,6 +1061,7 @@ def unit_tests(test_expr=False):
     test_select("SELECT a, b FROM c WHERE d > 5 AND e = 4")
     test_select("SELECT a, b FROM c INNER JOIN f WHERE d > 5 AND e = 4")
     test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5")
+    test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 IN (1, 2, 3)")
 
 
 # =============================================================================
@@ -1070,8 +1076,7 @@ def main():
     # print(formatted_from_parsed(p_sql1))
 
     # pyparsing_bugtest_delimited_list_combine()
-    unit_tests(test_expr=False)
-
+    unit_tests(test_expr=True)
 
 
 if __name__ == '__main__':
