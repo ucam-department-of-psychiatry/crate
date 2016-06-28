@@ -53,6 +53,7 @@ INSTALLED_APPS = (
     'django_extensions',  # for graph_models etc.
     'sslserver',  # for SSL testing
     # 'kombu.transport.django',  # for Celery with Django database as broker
+    'template_profiler_panel',
 
     'crate_anon.crateweb.config.apps.UserProfileAppConfig',  # for user-specific settings  # noqa
     'crate_anon.crateweb.config.apps.ResearchAppConfig',  # the research database query app  # noqa
@@ -61,7 +62,6 @@ INSTALLED_APPS = (
 )
 
 MIDDLEWARE_CLASSES = (
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',  # should be added automatically, but there's a problem (2016-04-14)  # noqa
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,6 +76,9 @@ MIDDLEWARE_CLASSES = (
     'crate_anon.crateweb.extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
     'crate_anon.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
     # 'crate_anon.crateweb.extra.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
+
+    # Last, when using the profiling panel? But actually breaks it...
+    # 'debug_toolbar.middleware.DebugToolbarMiddleware',  # should be added automatically, but there's a problem (2016-04-14)  # noqa
 )
 
 # Celery things
@@ -122,6 +125,25 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'crate_anon.crateweb.config.wsgi.application'
 
+DEBUG_TOOLBAR_PANELS = [
+    # Standard:
+    'debug_toolbar.panels.versions.VersionsPanel',
+    'debug_toolbar.panels.timer.TimerPanel',
+    'debug_toolbar.panels.settings.SettingsPanel',
+    'debug_toolbar.panels.headers.HeadersPanel',
+    'debug_toolbar.panels.request.RequestPanel',
+    'debug_toolbar.panels.sql.SQLPanel',
+    'debug_toolbar.panels.staticfiles.StaticFilesPanel',
+    'debug_toolbar.panels.templates.TemplatesPanel',
+    'debug_toolbar.panels.cache.CachePanel',
+    'debug_toolbar.panels.signals.SignalsPanel',
+    'debug_toolbar.panels.logging.LoggingPanel',
+    'debug_toolbar.panels.redirects.RedirectsPanel',
+    # Built in but not enabled as standard:
+    'debug_toolbar.panels.profiling.ProfilingPanel',
+    # Extra:
+    'template_profiler_panel.panels.template.TemplateProfilerPanel',
+]
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.8/topics/i18n/

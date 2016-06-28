@@ -170,6 +170,7 @@ setup(
         'django-picklefield==0.3.2',
         'django-sslserver==0.15',
         'django-debug-toolbar==1.4',
+        'django-debug-toolbar-template-profiler==1.0.1',
         'flower==0.9.1',  # debug Celery; web server; only runs explicitly
         'pdfkit==0.5.0',
         # 'pygraphviz==1.3.1',  # not used
