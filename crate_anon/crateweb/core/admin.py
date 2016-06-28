@@ -1039,7 +1039,8 @@ class UserProfileInline(admin.StackedInline):
     max_num = 1
     can_delete = False
     inlines = [StudyInline]
-    fields = ('per_page', 'line_length', 'collapse_at',
+    fields = ('per_page', 'line_length',
+              'collapse_at_len', 'collapse_at_n_lines',
               'is_developer',
               'title',
               'telephone',
