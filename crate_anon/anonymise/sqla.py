@@ -2,6 +2,7 @@
 # crate_anon/anonymise/sqla.py
 
 import ast
+import copy
 import logging
 import re
 
@@ -302,13 +303,14 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
 # Do special dialect conversions on SQLAlchemy SQL types (of class type)
 # =============================================================================
 
-def convert_sqla_type_for_dialect(coltype, dialect):
-    if (type(coltype) in [sqltypes.VARCHAR, sqltypes.NVARCHAR] and
-            coltype.length is None and
-            dialect.name == 'mysql'):
-        # SQL Server can have NVARCHAR() and VARCHAR(), with no length.
-        # MySQL can't. Failure to convert gives:
-        # 'NVARCHAR requires a length on dialect mysql'
-        return sqltypes.Text()
-    else:
-        return coltype
+def convert_sqla_type_for_dialect(coltype, dialect, strip_collation=True):
+    if type(coltype) in [sqltypes.VARCHAR, sqltypes.NVARCHAR]:
+        if coltype.length is None and dialect.name == 'mysql':
+            # SQL Server can have NVARCHAR() and VARCHAR(), with no length.
+            # MySQL can't. Failure to convert gives:
+            # 'NVARCHAR requires a length on dialect mysql'
+            return sqltypes.Text()
+        if coltype.collation and strip_collation:
+            coltype = copy.copy(coltype)
+            coltype.collation = None
+    return coltype
