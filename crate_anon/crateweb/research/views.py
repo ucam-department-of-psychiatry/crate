@@ -163,6 +163,9 @@ def query_builder_html(request, working_form=None, offer_where=False):
             # - Note that the CSRF token prevents simple caching of the forms.
             # - But we can't cache anyway if we're going to have some forms
             #   (differentially) non-collapsed at the start, e.g. on form POST.
+            # - Also harder work to do this HTML manually (rather than with
+            #   template rendering), because the csrf_token ends up like:
+            #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
             html_column = '<div class="indent">{html_form}</div>'.format(
                 html_form=html_form,
             )

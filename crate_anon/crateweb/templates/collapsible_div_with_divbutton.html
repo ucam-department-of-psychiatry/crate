@@ -1,22 +1,2 @@
 {# collapsible_div_with_divbutton.html #}
 
-{% load staticfiles %}
-<div class="expandcollapse"
-        onclick="toggle('collapse_detail_{{ tag }}', 'collapse_img_{{ tag }}');">
-    <img class="plusminus_image"
-            id="collapse_img_{{ tag }}"
-            alt=""
-            {% if collapsed %}
-                src="{% static 'plus.gif' %}"
-            {% else %}"
-                src="{% static 'minus.gif' %}"
-            {% endif %}
-        >
-</div>
-<div class="collapse_detail {{ extradivclasses }}"
-        id="collapse_detail_{{ tag }}"
-        {% if collapsed %}
-            style="display:none"
-        {% endif %}>
-    {{ contents|safe }}
-</div>

@@ -28,23 +28,28 @@ def collapsible_div_with_divbutton(tag, contents, extradivclasses=None,
     # The HTML pre-hides, rather than using an onload method
     if extradivclasses is None:
         extradivclasses = []
-    template = loader.get_template('collapsible_div_with_divbutton.html')
-    context = {
-        'extradivclasses': " ".join(extradivclasses),
-        'tag': tag,
-        'contents': contents,
-        'collapsed': collapsed,
-    }
-    return template.render(context)  # as HTML
+    return """
+        <div class="expandcollapse" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
+            <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{img}">
+        </div>
+        <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" {hide_me}>
+            {contents}
+        </div>
+    """.format(  # noqa
+        tag=str(tag),
+        img=static('plus.gif') if collapsed else static('minus.gif'),
+        extradivclasses=" ".join(extradivclasses),
+        hide_me='style="display:none"' if collapsed else '',
+        contents=contents,
+    )
 
 
 def collapsible_div_spanbutton(tag, collapsed=True):
     return """
-        <span class="expandcollapse_span"
-            onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
+        <span class="expandcollapse_span" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
             <img class="plusminus_image" id="collapse_img_{{ tag }}" alt="" src="{img}">
         </span>
-    """.format(
+    """.format(  # noqa
         tag=str(tag),
         img=static('plus.gif') if collapsed else static('minus.gif'),
     )
@@ -52,29 +57,41 @@ def collapsible_div_spanbutton(tag, collapsed=True):
 
 def collapsible_div_contentdiv(tag, contents, extradivclasses=None,
                                collapsed=True):
-    tag = str(tag)
     if extradivclasses is None:
         extradivclasses = []
-    template = loader.get_template('collapsible_div_contentdiv.html')
-    context = {
-        'extradivclasses': " ".join(extradivclasses),
-        'tag': tag,
-        'contents': contents,
-        'collapsed': collapsed,
-    }
-    return template.render(context)  # as HTML
+    return """
+        <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" {hide_me}>
+            {contents}
+        </div>
+    """.format(  # noqa
+        extradivclasses=" ".join(extradivclasses),
+        tag=str(tag),
+        contents=contents,
+        hide_me='style="display:none"' if collapsed else '',
+    )
 
 
 def overflow_div(tag, contents, extradivclasses=None):
     if extradivclasses is None:
         extradivclasses = []
-    template = loader.get_template('overflow_div.html')
-    context = {
-        'extradivclasses': " ".join(extradivclasses),
-        'tag': tag,
-        'contents': contents,
-    }
-    return template.render(context)  # as HTML
+    return """
+        <div class="expandcollapsewrapper">
+            <div class="expandcollapse" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}', 'collapse_summary_{tag}');">
+                <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{plus_img}">
+            </div>
+            <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" style="display:none">
+                {contents}
+            </div>
+            <div class="collapse_summary {extradivclasses}" id="collapse_summary_{tag}">
+                {contents}
+            </div>
+        </div>
+    """.format(  # noqa
+        extradivclasses=" ".join(extradivclasses),
+        tag=str(tag),
+        contents=contents,
+        plus_img=static('plus.gif'),
+    )
 
 
 # =============================================================================
