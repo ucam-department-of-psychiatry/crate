@@ -579,8 +579,6 @@ def process_table(sourcedbname, sourcetable,
                 continue
         destvalues = {}
         for i, ddr in enumerate(ddrows):
-            if ddr.omit:
-                continue  # skip column
             value = row[i]
             if ddr.skip_row_by_value(value):
                 # log.debug("skipping row based on inclusion/exclusion values")
@@ -588,6 +586,8 @@ def process_table(sourcedbname, sourcetable,
                 break  # skip row
             # NOTE: would be most efficient if ddrows were ordered with
             # inclusion/exclusion fields first. (Not yet done automatically.)
+            if ddr.omit:
+                continue  # skip column
 
             if ddr.primary_pid:
                 assert(value == patient.get_pid())
