@@ -1093,7 +1093,8 @@ class DataDictionary(object):
 
         log.debug("... source tables checked.")
 
-    def check_valid(self, prohibited_fieldnames=None):
+    def check_valid(self, prohibited_fieldnames=None,
+                    check_against_source_db=True):
         """
         Check DD validity, internally +/- against the source database.
         """
@@ -1157,7 +1158,8 @@ class DataDictionary(object):
             raise ValueError("Duplicate source rows: {}".format(
                 dst_duplicates))
 
-        self.check_against_source_db()
+        if check_against_source_db:
+            self.check_against_source_db()
 
         log.debug("Checking DD: global checks...")
         self.n_definers = sum([1 if x.defines_primary_pids else 0

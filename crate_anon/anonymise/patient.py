@@ -31,7 +31,7 @@ import logging
 
 from sqlalchemy.sql import column, select, table
 
-from crate_anon.anonymise.config import config
+from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     SCRUBSRC,
     SRCFLAG,

@@ -20,6 +20,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userprofile',
             name='collapse_at_n_lines',
-            field=models.PositiveSmallIntegerField(default=5, verbose_name='Number of lines beyond which result/query field starts collapsed (0 for none)'),
+            field=models.PositiveSmallIntegerField(default=5, verbose_name='Number of lines beyond which result/query field starts collapsed (0 for none)'),  # noqa
         ),
     ]

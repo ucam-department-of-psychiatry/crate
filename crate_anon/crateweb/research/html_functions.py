@@ -5,7 +5,7 @@ import re
 import textwrap
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
-from django.template import loader
+# from django.template import loader
 from django.template.defaultfilters import linebreaksbr
 import logging
 log = logging.getLogger(__name__)

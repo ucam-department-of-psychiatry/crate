@@ -28,6 +28,7 @@ class RequestCacheMiddleware(object):
         global _installed_middleware
         _installed_middleware = True
 
+    # noinspection PyMethodMayBeStatic,PyUnusedLocal
     def process_request(self, request):
         cache = _request_cache.get(currentThread()) or RequestCache()
         _request_cache[currentThread()] = cache

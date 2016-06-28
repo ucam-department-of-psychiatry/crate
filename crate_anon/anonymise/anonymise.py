@@ -60,7 +60,7 @@ from cardinal_pythonlib.rnc_datetime import (
 )
 from cardinal_pythonlib.rnc_extract_text import document_to_text
 
-from crate_anon.anonymise.config import config
+from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     ALTERMETHOD,
     BIGSEP,

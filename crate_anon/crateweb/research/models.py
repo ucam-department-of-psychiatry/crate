@@ -11,6 +11,7 @@ from django.conf import settings
 # from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 
+from crate_anon.anonymise.config import Config
 from crate_anon.anonymise.constants import CONFIG_ENV_VAR
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
@@ -303,7 +304,7 @@ def get_anon_config():
     if not config_filename:
         return None
     os.environ[CONFIG_ENV_VAR] = config_filename
-    from crate_anon.anonymise.config import config  # DELAYED IMPORT for envvar
+    config = Config(open_databases=False)
     return config
 
 
@@ -312,7 +313,7 @@ def get_data_dictionary():
     config = get_anon_config()
     if not config:
         return None
-    config.load_dd()
+    config.load_dd(check_against_source_db=False)
     return config.dd
 
 

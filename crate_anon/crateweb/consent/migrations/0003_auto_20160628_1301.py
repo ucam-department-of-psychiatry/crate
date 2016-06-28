@@ -10,6 +10,7 @@ from django.db import migrations, models
 # FileField "location" defaults left as they are; they don't hurt, and editing
 # them does make Django regenerate migrations
 
+
 class Migration(migrations.Migration):
 
     dependencies = [

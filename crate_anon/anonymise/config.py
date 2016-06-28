@@ -213,7 +213,7 @@ class DatabaseSafeConfig(object):
 class Config(object):
     """Class representing the main configuration."""
 
-    def __init__(self):
+    def __init__(self, open_databases=True):
         """
         Read config from file
         """
@@ -356,16 +356,16 @@ class Config(object):
                              "source database")
         self.destdb = get_database(destination_database_cfg_section,
                                    name=destination_database_cfg_section,
-                                   with_session=True,
+                                   with_session=open_databases,
                                    with_conn=False,
                                    reflect=False)
         if not self.destdb:
             raise ValueError("Destination database misconfigured")
         self.admindb = get_database(admin_database_cfg_section,
                                     name=admin_database_cfg_section,
-                                    with_session=True,
+                                    with_session=open_databases,
                                     with_conn=False,
-                                    reflect=True)
+                                    reflect=open_databases)
         if not self.admindb:
             raise ValueError("Admin database misconfigured")
         self.sources = {}
@@ -375,9 +375,9 @@ class Config(object):
             srcdb = get_database(sourcedb_name,
                                  srccfg_=srccfg,
                                  name=sourcedb_name,
-                                 with_session=True,
+                                 with_session=open_databases,
                                  with_conn=False,
-                                 reflect=True)
+                                 reflect=open_databases)
             if not srcdb:
                 raise ValueError("Source database {} misconfigured".format(
                     sourcedb_name))
@@ -466,13 +466,14 @@ class Config(object):
             sizeof_fmt(self.src_bytes_read),
             sizeof_fmt(self.dest_bytes_written))
 
-    def load_dd(self):
+    def load_dd(self, check_against_source_db=True):
         log.info(SEP + "Loading data dictionary: {}".format(
             self.data_dictionary_filename))
         self.dd.read_from_file(self.data_dictionary_filename)
         self.dd.check_valid(
             prohibited_fieldnames=[self.source_hash_fieldname,
-                                   self.trid_fieldname])
+                                   self.trid_fieldname],
+            check_against_source_db=check_against_source_db)
         self.init_row_counts()
 
     def init_row_counts(self):
@@ -601,10 +602,3 @@ class Config(object):
             logger = logging.getLogger(logname)
             # log.critical(logger.__dict__)
             remove_all_logger_handlers(logger)
-
-
-# =============================================================================
-# Singleton config
-# =============================================================================
-
-config = Config()

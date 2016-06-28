@@ -29,7 +29,7 @@ from crate_anon.anonymise.constants import (
     PidType,
     TridType,
 )
-from crate_anon.anonymise.config import config
+from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.sqla import exists_orm
 
 

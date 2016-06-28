@@ -6,6 +6,7 @@ from django.conf import settings
 # from crate_anon.crateweb.extra.request_cache import get_request_cache
 
 
+# noinspection PyUnusedLocal
 def common_context(request):
     return {
         'RESEARCH_DB_TITLE': settings.RESEARCH_DB_TITLE,
