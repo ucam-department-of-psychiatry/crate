@@ -863,7 +863,7 @@ def wipe_opt_out_patients(report_every=1000, chunksize=10000):
     commit_admindb()
 
 
-def drop_remake(incremental=False):
+def drop_remake(incremental=False, skipdelete=False):
     """
     Drop and rebuild (a) mapping table, (b) destination tables.
     If incremental is True, doesn't drop tables; just deletes destination
@@ -883,7 +883,7 @@ def drop_remake(incremental=False):
     TridRecord.__table__.create(engine, checkfirst=True)
 
     wipe_and_recreate_destination_db(incremental=incremental)
-    if not incremental:
+    if skipdelete or not incremental:
         return
     for d in config.dd.get_source_databases():
         for t in config.dd.get_src_tables(d):
@@ -1100,7 +1100,8 @@ def anonymise(args):
 
     # 1. Drop/remake tables. Single-tasking only.
     if args.dropremake or everything:
-        drop_remake(incremental=args.incremental)
+        drop_remake(incremental=args.incremental,
+                    skipdelete=args.skipdelete)
 
     # 2. Deal with opt-outs
     if args.optout or everything:

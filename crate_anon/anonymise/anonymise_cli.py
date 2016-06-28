@@ -89,17 +89,20 @@ def main():
                         dest="incremental", action="store_true",
                         help="Process only new/changed information, where "
                              "possible")
+    parser.add_argument(
+        "--skipdelete", dest="skipdelete", action="store_true",
+        help="For incremental updates, Skip deletion of rows present in the "
+             "destination but not the source")
     parser.add_argument("-f", "--full",
                         dest="incremental", action="store_false",
                         help="Drop and remake everything")
     parser.set_defaults(incremental=True)
-    parser.add_argument("--seed",
-                        help="String to use as the basis of the seed for the "
-                             "random number generator used for the transient "
-                             "integer RID (TRID). Leave blank to use the "
-                             "default seed (system time).")
-    parser.add_argument("--echo", action="store_true",
-                        help="Echo SQL")
+    parser.add_argument(
+        "--seed",
+        help="String to use as the basis of the seed for the random number "
+             "generator used for the transient integer RID (TRID). Leave "
+             "blank to use the default seed (system time).")
+    parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--checkextractor", nargs='*',
         help="File extensions to check for availability of a text extractor "
