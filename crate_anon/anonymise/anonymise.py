@@ -515,9 +515,13 @@ def process_table(sourcedbname, sourcetable,
     # If addhash or constant is true, there will also be at least one non-
     # omitted row, namely the source PK (by the data dictionary's validation
     # process).
-    ddrows = [ddr
-              for ddr in ddrows
-              if (not ddr.omit) or (addhash and ddr.scrub_src)]
+    ddrows = [ddr for ddr in ddrows
+              if (
+                  (not ddr.omit) or
+                  (addhash and ddr.scrub_src) or
+                  ddr.inclusion_values or
+                  ddr.exclusion_values
+              )]
     if not ddrows:
         return
     dest_table = ddrows[0].dest_table
