@@ -332,12 +332,12 @@ def edit_select_query(request):
         values['sql'] = active_queries[0].get_original_sql()
     form = AddQueryForm(values)
     queries = paginate(request, all_queries)
-    # profile = request.user.profile
+    profile = request.user.profile
     for i, q in enumerate(queries):
         q.formatted_query_safe = make_collapsible_query(
             q.get_original_sql(),
             i,
-            collapse_at_n_lines=5,
+            collapse_at_n_lines=profile.collapse_at_n_lines,
         )
     context = {
         'form': form,
@@ -465,7 +465,8 @@ def results(request, query_id):
     profile = request.user.profile
     highlights = Highlight.get_active_highlights(request)
     return render_resultset(request, query, highlights,
-                            collapse_at=profile.collapse_at,
+                            collapse_at_len=profile.collapse_at_len,
+                            collapse_at_n_lines=profile.collapse_at_n_lines,
                             line_length=profile.line_length)
 
 
@@ -568,8 +569,8 @@ def get_highlight_descriptions(highlight_dict):
 
 
 def render_resultset(request, query, highlights,
-                     collapse_at=None, line_length=None, ditto=True,
-                     ditto_html='″'):
+                     collapse_at_len=None, collapse_at_n_lines=None,
+                     line_length=None, ditto=True, ditto_html='″'):
     # Query
     if query is None:
         return render_missing_query(request)
@@ -620,7 +621,8 @@ def render_resultset(request, query, highlights,
                             value,
                             elementnum,
                             highlight_dict=highlight_dict,
-                            collapse_at=collapse_at,
+                            collapse_at_len=collapse_at_len,
+                            collapse_at_n_lines=collapse_at_n_lines,
                             line_length=line_length
                         )
                     )

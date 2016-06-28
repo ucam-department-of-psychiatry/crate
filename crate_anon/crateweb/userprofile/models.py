@@ -53,9 +53,13 @@ class UserProfile(models.Model):
         default=80,
         verbose_name="Characters to word-wrap text at in results "
                      "display (0 for no wrap)")
-    collapse_at = models.PositiveSmallIntegerField(
+    collapse_at_len = models.PositiveSmallIntegerField(
         default=400,
         verbose_name="Number of characters beyond which results field starts "
+                     "collapsed (0 for none)")
+    collapse_at_n_lines = models.PositiveSmallIntegerField(
+        default=5,
+        verbose_name="Number of lines beyond which result/query field starts "
                      "collapsed (0 for none)")
     sql_scratchpad = models.TextField(
         verbose_name='SQL scratchpad for query builder')

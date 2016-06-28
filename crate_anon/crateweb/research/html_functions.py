@@ -112,7 +112,8 @@ def make_highlight_replacement_regex(n=0):
     return highlight_text(r"\1", n=n)
 
 
-def make_result_element(x, elementnum, highlight_dict=None, collapse_at=None,
+def make_result_element(x, elementnum, highlight_dict=None,
+                        collapse_at_len=None, collapse_at_n_lines=None,
                         line_length=None, keep_existing_newlines=True):
     # return escape(repr(x))
     if x is None:
@@ -134,6 +135,7 @@ def make_result_element(x, elementnum, highlight_dict=None, collapse_at=None,
                 output_lines.append('')
     else:
         output_lines = input_lines
+    n_lines = len(output_lines)
     # return escape(repr(output_lines))
     output = linebreaksbr(escape("\n".join(output_lines)))
     # return escape(repr(output))
@@ -141,7 +143,8 @@ def make_result_element(x, elementnum, highlight_dict=None, collapse_at=None,
         find = get_regex_from_highlights(highlight_list)
         replace = make_highlight_replacement_regex(n)
         output = find.sub(replace, output)
-    if collapse_at and xlen >= collapse_at:
+    if ((collapse_at_len and xlen >= collapse_at_len) or
+            (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
         return overflow_div(elementnum, output)
     return output
 
@@ -150,12 +153,15 @@ def pre(x=''):
     return "<pre>{}</pre>".format(x)
 
 
-def make_collapsible_query(x, elementnum, collapse_at_n_lines=5):
+def make_collapsible_query(x, elementnum,
+                           collapse_at_len=400, collapse_at_n_lines=5):
     if x is None:
         return pre()
     x = str(x)
+    xlen = len(x)
     n_lines = len(x.split('\n'))
     x = linebreaksbr(escape(x))
-    if collapse_at_n_lines and n_lines >= collapse_at_n_lines:
+    if ((collapse_at_len and xlen >= collapse_at_len) or
+            (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
         return overflow_div(elementnum, pre(x))
     return pre(x)
