@@ -75,6 +75,7 @@ MIDDLEWARE_CLASSES = (
     'crate_anon.crateweb.extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
     'crate_anon.crateweb.extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
     'crate_anon.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
+    # 'crate_anon.crateweb.extra.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
 )
 
 # Celery things

@@ -14,6 +14,7 @@ from django.core.exceptions import (
 from django.db import DatabaseError
 from django.db.models import Q
 from django.http import HttpResponse
+from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 # from django.views.decorators.csrf import csrf_exempt
@@ -76,6 +77,18 @@ def validate_blank_form(request):
         raise ValidationError("Form failed validation")
 
 
+def query_context(request):
+    query_id = Query.get_active_query_id_or_none(request)
+    return {
+        'query_selected': query_id is not None,
+        'current_query_id': query_id,
+    }
+    # Try to minimize SQL here, as these calls will be used for EVERY
+    # request.
+    # This problem can be circumvented with a per-request cache; see
+    # http://stackoverflow.com/questions/3151469/per-request-cache-in-django
+
+
 # =============================================================================
 # Queries
 # =============================================================================
@@ -128,6 +141,7 @@ def query_builder_html(request, working_form=None, offer_where=False):
         return NO_QUERY_BUILDER_AVAILABLE
     html = ""
     tag = 0
+    csrf_token = csrf.get_token(request)
     for table in dd.get_dest_tables_with_patient_info():
         html_table = ''
         table_collapsed = True
@@ -139,13 +153,16 @@ def query_builder_html(request, working_form=None, offer_where=False):
             if matched:
                 table_collapsed = False
             comment = '<i> – {}</i>'.format(ddr.comment) if ddr.comment else ''
-            html_form = render_to_string('builder_column_form.html',
-                                         {'form': form},
-                                         request=request)
-            # The CSRF token requires a "request=request" token to
-            # render_to_string. That prevent us from caching.
-            # But we can't cache if we're going to have some forms
-            # (differentially) non-collapsed at the start, e.g. on form POST.
+            context = {'form': form,
+                       'csrf_token': csrf_token}
+            html_form = render_to_string('builder_column_form.html', context)
+            # - If you provide the "request=request" argument to
+            #   render_to_string it gives you the CSRF token.
+            # - But this is another way (without the global context
+            #   processors).
+            # - Note that the CSRF token prevents simple caching of the forms.
+            # - But we can't cache anyway if we're going to have some forms
+            #   (differentially) non-collapsed at the start, e.g. on form POST.
             html_column = '<div class="indent">{html_form}</div>'.format(
                 html_form=html_form,
             )
@@ -267,6 +284,7 @@ def build_query(request):
         'builder': builder,
         'parse_error': parse_error,
     }
+    context.update(query_context(request))
     return render(request, 'build_query.html', context)
 
 
@@ -344,6 +362,7 @@ def edit_select_query(request):
         'queries': queries,
         'nav_on_query': True,
     }
+    context.update(query_context(request))
     return render(request, 'edit_select_query.html', context)
 
 
@@ -397,6 +416,7 @@ def edit_select_highlight(request):
         'colourlist': list(range(N_CSS_HIGHLIGHT_CLASSES)),
         'sql': query.get_original_sql() if query else '',
     }
+    context.update(query_context(request))
     return render(request, 'edit_select_highlight.html', context)
 
 
@@ -421,12 +441,16 @@ def delete_highlight(request, highlight_id):
     return redirect('highlight')
 
 
+def no_query_selected(request):
+    return render(request, 'no_query_selected.html', query_context(request))
+
+
 def count(request, query_id):
     """
     View COUNT(*) from specific query.
     """
     if query_id is None:
-        return render(request, 'no_query_selected.html')
+        return no_query_selected(request)
     try:
         query_id = int(query_id)
         # ... conceivably might raise TypeError (from e.g. None), ValueError
@@ -447,7 +471,7 @@ def count_current(request):
     """
     query = Query.get_active_query_or_none(request)
     if query is None:
-        return render(request, 'no_query_selected.html')
+        return no_query_selected(request)
     return render_resultcount(request, query)
 
 
@@ -456,7 +480,7 @@ def results(request, query_id):
     View results of chosen query.
     """
     if query_id is None:
-        return render(request, 'no_query_selected.html')
+        return no_query_selected(request)
     try:
         query_id = int(query_id)
         query = Query.objects.get(id=query_id, user=request.user)
@@ -551,6 +575,7 @@ def render_resultcount(request, query):
         'sql': query.get_original_sql(),
         'nav_on_count': True,
     }
+    context.update(query_context(request))
     return render(request, 'query_count.html', context)
 
 
@@ -640,6 +665,7 @@ def render_resultset(request, query, highlights,
         'sql': query.get_original_sql(),
         'nav_on_results': True,
     }
+    context.update(query_context(request))
     return render(request, 'query_result.html', context)
 
 
@@ -660,7 +686,7 @@ def render_tsv(request, query):
 
 
 def render_missing_query(request):
-    return render(request, 'query_missing.html')
+    return render(request, 'query_missing.html', query_context(request))
 
 
 def render_bad_query(request, query, exception):
@@ -671,17 +697,20 @@ def render_bad_query(request, query, exception):
         'args': str(args),
         'exception': str(exception),
     }
+    context.update(query_context(request))
     return render(request, 'query_bad.html', context)
 
 
 def render_bad_query_id(request, query_id):
     context = {'query_id': query_id}
+    context.update(query_context(request))
     return render(request, 'bad_query_id.html', context)
 
 
-def render_bad_highlight_id(request, highlight_id):
-    context = {'highlight_id': highlight_id}
-    return render(request, 'bad_highlight_id.html', context)
+# def render_bad_highlight_id(request, highlight_id):
+#     context = {'highlight_id': highlight_id}
+#     context.update(query_context(request))
+#     return render(request, 'bad_highlight_id.html', context)
 
 
 @user_passes_test(is_superuser)
