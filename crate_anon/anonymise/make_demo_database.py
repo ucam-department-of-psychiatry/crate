@@ -301,7 +301,7 @@ An HTML tag is <a href="http://somewhere">this link</a>.
         forename="Bob D'Souza",
         surname="",
         dob=datetime.datetime(day=11, month=11, year=1911),
-        nhsnum=123456,
+        nhsnum=234567,
         phone="(01223)-234567",
         postcode="CB2 3EB",
     )

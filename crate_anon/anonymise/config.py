@@ -385,6 +385,7 @@ class Config(object):
 
         # Load encryption keys and create hashers
         assert self.hash_method not in ["MD5", "SHA256", "SHA512"], (
+            # old options; removed
             "Non-HMAC hashers are deprecated for security reasons. You have: "
             "{}".format(self.hash_method))
         if self.hash_method == "HMAC_MD5":

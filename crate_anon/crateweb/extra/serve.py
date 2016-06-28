@@ -95,3 +95,20 @@ def serve_buffer(data, offered_filename=None,
                                     as_inline=as_inline,
                                     content_length=len(data))
     return response
+
+
+# =============================================================================
+# Simpler versions
+# =============================================================================
+
+def add_download_filename(response, filename):
+    # https://docs.djangoproject.com/en/1.9/howto/outputting-csv/
+    add_http_headers_for_attachment(response)
+    response['Content-Disposition'] = 'attachment; filename="{}"'.format(
+        filename)
+
+
+def file_response(data, content_type, filename):
+    response = HttpResponse(data, content_type=content_type)
+    add_download_filename(response, filename)
+    return response

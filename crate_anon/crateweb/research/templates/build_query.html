@@ -53,6 +53,25 @@
         <li>This query builder parses the SQL you start with, and then
             adds more pieces. It is less powerful than arbitrary SQL.</li>
 
+        <li>Inexact string comparison can be done in several ways:
+            <ul>
+                <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">LIKE</a>,
+                    in which ‘%’ stands for any number of characters, and ‘_’
+                    for one unknown character. For example, use
+                    <span class="code">%schizophreni%</span> to find text
+                    containing ‘schizophrenia’, ‘schizophrenic’, or
+                    ‘schizophreniform’.</li>
+                <li><a href="https://dev.mysql.com/doc/refman/5.7/en/fulltext-search.html">MATCH</a>,
+                    which is much faster than LIKE. MATCH can be used if there
+                    is a full-text index on the column in question. You can
+                    MATCH AGAINST words or phrases.</li>
+                <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">REGEXP</a>,
+                    using <a href="https://en.wikipedia.org/wiki/Regular_expression">regular expressions</a>.
+                    This is complicated; see a <a href="http://regexone.com/">tutorial</a>
+                    and use a <a href="http://regexr.com/">regular expression tester</a>.</li>
+            </ul></li>
+
+
         <li>
             The things that are are better done with raw SQL include:
             <ul>
@@ -62,6 +81,10 @@
                     (e.g. a diagnosis) using EXISTS.</li>
             </ul>
         </li>
+
+        <li>If you use a file (for IN or NOT IN clauses), this file should be
+            in ASCII or UTF-8 format, with one value per line. Lines will
+            be stripped of whitespace (left + right).</li>
     </ul>
 
 {% endblock %}

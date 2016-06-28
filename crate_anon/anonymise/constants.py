@@ -399,9 +399,9 @@ data_dictionary_filename = testdd.tsv
 
     # PID-to-RID hashing method. Options are:
     # - HMAC_MD5 - produces a 32-character digest
-    # - HMAC_SHA256 - produces a 64-character digest (default)
-    # - HMAC_SHA512 - produces a 64-character digest
-hash_method = HMAC_SHA256
+    # - HMAC_SHA256 - produces a 64-character digest
+    # - HMAC_SHA512 - produces a 128-character digest
+hash_method = HMAC_MD5
 
 per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
 

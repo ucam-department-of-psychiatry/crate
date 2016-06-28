@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userprofile',
             name='sql_scratchpad',
-            field=models.TextField(default='', verbose_name='SQL scratchpad for query builder'),
+            field=models.TextField(default='', verbose_name='SQL scratchpad for query builder'),  # noqa
             preserve_default=False,
         ),
     ]

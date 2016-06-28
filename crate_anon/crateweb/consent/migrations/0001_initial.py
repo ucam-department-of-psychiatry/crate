@@ -7,7 +7,7 @@ import crate_anon.crateweb.consent.models as consent_models
 import crate_anon.crateweb.consent.storage as consent_storage
 import crate_anon.crateweb.extra.fields as extra_fields
 
-# ***warning*** some fields hard-code a local file path in /home/rudolf/...
+# !!! warning !!! some fields hard-code a local file path in /home/rudolf/...
 # ... edited; no default is OK here; see
 # https://docs.djangoproject.com/en/1.9/ref/files/storage/#the-filesystemstorage-class  # noqa
 

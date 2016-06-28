@@ -26,6 +26,7 @@ from crate_anon.crateweb.core.dbfunc import (
     get_fieldnames_from_cursor,
 )
 from crate_anon.crateweb.core.utils import is_superuser, paginate
+from crate_anon.crateweb.extra.serve import file_response
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
@@ -232,8 +233,13 @@ def build_query(request):
                                 value = sql_string_literal(value)
                             elif datatype == QueryBuilderColForm.DATATYPE_DATE:
                                 value = sql_date_literal(value)
-                        where_expression = "{tab}.{col} {op} {val}".format(
-                            tab=table, col=column, op=op, val=value)
+                        if op == 'MATCH':
+                            where_expression = (
+                                "MATCH ({col}) AGAINST ({val})".format(
+                                    col=column, val=value))
+                        else:
+                            where_expression = "{tab}.{col} {op} {val}".format(
+                                tab=table, col=column, op=op, val=value)
                         # log.critical(where_expression)
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
@@ -635,6 +641,12 @@ def render_resultset(request, query, highlights,
     return render(request, 'query_result.html', context)
 
 
+def tsv_response(data, filename="download.tsv"):
+    # http://stackoverflow.com/questions/264256/what-is-the-best-mime-type-and-extension-to-use-when-exporting-tab-delimited  # noqa
+    # http://www.iana.org/assignments/media-types/text/tab-separated-values
+    return file_response(data, content_type='text/csv', filename=filename)
+
+
 def render_tsv(request, query):
     if query is None:
         return render_missing_query(request)
@@ -642,7 +654,7 @@ def render_tsv(request, query):
         tsv_result = query.make_tsv()
     except DatabaseError as exception:
         return render_bad_query(request, query, exception)
-    return HttpResponse(tsv_result, content_type='text/csv')
+    return tsv_response(tsv_result, filename="results.tsv")
 
 
 def render_missing_query(request):
@@ -759,7 +771,7 @@ def structure_tree(request):
 def structure_tsv(request):
     infodictlist = research_database_info.get_infodictlist()
     tsv_result = dictlist_to_tsv(infodictlist)
-    return HttpResponse(tsv_result, content_type='text/csv')
+    return tsv_response(tsv_result, filename="structure.tsv")
 
 
 # =============================================================================

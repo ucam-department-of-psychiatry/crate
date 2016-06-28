@@ -84,6 +84,10 @@ class SQLHelperTextAnywhereForm(forms.Form):
         required=False)
 
 
+def html_form_date_to_python(text):
+    return datetime.datetime.strptime(text, "%Y-%m-%d")
+
+
 class QueryBuilderColForm(forms.Form):
     """
     Using an "AND NOT" button becomes confusing the first time you enter a
@@ -113,6 +117,7 @@ class QueryBuilderColForm(forms.Form):
         ('=', '='),
         ('!=', '!= (not equals)'),
         ('LIKE', 'LIKE (use % as wildcard)'),
+        ('REGEXP', 'REGEXP (regular expression match)'),
         ('IN', 'IN (from file contents)'),
         ('NOT IN', 'NOT IN (from file contents)'),
         ('IS NULL', 'IS NULL'),
@@ -120,9 +125,10 @@ class QueryBuilderColForm(forms.Form):
     )
     COMPARISON_CHOICES_STRING_FULLTEXT = (
         ('=', '='),
-        ('!= (not equals)', '!='),
+        ('!=', '!= (not equals)'),
         ('LIKE', 'LIKE (use % as wildcard)'),
-        ('MATCH', 'MATCH (match whole words)'),  # ***
+        ('REGEXP', 'REGEXP (regular expression match)'),
+        ('MATCH', 'MATCH (match whole words)'),
         ('IN', 'IN (from file contents)'),
         ('NOT IN', 'NOT IN (from file contents)'),
         ('IS NULL', 'IS NULL'),
@@ -273,8 +279,7 @@ class QueryBuilderColForm(forms.Form):
             form_to_python_fn = str
             literal_func = sql_string_literal
         elif datatype == QueryBuilderColForm.DATATYPE_DATE:
-            form_to_python_fn = lambda x: datetime.datetime.strptime(
-                x, "%Y-%m-%d")
+            form_to_python_fn = html_form_date_to_python
             literal_func = sql_date_literal
         else:
             form_to_python_fn = str
@@ -282,15 +287,15 @@ class QueryBuilderColForm(forms.Form):
         # Or: http://www.dabeaz.com/generators/Generators.pdf
         literals = []
         for line in file.read().decode("utf8").splitlines():
-            for raw_item in line.split():
-                # noinspection PyBroadException
-                try:
-                    value = form_to_python_fn(raw_item)
-                except:
-                    self.add_error('file', forms.ValidationError(
-                        "File contains bad value: {}".format(raw_item)))
-                    return
-                literals.append(literal_func(value))
+            raw_item = line.strip()
+            # noinspection PyBroadException
+            try:
+                value = form_to_python_fn(raw_item)
+            except:
+                self.add_error('file', forms.ValidationError(
+                    "File contains bad value: {}".format(raw_item)))
+                return
+            literals.append(literal_func(value))
         if not literals:
             self.add_error('file', forms.ValidationError(
                 "No values found in file"))

@@ -258,3 +258,6 @@ ul {
     font-weight: bold;
     color: rgb(255, 0, 0);
 }
+.code {
+    font-family: monospace;
+}
