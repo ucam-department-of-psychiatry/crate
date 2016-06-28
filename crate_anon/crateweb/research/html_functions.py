@@ -3,6 +3,7 @@
 
 import re
 import textwrap
+from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
 from django.template import loader
 from django.template.defaultfilters import linebreaksbr
@@ -38,13 +39,15 @@ def collapsible_div_with_divbutton(tag, contents, extradivclasses=None,
 
 
 def collapsible_div_spanbutton(tag, collapsed=True):
-    tag = str(tag)
-    template = loader.get_template('collapsible_div_spanbutton.html')
-    context = {
-        'tag': tag,
-        'collapsed': collapsed,
-    }
-    return template.render(context)  # as HTML
+    return """
+        <span class="expandcollapse_span"
+            onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
+            <img class="plusminus_image" id="collapse_img_{{ tag }}" alt="" src="{img}">
+        </span>
+    """.format(
+        tag=str(tag),
+        img=static('plus.gif') if collapsed else static('minus.gif'),
+    )
 
 
 def collapsible_div_contentdiv(tag, contents, extradivclasses=None,
