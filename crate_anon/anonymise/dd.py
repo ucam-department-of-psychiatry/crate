@@ -309,7 +309,7 @@ class DataDictionaryRow(object):
 
     @property
     def inclusion_values(self):
-        return self._inclusion_values
+        return self._inclusion_values or ''  # for TSV output
 
     @inclusion_values.setter
     def inclusion_values(self, value):
@@ -320,7 +320,7 @@ class DataDictionaryRow(object):
 
     @property
     def exclusion_values(self):
-        return self._exclusion_values
+        return self._exclusion_values or ''  # for TSV output
 
     @exclusion_values.setter
     def exclusion_values(self, value):
