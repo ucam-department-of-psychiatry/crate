@@ -100,7 +100,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [os.path.join(BASE_DIR, 'templates')],
-        'APP_DIRS': True,  # can't use OPTIONS/loaders with this
+        # 'APP_DIRS': True,  # can't use OPTIONS/loaders with this
         'OPTIONS': {
             'context_processors': [
                 # 'django.template.context_processors.debug',
@@ -109,11 +109,13 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'crate_anon.crateweb.research.context_processors.common_context',  # noqa
             ],
-            # 'loaders': (
-            #     'django.template.loaders.filesystem.Loader',
-            #     'django.template.loaders.app_directories.Loader',
-            #     'apptemplates.Loader',
-            # ),
+            'loaders': [
+                # https://docs.djangoproject.com/en/1.9/ref/templates/api/
+                ('django.template.loaders.cached.Loader', [
+                    'django.template.loaders.filesystem.Loader',
+                    'django.template.loaders.app_directories.Loader',
+                ]),
+            ],
         },
     },
 ]
