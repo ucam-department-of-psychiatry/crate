@@ -14,7 +14,15 @@
 
         <h2>Research database</h2>
         <ul>
-            <li>Main query functions: {% include "query_nav.html" %}</li>
+            <li><b>Main query functions:</b> {% include "query_nav.html" %}</li>
+
+            <li>
+                <b>SQL helpers:</b>
+                <ul>
+                    <li><a href="{% url 'sqlhelper_text_anywhere' %}">Find
+                    string in any text field</a></li>
+                </ul>
+            </li>
 
             <li>
                 View research database structure:
@@ -31,13 +39,6 @@
 
                     <li><a href="{% url 'structure_tsv' %}">download in
                     tab-separated values (TSV) format</a></li>
-                </ul>
-            </li>
-            <li>
-                SQL helpers:
-                <ul>
-                    <li><a href="{% url 'sqlhelper_text_anywhere' %}">Find
-                    string in any text field</a></li>
                 </ul>
             </li>
         </ul>

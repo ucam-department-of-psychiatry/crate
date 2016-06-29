@@ -189,8 +189,9 @@ STATIC_URL = '/crate_static/'
 # serve from this URL (and from wherever seems best on the filesystem) during
 # production.
 
+LOCAL_STATIC_DIR = os.path.join(BASE_DIR, 'static')
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, 'static'),
+    LOCAL_STATIC_DIR,
 )
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 # ... for collectstatic

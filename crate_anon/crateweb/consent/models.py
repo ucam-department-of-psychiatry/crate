@@ -21,7 +21,6 @@ from django.db import connections, models, transaction
 from django.db.models import Q
 from django.dispatch import receiver
 from django.http import QueryDict
-from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
@@ -70,7 +69,8 @@ from crate_anon.crateweb.consent.tasks import (
     process_contact_request,
 )
 from crate_anon.crateweb.consent.utils import (
-    pdf_template_dict,
+    render_email_html_to_string,
+    render_pdf_html_to_string,
     validate_researcher_email_domain,
 )
 
@@ -507,8 +507,8 @@ class ConsentMode(Decision):
         #    (by fetching it from this web server).
         # 3. Works with Django testing server.
         # 4. Works with Apache, + proxying to backend, + SSL
-        context.update(pdf_template_dict(patient=True))
-        return render_to_string('letter_patient_confirm_traffic.html', context)
+        return render_pdf_html_to_string('letter_patient_confirm_traffic.html',
+                                         context, patient=True)
 
     def notify_rdbm_of_work(self, letter, to_researcher=False):
         subject = ("WORK FROM RESEARCH DATABASE COMPUTER"
@@ -517,7 +517,7 @@ class ConsentMode(Decision):
             template = 'email_rdbm_new_work_researcher.html'
         else:
             template = 'email_rdbm_new_work_pt_from_rdbm.html'
-        html = render_to_string(template, {'letter': letter})
+        html = render_email_html_to_string(template, {'letter': letter})
         email = Email.create_rdbm_email(subject, html)
         email.send()
 
@@ -919,9 +919,8 @@ class PatientLookup(PatientLookupBase):
             'settings': settings,
             'patient_lookup': self,
         }
-        context.update(pdf_template_dict(patient=True))
-        return render_to_string('letter_patient_first_traffic_light.html',
-                                context)
+        return render_pdf_html_to_string(
+            'letter_patient_first_traffic_light.html', context, patient=True)
 
 
 def make_forename_surname_email_address(forename, surname, domain,
@@ -2271,14 +2270,14 @@ class ContactRequest(models.Model):
             template = 'email_rdbm_new_work_researcher.html'
         else:
             template = 'email_rdbm_new_work_pt_from_clinician.html'
-        html = render_to_string(template, {'letter': letter})
+        html = render_email_html_to_string(template, {'letter': letter})
         email = Email.create_rdbm_email(subject, html)
         email.send()
 
     def notify_rdbm_of_bad_progress(self):
         subject = ("INFO ONLY - clinician refused Research Database request"
                    " - contact request {}".format(self.id))
-        html = render_to_string('email_rdbm_bad_progress.html', {
+        html = render_email_html_to_string('email_rdbm_bad_progress.html', {
             'id': self.id,
             'response': self.clinician_response.response,
             'explanation': self.clinician_response.get_response_explanation(),
@@ -2289,7 +2288,7 @@ class ContactRequest(models.Model):
     def notify_rdbm_of_good_progress(self):
         subject = ("INFO ONLY - clinician agreed to Research Database request"
                    " - contact request {}".format(self.id))
-        html = render_to_string('email_rdbm_good_progress.html', {
+        html = render_email_html_to_string('email_rdbm_good_progress.html', {
             'id': self.id,
             'response': self.clinician_response.response,
             'explanation': self.clinician_response.get_response_explanation(),
@@ -2322,7 +2321,7 @@ class ContactRequest(models.Model):
             'url_no': clinician_response.get_abs_url_no(),
             'url_maybe': clinician_response.get_abs_url_maybe(),
         }
-        return render_to_string('email_clinician.html', context)
+        return render_email_html_to_string('email_clinician.html', context)
 
     def get_approval_letter_html(self):
         """
@@ -2345,8 +2344,8 @@ class ContactRequest(models.Model):
             'patient_lookup': self.patient_lookup,
             'consent_mode': self.consent_mode,
         }
-        context.update(pdf_template_dict(patient=False))
-        return render_to_string('letter_researcher_approve.html', context)
+        return render_pdf_html_to_string('letter_researcher_approve.html',
+                                         context, patient=False)
 
     def get_withdrawal_letter_html(self):
         """
@@ -2369,8 +2368,8 @@ class ContactRequest(models.Model):
             'patient_lookup': self.patient_lookup,
             'consent_mode': self.consent_mode,
         }
-        context.update(pdf_template_dict(patient=False))
-        return render_to_string('letter_researcher_withdraw.html', context)
+        return render_pdf_html_to_string('letter_researcher_withdraw.html',
+                                         context, patient=False)
 
     def get_approval_email_html(self):
         """Simple e-mail to researcher attaching letter."""
@@ -2380,7 +2379,8 @@ class ContactRequest(models.Model):
             'patient_lookup': self.patient_lookup,
             'consent_mode': self.consent_mode,
         }
-        return render_to_string('email_researcher_approval.html', context)
+        return render_email_html_to_string('email_researcher_approval.html',
+                                           context)
 
     def get_withdrawal_email_html(self):
         """Simple e-mail to researcher attaching letter."""
@@ -2390,7 +2390,8 @@ class ContactRequest(models.Model):
             'patient_lookup': self.patient_lookup,
             'consent_mode': self.consent_mode,
         }
-        return render_to_string('email_researcher_withdrawal.html', context)
+        return render_email_html_to_string('email_researcher_withdrawal.html',
+                                           context)
 
     def get_letter_clinician_to_pt_re_study(self):
         """
@@ -2418,9 +2419,9 @@ class ContactRequest(models.Model):
             'yellow': yellow,
             'unknown_consent_mode': self.is_consent_mode_unknown(),
         }
-        context.update(pdf_template_dict(patient=True))
-        return render_to_string('letter_patient_from_clinician_re_study.html',
-                                context)
+        return render_pdf_html_to_string(
+            'letter_patient_from_clinician_re_study.html',
+            context, patient=True)
 
     def is_extra_form(self):
         study = self.study
@@ -2455,9 +2456,8 @@ class ContactRequest(models.Model):
             'n_forms': n_forms,
             'yellow': yellow,
         }
-        context.update(pdf_template_dict(patient=True))
-        return render_to_string('decision_form_to_patient_re_study.html',
-                                context)
+        return render_pdf_html_to_string(
+            'decision_form_to_patient_re_study.html', context, patient=True)
 
     def get_clinician_pack_pdf(self):
         # Order should match letter...

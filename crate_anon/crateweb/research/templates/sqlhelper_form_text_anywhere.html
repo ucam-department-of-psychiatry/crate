@@ -16,7 +16,9 @@
         <table class="formtable">
             {{ form.as_table }}
         </table>
-        <input type="submit" value="Make SQL" />
+        <input type="submit" name="submit_save" value="Save SQL as query" />
+        <input type="submit" name="submit_run" value="Run" />
+        <input type="submit" name="submit_view" value="View SQL" />
     </form>
 
 {% endblock %}

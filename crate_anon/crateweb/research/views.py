@@ -917,6 +917,8 @@ def sqlhelper_text_anywhere(request):
                 elements = []
                 columns = research_database_info.text_columns(
                     schema, table, min_length)
+                if not columns:
+                    continue
                 for column_name, indexed_fulltext in columns:
                     element = textmatch(
                         column_name,
@@ -934,7 +936,13 @@ def sqlhelper_text_anywhere(request):
                 )
                 table_queries.append(table_query)
             sql = "\nUNION\n".join(table_queries)
-            sql += "\nORDER BY {}".format(fkname)
-        return render(request, 'sql_fragment.html', {'sql': sql})
+            if sql:
+                sql += "\nORDER BY {}".format(fkname)
+        if 'submit_save' in request.POST:
+            return submit_query(request, sql, run=False)
+        elif 'submit_run' in request.POST:
+            return submit_query(request, sql, run=True)
+        else:
+            return render(request, 'sql_fragment.html', {'sql': sql})
 
     return render(request, 'sqlhelper_form_text_anywhere.html', {'form': form})
