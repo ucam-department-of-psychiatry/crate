@@ -604,6 +604,10 @@ Static files, speed, etc.
       URL prefix for static files, so that's a problem.
       - But we can split it: variable definition in HTML/template, and the rest
         in static JS.
+- For email.css (included from base_email.html), speed isn't critical. Let's
+  leave that as it is.
+- Removed base_root.html, taking out one layer of regular indirection.
+
 ***
 *** see also http://stackoverflow.com/questions/30430131/get-the-file-path-for-a-static-file-in-django-code
 

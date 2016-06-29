@@ -1,40 +1,49 @@
 {# base.html #}
 
-{% extends "base_root.html" %}
 {% load staticfiles %}
 
-{% block extra_css %}
-    <style type="text/css">
-        {% include "web.css" %}
-    </style>
-{% endblock %}
+<!DOCTYPE html> <!-- HTML 5 -->
+<html>
+    <head>
+        <title>
+            {% block title %}
+                {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
+            {% endblock %}
+        </title>
+        <meta charset="utf-8">
+        <style type="text/css">{% include "base.css" %}</style>
+        <style type="text/css">{% include "web.css" %}</style>
+        <link rel="icon" href="{% static 'favicon.ico' %}">
+        <script>
+            var PLUS_IMAGE = '{% static "plus.gif" %}',
+                MINUS_IMAGE = '{% static "minus.gif" %}';
+        </script>
+        <script type="text/javascript" src="{% static 'collapse.js' %}"></script>
+        {% block extrahead %}{% endblock %}
+    </head>
 
-{% block extrahead %}
-    <link rel="icon" href="{% static 'favicon.ico' %}">
-    <script>
-        var PLUS_IMAGE = '{% static "plus.gif" %}',
-            MINUS_IMAGE = '{% static "minus.gif" %}';
-    </script>
-    <script type="text/javascript" src="{% static 'collapse.js' %}"></script>
-{% endblock %}
-
-{% block mainsiteheader %}
-    <div>
-        <i>CRATE: Clinical Records Anonymisation and Text Extraction</i>
-    </div>
-    <div>
-        Database: <b>{{ RESEARCH_DB_TITLE }}</b>.
-
-        {% block user_header %}
-            User: <b>{{ user }}</b>.
-            [
-            {% if nav_on_main_menu %}
-                Main menu
-            {% else %}
-                <a href="{% url 'home' %}">Main menu</a>
-            {% endif %}
-            | <a href="{% url 'logout' %}">Logout</a>
-            ]
+    <body {% block onload %}{% endblock %}>
+        {% block mainsiteheader %}
+            <div>
+                <i>CRATE: Clinical Records Anonymisation and Text Extraction</i>
+            </div>
+            <div>
+                Database: <b>{{ RESEARCH_DB_TITLE }}</b>.
+        
+                {% block user_header %}
+                    User: <b>{{ user }}</b>.
+                    [
+                    {% if nav_on_main_menu %}
+                        Main menu
+                    {% else %}
+                        <a href="{% url 'home' %}">Main menu</a>
+                    {% endif %}
+                    | <a href="{% url 'logout' %}">Logout</a>
+                    ]
+                {% endblock %}
+            </div>
         {% endblock %}
-    </div>
-{% endblock %}
+
+        {% block content %}{% endblock %}
+    </body>
+</html>

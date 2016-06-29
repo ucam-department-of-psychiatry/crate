@@ -1,16 +1,19 @@
 {# base_email.html #}
 
-{% extends "base_root.html" %}
+<!DOCTYPE html> <!-- HTML 5 -->
+<html>
+    <head>
+        <title>
+            {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
+            automated e-mail
+        </title>
+        <meta charset="utf-8">
+        <style type="text/css">{% include "base.css" %}</style>
+        <style type="text/css">{% include "email.css" %}</style>
+    </head>
 
-{% block title %}
-    {{ RESEARCH_DB_TITLE|default:"CRATE: Research Database" }}
-    automated e-mail
-{% endblock %}
+    <body>
+        {% block content %}{% endblock %}
+    </body>
 
-{% block extra_css %}
-    <style type="text/css">
-        {% include "email.css" %}
-    </style>
-{% endblock %}
-
-{% block extrahead %}{% endblock %}
+</html>
