@@ -143,7 +143,7 @@ DEBUG_TOOLBAR_PANELS = [
     'debug_toolbar.panels.logging.LoggingPanel',
     'debug_toolbar.panels.redirects.RedirectsPanel',
     # Built in but not enabled as standard:
-    'debug_toolbar.panels.profiling.ProfilingPanel',
+    # 'debug_toolbar.panels.profiling.ProfilingPanel',  # EXTREME DANGER! Breaks middleware inc. LoginRequiredMiddleware!  # noqa
     # Extra:
     'template_profiler_panel.panels.template.TemplateProfilerPanel',
 ]

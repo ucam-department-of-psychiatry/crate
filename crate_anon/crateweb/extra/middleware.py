@@ -137,6 +137,7 @@ class LoginRequiredMiddleware:
     # noinspection PyUnusedLocal
     @staticmethod
     def process_view(request, view_func, view_args, view_kwargs):
+        # log.critical("LoginRequiredMiddleware.process_view")
         if not hasattr(request, 'user'):
             raise ImproperlyConfigured(
                 "The Login Required middleware requires authentication "
@@ -147,12 +148,15 @@ class LoginRequiredMiddleware:
                 "TEMPLATE_CONTEXT_PROCESSORS setting includes "
                 "'django.core.context_processors.auth'.")
         if request.user.is_authenticated():
+            # log.critical("is_authenticated")
             return None  # OK
         if not getattr(view_func, 'login_required', True):
+            # log.critical("function exempt from login_requred")
             return None  # OK, exempt
         path = request.path_info.lstrip('/')
         # Path might look like 'login/' regardless of Django mount point
         if any(m.match(path) for m in EXEMPT_URLS):
+            # log.critical("URL exempt from login_requred")
             return None  # OK, exempt
         fullpath = request.get_full_path()
         return redirect_to_login(fullpath, reverse(settings.LOGIN_VIEW_NAME),
