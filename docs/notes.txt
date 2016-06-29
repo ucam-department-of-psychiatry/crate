@@ -570,3 +570,9 @@ Django app and project structure
 - top-level Python programs should be distinct from imported files
 
 - http://python-notes.curiousefficiency.org/en/latest/python_concepts/import_traps.html
+
+===============================================================================
+Profiling the Django app
+===============================================================================
+
+python -m cProfile -o c:\CRATE_PROFILE.profile crate_anon/tools/launch_cherrypy_server.py

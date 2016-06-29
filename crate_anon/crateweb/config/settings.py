@@ -54,6 +54,7 @@ INSTALLED_APPS = (
     'sslserver',  # for SSL testing
     # 'kombu.transport.django',  # for Celery with Django database as broker
     'template_profiler_panel',
+    # 'silk',
 
     'crate_anon.crateweb.config.apps.UserProfileAppConfig',  # for user-specific settings  # noqa
     'crate_anon.crateweb.config.apps.ResearchAppConfig',  # the research database query app  # noqa
@@ -62,6 +63,8 @@ INSTALLED_APPS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    # 'silk.middleware.SilkyMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
