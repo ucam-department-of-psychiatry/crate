@@ -16,7 +16,7 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
-from django.conf.urls import include, url
+from django.conf.urls import include, url  # patterns
 # import django.contrib.auth.views
 # from django.contrib import admin
 # import django.views.defaults
@@ -210,4 +210,8 @@ urlpatterns = [
     # Other test views
     # -------------------------------------------------------------------------
     # url(r'^404/$', django.views.defaults.page_not_found, ),
+
 ]
+
+# urlpatterns += patterns('', url(r'^silk/',
+#                                 include('silk.urls', namespace='silk')))
