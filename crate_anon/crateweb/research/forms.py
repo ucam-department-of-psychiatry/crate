@@ -188,6 +188,7 @@ class QueryBuilderColForm(forms.Form):
 
         # Hide fields that we won't use
         if not offer_where or datatype == self.DATATYPE_UNKNOWN:
+            self.fields['comparison_type'].choices = ()
             self.hide_field('comparison_type')
         value_fieldname = self.get_value_fieldname()
         for f in ['int_value', 'float_value', 'date_value', 'string_value']:

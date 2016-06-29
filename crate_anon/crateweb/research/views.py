@@ -278,17 +278,34 @@ def build_query(request):
             parse_error = str(e)
 
     offer_where = bool(profile.sql_scratchpad)  # existing SELECT?
-    builder = query_builder_html(request,
-                                 working_form=form,
-                                 offer_where=offer_where)
+    builder_html = query_builder_html(request,
+                                      working_form=form,
+                                      offer_where=offer_where)
+    # - In what follows, we want a normal template but we want to include a
+    #   large chunk of raw HTML. I was doing this with
+    #   {{ builder_html | safe }} within the template, but it was very slow
+    #   (e.g. 500ms on my machine; 50s on the CPFT "sandpit" server,
+    #   2016-06-28). The delay was genuinely in the template rendering, it
+    #   seems, based on profiling and manual log calls.
+    # - A simple string replacement, as below, was about 7% of the total time
+    #   (e.g. 3300ms instead of 50s).
+    # - Other alternatives might include the Jinja2 template system, which is
+    #   apparently faster than the Django default, but we may not need further
+    #   optimization.
+    # - Another, potentially better, solution, is not to send dozens or
+    #   hundreds of forms, but to write some Javascript to make this happen
+    #   mostly on the client side. Might look better, too. ***
     context = {
         'nav_on_querybuilder': True,
         'sql': profile.sql_scratchpad,
-        'builder': builder,
+        # 'builder_html': builder_html,
         'parse_error': parse_error,
     }
     context.update(query_context(request))
-    return render(request, 'build_query.html', context)
+    html = render_to_string('build_query.html', context, request=request)
+    if not parse_error:
+        html = html.replace("REPLACE_ME_BUILDER", builder_html)
+    return HttpResponse(html)
 
 
 def get_all_queries(request):
