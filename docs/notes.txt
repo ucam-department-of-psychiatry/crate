@@ -576,3 +576,26 @@ Profiling the Django app
 ===============================================================================
 
 python -m cProfile -o c:\CRATE_PROFILE.profile crate_anon/tools/launch_cherrypy_server.py
+
+===============================================================================
+Static files, speed, etc.
+===============================================================================
+
+- At present we're using {% include %} to put CSS in.
+- This would be faster with static URLs.
+- However, the tricky bit is PDF generation, for which wkhtmltopdf needs to
+  have embedded CSS (since we can't guarantee its network access to our own web
+  server).
+- Can this be managed better? If so, several things could go to static:
+    - base.css
+    - collapse.js
+    - potentially a new fancier Javascript file for query building
+- We could achieve this with our pdf_template_dict() function, which is called
+  for all PDF generation. It could bake in appropriate CSS, by loading the
+  static file directly in code (and caching the result).
+- Similarly for e-mail generation, where CSS also needs to be embedded.
+- Just define convenience functions:
+        render_pdf_html_to_string(template, context)
+        render_email_html_to_string(template, context)
+***
+*** see also http://stackoverflow.com/questions/30430131/get-the-file-path-for-a-static-file-in-django-code
