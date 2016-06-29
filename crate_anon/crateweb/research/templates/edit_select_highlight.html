@@ -40,7 +40,10 @@
                     <td>{{ highlight.text }}</td>
                     <td>{{ highlight.colour }}</td>
                     <td>
-                        {% include "action_only_form.html" with action="delete_highlight" pk=highlight.id button="Delete" %}
+                        <form action="{% url 'delete_highlight' highlight.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="submit" value="Delete" />
+                        </form>
                     </td>
                     <td>
                         {% if highlight.active %}<b>{% endif %}
@@ -51,12 +54,18 @@
                         {% if highlight.active %}
                             (activated)
                         {% else %}
-                            {% include "action_only_form.html" with action="activate_highlight" pk=highlight.id button="Activate" %}
+                            <form action="{% url 'activate_highlight' highlight.id %}" method="post">
+                                {% csrf_token %}
+                                <input type="submit" value="Activate" />
+                            </form>
                         {% endif %}
                     </td>
                     <td>
                         {% if highlight.active %}
-                            {% include "action_only_form.html" with action="deactivate_highlight" pk=highlight.id button="Deactivate" %}
+                            <form action="{% url 'deactivate_highlight' highlight.id %}" method="post">
+                                {% csrf_token %}
+                                <input type="submit" value="Deactivate" />
+                            </form>
                         {% else %}
                             (deactivated)
                         {% endif %}

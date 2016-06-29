@@ -1,8 +1,6 @@
 /* collapse.js */
-/* {% load staticfiles %} {# so that static routing works with non-root Django #} */
 
-var PLUS_IMAGE = '{% static "plus.gif" %}',
-    MINUS_IMAGE = '{% static "minus.gif" %}';
+/* PLUS_IMAGE, MINUS_IMAGE are defined in the HTML, for static file URLS. */
 
 var getElementsByClassName = function (className, tag, elm){
     // http://robertnyman.com/2008/05/27/

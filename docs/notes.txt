@@ -581,6 +581,7 @@ python -m cProfile -o c:\CRATE_PROFILE.profile crate_anon/tools/launch_cherrypy_
 Static files, speed, etc.
 ===============================================================================
 
+- Minimize the number of templates (e.g. remove action_only_form.html).
 - At present we're using {% include %} to put CSS in.
 - This would be faster with static URLs.
 - However, the tricky bit is PDF generation, for which wkhtmltopdf needs to
@@ -597,5 +598,13 @@ Static files, speed, etc.
 - Just define convenience functions:
         render_pdf_html_to_string(template, context)
         render_email_html_to_string(template, context)
+- But the tricky bits:
+    - collapse.js refers to static image files, and relative paths are from
+      the HTML, not the JS, so "./plus.gif" doesn't work. It needs to know the
+      URL prefix for static files, so that's a problem.
+      - But we can split it: variable definition in HTML/template, and the rest
+        in static JS.
 ***
 *** see also http://stackoverflow.com/questions/30430131/get-the-file-path-for-a-static-file-in-django-code
+
+*** ALSO TO DO: support multiple data dictionaries on a single research database

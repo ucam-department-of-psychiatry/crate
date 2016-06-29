@@ -46,6 +46,8 @@ from sqlalchemy import (
     Column,
     Table,
 )
+from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
+from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 
 from cardinal_pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,
@@ -875,8 +877,10 @@ class DataDictionaryRow(object):
     def set_src_sqla_coltype(self, sqla_coltype):
         self._src_sqla_coltype = sqla_coltype
 
-    def get_sqla_dest_coltype(self):
+    def get_sqla_dest_coltype(self, default_dialect=mysql_dialect):
         dialect = self.config.destdb.engine.dialect
+        if not dialect:
+            dialect = default_dialect
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
             # the type.
@@ -1092,6 +1096,14 @@ class DataDictionary(object):
                         "{d}".format(t=t, d=d))
 
         log.debug("... source tables checked.")
+        
+    def set_src_sql_coltypes(self, dialect=mssql_dialect):
+        for r in self.rows:
+            str_coltype = r.src_datatype
+            sqla_coltype = get_sqla_coltype_from_dialect_str(str_coltype,
+                                                             dialect)
+            # ("{} -> {}".format(str_coltype, sqla_coltype))
+            r.set_src_sqla_coltype(sqla_coltype)
 
     def check_valid(self, prohibited_fieldnames=None,
                     check_against_source_db=True):

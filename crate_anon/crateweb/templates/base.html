@@ -12,8 +12,10 @@
 {% block extrahead %}
     <link rel="icon" href="{% static 'favicon.ico' %}">
     <script>
-        {% include "collapse.js" %}
+        var PLUS_IMAGE = '{% static "plus.gif" %}',
+            MINUS_IMAGE = '{% static "minus.gif" %}';
     </script>
+    <script type="text/javascript" src="{% static 'collapse.js' %}"></script>
 {% endblock %}
 
 {% block mainsiteheader %}

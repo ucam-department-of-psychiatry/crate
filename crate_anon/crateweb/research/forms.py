@@ -134,7 +134,7 @@ class QueryBuilderColForm(forms.Form):
         ('IS NULL', 'IS NULL'),
         ('IS NOT NULL', 'IS NOT NULL'),
     )
-    COMPARISON_OPTION_IN = ()
+    COMPARISON_CHOICES_HIDDEN = ()
     DATATYPE_INTEGER = "int"
     DATATYPE_FLOAT = "float"
     DATATYPE_DATE = "date"
@@ -161,6 +161,9 @@ class QueryBuilderColForm(forms.Form):
 
     def hide_field(self, fieldname):
         self.fields[fieldname].widget = HiddenInput()
+        
+    def set_op_choices(self, choices):
+        self.fields['comparison_type'].choices = choices
 
     def __init__(self, *args, **kwargs):
         self.file_values_list = ''
@@ -171,8 +174,9 @@ class QueryBuilderColForm(forms.Form):
         arg_datatype = kwargs.pop('datatype', self.DATATYPE_INTEGER)
         kwargs['initial'] = dict(table=arg_table,
                                  column=arg_column,
-                                 datatype=arg_datatype,
-                                 comparison_type="=")
+                                 datatype=arg_datatype)
+        if self.offer_where and arg_datatype != self.DATATYPE_UNKNOWN:
+            kwargs['initial']['comparison_type'] = "="
         super().__init__(*args, **kwargs)
 
         # Hide fields that just pass data back
@@ -186,10 +190,7 @@ class QueryBuilderColForm(forms.Form):
         offer_where = self.offering_where()
         datatype = self.get_datatype()
 
-        # Hide fields that we won't use
-        if not offer_where or datatype == self.DATATYPE_UNKNOWN:
-            self.fields['comparison_type'].choices = ()
-            self.hide_field('comparison_type')
+        # What value-entry fields will we offer?
         value_fieldname = self.get_value_fieldname()
         for f in ['int_value', 'float_value', 'date_value', 'string_value']:
             if not offer_where or f != value_fieldname:
@@ -197,20 +198,18 @@ class QueryBuilderColForm(forms.Form):
         if not offer_where or not self.offer_file:
             self.hide_field('file')
 
-        # What choices will we offer for the WHERE part?
-        if datatype in [self.DATATYPE_INTEGER,
+        # What choices will we offer for the comparison operation?
+        if not offer_where or datatype == self.DATATYPE_UNKNOWN:
+            self.set_op_choices(self.COMPARISON_CHOICES_HIDDEN)
+            self.hide_field('comparison_type')
+        elif datatype in [self.DATATYPE_INTEGER,
                         self.DATATYPE_FLOAT,
                         self.DATATYPE_DATE]:
-            self.fields['comparison_type'].choices = \
-                self.COMPARISON_CHOICES_NUMBER_DATE
+            self.set_op_choices(self.COMPARISON_CHOICES_NUMBER_DATE)
         elif datatype == self.DATATYPE_STRING:
-            self.fields['comparison_type'].choices = \
-                self.COMPARISON_CHOICES_STRING
+            self.set_op_choices(self.COMPARISON_CHOICES_STRING)
         elif datatype == self.DATATYPE_STRING_FULLTEXT:
-            self.fields['comparison_type'].choices = \
-                self.COMPARISON_CHOICES_STRING_FULLTEXT
-        elif datatype == self.DATATYPE_UNKNOWN:
-            self.fields['comparison_type'].choices = ()
+            self.set_op_choices(self.COMPARISON_CHOICES_STRING_FULLTEXT)
         else:
             raise ValueError("Invalid field type")
 
@@ -218,8 +217,11 @@ class QueryBuilderColForm(forms.Form):
         return self.data.get('datatype',
                              self.initial.get('datatype', None))
 
+    def is_datatype_unknown(self):
+        return self.get_datatype() == self.DATATYPE_UNKNOWN
+
     def offering_where(self):
-        if self.get_datatype() == self.DATATYPE_UNKNOWN:
+        if self.is_datatype_unknown():
             return False
         return self.offer_where
 

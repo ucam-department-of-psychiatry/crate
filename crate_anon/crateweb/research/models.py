@@ -314,7 +314,9 @@ def get_data_dictionary():
     if not config:
         return None
     config.load_dd(check_against_source_db=False)
-    return config.dd
+    dd = config.dd
+    dd.set_src_sql_coltypes()  # since we're not using check_against_source_db
+    return dd
 
 
 @lru_cache(maxsize=None)

@@ -146,7 +146,10 @@ def add_index(engine, sqla_column, unique=False, fulltext=False, length=None):
 # Reverse a textual SQL column type to an SQLAlchemy column type
 # =============================================================================
 
-RE_COLTYPE_WITH_PARAMS = re.compile(r'(?P<type>\w+)\((?P<size>\w+)\)')
+RE_COLTYPE_WITH_COLLATE = re.compile(r'(?P<maintype>.+) COLLATE .+')
+RE_COLTYPE_WITH_ONE_PARAM = re.compile(r'(?P<type>\w+)\((?P<size>\w+)\)')
+RE_COLTYPE_WITH_TWO_PARAMS = re.compile(
+    r'(?P<type>\w+)\((?P<size>\w+),\s*(?P<dp>\w+)\)')
 # http://www.w3schools.com/sql/sql_create_table.asp
 
 
@@ -186,6 +189,10 @@ def get_sqla_coltype_from_dialect_str(coltype, dialect):
                 get_columns: takes a table name, inspects the database
         -   example of the dangers of eval:
             http://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html
+        -   An example of a function doing the reflection/inspection within
+            SQLAlchemy is sqlalchemy.dialects.mssql.base.MSDialect.get_columns,
+            which has this lookup:
+                coltype = self.ischema_names.get(type, None)
 
     Caveats:
         -   the parameters, e.g. DATETIME(6), do NOT necessarily either work at
@@ -201,16 +208,38 @@ def get_sqla_coltype_from_dialect_str(coltype, dialect):
         -   Fixed, with a few special cases.
     """
     size = None
+    dp = None
     args = []
     kwargs = {}
-    m = RE_COLTYPE_WITH_PARAMS.match(coltype)
+    
+    # Split e.g. "VARCHAR(32) COLLATE blah" into "VARCHAR(32)" and "who cares"
+    m = RE_COLTYPE_WITH_COLLATE.match(coltype)
+    if m is not None:
+        coltype = m.group('maintype')
+    
+    # Split e.g. "DECIMAL(10, 2)" into DECIMAL, 10, 2
+    m = RE_COLTYPE_WITH_TWO_PARAMS.match(coltype)
     if m is not None:
         basetype = m.group('type').upper()
         size = ast.literal_eval(m.group('size'))
+        dp = ast.literal_eval(m.group('dp'))
     else:
-        basetype = coltype.upper()
+        # Split e.g. "VARCHAR(32)" into VARCHAR, 32
+        m = RE_COLTYPE_WITH_ONE_PARAM.match(coltype)
+        if m is not None:
+            basetype = m.group('type').upper()
+            size = ast.literal_eval(m.group('size'))
+        else:
+            basetype = coltype.upper()
+
+    # Special cases: pre-processing
+    # log.critical("dialect.name={}; basetype={}".format(dialect.name, basetype))
+    if dialect.name == 'mssql' and basetype.lower() == 'integer':
+        basetype = 'int'
+
     cls = _get_sqla_coltype_class_from_str(basetype, dialect)
-    # Special cases
+
+    # Special cases: post-processing
     if basetype == 'DATETIME' and size:
         # First argument to DATETIME() is timezone, so...
         if dialect.name == 'mysql':
@@ -218,7 +247,8 @@ def get_sqla_coltype_from_dialect_str(coltype, dialect):
         else:
             pass
     else:
-        args = [size] if size is not None else []
+        args = [x for x in [size, dp] if x is not None]
+
     try:
         return cls(*args, **kwargs)
     except TypeError:

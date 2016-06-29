@@ -11,6 +11,7 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
+from django.core.urlresolvers import reverse
 from django.db import DatabaseError
 from django.db.models import Q
 from django.http import HttpResponse
@@ -153,22 +154,45 @@ def query_builder_html(request, working_form=None, offer_where=False):
             if matched:
                 table_collapsed = False
             comment = '<i> – {}</i>'.format(ddr.comment) if ddr.comment else ''
-            context = {'form': form,
-                       'csrf_token': csrf_token}
-            html_form = render_to_string('builder_column_form.html', context)
+            html_column = """
+                <div class="indent">
+                    {datatype_unknown_warning}
+                    <form action="{url_build_query}" method="post" enctype="multipart/form-data">
+                        <input type='hidden' name='csrfmiddlewaretoken' value='{csrf_token}' />
+                        <table class="formtable">
+                            {form_as_table}
+                        </table>
+                        {where_button}
+                        <input type="submit" name="add_result_column" value="Add to output (SELECT)" />
+                    </form>
+                </div>
+            """.format(  # noqa
+                url_build_query=reverse('build_query'),
+                datatype_unknown_warning=(
+                    '<div class="warning">Data type unknown</div>'
+                    if form.is_datatype_unknown() else ''
+                ),
+                csrf_token=csrf_token,
+                form_as_table=form.as_table(),
+                where_button=(
+                    '<input type="submit" name="add_where" value="Set condition (WHERE)" />'  # noqa
+                    if form.offering_where() else ''
+                ),
+            )
+            # NB: first "submit" button takes the Enter key, so place WHERE
+            # before SELECT so users can hit enter in the WHERE value fields.
+
             # - If you provide the "request=request" argument to
             #   render_to_string it gives you the CSRF token.
-            # - But this is another way (without the global context
-            #   processors).
+            # - Another way is to ignore "request" and use render_to_string
+            #   with a manually crafted context including 'csrf_token'.
+            #   (This avoids the global context processors.)
             # - Note that the CSRF token prevents simple caching of the forms.
             # - But we can't cache anyway if we're going to have some forms
             #   (differentially) non-collapsed at the start, e.g. on form POST.
             # - Also harder work to do this HTML manually (rather than with
             #   template rendering), because the csrf_token ends up like:
             #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
-            html_column = '<div class="indent">{html_form}</div>'.format(
-                html_form=html_form,
-            )
             column_button = collapsible_div_spanbutton(
                 tag, collapsed=column_collapsed)
             column_div = collapsible_div_contentdiv(tag, html_column,
