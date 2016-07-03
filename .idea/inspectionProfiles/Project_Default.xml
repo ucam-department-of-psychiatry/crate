@@ -36,6 +36,8 @@
           <option value="win32event" />
           <option value="winerror" />
           <option value="servicemanager" />
+          <option value="sqlalchemy.dialects.mysql.base.dialect" />
+          <option value="sqlalchemy.dialects.mssql.base.dialect" />
         </list>
       </option>
     </inspection_tool>

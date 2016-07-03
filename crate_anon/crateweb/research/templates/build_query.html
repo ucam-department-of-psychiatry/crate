@@ -53,15 +53,15 @@ var TABLES_FIELDS = {{ tables_fields|safe }},
     <form action="{% url 'build_query' %}" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <!-- name tags must match QueryBuilderForm -->
-        <select id="id_table" type="text" name="table" value=""></select>
-        <select id="id_column" type="text" name="column" value=""></select>
-        <input id="id_coltype" type="hidden" name="datatype" value="">
-        <input id="id_offer_where" type="hidden" name="offer_where" value="">
-        <select id="id_where_op" type="text" name="where_op" value=""></select>
-        <input id="id_where_value_date" type="date" name="date_value" value="">
-        <input id="id_where_value_float" type="number" name="float_value" step="any" value="">
-        <input id="id_where_value_integer" type="number" name="int_value" step="1" value="">
-        <input id="id_where_value_text" type="text" name="string_value" value="">
+        <select id="id_table" name="table" title="Database table"></select>
+        <select id="id_column" name="column" title="Column (field) within table"></select>
+        <input id="id_coltype" type="hidden" name="datatype" title="" value="">
+        <input id="id_offer_where" type="hidden" name="offer_where" title="" value="">
+        <select id="id_where_op" name="where_op" title="WHERE operation"></select>
+        <input id="id_where_value_date" type="date" name="date_value" title="Value (date)" value="">
+        <input id="id_where_value_float" type="number" name="float_value" title="Value (floating-point number)" step="any" value="">
+        <input id="id_where_value_integer" type="number" name="int_value" title="Value (integer)" step="1" value="">
+        <input id="id_where_value_text" type="text" name="string_value" title="Value (string)" value="">
         <input id="id_file" type="file" name="file">
         <br>
         <input id="id_where_button" type="submit" name="submit_where" value="Set condition (WHERE)">

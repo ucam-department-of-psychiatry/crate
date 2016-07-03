@@ -12,11 +12,11 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
-from django.core.urlresolvers import reverse
+# from django.core.urlresolvers import reverse
 from django.db import DatabaseError
 from django.db.models import Q
 from django.http import HttpResponse
-from django.middleware import csrf
+# from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 # from django.views.decorators.csrf import csrf_exempt

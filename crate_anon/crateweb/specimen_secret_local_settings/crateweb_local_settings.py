@@ -8,8 +8,8 @@ IT WILL NOT WORK until you've edited it.
 
 import os
 
-import sqlalchemy.dialects.mssql
-import sqlalchemy.dialects.mysql
+import sqlalchemy.dialects.mssql.base
+import sqlalchemy.dialects.mysql.base
 
 raise Exception(
     "Well done - CRATE has found your crate_local_settings.py file at {}. "

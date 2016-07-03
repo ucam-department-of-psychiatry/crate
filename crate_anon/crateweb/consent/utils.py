@@ -38,7 +38,7 @@ def render_pdf_html_to_string(template, context=None, patient=True):
     return render_to_string(template, context)
 
 
-def email_css(patient=True):
+def email_css():
     contents = read_static_file_contents('base.css')
     contents += render_to_string('email.css')
     return contents

@@ -58,13 +58,13 @@ var DATATYPE_DATE = "date",
         {value: "=", text: "="},
         {value: "!=", text: "!= (not equals)"},
         {value: ">=", text: ">="},
-        {value: ">", text: ">"},
+        {value: ">", text: ">"}
     ].concat(OPS_IN_NULL),
     OPS_STRING_BASE = [
         {value: "=", text: "="},
         {value: "!=", text: "!= (not equal)"},
         {value: "LIKE", text: "LIKE (use % as wildcard)"},
-        {value: "REGEXP", text: "REGEXP (regular expression match)"},
+        {value: "REGEXP", text: "REGEXP (regular expression match)"}
     ],
     OPS_STRING = OPS_STRING_BASE.concat(OPS_IN_NULL),
     OPS_STRING_FULLTEXT = OPS_STRING_BASE.concat([
@@ -239,7 +239,7 @@ function set_input_value_by_id(id, value) {
     element.value = value;
 }
 
-function get_input_value_by_id(id, value) {
+function get_input_value_by_id(id) {
     // For <input ... value=""> elements
     var element = document.getElementById(id);
     return element.value;

@@ -233,7 +233,6 @@ def get_sqla_coltype_from_dialect_str(coltype, dialect):
             basetype = coltype.upper()
 
     # Special cases: pre-processing
-    # log.critical("dialect.name={}; basetype={}".format(dialect.name, basetype))
     if dialect.name == 'mssql' and basetype.lower() == 'integer':
         basetype = 'int'
 

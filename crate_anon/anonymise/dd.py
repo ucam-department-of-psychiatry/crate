@@ -46,8 +46,6 @@ from sqlalchemy import (
     Column,
     Table,
 )
-from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
-from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 
 from cardinal_pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,

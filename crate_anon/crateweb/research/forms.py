@@ -9,14 +9,14 @@ from django.conf import settings
 from django.forms import (
     BooleanField,
     CharField,
-    ChoiceField,
+    # ChoiceField,
     DateField,
     FileField,
     FloatField,
     IntegerField,
     ModelForm,
 )
-from django.forms.widgets import HiddenInput
+# from django.forms.widgets import HiddenInput
 from crate_anon.crateweb.extra.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
