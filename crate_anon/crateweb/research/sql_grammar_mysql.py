@@ -543,7 +543,7 @@ expr << infixNotation(expr_term, [
     (
         oneOf('^ * / %') | DIV | MOD |
         oneOf('+ - << >> & | = <=> >= > <= < <> !=') |
-        IS | LIKE | REGEXP | (Optional(NOT) + IN) |
+        (IS + Optional(NOT)) | LIKE | REGEXP | (Optional(NOT) + IN) |
         (SOUNDS + LIKE),  # RNC; presumably at same level as LIKE
         BINARY_OP,
         opAssoc.LEFT
@@ -718,6 +718,10 @@ sql_grammar = select_statement
 
 # See also: parser.runTests()
 
+def standardize_whitespace(text):
+    return " ".join(text.split())
+
+
 def test_succeed(parser, text, target=None, skip_target=True, show_raw=False,
                  verbose=True):
     if target is None:
@@ -733,10 +737,14 @@ def test_succeed(parser, text, target=None, skip_target=True, show_raw=False,
         log.debug("Failure on: {} [parser: {}]".format(text, parser))
         print(statement_and_failure_marker(text, exception))
         raise
-    if not skip_target and text_from_parsed(p) != target:
-        raise ValueError(
-            "Failure on: {} -> {} (should have been: {}) [parser: {}]".format(
-                text, p, target, parser))
+    if not skip_target:
+        intended = standardize_whitespace(target)
+        actual = standardize_whitespace(text_from_parsed(p))
+        if intended != actual:
+            raise ValueError(
+                "Failure on: {} -> {} (should have been: {})"
+                " [parser: {}] [as list: {}]".format(
+                    text, actual, intended, parser, repr(p.asList())))
 
 
 def test_fail(parser, text):
@@ -1041,7 +1049,9 @@ def unit_tests(test_expr=False):
         test_succeed(expr, "a NOT IN (SELECT 1)")
         test_succeed(expr, "a IN (1, 2, 3)")
         test_succeed(expr, "a IS NULL")
+        test_succeed(expr, "a IS NOT NULL")
         test_fail(expr, "IS NULL")
+        test_fail(expr, "IS NOT NULL")
         test_succeed(expr, "(a * (b - 3)) > (d - 2)")
 
     log.info("Testing join_op")

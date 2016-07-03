@@ -88,53 +88,16 @@ def html_form_date_to_python(text):
     return datetime.datetime.strptime(text, "%Y-%m-%d")
 
 
-class QueryBuilderColForm(forms.Form):
-    """
-    Using an "AND NOT" button becomes confusing the first time you enter a
-    condition. Offer negated conditions, but only AND as a where-condition
-    joiner.
+def int_validator(text):
+    return str(int(text))  # may raise ValueError, TypeError
 
-    Using OR becomes tricky in terms of precedence; use SQL.
 
-    Using IN becomes tricky using standard input fields (e.g. an int-validation
-    field won't allow int CSV input).
+def float_validator(text):
+    return str(float(text))  # may raise ValueError, TypeError
 
-    Not equals: <> in ANSI SQL, but != is supported by MySQL and clearer.
-    """
-    COMPARISON_CHOICES_NUMBER_DATE = (
-        ('<', '<'),
-        ('<=', '<='),
-        ('=', '='),
-        ('!=', '!= (not equals)'),
-        ('>=', '>='),
-        ('>', '>'),
-        ('IN', 'IN (from file contents)'),
-        ('NOT IN', 'NOT IN (from file contents)'),
-        ('IS NULL', 'IS NULL'),
-        ('IS NOT NULL', 'IS NOT NULL'),
-    )
-    COMPARISON_CHOICES_STRING = (
-        ('=', '='),
-        ('!=', '!= (not equals)'),
-        ('LIKE', 'LIKE (use % as wildcard)'),
-        ('REGEXP', 'REGEXP (regular expression match)'),
-        ('IN', 'IN (from file contents)'),
-        ('NOT IN', 'NOT IN (from file contents)'),
-        ('IS NULL', 'IS NULL'),
-        ('IS NOT NULL', 'IS NOT NULL'),
-    )
-    COMPARISON_CHOICES_STRING_FULLTEXT = (
-        ('=', '='),
-        ('!=', '!= (not equals)'),
-        ('LIKE', 'LIKE (use % as wildcard)'),
-        ('REGEXP', 'REGEXP (regular expression match)'),
-        ('MATCH', 'MATCH (match whole words)'),
-        ('IN', 'IN (from file contents)'),
-        ('NOT IN', 'NOT IN (from file contents)'),
-        ('IS NULL', 'IS NULL'),
-        ('IS NOT NULL', 'IS NOT NULL'),
-    )
-    COMPARISON_CHOICES_HIDDEN = ()
+
+class QueryBuilderForm(forms.Form):
+    # See also querybuilder.js
     DATATYPE_INTEGER = "int"
     DATATYPE_FLOAT = "float"
     DATATYPE_DATE = "date"
@@ -142,80 +105,31 @@ class QueryBuilderColForm(forms.Form):
     DATATYPE_STRING_FULLTEXT = "string_fulltext"
     DATATYPE_UNKNOWN = "unknown"
     STRING_TYPES = [DATATYPE_STRING, DATATYPE_STRING_FULLTEXT]
-    VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL',
-                         'IN', 'NOT IN']
+    VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL']
+    SINGLE_VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL',
+                                'IN', 'NOT IN']
     FILE_REQUIRED = ['IN', 'NOT IN']
 
     table = CharField(label="Table", required=True)
     column = CharField(label="Column", required=True)
     datatype = CharField(label="Data type", required=True)
+    offer_where = BooleanField(label="Offer WHERE?", required=False)
+    # BooleanField generally needs "required=False", or you can't have False!
+    where_op = CharField(label="WHERE comparison", required=False)
 
-    comparison_type = ChoiceField(choices=COMPARISON_CHOICES_NUMBER_DATE,
-                                  label="Comparison type", required=False)
-    int_value = IntegerField(label="Integer value", required=False)
-    float_value = FloatField(label="Float value", required=False)
     date_value = DateField(label="Date value (e.g. 1900-01-31)",
                            required=False)
+    int_value = IntegerField(label="Integer value", required=False)
+    float_value = FloatField(label="Float value", required=False)
     string_value = CharField(label="String value", required=False)
     file = FileField(label="File (for IN)", required=False)
 
-    def hide_field(self, fieldname):
-        self.fields[fieldname].widget = HiddenInput()
-        
-    def set_op_choices(self, choices):
-        self.fields['comparison_type'].choices = choices
-
     def __init__(self, *args, **kwargs):
         self.file_values_list = ''
-        self.offer_where = kwargs.pop('offer_where', True)
-        self.offer_file = kwargs.pop('offer_file', True)
-        arg_table = kwargs.pop('table', None)
-        arg_column = kwargs.pop('column', None)
-        arg_datatype = kwargs.pop('datatype', self.DATATYPE_INTEGER)
-        kwargs['initial'] = dict(table=arg_table,
-                                 column=arg_column,
-                                 datatype=arg_datatype)
-        if self.offer_where and arg_datatype != self.DATATYPE_UNKNOWN:
-            kwargs['initial']['comparison_type'] = "="
         super().__init__(*args, **kwargs)
 
-        # Hide fields that just pass data back
-        self.hide_field('table')
-        self.hide_field('column')
-        self.hide_field('datatype')
-
-        # Data may either come from code (via named arguments to this function)
-        # or from the form (via the 'data' argument, passed to super()).
-        # So choose the best:
-        offer_where = self.offering_where()
-        datatype = self.get_datatype()
-
-        # What value-entry fields will we offer?
-        value_fieldname = self.get_value_fieldname()
-        for f in ['int_value', 'float_value', 'date_value', 'string_value']:
-            if not offer_where or f != value_fieldname:
-                self.hide_field(f)
-        if not offer_where or not self.offer_file:
-            self.hide_field('file')
-
-        # What choices will we offer for the comparison operation?
-        if not offer_where or datatype == self.DATATYPE_UNKNOWN:
-            self.set_op_choices(self.COMPARISON_CHOICES_HIDDEN)
-            self.hide_field('comparison_type')
-        elif datatype in [self.DATATYPE_INTEGER,
-                        self.DATATYPE_FLOAT,
-                        self.DATATYPE_DATE]:
-            self.set_op_choices(self.COMPARISON_CHOICES_NUMBER_DATE)
-        elif datatype == self.DATATYPE_STRING:
-            self.set_op_choices(self.COMPARISON_CHOICES_STRING)
-        elif datatype == self.DATATYPE_STRING_FULLTEXT:
-            self.set_op_choices(self.COMPARISON_CHOICES_STRING_FULLTEXT)
-        else:
-            raise ValueError("Invalid field type")
-
     def get_datatype(self):
-        return self.data.get('datatype',
-                             self.initial.get('datatype', None))
+        return self.data.get('datatype', None)
 
     def is_datatype_unknown(self):
         return self.get_datatype() == self.DATATYPE_UNKNOWN
@@ -223,10 +137,7 @@ class QueryBuilderColForm(forms.Form):
     def offering_where(self):
         if self.is_datatype_unknown():
             return False
-        return self.offer_where
-
-    def offering_file(self):
-        return self.offer_file
+        return self.data.get('offer_where', False)
 
     def get_value_fieldname(self):
         datatype = self.get_datatype()
@@ -248,20 +159,20 @@ class QueryBuilderColForm(forms.Form):
 
     def clean(self):
         # Check the WHERE information is sufficient.
-        if 'add_result_column' in self.data:
+        if 'submit_select' in self.data:
             # Form submitted via the "Add" method, so no checks required.
             # http://stackoverflow.com/questions/866272/how-can-i-build-multiple-submit-buttons-django-form  # noqa
             return
         if not self.offering_where():
             return
         cleaned_data = super().clean()
-        if not cleaned_data['comparison_type']:
-            self.add_error('comparison_type',
+        if not cleaned_data['where_op']:
+            self.add_error('where_op',
                            forms.ValidationError("Must specify comparison"))
 
         # No need for a value for NULL-related comparisons. But otherwise:
-        comparison_type = cleaned_data['comparison_type']
-        if comparison_type not in self.VALUE_UNNECESSARY:
+        where_op = cleaned_data['where_op']
+        if where_op not in self.SINGLE_VALUE_UNNECESSARY:
             value_fieldname = self.get_value_fieldname()
             value = cleaned_data.get(value_fieldname)
             if not value:
@@ -269,7 +180,10 @@ class QueryBuilderColForm(forms.Form):
                     value_fieldname,
                     forms.ValidationError("Must specify WHERE condition"))
 
-        if comparison_type not in self.FILE_REQUIRED:
+        # ---------------------------------------------------------------------
+        # Special processing for file upload operations
+        # ---------------------------------------------------------------------
+        if where_op not in self.FILE_REQUIRED:
             return
         file = cleaned_data['file']
         # ... is an instance of InMemoryUploadedFile
@@ -278,25 +192,33 @@ class QueryBuilderColForm(forms.Form):
             return
 
         datatype = self.get_datatype()
-        if datatype in QueryBuilderColForm.STRING_TYPES:
+        if datatype in QueryBuilderForm.STRING_TYPES:
             form_to_python_fn = str
             literal_func = sql_string_literal
-        elif datatype == QueryBuilderColForm.DATATYPE_DATE:
+        elif datatype == QueryBuilderForm.DATATYPE_DATE:
             form_to_python_fn = html_form_date_to_python
             literal_func = sql_date_literal
-        else:
-            form_to_python_fn = str
+        elif datatype == QueryBuilderForm.DATATYPE_INTEGER:
+            form_to_python_fn = int_validator
             literal_func = str
+        elif datatype == QueryBuilderForm.DATATYPE_FLOAT:
+            form_to_python_fn = float_validator
+            literal_func = str
+        else:
+            # Safe defaults
+            form_to_python_fn = str
+            literal_func = sql_string_literal
         # Or: http://www.dabeaz.com/generators/Generators.pdf
         literals = []
         for line in file.read().decode("utf8").splitlines():
             raw_item = line.strip()
-            # noinspection PyBroadException
+            if not raw_item:
+                continue
             try:
                 value = form_to_python_fn(raw_item)
-            except:
+            except (TypeError, ValueError):
                 self.add_error('file', forms.ValidationError(
-                    "File contains bad value: {}".format(raw_item)))
+                    "File contains bad value: {}".format(repr(raw_item))))
                 return
             literals.append(literal_func(value))
         if not literals:

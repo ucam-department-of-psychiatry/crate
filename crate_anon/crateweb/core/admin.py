@@ -381,7 +381,8 @@ class DummyPatientSourceInfoDevAdmin(admin.ModelAdmin):
     fields = (
         # Patient
         'nhs_number',
-        'pt_dob', 'pt_dod', 'pt_dead', 'pt_discharged', 'pt_sex',
+        'pt_dob', 'pt_dod', 'pt_dead', 'pt_discharged', 'pt_discharge_date',
+        'pt_sex',
         'pt_title', 'pt_first_name', 'pt_last_name',
         'pt_address_1', 'pt_address_2', 'pt_address_3', 'pt_address_4',
         'pt_address_5', 'pt_address_6', 'pt_address_7',

@@ -14,11 +14,13 @@
         <link rel=StyleSheet href="{% static 'base.css' %}" type="text/css">
         <link rel=StyleSheet href="{% static 'web.css' %}" type="text/css">
         <link rel="icon" href="{% static 'favicon.ico' %}">
-        <script>
-            var PLUS_IMAGE = '{% static "plus.gif" %}',
-                MINUS_IMAGE = '{% static "minus.gif" %}';
-        </script>
-        <script type="text/javascript" src="{% static 'collapse.js' %}"></script>
+        {% block collapsejs %}
+            <script>
+                var PLUS_IMAGE = '{% static "plus.gif" %}',
+                    MINUS_IMAGE = '{% static "minus.gif" %}';
+            </script>
+            <script type="text/javascript" src="{% static 'collapse.js' %}"></script>
+        {% endblock %}
         {% block extrahead %}{% endblock %}
     </head>
 

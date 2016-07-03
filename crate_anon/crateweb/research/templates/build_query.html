@@ -1,6 +1,17 @@
 {# build_query.html #}
 
 {% extends "base.html" %}
+{% load staticfiles %}
+
+{% block collapsejs %}{% endblock %}
+{% block extrahead %}
+    <script type="text/javascript" src="{% static 'querybuilder.js' %}"></script>
+    <script type="text/javascript">
+var TABLES_FIELDS = {{ tables_fields|safe }},
+    STARTING_VALUES = {{ starting_values|safe }};
+    </script>
+{% endblock %}
+{% block onload %}onload="populate()"{% endblock %}
 
 {% block content %}
 
@@ -32,12 +43,32 @@
         <pre class="sql"> </pre>
     {% endif %}
 
-    {% if not parse_error %}
-        <h2>Build your query!</h2>
-        <p>Explore the tree below and add columns or conditions.</p>
-        {% include "expand_collapse_buttons.html" %}
-REPLACE_ME_BUILDER
-    {% endif %}
+    <h2>Build your query!</h2>
+    <div>
+        <span id="id_current_column" class="titlecolour">Please choose a table and column:</span>
+        <span id="id_comment"></span>
+    </div>
+    <div id="id_coltype_info"></div>
+    <div id="id_warning" class="warning"></div>
+    <form action="{% url 'build_query' %}" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <!-- name tags must match QueryBuilderForm -->
+        <select id="id_table" type="text" name="table" value=""></select>
+        <select id="id_column" type="text" name="column" value=""></select>
+        <input id="id_coltype" type="hidden" name="datatype" value="">
+        <input id="id_offer_where" type="hidden" name="offer_where" value="">
+        <select id="id_where_op" type="text" name="where_op" value=""></select>
+        <input id="id_where_value_date" type="date" name="date_value" value="">
+        <input id="id_where_value_float" type="number" name="float_value" step="any" value="">
+        <input id="id_where_value_integer" type="number" name="int_value" step="1" value="">
+        <input id="id_where_value_text" type="text" name="string_value" value="">
+        <input id="id_file" type="file" name="file">
+        <br>
+        <input id="id_where_button" type="submit" name="submit_where" value="Set condition (WHERE)">
+        <br>
+        <br>
+        <input type="submit" name="submit_select" value="Add to output (SELECT)">
+    </form>
 
     <h2>Tips</h2>
     <ul>

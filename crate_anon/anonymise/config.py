@@ -75,6 +75,8 @@ import os
 import sys
 
 from sqlalchemy import String
+from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
+from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 
 from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
 from cardinal_pythonlib.rnc_db import (
@@ -460,6 +462,10 @@ class Config(object):
         
         self.src_bytes_read = 0
         self.dest_bytes_written = 0
+
+        # Not yet set by config file, except via web site framework:
+        self.default_src_dialect = mssql_dialect
+        self.default_dest_dialect = mysql_dialect
         
     def overall_progress(self):
         return "{} read, {} written".format(
@@ -602,3 +608,15 @@ class Config(object):
             logger = logging.getLogger(logname)
             # log.critical(logger.__dict__)
             remove_all_logger_handlers(logger)
+
+    def get_default_src_dialect(self):
+        return self.default_src_dialect
+
+    def set_default_src_dialect(self, dialect):
+        self.default_src_dialect = dialect
+
+    def get_default_dest_dialect(self):
+        return self.default_dest_dialect
+
+    def set_default_dest_dialect(self, dialect):
+        self.default_dest_dialect = dialect

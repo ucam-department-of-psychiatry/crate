@@ -305,6 +305,10 @@ def get_anon_config():
         return None
     os.environ[CONFIG_ENV_VAR] = config_filename
     config = Config(open_databases=False)
+    if settings.CRATE_DD_SRC_DIALECT:
+        config.set_default_src_dialect(settings.CRATE_DD_SRC_DIALECT)
+    if settings.CRATE_DD_DEST_DIALECT:
+        config.set_default_dest_dialect(settings.CRATE_DD_DEST_DIALECT)
     return config
 
 

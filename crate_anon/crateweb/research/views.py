@@ -2,6 +2,7 @@
 # research/views.py
 
 from functools import lru_cache
+import json
 import logging
 
 from django import forms
@@ -33,7 +34,7 @@ from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
     PidLookupForm,
-    QueryBuilderColForm,
+    QueryBuilderForm,
     SQLHelperTextAnywhereForm,
 )
 from crate_anon.crateweb.research.html_functions import (
@@ -94,148 +95,83 @@ def query_context(request):
 # Queries
 # =============================================================================
 
-NO_QUERY_BUILDER_AVAILABLE = """
-    <p class="warning">No query builder available.
-        (No data dictionary specified.)</p>
-"""
-
-
-def make_query_builder_form(ddr, working_form=None,
-                            offer_where=False):
+def get_datatype_for_ddr(ddr):
+    """
+    Returns a string that is defined in querybuilder.js and QueryBuilderForm.
+    """
     sqla_type = ddr.get_sqla_dest_coltype()
     if isinstance(sqla_type, sqltypes.Float):
-        datatype = QueryBuilderColForm.DATATYPE_FLOAT
-    elif (isinstance(sqla_type, sqltypes.Date) or
+        return QueryBuilderForm.DATATYPE_FLOAT
+    if (isinstance(sqla_type, sqltypes.Date) or
             isinstance(sqla_type, sqltypes.DateTime)):
-        datatype = QueryBuilderColForm.DATATYPE_DATE
-    elif isinstance(sqla_type, sqltypes.String):
+        return QueryBuilderForm.DATATYPE_DATE
+    if isinstance(sqla_type, sqltypes.String):
         if ddr.using_fulltext_index():
-            datatype = QueryBuilderColForm.DATATYPE_STRING_FULLTEXT
+            return QueryBuilderForm.DATATYPE_STRING_FULLTEXT
         else:
-            datatype = QueryBuilderColForm.DATATYPE_STRING
-    elif isinstance(sqla_type, sqltypes.Integer):
-        datatype = QueryBuilderColForm.DATATYPE_INTEGER
-    else:
-        datatype = QueryBuilderColForm.DATATYPE_UNKNOWN
-    # log.critical("{}.{}: {} -> {}".format(
-    #     ddr.dest_table, ddr.dest_field, repr(sqla_type), datatype))
-
-    matched = (
-        working_form and
-        ddr.dest_table == working_form.data.get('table', None) and
-        ddr.dest_field == working_form.data.get('column', None)
-    )
-    if matched:
-        form = working_form
-        # log.critical("... matched, using existing form")
-    else:
-        form = QueryBuilderColForm(table=ddr.dest_table,
-                                   column=ddr.dest_field,
-                                   datatype=datatype,
-                                   offer_where=offer_where)
-    return form, matched
+            return QueryBuilderForm.DATATYPE_STRING
+    if isinstance(sqla_type, sqltypes.Integer):
+        return QueryBuilderForm.DATATYPE_INTEGER
+    return QueryBuilderForm.DATATYPE_UNKNOWN
 
 
-def query_builder_html(request, working_form=None, offer_where=False):
-    dd = get_data_dictionary()
-    if not dd:
-        return NO_QUERY_BUILDER_AVAILABLE
-    html = ""
-    tag = 0
-    csrf_token = csrf.get_token(request)
+@lru_cache(maxsize=None)
+def get_table_column_info_for_querybuilder_json(dd):
+    info = []
     for table in dd.get_dest_tables_with_patient_info():
-        html_table = ''
-        table_collapsed = True
+        column_info = []
         for ddr in dd.get_rows_for_dest_table(table):
-            form, matched = make_query_builder_form(ddr,
-                                                    working_form=working_form,
-                                                    offer_where=offer_where)
-            column_collapsed = not matched
-            if matched:
-                table_collapsed = False
-            comment = '<i> – {}</i>'.format(ddr.comment) if ddr.comment else ''
-            html_column = """
-                <div class="indent">
-                    {datatype_unknown_warning}
-                    <form action="{url_build_query}" method="post" enctype="multipart/form-data">
-                        <input type='hidden' name='csrfmiddlewaretoken' value='{csrf_token}' />
-                        <table class="formtable">
-                            {form_as_table}
-                        </table>
-                        {where_button}
-                        <input type="submit" name="add_result_column" value="Add to output (SELECT)" />
-                    </form>
-                </div>
-            """.format(  # noqa
-                url_build_query=reverse('build_query'),
-                datatype_unknown_warning=(
-                    '<div class="warning">Data type unknown</div>'
-                    if form.is_datatype_unknown() else ''
-                ),
-                csrf_token=csrf_token,
-                form_as_table=form.as_table(),
-                where_button=(
-                    '<input type="submit" name="add_where" value="Set condition (WHERE)" />'  # noqa
-                    if form.offering_where() else ''
-                ),
-            )
-            # NB: first "submit" button takes the Enter key, so place WHERE
-            # before SELECT so users can hit enter in the WHERE value fields.
-
-            # - If you provide the "request=request" argument to
-            #   render_to_string it gives you the CSRF token.
-            # - Another way is to ignore "request" and use render_to_string
-            #   with a manually crafted context including 'csrf_token'.
-            #   (This avoids the global context processors.)
-            # - Note that the CSRF token prevents simple caching of the forms.
-            # - But we can't cache anyway if we're going to have some forms
-            #   (differentially) non-collapsed at the start, e.g. on form POST.
-            # - Also harder work to do this HTML manually (rather than with
-            #   template rendering), because the csrf_token ends up like:
-            #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
-            column_button = collapsible_div_spanbutton(
-                tag, collapsed=column_collapsed)
-            column_div = collapsible_div_contentdiv(tag, html_column,
-                                                    collapsed=column_collapsed)
-            tag += 1
-            html_table += (
-                """
-                    <div class="indent">
-                        <div>{button}
-                            <span class="titlecolour">{table}.<b>{column}</b>
-                                </span>
-                            {comment}</div>
-                        {cd}
-                    </div>
-                """.format(
-                    table=table,
-                    column=ddr.dest_field,
-                    button=column_button,
-                    comment=comment,
-                    cd=column_div,
-                )
-            )
-
-        table_button = collapsible_div_spanbutton(
-            tag, collapsed=table_collapsed)
-        table_div = collapsible_div_contentdiv(
-            tag, html_table, collapsed=table_collapsed)
-        tag += 1
-        html += (
-            '<div class="titlecolour">{button} <b>{table}</b></div>'
-            '{td}'.format(
-                table=table,
-                button=table_button,
-                td=table_div,
-            )
-        )
-    return html
+            column_info.append({
+                'colname': ddr.dest_field,
+                'coltype': get_datatype_for_ddr(ddr),
+                'comment': ddr.comment if ddr.comment else '',
+            })
+        info.append({
+            'table': table,
+            'columns': column_info,
+        })
+    return json.dumps(info)
 
 
 def build_query(request):
     """
     Assisted query builder, based on the data dictionary.
     """
+    # NOTES FOR FIRST METHOD, with lots (and lots) of forms.
+    # - In what follows, we want a normal template but we want to include a
+    #   large chunk of raw HTML. I was doing this with
+    #   {{ builder_html | safe }} within the template, but it was very slow
+    #   (e.g. 500ms on my machine; 50s on the CPFT "sandpit" server,
+    #   2016-06-28). The delay was genuinely in the template rendering, it
+    #   seems, based on profiling and manual log calls.
+    # - A simple string replacement, as below, was about 7% of the total time
+    #   (e.g. 3300ms instead of 50s).
+    # - Other alternatives might include the Jinja2 template system, which is
+    #   apparently faster than the Django default, but we may not need further
+    #   optimization.
+    # - Another, potentially better, solution, is not to send dozens or
+    #   hundreds of forms, but to write some Javascript to make this happen
+    #   mostly on the client side. Might look better, too. ***
+
+    # NB: first "submit" button takes the Enter key, so place WHERE
+    # before SELECT so users can hit enter in the WHERE value fields.
+
+    # - If you provide the "request=request" argument to
+    #   render_to_string it gives you the CSRF token.
+    # - Another way is to ignore "request" and use render_to_string
+    #   with a manually crafted context including 'csrf_token'.
+    #   (This avoids the global context processors.)
+    # - Note that the CSRF token prevents simple caching of the forms.
+    # - But we can't cache anyway if we're going to have some forms
+    #   (differentially) non-collapsed at the start, e.g. on form POST.
+    # - Also harder work to do this HTML manually (rather than with
+    #   template rendering), because the csrf_token ends up like:
+    #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
+
+    dd = get_data_dictionary()
+    if not dd:
+        return render(request, 'querybuilder_bad.html')
+
     profile = request.user.profile
     parse_error = ''
     form = None
@@ -252,39 +188,44 @@ def build_query(request):
             elif 'global_run' in request.POST:
                 return submit_query(request, profile.sql_scratchpad, run=True)
             else:
-                form = QueryBuilderColForm(request.POST, request.FILES)
+                form = QueryBuilderForm(request.POST, request.FILES)
                 if form.is_valid():
                     # log.critical("is_valid")
                     table = form.cleaned_data['table']
                     column = form.cleaned_data['column']
                     trid_fieldname = get_trid_fieldname()
-                    if 'add_result_column' in request.POST:
+                    if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             table=table,
                             column=column,
                             inner_join_to_first_on_keyfield=trid_fieldname,
                         )
-                    elif 'add_where' in request.POST:
+                    elif 'submit_where' in request.POST:
                         datatype = form.cleaned_data['datatype']
-                        op = form.cleaned_data['comparison_type']
-                        if op in QueryBuilderColForm.FILE_REQUIRED:
+                        op = form.cleaned_data['where_op']
+                        # Value
+                        if op in QueryBuilderForm.FILE_REQUIRED:
                             value = form.file_values_list
-                            # log.critical(repr(value))
+                        elif op in QueryBuilderForm.VALUE_UNNECESSARY:
+                            value = None
                         else:
                             value = form.get_cleaned_where_value()
-                            if datatype in QueryBuilderColForm.STRING_TYPES:
+                            if datatype in QueryBuilderForm.STRING_TYPES:
                                 value = sql_string_literal(value)
-                            elif datatype == QueryBuilderColForm.DATATYPE_DATE:
+                            elif datatype == QueryBuilderForm.DATATYPE_DATE:
                                 value = sql_date_literal(value)
+                        # WHERE fragment
                         if op == 'MATCH':
                             where_expression = (
                                 "MATCH ({col}) AGAINST ({val})".format(
                                     col=column, val=value))
+                        elif op in QueryBuilderForm.VALUE_UNNECESSARY:
+                            where_expression = "{tab}.{col} {op}".format(
+                                tab=table, col=column, op=op)
                         else:
                             where_expression = "{tab}.{col} {op} {val}".format(
                                 tab=table, col=column, op=op, val=value)
-                        # log.critical(where_expression)
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             where_type="AND",
@@ -296,40 +237,35 @@ def build_query(request):
                         raise ValueError("Bad form command!")
                     profile.save()
                 else:
-                    pass
                     # log.critical("not is_valid")
+                    pass
         except ParseException as e:
             parse_error = str(e)
+    if form is None:
+        form = QueryBuilderForm()
 
-    offer_where = bool(profile.sql_scratchpad)  # existing SELECT?
-    builder_html = query_builder_html(request,
-                                      working_form=form,
-                                      offer_where=offer_where)
-    # - In what follows, we want a normal template but we want to include a
-    #   large chunk of raw HTML. I was doing this with
-    #   {{ builder_html | safe }} within the template, but it was very slow
-    #   (e.g. 500ms on my machine; 50s on the CPFT "sandpit" server,
-    #   2016-06-28). The delay was genuinely in the template rendering, it
-    #   seems, based on profiling and manual log calls.
-    # - A simple string replacement, as below, was about 7% of the total time
-    #   (e.g. 3300ms instead of 50s).
-    # - Other alternatives might include the Jinja2 template system, which is
-    #   apparently faster than the Django default, but we may not need further
-    #   optimization.
-    # - Another, potentially better, solution, is not to send dozens or
-    #   hundreds of forms, but to write some Javascript to make this happen
-    #   mostly on the client side. Might look better, too. ***
+    starting_values_dict = {
+        'table': form.data.get('table', ''),
+        'column': form.data.get('column', ''),
+        'op': form.data.get('where_op', ''),
+        'date_value': form.data.get('date_value', ''),
+        # Impossible to set file_value programmatically. (See querybuilder.js.)
+        'float_value': form.data.get('float_value', ''),
+        'int_value': form.data.get('int_value', ''),
+        'string_value': form.data.get('string_value', ''),
+        'offer_where': bool(profile.sql_scratchpad),  # existing SELECT?
+        'form_errors': "<br>".join("{}: {}".format(k, v)
+                                   for k, v in form.errors.items()),
+    }
     context = {
         'nav_on_querybuilder': True,
         'sql': profile.sql_scratchpad,
-        # 'builder_html': builder_html,
         'parse_error': parse_error,
+        'tables_fields': get_table_column_info_for_querybuilder_json(dd),
+        'starting_values': json.dumps(starting_values_dict),
     }
     context.update(query_context(request))
-    html = render_to_string('build_query.html', context, request=request)
-    if not parse_error:
-        html = html.replace("REPLACE_ME_BUILDER", builder_html)
-    return HttpResponse(html)
+    return render(request, 'build_query.html', context)
 
 
 def get_all_queries(request):

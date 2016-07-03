@@ -877,10 +877,12 @@ class DataDictionaryRow(object):
     def set_src_sqla_coltype(self, sqla_coltype):
         self._src_sqla_coltype = sqla_coltype
 
-    def get_sqla_dest_coltype(self, default_dialect=mysql_dialect):
-        dialect = self.config.destdb.engine.dialect
-        if not dialect:
-            dialect = default_dialect
+    def get_sqla_dest_coltype(self, default_dialect=None):
+        dialect = (
+            self.config.destdb.engine.dialect or
+            default_dialect or
+            self.config.get_default_dest_dialect()
+        )
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
             # the type.
@@ -1097,7 +1099,11 @@ class DataDictionary(object):
 
         log.debug("... source tables checked.")
         
-    def set_src_sql_coltypes(self, dialect=mssql_dialect):
+    def set_src_sql_coltypes(self, dialect=None):
+        dialect = (
+            dialect or
+            self.config.get_default_src_dialect()
+        )
         for r in self.rows:
             str_coltype = r.src_datatype
             sqla_coltype = get_sqla_coltype_from_dialect_str(str_coltype,

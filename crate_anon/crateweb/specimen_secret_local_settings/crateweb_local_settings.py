@@ -7,10 +7,15 @@ IT WILL NOT WORK until you've edited it.
 """
 
 import os
+
+import sqlalchemy.dialects.mssql
+import sqlalchemy.dialects.mysql
+
 raise Exception(
     "Well done - CRATE has found your crate_local_settings.py file at {}. "
     "However, you need to configure it for your institution's set-up, and "
     "remove this line.".format(os.path.abspath(__file__)))
+
 
 # =============================================================================
 # Site URL configuration
@@ -133,6 +138,10 @@ RESEARCH_DB_INFO_SCHEMAS = [
 # file. If you specify None, that's fine, but the assisted query builder will
 # be disabled.
 CRATE_ANON_CONFIG = None
+
+# SQLAlchemy dialects assumed for source/destination databases:
+CRATE_DD_SRC_DIALECT = sqlalchemy.dialects.mssql.base.dialect
+CRATE_DD_DEST_DIALECT = sqlalchemy.dialects.mysql.base.dialect
 
 # Configuration of the secret mapping database (as set during initial
 # anonymisation)
