@@ -577,7 +577,7 @@ class PatientLookupBase(models.Model):
     pt_discharged = models.NullBooleanField(verbose_name="Patient discharged")
     pt_discharge_date = models.DateField(
         null=True, blank=True,
-        verbose_name="Patient date of discharge")
+        verbose_name="Patient date of discharge") # *** Not yet implemented
     pt_sex = models.CharField(max_length=1, blank=True, choices=SEX_CHOICES,
                               verbose_name="Patient sex")
     pt_title = models.CharField(max_length=LEN_TITLE, blank=True,
