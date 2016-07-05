@@ -114,8 +114,8 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
     <h2>Explanation</h2>
     <ul>
         <li>This query builder <b>only looks at tables that contain patient
-            information</b> (as judged by the presence of the “transient
-            research ID” (TRID) field, defined by your database manager).
+            information</b> (as judged by the presence of the field used
+            to auto-join tables, as defined by your database manager).
             It ignores “system” tables with no connection to a patient.
             If you want to explore all the tables, explore the database
             structure using the options on the
@@ -124,13 +124,15 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
             query.</li>
 
         <li>The query builder will automatically JOIN tables based on a shared
-            TRID (i.e. records for the same patient). The TRID is a numerical
-            value that identifies a patient. It’s quicker for queries than the
-            “master research ID” (RID), but the RID will stay constant if/when
-            the research database is rebuilt, and the TRID might change, so
-            you should make a note of the RID if you want to save data.
-            The RID is typically an encrypted patient identifier from the source
-            database; the TRID is taken from a one-time pad.</li>
+            field (i.e. records for the same patient).
+            This field is typically the “transient research ID” (TRID).
+            The TRID is a numerical value that identifies a patient.
+            It’s quicker for queries than the “research ID” (RID), but the RID
+            will stay constant if/when the research database is rebuilt, and
+            the TRID might change, so you should make a note of the RID if you
+            want to save data.
+            The RID is typically an encrypted patient identifier from the
+            source database; the TRID is taken from a one-time pad.</li>
 
         <li>More complex automatic joins across databases are
             <b>not yet implemented.</b></li>

@@ -131,12 +131,14 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 # The first is the default selected in the query builder.
 RESEARCH_DB_INFO = [
     {
+        # Schema name:
         'schema': DATABASES['research']['NAME'],  # if it's not None!
-        'trid_field': 'trid',
+        # Query Builder autojoin field:
+        'autojoin_field': 'trid',
     },
     # {
     #     'schema': 'my_nlp_database',
-    #     'trid_field': 'trid',
+    #     'autojoin_field': 'trid',
     # },
     # ...
 ]

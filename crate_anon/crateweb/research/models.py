@@ -380,11 +380,11 @@ def get_schema_info(schema_name):
 
 
 @lru_cache(maxsize=None)
-def get_trid_fieldname(schema_name):
+def get_autojoin_field(schema_name):
     schema_info = get_schema_info(schema_name)
     if not schema_info:
         return None
-    return schema_info['trid_field']
+    return schema_info['autojoin_field']
 
 
 class ResearchDatabaseInfo(object):
