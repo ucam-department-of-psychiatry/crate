@@ -8,9 +8,6 @@ IT WILL NOT WORK until you've edited it.
 
 import os
 
-import sqlalchemy.dialects.mssql.base
-import sqlalchemy.dialects.mysql.base
-
 raise Exception(
     "Well done - CRATE has found your crate_local_settings.py file at {}. "
     "However, you need to configure it for your institution's set-up, and "
@@ -129,19 +126,20 @@ DATABASES = {
 # Database title
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 
-# Schemas to provide database structure info for
-RESEARCH_DB_INFO_SCHEMAS = [
-    'anonymous_output',
+# Schemas to provide database structure info for, and details on how to
+# join within/between them (for the query builder).
+# The first is the default selected in the query builder.
+RESEARCH_DB_INFO = [
+    {
+        'schema': DATABASES['research']['NAME'],  # if it's not None!
+        'trid_field': 'trid',
+    },
+    # {
+    #     'schema': 'my_nlp_database',
+    #     'trid_field': 'trid',
+    # },
+    # ...
 ]
-
-# Data dictionary (TSV file used by CRATE anonymiser) is pointed to by this
-# file. If you specify None, that's fine, but the assisted query builder will
-# be disabled.
-CRATE_ANON_CONFIG = None
-
-# SQLAlchemy dialects assumed for source/destination databases:
-CRATE_DD_SRC_DIALECT = sqlalchemy.dialects.mssql.base.dialect
-CRATE_DD_DEST_DIALECT = sqlalchemy.dialects.mysql.base.dialect
 
 # Configuration of the secret mapping database (as set during initial
 # anonymisation)

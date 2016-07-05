@@ -21,7 +21,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 # from django.views.decorators.csrf import csrf_exempt
 from pyparsing import ParseException
-from sqlalchemy.sql import sqltypes
+# from sqlalchemy.sql import sqltypes
 
 from crate_anon.crateweb.core.dbfunc import (
     dictlist_to_tsv,
@@ -46,7 +46,9 @@ from crate_anon.crateweb.research.html_functions import (
     N_CSS_HIGHLIGHT_CLASSES,
 )
 from crate_anon.crateweb.research.models import (
-    get_data_dictionary,
+    ColumnInfo,
+    get_default_schema,
+    get_researchdb_schemas,
     get_trid_fieldname,
     Highlight,
     PidLookup,
@@ -95,41 +97,38 @@ def query_context(request):
 # Queries
 # =============================================================================
 
-def get_datatype_for_ddr(ddr):
-    """
-    Returns a string that is defined in querybuilder.js and QueryBuilderForm.
-    """
-    sqla_type = ddr.get_sqla_dest_coltype()
-    if isinstance(sqla_type, sqltypes.Float):
-        return QueryBuilderForm.DATATYPE_FLOAT
-    if (isinstance(sqla_type, sqltypes.Date) or
-            isinstance(sqla_type, sqltypes.DateTime)):
-        return QueryBuilderForm.DATATYPE_DATE
-    if isinstance(sqla_type, sqltypes.String):
-        if ddr.using_fulltext_index():
-            return QueryBuilderForm.DATATYPE_STRING_FULLTEXT
-        else:
-            return QueryBuilderForm.DATATYPE_STRING
-    if isinstance(sqla_type, sqltypes.Integer):
-        return QueryBuilderForm.DATATYPE_INTEGER
-    return QueryBuilderForm.DATATYPE_UNKNOWN
-
-
 @lru_cache(maxsize=None)
-def get_table_column_info_for_querybuilder_json(dd):
+def get_db_structure_json():
+    colinfolist = research_database_info.get_colinfolist()
     info = []
-    for table in dd.get_dest_tables_with_patient_info():
-        column_info = []
-        for ddr in dd.get_rows_for_dest_table(table):
-            column_info.append({
-                'colname': ddr.dest_field,
-                'coltype': get_datatype_for_ddr(ddr),
-                'comment': ddr.comment if ddr.comment else '',
+    for schema in get_researchdb_schemas():  # preserve order
+        schema_cil = [x for x in colinfolist if x.table_schema == schema]
+        trid_fieldname = get_trid_fieldname(schema)
+        table_info = []
+        for table in sorted(set(x.table_name for x in schema_cil)):
+            table_cil = [x for x in schema_cil if x.table_name == table]
+            if not any([x for x in table_cil
+                        if x.column_name == trid_fieldname]):
+                # This table doesn't contain a TRID, so we will skip it.
+                continue
+            column_info = []
+            for ci in sorted(table_cil, key=lambda x: x.column_name):
+                column_info.append({
+                    'colname': ci.column_name,
+                    'coltype': ci.querybuilder_type,
+                    'rawtype': ci.column_type,
+                    'comment': ci.column_comment or '',
+                })
+            if column_info:
+                table_info.append({
+                    'table': table,
+                    'columns': column_info,
+                })
+        if table_info:
+            info.append({
+                'schema': schema,
+                'tables': table_info,
             })
-        info.append({
-            'table': table,
-            'columns': column_info,
-        })
     return json.dumps(info)
 
 
@@ -168,12 +167,9 @@ def build_query(request):
     #   template rendering), because the csrf_token ends up like:
     #   <input type='hidden' name='csrfmiddlewaretoken' value='RGN5UZnTVkLFAVNtXRpJwn5CclBRAdLr' />  # noqa
 
-    dd = get_data_dictionary()
-    if not dd:
-        return render(request, 'querybuilder_bad.html')
-
     profile = request.user.profile
     parse_error = ''
+    default_schema = get_default_schema()
     form = None
     if request.method == 'POST':
         try:
@@ -191,13 +187,18 @@ def build_query(request):
                 form = QueryBuilderForm(request.POST, request.FILES)
                 if form.is_valid():
                     # log.critical("is_valid")
+                    schema = form.cleaned_data['schema']
                     table = form.cleaned_data['table']
+                    if schema == default_schema:
+                        full_table = table
+                    else:
+                        full_table = "{}.{}".format(schema, table)
                     column = form.cleaned_data['column']
-                    trid_fieldname = get_trid_fieldname()
+                    trid_fieldname = get_trid_fieldname(schema)
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            table=table,
+                            table=full_table,
                             column=column,
                             inner_join_to_first_on_keyfield=trid_fieldname,
                         )
@@ -211,9 +212,9 @@ def build_query(request):
                             value = None
                         else:
                             value = form.get_cleaned_where_value()
-                            if datatype in QueryBuilderForm.STRING_TYPES:
+                            if datatype in ColumnInfo.STRING_TYPES:
                                 value = sql_string_literal(value)
-                            elif datatype == QueryBuilderForm.DATATYPE_DATE:
+                            elif datatype == ColumnInfo.DATATYPE_DATE:
                                 value = sql_date_literal(value)
                         # WHERE fragment
                         if op == 'MATCH':
@@ -222,15 +223,15 @@ def build_query(request):
                                     col=column, val=value))
                         elif op in QueryBuilderForm.VALUE_UNNECESSARY:
                             where_expression = "{tab}.{col} {op}".format(
-                                tab=table, col=column, op=op)
+                                tab=full_table, col=column, op=op)
                         else:
                             where_expression = "{tab}.{col} {op} {val}".format(
-                                tab=table, col=column, op=op, val=value)
+                                tab=full_table, col=column, op=op, val=value)
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             where_type="AND",
                             where_expression=where_expression,
-                            where_table=table,
+                            where_table=full_table,
                             inner_join_to_first_on_keyfield=trid_fieldname,
                         )
                     else:
@@ -245,6 +246,7 @@ def build_query(request):
         form = QueryBuilderForm()
 
     starting_values_dict = {
+        'schema': form.data.get('schema', ''),
         'table': form.data.get('table', ''),
         'column': form.data.get('column', ''),
         'op': form.data.get('where_op', ''),
@@ -256,12 +258,13 @@ def build_query(request):
         'offer_where': bool(profile.sql_scratchpad),  # existing SELECT?
         'form_errors': "<br>".join("{}: {}".format(k, v)
                                    for k, v in form.errors.items()),
+        'default_schema': default_schema,
     }
     context = {
         'nav_on_querybuilder': True,
         'sql': profile.sql_scratchpad,
         'parse_error': parse_error,
-        'tables_fields': get_table_column_info_for_querybuilder_json(dd),
+        'database_structure': get_db_structure_json(),
         'starting_values': json.dumps(starting_values_dict),
     }
     context.update(query_context(request))
@@ -730,7 +733,7 @@ def structure_table_long(request):
         'paginated': False,
         'infodictlist': infodictlist,
         'rowcount': rowcount,
-        'default_schema': settings.DATABASES['research']['NAME'],
+        'default_schema': get_default_schema(),
     }
     return render(request, 'database_structure.html', context)
 
@@ -743,7 +746,7 @@ def structure_table_paginated(request):
         'paginated': True,
         'infodictlist': infodictlist,
         'rowcount': rowcount,
-        'default_schema': settings.DATABASES['research']['NAME'],
+        'default_schema': get_default_schema(),
     }
     return render(request, 'database_structure.html', context)
 
@@ -773,7 +776,7 @@ def get_structure_tree_html():
 def structure_tree(request):
     context = {
         'content': get_structure_tree_html(),
-        'default_schema': settings.DATABASES['research']['NAME'],
+        'default_schema': get_default_schema(),
     }
     return render(request, 'database_structure_tree.html', context)
 

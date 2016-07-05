@@ -21,7 +21,7 @@ from crate_anon.crateweb.extra.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
 )
-from crate_anon.crateweb.research.models import Highlight, Query
+from crate_anon.crateweb.research.models import ColumnInfo, Highlight, Query
 from crate_anon.crateweb.research.sql_writer import (
     sql_date_literal,
     sql_string_literal,
@@ -98,18 +98,12 @@ def float_validator(text):
 
 class QueryBuilderForm(forms.Form):
     # See also querybuilder.js
-    DATATYPE_INTEGER = "int"
-    DATATYPE_FLOAT = "float"
-    DATATYPE_DATE = "date"
-    DATATYPE_STRING = "string"
-    DATATYPE_STRING_FULLTEXT = "string_fulltext"
-    DATATYPE_UNKNOWN = "unknown"
-    STRING_TYPES = [DATATYPE_STRING, DATATYPE_STRING_FULLTEXT]
     VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL']
     SINGLE_VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL',
                                 'IN', 'NOT IN']
     FILE_REQUIRED = ['IN', 'NOT IN']
 
+    schema = CharField(label="Schema", required=True)
     table = CharField(label="Table", required=True)
     column = CharField(label="Column", required=True)
     datatype = CharField(label="Data type", required=True)
@@ -132,7 +126,7 @@ class QueryBuilderForm(forms.Form):
         return self.data.get('datatype', None)
 
     def is_datatype_unknown(self):
-        return self.get_datatype() == self.DATATYPE_UNKNOWN
+        return self.get_datatype() == ColumnInfo.DATATYPE_UNKNOWN
 
     def offering_where(self):
         if self.is_datatype_unknown():
@@ -141,15 +135,15 @@ class QueryBuilderForm(forms.Form):
 
     def get_value_fieldname(self):
         datatype = self.get_datatype()
-        if datatype == self.DATATYPE_INTEGER:
+        if datatype == ColumnInfo.DATATYPE_INTEGER:
             return "int_value"
-        if datatype == self.DATATYPE_FLOAT:
+        if datatype == ColumnInfo.DATATYPE_FLOAT:
             return "float_value"
-        if datatype == self.DATATYPE_DATE:
+        if datatype == ColumnInfo.DATATYPE_DATE:
             return "date_value"
-        if datatype in [self.DATATYPE_STRING, self.DATATYPE_STRING_FULLTEXT]:
+        if datatype in ColumnInfo.STRING_TYPES:
             return "string_value"
-        if datatype == self.DATATYPE_UNKNOWN:
+        if datatype == ColumnInfo.DATATYPE_UNKNOWN:
             return ""
         raise ValueError("Invalid field type")
 
@@ -192,16 +186,16 @@ class QueryBuilderForm(forms.Form):
             return
 
         datatype = self.get_datatype()
-        if datatype in QueryBuilderForm.STRING_TYPES:
+        if datatype in ColumnInfo.STRING_TYPES:
             form_to_python_fn = str
             literal_func = sql_string_literal
-        elif datatype == QueryBuilderForm.DATATYPE_DATE:
+        elif datatype == ColumnInfo.DATATYPE_DATE:
             form_to_python_fn = html_form_date_to_python
             literal_func = sql_date_literal
-        elif datatype == QueryBuilderForm.DATATYPE_INTEGER:
+        elif datatype == ColumnInfo.DATATYPE_INTEGER:
             form_to_python_fn = int_validator
             literal_func = str
-        elif datatype == QueryBuilderForm.DATATYPE_FLOAT:
+        elif datatype == ColumnInfo.DATATYPE_FLOAT:
             form_to_python_fn = float_validator
             literal_func = str
         else:
@@ -212,7 +206,7 @@ class QueryBuilderForm(forms.Form):
         literals = []
         for line in file.read().decode("utf8").splitlines():
             raw_item = line.strip()
-            if not raw_item:
+            if not raw_item or raw_item.startswith('#'):
                 continue
             try:
                 value = form_to_python_fn(raw_item)

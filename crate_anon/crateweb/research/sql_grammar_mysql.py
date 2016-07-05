@@ -406,7 +406,7 @@ select_statement = Forward()
 # -----------------------------------------------------------------------------
 # http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
 bare_identifier_word = make_regex_except_words(
-    r"\b[a-zA-Z][a-zA-Z0-9$_]*\b",
+    r"\b[a-zA-Z0-9$_]*\b",
     all_keywords,
     caseless=True,
     name="bare_identifier_word"
@@ -442,7 +442,7 @@ column_spec = (
 bind_parameter = Literal('?')
 
 # http://dev.mysql.com/doc/refman/5.7/en/user-variables.html
-variable = Regex(r"@[a-zA-Z0-9.$_]+").setName("variable")
+variable = Regex(r"@[a-zA-Z0-9\.$_]+").setName("variable")
 
 # http://dev.mysql.com/doc/refman/5.7/en/functions.html
 argument_list = (

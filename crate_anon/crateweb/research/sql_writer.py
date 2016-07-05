@@ -133,12 +133,26 @@ def add_to_select(sql,
                         keyfield=inner_join_to_first_on_keyfield,
                     )
                 )
+        if debug and debug_verbose:
+            log.debug("_join_type = {}, _join_condition = {}".format(
+                _join_type, _join_condition))
         return _join_type, _join_condition
 
     if debug:
         log.info("START: {}".format(sql))
+        log.debug("table: {}".format(table))
+        log.debug("column: {}".format(column))
+        log.debug("inner_join_to_first_on_keyfield: {}".format(
+            inner_join_to_first_on_keyfield))
+        log.debug("join_type: {}".format(join_type))
+        log.debug("join_condition: {}".format(join_condition))
+        log.debug("where_type: {}".format(where_type))
+        log.debug("where_expression: {}".format(where_expression))
+        log.debug("where_table: {}".format(where_table))
     colspec = "{}.{}".format(table, column)
     if not sql:
+        if debug:
+            log.debug("Starting SQL from scratch")
         if column and table:
             result = sqlparse.format(
                 "SELECT {} FROM {}".format(colspec, table),

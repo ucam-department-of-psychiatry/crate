@@ -35,6 +35,7 @@ var DATATYPE_DATE = "date",
     ID_COLUMN_PICKER = "id_column",
     ID_COMMENT = "id_comment",
     ID_CURRENT_COLUMN = "id_current_column",
+    ID_SCHEMA_PICKER = "id_schema",
     ID_TABLE_PICKER = "id_table",
     ID_OFFER_WHERE = "id_offer_where",
     ID_WARNING = "id_warning",
@@ -75,26 +76,32 @@ var DATATYPE_DATE = "date",
 
 // The variables that follow are pre-populated by the server.
 /* Examples:
-var TABLES_FIELDS = [
+var DATABASE_STRUCTURE = [
         {
-            table: 'table1',
-            columns: [
-                {colname: 't1_col1_str', coltype: DATATYPE_STRING, comment: "comment 1"},
-                {colname: 't1_col2_str_ft', coltype: DATATYPE_STRING_FULLTEXT, comment: "comment 2"},
-                {colname: 't1_col3_int', coltype: DATATYPE_INTEGER, comment: "comment 3"},
-                {colname: 't1_col4_date', coltype: DATATYPE_DATE, comment: "comment 4"}
-            ],
-        },
-        {
-            table: 'table2',
-            columns: [
-                {colname: 't2_col1', coltype: DATATYPE_STRING, comment: ""},
-                {colname: 't2_col2', coltype: DATATYPE_STRING, comment: ""},
-                {colname: 't2_col3', coltype: DATATYPE_STRING, comment: ""}
+            schema: 'schema1',
+            tables: [
+                {
+                    table: 'table1',
+                    columns: [
+                        {colname: 't1_col1_str', coltype: DATATYPE_STRING, comment: "comment 1"},
+                        {colname: 't1_col2_str_ft', coltype: DATATYPE_STRING_FULLTEXT, comment: "comment 2"},
+                        {colname: 't1_col3_int', coltype: DATATYPE_INTEGER, comment: "comment 3"},
+                        {colname: 't1_col4_date', coltype: DATATYPE_DATE, comment: "comment 4"}
+                    ],
+                },
+                {
+                    table: 'table2',
+                    columns: [
+                        {colname: 't2_col1', coltype: DATATYPE_STRING, comment: ""},
+                        {colname: 't2_col2', coltype: DATATYPE_STRING, comment: ""},
+                        {colname: 't2_col3', coltype: DATATYPE_STRING, comment: ""}
+                    ]
+                }
             ]
         }
     ],
     STARTING_VALUES = {
+        schema: "schema1",
         table: "table2",
         column: "t2_col3",
         // ... etc.; see research/views.py
@@ -105,38 +112,71 @@ var TABLES_FIELDS = [
 // Read table/column information from variables passed in
 // ============================================================================
 
-function get_all_table_names() {
-    var table_names = [],
+function get_all_schema_names() {
+    var schema_names = [],
         i;
-    for (i = 0; i < TABLES_FIELDS.length; ++i) {
-        table_names.push(TABLES_FIELDS[i].table);
+    for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
+        schema_names.push(DATABASE_STRUCTURE[i].schema);
+    }
+    return schema_names;
+}
+
+function get_schema_info(schema) {
+    var i;
+    for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
+        if (DATABASE_STRUCTURE[i].schema == schema) {
+            return DATABASE_STRUCTURE[i];
+        }
+    }
+    return null;
+}
+
+function get_all_table_names(schema) {
+    var schema_info = get_schema_info(schema),
+        table_names = [],
+        i;
+    if (schema_info === null) {
+        return [];
+    }
+    for (i = 0; i < schema_info.tables.length; ++i) {
+        table_names.push(schema_info.tables[i].table);
     }
     return table_names;
 }
 
-function get_table_info(table) {
-    var i;
-    for (i = 0; i < TABLES_FIELDS.length; ++i) {
-        if (TABLES_FIELDS[i].table == table) {
-            return TABLES_FIELDS[i];
+function get_table_info(schema, table) {
+    var schema_info = get_schema_info(schema),
+        i;
+    if (schema_info === null) {
+        return null;
+    }
+    for (i = 0; i < schema_info.tables.length; ++i) {
+        if (schema_info.tables[i].table == table) {
+            return schema_info.tables[i];
         }
     }
+    return null;
 }
 
-function get_all_column_names(table) {
-    var tableinfo = get_table_info(table),
+function get_all_column_names(schema, table) {
+    var tableinfo = get_table_info(schema, table),
         column_names = [],
         i;
-    // log("get_all_column_names: " + table);
+    if (tableinfo === null) {
+        return [];
+    }
     for (i = 0; i < tableinfo.columns.length; ++i) {
         column_names.push(tableinfo.columns[i].colname);
     }
     return column_names;
 }
 
-function get_column_info(table, column) {
-    var tableinfo = get_table_info(table),
+function get_column_info(schema, table, column) {
+    var tableinfo = get_table_info(schema, table),
         i;
+    if (tableinfo === null) {
+        return null;
+    }
     for (i = 0; i < tableinfo.columns.length; ++i) {
         if (tableinfo.columns[i].colname == column) {
             return tableinfo.columns[i];
@@ -145,8 +185,23 @@ function get_column_info(table, column) {
 }
 
 // ============================================================================
-// HTML manipulation
+// Ancillary and HTML/DOM manipulation functions
 // ============================================================================
+
+function log(text) {
+    console.log(text);
+}
+
+function get_select_options_from_list(valuelist) {
+    var i,
+        val,
+        options = [];
+    for (i = 0; i < valuelist.length; ++i) {
+        val = valuelist[i];
+        options.push({text: val, value: val});
+    }
+    return options;
+}
 
 function reset_select_options(element, options) {
     // options should be a list of objects with attributes: text, value
@@ -163,6 +218,11 @@ function reset_select_options(element, options) {
     }
 }
 
+function reset_select_options_by_id(element_id, options) {
+    var element = document.getElementById(element_id);
+    reset_select_options(element, options);
+}
+
 function escapeHtml(unsafe) {
     return unsafe
          .replace(/&/g, "&amp;")
@@ -170,14 +230,6 @@ function escapeHtml(unsafe) {
          .replace(/>/g, "&gt;")
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");
-}
-
-// ============================================================================
-// Ancillary functions
-// ============================================================================
-
-function log(text) {
-    console.log(text);
 }
 
 function hide_element(element) {
@@ -296,6 +348,10 @@ function announce(text) {
 // Readers
 // ============================================================================
 
+function get_current_schema() {
+    return get_picker_value_by_id(ID_SCHEMA_PICKER);
+}
+
 function get_current_table() {
     return get_picker_value_by_id(ID_TABLE_PICKER);
 }
@@ -315,6 +371,11 @@ function get_current_op() {
 // ============================================================================
 // Logic
 // ============================================================================
+
+function set_schema(schema) {
+    set_picker_value_by_id(ID_SCHEMA_PICKER, schema);
+    schema_changed();
+}
 
 function set_table(table) {
     set_picker_value_by_id(ID_TABLE_PICKER, table);
@@ -378,18 +439,30 @@ function where_op_changed() {
 function column_changed() {
     var where_op_picker = document.getElementById(ID_WHERE_OP),
         where_button = document.getElementById(ID_WHERE_BUTTON),
+        schema = get_current_schema(),
         table = get_current_table(),
         column = get_current_column(),
-        colinfo = get_column_info(table, column),
+        colinfo = get_column_info(schema, table, column),
         old_op = get_current_op(),
         coltype = colinfo.coltype,
-        comment = colinfo.comment;
+        rawtype = colinfo.rawtype,
+        comment = colinfo.comment,
+        colinfo_html = "";
     // log("column_changed: coltype: " + coltype);
     set_input_value_by_id(ID_COLTYPE, coltype);
-    display_html_by_id(ID_CURRENT_COLUMN, table + ".<b>" + column + "</b>");
-    display_html_by_id(ID_COMMENT,
-                 ("<i>" + escapeHtml(comment) + "</i>") || "&nbsp;");
-    display_html_by_id(ID_COLTYPE_INFO, "Type: " + coltype);
+    if (schema == STARTING_VALUES.default_schema) {
+        colinfo_html = "<i>[default schema]</i>&nbsp;";
+    } else {
+        colinfo_html = "<i>" + schema + "</i>.";
+    }
+    colinfo_html += table + ".<b>" + column + "</b>";
+    display_html_by_id(ID_CURRENT_COLUMN, colinfo_html);
+    display_html_by_id(
+        ID_COMMENT,
+        ("<i>" + escapeHtml(comment) + "</i>") || "&nbsp;");
+    display_html_by_id(
+        ID_COLTYPE_INFO,
+        "Type: " + coltype + " (SQL type: " + rawtype + ")");
     if (!STARTING_VALUES.offer_where || coltype == DATATYPE_UNKNOWN) {
         reset_select_options(where_op_picker, OPS_NONE);
         hide_element(where_op_picker);
@@ -417,41 +490,39 @@ function column_changed() {
 }
 
 function table_changed() {
-    var column_picker = document.getElementById(ID_COLUMN_PICKER),
+    var schema = get_current_schema(),
         table = get_current_table(),
-        column_names = get_all_column_names(table),
-        i,
-        cname,
-        column_options = [];
+        column_names = get_all_column_names(schema, table),
+        column_options = get_select_options_from_list(column_names);
     // log("table_changed");
-    for (i = 0; i < column_names.length; ++i) {
-        cname = column_names[i];
-        column_options.push({text: cname, value: cname});
-    }
-    reset_select_options(column_picker, column_options);
+    reset_select_options_by_id(ID_COLUMN_PICKER, column_options);
     column_changed();
 }
 
+function schema_changed() {
+    var schema = get_current_schema(),
+        table_names = get_all_table_names(schema),
+        table_options = get_select_options_from_list(table_names);
+    // log("schema_changed");
+    reset_select_options_by_id(ID_TABLE_PICKER, table_options);
+    table_changed();
+}
+
 function populate() {
-    var table_picker = document.getElementById(ID_TABLE_PICKER),
+    var schema_picker = document.getElementById(ID_SCHEMA_PICKER),
+        table_picker = document.getElementById(ID_TABLE_PICKER),
         column_picker = document.getElementById(ID_COLUMN_PICKER),
         where_op_picker = document.getElementById(ID_WHERE_OP),
-        i,
-        tname,
-        table_names = get_all_table_names(),
-        table_options = [];
+        schema_names = get_all_schema_names(),
+        schema_options = get_select_options_from_list(schema_names);
     // log("populate");
-    // log("... table_names: " + table_names);
-    for (i = 0; i < table_names.length; ++i) {
-        tname = table_names[i];
-        table_options.push({text: tname, value: tname});
-    }
-    // log("... table_options: " + table_options);
-    where_op_picker.addEventListener("change", where_op_changed);
-    column_picker.addEventListener("change", column_changed);
-    reset_select_options(table_picker, table_options);
-    set_table(STARTING_VALUES.table);
+    schema_picker.addEventListener("change", schema_changed);
     table_picker.addEventListener("change", table_changed);
+    column_picker.addEventListener("change", column_changed);
+    where_op_picker.addEventListener("change", where_op_changed);
+    reset_select_options(schema_picker, schema_options);
+    set_schema(STARTING_VALUES.schema);
+    set_table(STARTING_VALUES.table);
     set_column(STARTING_VALUES.column);
     set_op(STARTING_VALUES.op);
     set_input_value_by_id(ID_WHERE_VALUE_DATE, STARTING_VALUES.date_value);

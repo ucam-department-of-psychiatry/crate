@@ -4,15 +4,15 @@
 from collections import OrderedDict
 from functools import lru_cache
 import logging
-import os
+# import os
 
 from django.db import connections, models
 from django.conf import settings
 # from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 
-from crate_anon.anonymise.config import Config
-from crate_anon.anonymise.constants import CONFIG_ENV_VAR
+# from crate_anon.anonymise.config import Config
+# from crate_anon.anonymise.constants import CONFIG_ENV_VAR
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
@@ -295,45 +295,97 @@ class Highlight(models.Model):
 
 
 # =============================================================================
-# Information about the data dictionary, if used
-# =============================================================================
-
-@lru_cache(maxsize=None)
-def get_anon_config():
-    config_filename = settings.CRATE_ANON_CONFIG
-    if not config_filename:
-        return None
-    os.environ[CONFIG_ENV_VAR] = config_filename
-    config = Config(open_databases=False)
-    if settings.CRATE_DD_SRC_DIALECT:
-        config.set_default_src_dialect(settings.CRATE_DD_SRC_DIALECT)
-    if settings.CRATE_DD_DEST_DIALECT:
-        config.set_default_dest_dialect(settings.CRATE_DD_DEST_DIALECT)
-    return config
-
-
-@lru_cache(maxsize=None)
-def get_data_dictionary():
-    config = get_anon_config()
-    if not config:
-        return None
-    config.load_dd(check_against_source_db=False)
-    dd = config.dd
-    dd.set_src_sql_coltypes()  # since we're not using check_against_source_db
-    return dd
-
-
-@lru_cache(maxsize=None)
-def get_trid_fieldname():
-    config = get_anon_config()
-    if not config:
-        return None
-    return config.trid_fieldname
-
-
-# =============================================================================
 # Information about the research database
 # =============================================================================
+
+SQLTYPES_INTEGER = [
+    "INT", "INTEGER",
+    "TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT",
+    "BIT", "BOOL", "BOOLEAN",
+]
+SQLTYPES_FLOAT = [
+    "DOUBLE", "FLOAT", "DEC", "DECIMAL",
+]
+SQLTYPES_TEXT = [
+    "CHAR", "VARCHAR", "NVARCHAR",
+    "TINYTEXT", "TEXT", "NTEXT", "MEDIUMTEXT", "LONGTEXT",
+]
+SQLTYPES_WITH_DATE = [
+    "DATE", "DATETIME", "TIMESTAMP",
+]
+# SQLTYPES_BINARY = [
+#     "BINARY", "BLOB", "IMAGE", "LONGBLOB", "VARBINARY",
+# ]
+
+
+class ColumnInfo(object):
+    # See also querybuilder.js
+    DATATYPE_INTEGER = "int"
+    DATATYPE_FLOAT = "float"
+    DATATYPE_DATE = "date"
+    DATATYPE_STRING = "string"
+    DATATYPE_STRING_FULLTEXT = "string_fulltext"
+    DATATYPE_UNKNOWN = "unknown"
+    STRING_TYPES = [DATATYPE_STRING, DATATYPE_STRING_FULLTEXT]
+
+    def __init__(self, **kwargs):
+        self.table_schema = kwargs.pop('table_schema')
+        self.table_name = kwargs.pop('table_name')
+        self.column_name = kwargs.pop('column_name')
+        self.is_nullable = kwargs.pop('is_nullable')
+        self.column_type = kwargs.pop('column_type')
+        self.column_comment = kwargs.pop('column_comment')
+        self.indexed = kwargs.pop('indexed')
+        self.indexed_fulltext = kwargs.pop('indexed_fulltext')
+
+    @property
+    def basetype(self):
+        return self.column_type.split("(")[0].upper()
+
+    @property
+    def querybuilder_type(self):
+        """
+        Returns a string that is defined in querybuilder.js
+        """
+        basetype = self.basetype
+        if basetype in SQLTYPES_FLOAT:
+            return self.DATATYPE_FLOAT
+        if basetype in SQLTYPES_WITH_DATE:
+            return self.DATATYPE_DATE
+        if basetype in SQLTYPES_TEXT:
+            if self.indexed_fulltext:
+                return self.DATATYPE_STRING_FULLTEXT
+            else:
+                return self.DATATYPE_STRING
+        if basetype in SQLTYPES_INTEGER:
+            return self.DATATYPE_INTEGER
+        return self.DATATYPE_UNKNOWN
+
+
+def get_researchdb_schemas():
+    return [x['schema'] for x in settings.RESEARCH_DB_INFO]
+
+
+def get_default_schema():
+    return settings.DATABASES['research']['NAME']
+
+
+def get_schema_info(schema_name):
+    schemas = [x for x in settings.RESEARCH_DB_INFO
+               if x['schema'] == schema_name]
+    if not schemas:
+        log.warning("No such schema: {}".format(schema_name))
+        return None
+    return schemas[0]
+
+
+@lru_cache(maxsize=None)
+def get_trid_fieldname(schema_name):
+    schema_info = get_schema_info(schema_name)
+    if not schema_info:
+        return None
+    return schema_info['trid_field']
+
 
 class ResearchDatabaseInfo(object):
     """
@@ -354,7 +406,7 @@ class ResearchDatabaseInfo(object):
         elif vendor == 'postgresql':
             schemas = ['public']
         else:
-            schemas = settings.RESEARCH_DB_INFO_SCHEMAS
+            schemas = get_researchdb_schemas()
         log.debug("Fetching/caching database structure "
                   "(for schemas: {})...".format(", ".join(schemas)))
         schema_placeholder = ",".join(["?"] * len(schemas))
@@ -419,7 +471,7 @@ SELECT
     d.table_name,
     d.column_name,
     d.is_nullable,
-    d.column_type,
+    d.column_type AS column_type,
     d.column_comment,
     d.indexed,
     MAX(d.indexed_fulltext) AS indexed_fulltext
@@ -594,6 +646,12 @@ ORDER BY
         # - Too much hassle to use Django's ORM model here, though that would
         #   also be possible.
         # - http://stackoverflow.com/questions/907806
+        # - Similarly via SQLAlchemy reflection/inspection.
+
+    @lru_cache(maxsize=None)
+    def get_colinfolist(self):
+        infodictlist = self.get_infodictlist()
+        return [ColumnInfo(**d) for d in infodictlist]
 
     @lru_cache(maxsize=None)
     def get_infodictlist_by_tables(self):
@@ -617,7 +675,7 @@ ORDER BY
         Returns a list of [schema, table] pairs.
         The information_schema method is ANSI SQL.
         """
-        schemas = settings.RESEARCH_DB_INFO_SCHEMAS
+        schemas = get_researchdb_schemas()
         sql = translate_sql_qmark_to_percent("""
             SELECT
                 c.table_schema,

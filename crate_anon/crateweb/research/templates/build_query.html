@@ -7,7 +7,7 @@
 {% block extrahead %}
     <script type="text/javascript" src="{% static 'querybuilder.js' %}"></script>
     <script type="text/javascript">
-var TABLES_FIELDS = {{ tables_fields|safe }},
+var DATABASE_STRUCTURE = {{ database_structure|safe }},
     STARTING_VALUES = {{ starting_values|safe }};
     </script>
 {% endblock %}
@@ -53,6 +53,7 @@ var TABLES_FIELDS = {{ tables_fields|safe }},
     <form action="{% url 'build_query' %}" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <!-- name tags must match QueryBuilderForm -->
+        <select id="id_schema" name="schema" title="Database schema"></select>
         <select id="id_table" name="table" title="Database table"></select>
         <select id="id_column" name="column" title="Column (field) within table"></select>
         <input id="id_coltype" type="hidden" name="datatype" title="" value="">
@@ -72,18 +73,6 @@ var TABLES_FIELDS = {{ tables_fields|safe }},
 
     <h2>Tips</h2>
     <ul>
-        <li>This query builder only looks at fields in the <b>data
-            dictionary</b> that was used to create the research database,
-            and then still only tables that are connected to patients (not
-            “system” tables with no connection to a patient). If you want to
-            explore all the tables, explore the database structure using the
-            options on the <a href="{% url 'home' %}">Main menu</a>,
-            and use the <a href="{% url 'query' %}">SQL view</a> to create
-            a more complex query.</li>
-
-        <li>This query builder parses the SQL you start with, and then
-            adds more pieces. It is less powerful than arbitrary SQL.</li>
-
         <li>Inexact string comparison can be done in several ways:
             <ul>
                 <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">LIKE</a>,
@@ -102,9 +91,11 @@ var TABLES_FIELDS = {{ tables_fields|safe }},
                     and use a <a href="http://regexr.com/">regular expression tester</a>.</li>
             </ul></li>
 
+        <li>This query builder parses the SQL you start with, and then
+            adds more pieces. It is less powerful than arbitrary SQL.</li>
 
         <li>
-            The things that are are better done with raw SQL include:
+            Things that are are better done with raw SQL include:
             <ul>
                 <li>Combining expressions with OR, or in complex ways.</li>
                 <li>Restricting to a set of values with IN.</li>
@@ -115,7 +106,35 @@ var TABLES_FIELDS = {{ tables_fields|safe }},
 
         <li>If you use a file (for IN or NOT IN clauses), this file should be
             in ASCII or UTF-8 format, with one value per line. Lines will
-            be stripped of whitespace (left + right).</li>
+            be stripped of whitespace (left + right). Lines starting with
+            a # character will be treated as comments and ignored.</li>
+
+    </ul>
+
+    <h2>Explanation</h2>
+    <ul>
+        <li>This query builder <b>only looks at tables that contain patient
+            information</b> (as judged by the presence of the “transient
+            research ID” (TRID) field, defined by your database manager).
+            It ignores “system” tables with no connection to a patient.
+            If you want to explore all the tables, explore the database
+            structure using the options on the
+            <a href="{% url 'home' %}">Main menu</a>, and use the
+            <a href="{% url 'query' %}">SQL view</a> to create a more complex
+            query.</li>
+
+        <li>The query builder will automatically JOIN tables based on a shared
+            TRID (i.e. records for the same patient). The TRID is a numerical
+            value that identifies a patient. It’s quicker for queries than the
+            “master research ID” (RID), but the RID will stay constant if/when
+            the research database is rebuilt, and the TRID might change, so
+            you should make a note of the RID if you want to save data.
+            The RID is typically an encrypted patient identifier from the source
+            database; the TRID is taken from a one-time pad.</li>
+
+        <li>More complex automatic joins across databases are
+            <b>not yet implemented.</b></li>
+
     </ul>
 
 {% endblock %}
