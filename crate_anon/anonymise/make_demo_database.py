@@ -185,8 +185,7 @@ def main():
              "(default={})".format(default_size))
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument("--echo", action="store_true",
-                        help="Echo SQL")
+    parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--doctest_doc", default=DOCTEST_DOC,
         help="Test file for .DOC (default: {})".format(DOCTEST_DOC))

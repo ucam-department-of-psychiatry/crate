@@ -4,7 +4,7 @@
     <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
       <option name="ignoredPackages">
         <value>
-          <list size="19">
+          <list size="21">
             <item index="0" class="java.lang.String" itemvalue="django" />
             <item index="1" class="java.lang.String" itemvalue="pytz" />
             <item index="2" class="java.lang.String" itemvalue="celery" />
@@ -24,6 +24,8 @@
             <item index="16" class="java.lang.String" itemvalue="arrow" />
             <item index="17" class="java.lang.String" itemvalue="pyparsing" />
             <item index="18" class="java.lang.String" itemvalue="sqlparse" />
+            <item index="19" class="java.lang.String" itemvalue="openpyxl" />
+            <item index="20" class="java.lang.String" itemvalue="xlrd" />
           </list>
         </value>
       </option>

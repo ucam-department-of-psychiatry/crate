@@ -182,6 +182,10 @@ setup(
         'sqlparse==0.1.19',
         'Werkzeug==0.10.4',
 
+        # ONSPD:
+        'openpyxl==2.3.5',
+        'xlrd==1.0.0',
+
         # Serving:
         'gunicorn==19.3.0',  # UNIX only, though will install under Windows
         'cherrypy==5.1.0',  # Cross-platform
@@ -246,6 +250,8 @@ setup(
             'crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main',  # noqa
 
             'crate_windows_service=crate_anon.tools.winservice:main',
+
+            'crate_geography=crate_anon.tools.geography:main',
         ],
     },
 )
