@@ -251,7 +251,7 @@ setup(
 
             'crate_windows_service=crate_anon.tools.winservice:main',
 
-            'crate_geography=crate_anon.tools.geography:main',
+            'crate_postcodes=crate_anon.tools.postcodes:main',
         ],
     },
 )
