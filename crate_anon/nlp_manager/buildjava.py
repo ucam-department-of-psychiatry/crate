@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate/nlp_manager/buildjava.py
+# crate_anon/nlp_manager/buildjava.py
 
 """
 Script to compile Java source for CrateGatePipeline

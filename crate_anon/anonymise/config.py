@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anon/anonymise/anon_config.py
+# crate_anon/anonymise/config.py
 
 """
 Config class for CRATE anonymiser.

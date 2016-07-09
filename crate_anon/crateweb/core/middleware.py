@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# core/middleware.py
+# crate_anon/crateweb/core/middleware.py
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse

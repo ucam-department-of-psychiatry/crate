@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# core/constants.py
+# crate_anon/crateweb/core/constants.py
 
 LEN_ADDRESS = 100
 LEN_FIELD_DESCRIPTION = 100

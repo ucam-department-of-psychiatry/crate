@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# manage.py
+# crate_anon/crateweb/manage.py
 
 import logging
 import os

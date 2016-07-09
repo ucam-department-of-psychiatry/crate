@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anon/anonymise/anon_dd.py
+# crate_anon/anonymise/dd.py
 
 """
 Data dictionary classes for CRATE anonymiser.

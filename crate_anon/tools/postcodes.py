@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# crate_anon/tools/postcodes.py
 
 """
 Code-Point Open, CSV, GB
@@ -1339,7 +1340,7 @@ def main():
         "--dir", default=DEFAULT_ONSPD_DIR,
         help="Root directory of unzipped ONSPD download (default: {})".format(
             DEFAULT_ONSPD_DIR))
-    parser.add_argument("--url", help="SQLAlchemy database URL")
+    parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--reportevery", type=int, default=DEFAULT_REPORT_EVERY,

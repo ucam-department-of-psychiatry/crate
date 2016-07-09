@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate_anon/anonymise/anon_patient.py
+# crate_anon/anonymise/patient.py
 
 """
 Patient class for CRATE anonymiser.

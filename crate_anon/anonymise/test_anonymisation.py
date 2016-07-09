@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate/anonymise/test_anonymisation.py
+# crate_anon/anonymise/test_anonymisation.py
 
 """
 Test the anonymisation for specific databases.

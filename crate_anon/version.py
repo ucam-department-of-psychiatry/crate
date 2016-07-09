@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate/version.py
+# crate_anon/version.py
 
 """
 Author: Rudolf Cardinal

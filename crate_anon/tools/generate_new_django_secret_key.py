@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# tools/generate_new_django_secret_key.py
+# crate_anon/tools/generate_new_django_secret_key.py
 
 # See django.core.management.commands.startproject.Command.handle
 

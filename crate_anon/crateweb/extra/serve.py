@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# extra/serve.py
+# crate_anon/crateweb/extra/serve.py
 
 import os
 from django.conf import settings

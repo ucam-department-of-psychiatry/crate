@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# extra/middleware.py
+# crate_anon/crateweb/extra/middleware.py
 
 import logging
 from re import compile

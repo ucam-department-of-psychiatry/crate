@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# extra/pdf.py
+# crate_anon/crateweb/extra/pdf.py
 
 import io
 import logging

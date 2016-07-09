@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# research/dbfunc.py
+# crate_anon/crateweb/core/dbfunc.py
 
 from collections import OrderedDict
 # import logging

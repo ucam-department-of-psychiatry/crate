@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# consent/views.py
+# crate_anon/crateweb/consent/views.py
 
 import logging
 import mimetypes

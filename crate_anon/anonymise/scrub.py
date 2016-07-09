@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# crate/anonymise/anon_scrub.py
+# crate_anon/anonymise/scrub.py
 
 """
 Scrubber classes for CRATE anonymiser.

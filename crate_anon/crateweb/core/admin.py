@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# core/admin.py
+# crate_anon/crateweb/core/admin.py
 
 # NOTE that
 # - Objects for which a user is not authorized, via get_queryset(), will

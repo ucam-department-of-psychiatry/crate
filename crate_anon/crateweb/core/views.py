@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# core/views.py
+# crate_anon/crateweb/core/views.py
 
 import logging
 from django.conf import settings
@@ -28,3 +28,11 @@ def home(request):
     }
     context.update(query_context(request))
     return render(request, 'home.html', context)
+
+
+# =============================================================================
+# About
+# =============================================================================
+
+def about(request):
+    return render(request, 'about.html')

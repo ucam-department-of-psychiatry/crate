@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# consent/utils.py
+# crate_anon/crateweb/consent/utils.py
 
 from functools import lru_cache
 import os

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# crate_anon/tools/estimate_mysql_memory_usage.py
 #
 # Script to check the memory usage (approximately) of a running MySQL instance.
 #

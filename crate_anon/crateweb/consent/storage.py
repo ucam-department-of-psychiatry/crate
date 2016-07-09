@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# consent/storage.py
+# crate_anon/crateweb/consent/storage.py
 
 import logging
 from django.core.files.storage import FileSystemStorage

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# core/utils.py
+# crate_anon/crateweb/core/utils.py
 
 import logging
 import re

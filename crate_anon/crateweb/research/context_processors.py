@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# research/context_processors.py
+# crate_anon/crateweb/research/context_processors.py
 
 from django.conf import settings
 # from crate_anon.crateweb.research.models import Query

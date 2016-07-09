@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# core/auth_views.py
+# crate_anon/crateweb/core/auth_views.py
 
 import logging
 from django.contrib.auth import login, logout, update_session_auth_hash

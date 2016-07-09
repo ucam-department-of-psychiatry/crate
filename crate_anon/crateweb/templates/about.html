@@ -1,0 +1,29 @@
+{# about.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>About: Clinical Records Anonymisation and Text Extraction (CRATE)</h1>
+
+    <h2>Sources</h2>
+    <ul>
+        <li>Source code: <a href="https://github.com/RudolfCardinal/crate">https://github.com/RudolfCardinal/crate</a></li>
+        <li>Python package: <a href="https://pypi.python.org/pypi/crate-anon">https://pypi.python.org/pypi/crate-anon</a></li>
+    </ul>
+
+    <h2>ONS Postcode Database licensing</h2>
+    <p>The UK Office of National Statistics (ONS) Postcode Database (ONSPD)
+        is not part of CRATE, but codes from it may have been installed by
+        your administrator. If so, the following apply:</p>
+    <ul>
+        <li>Contains OS data © Crown copyright and database right 2016</li>
+        <li>Contains Royal Mail data © Royal Mail copyright and database right 2016</li>
+        <li>Contains National Statistics data © Crown copyright and database right 2016</li>
+    </ul>
+    <p>See also</p>
+    <ul>
+        <li><a href="https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page">https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page</a></li>
+        <li><a href="http://www.ons.gov.uk/methodology/geography/licences">http://www.ons.gov.uk/methodology/geography/licences</a></li>
+    </ul>
+{% endblock %}

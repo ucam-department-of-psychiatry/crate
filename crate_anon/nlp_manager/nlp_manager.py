@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# nlp_manager/nlp_manager.py
+# crate_anon/nlp_manager/nlp_manager.py
 
 """
 Manage natural-language processing (NLP) via external tools.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# extra/admin.py
+# crate_anon/crateweb/extra/admin.py
 
 import logging
 from django.contrib import admin

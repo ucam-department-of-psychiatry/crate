@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# userprofile/views.py
+# crate_anon/crateweb/userprofile/views.py
 
 from django.shortcuts import redirect, render
 from crate_anon.crateweb.userprofile.forms import UserProfileForm
