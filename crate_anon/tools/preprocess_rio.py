@@ -3,6 +3,7 @@
 
 import argparse
 import logging
+import sys
 
 from sqlalchemy import (
     Column,
@@ -37,16 +38,14 @@ RCEP_TABLE_PROGRESS_NOTES = "Progress_Notes"
 CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
 
 # Columns in RiO Core:
-# RIO_COL_INDICATING_PATIENT_TABLE = "ClientID"  # RiO 6.2: VARCHAR(15)
-RIO_COL_INDICATING_PATIENT_TABLE = "pct_code"
+RIO_COL_INDICATING_PATIENT_TABLE = "ClientID"  # RiO 6.2: VARCHAR(15)
 RIO_COL_NHS_NUMBER = "NNN"  # RiO 6.2: CHAR(10) ("National NHS Number")
 RIO_COL_POSTCODE = "PostCode"  # ClientAddress.PostCode
 
 # Columns in RCEP extract:
-# RCEP_COL_INDICATING_PATIENT_TABLE = "Client_ID"  # RCEP: VARCHAR(15)
-RCEP_COL_INDICATING_PATIENT_TABLE = "pct_code"
+RCEP_COL_INDICATING_PATIENT_TABLE = "Client_ID"  # RCEP: VARCHAR(15)
 RCEP_COL_NHS_NUMBER = "NHS_Number"  # RCEP: CHAR(10)
-RCEP_COL_POSTCODE = "***"
+RCEP_COL_POSTCODE = "***" # ***
 
 # Columns in ONS Postcode Database (from CRATE import):
 ONSPD_TABLE_POSTCODE = "postcode"
@@ -76,30 +75,46 @@ VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography"
 # Ancillary functions
 # =============================================================================
 
-def execute(engine, sql):
-    log.debug(sql)
-    # engine.execute(sql)
+def die(msg):
+    log.critical(msg)
+    sys.exit(1)
 
 
-def add_columns_if_absent(engine, table, name_coltype_dict):
+def execute(engine, args, sql):
+    if args.debug:
+        log.warning(sql)
+    else:
+        engine.execute(sql)
+
+
+def add_columns_if_absent(engine, args, table, name_coltype_dict):
     column_names = table.columns.keys()
-    add_fragments = []
+    column_defs = []
     for name, coltype in name_coltype_dict.items():
         if name not in column_names:
-            add_fragments.append("{} {}".format(name, coltype))
-    if add_fragments:
-        log.info("Table '{}': adding columns {}".format(
-            table.name, repr(add_fragments)))
-        execute(engine, """
-            ALTER TABLE {tablename} ADD {fragments}
-        """.format(tablename=table.name, fragments=", ".join(add_fragments)))
+            column_defs.append("{} {}".format(name, coltype))
+    # ANSI SQL: add one column at a time: ALTER TABLE ADD [COLUMN] coldef
+    #   - i.e. "COLUMN" optional, one at a time, no parentheses
+    #   - http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+    # MySQL: ALTER TABLE ADD [COLUMN] (a INT, b VARCHAR(32));
+    #   - i.e. "COLUMN" optional, parentheses required for >1, multiple OK
+    #   - http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
+    # MS SQL Server: ALTER TABLE ADD COLUMN a INT, B VARCHAR(32);
+    #   - i.e. no "COLUMN", no parentheses, multiple OK
+    #   - https://msdn.microsoft.com/en-us/library/ms190238.aspx
+    #   - https://msdn.microsoft.com/en-us/library/ms190273.aspx
+    #   - http://stackoverflow.com/questions/2523676/alter-table-add-multiple-columns-ms-sql  # noqa
+    # SQLAlchemy doesn't provide a shortcut for this.
+    for column_def in column_defs:
+        log.info("Table '{}': adding column {}".format(
+            table.name, column_def))
+        execute(engine, args, """
+            ALTER TABLE {tablename} ADD {column_def}
+        """.format(tablename=table.name, column_def=column_def))
 
 
-def add_index_if_absent(engine, table, indexdictlist):
-    inspector = inspect(engine)
-    indexes = inspector.get_indexes(table.name)
-    existing_index_names = [x['name'] for x in indexes]
-    # http://docs.sqlalchemy.org/en/latest/core/reflection.html
+def add_index_if_absent(engine, args, table, indexdictlist):
+    existing_index_names = get_index_names(engine, table=table)
     for idxdefdict in indexdictlist:
         index_name = idxdefdict['index_name']
         column = idxdefdict['column']
@@ -107,14 +122,56 @@ def add_index_if_absent(engine, table, indexdictlist):
         if index_name not in existing_index_names:
             log.info("Table '{}': adding index '{}' on columns '{}'".format(
                 table.name, index_name, column))
-            execute(engine, """
-              CREATE {unique} INDEX {idxname} ON {tablename} ({column})
+            execute(engine, args, """
+              CREATE{unique} INDEX {idxname} ON {tablename} ({column})
             """.format(
-                unique="UNIQUE" if unique else "",
+                unique=" UNIQUE" if unique else "",
                 idxname=index_name,
                 tablename=table.name,
                 column=column,
             ))
+
+
+def get_column_names(engine, tablename=None, table=None):
+    """
+    Reads columns names afresh from the database (in case metadata is out of
+    date.
+    """
+    if (table is not None) == bool(tablename):
+        log.critical(repr(table))
+        log.critical(repr(tablename))
+        die("get_column_names needs either table or tablename")
+    tablename = tablename or table.name
+    inspector = inspect(engine)
+    columns = inspector.get_columns(tablename)
+    column_names = [x['name'] for x in columns]
+    return column_names
+
+
+def get_index_names(engine, tablename=None, table=None):
+    """
+    Reads index names from the database.
+    """
+    # http://docs.sqlalchemy.org/en/latest/core/reflection.html
+    if (table is not None) == bool(tablename):
+        die("get_index_names needs either table or tablename")
+    tablename = tablename or table.name
+    inspector = inspect(engine)
+    indexes = inspector.get_indexes(tablename)
+    index_names = [x['name'] for x in indexes]
+    return index_names
+
+
+def ensure_columns_present(engine, table=None, tablename=None, column_names=None):
+    if not column_names:
+        die("ensure_columns_present requires column_names")
+    if (table is not None) == bool(tablename):
+        die("ensure_columns_present needs either table or tablename")
+    tablename = tablename or table.name
+    existing_column_names = get_column_names(engine, tablename=tablename)
+    for col in column_names:
+        if col not in existing_column_names:
+            die("Column '{}' missing from table '{}'".format(col, tablename))
 
 
 # =============================================================================
@@ -126,7 +183,7 @@ def process_patient_table(table, engine, args):
     # -------------------------------------------------------------------------
     # Add pk and rio_number columns, if not present
     # -------------------------------------------------------------------------
-    add_columns_if_absent(engine, table, {
+    add_columns_if_absent(engine, args, table, {
         CRATE_COL_PK: 'INTEGER',
         CRATE_COL_RIO_NUMBER: 'INTEGER',
     })
@@ -135,10 +192,13 @@ def process_patient_table(table, engine, args):
     # -------------------------------------------------------------------------
     log.info("Table {}: updating columns {}, {}".format(
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
+    column_names = get_column_names(engine, table=table)
     if args.rio or table.name == args.full_prognotes_table:
         # ... the extra condition covering the CPFT hacked-in RiO table within
         # an otherwise RCEP database
-        execute(engine, """
+        ensure_columns_present(engine, table=table, column_names=[
+            "SequenceID", "ClientID", CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+        execute(engine, args, """
         UPDATE {tablename} SET
             {pk} = SequenceID,  -- PK in RiO 6.2; INT
             {rio_number} = CAST(ClientID AS INTEGER)  -- ClientID VARCHAR(15)
@@ -152,7 +212,9 @@ def process_patient_table(table, engine, args):
         ))
     else:
         # RCEP format
-        execute(engine, """
+        ensure_columns_present(engine, table=table, column_names=[
+            "Document_ID", "ClientID", CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+        execute(engine, args, """
             UPDATE {tablename} SET
                 -- In RCEP, Document_ID is VARCHAR(MAX), and is effectively:
                 -- 'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
@@ -176,7 +238,10 @@ def process_patient_table(table, engine, args):
     # -------------------------------------------------------------------------
     # Add indexes, if absent
     # -------------------------------------------------------------------------
-    add_index_if_absent(engine, table, [
+    # Note that the indexes are unlikely to speed up the WHERE NOT NULL search
+    # above, so it doesn't matter that we add these last. Their use is for
+    # the subsequent CRATE anonymisation table scans.
+    add_index_if_absent(engine, args, table, [
         {
             'index_name': CRATE_IDX_PK,
             'column': CRATE_COL_PK,
@@ -194,7 +259,7 @@ def process_patient_table(table, engine, args):
 # =============================================================================
 
 def process_master_patient_table(table, engine, args):
-    add_columns_if_absent(engine, table, {
+    add_columns_if_absent(engine, args, table, {
         'nhs_number_int': 'BIGINT',
     })
     if args.rcep:
@@ -202,33 +267,40 @@ def process_master_patient_table(table, engine, args):
     else:
         nhscol = RIO_COL_NHS_NUMBER
     log.info("Table {}: updating columns {}, {}".format(table.name, nhscol))
-    execute(engine, """
+    ensure_columns_present(engine, table=table, column_names=[
+        "nhs_number_int", nhscol])
+    execute(engine, args, """
         UPDATE {tablename} SET
             nhs_number_int = CAST({nhscol}} AS BIGINT)
     """.format(
         tablename=table.name,
-        nhsfield=nhscol,
+        nhscol=nhscol,
     ))
 
 
 def process_progress_notes(table, engine, args):
-    add_columns_if_absent(engine, table, {
+    add_columns_if_absent(engine, args, table, {
         'max_subnum_for_notenum': 'INTEGER',
         'last_note_in_edit_chain': 'INTEGER',
     })
     # We're always in "RiO land", not "RCEP land", for this one.
-    add_index_if_absent(engine, table, [
+    add_index_if_absent(engine, args, table, [
         {
             'index_name': CRATE_IDX_RIONUM_NOTENUM,
             'column': 'rio_number, NoteNum',  # join index, for UPDATE below
         },
     ])
 
+    ensure_columns_present(engine, table=table, column_names=[
+        "max_subnum_for_notenum", "last_note_in_edit_chain",
+        "rio_number", "NoteNum", "SubNum",
+        "EnteredInError", "EnteredInError"])
+
     # Find the maximum SubNum for each note, and store it.
     # Slow query, even with index.
     log.info("Progress notes table '{}': "
              "updating 'max_subnum_for_notenum'".format(table.name))
-    execute(engine, """
+    execute(engine, args, """
         UPDATE p1
         SET p1.max_subnum_for_notenum = subq.max_subnum
         FROM {tablename} p1 JOIN (
@@ -238,25 +310,25 @@ def process_progress_notes(table, engine, args):
         ) subq
         ON subq.rio_number = p1.rio_number
         AND subq.NoteNum = p1.NoteNum
-        WHERE p1.max_subnum_for_notenum IS NULL;
+        WHERE p1.max_subnum_for_notenum IS NULL
     """.format(tablename=table.name))
 
     # Set a single column accordingly
     log.info("Progress notes table '{}': "
              "updating 'last_note_in_edit_chain'".format(table.name))
-    execute(engine, """
+    execute(engine, args, """
         UPDATE {tablename} SET
             last_note_in_edit_chain =
                 CASE
                     WHEN SubNum = max_subnum_for_notenum THEN 1
                     ELSE 0
                 END
-        WHERE last_note_in_edit_chain IS NULL;
+        WHERE last_note_in_edit_chain IS NULL
     """.format(tablename=table.name))
 
     # Create a view
     log.info("Creating view '{}'".format(VIEW_PROGRESS_NOTES_CURRENT))
-    execute(engine, """
+    execute(engine, args, """
         CREATE VIEW {viewname} AS
             SELECT *
             FROM {tablename}
@@ -279,9 +351,7 @@ def add_postcode_geography_view(engine, args):
     else:
         addresstable = RCEP_TABLE_ADDRESS
         rio_postcodecol = RCEP_COL_POSTCODE
-    inspector = inspect(engine)
-    orig_columns = inspector.get_columns(addresstable)
-    orig_column_names = [x['name'] for x in orig_columns]
+    orig_column_names = get_column_names(engine, tablename=addresstable)
     orig_column_specs = [
         "{t}.{c}".format(t=addresstable, c=col)
         for col in orig_column_names
@@ -294,31 +364,33 @@ def add_postcode_geography_view(engine, args):
     ]
     overlap = set(orig_column_names) & set(args.geogcols)
     if overlap:
-        raise ValueError(
-            "Columns overlap: address table contains columns {}; "
+        die("Columns overlap: address table contains columns {}; "
             "geogcols = {}; overlap = {}".format(
                 orig_column_names, args.geogcols, overlap))
     log.info("Creating view '{}'".format(VIEW_ADDRESS_WITH_GEOGRAPHY))
-    execute(engine, """
+    ensure_columns_present(engine, tablename=addresstable, column_names=[
+        rio_postcodecol])
+    execute(engine, args, """
         CREATE VIEW {viewname} AS
             SELECT {origcols},
                    {geogcols}
-            FROM {addrtab}
+            FROM {addresstable}
             LEFT JOIN {pdb}.{pcdtab}
-            ON REPLACE({addrtab}.{rio_postcodecol},
+            ON REPLACE({addresstable}.{rio_postcodecol},
                        ' ',
                        '') = {pdb}.{pcdtab}.pcd_nospace
-            -- Since we can't guarantee RiO's postcode space formatting,
-            -- we compare to the no-space version.
+            -- Since we can't guarantee RiO's postcode space formatting, from
+            -- NVARCHAR(10) columns, we compare to the no-space version.
     """.format(  # noqa
         viewname=VIEW_ADDRESS_WITH_GEOGRAPHY,
-        addrtab=addresstable,
+        addresstable=addresstable,
         origcols=", ".join(orig_column_specs),
         geogcols=", ".join(geog_col_specs),
         pdb=args.postcodedb,
         pcdtab=ONSPD_TABLE_POSTCODE,
         rio_postcodecol=rio_postcodecol,
     ))
+
 
 # =============================================================================
 # Table action selector
@@ -327,7 +399,7 @@ def add_postcode_geography_view(engine, args):
 def process_table(table, engine, args):
     tablename = table.name
     column_names = table.columns.keys()
-    log.debug("TABLE: {}; COLUMNS: {}".format(tablename, column_names))
+    log.debug("TABLE: '{}'; COLUMNS: {}".format(tablename, column_names))
 
     # Generic
     if args.patient_table_indicator_column in column_names:
@@ -348,13 +420,15 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=
         r"""
--   Alters a RiO database to be suitable for CRATE.
+*   Alters a RiO database to be suitable for CRATE.
 
--   By default, this treats the source database as being a copy of a RiO 6.2
-    database. Use the "--rcep" (+/- "--cpft") switches to treat it as a
+*   By default, this treats the source database as being a copy of a RiO 6.2
+    database. Use the "--rcep" (+/- "--cpft") switch(es) to treat it as a
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
     """)  # noqa
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
+    parser.add_argument("--debug", action="store_true",
+                        help="Show SQL but do not execute it")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--rcep", action="store_true",
@@ -370,9 +444,9 @@ def main():
              "imported by CRATE) to link to addresses as a view")
     parser.add_argument(
         "--geogcols", nargs="*", default=DEFAULT_GEOG_COLS,
-        help="List of columns to link in from ONS Postcode Database. BEWARE "
-             "that you do not specify anything too identifying. Default: "
-             "{}".format(DEFAULT_GEOG_COLS))
+        help="List of geographical information columns to link in from ONS "
+             "Postcode Database. BEWARE that you do not specify anything too "
+             "identifying. Default: {}".format(' '.join(DEFAULT_GEOG_COLS)))
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     args = parser.parse_args()
 
@@ -397,8 +471,7 @@ def main():
         args.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
     if args.postcodedb and not args.geogcols:
-        raise ValueError("If you specify postcodedb, you must specify some "
-                         "geogcols")
+        die("If you specify postcodedb, you must specify some geogcols")
 
     log.debug("args = {}".format(repr(args)))
 
