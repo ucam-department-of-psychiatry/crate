@@ -90,6 +90,7 @@ def format_sql_for_print(sql):
 
 
 def execute(engine, args, sql):
+    log.debug(sql)
     if args.print:
         print(format_sql_for_print(sql) + "\n;")
         # extra \n in case the SQL ends in a comment
@@ -103,6 +104,9 @@ def add_columns_if_absent(engine, args, table, name_coltype_dict):
     for name, coltype in name_coltype_dict.items():
         if name not in column_names:
             column_defs.append("{} {}".format(name, coltype))
+        else:
+            log.debug("Table '{}': column '{}' already exists; not "
+                      "adding".format(table.name, name))
     # ANSI SQL: add one column at a time: ALTER TABLE ADD [COLUMN] coldef
     #   - i.e. "COLUMN" optional, one at a time, no parentheses
     #   - http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
@@ -140,6 +144,9 @@ def add_index_if_absent(engine, args, table, indexdictlist):
                 tablename=table.name,
                 column=column,
             ))
+        else:
+            log.debug("Table '{}': index '{}' already exists; not "
+                      "adding".format(table.name, index_name))
 
 
 def get_column_names(engine, tablename=None, table=None):
