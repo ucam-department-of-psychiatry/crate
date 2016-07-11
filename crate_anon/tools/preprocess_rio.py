@@ -284,7 +284,7 @@ def process_master_patient_table(table, engine, args):
             CRATE_COL_NHS_NUMBER])
     execute(engine, args, """
         UPDATE {tablename} SET
-            {nhs_number_int} = CAST({nhscol}} AS BIGINT)
+            {nhs_number_int} = CAST({nhscol} AS BIGINT)
     """.format(
         tablename=table.name,
         nhs_number_int=CRATE_COL_NHS_NUMBER,
