@@ -102,8 +102,8 @@ CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
 CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
 
 # Views added:
-VIEW_PROGRESS_NOTES_CURRENT = "crate_progress_notes_current"
-VIEW_ADDRESS_WITH_GEOGRAPHY = "crate_client_address_with_geography"
+VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"
+VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography_crate"
 
 
 # =============================================================================
