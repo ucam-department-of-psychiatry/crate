@@ -192,7 +192,7 @@ def process_patient_table(table, engine, args):
     # -------------------------------------------------------------------------
     # Update pk and rio_number values, if not NULL
     # -------------------------------------------------------------------------
-    log.info("Table {}: updating columns {}, {}".format(
+    log.info("Table '{}': updating columns '{}' and '{}'".format(
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
     column_names = get_column_names(engine, table=table)
     if args.rio or table.name == args.full_prognotes_table:
@@ -268,7 +268,7 @@ def process_master_patient_table(table, engine, args):
         nhscol = RCEP_COL_NHS_NUMBER
     else:
         nhscol = RIO_COL_NHS_NUMBER
-    log.info("Table {}: updating columns {}, {}".format(table.name, nhscol))
+    log.info("Table '{}': updating column '{}'".format(table.name, nhscol))
     ensure_columns_present(engine, table=table, column_names=[
         "nhs_number_int", nhscol])
     execute(engine, args, """
@@ -485,8 +485,7 @@ def main():
 
     engine = create_engine(args.url, echo=args.echo, encoding=MYSQL_CHARSET)
     metadata.bind = engine
-    log.critical("Database: {}".format(repr(engine.url)))
-    # ... repr hides password by default
+    log.info("Database: {}".format(repr(engine.url))) # ... repr hides password
 
     metadata.reflect(engine)
 
