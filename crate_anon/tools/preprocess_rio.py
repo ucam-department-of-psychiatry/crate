@@ -599,7 +599,8 @@ def process_table(table, engine, args):
     else:
         # CREATE STUFF!
         # Generic
-        if args.patient_table_indicator_column in column_names:
+        if (args.patient_table_indicator_column in column_names or
+                tablename == args.full_prognotes_table):  # special!
             process_patient_table(table, engine, args)
         # Specific
         if tablename == args.master_patient_table:
