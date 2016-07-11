@@ -37,9 +37,14 @@ RCEP_COL_NHS_NUMBER = "NHS_Number"  # RCEP: CHAR(10)
 RCEP_COL_POSTCODE = "Post_Code" # RCEP: NVARCHAR(10)
 # ... general format (empirically): "XX12 3YY" or "XX1 3YY"; "ZZ99" for unknown
 # This matches the ONPD "pdcs" format.
-RCEP_COL_MANGLED_PK = "Document_ID"
-# In RCEP, Document_ID is VARCHAR(MAX), and is effectively:
+RCEP_COL_MANGLED_KEY = "Document_ID"
+# In RCEP, Document_ID is VARCHAR(MAX), and is often:
 #   'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
+# HOWEVER, the last part is not always unique; e.g. Care_Plan_Interventions.
+# - Care_Plan_Interventions has massive tranches of ENTIRELY identical rows,
+#   including a column called, ironically, "Unique_Key".
+# - Therefore, we could either ditch the key entirely, or just use a non-UNIQUE
+#   index (and call it "key" not "pk").
 
 # CPFT hacks (RiO tables added to RCEP output):
 CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
@@ -241,7 +246,7 @@ def process_patient_table(table, engine, args):
     else:
         # RCEP format
         ensure_columns_present(engine, table=table, column_names=[
-            RCEP_COL_MANGLED_PK, RCEP_COL_PATIENT_ID])
+            RCEP_COL_MANGLED_KEY, RCEP_COL_PATIENT_ID])
         if not args.print:
             ensure_columns_present(engine, table=table, column_names=[
                 CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
@@ -261,7 +266,7 @@ def process_patient_table(table, engine, args):
         """.format(
             tablename=table.name,
             pk=CRATE_COL_PK,
-            rcep_mangled_pk=RCEP_COL_MANGLED_PK,
+            rcep_mangled_pk=RCEP_COL_MANGLED_KEY,
             rio_number=CRATE_COL_RIO_NUMBER,
             rcep_pt_id=RCEP_COL_PATIENT_ID,
         ))
@@ -275,7 +280,9 @@ def process_patient_table(table, engine, args):
         {
             'index_name': CRATE_IDX_PK,
             'column': CRATE_COL_PK,
-            'unique': True,
+            'unique': args.rio,
+            # For RCEP, this key may be non-unique; see above (e.g.
+            # Care_Plan_Interventions).
         },
         {
             'index_name': CRATE_IDX_RIONUM,
