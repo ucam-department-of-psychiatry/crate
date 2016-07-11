@@ -222,6 +222,16 @@ def drop_indexes(engine, args, table, index_names):
             execute(engine, args, sql)
 
 
+def get_view_names(engine, to_lower=False, sort=False):
+    inspector = inspect(engine)
+    view_names = inspector.get_view_names()
+    if to_lower:
+        view_names = [x.lower() for x in view_names]
+    if sort:
+        view_names = sorted(view_names, key=lambda x: x.lower())
+    return view_names
+
+
 def get_column_names(engine, tablename=None, table=None, to_lower=False,
                      sort=False):
     """
@@ -288,10 +298,14 @@ def create_view(engine, args, viewname, select_sql):
 
 
 def drop_view(engine, args, viewname):
-    sql = "DROP VIEW IF EXISTS {viewname}".format(viewname=viewname)
-    # From SQL Server 2008:
-    #   https://msdn.microsoft.com/en-us/library/ms173492.aspx
-    # MySQL: http://dev.mysql.com/doc/refman/5.7/en/drop-view.html
+    # MySQL has DROP VIEW IF EXISTS, but SQL Server only has that from
+    # SQL Server 2016 onwards.
+    # - https://msdn.microsoft.com/en-us/library/ms173492.aspx
+    # - http://dev.mysql.com/doc/refman/5.7/en/drop-view.html
+    view_names = get_view_names(engine, to_lower=True)
+    if viewname.lower() not in view_names:
+        log.debug("View {} does not exist; not dropping".format(viewname))
+    sql = "DROP VIEW {viewname}".format(viewname=viewname)
     execute(engine, args, sql)
 
 
