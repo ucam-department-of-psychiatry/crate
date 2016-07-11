@@ -332,9 +332,9 @@ def process_patient_table(table, engine, args):
     # Add pk and rio_number columns, if not present
     # -------------------------------------------------------------------------
     if rio_type:
-        pktype = 'INTEGER NOT NULL'
+        pktype = 'INTEGER'  # can't do NOT NULL; need to populate it
     else:  # RCEP type
-        pktype = 'INTEGER IDENTITY(1, 1) NOT NULL'
+        pktype = 'INTEGER IDENTITY(1, 1) NOT NULL'  # autopopulates
     add_columns(engine, args, table, {
         CRATE_COL_PK: pktype,
         CRATE_COL_RIO_NUMBER: 'INTEGER',
