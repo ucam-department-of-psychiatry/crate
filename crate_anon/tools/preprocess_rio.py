@@ -316,14 +316,24 @@ def drop_view(engine, args, viewname):
 # Generic table processors
 # =============================================================================
 
+def table_is_rio_type(tablename, args):
+    if args.rio:
+        return True
+    if not args.cpft:
+        return False
+    # RCEP + CPFT modifications: there's one RiO table in the mix
+    return tablename == args.full_prognotes_table
+
+
 def process_patient_table(table, engine, args):
     log.info("Patient table: '{}'".format(table.name))
+    rio_type = table_is_rio_type(table.name, args)
     # -------------------------------------------------------------------------
     # Add pk and rio_number columns, if not present
     # -------------------------------------------------------------------------
-    if args.rio:
+    if rio_type:
         pktype = 'INTEGER NOT NULL'
-    else:  # RCEP
+    else:  # RCEP type
         pktype = 'INTEGER IDENTITY(1, 1) NOT NULL'
     add_columns(engine, args, table, {
         CRATE_COL_PK: pktype,
@@ -334,9 +344,7 @@ def process_patient_table(table, engine, args):
     # -------------------------------------------------------------------------
     log.info("Table '{}': updating columns '{}' and '{}'".format(
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
-    if args.rio or table.name == args.full_prognotes_table:
-        # ... the extra condition covering the CPFT hacked-in RiO table within
-        # an otherwise RCEP database
+    if rio_type:
         ensure_columns_present(engine, table=table, column_names=[
             RIO_COL_PK, RIO_COL_PATIENT_ID])
         if not args.print:
