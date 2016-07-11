@@ -968,7 +968,11 @@ class DataDictionary(object):
             for values in tsv:
                 valuedict = dict(zip(headers, values))
                 ddr = DataDictionaryRow(self.config)
-                ddr.set_from_dict(valuedict)
+                try:
+                    ddr.set_from_dict(valuedict)
+                except ValueError:
+                    log.critical("Offending input: {}".format(valuedict))
+                    raise
                 self.rows.append(ddr)
             log.debug("... content loaded.")
         self.clear_caches()
