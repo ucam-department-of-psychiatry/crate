@@ -561,7 +561,7 @@ def add_postcode_geography_view(engine, args):
     # (Could also do this the other way around!)
     geogcols_lowercase = [x.lower() for x in args.geogcols]
     orig_column_names = [x for x in orig_column_names
-                         if x not in geogcols_lowercase]
+                         if x.lower() not in geogcols_lowercase]
 
     orig_column_specs = [
         "{t}.{c}".format(t=addresstable, c=col)
