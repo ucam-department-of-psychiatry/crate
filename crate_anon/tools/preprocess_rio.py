@@ -6,17 +6,10 @@ import logging
 import sys
 
 from sqlalchemy import (
-    Column,
     create_engine,
-    Date,
     inspect,
-    Integer,
     MetaData,
-    Numeric,
-    String,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 
 from crate_anon.anonymise.constants import MYSQL_CHARSET
 from crate_anon.anonymise.logsupport import configure_logger_for_colour
@@ -31,7 +24,7 @@ RIO_TABLE_PROGRESS_NOTES = "PrgProgressNote"
 
 # Tables in RiO CRIS Extract Program (RCEP) output database:
 RCEP_TABLE_MASTER_PATIENT = "Client_Demographic_Details"
-RCEP_TABLE_ADDRESS = "***" # ***
+RCEP_TABLE_ADDRESS = "Client_Address_History"
 RCEP_TABLE_PROGRESS_NOTES = "Progress_Notes"
 
 # CPFT hacks (RiO tables added to RCEP output):
@@ -45,7 +38,7 @@ RIO_COL_POSTCODE = "PostCode"  # ClientAddress.PostCode
 # Columns in RCEP extract:
 RCEP_COL_INDICATING_PATIENT_TABLE = "Client_ID"  # RCEP: VARCHAR(15)
 RCEP_COL_NHS_NUMBER = "NHS_Number"  # RCEP: CHAR(10)
-RCEP_COL_POSTCODE = "***" # ***
+RCEP_COL_POSTCODE = "Post_Code" # RCEP: NVARCHAR(10)
 
 # Columns in ONS Postcode Database (from CRATE import):
 ONSPD_TABLE_POSTCODE = "postcode"
@@ -80,9 +73,24 @@ def die(msg):
     sys.exit(1)
 
 
+def format_sql_for_print(sql):
+    # Remove blank lines and trailing spaces
+    lines = list(filter(None, [x.replace("\t", "    ").rstrip()
+                               for x in sql.splitlines()]))
+    # Shift all lines left if they're left-padded
+    firstleftpos = float('inf')
+    for line in lines:
+        leftpos = len(line) - len(line.lstrip())
+        firstleftpos = min(firstleftpos, leftpos)
+    if firstleftpos > 0:
+        lines = [x[firstleftpos:] for x in lines]
+    return "\n".join(lines)
+
+
 def execute(engine, args, sql):
-    if args.debug:
-        log.warning(sql)
+    if args.print:
+        print(format_sql_for_print(sql) + "\n;\n")
+        # extra \n in case the SQL ends in a comment
     else:
         engine.execute(sql)
 
@@ -137,10 +145,7 @@ def get_column_names(engine, tablename=None, table=None):
     Reads columns names afresh from the database (in case metadata is out of
     date.
     """
-    if (table is not None) == bool(tablename):
-        log.critical(repr(table))
-        log.critical(repr(tablename))
-        die("get_column_names needs either table or tablename")
+    assert (table is not None) != bool(tablename), "Need table XOR tablename"
     tablename = tablename or table.name
     inspector = inspect(engine)
     columns = inspector.get_columns(tablename)
@@ -153,8 +158,7 @@ def get_index_names(engine, tablename=None, table=None):
     Reads index names from the database.
     """
     # http://docs.sqlalchemy.org/en/latest/core/reflection.html
-    if (table is not None) == bool(tablename):
-        die("get_index_names needs either table or tablename")
+    assert (table is not None) != bool(tablename), "Need table XOR tablename"
     tablename = tablename or table.name
     inspector = inspect(engine)
     indexes = inspector.get_indexes(tablename)
@@ -163,10 +167,8 @@ def get_index_names(engine, tablename=None, table=None):
 
 
 def ensure_columns_present(engine, table=None, tablename=None, column_names=None):
-    if not column_names:
-        die("ensure_columns_present requires column_names")
-    if (table is not None) == bool(tablename):
-        die("ensure_columns_present needs either table or tablename")
+    assert column_names, "Need column_names"
+    assert (table is not None) != bool(tablename), "Need table XOR tablename"
     tablename = tablename or table.name
     existing_column_names = get_column_names(engine, tablename=tablename)
     for col in column_names:
@@ -427,8 +429,10 @@ def main():
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
     """)  # noqa
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
-    parser.add_argument("--debug", action="store_true",
-                        help="Show SQL but do not execute it")
+    parser.add_argument(
+        "--print", action="store_true",
+        help="Print SQL but do not execute it. (You can redirect the printed "
+             "output to create an SQL script.")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--rcep", action="store_true",
@@ -473,10 +477,16 @@ def main():
     if args.postcodedb and not args.geogcols:
         die("If you specify postcodedb, you must specify some geogcols")
 
-    log.debug("args = {}".format(repr(args)))
+    log.info("CRATE in-place preprocessor for RiO or RiO CRIS Extract Program "
+             "(RCEP) databases")
+    safeargs = {k: v for k, v in vars(args).items() if k != 'url'}
+    log.debug("args = {}".format(repr(safeargs)))
+    log.info("RiO mode" if args.rio else "RCEP mode")
 
     engine = create_engine(args.url, echo=args.echo, encoding=MYSQL_CHARSET)
     metadata.bind = engine
+    log.critical("Database: {}".format(repr(engine.url)))
+    # ... repr hides password by default
 
     metadata.reflect(engine)
 
