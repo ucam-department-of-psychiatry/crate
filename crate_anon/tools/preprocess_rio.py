@@ -31,14 +31,18 @@ RCEP_TABLE_PROGRESS_NOTES = "Progress_Notes"
 CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
 
 # Columns in RiO Core:
-RIO_COL_INDICATING_PATIENT_TABLE = "ClientID"  # RiO 6.2: VARCHAR(15)
+RIO_COL_PATIENT_ID = "ClientID"  # RiO 6.2: VARCHAR(15)
 RIO_COL_NHS_NUMBER = "NNN"  # RiO 6.2: CHAR(10) ("National NHS Number")
 RIO_COL_POSTCODE = "PostCode"  # ClientAddress.PostCode
+RIO_COL_PK = "SequenceID"  # INT
 
 # Columns in RCEP extract:
-RCEP_COL_INDICATING_PATIENT_TABLE = "Client_ID"  # RCEP: VARCHAR(15)
+RCEP_COL_PATIENT_ID = "Client_ID"  # RCEP: VARCHAR(15)
 RCEP_COL_NHS_NUMBER = "NHS_Number"  # RCEP: CHAR(10)
 RCEP_COL_POSTCODE = "Post_Code" # RCEP: NVARCHAR(10)
+RCEP_COL_MANGLED_PK = "Document_ID"
+# In RCEP, Document_ID is VARCHAR(MAX), and is effectively:
+#   'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
 
 # Columns in ONS Postcode Database (from CRATE import):
 ONSPD_TABLE_POSTCODE = "postcode"
@@ -89,7 +93,7 @@ def format_sql_for_print(sql):
 
 def execute(engine, args, sql):
     if args.print:
-        print(format_sql_for_print(sql) + "\n;\n")
+        print(format_sql_for_print(sql) + "\n;")
         # extra \n in case the SQL ends in a comment
     else:
         engine.execute(sql)
@@ -199,43 +203,46 @@ def process_patient_table(table, engine, args):
         # ... the extra condition covering the CPFT hacked-in RiO table within
         # an otherwise RCEP database
         ensure_columns_present(engine, table=table, column_names=[
-            "SequenceID", "ClientID", CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+            RIO_COL_PK, RIO_COL_PATIENT_ID,
+            CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
         execute(engine, args, """
         UPDATE {tablename} SET
-            {pk} = SequenceID,  -- PK in RiO 6.2; INT
-            {rio_number} = CAST(ClientID AS INTEGER)  -- ClientID VARCHAR(15)
+            {pk} = {rio_pk},
+            {rio_number} = CAST({rio_pt_id} AS INTEGER)
         WHERE
             {pk} IS NULL
             OR {rio_number} IS NULL
     """.format(
             tablename=table.name,
             pk=CRATE_COL_PK,
+            rio_pk=RIO_COL_PK,
             rio_number=CRATE_COL_RIO_NUMBER,
+            rio_pt_id=RIO_COL_PATIENT_ID,
         ))
     else:
         # RCEP format
         ensure_columns_present(engine, table=table, column_names=[
-            "Document_ID", "ClientID", CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+            RCEP_COL_MANGLED_PK, RCEP_COL_PATIENT_ID,
+            CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
         execute(engine, args, """
             UPDATE {tablename} SET
-                -- In RCEP, Document_ID is VARCHAR(MAX), and is effectively:
-                -- 'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
                 {pk} = CAST(
                     SUBSTRING(
-                        Document_ID,
-                        CHARINDEX('_', Document_ID) + 1,
-                        LEN(Document_ID) - CHARINDEX('_', Document_ID)
+                        {rcep_mangled_pk},
+                        CHARINDEX('_', {rcep_mangled_pk}) + 1,
+                        LEN({rcep_mangled_pk}) - CHARINDEX('_', {rcep_mangled_pk})
                     ) AS INTEGER
                 ),
-                -- RCEP: Client_ID VARCHAR(15)
-                {rio_number} = CAST(Client_ID AS INTEGER)
+                {rio_number} = CAST({rcep_pt_id} AS INTEGER)
             WHERE
                 {pk} IS NULL
                 OR {rio_number} IS NULL
         """.format(
             tablename=table.name,
             pk=CRATE_COL_PK,
+            rcep_mangled_pk=RCEP_COL_MANGLED_PK,
             rio_number=CRATE_COL_RIO_NUMBER,
+            rcep_pt_id=RCEP_COL_PATIENT_ID,
         ))
     # -------------------------------------------------------------------------
     # Add indexes, if absent
@@ -460,7 +467,7 @@ def main():
     args.rio = not args.rcep
     if args.rcep:
         args.master_patient_table = RIO_TABLE_MASTER_PATIENT
-        args.patient_table_indicator_column = RCEP_COL_INDICATING_PATIENT_TABLE
+        args.patient_table_indicator_column = RCEP_COL_PATIENT_ID
         if args.cpft:
             args.full_prognotes_table = CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES
             # We (CPFT) may have a hacked-in copy of the RiO main progress 
@@ -471,7 +478,7 @@ def main():
             # current and non-current versions of progress notes.
     else:
         args.master_patient_table = RCEP_TABLE_MASTER_PATIENT
-        args.patient_table_indicator_column = RIO_COL_INDICATING_PATIENT_TABLE
+        args.patient_table_indicator_column = RIO_COL_PATIENT_ID
         args.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
     if args.postcodedb and not args.geogcols:
