@@ -21,21 +21,16 @@ metadata = MetaData()
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
 RIO_TABLE_ADDRESS = "ClientAddress"
 RIO_TABLE_PROGRESS_NOTES = "PrgProgressNote"
-
-# Tables in RiO CRIS Extract Program (RCEP) output database:
-RCEP_TABLE_MASTER_PATIENT = "Client_Demographic_Details"
-RCEP_TABLE_ADDRESS = "Client_Address_History"
-RCEP_TABLE_PROGRESS_NOTES = "Progress_Notes"
-
-# CPFT hacks (RiO tables added to RCEP output):
-CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
-
 # Columns in RiO Core:
 RIO_COL_PATIENT_ID = "ClientID"  # RiO 6.2: VARCHAR(15)
 RIO_COL_NHS_NUMBER = "NNN"  # RiO 6.2: CHAR(10) ("National NHS Number")
 RIO_COL_POSTCODE = "PostCode"  # ClientAddress.PostCode
 RIO_COL_PK = "SequenceID"  # INT
 
+# Tables in RiO CRIS Extract Program (RCEP) output database:
+RCEP_TABLE_MASTER_PATIENT = "Client_Demographic_Details"
+RCEP_TABLE_ADDRESS = "Client_Address_History"
+RCEP_TABLE_PROGRESS_NOTES = "Progress_Notes"
 # Columns in RCEP extract:
 RCEP_COL_PATIENT_ID = "Client_ID"  # RCEP: VARCHAR(15)
 RCEP_COL_NHS_NUMBER = "NHS_Number"  # RCEP: CHAR(10)
@@ -43,6 +38,9 @@ RCEP_COL_POSTCODE = "Post_Code" # RCEP: NVARCHAR(10)
 RCEP_COL_MANGLED_PK = "Document_ID"
 # In RCEP, Document_ID is VARCHAR(MAX), and is effectively:
 #   'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
+
+# CPFT hacks (RiO tables added to RCEP output):
+CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
 
 # Columns in ONS Postcode Database (from CRATE import):
 ONSPD_TABLE_POSTCODE = "postcode"
@@ -273,7 +271,7 @@ def process_patient_table(table, engine, args):
 
 def process_master_patient_table(table, engine, args):
     add_columns_if_absent(engine, args, table, {
-        'nhs_number_int': 'BIGINT',
+        CRATE_COL_NHS_NUMBER: 'BIGINT',
     })
     if args.rcep:
         nhscol = RCEP_COL_NHS_NUMBER
@@ -283,12 +281,13 @@ def process_master_patient_table(table, engine, args):
     ensure_columns_present(engine, table=table, column_names=[nhscol])
     if not args.print:
         ensure_columns_present(engine, table=table, column_names=[
-            "nhs_number_int"])
+            CRATE_COL_NHS_NUMBER])
     execute(engine, args, """
         UPDATE {tablename} SET
-            nhs_number_int = CAST({nhscol}} AS BIGINT)
+            {nhs_number_int} = CAST({nhscol}} AS BIGINT)
     """.format(
         tablename=table.name,
+        nhs_number_int=CRATE_COL_NHS_NUMBER,
         nhscol=nhscol,
     ))
 
@@ -473,7 +472,8 @@ def main():
 
     args.rio = not args.rcep
     if args.rcep:
-        args.master_patient_table = RIO_TABLE_MASTER_PATIENT
+        # RCEP
+        args.master_patient_table = RCEP_TABLE_MASTER_PATIENT
         args.patient_table_indicator_column = RCEP_COL_PATIENT_ID
         if args.cpft:
             args.full_prognotes_table = CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES
@@ -484,7 +484,8 @@ def main():
             # The RCEP does not export sufficient information to distinguish 
             # current and non-current versions of progress notes.
     else:
-        args.master_patient_table = RCEP_TABLE_MASTER_PATIENT
+        # RiO
+        args.master_patient_table = RIO_TABLE_MASTER_PATIENT
         args.patient_table_indicator_column = RIO_COL_PATIENT_ID
         args.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
@@ -503,7 +504,7 @@ def main():
 
     metadata.reflect(engine)
 
-    for table in metadata.tables.values():
+    for table in sorted(metadata.tables.values(), key=lambda t: t.name):
         process_table(table, engine, args)
     if args.postcodedb:
         add_postcode_geography_view(engine, args)
