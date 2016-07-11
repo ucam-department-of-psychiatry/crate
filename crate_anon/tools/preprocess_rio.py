@@ -35,6 +35,8 @@ RCEP_TABLE_PROGRESS_NOTES = "Progress_Notes"
 RCEP_COL_PATIENT_ID = "Client_ID"  # RCEP: VARCHAR(15)
 RCEP_COL_NHS_NUMBER = "NHS_Number"  # RCEP: CHAR(10)
 RCEP_COL_POSTCODE = "Post_Code" # RCEP: NVARCHAR(10)
+# ... general format (empirically): "XX12 3YY" or "XX1 3YY"; "ZZ99" for unknown
+# This matches the ONPD "pdcs" format.
 RCEP_COL_MANGLED_PK = "Document_ID"
 # In RCEP, Document_ID is VARCHAR(MAX), and is effectively:
 #   'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
@@ -398,11 +400,13 @@ def add_postcode_geography_view(engine, args):
                    {geogcols}
             FROM {addresstable}
             LEFT JOIN {pdb}.{pcdtab}
-            ON REPLACE({addresstable}.{rio_postcodecol},
-                       ' ',
-                       '') = {pdb}.{pcdtab}.pcd_nospace
-            -- Since we can't guarantee RiO's postcode space formatting, from
-            -- NVARCHAR(10) columns, we compare to the no-space version.
+            ON {addresstable}.{rio_postcodecol} = {pdb}.{pcdtab}.pcds
+            -- RCEP, and presumably RiO, appear to use the pdcs format, of
+            -- 2-4 char outward code; space; 3-char inward code.
+            -- If this fails, use this slower version:
+            -- ON REPLACE({addresstable}.{rio_postcodecol},
+            --            ' ',
+            --            '') = {pdb}.{pcdtab}.pcd_nospace
     """.format(  # noqa
         viewname=VIEW_ADDRESS_WITH_GEOGRAPHY,
         addresstable=addresstable,
