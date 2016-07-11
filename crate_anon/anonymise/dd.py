@@ -252,6 +252,18 @@ class DataDictionaryRow(object):
         return self.get_signature() < other.get_signature()
 
     @property
+    def src_db_lowercase(self):
+        return self.src_db.lower()
+
+    @property
+    def src_table_lowercase(self):
+        return self.src_table.lower()
+
+    @property
+    def src_field_lowercase(self):
+        return self.src_field.lower()
+
+    @property
     def pk(self):
         return self._pk
 
@@ -1029,7 +1041,9 @@ class DataDictionary(object):
         log.info("Sorting data dictionary")
         self.rows = sorted(
             self.rows,
-            key=operator.attrgetter("src_db", "src_table", "src_field"))
+            key=operator.attrgetter("src_db_lowercase",
+                                    "src_table_lowercase",
+                                    "src_field_lowercase"))
         log.info("... done")
 
     def check_against_source_db(self):
