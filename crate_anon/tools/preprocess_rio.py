@@ -203,8 +203,10 @@ def process_patient_table(table, engine, args):
         # ... the extra condition covering the CPFT hacked-in RiO table within
         # an otherwise RCEP database
         ensure_columns_present(engine, table=table, column_names=[
-            RIO_COL_PK, RIO_COL_PATIENT_ID,
-            CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+            RIO_COL_PK, RIO_COL_PATIENT_ID])
+        if not args.print:
+            ensure_columns_present(engine, table=table, column_names=[
+                CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
         execute(engine, args, """
         UPDATE {tablename} SET
             {pk} = {rio_pk},
@@ -222,8 +224,10 @@ def process_patient_table(table, engine, args):
     else:
         # RCEP format
         ensure_columns_present(engine, table=table, column_names=[
-            RCEP_COL_MANGLED_PK, RCEP_COL_PATIENT_ID,
-            CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+            RCEP_COL_MANGLED_PK, RCEP_COL_PATIENT_ID])
+        if not args.print:
+            ensure_columns_present(engine, table=table, column_names=[
+                CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
         execute(engine, args, """
             UPDATE {tablename} SET
                 {pk} = CAST(
@@ -276,8 +280,10 @@ def process_master_patient_table(table, engine, args):
     else:
         nhscol = RIO_COL_NHS_NUMBER
     log.info("Table '{}': updating column '{}'".format(table.name, nhscol))
-    ensure_columns_present(engine, table=table, column_names=[
-        "nhs_number_int", nhscol])
+    ensure_columns_present(engine, table=table, column_names=[nhscol])
+    if not args.print:
+        ensure_columns_present(engine, table=table, column_names=[
+            "nhs_number_int"])
     execute(engine, args, """
         UPDATE {tablename} SET
             nhs_number_int = CAST({nhscol}} AS BIGINT)
@@ -301,9 +307,10 @@ def process_progress_notes(table, engine, args):
     ])
 
     ensure_columns_present(engine, table=table, column_names=[
-        "max_subnum_for_notenum", "last_note_in_edit_chain",
-        "rio_number", "NoteNum", "SubNum",
-        "EnteredInError", "EnteredInError"])
+        "NoteNum", "SubNum", "EnteredInError", "EnteredInError"])
+    if not args.print:
+        ensure_columns_present(engine, table=table, column_names=[
+            "max_subnum_for_notenum", "last_note_in_edit_chain", "rio_number"])
 
     # Find the maximum SubNum for each note, and store it.
     # Slow query, even with index.
