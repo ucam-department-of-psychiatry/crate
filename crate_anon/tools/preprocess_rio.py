@@ -174,6 +174,8 @@ def drop_columns(engine, args, table, column_names):
             log.debug("Table '{}': column '{}' does not exist; not "
                       "dropping".format(table.name, name))
         else:
+            log.info("Table '{}': dropping column '{}'".format(table.name,
+                                                               name))
             sql = "ALTER TABLE {t} DROP COLUMN {c}".format(t=table.name,
                                                            c=name)
             # SQL Server: http://www.techonthenet.com/sql_server/tables/alter_table.php  # noqa
@@ -287,14 +289,14 @@ def create_view(engine, args, viewname, select_sql):
             viewname=viewname,
             select_sql=select_sql,
         )
-        execute(engine, args, sql)
     else:
         drop_view(engine, args, viewname)
         sql = "CREATE VIEW {viewname} AS {select_sql}".format(
             viewname=viewname,
             select_sql=select_sql,
         )
-        execute(engine, args, sql)
+    log.info("Creating view: '{}'".format(viewname))
+    execute(engine, args, sql)
 
 
 def drop_view(engine, args, viewname):
