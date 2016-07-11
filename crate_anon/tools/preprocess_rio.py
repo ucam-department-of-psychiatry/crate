@@ -98,6 +98,8 @@ CRATE_COL_LAST_NOTE = "crate_last_note_in_edit_chain"
 CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
 CRATE_IDX_RIONUM = "crate_idx_rionum"  # for any patient table
 CRATE_IDX_RIONUM_NOTENUM = "crate_idx_rionum_notenum"  # for Progress Notes
+CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
+CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
 
 # Views added:
 VIEW_PROGRESS_NOTES_CURRENT = "crate_progress_notes_current"
@@ -456,11 +458,18 @@ def process_progress_notes(table, engine, args):
     })
     # We're always in "RiO land", not "RCEP land", for this one.
     add_indexes(engine, args, table, [
-        {
+        {  # Joint index, for JOIN in UPDATE statement below
             'index_name': CRATE_IDX_RIONUM_NOTENUM,
             'column': '{rio_number}, NoteNum'.format(
                 rio_number=CRATE_COL_RIO_NUMBER),
-            # join index, for UPDATE below
+        },
+        {  # Speeds up WHERE below?
+            'index_name': CRATE_IDX_MAX_SUBNUM,
+            'column': CRATE_COL_MAX_SUBNUM,
+        },
+        {  # Speeds up WHERE below?
+            'index_name': CRATE_IDX_LAST_NOTE,
+            'column': CRATE_COL_LAST_NOTE,
         },
     ])
 
@@ -525,7 +534,9 @@ def process_progress_notes(table, engine, args):
 
 def drop_for_progress_notes(table, engine, args):
     drop_view(engine, args, VIEW_PROGRESS_NOTES_CURRENT)
-    drop_indexes(engine, args, table, [CRATE_IDX_RIONUM_NOTENUM])
+    drop_indexes(engine, args, table, [CRATE_IDX_RIONUM_NOTENUM,
+                                       CRATE_IDX_MAX_SUBNUM,
+                                       CRATE_IDX_LAST_NOTE])
     drop_columns(engine, args, table, [CRATE_COL_MAX_SUBNUM,
                                        CRATE_COL_LAST_NOTE])
 
@@ -545,6 +556,13 @@ def add_postcode_geography_view(engine, args):
         rio_postcodecol = RCEP_COL_POSTCODE
     orig_column_names = get_column_names(engine, tablename=addresstable,
                                          sort=True)
+
+    # Remove any original column names being overridden by new ones.
+    # (Could also do this the other way around!)
+    geogcols_lowercase = [x.lower() for x in args.geogcols]
+    orig_column_names = [x for x in orig_column_names
+                         if x not in geogcols_lowercase]
+
     orig_column_specs = [
         "{t}.{c}".format(t=addresstable, c=col)
         for col in orig_column_names
