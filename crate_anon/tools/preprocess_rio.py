@@ -305,8 +305,9 @@ def drop_view(engine, args, viewname):
     view_names = get_view_names(engine, to_lower=True)
     if viewname.lower() not in view_names:
         log.debug("View {} does not exist; not dropping".format(viewname))
-    sql = "DROP VIEW {viewname}".format(viewname=viewname)
-    execute(engine, args, sql)
+    else:
+        sql = "DROP VIEW {viewname}".format(viewname=viewname)
+        execute(engine, args, sql)
 
 
 # =============================================================================
