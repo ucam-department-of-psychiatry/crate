@@ -151,7 +151,8 @@ def add_index_if_absent(engine, args, table, indexdictlist):
                       "adding".format(table.name, index_name))
 
 
-def get_column_names(engine, tablename=None, table=None, to_lower=False):
+def get_column_names(engine, tablename=None, table=None, to_lower=False,
+                     sort=False):
     """
     Reads columns names afresh from the database (in case metadata is out of
     date.
@@ -163,6 +164,8 @@ def get_column_names(engine, tablename=None, table=None, to_lower=False):
     column_names = [x['name'] for x in columns]
     if to_lower:
         column_names = [x.lower() for x in column_names]
+    if sort:
+        column_names = sorted(column_names, key=lambda x: x.lower())
     return column_names
 
 
@@ -382,7 +385,8 @@ def add_postcode_geography_view(engine, args):
     else:
         addresstable = RCEP_TABLE_ADDRESS
         rio_postcodecol = RCEP_COL_POSTCODE
-    orig_column_names = get_column_names(engine, tablename=addresstable)
+    orig_column_names = get_column_names(engine, tablename=addresstable,
+                                         sort=True)
     orig_column_specs = [
         "{t}.{c}".format(t=addresstable, c=col)
         for col in orig_column_names
@@ -391,7 +395,7 @@ def add_postcode_geography_view(engine, args):
         "{db}.{t}.{c}".format(db=args.postcodedb,
                               t=ONSPD_TABLE_POSTCODE,
                               c=col)
-        for col in args.geogcols
+        for col in sorted(args.geogcols, key=lambda x: x.lower())
     ]
     overlap = set(orig_column_names) & set(args.geogcols)
     if overlap:
@@ -522,7 +526,8 @@ def main():
 
     metadata.reflect(engine)
 
-    for table in sorted(metadata.tables.values(), key=lambda t: t.name):
+    for table in sorted(metadata.tables.values(),
+                        key=lambda t: t.name.lower()):
         process_table(table, engine, args)
     if args.postcodedb:
         add_postcode_geography_view(engine, args)
