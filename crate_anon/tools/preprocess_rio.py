@@ -595,21 +595,28 @@ def process_table(table, engine, args):
     column_names = table.columns.keys()
     log.debug("TABLE: '{}'; COLUMNS: {}".format(tablename, column_names))
 
+    is_patient_table = (args.patient_table_indicator_column in column_names or
+                        tablename == args.full_prognotes_table)
+    # ... special for RCEP/CPFT, where a RiO table (with different patient ID
+    # column) lives within an RCEP database.
     if args.drop_danger_drop:
-        # DROP STUFF! Different order
+        # ---------------------------------------------------------------------
+        # DROP STUFF! Opposite order to creation (below)
+        # ---------------------------------------------------------------------
         # Specific
         if tablename == args.master_patient_table:
             drop_for_master_patient_table(table, engine, args)
         elif tablename == args.full_prognotes_table:
             drop_for_progress_notes(table, engine, args)
         # Generic
-        if args.patient_table_indicator_column in column_names:
+        if is_patient_table:
             drop_for_patient_table(table, engine, args)
     else:
+        # ---------------------------------------------------------------------
         # CREATE STUFF!
+        # ---------------------------------------------------------------------
         # Generic
-        if (args.patient_table_indicator_column in column_names or
-                tablename == args.full_prognotes_table):  # special!
+        if is_patient_table:
             process_patient_table(table, engine, args)
         # Specific
         if tablename == args.master_patient_table:

@@ -198,6 +198,8 @@ def delete_dest_rows_with_no_src_row(srcdbname, src_table,
         Column(pkfield, pkddr.get_sqla_dest_coltype(), primary_key=True),
         **MYSQL_TABLE_ARGS
     )
+    # THIS (ABOVE) IS WHAT CONSTRAINS A USER-DEFINED PK TO BE UNIQUE WITHIN ITS
+    # TABLE.
     log.debug("... dropping temporary table")
     temptable.drop(destengine, checkfirst=True)
     log.debug("... making temporary table")
@@ -405,6 +407,8 @@ def gen_rows(dbname, sourcetable, sourcefields, pid=None,
         # For non-patient tables: divide up rows across tasks?
         if pkname is not None and tasknum is not None and ntasks is not None:
             q = q.where(func.mod(column(pkname), ntasks) == tasknum)
+            # This does not require a user-defined PK to be unique. But other
+            # constraints do: see delete_dest_rows_with_no_src_row().
 
     db_table_tuple = (dbname, sourcetable)
     result = config.sources[dbname].session.execute(q)

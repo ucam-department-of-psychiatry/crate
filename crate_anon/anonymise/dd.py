@@ -1007,6 +1007,7 @@ class DataDictionary(object):
                         cfg=cfg,
                         comment=comment,
                         default_omit=default_omit)
+                    # Here's where we filter out any that exist already:
                     sig = ddr.get_signature()
                     if sig not in signatures:
                         self.rows.append(ddr)
@@ -1022,7 +1023,10 @@ class DataDictionary(object):
                     not in self.get_src_tables_with_patient_info(ddr.src_db)):
                 ddr._scrub = False
         log.info("... done")
-        log.info("Sorting draft data dictionary")
+        self.sort()
+
+    def sort(self):
+        log.info("Sorting data dictionary")
         self.rows = sorted(
             self.rows,
             key=operator.attrgetter("src_db", "src_table", "src_field"))
@@ -1057,7 +1061,20 @@ class DataDictionary(object):
                             "src_flags={f} field but no {p} field".format(
                                 d=d, t=t, f=SRCFLAG.MASTERPID, p=pidfield))
 
+                if t not in db.table_names:
+                    log.debug(
+                        "Source database {d} has tables: {tables}".format(
+                            d=d, tables=db.table_names))
+                    raise ValueError(
+                        "Table {t} missing from source database "
+                        "{d}".format(t=t, d=d))
+
                 for r in rows:
+                    if r.src_field not in db.metadata.tables[t].columns:
+                        raise ValueError(
+                            "Column {c} missing from table {t} in source "
+                            "database {d}".format(c=r.src_field, t=t, d=d))
+
                     r.set_src_sqla_coltype(
                         db.metadata.tables[t].columns[r.src_field].type)
                     for am in r.get_alter_methods():
@@ -1086,14 +1103,6 @@ class DataDictionary(object):
                     raise ValueError(
                         "Table {d}.{t} has >1 source PK set".format(
                             d=d, t=t))
-
-                if t not in db.table_names:
-                    log.debug(
-                        "Source database {d} has tables: {tables}".format(
-                            d=d, tables=db.table_names))
-                    raise ValueError(
-                        "Table {t} missing from source database "
-                        "{d}".format(t=t, d=d))
 
         log.debug("... source tables checked.")
         
