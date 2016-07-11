@@ -463,11 +463,11 @@ def process_progress_notes(table, engine, args):
             'column': '{rio_number}, NoteNum'.format(
                 rio_number=CRATE_COL_RIO_NUMBER),
         },
-        {  # Speeds up WHERE below?
+        {  # Speeds up WHERE below. (Much, much faster for second run.)
             'index_name': CRATE_IDX_MAX_SUBNUM,
             'column': CRATE_COL_MAX_SUBNUM,
         },
-        {  # Speeds up WHERE below?
+        {  # Speeds up WHERE below. (Much, much faster for second run.)
             'index_name': CRATE_IDX_LAST_NOTE,
             'column': CRATE_COL_LAST_NOTE,
         },
