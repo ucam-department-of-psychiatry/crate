@@ -173,6 +173,7 @@ def get_index_names(engine, tablename=None, table=None):
     tablename = tablename or table.name
     inspector = inspect(engine)
     indexes = inspector.get_indexes(tablename)
+    log.critical("Table {}, indexes {}".format(tablename, indexes)) # ***
     index_names = [x['name'] for x in indexes]
     return index_names
 
@@ -401,7 +402,7 @@ def add_postcode_geography_view(engine, args):
             FROM {addresstable}
             LEFT JOIN {pdb}.{pcdtab}
             ON {addresstable}.{rio_postcodecol} = {pdb}.{pcdtab}.pcds
-            -- RCEP, and presumably RiO, appear to use the pdcs format, of
+            -- RCEP, and presumably RiO, appear to use the ONS pcds format, of
             -- 2-4 char outward code; space; 3-char inward code.
             -- If this fails, use this slower version:
             -- ON REPLACE({addresstable}.{rio_postcodecol},
