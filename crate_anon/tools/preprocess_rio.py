@@ -17,6 +17,11 @@ from crate_anon.anonymise.logsupport import configure_logger_for_colour
 log = logging.getLogger(__name__)
 metadata = MetaData()
 
+
+# =============================================================================
+# Constants
+# =============================================================================
+
 # Tables in RiO v6.2 Core:
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
 RIO_TABLE_ADDRESS = "ClientAddress"
@@ -60,6 +65,8 @@ DEFAULT_GEOG_COLS = [
 
 # Columns added:
 CRATE_COL_PK = "pk"  # OK for RCEP + RiO
+# Do NOT use 'id'; this appears in RiO ClientAlternativeId /
+# RCEP Client_Alternative_ID.
 CRATE_COL_RIO_NUMBER = "rio_number"  # OK for RCEP + RiO
 CRATE_COL_NHS_NUMBER = "nhs_number_int"  # OK for RCEP + RiO
 # For RCEP, in SQL Server, check existing columns with:
@@ -75,8 +82,8 @@ CRATE_IDX_RIONUM = "crate_idx_rionum"  # for any patient table
 CRATE_IDX_RIONUM_NOTENUM = "crate_idx_rionum_notenum"  # for Progress Notes
 
 # Views added:
-VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current"
-VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography"
+VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current"  # OK for RCEP + RiO
+VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography"  # OK, RCEP + RiO
 
 
 # =============================================================================
@@ -198,7 +205,8 @@ def get_index_names(engine, tablename=None, table=None, to_lower=False):
     return index_names
 
 
-def ensure_columns_present(engine, table=None, tablename=None, column_names=None):
+def ensure_columns_present(engine, table=None, tablename=None,
+                           column_names=None):
     assert column_names, "Need column_names"
     assert (table is not None) != bool(tablename), "Need table XOR tablename"
     tablename = tablename or table.name
@@ -269,7 +277,7 @@ def process_patient_table(table, engine, args):
             WHERE
                 {pk} IS NULL
                 OR {rio_number} IS NULL
-        """.format(
+        """.format(  # noqa
             tablename=table.name,
             pk=CRATE_COL_PK,
             rcep_mangled_pk=RCEP_COL_MANGLED_KEY,
