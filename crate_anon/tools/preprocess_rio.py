@@ -71,7 +71,7 @@ ONSPD_TABLE_POSTCODE = "postcode"
 DEFAULT_GEOG_COLS = [
     "pcon", "pct", "nuts", "lea", "statsward", "casward",
     "lsoa01", "msoa01", "ur01ind", "oac01", "lsoa11",
-    "msoa11", "parish", "bua11", "bua11sd", "ru11ind",
+    "msoa11", "parish", "bua11", "buasd11", "ru11ind",
     "oac11", "imd",
 ]
 
