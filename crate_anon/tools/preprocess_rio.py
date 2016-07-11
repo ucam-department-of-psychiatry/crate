@@ -59,9 +59,15 @@ DEFAULT_GEOG_COLS = [
 ]
 
 # Columns added:
-CRATE_COL_PK = "pk"
-CRATE_COL_RIO_NUMBER = "rio_number"
-CRATE_COL_NHS_NUMBER = "nhs_number_int"
+CRATE_COL_PK = "pk"  # OK for RCEP + RiO
+CRATE_COL_RIO_NUMBER = "rio_number"  # OK for RCEP + RiO
+CRATE_COL_NHS_NUMBER = "nhs_number_int"  # OK for RCEP + RiO
+# For RCEP, in SQL Server, check existing columns with:
+#   USE database;
+#   SELECT column_name, table_name
+#       FROM information_schema.columns
+#       WHERE column_name = 'something';
+# For RiO, for now, check against documented table structure.
 
 # Indexes added:
 CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
@@ -281,8 +287,9 @@ def process_patient_table(table, engine, args):
             'index_name': CRATE_IDX_PK,
             'column': CRATE_COL_PK,
             'unique': args.rio,
-            # For RCEP, this key may be non-unique; see above (e.g.
-            # Care_Plan_Interventions).
+            # For RCEP (part of Document_ID), this key may be non-unique; see
+            # above (e.g. Care_Plan_Interventions).
+            # For RiO (SequenceID), this should be unique.
         },
         {
             'index_name': CRATE_IDX_RIONUM,
