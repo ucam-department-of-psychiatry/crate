@@ -137,7 +137,8 @@ def execute(engine, args, sql):
 
 
 def add_columns(engine, args, table, name_coltype_dict):
-    existing_column_names = get_column_names(engine, table=None, to_lower=True)
+    existing_column_names = get_column_names(engine, table=table,
+                                             to_lower=True)
     column_defs = []
     for name, coltype in name_coltype_dict.items():
         if name.lower() not in existing_column_names:
@@ -166,7 +167,8 @@ def add_columns(engine, args, table, name_coltype_dict):
 
 
 def drop_columns(engine, args, table, column_names):
-    existing_column_names = get_column_names(engine, table=None, to_lower=True)
+    existing_column_names = get_column_names(engine, table=table,
+                                             to_lower=True)
     for name in column_names:
         if name.lower() not in existing_column_names:
             log.debug("Table '{}': column '{}' does not exist; not "
