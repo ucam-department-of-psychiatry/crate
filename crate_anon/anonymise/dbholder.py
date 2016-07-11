@@ -32,7 +32,7 @@ class DatabaseHolder(object):
             self.conn = self.engine.connect()
         if reflect:
             self.table_names = get_table_names(self.engine)
-            self.metadata.reflect()
+            self.metadata.reflect(views=True)  # include views
             self.table_names = [t.name
                                 for t in self.metadata.sorted_tables]
         if with_session:  # for ORM
