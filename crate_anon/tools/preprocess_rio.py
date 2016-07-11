@@ -130,12 +130,12 @@ def add_columns_if_absent(engine, args, table, name_coltype_dict):
 
 
 def add_index_if_absent(engine, args, table, indexdictlist):
-    existing_index_names = get_index_names(engine, table=table)
+    existing_index_names = get_index_names(engine, table=table, to_lower=True)
     for idxdefdict in indexdictlist:
         index_name = idxdefdict['index_name']
         column = idxdefdict['column']
         unique = idxdefdict.get('unique', False)
-        if index_name not in existing_index_names:
+        if index_name.lower() not in existing_index_names:
             log.info("Table '{}': adding index '{}' on columns '{}'".format(
                 table.name, index_name, column))
             execute(engine, args, """
@@ -151,7 +151,7 @@ def add_index_if_absent(engine, args, table, indexdictlist):
                       "adding".format(table.name, index_name))
 
 
-def get_column_names(engine, tablename=None, table=None):
+def get_column_names(engine, tablename=None, table=None, to_lower=False):
     """
     Reads columns names afresh from the database (in case metadata is out of
     date.
@@ -161,10 +161,12 @@ def get_column_names(engine, tablename=None, table=None):
     inspector = inspect(engine)
     columns = inspector.get_columns(tablename)
     column_names = [x['name'] for x in columns]
+    if to_lower:
+        column_names = [x.lower() for x in column_names]
     return column_names
 
 
-def get_index_names(engine, tablename=None, table=None):
+def get_index_names(engine, tablename=None, table=None, to_lower=False):
     """
     Reads index names from the database.
     """
@@ -174,7 +176,11 @@ def get_index_names(engine, tablename=None, table=None):
     inspector = inspect(engine)
     indexes = inspector.get_indexes(tablename)
     log.critical("Table {}, indexes {}".format(tablename, indexes)) # ***
-    index_names = [x['name'] for x in indexes]
+    index_names = [x['name'] for x in indexes if x['name']]
+    # ... at least for SQL Server, there always seems to be a blank one
+    # with {'name': None, ...}.
+    if to_lower:
+        index_names = [x.lower() for x in index_names]
     return index_names
 
 
@@ -182,9 +188,10 @@ def ensure_columns_present(engine, table=None, tablename=None, column_names=None
     assert column_names, "Need column_names"
     assert (table is not None) != bool(tablename), "Need table XOR tablename"
     tablename = tablename or table.name
-    existing_column_names = get_column_names(engine, tablename=tablename)
+    existing_column_names = get_column_names(engine, tablename=tablename,
+                                             to_lower=True)
     for col in column_names:
-        if col not in existing_column_names:
+        if col.lower() not in existing_column_names:
             die("Column '{}' missing from table '{}'".format(col, tablename))
 
 
@@ -206,7 +213,6 @@ def process_patient_table(table, engine, args):
     # -------------------------------------------------------------------------
     log.info("Table '{}': updating columns '{}' and '{}'".format(
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
-    column_names = get_column_names(engine, table=table)
     if args.rio or table.name == args.full_prognotes_table:
         # ... the extra condition covering the CPFT hacked-in RiO table within
         # an otherwise RCEP database
