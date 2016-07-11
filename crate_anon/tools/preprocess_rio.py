@@ -196,7 +196,6 @@ def get_index_names(engine, tablename=None, table=None, to_lower=False):
     tablename = tablename or table.name
     inspector = inspect(engine)
     indexes = inspector.get_indexes(tablename)
-    log.critical("Table {}, indexes {}".format(tablename, indexes)) # ***
     index_names = [x['name'] for x in indexes if x['name']]
     # ... at least for SQL Server, there always seems to be a blank one
     # with {'name': None, ...}.
