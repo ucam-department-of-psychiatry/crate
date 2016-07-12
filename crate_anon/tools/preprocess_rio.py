@@ -366,6 +366,7 @@ RIO_62_SPECIAL_PKS = {
     'ClientMerge': None,
     'ClientMerged': None,
     'ClientName': 'ClientNameID',
+    'ClientOtherDetail': None,  # not in docs, but looks like Core
     'ClientPhoto': None,
     'ClientPhotoMerged': None,
     'ClientProperty': None,
@@ -392,6 +393,7 @@ RIO_62_SPECIAL_PKS = {
     # -------------------------------------------------------------------------
     'ChdClientDevCheckBreastFeeding': None,
     # ... guess; DevChkSeqID is probably FK to ChdClientDevCheck.SequenceID
+
 }
 
 
