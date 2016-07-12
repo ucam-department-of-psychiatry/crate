@@ -177,7 +177,9 @@ class DatabaseSafeConfig(object):
             'ddgen_pid_defining_fieldnames')
         self.ddgen_pk_fields = opt_multiline('ddgen_pk_fields')
         self.ddgen_table_blacklist = opt_multiline('ddgen_table_blacklist')
+        self.ddgen_table_whitelist = opt_multiline('ddgen_table_whitelist')
         self.ddgen_field_blacklist = opt_multiline('ddgen_field_blacklist')
+        self.ddgen_field_whitelist = opt_multiline('ddgen_field_whitelist')
         self.ddgen_scrubsrc_patient_fields = opt_multiline(
             'ddgen_scrubsrc_patient_fields')
         self.ddgen_scrubsrc_thirdparty_fields = opt_multiline(
@@ -210,6 +212,10 @@ class DatabaseSafeConfig(object):
             self.bin2text_dict[items[0]] = items[1]
 
     def is_table_blacklisted(self, table):
+        for white in self.ddgen_table_whitelist:
+            r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
+            if r.match(table):
+                return False
         for black in self.ddgen_table_blacklist:
             r = regex.compile(fnmatch.translate(black), regex.IGNORECASE)
             if r.match(table):
@@ -217,6 +223,10 @@ class DatabaseSafeConfig(object):
         return False
 
     def is_field_blacklisted(self, field):
+        for white in self.ddgen_field_whitelist:
+            r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
+            if r.match(field):
+                return True
         for black in self.ddgen_field_blacklist:
             r = regex.compile(fnmatch.translate(black), regex.IGNORECASE)
             if r.match(field):

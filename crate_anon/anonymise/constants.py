@@ -729,9 +729,15 @@ ddgen_master_pid_fieldname = nhsnum
     # fnmatch module).
 ddgen_table_blacklist =
 
+    # Whitelist any tables? (Whitelists override blacklists.)
+ddgen_table_whitelist =
+
     # Blacklist any fields (regardless of their table) when creating new data
     # dictionaries? Wildcards of */? operate as above.
 ddgen_field_blacklist =
+
+    # Whitelist any fields? (Whitelists override blacklists.)
+ddgen_field_whitelist =
 
     # Fieldnames assumed to be their table's PK:
 ddgen_pk_fields =
@@ -786,7 +792,7 @@ ddgen_allow_fulltext_indexing = True
 
 # DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
 
-    # Force all destination tables/fields to lower case? Generally a good idea.
+    # Force all destination tables/fields to lower case?
     # Boolean; default is True.
 ddgen_force_lower_case = True
 
