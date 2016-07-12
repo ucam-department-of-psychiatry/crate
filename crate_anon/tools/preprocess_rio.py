@@ -327,11 +327,18 @@ def table_is_rio_type(tablename, args):
     return tablename == args.full_prognotes_table
 
 
+RIO_62_SPECIAL_PKS = {
+    # table: pk_field
+    'AmsAppointmentContactActivity': 'ActivitySequenceID',
+    # ... SequenceID is non-unique and the docs also list it as an FK;
+    #     ActivitySequenceID this is unique and a PK
+    'AmsReferralDatesArchive': 'AMSSequenceID',
+    # ... UNVERIFIED as no rows in our data; listed as a PK and an FK
+}
+
+
 def get_rio_pk_col(table):
-    if table.name == "AmsAppointmentContactActivity":
-        # SequenceID is non-unique and the docs also list it as an FK
-        return "ActivitySequenceID"  # this is unique and a PK
-    return RIO_COL_PK
+    return RIO_62_SPECIAL_PKS.get(table, RIO_COL_PK)
 
 
 def process_patient_table(table, engine, args):
