@@ -350,6 +350,7 @@ RIO_62_SPECIAL_PKS = {
 
     'AmsReferralListUrgency': None,
     'AmsReferralListWaitingStatus': None,
+    'CarePlanIndex': 'CarePlanID',
 }
 
 
