@@ -105,6 +105,105 @@ CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
 VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"
 VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography_crate"
 
+RIO_6_2_ATYPICAL_PKS = {
+    # These are table: pk_field mappings for PATIENT tables, i.e. those
+    # containing the ClientID field, where that PK is not the default of
+    # SequenceID.
+
+    # -------------------------------------------------------------------------
+    # RiO Core
+    # -------------------------------------------------------------------------
+
+    # Ams*: Appointment Management System
+    'AmsAppointmentContactActivity': 'ActivitySequenceID',
+    # ... SequenceID is non-unique and the docs also list it as an FK;
+    #     ActivitySequenceID this is unique and a PK
+    'AmsReferralDatesArchive': 'AMSSequenceID',
+    # ... UNVERIFIED as no rows in our data; listed as a PK and an FK
+    'AmsReferralListUrgency': None,
+    'AmsReferralListWaitingStatus': None,
+
+    'CarePlanIndex': 'CarePlanID',
+    'CarePlanProblemOrder': None,
+
+    'ClientAddressMerged': None,  # disused table
+    'ClientCareSpell': None,  # CareSpellNum is usually 1 for a given ClientID
+    'ClientDocumentAdditionalClient': None,
+    'ClientFamily': None,
+    'ClientFamilyLink': None,
+    'ClientGPMerged': None,
+    'ClientHealthCareProvider': None,
+    'ClientMerge': None,
+    'ClientMerged': None,
+    'ClientName': 'ClientNameID',
+    'ClientOtherDetail': None,  # not in docs, but looks like Core
+    'ClientPhoto': None,
+    'ClientPhotoMerged': None,
+    'ClientProperty': None,
+    'ClientPropertyMerged': None,
+    'ClientTelecom': 'ClientTelecomID',
+    'ClientUpdatePDSCache': None,
+
+    # Con*: Contracts
+    'Contract': 'ContractNumber',
+    'ConAdHocAwaitingApproval': 'SequenceNo',
+    'ConClientInitialBedRate': None,
+    'ConClinicHistory': 'SequenceNo',
+    'ConLeaveDiscountHistory': 'SequenceNo',
+
+    # Not documented, but looks like Core
+    'Deceased': None,  # or possibly TrustWideID (or just ClientID!)
+
+    'DemClientDeletedDetails': None,
+
+    # EP: E-Prescribing
+    # ... with DA: Drug Administration
+    # ... with DS: Drug Service
+    'EPClientConditions': 'RowID',
+    'EPClientPrescription': 'PrescriptionID',
+    'EPClientSensitivities': None,  # UNVERIFIED: None? Joint PK on ProdID?
+    'EPDiscretionaryDrugClientLink': None,
+    'EPVariableDosageDrugLink': 'HistoryID',  # UNVERIFIED
+    'EPClientAllergies': 'ReactionID',
+    'DAConcurrencyControl': None,
+    'DAIPPrescription': 'PrescriptionID',
+    'DSBatchPatientGroups': None,
+    'DSMedicationBatchContinue': None,
+    'DSMedicationBatchLink': None,
+
+    # Ims*: Inpatient Management System
+    'ImsEventLeave': 'UniqueSequenceID',  # SequenceID
+    'ImsEventMovement': None,
+    'ImsEventRefno': None,  # Not in docs but looks like Core.
+    'ImsEventRefnoBAKUP': None,  # [Sic.] Not in docs but looks like Core.
+
+    # LR*: Legitimate Relationships
+    'LRIdentifiedCache': None,
+
+    # Mes*: messaging
+    'MesLettersGenerated': 'Reference',
+
+    'SNOMED_Client': 'SC_ID',
+
+    # -------------------------------------------------------------------------
+    # Non-core? No docs available.
+    # -------------------------------------------------------------------------
+    # Chd*: presumably, child development
+    'ChdClientDevCheckBreastFeeding': None,
+    # ... guess; DevChkSeqID is probably FK to ChdClientDevCheck.SequenceID
+
+    # ??? But it has q1-q30, qu2-14, home, sch, comm... assessment tool...
+    'CYPcurrentviewImport': None,  # not TrustWideID (which is non-unique)
+
+    'GoldmineIfcMapping': None,  # no idea, really, and no data to explore
+
+    'KP90ErrorLog': None,
+}
+
+RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
+    'SNOMED_Client': 'SC_ClientID',
+}
+
 
 # =============================================================================
 # Ancillary functions
@@ -334,106 +433,6 @@ def table_is_rio_type(tablename, args):
         return False
     # RCEP + CPFT modifications: there's one RiO table in the mix
     return tablename == args.full_prognotes_table
-
-
-RIO_6_2_ATYPICAL_PKS = {
-    # These are table: pk_field mappings for PATIENT tables, i.e. those
-    # containing the ClientID field, where that PK is not the default of
-    # SequenceID.
-
-    # -------------------------------------------------------------------------
-    # RiO Core
-    # -------------------------------------------------------------------------
-
-    # Ams*: Appointment Management System
-    'AmsAppointmentContactActivity': 'ActivitySequenceID',
-    # ... SequenceID is non-unique and the docs also list it as an FK;
-    #     ActivitySequenceID this is unique and a PK
-    'AmsReferralDatesArchive': 'AMSSequenceID',
-    # ... UNVERIFIED as no rows in our data; listed as a PK and an FK
-    'AmsReferralListUrgency': None,
-    'AmsReferralListWaitingStatus': None,
-
-    'CarePlanIndex': 'CarePlanID',
-    'CarePlanProblemOrder': None,
-
-    'ClientAddressMerged': None,  # disused table
-    'ClientCareSpell': None,  # CareSpellNum is usually 1 for a given ClientID
-    'ClientDocumentAdditionalClient': None,
-    'ClientFamily': None,
-    'ClientFamilyLink': None,
-    'ClientGPMerged': None,
-    'ClientHealthCareProvider': None,
-    'ClientMerge': None,
-    'ClientMerged': None,
-    'ClientName': 'ClientNameID',
-    'ClientOtherDetail': None,  # not in docs, but looks like Core
-    'ClientPhoto': None,
-    'ClientPhotoMerged': None,
-    'ClientProperty': None,
-    'ClientPropertyMerged': None,
-    'ClientTelecom': 'ClientTelecomID',
-    'ClientUpdatePDSCache': None,
-
-    # Con*: Contracts
-    'Contract': 'ContractNumber',
-    'ConAdHocAwaitingApproval': 'SequenceNo',
-    'ConClientInitialBedRate': None,
-    'ConClinicHistory': 'SequenceNo',
-    'ConLeaveDiscountHistory': 'SequenceNo',
-
-    # Not documented, but looks like Core
-    'Deceased': None,  # or possibly TrustWideID (or just ClientID!)
-
-    'DemClientDeletedDetails': None,
-
-    # EP: E-Prescribing
-    # ... with DA: Drug Administration
-    # ... with DS: Drug Service
-    'EPClientConditions': 'RowID',
-    'EPClientPrescription': 'PrescriptionID',
-    'EPClientSensitivities': None,  # UNVERIFIED: None? Joint PK on ProdID?
-    'EPDiscretionaryDrugClientLink': None,
-    'EPVariableDosageDrugLink': 'HistoryID',  # UNVERIFIED
-    'EPClientAllergies': 'ReactionID',
-    'DAConcurrencyControl': None,
-    'DAIPPrescription': 'PrescriptionID',
-    'DSBatchPatientGroups': None,
-    'DSMedicationBatchContinue': None,
-    'DSMedicationBatchLink': None,
-
-    # Ims*: Inpatient Management System
-    'ImsEventLeave': 'UniqueSequenceID',  # SequenceID
-    'ImsEventMovement': None,
-    'ImsEventRefno': None,  # Not in docs but looks like Core.
-    'ImsEventRefnoBAKUP': None,  # [Sic.] Not in docs but looks like Core.
-
-    # LR*: Legitimate Relationships
-    'LRIdentifiedCache': None,
-
-    # Mes*: messaging
-    'MesLettersGenerated': 'Reference',
-
-    'SNOMED_Client': 'SC_ID',
-
-    # -------------------------------------------------------------------------
-    # Non-core? No docs available.
-    # -------------------------------------------------------------------------
-    # Chd*: presumably, child development
-    'ChdClientDevCheckBreastFeeding': None,
-    # ... guess; DevChkSeqID is probably FK to ChdClientDevCheck.SequenceID
-
-    # ??? But it has q1-q30, qu2-14, home, sch, comm... assessment tool...
-    'CYPcurrentviewImport': None,  # not TrustWideID (which is non-unique)
-
-    'GoldmineIfcMapping': None,  # no idea, really, and no data to explore
-
-    'KP90ErrorLog': None,
-}
-
-RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
-    'SNOMED_Client': 'SC_ClientID',
-}
 
 
 def get_rio_pk_col_patient_table(table):
@@ -878,7 +877,7 @@ def process_table(table, engine, args):
     column_names = table.columns.keys()
     log.debug("TABLE: '{}'; COLUMNS: {}".format(tablename, column_names))
     if args.rio:
-        patient_table_indicator_column = get_rio_pk_col_patient_table(table)
+        patient_table_indicator_column = get_rio_patient_id_col(table)
     else:  # RCEP:
         patient_table_indicator_column = RCEP_COL_PATIENT_ID
 
