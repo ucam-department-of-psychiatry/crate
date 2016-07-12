@@ -126,6 +126,7 @@ RIO_6_2_ATYPICAL_PKS = {
     # ... UNVERIFIED as no rows in our data; listed as a PK and an FK
     'AmsReferralListUrgency': None,
     'AmsReferralListWaitingStatus': None,
+    'AmsStream': None,  # non-patient; non-unique SequenceID
 
     'CarePlanIndex': 'CarePlanID',
     'CarePlanProblemOrder': None,
