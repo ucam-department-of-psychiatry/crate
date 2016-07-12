@@ -376,6 +376,8 @@ RIO_62_SPECIAL_PKS = {
     'ClientUpdatePDSCache': None,
 
     # Con*: Contracts
+    'Contract': 'ContractNumber',
+    'ConAdHocAwaitingApproval': 'SequenceNo',
     'ConClientInitialBedRate': None,
     'ConClinicHistory': 'SequenceNo',
     'ConLeaveDiscountHistory': 'SequenceNo',
