@@ -338,7 +338,9 @@ RIO_62_SPECIAL_PKS = {
 
 
 def get_rio_pk_col(table):
-    return RIO_62_SPECIAL_PKS.get(table, RIO_COL_PK)
+    pkcol = RIO_62_SPECIAL_PKS.get(table.name, RIO_COL_PK)
+    log.critical("get_rio_pk_col: {} -> {}".format(table.name, pkcol))
+    return pkcol
 
 
 def process_patient_table(table, engine, args):
