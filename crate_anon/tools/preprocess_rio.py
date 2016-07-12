@@ -22,6 +22,8 @@ metadata = MetaData()
 # Constants
 # =============================================================================
 
+AUTONUMBER_COLTYPE = "INTEGER IDENTITY(1, 1) NOT NULL"
+
 # Tables in RiO v6.2 Core:
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
 RIO_TABLE_ADDRESS = "ClientAddress"
@@ -476,6 +478,14 @@ def get_rio_patient_id_col(table):
     return patient_id_col
 
 
+def get_rio_pk_col_nonpatient_table(table):
+    if RIO_COL_DEFAULT_PK in table.columns.keys():
+        default = RIO_COL_DEFAULT_PK
+    else:
+        default = None
+    return RIO_6_2_ATYPICAL_PKS.get(table.name, default)
+
+
 def process_patient_table(table, engine, args):
     log.info("Patient table: '{}'".format(table.name))
     rio_type = table_is_rio_type(table.name, args)
@@ -496,7 +506,7 @@ def process_patient_table(table, engine, args):
         crate_pk_type = 'INTEGER'  # can't do NOT NULL; need to populate it
         required_cols.append(rio_pk)
     else:  # RCEP type, or no PK in RiO
-        crate_pk_type = 'INTEGER IDENTITY(1, 1) NOT NULL'  # autopopulates
+        crate_pk_type = AUTONUMBER_COLTYPE  # autopopulates
     add_columns(engine, args, table, {
         CRATE_COL_PK: crate_pk_type,
         CRATE_COL_RIO_NUMBER: 'INTEGER',
@@ -574,6 +584,34 @@ def process_patient_table(table, engine, args):
 def drop_for_patient_table(table, engine, args):
     drop_indexes(engine, args, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
     drop_columns(engine, args, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+
+
+def process_nonpatient_table(table, engine, args):
+    if args.rcep:
+        return
+    pk_col = get_rio_pk_col_nonpatient_table(table)
+    if pk_col:
+        add_columns(engine, args, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
+    else:
+        add_columns(engine, args, table, {CRATE_COL_PK: 'INTEGER'})
+    if not args.print:
+        ensure_columns_present(engine, table=table,
+                               column_names=[CRATE_COL_PK])
+    if pk_col:
+        execute(engine, args, """
+            UPDATE {tablename} SET {crate_pk} = {rio_pk}
+            WHERE {crate_pk} IS NULL
+        """.format(tablename=table.name,
+                   crate_pk=CRATE_COL_PK,
+                   rio_pk=pk_col))
+    add_indexes(engine, args, table, [{'index_name': CRATE_IDX_PK,
+                                       'column': CRATE_COL_PK,
+                                       'unique': True}])
+
+
+def drop_for_nonpatient_table(table, engine, args):
+    drop_indexes(engine, args, table, [CRATE_IDX_PK])
+    drop_columns(engine, args, table, [CRATE_COL_PK])
 
 
 # =============================================================================
@@ -705,6 +743,8 @@ def drop_for_progress_notes(table, engine, args):
 def rio_add_user_lookup(select_elements, from_elements,
                         basetable, basecolumn_usercode,
                         column_prefix=None, alias_prefix=None):
+    # NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for
+    # each table (2016-07-12).
     column_prefix = column_prefix or basecolumn_usercode
     alias_prefix = alias_prefix or "t_" + column_prefix  # table alias
     select_elements.append("""
@@ -929,6 +969,8 @@ def process_table(table, engine, args):
         # Generic
         if is_patient_table:
             drop_for_patient_table(table, engine, args)
+        else:
+            drop_for_nonpatient_table(table, engine, args)
     else:
         # ---------------------------------------------------------------------
         # CREATE STUFF!
@@ -936,13 +978,14 @@ def process_table(table, engine, args):
         # Generic
         if is_patient_table:
             process_patient_table(table, engine, args)
+        else:
+            process_nonpatient_table(table, engine, args)
         # Specific
         if tablename == args.master_patient_table:
             process_master_patient_table(table, engine, args)
         elif tablename == args.full_prognotes_table:
             process_progress_notes(table, engine, args)
 
-# *** nonpatient table: if default PK present, create crate_pk?
 
 # =============================================================================
 # Main
