@@ -183,6 +183,9 @@ RIO_6_2_ATYPICAL_PKS = {
     # Mes*: messaging
     'MesLettersGenerated': 'Reference',
 
+    # Mnt*: Mental Health module (re MHA detention)
+    'MntArtAttendee': None,  # SequenceID being "of person within a meeting"
+
     'SNOMED_Client': 'SC_ID',
 
     # -------------------------------------------------------------------------
