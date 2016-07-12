@@ -464,15 +464,15 @@ def get_rio_pk_col_patient_table(table):
     else:
         default = RIO_COL_DEFAULT_PK
     pkcol = RIO_6_2_ATYPICAL_PKS.get(table.name, default)
-    log.critical("get_rio_pk_col: {} -> {}".format(table.name, pkcol))
+    # log.debug("get_rio_pk_col: {} -> {}".format(table.name, pkcol))
     return pkcol
 
 
 def get_rio_patient_id_col(table):
     patient_id_col = RIO_6_2_ATYPICAL_PATIENT_ID_COLS.get(table.name,
                                                           RIO_COL_PATIENT_ID)
-    log.critical("get_rio_patient_id_col: {} -> {}".format(table.name,
-                                                           patient_id_col))
+    # log.debug("get_rio_patient_id_col: {} -> {}".format(table.name,
+    #                                                     patient_id_col))
     return patient_id_col
 
 
@@ -717,9 +717,6 @@ def rio_add_user_lookup(select_elements, from_elements,
         {ap}_genperson.FirstName AS {cp}_first_name,
         {ap}_genperson.Surname AS {cp}_surname,
 
-        {ap}_cc_occup.Code AS {cp}_occupation_code,
-        {ap}_cc_occup.CodeDescription AS {cp}_occupation_description,
-
         {ap}_prof.Code AS {cp}_responsible_clinician_profession_code,
         {ap}_prof.CodeDescription AS {cp}_responsible_clinician_profession_description,
 
@@ -754,8 +751,6 @@ def rio_add_user_lookup(select_elements, from_elements,
                 ON {ap}_genhcp.GenHCPCode = {ap}_genuser.GenUserID
             INNER JOIN GenPerson {ap}_genperson
                 ON {ap}_genhcp.GenHCPCode = {ap}_genperson.GenPersonID
-            LEFT JOIN CareCoordinatorOccupation {ap}_cc_occup
-                ON {ap}_genhcp.Occupation = {ap}_cc_occup.Code
             LEFT JOIN GenHCPRCProfession {ap}_prof
                 ON {ap}_genhcp.RCProfession = {ap}_prof.Code
             LEFT JOIN GenServiceTeam {ap}_serviceteam
@@ -772,6 +767,16 @@ def rio_add_user_lookup(select_elements, from_elements,
         basecolumn_usercode=basecolumn_usercode,
         ap=alias_prefix,
     ))
+    # OTHER THINGS:
+    # - GenHCP.Occupation is listed in the RiO docs but doesn't actually seem
+    #   to exist. (Perhaps explaining why it's not linked in the RCEP output.)
+    #   I had tried to link it to CareCoordinatorOccupation.Code.
+    #   If you use:
+    #       SELECT *
+    #       FROM information_schema.columns
+    #       WHERE column_name LIKE '%Occup%'
+    #   you only get Client_Demographic_Details.Occupation and
+    #   Client_Demographic_Details.Partner_Occupation
 
 
 def starting_view_elements(engine, basetable):
