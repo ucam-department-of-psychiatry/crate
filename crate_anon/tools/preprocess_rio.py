@@ -134,7 +134,7 @@ def sql_fragment_cast_to_int(expr):
     # http://stackoverflow.com/questions/2000045
     # http://stackoverflow.com/questions/14719760  # this one
     # http://stackoverflow.com/questions/14692131
-    return "SELECT CASE WHEN {expr} NOT LIKE '%[^0-9]%' " \
+    return "CASE WHEN {expr} NOT LIKE '%[^0-9]%' " \
            "THEN CAST({expr} AS INTEGER) ELSE NULL END".format(expr=expr)
 
 
