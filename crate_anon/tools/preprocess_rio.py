@@ -403,7 +403,7 @@ RIO_62_SPECIAL_PKS = {
     'DSMedicationBatchLink': None,
 
     # Ims*: Inpatient Management System
-    # ImsEventLeave: check: both UniqueSequenceID and SequenceID
+    'ImsEventLeave': 'UniqueSequenceID',  # SequenceID
     'ImsEventMovement': None,
 
     # -------------------------------------------------------------------------
