@@ -382,6 +382,9 @@ RIO_62_SPECIAL_PKS = {
     'ConClinicHistory': 'SequenceNo',
     'ConLeaveDiscountHistory': 'SequenceNo',
 
+    # Not documented, but looks like Core
+    'Deceased': None,  # or possibly TrustWideID
+
     'DemClientDeletedDetails': None,
 
     # EP: E-Prescribing
