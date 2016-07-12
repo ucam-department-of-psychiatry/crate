@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # crate_anon/crateweb/extra/salutation.py
 
+
 # =============================================================================
 # Salutation and other forms of name/title generation
 # =============================================================================

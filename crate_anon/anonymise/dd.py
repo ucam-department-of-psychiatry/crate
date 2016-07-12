@@ -826,10 +826,10 @@ class DataDictionaryRow(object):
                     "src_flags={} fields".format(
                         SRCFLAG.ADDSRCHASH,
                         SRCFLAG.PK))
-            if self.omit:
-                raise ValueError(
-                    "Do not set omit on src_flags={} fields".format(
-                        SRCFLAG.ADDSRCHASH))
+            # if self.omit:
+            #     raise ValueError(
+            #         "Do not set omit on src_flags={} fields".format(
+            #             SRCFLAG.ADDSRCHASH))
             if self.index != INDEX.UNIQUE:
                 raise ValueError(
                     "src_flags={} fields require index=={}".format(
@@ -848,10 +848,10 @@ class DataDictionaryRow(object):
                     "src_flags={} fields".format(
                         SRCFLAG.CONSTANT,
                         SRCFLAG.PK))
-            if self.omit:
-                raise ValueError(
-                    "Do not set omit on src_flags={} fields".format(
-                        SRCFLAG.CONSTANT))
+            # if self.omit:
+            #     raise ValueError(
+            #         "Do not set omit on src_flags={} fields".format(
+            #             SRCFLAG.CONSTANT))
             if self.index != INDEX.UNIQUE:
                 raise ValueError(
                     "src_flags={} fields require index=={}".format(
@@ -868,8 +868,12 @@ class DataDictionaryRow(object):
     def contains_patient_info(self):
         return bool(self.scrub_src) or self._primary_pid or self._master_pid
 
+    def contains_vital_patient_info(self):
+        return bool(self.scrub_src)
+
     def required(self):
-        return not self.omit or self.contains_patient_info()
+        # return not self.omit or self.contains_patient_info()
+        return not self.omit or self.contains_vital_patient_info()
 
     def skip_row_by_value(self, value):
         if self._inclusion_values and value not in self._inclusion_values:
@@ -1151,7 +1155,24 @@ class DataDictionary(object):
                              "redundant tables")
 
         # Individual rows will already have been checked with their own
-        # check_valid() method. But now we check collective consistency
+        # check_valid() method. But now we check collective consistency.
+
+        log.debug("Checking DD: prohibited flags...")
+        for d in self.get_source_databases():
+            for t in self.get_src_tables(d):
+                # This will have excluded all tables where all rows are
+                # omitted. So now we have only active tables, for which we
+                # cannot combine certain flags.
+                for r in self.get_rows_for_src_table(d, t):
+                    if r.add_src_hash and r.omit:
+                        raise ValueError("Do not set omit on src_flags={} "
+                                         "fields".format(SRCFLAG.ADDSRCHASH))
+                    if r.constant and r.omit:
+                        raise ValueError("Do not set omit on src_flags={} "
+                                         "fields".format(SRCFLAG.CONSTANT))
+                # We used to prohibit these combinations at all times, in the
+                # DataDictionaryRow class, but it's inconvenient to have to
+                # alter these flags if you want to omit the whole table.
 
         log.debug("Checking DD: prohibited fieldnames...")
         if prohibited_fieldnames:
@@ -1173,12 +1194,11 @@ class DataDictionary(object):
             sdt = self.get_src_dbs_tables_for_dest_table(t)
             if len(sdt) > 1:
                 raise ValueError(
-                    "Destination table {t} is mapped to by multiple "
-                    "source databases: {s}".format(
+                    "Destination table {t} is mapped to by multiple source "
+                    "databases: {s}".format(
                         t=t,
                         s=", ".join(["{}.{}".format(s[0], s[1]) for s in sdt]),
-                    )
-                )
+                    ))
 
         log.debug("Checking DD: duplicate source/destination rows?")
         src_sigs = []

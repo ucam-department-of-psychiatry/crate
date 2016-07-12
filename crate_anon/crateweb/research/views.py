@@ -107,8 +107,8 @@ def get_db_structure_json():
         table_info = []
         for table in sorted(set(x.table_name for x in schema_cil)):
             table_cil = [x for x in schema_cil if x.table_name == table]
-            if not any([x for x in table_cil
-                        if x.column_name == autojoin_field]):
+            if not any(x for x in table_cil
+                       if x.column_name == autojoin_field):
                 # This table doesn't contain a TRID, so we will skip it.
                 continue
             column_info = []

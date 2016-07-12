@@ -202,23 +202,23 @@ DEMO_CONFIG = """
 #         This field is the primary key (PK) for the table it's in.
 #
 #     {SRCFLAG.ADDSRCHASH}
-#         Add source hash, for incremental updates?
-#         - May only be set for src_pk fields (which cannot then be omitted
-#           in the destination, and which require the index={INDEX.UNIQUE}
+#         Add source hash of the record, for incremental updates?
+#         - This flag may only be set for src_pk fields (which cannot then be
+#           omitted in the destination, and which require the index={INDEX.UNIQUE}
 #           setting, so that a unique index is created for this field).
 #         - If set, a field is added to the destination table, with field
 #           name as set by the config's source_hash_fieldname variable,
-#           containing a hash of the contents of the source record (all
+#           containing a hash of the contents of the source record -- all
 #           fields that are not omitted, OR contain scrubbing information
 #           (scrub_src). The field is of type VARCHAR and its length is
 #           determined by the hash_method parameter (see below).
 #         - This table is then capable of incremental updates.
 #
 #     {SRCFLAG.CONSTANT}
-#         Contents are constant (will not change) for a given PK.
+#         Record contents are constant (will not change) for a given PK.
 #         - An alternative to '{SRCFLAG.ADDSRCHASH}'. Can't be used with it.
-#         - Applicable only to src_pk fields, which can't be omitted in the
-#           destination, and which have the same index requirements as
+#         - The flag can be set only on src_pk fields, which can't be omitted
+#           in the destination, and which have the same index requirements as
 #           the '{SRCFLAG.ADDSRCHASH}' flag.
 #         - If set, no hash is added to the destination, but the destination
 #           contents are assumed to exist and not to have changed.
@@ -969,7 +969,7 @@ ddgen_truncate_date_fields = _patient_dob
 ddgen_filename_to_text_fields =
 ddgen_binary_to_text_field_pairs =
 
-""".format(
+""".format(  # noqa
     SCRUBSRC=SCRUBSRC,
     INDEX=INDEX,
     SCRUBMETHOD=SCRUBMETHOD,

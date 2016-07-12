@@ -498,7 +498,7 @@ def process_table(sourcedbname, sourcetable,
                   pkname=None, tasknum=None, ntasks=None):
     """
     Process a table. This can either be a patient table (in which case the
-    patient's scrubber is applied and only rows for that patient are process)
+    patient's scrubber is applied and only rows for that patient are processed)
     or not (in which case the table is just copied).
     """
     start = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
@@ -513,12 +513,14 @@ def process_table(sourcedbname, sourcetable,
         debuglimit = 0
 
     ddrows = config.dd.get_rows_for_src_table(sourcedbname, sourcetable)
-    addhash = any([ddr.add_src_hash for ddr in ddrows])
-    addtrid = any([ddr.primary_pid for ddr in ddrows])
-    constant = any([ddr.constant for ddr in ddrows])
-    # If addhash or constant is true, there will also be at least one non-
-    # omitted row, namely the source PK (by the data dictionary's validation
-    # process).
+    if all(ddr.omit for ddr in ddrows):
+        return
+    addhash = any(ddr.add_src_hash for ddr in ddrows)
+    addtrid = any(ddr.primary_pid and not ddr.omit for ddr in ddrows)
+    constant = any(ddr.constant for ddr in ddrows)
+    # If addhash or constant is true AND we are not omitting all rows, then
+    # the non-omitted rows will include the source PK (by the data dictionary's
+    # validation process).
     ddrows = [ddr for ddr in ddrows
               if (
                   (not ddr.omit) or
@@ -528,6 +530,7 @@ def process_table(sourcedbname, sourcetable,
               )]
     if not ddrows:
         return
+    # It is imperative to continue ***
     dest_table = ddrows[0].dest_table
     sourcefields = []
     pkfield_index = None

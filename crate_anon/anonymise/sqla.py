@@ -96,7 +96,7 @@ def get_column_names(engine, tablename):
 
 def index_exists(engine, tablename, indexname):
     insp = Inspector.from_engine(engine)
-    return any([i['name'] == indexname for i in insp.get_indexes(tablename)])
+    return any(i['name'] == indexname for i in insp.get_indexes(tablename))
 
 
 def add_index(engine, sqla_column, unique=False, fulltext=False, length=None):

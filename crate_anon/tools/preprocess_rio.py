@@ -39,7 +39,7 @@ RCEP_TABLE_PROGRESS_NOTES = "Progress_Notes"
 # Columns in RCEP extract:
 RCEP_COL_PATIENT_ID = "Client_ID"  # RCEP: VARCHAR(15)
 RCEP_COL_NHS_NUMBER = "NHS_Number"  # RCEP: CHAR(10)
-RCEP_COL_POSTCODE = "Post_Code" # RCEP: NVARCHAR(10)
+RCEP_COL_POSTCODE = "Post_Code"  # RCEP: NVARCHAR(10)
 # ... general format (empirically): "XX12 3YY" or "XX1 3YY"; "ZZ99" for unknown
 # This matches the ONPD "pdcs" format.
 RCEP_COL_MANGLED_KEY = "Document_ID"
@@ -542,7 +542,141 @@ def drop_for_progress_notes(table, engine, args):
 
 
 # =============================================================================
-# Other view creators
+# RiO view creators
+# =============================================================================
+
+def rio_add_user_lookup(select_elements, from_elements,
+                        basetable, basecolumn_usercode,
+                        column_prefix=None, alias_prefix=None):
+    column_prefix = column_prefix or basecolumn_usercode
+    alias_prefix = alias_prefix or "t_" + column_prefix  # table alias
+    select_elements.append("""
+        {basetable}.{basecolumn_usercode} AS {cp}_user_code,
+
+        {ap}_genhcp.ConsultantFlag AS {cp}_consultant_flag,
+
+        {ap}_genperson.Email AS {cp}_email,
+        {ap}_genperson.Title AS {cp}_title,
+        {ap}_genperson.FirstName AS {cp}_first_name,
+        {ap}_genperson.Surname AS {cp}_surname,
+
+        {ap}_cc_occup.Code AS {cp}_occupation_code,
+        {ap}_cc_occup.CodeDescription AS {cp}_occupation_description,
+
+        {ap}_prof.Code AS {cp}_responsible_clinician_profession_code,
+        {ap}_prof.CodeDescription AS {cp}_responsible_clinician_profession_description,
+
+        {ap}_serviceteam.Code AS {cp}_primary_team_code,
+        {ap}_serviceteam.CodeDescription AS {cp}_primary_team_description,
+
+        {ap}_genspec.Code AS {cp}_main_specialty_code,
+        {ap}_genspec.CodeDescription AS {cp}_main_specialty_description,
+        {ap}_genspec.NationalCode AS {cp}_main_specialty_national_code,
+
+        {ap}_profgroup.Code AS {cp}_professional_group_code,
+        {ap}_profgroup.CodeDescription AS {cp}_professional_group_description,
+
+        {ap}_genorg.Code AS {cp}_organisation_type_code,
+        {ap}_genorg.CodeDescription AS {cp}_organisation_type_description
+
+        -- {cp}_location... ?? Presumably from GenLocation, but via what? Seems meaningless.
+    """.format(  # noqa
+        basetable=basetable,
+        basecolumn_usercode=basecolumn_usercode,
+        cp=column_prefix,
+        ap=alias_prefix,
+    ))
+    # - User codes are keyed to GenUser.GenUserID, but also to several other
+    #   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID
+    # - We use unique table aliases here, so that overall we can make >1 sets
+    #   of different "user" joins simultaneously.
+    from_elements.append("""
+        LEFT JOIN (
+            GenHCP {ap}_genhcp
+            INNER JOIN GenUser {ap}_genuser
+                ON {ap}_genhcp.GenHCPCode = {ap}_genuser.GenUserID
+            INNER JOIN GenPerson {ap}_genperson
+                ON {ap}_genhcp.GenHCPCode = {ap}_genperson.GenPersonID
+            LEFT JOIN CareCoordinatorOccupation {ap}_cc_occup
+                ON {ap}_genhcp.Occupation = {ap}_cc_occup.Code
+            LEFT JOIN GenHCPRCProfession {ap}_prof
+                ON {ap}_genhcp.RCProfession = {ap}_prof.Code
+            LEFT JOIN GenServiceTeam {ap}_serviceteam
+                ON {ap}_genhcp.PrimaryTeam = {ap}_serviceteam.Code
+            LEFT JOIN GenSpecialty {ap}_genspec
+                ON {ap}_genhcp.MainGenSpecialtyCode = {ap}_genspec.Code
+            LEFT JOIN GenStaffProfessionalGroup {ap}_profgroup
+                ON {ap}_genhcp.StaffProfessionalGroup = {ap}_profgroup.Code
+            LEFT JOIN GenOrganisationType {ap}_genorg
+                ON {ap}_genuser.OrganisationType = {ap}_genorg.Code
+        ) ON {basetable}.{basecolumn_usercode} = {ap}_genhcp.GenHCPCode
+    """.format(  # noqa
+        basetable=basetable,
+        basecolumn_usercode=basecolumn_usercode,
+        ap=alias_prefix,
+    ))
+
+
+def starting_view_elements(engine, basetable):
+    select_elements = [
+        ", ".join("{}.{}".format(basetable, x)
+                  for x in get_column_names(engine, tablename=basetable,
+                                            to_lower=True))
+    ]
+    from_elements = [basetable]
+    return select_elements, from_elements
+
+
+def finish_view_select_sql(select_elements, from_elements):
+    return "\n    SELECT {select_elements} FROM {from_elements}".format(
+        select_elements=", ".join(select_elements),
+        from_elements="\n".join(from_elements)
+    )
+
+
+def rio_view_progress_notes(engine):
+    basetable = RIO_TABLE_PROGRESS_NOTES
+    select_elements, from_elements = starting_view_elements(engine, basetable)
+    rio_add_user_lookup(
+        select_elements=select_elements,
+        from_elements=from_elements,
+        basetable=basetable,
+        basecolumn_usercode="EnteredBy",
+        column_prefix="originating_user",
+        alias_prefix="ou"
+    )
+    rio_add_user_lookup(
+        select_elements=select_elements,
+        from_elements=from_elements,
+        basetable=basetable,
+        basecolumn_usercode="VerifyUserID",
+        column_prefix="verifying_user",
+        alias_prefix="vu"
+    )
+    return finish_view_select_sql(select_elements, from_elements)
+
+
+def get_rio_views(engine):
+    # Dictionary of {viewname: select_sql} pairs.
+    return {
+        'progress_notes_testview': rio_view_progress_notes(engine),
+    }
+
+
+def create_rio_views(engine, args):
+    rio_views = get_rio_views(engine)
+    for viewname, select_sql in rio_views.items():
+        create_view(engine, args, viewname, select_sql)
+
+
+def drop_rio_views(engine, args):
+    rio_views = get_rio_views(engine)
+    for viewname, _ in rio_views.items():
+        drop_view(engine, args, viewname)
+
+
+# =============================================================================
+# Geography views
 # =============================================================================
 
 def add_postcode_geography_view(engine, args):
@@ -720,7 +854,7 @@ def main():
 
     engine = create_engine(args.url, echo=args.echo, encoding=MYSQL_CHARSET)
     metadata.bind = engine
-    log.info("Database: {}".format(repr(engine.url))) # ... repr hides password
+    log.info("Database: {}".format(repr(engine.url)))  # ... repr hides p/w
     log.debug("Dialect: {}".format(engine.dialect.name))
 
     metadata.reflect(engine)
@@ -728,6 +862,11 @@ def main():
     for table in sorted(metadata.tables.values(),
                         key=lambda t: t.name.lower()):
         process_table(table, engine, args)
+    if args.rio:
+        if args.drop_danger_drop:
+            drop_rio_views(engine, args)
+        else:
+            create_rio_views(engine, args)
     if args.postcodedb:
         if args.drop_danger_drop:
             drop_view(engine, args, VIEW_ADDRESS_WITH_GEOGRAPHY)
