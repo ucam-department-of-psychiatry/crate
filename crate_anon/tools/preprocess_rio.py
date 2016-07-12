@@ -345,17 +345,18 @@ RIO_62_SPECIAL_PKS = {
     # RiO Core
     # -------------------------------------------------------------------------
 
+    # Ams*: Appointment Management System
     'AmsAppointmentContactActivity': 'ActivitySequenceID',
     # ... SequenceID is non-unique and the docs also list it as an FK;
     #     ActivitySequenceID this is unique and a PK
-
     'AmsReferralDatesArchive': 'AMSSequenceID',
     # ... UNVERIFIED as no rows in our data; listed as a PK and an FK
-
     'AmsReferralListUrgency': None,
     'AmsReferralListWaitingStatus': None,
+
     'CarePlanIndex': 'CarePlanID',
     'CarePlanProblemOrder': None,
+
     'ClientAddressMerged': None,  # disused table
     'ClientCareSpell': None,  # CareSpellNum is usually 1 for a given ClientID
     'ClientDocumentAdditionalClient': None,
@@ -373,7 +374,17 @@ RIO_62_SPECIAL_PKS = {
     'ClientPropertyMerged': None,
     'ClientTelecom': 'ClientTelecomID',
     'ClientUpdatePDSCache': None,
+
+    # Con*: Contracts
+    'ConClientInitialBedRate': None,
+    'ConClinicHistory': 'SequenceNo',
+    'ConLeaveDiscountHistory': 'SequenceNo',
+
     'DemClientDeletedDetails': None,
+
+    # EP: E-Prescribing
+    # ... with DA: Drug Administration
+    # ... with DS: Drug Service
     'EPClientConditions': 'RowID',
     'EPClientPrescription': 'PrescriptionID',
     'EPClientSensitivities': None,  # UNVERIFIED: None? Joint PK on ProdID?
@@ -385,15 +396,17 @@ RIO_62_SPECIAL_PKS = {
     'DSBatchPatientGroups': None,
     'DSMedicationBatchContinue': None,
     'DSMedicationBatchLink': None,
+
+    # Ims*: Inpatient Management System
     # ImsEventLeave: check: both UniqueSequenceID and SequenceID
     'ImsEventMovement': None,
 
     # -------------------------------------------------------------------------
     # Non-core? No docs available.
     # -------------------------------------------------------------------------
+    # Chd*: presumably, child development
     'ChdClientDevCheckBreastFeeding': None,
     # ... guess; DevChkSeqID is probably FK to ChdClientDevCheck.SequenceID
-
 }
 
 
