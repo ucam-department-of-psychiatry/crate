@@ -357,7 +357,7 @@ RIO_62_SPECIAL_PKS = {
     'CarePlanIndex': 'CarePlanID',
     'CarePlanProblemOrder': None,
     'ClientAddressMerged': None,  # disused table
-    'ClientCareSpell': 'CareSpellNum',
+    'ClientCareSpell': None,  # CareSpellNum is usually 1 for a given ClientID
     'EPClientConditions': 'RowID',
     'EPClientPrescription': 'PrescriptionID',
     'EPClientSensitivities': None,  # UNVERIFIED: None? Joint PK on ProdID?
