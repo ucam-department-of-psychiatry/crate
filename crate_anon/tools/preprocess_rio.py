@@ -341,6 +341,10 @@ RIO_62_SPECIAL_PKS = {
     # containing the ClientID field, where that PK is not the default of
     # SequenceID.
 
+    # -------------------------------------------------------------------------
+    # RiO Core
+    # -------------------------------------------------------------------------
+
     'AmsAppointmentContactActivity': 'ActivitySequenceID',
     # ... SequenceID is non-unique and the docs also list it as an FK;
     #     ActivitySequenceID this is unique and a PK
@@ -364,6 +368,13 @@ RIO_62_SPECIAL_PKS = {
     'DSMedicationBatchContinue': None,
     'DSMedicationBatchLink': None,
     # ImsEventLeave: check: both UniqueSequenceID and SequenceID
+    'ImsEventMovement': None,
+
+    # -------------------------------------------------------------------------
+    # Non-core? No docs available.
+    # -------------------------------------------------------------------------
+    'ChdClientDevCheckBreastFeeding': None,
+    # ... guess; DevChkSeqID is probably FK to ChdClientDevCheck.SequenceID
 }
 
 
