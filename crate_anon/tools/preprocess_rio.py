@@ -356,6 +356,7 @@ RIO_62_SPECIAL_PKS = {
     'AmsReferralListWaitingStatus': None,
     'CarePlanIndex': 'CarePlanID',
     'CarePlanProblemOrder': None,
+    'ClientAddressMerged': None,  # disused table
     'EPClientConditions': 'RowID',
     'EPClientPrescription': 'PrescriptionID',
     'EPClientSensitivities': None,  # UNVERIFIED: None? Joint PK on ProdID?
