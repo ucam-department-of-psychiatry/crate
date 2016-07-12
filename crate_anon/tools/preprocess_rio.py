@@ -119,6 +119,7 @@ RIO_6_2_ATYPICAL_PKS = {
 
     # Ams*: Appointment Management System
     'AmsAppointmentContactActivity': 'ActivitySequenceID',
+    'AmsAppointmentOtherHCP': None,  # non-patient; non-unique SequenceID
     # ... SequenceID is non-unique and the docs also list it as an FK;
     #     ActivitySequenceID this is unique and a PK
     'AmsReferralDatesArchive': 'AMSSequenceID',
