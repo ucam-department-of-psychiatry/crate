@@ -591,9 +591,9 @@ def process_nonpatient_table(table, engine, args):
         return
     pk_col = get_rio_pk_col_nonpatient_table(table)
     if pk_col:
-        add_columns(engine, args, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
-    else:
         add_columns(engine, args, table, {CRATE_COL_PK: 'INTEGER'})
+    else:
+        add_columns(engine, args, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
     if not args.print:
         ensure_columns_present(engine, table=table,
                                column_names=[CRATE_COL_PK])
