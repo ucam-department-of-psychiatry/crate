@@ -340,6 +340,7 @@ RIO_62_SPECIAL_PKS = {
     # ... UNVERIFIED as no rows in our data; listed as a PK and an FK
 
     'AmsReferralListUrgency': None,
+    'AmsReferralListWaitingStatus': None,
 }
 
 
