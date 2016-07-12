@@ -31,6 +31,7 @@ RIO_COL_PATIENT_ID = "ClientID"  # RiO 6.2: VARCHAR(15)
 RIO_COL_NHS_NUMBER = "NNN"  # RiO 6.2: CHAR(10) ("National NHS Number")
 RIO_COL_POSTCODE = "PostCode"  # ClientAddress.PostCode
 RIO_COL_DEFAULT_PK = "SequenceID"  # INT
+RIO_COL_USER_ASSESS_DEFAULT_PK = "type12_NoteID"
 
 # Tables in RiO CRIS Extract Program (RCEP) output database:
 RCEP_TABLE_MASTER_PATIENT = "Client_Demographic_Details"
@@ -185,8 +186,24 @@ RIO_6_2_ATYPICAL_PKS = {
 
     # Mnt*: Mental Health module (re MHA detention)
     'MntArtAttendee': None,  # SequenceID being "of person within a meeting"
+    'MntArtOutcome': None,  # ditto
+    'MntArtPanel': None,  # ditto
+    'MntArtRpts': None,  # ditto
+    'MntArtRptsReceived': None,  # ditto
+    'MntClientEctSection62': None,
+    'MntClientMedSection62': None,
+    'MntClientSectionDetailCareCoOrdinator': None,
+    'MntClientSectionDetailCourtAppearance': None,
+    'MntClientSectionDetailFMR': None,
+    'MntClientSectionReview': None,
 
+    # NDTMS*: Nation(al?) Drug Treatment Monitoring System
+
+    # SNOMED
     'SNOMED_Client': 'SC_ID',
+
+    # UserAssess*: user assessment (= non-core?) tables.
+    # See other default PK below: type12:
 
     # -------------------------------------------------------------------------
     # Non-core? No docs available.
@@ -439,7 +456,11 @@ def table_is_rio_type(tablename, args):
 
 
 def get_rio_pk_col_patient_table(table):
-    pkcol = RIO_6_2_ATYPICAL_PKS.get(table.name, RIO_COL_DEFAULT_PK)
+    if table.name.startswith('UserAssess'):
+        default = RIO_COL_USER_ASSESS_DEFAULT_PK
+    else:
+        default = RIO_COL_DEFAULT_PK
+    pkcol = RIO_6_2_ATYPICAL_PKS.get(table.name, default)
     log.critical("get_rio_pk_col: {} -> {}".format(table.name, pkcol))
     return pkcol
 
