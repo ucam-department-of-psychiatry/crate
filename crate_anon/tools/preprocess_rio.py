@@ -30,7 +30,7 @@ RIO_TABLE_PROGRESS_NOTES = "PrgProgressNote"
 RIO_COL_PATIENT_ID = "ClientID"  # RiO 6.2: VARCHAR(15)
 RIO_COL_NHS_NUMBER = "NNN"  # RiO 6.2: CHAR(10) ("National NHS Number")
 RIO_COL_POSTCODE = "PostCode"  # ClientAddress.PostCode
-RIO_COL_PK = "SequenceID"  # INT
+RIO_COL_DEFAULT_PK = "SequenceID"  # INT
 
 # Tables in RiO CRIS Extract Program (RCEP) output database:
 RCEP_TABLE_MASTER_PATIENT = "Client_Demographic_Details"
@@ -408,6 +408,9 @@ RIO_62_SPECIAL_PKS = {
     'ImsEventRefno': None,  # Not in docs but looks like Core.
     'ImsEventRefnoBAKUP': None,  # [Sic.] Not in docs but looks like Core.
 
+    # LR*: Legitimate Relationships
+    'LRIdentifiedCache': None,
+
     # -------------------------------------------------------------------------
     # Non-core? No docs available.
     # -------------------------------------------------------------------------
@@ -424,8 +427,8 @@ RIO_62_SPECIAL_PKS = {
 }
 
 
-def get_rio_pk_col(table):
-    pkcol = RIO_62_SPECIAL_PKS.get(table.name, RIO_COL_PK)
+def get_rio_pk_col_patient_table(table):
+    pkcol = RIO_62_SPECIAL_PKS.get(table.name, RIO_COL_DEFAULT_PK)
     log.critical("get_rio_pk_col: {} -> {}".format(table.name, pkcol))
     return pkcol
 
@@ -434,7 +437,7 @@ def process_patient_table(table, engine, args):
     log.info("Patient table: '{}'".format(table.name))
     rio_type = table_is_rio_type(table.name, args)
     if rio_type:
-        rio_pk = get_rio_pk_col(table)
+        rio_pk = get_rio_pk_col_patient_table(table)
         required_cols = [RIO_COL_PATIENT_ID]
         string_pt_id = RIO_COL_PATIENT_ID
     else:  # RCEP type
@@ -887,6 +890,7 @@ def process_table(table, engine, args):
         elif tablename == args.full_prognotes_table:
             process_progress_notes(table, engine, args)
 
+# *** nonpatient table: if default PK present, create crate_pk?
 
 # =============================================================================
 # Main
