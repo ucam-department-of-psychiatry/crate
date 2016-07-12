@@ -38,6 +38,7 @@ var DATATYPE_DATE = "date",
     ID_SCHEMA_PICKER = "id_schema",
     ID_TABLE_PICKER = "id_table",
     ID_OFFER_WHERE = "id_offer_where",
+    ID_SELECT_BUTTON = "id_select_button",
     ID_WARNING = "id_warning",
     ID_WHERE_OP = "id_where_op",
     ID_WHERE_BUTTON = "id_where_button",
@@ -189,7 +190,7 @@ function get_column_info(schema, table, column) {
 // ============================================================================
 
 function log(text) {
-    console.log(text);
+    // console.log(text);
 }
 
 function get_select_options_from_list(valuelist) {
@@ -224,6 +225,9 @@ function reset_select_options_by_id(element_id, options) {
 }
 
 function escapeHtml(unsafe) {
+    if (!unsafe) {
+        return '';
+    }
     return unsafe
          .replace(/&/g, "&amp;")
          .replace(/</g, "&lt;")
@@ -313,22 +317,23 @@ function set_hidden_boolean_input_by_id(id, value) {
     set_input_value_by_id(id, value ? "True" : "False");
 }
 
-function display_html_by_id(element_id, text, append, sep) {
-    append = append === null ? false : append;
-    sep = sep === null ? "<br>" : sep;
+function display_html_by_id(element_id, html, append, sep) {
+    append = append === undefined ? false : append;
+    sep = sep === undefined ? "<br>" : sep;
     var element = document.getElementById(element_id);
     if (append) {
         if (element.innerHTML) {
             element.innerHTML += sep;
         }
-        element.innerHTML += text;
+        element.innerHTML += html;
     } else {
-        element.innerHTML = text;
+        element.innerHTML = html;
     }
 }
 
-function warn(text) {
-    display_html_by_id(ID_WARNING, text, true);
+function warn(html) {
+    log("WARNING: " + html);
+    display_html_by_id(ID_WARNING, html, true);
 }
 
 /*
@@ -400,13 +405,13 @@ function where_op_changed() {
         entry_text = document.getElementById(ID_WHERE_VALUE_TEXT),
         coltype = get_current_coltype(),
         op = get_current_op();
-    // log("where_op_changed");
+    log("where_op_changed: coltype = " + coltype + ", op = " + op);
     hide_input(entry_date);
     hide_input(entry_file);
     hide_input(entry_float);
     hide_input(entry_integer);
     hide_input(entry_text);
-    if (!STARTING_VALUES.offer_where) {
+    if (!STARTING_VALUES.offer_where || !op) {
         return;
     }
     if (OPS_USING_FILE.indexOf(op) !== -1) {
@@ -439,16 +444,17 @@ function where_op_changed() {
 function column_changed() {
     var where_op_picker = document.getElementById(ID_WHERE_OP),
         where_button = document.getElementById(ID_WHERE_BUTTON),
+        select_button = document.getElementById(ID_SELECT_BUTTON),
         schema = get_current_schema(),
         table = get_current_table(),
         column = get_current_column(),
         colinfo = get_column_info(schema, table, column),
         old_op = get_current_op(),
-        coltype = colinfo.coltype,
-        rawtype = colinfo.rawtype,
-        comment = colinfo.comment,
+        coltype = colinfo ? colinfo.coltype : null,
+        rawtype = colinfo ? colinfo.rawtype : null,
+        comment = colinfo ? colinfo.comment : null,
         colinfo_html = "";
-    // log("column_changed: coltype: " + coltype);
+    log("column_changed: column = " + column + ", coltype = " + coltype);
     set_input_value_by_id(ID_COLTYPE, coltype);
     if (schema == STARTING_VALUES.default_schema) {
         colinfo_html = "<i>[default schema]</i>&nbsp;";
@@ -463,7 +469,13 @@ function column_changed() {
     display_html_by_id(
         ID_COLTYPE_INFO,
         "Type: " + coltype + " (SQL type: " + rawtype + ")");
-    if (!STARTING_VALUES.offer_where || coltype == DATATYPE_UNKNOWN) {
+    if (!column) {
+        hide_element(select_button);
+    } else {
+        show_element(select_button);
+    }
+    if (!STARTING_VALUES.offer_where || !column ||
+            coltype == DATATYPE_UNKNOWN) {
         reset_select_options(where_op_picker, OPS_NONE);
         hide_element(where_op_picker);
         hide_element(where_button);
@@ -492,18 +504,30 @@ function column_changed() {
 function table_changed() {
     var schema = get_current_schema(),
         table = get_current_table(),
+        column_picker = document.getElementById(ID_COLUMN_PICKER),
         column_names = get_all_column_names(schema, table),
         column_options = get_select_options_from_list(column_names);
-    // log("table_changed");
+    log("table_changed: table = " + table);
+    if (!table) {
+        hide_element(column_picker);
+    } else {
+        show_element(column_picker);
+    }
     reset_select_options_by_id(ID_COLUMN_PICKER, column_options);
     column_changed();
 }
 
 function schema_changed() {
     var schema = get_current_schema(),
+        table_picker = document.getElementById(ID_TABLE_PICKER),
         table_names = get_all_table_names(schema),
         table_options = get_select_options_from_list(table_names);
-    // log("schema_changed");
+    log("schema_changed: schema = " + schema);
+    if (!schema) {
+        hide_element(table_picker);
+    } else {
+        show_element(table_picker);
+    }
     reset_select_options_by_id(ID_TABLE_PICKER, table_options);
     table_changed();
 }
@@ -515,7 +539,7 @@ function populate() {
         where_op_picker = document.getElementById(ID_WHERE_OP),
         schema_names = get_all_schema_names(),
         schema_options = get_select_options_from_list(schema_names);
-    // log("populate");
+    log("populate");
     schema_picker.addEventListener("change", schema_changed);
     table_picker.addEventListener("change", table_changed);
     column_picker.addEventListener("change", column_changed);
@@ -532,6 +556,12 @@ function populate() {
     set_input_value_by_id(ID_WHERE_VALUE_INTEGER, STARTING_VALUES.int_value);
     set_input_value_by_id(ID_WHERE_VALUE_TEXT, STARTING_VALUES.string_value);
     set_hidden_boolean_input_by_id(ID_OFFER_WHERE, STARTING_VALUES.offer_where);
-    warn(STARTING_VALUES.form_errors); // will be empty if all OK
+    if (schema_names.length == 0) {
+        warn("No databases!");
+        hide_element(schema_picker);
+    }
+    if (STARTING_VALUES.form_errors) {  // will be empty if all OK
+        warn(STARTING_VALUES.form_errors);
+    }
     // announce("Loaded!");
 }

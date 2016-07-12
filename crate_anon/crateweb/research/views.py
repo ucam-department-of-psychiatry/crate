@@ -49,7 +49,9 @@ from crate_anon.crateweb.research.models import (
     ColumnInfo,
     get_default_schema,
     get_researchdb_schemas,
-    get_autojoin_field,
+    is_schema_eligible_for_query_builder,
+    get_schema_trid_field,
+    get_schema_rid_field,
     Highlight,
     PidLookup,
     Query,
@@ -102,14 +104,21 @@ def get_db_structure_json():
     colinfolist = research_database_info.get_colinfolist()
     info = []
     for schema in get_researchdb_schemas():  # preserve order
+        if not is_schema_eligible_for_query_builder(schema):
+            continue
         schema_cil = [x for x in colinfolist if x.table_schema == schema]
-        autojoin_field = get_autojoin_field(schema)
+        trid_field = get_schema_trid_field(schema)
+        rid_field = get_schema_rid_field(schema)
         table_info = []
         for table in sorted(set(x.table_name for x in schema_cil)):
             table_cil = [x for x in schema_cil if x.table_name == table]
             if not any(x for x in table_cil
-                       if x.column_name == autojoin_field):
+                       if x.column_name == trid_field):
                 # This table doesn't contain a TRID, so we will skip it.
+                continue
+            if not any(x for x in table_cil
+                       if x.column_name == rid_field):
+                # This table doesn't contain a RID, so we will skip it.
                 continue
             column_info = []
             for ci in sorted(table_cil, key=lambda x: x.column_name):
@@ -194,12 +203,15 @@ def build_query(request):
                     else:
                         full_table = "{}.{}".format(schema, table)
                     column = form.cleaned_data['column']
-                    autojoin_field = get_autojoin_field(schema)
+                    autojoin_field = get_schema_trid_field(schema)
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            table=full_table,
-                            column=column,
+                            # SELECT bits
+                            select_db=schema,
+                            select_table=table,
+                            select_column=column,
+                            # JOIN bits
                             inner_join_to_first_on_keyfield=autojoin_field,
                         )
                     elif 'submit_where' in request.POST:
@@ -229,9 +241,12 @@ def build_query(request):
                                 tab=full_table, col=column, op=op, val=value)
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
+                            # WHERE bits
                             where_type="AND",
                             where_expression=where_expression,
-                            where_table=full_table,
+                            where_db=schema,
+                            where_table=table,
+                            # JOIN bits
                             inner_join_to_first_on_keyfield=autojoin_field,
                         )
                     else:

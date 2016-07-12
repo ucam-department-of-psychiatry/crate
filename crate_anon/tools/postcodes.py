@@ -1261,7 +1261,7 @@ def populate_generic_lookup_table(sa_class, datadir, session, args,
         n += 1
         values = values_from_row(row)
         if debug:
-            log.critical("{}: {}".format(n, values))
+            log.debug("{}: {}".format(n, values))
         if n == 1 and not headings:
             headings = values
             continue

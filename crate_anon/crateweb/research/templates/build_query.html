@@ -68,7 +68,7 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
         <input id="id_where_button" type="submit" name="submit_where" value="Set condition (WHERE)">
         <br>
         <br>
-        <input type="submit" name="submit_select" value="Add to output (SELECT)">
+        <input id="id_select_button" type="submit" name="submit_select" value="Add to output (SELECT)">
     </form>
 
     <h2>Tips</h2>
@@ -134,8 +134,15 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
             The RID is typically an encrypted patient identifier from the
             source database; the TRID is taken from a one-time pad.</li>
 
-        <li>More complex automatic joins across databases are
-            <b>not yet implemented.</b></li>
+        <li>The query builder will also automatically join tables across
+            databases. If the administrator has said that patient tables in the
+            databases use a common research ID (RID), that field will be used.
+            [Example: both databases use the same patient numbers, and they
+            have been hashed in the same way.]
+            Otherwise, if they both have tables containing a master research
+            ID (MRID), that is used to bridge the databases.
+            [Example: two databases use different patient numbers, but they
+            both contain a table with a hashed UK NHS number.]</li>
 
     </ul>
 

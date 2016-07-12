@@ -371,6 +371,9 @@ def get_default_schema():
 
 
 def get_schema_info(schema_name):
+    if not schema_name:
+        # Default schema
+        return settings.RESEARCH_DB_INFO[0]
     schemas = [x for x in settings.RESEARCH_DB_INFO
                if x['schema'] == schema_name]
     if not schemas:
@@ -380,11 +383,74 @@ def get_schema_info(schema_name):
 
 
 @lru_cache(maxsize=None)
-def get_autojoin_field(schema_name):
+def get_schema_trid_field(schema_name):
     schema_info = get_schema_info(schema_name)
     if not schema_info:
         return None
-    return schema_info['autojoin_field']
+    return schema_info.get('trid_field', None)
+
+
+@lru_cache(maxsize=None)
+def get_schema_rid_field(schema_name):
+    schema_info = get_schema_info(schema_name)
+    if not schema_info:
+        return None
+    return schema_info.get('rid_field', None)
+
+
+@lru_cache(maxsize=None)
+def get_schema_rid_family(schema_name):
+    schema_info = get_schema_info(schema_name)
+    if not schema_info:
+        return None
+    return schema_info.get('rid_family', None)
+
+
+@lru_cache(maxsize=None)
+def get_schema_mrid_table(schema_name):
+    schema_info = get_schema_info(schema_name)
+    if not schema_info:
+        return None
+    return schema_info.get('mrid_table', None)
+
+
+@lru_cache(maxsize=None)
+def get_schema_mrid_field(schema_name):
+    schema_info = get_schema_info(schema_name)
+    if not schema_info:
+        return None
+    return schema_info.get('mrid_field', None)
+
+
+@lru_cache(maxsize=None)
+def is_schema_eligible_for_query_builder(schema_name):
+    this_schema_info = get_schema_info(schema_name)
+    if not this_schema_info:
+        return False
+    first_schema_info = settings.RESEARCH_DB_INFO[0]
+    first_schema_name = first_schema_info['schema']
+    if schema_name == first_schema_name:
+        # First one: always eligible
+        return True
+    first_schema_talks_to_world = (
+        first_schema_info.get('mrid_table', None) and
+        first_schema_info.get('mrid_field', None)
+    )
+    this_schema_talks_to_world = (
+        this_schema_info.get('mrid_table', None) and
+        this_schema_info.get('mrid_field', None)
+    )
+    can_communicate_directly = (
+        first_schema_info.get('rid_field', None) and
+        this_schema_info.get('rid_field', None) and
+        this_schema_info.get('rid_family', None) and
+        this_schema_info.get('rid_family', None) ==
+        first_schema_info.get('rid_family', None)
+    )
+    return (
+        (first_schema_talks_to_world and this_schema_talks_to_world) or
+        can_communicate_directly
+    )
 
 
 class ResearchDatabaseInfo(object):
