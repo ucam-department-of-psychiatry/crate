@@ -409,6 +409,9 @@ RIO_62_SPECIAL_PKS = {
     # Chd*: presumably, child development
     'ChdClientDevCheckBreastFeeding': None,
     # ... guess; DevChkSeqID is probably FK to ChdClientDevCheck.SequenceID
+
+    # ??? But it has q1-q30, qu2-14, home, sch, comm... assessment tool...
+    'CYPcurrentviewImport': None,  # not TrustWideID (which is non-unique)
 }
 
 
