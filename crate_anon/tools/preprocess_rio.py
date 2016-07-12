@@ -336,7 +336,7 @@ def table_is_rio_type(tablename, args):
     return tablename == args.full_prognotes_table
 
 
-RIO_62_SPECIAL_PKS = {
+RIO_6_2_ATYPICAL_PKS = {
     # These are table: pk_field mappings for PATIENT tables, i.e. those
     # containing the ClientID field, where that PK is not the default of
     # SequenceID.
@@ -411,6 +411,11 @@ RIO_62_SPECIAL_PKS = {
     # LR*: Legitimate Relationships
     'LRIdentifiedCache': None,
 
+    # Mes*: messaging
+    'MesLettersGenerated': 'Reference',
+
+    'SNOMED_Client': 'SC_ID',
+
     # -------------------------------------------------------------------------
     # Non-core? No docs available.
     # -------------------------------------------------------------------------
@@ -426,11 +431,23 @@ RIO_62_SPECIAL_PKS = {
     'KP90ErrorLog': None,
 }
 
+RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
+    'SNOMED_Client': 'SC_ClientID',
+}
+
 
 def get_rio_pk_col_patient_table(table):
-    pkcol = RIO_62_SPECIAL_PKS.get(table.name, RIO_COL_DEFAULT_PK)
+    pkcol = RIO_6_2_ATYPICAL_PKS.get(table.name, RIO_COL_DEFAULT_PK)
     log.critical("get_rio_pk_col: {} -> {}".format(table.name, pkcol))
     return pkcol
+
+
+def get_rio_patient_id_col(table):
+    patient_id_col = RIO_6_2_ATYPICAL_PATIENT_ID_COLS.get(table.name,
+                                                          RIO_COL_PATIENT_ID)
+    log.critical("get_rio_patient_id_col: {} -> {}".format(table.name,
+                                                           patient_id_col))
+    return patient_id_col
 
 
 def process_patient_table(table, engine, args):
@@ -438,8 +455,8 @@ def process_patient_table(table, engine, args):
     rio_type = table_is_rio_type(table.name, args)
     if rio_type:
         rio_pk = get_rio_pk_col_patient_table(table)
-        required_cols = [RIO_COL_PATIENT_ID]
-        string_pt_id = RIO_COL_PATIENT_ID
+        string_pt_id = get_rio_patient_id_col(table)
+        required_cols = [string_pt_id]
     else:  # RCEP type
         rio_pk = None
         required_cols = [RCEP_COL_PATIENT_ID]
@@ -860,8 +877,12 @@ def process_table(table, engine, args):
     tablename = table.name
     column_names = table.columns.keys()
     log.debug("TABLE: '{}'; COLUMNS: {}".format(tablename, column_names))
+    if args.rio:
+        patient_table_indicator_column = get_rio_pk_col_patient_table(table)
+    else:  # RCEP:
+        patient_table_indicator_column = RCEP_COL_PATIENT_ID
 
-    is_patient_table = (args.patient_table_indicator_column in column_names or
+    is_patient_table = (patient_table_indicator_column in column_names or
                         tablename == args.full_prognotes_table)
     # ... special for RCEP/CPFT, where a RiO table (with different patient ID
     # column) lives within an RCEP database.
@@ -943,7 +964,6 @@ def main():
     if args.rcep:
         # RCEP
         args.master_patient_table = RCEP_TABLE_MASTER_PATIENT
-        args.patient_table_indicator_column = RCEP_COL_PATIENT_ID
         if args.cpft:
             args.full_prognotes_table = CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES
             # We (CPFT) may have a hacked-in copy of the RiO main progress 
@@ -955,7 +975,6 @@ def main():
     else:
         # RiO
         args.master_patient_table = RIO_TABLE_MASTER_PATIENT
-        args.patient_table_indicator_column = RIO_COL_PATIENT_ID
         args.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
     if args.postcodedb and not args.geogcols:
