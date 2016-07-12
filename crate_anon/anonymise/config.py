@@ -70,10 +70,12 @@ Thoughts on configuration method
 import ast
 import codecs
 import configparser
+import fnmatch
 import logging
 import os
 import sys
 
+import regex
 from sqlalchemy import String
 from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
@@ -206,6 +208,20 @@ class DatabaseSafeConfig(object):
                 raise ValueError("ddgen_binary_to_text_field_pairs: specify "
                                  "fields in pairs")
             self.bin2text_dict[items[0]] = items[1]
+
+    def is_table_blacklisted(self, table):
+        for black in self.ddgen_table_blacklist:
+            r = regex.compile(fnmatch.translate(black), regex.IGNORECASE)
+            if r.match(table):
+                return True
+        return False
+
+    def is_field_blacklisted(self, field):
+        for black in self.ddgen_field_blacklist:
+            r = regex.compile(fnmatch.translate(black), regex.IGNORECASE)
+            if r.match(field):
+                return True
+        return False
 
 
 # =============================================================================

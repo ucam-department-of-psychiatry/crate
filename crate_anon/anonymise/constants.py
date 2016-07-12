@@ -725,10 +725,12 @@ ddgen_per_table_pid_field = patient_id
 ddgen_master_pid_fieldname = nhsnum
 
     # Blacklist any tables when creating new data dictionaries?
+    # This is case-insensitive, and you can use */? wildcards (as per Python's
+    # fnmatch module).
 ddgen_table_blacklist =
 
     # Blacklist any fields (regardless of their table) when creating new data
-    # dictionaries?
+    # dictionaries? Wildcards of */? operate as above.
 ddgen_field_blacklist =
 
     # Fieldnames assumed to be their table's PK:

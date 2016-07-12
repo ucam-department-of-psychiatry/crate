@@ -327,6 +327,13 @@ def table_is_rio_type(tablename, args):
     return tablename == args.full_prognotes_table
 
 
+def get_rio_pk_col(table):
+    if table.name == "AmsAppointmentContactActivity":
+        # SequenceID is non-unique and the docs also list it as an FK
+        return "ActivitySequenceID"  # this is unique and a PK
+    return RIO_COL_PK
+
+
 def process_patient_table(table, engine, args):
     log.info("Patient table: '{}'".format(table.name))
     rio_type = table_is_rio_type(table.name, args)
@@ -347,8 +354,9 @@ def process_patient_table(table, engine, args):
     log.info("Table '{}': updating columns '{}' and '{}'".format(
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
     if rio_type:
+        rio_pk = get_rio_pk_col(table)
         ensure_columns_present(engine, table=table, column_names=[
-            RIO_COL_PK, RIO_COL_PATIENT_ID])
+            rio_pk, RIO_COL_PATIENT_ID])
         if not args.print:
             ensure_columns_present(engine, table=table, column_names=[
                 CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
@@ -362,14 +370,14 @@ def process_patient_table(table, engine, args):
     """.format(
             tablename=table.name,
             pk=CRATE_COL_PK,
-            rio_pk=RIO_COL_PK,
+            rio_pk=rio_pk,
             rio_number=CRATE_COL_RIO_NUMBER,
             rio_pt_id=RIO_COL_PATIENT_ID,
         ))
     else:
         # RCEP format
         ensure_columns_present(engine, table=table, column_names=[
-            RCEP_COL_MANGLED_KEY, RCEP_COL_PATIENT_ID])
+            RCEP_COL_PATIENT_ID])
         if not args.print:
             ensure_columns_present(engine, table=table, column_names=[
                 CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
@@ -381,12 +389,12 @@ def process_patient_table(table, engine, args):
                 {rio_number} IS NULL
         """.format(  # noqa
             tablename=table.name,
-            pk=CRATE_COL_PK,
-            rcep_mangled_pk=RCEP_COL_MANGLED_KEY,
             rio_number=CRATE_COL_RIO_NUMBER,
             rcep_pt_id=RCEP_COL_PATIENT_ID,
         ))
         """ Chucked:
+            ensure_columns_present(... RCEP_COL_MANGLED_KEY...)
+
             {pk} = CAST(
                 SUBSTRING(
                     {rcep_mangled_pk},
@@ -394,6 +402,9 @@ def process_patient_table(table, engine, args):
                     LEN({rcep_mangled_pk}) - CHARINDEX('_', {rcep_mangled_pk})
                 ) AS INTEGER
             ),
+
+            # pk=CRATE_COL_PK,
+            # rcep_mangled_pk=RCEP_COL_MANGLED_KEY,
         """
     # -------------------------------------------------------------------------
     # Add indexes, if absent

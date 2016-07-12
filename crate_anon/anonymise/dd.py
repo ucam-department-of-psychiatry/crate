@@ -1010,8 +1010,9 @@ class DataDictionary(object):
                     # If you do, they can fail to match the SQLAlchemy
                     # introspection and cause a crash.
                     # Changed to be a destination manipulation (2016-06-04).
-                    if (tablename in cfg.ddgen_table_blacklist or
-                            columnname in cfg.ddgen_field_blacklist):
+                    if cfg.is_table_blacklisted(tablename):
+                        continue
+                    if cfg.is_field_blacklisted(columnname):
                         continue
                     comment = ''  # currently unsupported by SQLAlchemy
                     if self.config.append_source_info_to_comment:
