@@ -220,6 +220,7 @@ RIO_6_2_ATYPICAL_PKS = {
     'KP90ErrorLog': None,
 
     'ReportsOutpatientWaitersHashNotSeenReferrals': None,
+    'ReportsOutpatientWaitersNotSeenReferrals': None,
 }
 
 RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
