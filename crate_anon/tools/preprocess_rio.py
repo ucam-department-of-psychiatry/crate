@@ -199,7 +199,7 @@ RIO_6_2_ATYPICAL_PKS = {
 
     # NDTMS*: Nation(al?) Drug Treatment Monitoring System
 
-    # SNOMED
+    # SNOMED*: SNOMED
     'SNOMED_Client': 'SC_ID',
 
     # UserAssess*: user assessment (= non-core?) tables.
@@ -218,6 +218,8 @@ RIO_6_2_ATYPICAL_PKS = {
     'GoldmineIfcMapping': None,  # no idea, really, and no data to explore
 
     'KP90ErrorLog': None,
+
+    'ReportsOutpatientWatersHashNotSeenReferrals': None,
 }
 
 RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
