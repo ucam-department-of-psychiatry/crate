@@ -419,6 +419,8 @@ RIO_62_SPECIAL_PKS = {
     'CYPcurrentviewImport': None,  # not TrustWideID (which is non-unique)
 
     'GoldmineIfcMapping': None,  # no idea, really, and no data to explore
+
+    'KP90ErrorLog': None,
 }
 
 
