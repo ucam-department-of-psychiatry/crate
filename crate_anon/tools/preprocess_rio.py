@@ -351,6 +351,19 @@ RIO_62_SPECIAL_PKS = {
     'AmsReferralListUrgency': None,
     'AmsReferralListWaitingStatus': None,
     'CarePlanIndex': 'CarePlanID',
+    'CarePlanProblemOrder': None,
+    'EPClientConditions': 'RowID',
+    'EPClientPrescription': 'PrescriptionID',
+    'EPClientSensitivities': None,  # UNVERIFIED: None? Joint PK on ProdID?
+    'EPDiscretionaryDrugClientLink': None,
+    'EPVariableDosageDrugLink': 'HistoryID',  # UNVERIFIED
+    'EPClientAllergies': 'ReactionID',
+    'DAConcurrencyControl': None,
+    'DAIPPrescription': 'PrescriptionID',
+    'DSBatchPatientGroups': None,
+    'DSMedicationBatchContinue': None,
+    'DSMedicationBatchLink': None,
+    # ImsEventLeave: check: both UniqueSequenceID and SequenceID
 }
 
 
