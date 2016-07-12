@@ -383,7 +383,7 @@ RIO_62_SPECIAL_PKS = {
     'ConLeaveDiscountHistory': 'SequenceNo',
 
     # Not documented, but looks like Core
-    'Deceased': None,  # or possibly TrustWideID
+    'Deceased': None,  # or possibly TrustWideID (or just ClientID!)
 
     'DemClientDeletedDetails': None,
 
@@ -415,6 +415,8 @@ RIO_62_SPECIAL_PKS = {
 
     # ??? But it has q1-q30, qu2-14, home, sch, comm... assessment tool...
     'CYPcurrentviewImport': None,  # not TrustWideID (which is non-unique)
+
+    'GoldmineIfcMapping': None,  # no idea, really, and no data to explore
 }
 
 
