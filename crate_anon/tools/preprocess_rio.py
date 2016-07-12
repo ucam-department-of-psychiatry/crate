@@ -405,6 +405,8 @@ RIO_62_SPECIAL_PKS = {
     # Ims*: Inpatient Management System
     'ImsEventLeave': 'UniqueSequenceID',  # SequenceID
     'ImsEventMovement': None,
+    'ImsEventRefno': None,  # Not in docs but looks like Core.
+    'ImsEventRefnoBAKUP': None,  # [Sic.] Not in docs but looks like Core.
 
     # -------------------------------------------------------------------------
     # Non-core? No docs available.
