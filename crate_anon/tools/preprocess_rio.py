@@ -46,25 +46,34 @@ RCEP_COL_POSTCODE = "Post_Code"  # RCEP: NVARCHAR(10)
 # ... general format (empirically): "XX12 3YY" or "XX1 3YY"; "ZZ99" for unknown
 # This matches the ONPD "pdcs" format.
 RCEP_COL_MANGLED_KEY = "Document_ID"
-# In RCEP, Document_ID is VARCHAR(MAX), and is often:
-#   'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
-# HOWEVER, the last part is not always unique; e.g. Care_Plan_Interventions.
-# - Care_Plan_Interventions has massive tranches of ENTIRELY identical rows,
-#   including a column called, ironically, "Unique_Key".
-# - Therefore, we could either ditch the key entirely, or just use a non-UNIQUE
-#   index (and call it "key" not "pk").
-# AND THEN... In Client_Family, we have Document_ID values like
-#   773577794_1000000_1000001
-#   ^^^^^^^^^ ^^^^^^^ ^^^^^^^
-#   table ID  RiO#    Family member's RiO#
-#
-#   ... there is no unique ID. And we don't need the middle part as we already
-#   have Client_ID. So this is not very useful. We could mangle out the second
-#   and subsequent '_' characters to give a unique number here, which would
-#   meaning having PK as BIGINT not INTEGER.
-# - SQL Server's ROW_NUMBER() relates to result sets.
-# - However, ADD pkname INT IDENTITY(1, 1) works beautifully and
-#   autopopulates existing tables.
+
+"""
+===============================================================================
+Primary keys
+===============================================================================
+In RCEP, Document_ID is VARCHAR(MAX), and is often:
+    'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
+
+HOWEVER, the last part is not always unique; e.g. Care_Plan_Interventions.
+
+-   Care_Plan_Interventions has massive tranches of ENTIRELY identical rows,
+    including a column called, ironically, "Unique_Key".
+-   Therefore, we could either ditch the key entirely, or just use a non-UNIQUE
+    index (and call it "key" not "pk").
+
+-   AND THEN... In Client_Family, we have Document_ID values like
+    773577794_1000000_1000001
+    ^^^^^^^^^ ^^^^^^^ ^^^^^^^
+    table ID  RiO#    Family member's RiO#
+
+    ... there is no unique ID. And we don't need the middle part as we already
+    have Client_ID. So this is not very useful. We could mangle out the second
+    and subsequent '_' characters to give a unique number here, which would
+    meaning having PK as BIGINT not INTEGER.
+-   SQL Server's ROW_NUMBER() relates to result sets.
+-   However, ADD pkname INT IDENTITY(1, 1) works beautifully and
+    autopopulates existing tables.
+"""
 
 # CPFT hacks (RiO tables added to RCEP output):
 CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
@@ -231,6 +240,254 @@ RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
     'SNOMED_Client': 'SC_ClientID',
 }
 
+"""
+===============================================================================
+How is RiO non-core structured?
+===============================================================================
+
+- INDEX TABLES
+    AssessmentDates
+        associates AssessmentID and ClientID with dates
+
+    AssessmentFormGroupsIndex, e.g.:
+        Name               Description          Version    Deleted
+        CoreAssess         Core Assessment      16          0
+        CoreAssess         Core Assessment      17          0
+        CoreAssessNewV1    Core Assessment v1   0           0
+        CoreAssessNewV1    Core Assessment v1   1           0
+        CoreAssessNewV2    Core Assessment v2   0           0
+        CoreAssessNewV2    Core Assessment v2   1           0
+        CoreAssessNewV2    Core Assessment v2   2           0
+        ^^^                ^^^
+        RiO form groups    Nice names
+
+    AssessmentFormGroupsStructure, e.g.:
+        name            FormName           AddedDate FormgroupVersion FormOrder
+        CoreAssessNewV2	coreasspresprob	    2013-10-30 15:46:00.000	0	0
+        CoreAssessNewV2	coreassesspastpsy	2013-10-30 15:46:00.000	0	1
+        CoreAssessNewV2	coreassessbackhist	2013-10-30 15:46:00.000	0	2
+        CoreAssessNewV2	coreassesmentstate	2013-10-30 15:46:00.000	0	3
+        CoreAssessNewV2	coreassescapsafrisk	2013-10-30 15:46:00.000	0	4
+        CoreAssessNewV2	coreasssumminitplan	2013-10-30 15:46:00.000	0	5
+        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:19:06.410	1	0
+        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:19:06.410	1	1
+        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:19:06.413	1	2
+        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:19:06.413	1	3
+        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:19:06.417	1	4
+        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:19:06.417	1	5
+        CoreAssessNewV2	coresocial1	        2014-12-14 19:19:06.420	1	6
+        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:31:25.377	2	0 } NB
+        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:31:25.377	2	1 }
+        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:31:25.380	2	2 }
+        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:31:25.380	2	3 }
+        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:31:25.380	2	4 }
+        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:31:25.383	2	5 }
+        CoreAssessNewV2	coresocial1	        2014-12-14 19:31:25.383	2	6 }
+        CoreAssessNewV2	kcsahyper	        2014-12-14 19:31:25.387	2	7 }
+        ^^^             ^^^
+        Form groups     RiO forms; these correspond to UserAssess___ tables.
+
+    AssessmentFormsIndex, e.g.
+        Name                InUse Style Deleted    Description  ...
+        core_10             1     6     0    Clinical Outcomes in Routine Evaluation Screening Measure-10 (core-10)
+        corealcsub          1     6     0    Alcohol and Substance Misuse
+        coreassescapsafrisk 1     6     0    Capacity, Safeguarding and Risk
+        coreassesmentstate  1     6     0    Mental State
+        coreassessbackhist  1     6     0    Background and History
+        coreassesspastpsy   1     6     0    Past Psychiatric History and Physical Health
+        coreasspresprob     1     6     0    Presenting Problem
+        coreasssumminitplan 1     6     0    Summary and Initial Plan
+        corecarer           1     6     0    Carers and Cared For
+        corediversity       1     6     0    Diversity Needs
+        coremedsum          1     6     0    Medication, Allergies and Adverse Reactions
+        coremenhis          1     6     0    Mental Health / Psychiatric History
+        coremenstate        1     6     0    Mental State and Formulation
+        coreperdev          1     6     0    Personal History and Developmental History
+        ^^^                                  ^^^
+        |||                                  Nice names.
+        RiO forms; these correspond to UserAssess___ tables,
+        e.g. UserAssesscoreassesmentstate
+
+    AssessmentFormsLocks
+        system only; not relevant
+    
+    AssessmentFormsTimeout
+        system only; not relevant
+    
+    AssessmentImageForms
+        SequenceID, FormName, ClientID, AssessmentDate, UserID, ImagePath
+        ?
+        no data
+        
+    AssessmentIndex, e.g.
+        Name          InUse Version DateBound RequiresClientID  Deleted Description ...
+        ConsentShare  1     3       1         0                 1       Consent to Share Information
+        CoreAssess    1     1       0         1                 0       Core Assessment
+        CoreAssess    1     2       0         1                 0       Core Assessment
+        CoreAssess    1     3       0         1                 0       Core Assessment
+        CoreAssess    1     4       0         1                 0       Core Assessment
+        CoreAssess    1     5       0         1                 0       Core Assessment
+        CoreAssess    1     6       0         1                 0       Core Assessment
+        CoreAssess    1     7       0         1                 0       Core Assessment
+        crhtaaucp     1     1       0         0                 0       CRHTT / AAU Care Plan
+        ^^^
+        These correspond to AssessmentStructure.Assessment
+
+    AssessmentMasterTableIndex, e.g.
+        TableName       TableDescription
+        core10          core10
+        Corealc1        TAUDIT - Q1
+        Corealc2        TAUDIT Q2
+        Corealc3        TAUDIT - Q3,4,5,6,7,8
+        Corealc4        TAUDIT - Q9,10
+        Corealc5        Dependence
+        Corealc6        Cocaine Use
+        CoreOtherAssess Other Assessments
+        crhttcpstat     CRHTT Care Plan Status
+        ^^^
+        These correspond to UserMaster___ tables.
+        ... Find with:
+            SELECT * FROM rio_data_raw.information_schema.columns
+            WHERE table_name LIKE '%core10%';
+        
+    AssessmentPseudoForms, e.g. (all rows):
+        Name            Link
+        CaseNoteBar     ../Letters/LetterEditableMain.aspx?ClientID
+        CaseNoteoview   ../Reports/RioReports.asp?ReportID=15587&ClientID
+        kcsahyper       tfkcsa
+        physv1hypa      physassess16a&readonlymode=1
+        physv1hypb1     physasses16b1&readonlymode=1
+        physv1hypb2     physasses16b22&readonlymode=1
+        physv1hypbody   testbmap&readonlymode=1
+        physv1hypvte    vte&readonlymode=1
+        
+    AssessmentReadOnlyFields, e.g.
+        Code        CodeDescription       SQLStatementLookup    SQLStatementSearch
+        ADCAT       Adminstrative Cat...  SELECT TOP 1 u.Cod... ...
+        ADD         Client  Address       SELECT '$LookupVal... ...
+        AdmCons     Consultant            SELECT '$LookupVal... ...
+        AdmglStat   Status at Admission   SELECT '$LookupVal... ...
+        AdmitDate   Admission Date        SELECT '$LookupVal... ...
+        AEDEXLI     AED Exceptions...     SELECT TOP 1 ISNUL... ...
+        Age         Client Age            SELECT '$LookupVal... ...
+        Allergies   Client Allergies      SELECT dbo.LocalCo... ...
+        bg          Background (PSOC323)  SELECT TOP 1 ISNUL... ...
+        
+        That Allergies one in full:
+        - SQLStatementLookup
+            SELECT dbo.LocalConfig_GetClientAllergies('$key$') AS Allergies
+        - SQLStatementSearch = SQLStatementLookup
+        
+        And the bg/Background... one:
+        - SQLStatementLookup
+            SELECT TOP 1
+                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled'),
+                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled')
+            FROM dbo.view_userassesscoremenhis
+              -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              -- view in which data column names renamed 'Men01', 'Men02'...
+            WHERE ClientID = '$ClientID$'
+            AND dbo.udf_Config_SystemValidationStatus(system_validationData,'Men03','v') = 1
+            ORDER BY
+                AssessmentDate DESC,
+                type12_UpdatedDate DESC
+        - SQLStatementSearch = SQLStatementLookup
+        
+        - EXEC sp_helptext 'production.rio62camlive.dbo.udf_Config_SystemValidationStatus';
+          ... can't view this at present (am on the wrong machine?).
+
+    AssessmentStructure, e.g.:
+        FormGroup       Assessment  AssessmentVersion FormGroupVersion FormGroupOrder
+        CoreAssessNewV1 CoreAssess    7    1    1
+        CoreAssessNewV2 CoreAssess    7    2    0
+        CoreAssessNewV2 CoreAssess    6    1    0
+        CoreAssessNewV2 CoreAssess    5    0    0
+        CoreAssessNewV2 CoreAssess    2    0    1
+        CoreAssessNewV2 CoreAssess    3    0    0
+        
+        ... FORM GROUP to ASSESSMENT mapping
+
+- MAIN DATA TABLES
+
+    e.g.:
+    UserAssesscoreassesmentstate
+        ClientID
+        system_ValidationData  -- e.g. <v n="3"><MentState s="v" a="<userID>" v="" d="" e="10/11/2013 13:23" o="1" n="3" b="" c=""></MentState></v>
+        NHSNum  -- as VARCHAR
+        AssessmentDate
+        ServRef
+        MentState   -- this contains the text
+        type12_NoteID -- PK
+        type12_OriginalNoteID  -- can be NULL
+        type12_DeletedDate  -- can be NULL
+        type12_UpdatedBy
+        type12_UpdatedDate
+        formref
+        
+    UserAssesscoreassesspastpsy
+        ClientID    
+        system_ValidationData    
+        NHSNum    
+        AssessmentDate    
+        ServRef    
+        PastPsyHist  -- contains text
+        PhyHealth    -- contains text  
+        Allergies    -- contains text
+        type12_NoteID    
+        type12_OriginalNoteID    
+        type12_DeletedDate    
+        type12_UpdatedBy    
+        type12_UpdatedDate    
+        formref
+        frailty  -- numeric
+
+- LOOKUP TABLES
+
+    UserMasterfrailty, in full:
+        Code CodeDescription            Deleted
+        1    1 - Very Fit               0
+        2    2 - Well                   0
+        3    3 - Managing Well          0
+        4    4 - Vulnerable             0
+        5    5 - Mildly Frail           0
+        7    7 - Severely Frail         0
+        6    6 - Moderately Frail       0
+        9    9 - Terminally Ill         0
+        8    8 - Very Serverely Frail   0
+
+- SO, OVERALL STRUCTURE, APPROXIMATELY:
+
+    RiO front-end example:
+        Assessments [on menu]
+            -> Core Assessment [menu dropdown]
+            -> Core Assessment v2 [LHS, expands to...]
+                ->  Presenting Problem [LHS]   
+                    Past Psychiatric History and Physical Health
+                        ->  Service/Team
+                            Past Psychiatric History
+                            Physical Health / Medical History
+                            Allergies
+                            Frailty Score
+                    Background and History 
+                    Mental State 
+                    Capacity, Safeguarding and Risk 
+                    Summary and Initial Plan 
+                    Social Circumstances and Employment 
+                    Keeping Children Safe Assessment 
+
+    So, hierarchy at the backend (> forward, < backward keys):
+    
+        AssessmentIndex.Name(>) / .Description ('Core Assessment')
+            AssessmentStructure.Assessment(<) / .FormGroup(>)
+                AssessmentFormGroupsIndex.Name(<) / .Description ('Core Assessment v2')
+                AssessmentFormGroupsStructure.name(<) / .FormName(>) ('coreassesspastpsy')
+                    AssessmentFormsIndex.FormName(<) / .Description ('Past Psychiatric History and Physical Health')
+                    UserAssesscoreassesspastpsy = data
+                              _________________(<)
+                        UserAssesscoreassesspastpsy.frailty(>) [lookup]
+                            UserMasterfrailty.Code(<) / .CodeDescription
+
+"""  # noqa
 
 # =============================================================================
 # Ancillary functions
