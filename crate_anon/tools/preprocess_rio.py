@@ -412,7 +412,12 @@ How is RiO non-core structured?
     e.g.:
     UserAssesscoreassesmentstate
         ClientID
-        system_ValidationData  -- e.g. <v n="3"><MentState s="v" a="<userID>" v="" d="" e="10/11/2013 13:23" o="1" n="3" b="" c=""></MentState></v>
+        system_ValidationData  -- e.g. (with newlines added):
+            '<v n="3">
+                <MentState s="v" a="<userID>" v="" d="" e="10/11/2013 13:23" o="1" n="3" b="" c="">
+                </MentState>
+            </v>'
+            ... where <userID> was a specific user ID
         NHSNum  -- as VARCHAR
         AssessmentDate
         ServRef
@@ -439,7 +444,7 @@ How is RiO non-core structured?
         type12_UpdatedBy    
         type12_UpdatedDate    
         formref
-        frailty  -- numeric
+        frailty  -- numeric; in passing, here's the Rockwood frailty score
 
 - LOOKUP TABLES
 
@@ -486,6 +491,19 @@ How is RiO non-core structured?
                               _________________(<)
                         UserAssesscoreassesspastpsy.frailty(>) [lookup]
                             UserMasterfrailty.Code(<) / .CodeDescription
+
+- Simplifying views (for core and non-core RiO) could be implemented in the
+  preprocessor, or after anonymisation.
+  Better to do it in the preprocessor, because this knows about RiO.
+  The two points of "RiO knowledge" should be:
+    - the preprocessor;
+        ... PK, RiO number as integer, views
+    - the ddgen_* information in the anonymiser config file.
+        ... tables to omit
+        ... fields to omit
+        ... default actions on fields
+            ... e.g. exclude if type12_DeletedDate is None
+                *** add this as a ddgen_ option
 
 """  # noqa
 
