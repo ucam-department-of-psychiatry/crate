@@ -66,7 +66,6 @@ TO DO:
 import argparse
 import ast
 import codecs
-import configparser
 from functools import lru_cache
 import logging
 import os
@@ -90,12 +89,12 @@ from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, select, table
 from sqlalchemy.types import BigInteger, DateTime, String
 
+from crate_anon.anonymise.crateconfigparser import CrateConfigParser
 from crate_anon.anonymise.constants import (
     MAX_PID_STR,
     MYSQL_TABLE_ARGS,
     SEP,
 )
-from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.hash import HmacMD5Hasher
 from crate_anon.anonymise.logsupport import configure_logger_for_colour
 from crate_anon.anonymise.sqla import (
@@ -393,19 +392,11 @@ class OutputTypeConfig(object):
             raise ValueError("config missing section: " + section)
 
         def opt_str(option, required=False):
-            s = parser.get(section, option, fallback=None)
-            if required and not s:
-                raise ValueError("Missing: {}".format(option))
-            return s
+            return parser.get_str(section, option, required=required)
 
-        def opt_strlist(option, required=False, lower=True):
-            text = parser.get(section, option, fallback='')
-            if lower:
-                text = text.lower()
-            opts = [x.strip() for x in text.strip().split() if x.strip()]
-            if required and not opts:
-                raise ValueError("Missing: {}".format(option))
-            return opts
+        def opt_strlist(option, required=False, lower=True, as_words=True):
+            return parser.get_str_list(section, option, required=required,
+                                       lower=lower, as_words=as_words)
 
         self.destdb = opt_str('destdb', required=True)
 
@@ -415,6 +406,7 @@ class OutputTypeConfig(object):
         self.destfields = []
         self.dest_datatypes = []
         dest_fields_datatypes = opt_strlist('destfields', required=True)
+        log.critical(dest_fields_datatypes)
         for c in chunks(dest_fields_datatypes, 2):
             field = c[0]
             datatype = c[1].upper()
@@ -446,6 +438,7 @@ class OutputTypeConfig(object):
         self.indexfields = []
         self.indexlengths = []
         indexdefs = opt_strlist('indexdefs')
+        log.critical(indexdefs)
         if indexdefs:
             for c in chunks(indexdefs, 2):  # pairs: field, length
                 indexfieldname = c[0]
@@ -475,19 +468,11 @@ class InputFieldConfig(object):
         Read config from a configparser section.
         """
         def opt_str(option):
-            s = parser.get(section, option, fallback=None)
-            if not s:
-                raise ValueError("Missing: {}".format(option))
-            return s
+            return parser.get_str(section, option, required=True)
 
         def opt_strlist(option, required=False, lower=True):
-            text = parser.get(section, option, fallback='')
-            if lower:
-                text = text.lower()
-            opts = [x.strip() for x in text.strip().split() if x.strip()]
-            if required and not opts:
-                raise ValueError("Missing: {}".format(option))
-            return opts
+            return parser.get_str_list(section, option, as_words=False,
+                                       lower=lower, required=required)
 
         self.srcdb = opt_str('srcdb')
         self.srctable = opt_str('srctable')
@@ -530,42 +515,28 @@ class Config(object):
             sys.exit(1)
 
         # Read config from file.
-        parser = configparser.RawConfigParser()
+        parser = CrateConfigParser()
         parser.optionxform = str  # make it case-sensitive
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = nlpname
 
         def opt_str(option, required=False, default=None):
-            s = parser.get(section, option, fallback=default)
-            if required and not s:
-                raise ValueError("Missing: {} in section {}".format(option,
-                                                                    section))
-            return s
+            return parser.get_str(section, option, default=default,
+                                  required=required)
 
-        def opt_strlist(option, required=False, lower=True):
-            text = parser.get(section, option, fallback='')
-            if lower:
-                text = text.lower()
-            opts = [s.strip() for s in text.strip().split() if s.strip()]
-            if required and not opts:
-                raise ValueError("Missing: {} in section {}".format(option,
-                                                                    section))
-            return opts
+        def opt_strlist(option, required=False, lower=True, as_words=True):
+            return parser.get_str_list(section, option, as_words=as_words,
+                                       lower=lower, required=required)
 
         def opt_int(option, default):
             return parser.getint(nlpname, option, fallback=default)
 
         def get_database(name_and_cfg_section, with_session=True,
                          with_conn=False, reflect=False):
-            url = parser.get(name_and_cfg_section, 'url', fallback=None)
-            if not url:
-                raise ValueError(
-                    "Missing 'url' parameter in section {}".format(
-                        name_and_cfg_section))
-            return DatabaseHolder(name_and_cfg_section, url, srccfg=None,
-                                  with_session=with_session,
-                                  with_conn=with_conn,
-                                  reflect=reflect)
+            return parser.get_database(name_and_cfg_section,
+                                       with_session=with_session,
+                                       with_conn=with_conn,
+                                       reflect=reflect)
 
         self.max_external_prog_uses = opt_int('max_external_prog_uses',
                                               default=0)
@@ -589,6 +560,7 @@ class Config(object):
 
         # outputtypemap, databases
         typepairs = opt_strlist('outputtypemap', required=True, lower=False)
+        log.critical(typepairs)
         self.outputtypemap = {}
         for c in chunks(typepairs, 2):
             annottype = c[0]
@@ -597,6 +569,7 @@ class Config(object):
                 raise Exception(
                     "Section {}: annotation types in outputtypemap must be in "
                     "lower case: change {}".format(section, annottype))
+            log.critical(outputsection)
             c = OutputTypeConfig(parser, outputsection)
             self.outputtypemap[annottype] = c
             dbname = c.destdb

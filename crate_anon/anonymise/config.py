@@ -69,7 +69,6 @@ Thoughts on configuration method
 
 import ast
 import codecs
-import configparser
 import fnmatch
 import logging
 import os
@@ -86,6 +85,7 @@ from cardinal_pythonlib.rnc_db import (
     ensure_valid_table_name,
 )
 
+from crate_anon.anonymise.crateconfigparser import CrateConfigParser
 from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
@@ -145,17 +145,13 @@ class DatabaseSafeConfig(object):
             return parser.get(section, option, fallback=None)
 
         def opt_multiline(option):
-            multiline = parser.get(section, option, fallback='')
-            return [x.strip() for x in multiline.splitlines() if x.strip()]
+            return parser.get_str_list(section, option)
 
         def opt_bool(option, default):
             return parser.getboolean(section, option, fallback=default)
 
         def opt_int(option, default):
-            try:
-                return parser.getint(section, option, fallback=default)
-            except ValueError:  # e.g. invalid literal for int() with base 10
-                return default
+            return parser.get_int_default_if_failure(section, option, default)
 
         self.ddgen_force_lower_case = opt_bool('ddgen_force_lower_case', True)
         self.ddgen_convert_odd_chars_to_underscore = opt_bool(
@@ -257,7 +253,7 @@ class Config(object):
             sys.exit(1)
 
         # Read config from file.
-        parser = configparser.RawConfigParser()
+        parser = CrateConfigParser()
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = "main"
 
@@ -265,48 +261,29 @@ class Config(object):
             return parser.get(section, option, fallback=None)
 
         def opt_multiline(option):
-            multiline = parser.get(section, option, fallback='')
-            return [x.strip() for x in multiline.splitlines() if x.strip()]
+            return parser.get_str_list(section, option)
 
         def opt_multiline_int(option, minimum=None, maximum=None):
-            values = [int(x) for x in opt_multiline(option) if x]
-            if minimum is not None:
-                values = [x for x in values if x >= minimum]
-            if maximum is not None:
-                values = [x for x in values if x <= maximum]
-            return values
+            return parser.get_int_list(section, option, minimum=minimum,
+                                       maximum=maximum, suppress_errors=False)
 
         def opt_bool(option, default):
             return parser.getboolean(section, option, fallback=default)
 
         def opt_int(option, default):
-            try:
-                return parser.getint(section, option, fallback=default)
-            except ValueError:  # e.g. invalid literal for int() with base 10
-                return default
+            return parser.get_int_default_if_failure(section, option, default)
 
         def opt_pyvalue_list(option, default=None):
-            default = default or []
-            strvalue = opt_str(option)
-            if not strvalue:
-                return default
-            pyvalue = ast.literal_eval(strvalue)
-            # Now, make sure it's a list:
-            # http://stackoverflow.com/questions/1835018
-            if not isinstance(pyvalue, list):
-                raise ValueError("Option {} must evaluate to a Python list "
-                                 "using ast.literal_eval()".format(option))
-            return pyvalue
+            return parser.get_pyvalue_list(section, option, default=default)
 
         def get_database(section_, name, srccfg_=None, with_session=False,
                          with_conn=True, reflect=True):
-            url = parser.get(section_, 'url', fallback=None)
-            if not url:
-                return None
-            return DatabaseHolder(name, url, srccfg_,
-                                  with_session=with_session,
-                                  with_conn=with_conn,
-                                  reflect=reflect)
+            return parser.get_database(section_,
+                                       dbname=name,
+                                       srccfg=srccfg_,
+                                       with_session=with_session,
+                                       with_conn=with_conn,
+                                       reflect=reflect)
 
         self.data_dictionary_filename = opt_str('data_dictionary_filename')
         self.hash_method = opt_str('hash_method')

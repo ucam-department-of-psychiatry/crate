@@ -23,6 +23,11 @@ metadata = MetaData()
 # =============================================================================
 
 AUTONUMBER_COLTYPE = "INTEGER IDENTITY(1, 1) NOT NULL"
+# ... is specific to SQL Server, which is what RiO uses.
+#     MySQL equivalent would be "INTEGER PRIMARY KEY AUTO_INCREMENT" or
+#     "INTEGER UNIQUE KEY AUTO_INCREMENT".
+#     (MySQL allows only one auto column and it must be a key.)
+#     (This also does the indexing.)
 
 # Tables in RiO v6.2 Core:
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
@@ -1014,15 +1019,15 @@ def drop_for_progress_notes(table, engine, args):
 
 
 # =============================================================================
-# RiO view creators
+# RiO view creators: specific
 # =============================================================================
 
 def rio_add_user_lookup(select_elements, from_elements,
-                        basetable, basecolumn_usercode,
+                        basetable, basecolumn,
                         column_prefix=None, alias_prefix=None):
     # NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for
     # each table (2016-07-12).
-    column_prefix = column_prefix or basecolumn_usercode
+    column_prefix = column_prefix or basecolumn
     alias_prefix = alias_prefix or "t_" + column_prefix  # table alias
     select_elements.append("""
         {basetable}.{basecolumn_usercode} AS {cp}_user_code,
@@ -1053,7 +1058,7 @@ def rio_add_user_lookup(select_elements, from_elements,
         -- {cp}_location... ?? Presumably from GenLocation, but via what? Seems meaningless.
     """.format(  # noqa
         basetable=basetable,
-        basecolumn_usercode=basecolumn_usercode,
+        basecolumn_usercode=basecolumn,
         cp=column_prefix,
         ap=alias_prefix,
     ))
@@ -1081,7 +1086,7 @@ def rio_add_user_lookup(select_elements, from_elements,
         ) ON {basetable}.{basecolumn_usercode} = {ap}_genhcp.GenHCPCode
     """.format(  # noqa
         basetable=basetable,
-        basecolumn_usercode=basecolumn_usercode,
+        basecolumn_usercode=basecolumn,
         ap=alias_prefix,
     ))
     # OTHER THINGS:
@@ -1095,6 +1100,38 @@ def rio_add_user_lookup(select_elements, from_elements,
     #   you only get Client_Demographic_Details.Occupation and
     #   Client_Demographic_Details.Partner_Occupation
 
+
+# =============================================================================
+# RiO view creators: collection
+# =============================================================================
+
+RIO_VIEWS = {
+    'progress_notes_testview': {
+        'basetable': RIO_TABLE_PROGRESS_NOTES,
+        'additions': [
+            {
+                'basecolumn': 'EnteredBy',
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'column_prefix': 'originating_user',
+                    'alias_prefix': 'ou',
+                },
+            },
+            {
+                'basecolumn': 'VerifyUserID',
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'column_prefix': 'verifying_user',
+                    'alias_prefix': 'vu',
+                },
+            },
+        ],
+    },
+}
+
+# =============================================================================
+# RiO view creators: generic
+# =============================================================================
 
 def starting_view_elements(engine, basetable):
     select_elements = [
@@ -1113,33 +1150,47 @@ def finish_view_select_sql(select_elements, from_elements):
     )
 
 
-def rio_view_progress_notes(engine):
-    basetable = RIO_TABLE_PROGRESS_NOTES
-    select_elements, from_elements = starting_view_elements(engine, basetable)
-    rio_add_user_lookup(
-        select_elements=select_elements,
-        from_elements=from_elements,
-        basetable=basetable,
-        basecolumn_usercode="EnteredBy",
-        column_prefix="originating_user",
-        alias_prefix="ou"
-    )
-    rio_add_user_lookup(
-        select_elements=select_elements,
-        from_elements=from_elements,
-        basetable=basetable,
-        basecolumn_usercode="VerifyUserID",
-        column_prefix="verifying_user",
-        alias_prefix="vu"
-    )
-    return finish_view_select_sql(select_elements, from_elements)
+# def rio_view_progress_notes(engine):
+#     basetable = RIO_TABLE_PROGRESS_NOTES
+#     select_elements, from_elements = starting_view_elements(engine, basetable)
+#     rio_add_user_lookup(
+#         select_elements=select_elements,
+#         from_elements=from_elements,
+#         basetable=basetable,
+#         basecolumn_usercode="EnteredBy",
+#         column_prefix="originating_user",
+#         alias_prefix="ou"
+#     )
+#     rio_add_user_lookup(
+#         select_elements=select_elements,
+#         from_elements=from_elements,
+#         basetable=basetable,
+#         basecolumn_usercode="VerifyUserID",
+#         column_prefix="verifying_user",
+#         alias_prefix="vu"
+#     )
+#     return finish_view_select_sql(select_elements, from_elements)
 
 
 def get_rio_views(engine):
     # Dictionary of {viewname: select_sql} pairs.
-    return {
-        'progress_notes_testview': rio_view_progress_notes(engine),
-    }
+    views = {}
+    for viewname, viewdetails in RIO_VIEWS.items():
+        basetable = viewdetails['basetable']
+        select_elements, from_elements = starting_view_elements(engine,
+                                                                basetable)
+        for addition in viewdetails['additions']:
+            basecolumn = addition['basecolumn']
+            function = addition['function']
+            kwargs = addition['kwargs']
+            kwargs['basetable'] = basetable
+            kwargs['basecolumn'] = basecolumn
+            kwargs['select_elements'] = select_elements
+            kwargs['from_elements'] = from_elements
+            function(**kwargs)  # will alter select_elements, from_elements
+        select_sql = finish_view_select_sql(select_elements, from_elements)
+        views[viewname] = select_sql
+    return views
 
 
 def create_rio_views(engine, args):

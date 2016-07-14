@@ -158,6 +158,7 @@ setup(
         # Core tools with accessories:
         'arrow==0.7.0',  # better datetime
         'colorlog==2.6.1',  # colour in logs
+        # 'configobj==5.0.6',  # better config files
         'psutil==4.1.0',  # process management
         'semver==2.4.1',  # comparing semantic versions
         'SQLAlchemy>=1.0.12',  # database access
