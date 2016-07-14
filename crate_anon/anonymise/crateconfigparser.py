@@ -79,7 +79,7 @@ class CrateConfigParser(configparser.ConfigParser):
             self.raise_missing(section, option)
         return s
 
-    def get_str_list(self, section, option, as_words=False, lower=False,
+    def get_str_list(self, section, option, as_words=True, lower=False,
                      required=False):
         multiline = self.get(section, option, fallback='')
         if lower:

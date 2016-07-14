@@ -159,6 +159,8 @@ class DatabaseSafeConfig(object):
         self.ddgen_allow_no_patient_info = opt_bool(
             'ddgen_allow_no_patient_info', False)
         self.ddgen_per_table_pid_field = opt_str('ddgen_per_table_pid_field')
+        self.ddgen_add_per_table_pids_to_scrubber = opt_bool(
+            'ddgen_add_per_table_pids_to_scrubber', False)
         self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
         self.ddgen_constant_content = opt_bool(
             'ddgen_constant_content', False)

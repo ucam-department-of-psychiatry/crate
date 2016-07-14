@@ -544,16 +544,16 @@ def sql_fragment_cast_to_int(expr):
            "THEN CAST({expr} AS INTEGER) ELSE NULL END".format(expr=expr)
 
 
-def execute(engine, args, sql):
+def execute(engine, progargs, sql):
     log.debug(sql)
-    if args.print:
+    if progargs.print:
         print(format_sql_for_print(sql) + "\n;")
         # extra \n in case the SQL ends in a comment
     else:
         engine.execute(sql)
 
 
-def add_columns(engine, args, table, name_coltype_dict):
+def add_columns(engine, progargs, table, name_coltype_dict):
     existing_column_names = get_column_names(engine, table=table,
                                              to_lower=True)
     column_defs = []
@@ -578,12 +578,12 @@ def add_columns(engine, args, table, name_coltype_dict):
     for column_def in column_defs:
         log.info("Table '{}': adding column {}".format(
             table.name, column_def))
-        execute(engine, args, """
+        execute(engine, progargs, """
             ALTER TABLE {tablename} ADD {column_def}
         """.format(tablename=table.name, column_def=column_def))
 
 
-def drop_columns(engine, args, table, column_names):
+def drop_columns(engine, progargs, table, column_names):
     existing_column_names = get_column_names(engine, table=table,
                                              to_lower=True)
     for name in column_names:
@@ -597,10 +597,10 @@ def drop_columns(engine, args, table, column_names):
                                                            c=name)
             # SQL Server: http://www.techonthenet.com/sql_server/tables/alter_table.php  # noqa
             # MySQL: http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
-            execute(engine, args, sql)
+            execute(engine, progargs, sql)
 
 
-def add_indexes(engine, args, table, indexdictlist):
+def add_indexes(engine, progargs, table, indexdictlist):
     existing_index_names = get_index_names(engine, table=table, to_lower=True)
     for idxdefdict in indexdictlist:
         index_name = idxdefdict['index_name']
@@ -609,7 +609,7 @@ def add_indexes(engine, args, table, indexdictlist):
         if index_name.lower() not in existing_index_names:
             log.info("Table '{}': adding index '{}' on columns '{}'".format(
                 table.name, index_name, column))
-            execute(engine, args, """
+            execute(engine, progargs, """
               CREATE{unique} INDEX {idxname} ON {tablename} ({column})
             """.format(
                 unique=" UNIQUE" if unique else "",
@@ -622,7 +622,7 @@ def add_indexes(engine, args, table, indexdictlist):
                       "adding".format(table.name, index_name))
 
 
-def drop_indexes(engine, args, table, index_names):
+def drop_indexes(engine, progargs, table, index_names):
     existing_index_names = get_index_names(engine, table=table, to_lower=True)
     for index_name in index_names:
         if index_name.lower() not in existing_index_names:
@@ -638,7 +638,7 @@ def drop_indexes(engine, args, table, index_names):
                 sql = "DROP INDEX {t}.{i}".format(t=table.name, i=index_name)
             else:
                 assert False, "Unknown dialect: {}".format(engine.dialect.name)
-            execute(engine, args, sql)
+            execute(engine, progargs, sql)
 
 
 def get_view_names(engine, to_lower=False, sort=False):
@@ -698,7 +698,7 @@ def ensure_columns_present(engine, table=None, tablename=None,
             die("Column '{}' missing from table '{}'".format(col, tablename))
 
 
-def create_view(engine, args, viewname, select_sql):
+def create_view(engine, progargs, viewname, select_sql):
     # MySQL has CREATE OR REPLACE VIEW.
     # SQL Server doesn't: http://stackoverflow.com/questions/18534919
     if engine.dialect.name == 'mysql':
@@ -707,16 +707,16 @@ def create_view(engine, args, viewname, select_sql):
             select_sql=select_sql,
         )
     else:
-        drop_view(engine, args, viewname)
+        drop_view(engine, progargs, viewname)
         sql = "CREATE VIEW {viewname} AS {select_sql}".format(
             viewname=viewname,
             select_sql=select_sql,
         )
     log.info("Creating view: '{}'".format(viewname))
-    execute(engine, args, sql)
+    execute(engine, progargs, sql)
 
 
-def drop_view(engine, args, viewname):
+def drop_view(engine, progargs, viewname):
     # MySQL has DROP VIEW IF EXISTS, but SQL Server only has that from
     # SQL Server 2016 onwards.
     # - https://msdn.microsoft.com/en-us/library/ms173492.aspx
@@ -726,20 +726,20 @@ def drop_view(engine, args, viewname):
         log.debug("View {} does not exist; not dropping".format(viewname))
     else:
         sql = "DROP VIEW {viewname}".format(viewname=viewname)
-        execute(engine, args, sql)
+        execute(engine, progargs, sql)
 
 
 # =============================================================================
 # Generic table processors
 # =============================================================================
 
-def table_is_rio_type(tablename, args):
-    if args.rio:
+def table_is_rio_type(tablename, progargs):
+    if progargs.rio:
         return True
-    if not args.cpft:
+    if not progargs.cpft:
         return False
     # RCEP + CPFT modifications: there's one RiO table in the mix
-    return tablename == args.full_prognotes_table
+    return tablename == progargs.full_prognotes_table
 
 
 def get_rio_pk_col_patient_table(table):
@@ -768,9 +768,9 @@ def get_rio_pk_col_nonpatient_table(table):
     return RIO_6_2_ATYPICAL_PKS.get(table.name, default)
 
 
-def process_patient_table(table, engine, args):
+def process_patient_table(table, engine, progargs):
     log.info("Patient table: '{}'".format(table.name))
-    rio_type = table_is_rio_type(table.name, args)
+    rio_type = table_is_rio_type(table.name, progargs)
     if rio_type:
         rio_pk = get_rio_pk_col_patient_table(table)
         string_pt_id = get_rio_patient_id_col(table)
@@ -779,7 +779,7 @@ def process_patient_table(table, engine, args):
         rio_pk = None
         required_cols = [RCEP_COL_PATIENT_ID]
         string_pt_id = RCEP_COL_PATIENT_ID
-    if not args.print:
+    if not progargs.print:
         required_cols.extend([CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
     # -------------------------------------------------------------------------
     # Add pk and rio_number columns, if not present
@@ -789,7 +789,7 @@ def process_patient_table(table, engine, args):
         required_cols.append(rio_pk)
     else:  # RCEP type, or no PK in RiO
         crate_pk_type = AUTONUMBER_COLTYPE  # autopopulates
-    add_columns(engine, args, table, {
+    add_columns(engine, progargs, table, {
         CRATE_COL_PK: crate_pk_type,
         CRATE_COL_RIO_NUMBER: 'INTEGER',
     })
@@ -802,7 +802,7 @@ def process_patient_table(table, engine, args):
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
     cast_id_to_int = sql_fragment_cast_to_int(string_pt_id)
     if rio_type and rio_pk:
-        execute(engine, args, """
+        execute(engine, progargs, """
             UPDATE {tablename} SET
                 {crate_pk} = {rio_pk},
                 {crate_rio_number} = {cast_id_to_int}
@@ -819,7 +819,7 @@ def process_patient_table(table, engine, args):
     else:
         # RCEP format, or RiO with no PK
         # crate_pk is autogenerated as an INT IDENTITY field
-        execute(engine, args, """
+        execute(engine, progargs, """
             UPDATE {tablename} SET
                 {crate_rio_number} = {cast_id_to_int}
             WHERE
@@ -850,7 +850,7 @@ def process_patient_table(table, engine, args):
     # Note that the indexes are unlikely to speed up the WHERE NOT NULL search
     # above, so it doesn't matter that we add these last. Their use is for
     # the subsequent CRATE anonymisation table scans.
-    add_indexes(engine, args, table, [
+    add_indexes(engine, progargs, table, [
         {
             'index_name': CRATE_IDX_PK,
             'column': CRATE_COL_PK,
@@ -863,57 +863,58 @@ def process_patient_table(table, engine, args):
     ])
 
 
-def drop_for_patient_table(table, engine, args):
-    drop_indexes(engine, args, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
-    drop_columns(engine, args, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+def drop_for_patient_table(table, engine, progargs):
+    drop_indexes(engine, progargs, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
+    drop_columns(engine, progargs, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
 
 
-def process_nonpatient_table(table, engine, args):
-    if args.rcep:
+def process_nonpatient_table(table, engine, progargs):
+    if progargs.rcep:
         return
     pk_col = get_rio_pk_col_nonpatient_table(table)
     if pk_col:
-        add_columns(engine, args, table, {CRATE_COL_PK: 'INTEGER'})
+        add_columns(engine, progargs, table, {CRATE_COL_PK: 'INTEGER'})
     else:
-        add_columns(engine, args, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
-    if not args.print:
+        add_columns(engine, progargs, table,
+                    {CRATE_COL_PK: AUTONUMBER_COLTYPE})
+    if not progargs.print:
         ensure_columns_present(engine, table=table,
                                column_names=[CRATE_COL_PK])
     if pk_col:
-        execute(engine, args, """
+        execute(engine, progargs, """
             UPDATE {tablename} SET {crate_pk} = {rio_pk}
             WHERE {crate_pk} IS NULL
         """.format(tablename=table.name,
                    crate_pk=CRATE_COL_PK,
                    rio_pk=pk_col))
-    add_indexes(engine, args, table, [{'index_name': CRATE_IDX_PK,
-                                       'column': CRATE_COL_PK,
-                                       'unique': True}])
+    add_indexes(engine, progargs, table, [{'index_name': CRATE_IDX_PK,
+                                           'column': CRATE_COL_PK,
+                                           'unique': True}])
 
 
-def drop_for_nonpatient_table(table, engine, args):
-    drop_indexes(engine, args, table, [CRATE_IDX_PK])
-    drop_columns(engine, args, table, [CRATE_COL_PK])
+def drop_for_nonpatient_table(table, engine, progargs):
+    drop_indexes(engine, progargs, table, [CRATE_IDX_PK])
+    drop_columns(engine, progargs, table, [CRATE_COL_PK])
 
 
 # =============================================================================
 # Specific table processors
 # =============================================================================
 
-def process_master_patient_table(table, engine, args):
-    add_columns(engine, args, table, {
+def process_master_patient_table(table, engine, progargs):
+    add_columns(engine, progargs, table, {
         CRATE_COL_NHS_NUMBER: 'BIGINT',
     })
-    if args.rcep:
+    if progargs.rcep:
         nhscol = RCEP_COL_NHS_NUMBER
     else:
         nhscol = RIO_COL_NHS_NUMBER
     log.info("Table '{}': updating column '{}'".format(table.name, nhscol))
     ensure_columns_present(engine, table=table, column_names=[nhscol])
-    if not args.print:
+    if not progargs.print:
         ensure_columns_present(engine, table=table, column_names=[
             CRATE_COL_NHS_NUMBER])
-    execute(engine, args, """
+    execute(engine, progargs, """
         UPDATE {tablename} SET
             {nhs_number_int} = CAST({nhscol} AS BIGINT)
             WHERE {nhs_number_int} IS NULL
@@ -924,17 +925,17 @@ def process_master_patient_table(table, engine, args):
     ))
 
 
-def drop_for_master_patient_table(table, engine, args):
-    drop_columns(engine, args, table, [CRATE_COL_NHS_NUMBER])
+def drop_for_master_patient_table(table, engine, progargs):
+    drop_columns(engine, progargs, table, [CRATE_COL_NHS_NUMBER])
 
 
-def process_progress_notes(table, engine, args):
-    add_columns(engine, args, table, {
+def process_progress_notes(table, engine, progargs):
+    add_columns(engine, progargs, table, {
         CRATE_COL_MAX_SUBNUM: 'INTEGER',
         CRATE_COL_LAST_NOTE: 'INTEGER',
     })
     # We're always in "RiO land", not "RCEP land", for this one.
-    add_indexes(engine, args, table, [
+    add_indexes(engine, progargs, table, [
         {  # Joint index, for JOIN in UPDATE statement below
             'index_name': CRATE_IDX_RIONUM_NOTENUM,
             'column': '{rio_number}, NoteNum'.format(
@@ -952,7 +953,7 @@ def process_progress_notes(table, engine, args):
 
     ensure_columns_present(engine, table=table, column_names=[
         "NoteNum", "SubNum", "EnteredInError", "EnteredInError"])
-    if not args.print:
+    if not progargs.print:
         ensure_columns_present(engine, table=table, column_names=[
             CRATE_COL_MAX_SUBNUM, CRATE_COL_LAST_NOTE, CRATE_COL_RIO_NUMBER])
 
@@ -960,7 +961,7 @@ def process_progress_notes(table, engine, args):
     # Slow query, even with index.
     log.info("Progress notes table '{}': "
              "updating 'max_subnum_for_notenum'".format(table.name))
-    execute(engine, args, """
+    execute(engine, progargs, """
         UPDATE p1
         SET p1.{max_subnum_col} = subq.max_subnum
         FROM {tablename} p1 JOIN (
@@ -980,7 +981,7 @@ def process_progress_notes(table, engine, args):
     # Set a single column accordingly
     log.info("Progress notes table '{}': "
              "updating 'last_note_in_edit_chain'".format(table.name))
-    execute(engine, args, """
+    execute(engine, progargs, """
         UPDATE {tablename} SET
             {last_note_col} =
                 CASE
@@ -1006,30 +1007,129 @@ def process_progress_notes(table, engine, args):
         tablename=table.name,
         last_note_col=CRATE_COL_LAST_NOTE,
     )
-    create_view(engine, args, VIEW_PROGRESS_NOTES_CURRENT, select_sql)
+    create_view(engine, progargs, VIEW_PROGRESS_NOTES_CURRENT, select_sql)
 
 
-def drop_for_progress_notes(table, engine, args):
-    drop_view(engine, args, VIEW_PROGRESS_NOTES_CURRENT)
-    drop_indexes(engine, args, table, [CRATE_IDX_RIONUM_NOTENUM,
-                                       CRATE_IDX_MAX_SUBNUM,
-                                       CRATE_IDX_LAST_NOTE])
-    drop_columns(engine, args, table, [CRATE_COL_MAX_SUBNUM,
-                                       CRATE_COL_LAST_NOTE])
+def drop_for_progress_notes(table, engine, progargs):
+    drop_view(engine, progargs, VIEW_PROGRESS_NOTES_CURRENT)
+    drop_indexes(engine, progargs, table, [CRATE_IDX_RIONUM_NOTENUM,
+                                           CRATE_IDX_MAX_SUBNUM,
+                                           CRATE_IDX_LAST_NOTE])
+    drop_columns(engine, progargs, table, [CRATE_COL_MAX_SUBNUM,
+                                           CRATE_COL_LAST_NOTE])
+
+
+# =============================================================================
+# RiO view creators: generic
+# =============================================================================
+
+class ViewMaker(object):
+    def __init__(self, engine, basetable):
+        self.engine = engine
+        self.basetable = basetable
+        self.select_elements = [
+            ", ".join("{}.{}".format(basetable, x)
+                      for x in get_column_names(engine, tablename=basetable,
+                                                to_lower=True))
+        ]
+        self.from_elements = [basetable]
+        self.where_elements = []
+        
+    def add_select(self, clause):
+        self.select_elements.append(clause)
+        
+    def add_from(self, clause):
+        self.from_elements.append(clause)
+        
+    def add_where(self, clause):
+        self.where_elements.append(clause)
+        
+    def get_sql(self):
+        if self.where_elements:
+            where = " WHERE {}".format(" AND ".join(self.where_elements))
+        else:
+            where = ""
+        return "\n    SELECT {select_elements} FROM {from_elements}{where}".format(
+            select_elements=", ".join(self.select_elements),
+            from_elements="\n".join(self.from_elements),
+            where=where,
+        )
+
+
+def simple_lookup_join(viewmaker, progargs, basetable, basecolumn,
+                       lookup_table, lookup_pk, lookup_fields_aliases,
+                       internal_alias_prefix):
+    aliased_table = internal_alias_prefix + "_" + lookup_table
+    for column, alias in lookup_fields_aliases.items():
+        viewmaker.add_select("{aliased_table}.{column} AS {alias}".format(
+            aliased_table=aliased_table, column=column, alias=alias))
+    viewmaker.add_from("""
+        LEFT JOIN {lookup_table} {aliased_table}
+            ON {aliased_table}.{lookup_pk} = {basetable}.{basecolumn}
+    """.format(
+        lookup_table=lookup_table,
+        aliased_table=aliased_table,
+        lookup_pk=lookup_pk,
+        basetable=basetable,
+        basecolumn=basecolumn,
+    ))
+
+
+def simple_view_where(viewmaker, progargs, basetable, basecolumn,
+                      where_clause):
+    viewmaker.add_where(where_clause)
+
+
+def get_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+    # Returns dictionary of {viewname: select_sql} pairs.
+    views = {}
+    all_tables_lower = [t.name.lower() for t in metadata.tables.values()]
+    for viewname, viewdetails in RIO_VIEWS.items():
+        basetable = viewdetails['basetable']
+        if basetable.lower() not in all_tables_lower:
+            continue
+        suppress_basetable = viewdetails.get('suppress_basetable', False)
+        suppress_other_tables = viewdetails.get('suppress_other_tables', [])
+        if suppress_basetable:
+            ddhint.suppress_table(basetable)
+        ddhint.suppress_tables(suppress_other_tables)
+        viewmaker = ViewMaker(engine, basetable)
+        for addition in viewdetails['additions']:
+            function = addition['function']
+            kwargs = addition['kwargs']
+            kwargs['basetable'] = basetable
+            kwargs['basecolumn'] = addition['basecolumn']
+            kwargs['viewmaker'] = viewmaker
+            kwargs['progargs'] = progargs
+            function(**kwargs)  # will alter viewmaker
+        views[viewname] = viewmaker.get_sql()
+    return views
+
+
+def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+    rio_views = get_rio_views(engine, metadata, progargs, ddhint)
+    for viewname, select_sql in rio_views.items():
+        create_view(engine, progargs, viewname, select_sql)
+
+
+def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+    rio_views, _ = get_rio_views(engine, metadata, progargs, ddhint)
+    for viewname, _ in rio_views.items():
+        drop_view(engine, progargs, viewname)
 
 
 # =============================================================================
 # RiO view creators: specific
 # =============================================================================
 
-def rio_add_user_lookup(select_elements, from_elements,
-                        basetable, basecolumn,
-                        column_prefix=None, alias_prefix=None):
+def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
+                        column_prefix=None, internal_alias_prefix=None):
     # NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for
     # each table (2016-07-12).
     column_prefix = column_prefix or basecolumn
-    alias_prefix = alias_prefix or "t_" + column_prefix  # table alias
-    select_elements.append("""
+    internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
+    # ... table alias
+    viewmaker.add_select("""
         {basetable}.{basecolumn_usercode} AS {cp}_user_code,
 
         {ap}_genhcp.ConsultantFlag AS {cp}_consultant_flag,
@@ -1054,19 +1154,19 @@ def rio_add_user_lookup(select_elements, from_elements,
 
         {ap}_genorg.Code AS {cp}_organisation_type_code,
         {ap}_genorg.CodeDescription AS {cp}_organisation_type_description
-
-        -- {cp}_location... ?? Presumably from GenLocation, but via what? Seems meaningless.
     """.format(  # noqa
         basetable=basetable,
         basecolumn_usercode=basecolumn,
         cp=column_prefix,
-        ap=alias_prefix,
+        ap=internal_alias_prefix,
     ))
+    # - {cp}_location... ?? Presumably from GenLocation, but via what? Seems
+    #   meaningless.
     # - User codes are keyed to GenUser.GenUserID, but also to several other
     #   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID
     # - We use unique table aliases here, so that overall we can make >1 sets
     #   of different "user" joins simultaneously.
-    from_elements.append("""
+    viewmaker.add_from("""
         LEFT JOIN (
             GenHCP {ap}_genhcp
             INNER JOIN GenUser {ap}_genuser
@@ -1087,7 +1187,7 @@ def rio_add_user_lookup(select_elements, from_elements,
     """.format(  # noqa
         basetable=basetable,
         basecolumn_usercode=basecolumn,
-        ap=alias_prefix,
+        ap=internal_alias_prefix,
     ))
     # OTHER THINGS:
     # - GenHCP.Occupation is listed in the RiO docs but doesn't actually seem
@@ -1106,7 +1206,7 @@ def rio_add_user_lookup(select_elements, from_elements,
 # =============================================================================
 
 RIO_VIEWS = {
-    'progress_notes_testview': {
+    'progress_notes_crate': {
         'basetable': RIO_TABLE_PROGRESS_NOTES,
         'additions': [
             {
@@ -1114,7 +1214,7 @@ RIO_VIEWS = {
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'column_prefix': 'originating_user',
-                    'alias_prefix': 'ou',
+                    'internal_alias_prefix': 'ou',
                 },
             },
             {
@@ -1122,97 +1222,50 @@ RIO_VIEWS = {
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'column_prefix': 'verifying_user',
-                    'alias_prefix': 'vu',
+                    'internal_alias_prefix': 'vu',
                 },
             },
         ],
+        'suppress_basetable': True,
+        'suppress_other_tables': [],
+    },
+    'core_assess_past_psy': {
+        'basetable': 'UserAssesscoreassesspastpsy',
+        'additions': [
+            {
+                'basecolumn': 'frailty',
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'lookup_table': 'UserMasterfrailty',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'frailty_description',
+                    },
+                    'internal_alias_prefix': 'fr',
+                }
+            },
+            {
+                'basecolumn': None,
+                'function': simple_view_where,
+                'kwargs': {
+                    'where_clause': 'type12_DeletedDate IS NULL',
+                },
+            },
+        ],
+        'suppress_basetable': True,
+        'suppress_other_tables': ['UserMasterfrailty'],
     },
 }
-
-# =============================================================================
-# RiO view creators: generic
-# =============================================================================
-
-def starting_view_elements(engine, basetable):
-    select_elements = [
-        ", ".join("{}.{}".format(basetable, x)
-                  for x in get_column_names(engine, tablename=basetable,
-                                            to_lower=True))
-    ]
-    from_elements = [basetable]
-    return select_elements, from_elements
-
-
-def finish_view_select_sql(select_elements, from_elements):
-    return "\n    SELECT {select_elements} FROM {from_elements}".format(
-        select_elements=", ".join(select_elements),
-        from_elements="\n".join(from_elements)
-    )
-
-
-# def rio_view_progress_notes(engine):
-#     basetable = RIO_TABLE_PROGRESS_NOTES
-#     select_elements, from_elements = starting_view_elements(engine, basetable)
-#     rio_add_user_lookup(
-#         select_elements=select_elements,
-#         from_elements=from_elements,
-#         basetable=basetable,
-#         basecolumn_usercode="EnteredBy",
-#         column_prefix="originating_user",
-#         alias_prefix="ou"
-#     )
-#     rio_add_user_lookup(
-#         select_elements=select_elements,
-#         from_elements=from_elements,
-#         basetable=basetable,
-#         basecolumn_usercode="VerifyUserID",
-#         column_prefix="verifying_user",
-#         alias_prefix="vu"
-#     )
-#     return finish_view_select_sql(select_elements, from_elements)
-
-
-def get_rio_views(engine):
-    # Dictionary of {viewname: select_sql} pairs.
-    views = {}
-    for viewname, viewdetails in RIO_VIEWS.items():
-        basetable = viewdetails['basetable']
-        select_elements, from_elements = starting_view_elements(engine,
-                                                                basetable)
-        for addition in viewdetails['additions']:
-            basecolumn = addition['basecolumn']
-            function = addition['function']
-            kwargs = addition['kwargs']
-            kwargs['basetable'] = basetable
-            kwargs['basecolumn'] = basecolumn
-            kwargs['select_elements'] = select_elements
-            kwargs['from_elements'] = from_elements
-            function(**kwargs)  # will alter select_elements, from_elements
-        select_sql = finish_view_select_sql(select_elements, from_elements)
-        views[viewname] = select_sql
-    return views
-
-
-def create_rio_views(engine, args):
-    rio_views = get_rio_views(engine)
-    for viewname, select_sql in rio_views.items():
-        create_view(engine, args, viewname, select_sql)
-
-
-def drop_rio_views(engine, args):
-    rio_views = get_rio_views(engine)
-    for viewname, _ in rio_views.items():
-        drop_view(engine, args, viewname)
 
 
 # =============================================================================
 # Geography views
 # =============================================================================
 
-def add_postcode_geography_view(engine, args):
+def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
     # Re-read column names, as we may have inserted some recently by hand that
     # may not be in the initial metadata.
-    if args.rio:
+    if progargs.rio:
         addresstable = RIO_TABLE_ADDRESS
         rio_postcodecol = RIO_COL_POSTCODE
     else:
@@ -1223,7 +1276,7 @@ def add_postcode_geography_view(engine, args):
 
     # Remove any original column names being overridden by new ones.
     # (Could also do this the other way around!)
-    geogcols_lowercase = [x.lower() for x in args.geogcols]
+    geogcols_lowercase = [x.lower() for x in progargs.geogcols]
     orig_column_names = [x for x in orig_column_names
                          if x.lower() not in geogcols_lowercase]
 
@@ -1232,16 +1285,16 @@ def add_postcode_geography_view(engine, args):
         for col in orig_column_names
     ]
     geog_col_specs = [
-        "{db}.{t}.{c}".format(db=args.postcodedb,
+        "{db}.{t}.{c}".format(db=progargs.postcodedb,
                               t=ONSPD_TABLE_POSTCODE,
                               c=col)
-        for col in sorted(args.geogcols, key=lambda x: x.lower())
+        for col in sorted(progargs.geogcols, key=lambda x: x.lower())
     ]
-    overlap = set(orig_column_names) & set(args.geogcols)
+    overlap = set(orig_column_names) & set(progargs.geogcols)
     if overlap:
         die("Columns overlap: address table contains columns {}; "
             "geogcols = {}; overlap = {}".format(
-                orig_column_names, args.geogcols, overlap))
+                orig_column_names, progargs.geogcols, overlap))
     log.info("Creating view '{}'".format(VIEW_ADDRESS_WITH_GEOGRAPHY))
     ensure_columns_present(engine, tablename=addresstable, column_names=[
         rio_postcodecol])
@@ -1261,58 +1314,213 @@ def add_postcode_geography_view(engine, args):
         addresstable=addresstable,
         origcols=", ".join(orig_column_specs),
         geogcols=", ".join(geog_col_specs),
-        pdb=args.postcodedb,
+        pdb=progargs.postcodedb,
         pcdtab=ONSPD_TABLE_POSTCODE,
         rio_postcodecol=rio_postcodecol,
     )
-    create_view(engine, args, VIEW_ADDRESS_WITH_GEOGRAPHY, select_sql)
+    create_view(engine, progargs, VIEW_ADDRESS_WITH_GEOGRAPHY, select_sql)
+    ddhint.suppress_table(addresstable)
 
 
 # =============================================================================
 # Table action selector
 # =============================================================================
 
-def process_table(table, engine, args):
+def process_table(table, engine, progargs):
     tablename = table.name
     column_names = table.columns.keys()
     log.debug("TABLE: '{}'; COLUMNS: {}".format(tablename, column_names))
-    if args.rio:
+    if progargs.rio:
         patient_table_indicator_column = get_rio_patient_id_col(table)
     else:  # RCEP:
         patient_table_indicator_column = RCEP_COL_PATIENT_ID
 
     is_patient_table = (patient_table_indicator_column in column_names or
-                        tablename == args.full_prognotes_table)
+                        tablename == progargs.full_prognotes_table)
     # ... special for RCEP/CPFT, where a RiO table (with different patient ID
     # column) lives within an RCEP database.
-    if args.drop_danger_drop:
+    if progargs.drop_danger_drop:
         # ---------------------------------------------------------------------
         # DROP STUFF! Opposite order to creation (below)
         # ---------------------------------------------------------------------
         # Specific
-        if tablename == args.master_patient_table:
-            drop_for_master_patient_table(table, engine, args)
-        elif tablename == args.full_prognotes_table:
-            drop_for_progress_notes(table, engine, args)
+        if tablename == progargs.master_patient_table:
+            drop_for_master_patient_table(table, engine, progargs)
+        elif tablename == progargs.full_prognotes_table:
+            drop_for_progress_notes(table, engine, progargs)
         # Generic
         if is_patient_table:
-            drop_for_patient_table(table, engine, args)
+            drop_for_patient_table(table, engine, progargs)
         else:
-            drop_for_nonpatient_table(table, engine, args)
+            drop_for_nonpatient_table(table, engine, progargs)
     else:
         # ---------------------------------------------------------------------
         # CREATE STUFF!
         # ---------------------------------------------------------------------
         # Generic
         if is_patient_table:
-            process_patient_table(table, engine, args)
+            process_patient_table(table, engine, progargs)
         else:
-            process_nonpatient_table(table, engine, args)
+            process_nonpatient_table(table, engine, progargs)
         # Specific
-        if tablename == args.master_patient_table:
-            process_master_patient_table(table, engine, args)
-        elif tablename == args.full_prognotes_table:
-            process_progress_notes(table, engine, args)
+        if tablename == progargs.master_patient_table:
+            process_master_patient_table(table, engine, progargs)
+        elif tablename == progargs.full_prognotes_table:
+            process_progress_notes(table, engine, progargs)
+
+
+# =============================================================================
+# Default settings for CRATE anonymiser "ddgen_*" fields, for RiO
+# =============================================================================
+
+class DDHint(object):
+    def __init__(self):
+        self._suppressed_tables = set()
+        
+    def suppress_table(self, table):
+        self._suppressed_tables.add(table)
+    
+    def suppress_tables(self, tables):
+        for t in tables:
+            self.suppress_table(t)
+
+    def get_suppressed_tables(self):
+        return sorted(self._suppressed_tables)
+
+
+def report_rio_dd_settings(progargs, ddhint):
+    settings_text = """
+ddgen_allow_no_patient_info = False
+ddgen_per_table_pid_field = crate_rio_number
+ddgen_add_per_table_pids_to_scrubber = False
+ddgen_master_pid_fieldname = crate_nhs_number_int
+
+ddgen_table_whitelist = #
+    # -------------------------------------------------------------------------
+    # Whitelist: Prefixes: groups of tables
+    # -------------------------------------------------------------------------
+    EPClientAllergy*  # Allergy details within EP module
+    # -------------------------------------------------------------------------
+    # Whitelist: Suffixes
+    # -------------------------------------------------------------------------
+    *_crate  # Views added by CRATE
+    # -------------------------------------------------------------------------
+    # Whitelist: Individual tables
+    # -------------------------------------------------------------------------
+    EPReactionType  # Allergy reaction type details within EP module
+
+ddgen_table_blacklist = #
+    # -------------------------------------------------------------------------
+    # Blacklist: Prefixes: groups of tables
+    # -------------------------------------------------------------------------
+    Agresso*  # Agresso [sic] module (comms to social worker systems)
+    ADT*  # ?admit/discharge/transfer messages (see codes in ADTMessage)
+    Ams*  # Appointment Management System (Ams) module
+    Audit*  # RiO Audit Trail
+    CDSContract*  # something to do with commissioner contracts
+    Chd*  # Child development (interesting, but lots of tables and all empty)
+    ClientChild*  # child info e.g. birth/immunisation (interesting, but several tables and all empty)
+    ClientMerge*  # record of admin events (merging of client records)
+    ClientPhoto*  # no use to us or identifiable!
+    ClientRestrictedRecord*  # ? but admin
+    Con*  # Contracts module
+    DA*  # Drug Administration within EP
+    DS*  # Drug Service within EP
+    EP*  # E-Prescribing (EP) module, which we don't have
+    #   ... mostly we don't have it, but we may have EPClientAllergies etc.
+    #   ... so see whitelist too
+    ExternalSystem*  # system
+    GenChd*  # lookup codes for Chd*
+    GenCon*  # lookup codes for Con*
+    LR*  # Legitimate Relationships module
+    Meeting*  # Meetings module
+    Mes*  # messaging
+    MonthlyPlanner*  # system
+    PSS*  # Prevention, Screening & Surveillance (PSS)
+    RR*  # Results Reporting (e.g. laboratories, radiology)
+    #   ... would be great, but we don't have it
+    RTT*  # RTT* = Referral-to-Treatment (RTT) data collection (see NHS England docs)
+    SAF*  # SAF* = system; looks like details of tablet devices
+    Scheduler*  # Scheduler* = Scheduler module (for RiO computing)
+    Sec*  # Security? Definitely RiO internal stuff.
+    SPINE*  # system
+    tbl*  # records of changes to tables?
+    TeamPlanner*  # system
+    Temp*  # system
+    umt*  # system
+    Wfl*  # workflow
+    WL*  # Waiting lists (WL) module
+    # -------------------------------------------------------------------------
+    # Blacklist: Suffixes
+    # -------------------------------------------------------------------------
+    *Cache  # system
+    # -------------------------------------------------------------------------
+    # Blacklist: Individual tables
+    # -------------------------------------------------------------------------
+    ClientAddressHistory  # defunct according to RIO 6.2 docs
+    ClientAddressMerged  # defunct according to RIO 6.2 docs
+    ClientCommunityDomain # defunct according to RIO 6.2 docs
+    ESRImport  # user-to-?role map? Small and system.
+    RioPerformanceTimings  # system
+    SPRExternalNotification  # system?
+    # -------------------------------------------------------------------------
+    # Blacklist: Views supersede
+    # Below here, we have other tables suppressed because CRATE's views offer
+    # more comprehensive alternatives
+    # -------------------------------------------------------------------------
+    {suppress_tables}
+
+# USEFUL TABLES (IN CPFT INSTANCE) INCLUDE:
+# =========================================
+# Assessment* = includes maps of non-core assessments (see e.g. AssessmentIndex)
+# CDL_OUTDATEDPATIENTS_TWI = map from TWI (trust-wide identifier) to old CPFT M number
+# UserAssess* = ?non-core assessments themselves
+# UserMaster* = lookup tables for non-core assessments
+
+ddgen_field_whitelist =
+ddgen_field_blacklist =
+ddgen_pk_fields = crate_pk
+ddgen_constant_content = False
+ddgen_addition_only = False
+ddgen_pid_defining_fieldnames = ClientIndex.crate_rio_number
+ddgen_scrubsrc_patient_fields = # several of these:
+    ClientIndex.crate_pk
+    ClientIndex.DateOfBirth
+    ClientIndex.DaytimePhone
+    ClientIndex.EMailAddress
+    ClientIndex.EveningPhone
+    ClientIndex.Firstname
+    ClientIndex.MobilePhone
+    client_address_with_geography_crate.AddressLine*
+    client_address_with_geography_crate.PostCode
+ddgen_scrubsrc_thirdparty_fields =
+ddgen_scrubmethod_code_fields = PostCode
+ddgen_scrubmethod_date_fields = DateOfBirth
+ddgen_scrubmethod_number_fields = # several:
+    DaytimePhone
+    EveningPhone
+    MobilePhone
+ddgen_scrubmethod_phrase_fields = AddressLine*
+ddgen_safe_fields_exempt_from_scrubbing =
+
+    # RiO mostly uses string column lengths of 4, 10, 20, 40, 80, 500,
+    # unlimited. So what length is the minimum for "free text"?
+    # Comments are 500. Lots of 80-length fields are lookup descriptions.
+    # (Note that many scrub-SOURCE fields are of length 80, e.g. address
+    # fields, but they need different special handling.)
+ddgen_min_length_for_scrubbing = 81
+ddgen_truncate_date_fields = ClientIndex.DateOfBirth
+ddgen_filename_to_text_fields =
+ddgen_binary_to_text_field_pairs =
+ddgen_index_fields =
+ddgen_allow_fulltext_indexing = True
+ddgen_force_lower_case = False
+ddgen_convert_odd_chars_to_underscore = True
+    """.format(
+        suppress_tables = " ".join(ddhint.get_suppressed_tables()),
+    )
+    with open(progargs.settings_filename, 'w') as f:
+        print(settings_text, file=f)
 
 
 # =============================================================================
@@ -1337,6 +1545,9 @@ def main():
              "output to create an SQL script.")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
+        "--debug_skiptables", action="store_true",
+        help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
+    parser.add_argument(
         "--rcep", action="store_true",
         help="Treat the source database as the product of Servelec's RiO CRIS "
              "Extract Program v2 (instead of raw RiO)")
@@ -1356,58 +1567,70 @@ def main():
         help="List of geographical information columns to link in from ONS "
              "Postcode Database. BEWARE that you do not specify anything too "
              "identifying. Default: {}".format(' '.join(DEFAULT_GEOG_COLS)))
+    parser.add_argument(
+        "--settings_filename",
+        help="Specify filename to write draft ddgen_* settings to, for use in "
+             "a CRATE anonymiser configuration file.")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
-    args = parser.parse_args()
+    progargs = parser.parse_args()
 
     configure_logger_for_colour(
-        log, level=logging.DEBUG if args.verbose else logging.INFO)
+        log, level=logging.DEBUG if progargs.verbose else logging.INFO)
 
-    args.rio = not args.rcep
-    if args.rcep:
+    progargs.rio = not progargs.rcep
+    if progargs.rcep:
         # RCEP
-        args.master_patient_table = RCEP_TABLE_MASTER_PATIENT
-        if args.cpft:
-            args.full_prognotes_table = CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES
+        progargs.master_patient_table = RCEP_TABLE_MASTER_PATIENT
+        if progargs.cpft:
+            progargs.full_prognotes_table = CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES
             # We (CPFT) may have a hacked-in copy of the RiO main progress 
             # notes table added to the RCEP output database. 
         else:
-            args.full_prognotes_table = None
+            progargs.full_prognotes_table = None
             # The RCEP does not export sufficient information to distinguish 
             # current and non-current versions of progress notes.
     else:
         # RiO
-        args.master_patient_table = RIO_TABLE_MASTER_PATIENT
-        args.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
+        progargs.master_patient_table = RIO_TABLE_MASTER_PATIENT
+        progargs.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
-    if args.postcodedb and not args.geogcols:
+    if progargs.postcodedb and not progargs.geogcols:
         die("If you specify postcodedb, you must specify some geogcols")
 
     log.info("CRATE in-place preprocessor for RiO or RiO CRIS Extract Program "
              "(RCEP) databases")
-    safeargs = {k: v for k, v in vars(args).items() if k != 'url'}
+    safeargs = {k: v for k, v in vars(progargs).items() if k != 'url'}
     log.debug("args = {}".format(repr(safeargs)))
-    log.info("RiO mode" if args.rio else "RCEP mode")
+    log.info("RiO mode" if progargs.rio else "RCEP mode")
 
-    engine = create_engine(args.url, echo=args.echo, encoding=MYSQL_CHARSET)
+    engine = create_engine(progargs.url, echo=progargs.echo,
+                           encoding=MYSQL_CHARSET)
     metadata.bind = engine
     log.info("Database: {}".format(repr(engine.url)))  # ... repr hides p/w
     log.debug("Dialect: {}".format(engine.dialect.name))
 
     metadata.reflect(engine)
+    
+    ddhint = DDHint()
 
-    for table in sorted(metadata.tables.values(),
-                        key=lambda t: t.name.lower()):
-        process_table(table, engine, args)
-    if args.rio:
-        if args.drop_danger_drop:
-            drop_rio_views(engine, args)
+    if not progargs.debug_skiptables:
+        for table in sorted(metadata.tables.values(),
+                            key=lambda t: t.name.lower()):
+            process_table(table, engine, progargs)
+    if progargs.rio:
+        if progargs.drop_danger_drop:
+            drop_rio_views(engine, metadata, progargs, ddhint)
         else:
-            create_rio_views(engine, args)
-    if args.postcodedb:
-        if args.drop_danger_drop:
-            drop_view(engine, args, VIEW_ADDRESS_WITH_GEOGRAPHY)
+            create_rio_views(engine, metadata, progargs, ddhint)
+            
+    if progargs.postcodedb:
+        if progargs.drop_danger_drop:
+            drop_view(engine, progargs, VIEW_ADDRESS_WITH_GEOGRAPHY)
         else:
-            add_postcode_geography_view(engine, args)
+            add_postcode_geography_view(engine, progargs, ddhint)
+
+    if progargs.settings_filename:
+        report_rio_dd_settings(progargs, ddhint)
 
 
 if __name__ == '__main__':

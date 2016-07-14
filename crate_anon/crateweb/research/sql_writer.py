@@ -6,6 +6,13 @@ import logging
 import sqlparse
 
 from crate_anon.anonymise.logsupport import main_only_quicksetup_rootlogger
+from crate_anon.common.sql import (
+    sql_string_literal,
+    sql_date_literal,
+    sql_datetime_literal,
+    combine_db_table,
+    split_db_table,
+)
 from crate_anon.crateweb.research.models import (
     get_schema_trid_field,
     get_schema_rid_field,
@@ -25,36 +32,6 @@ from crate_anon.crateweb.research.sql_grammar_mysql import (
 )
 
 log = logging.getLogger(__name__)
-
-
-def sql_string_literal(text):
-    return "'" + text.replace("'", "''") + "'"
-
-
-def sql_date_literal(dt):
-    return dt.strftime("'%Y-%m-%d'")
-
-
-def sql_datetime_literal(dt, subsecond=False):
-    fmt = "'%Y-%m-%dT%H:%M:%S{}'".format(".%f" if subsecond else "")
-    return dt.strftime(fmt)
-
-
-def combine_db_table(db, table):
-    if db:
-        return "{}.{}".format(db, table)
-    else:
-        return table
-
-
-def split_db_table(dbtable):
-    components = dbtable.split('.')
-    if len(components) == 2:  # db.table
-        return components[0], components[1]
-    elif len(components) == 1:  # table
-        return None, components[0]
-    else:
-        raise ValueError("Bad dbtable: {}".format(dbtable))
 
 
 def parser_add_result_column(parsed, column):

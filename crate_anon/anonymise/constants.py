@@ -711,6 +711,8 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charse
 url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
 
 # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
+# Fields can either be specified as "column" (to match any table) or
+# "table.column", to match a specific table.
 
     # Allow the absence of patient info? Used to copy databases; WILL NOT
     # ANONYMISE. Boolean; default is False.
@@ -720,6 +722,15 @@ ddgen_allow_no_patient_info = False
     # table. It will be replaced by the research ID in the destination
     # database.
 ddgen_per_table_pid_field = patient_id
+
+    # Add every instance of a per-table PID field to the patient scrubber?
+    # This is a very conservative setting, and should be unnecessary as the
+    # single master "PID-defining" column (see ddgen_pid_defining_fieldnames)
+    # should be enough.
+    # (Note that per-table PIDs are always replaced by RIDs - this setting
+    # governs whether the scrubber used to scrub free-text fields also
+    # works through every single per-table PID).
+ddgen_add_per_table_pids_to_scrubber = False
 
     # Master patient ID fieldname. Used for e.g. NHS numbers.
 ddgen_master_pid_fieldname = nhsnum
@@ -781,6 +792,8 @@ ddgen_filename_to_text_fields =
     #     ddgen_binary_to_text_field_pairs = binary1field, ext1field
     #         binary2field, ext2field
     #         ...
+    # The first (binaryfield) can be specified as column or table.column,
+    # but the second must be column only.
 ddgen_binary_to_text_field_pairs =
 
     # Fields to apply an index to

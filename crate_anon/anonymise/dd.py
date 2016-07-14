@@ -84,6 +84,7 @@ from crate_anon.anonymise.sqla import (
     convert_sqla_type_for_dialect,
     get_sqla_coltype_from_dialect_str,
 )
+from crate_anon.common.sql import split_db_table
 
 log = logging.getLogger(__name__)
 
@@ -346,7 +347,12 @@ class DataDictionaryRow(object):
         """
         Return the alter_method field from the working fields.
         """
-        return ",".join([x.get_text() for x in self._alter_methods])
+        return ",".join(filter(
+            None, (x.get_text() for x in self._alter_methods)))
+    
+    def remove_scrub_from_alter_methods(self):
+        for sm in self._alter_methods:
+            sm.scrub = False
 
     @alter_method.setter
     def alter_method(self, value):
@@ -467,6 +473,18 @@ class DataDictionaryRow(object):
         self.comment = valuedict['comment']
         self._from_file = True
         self.check_valid()
+        
+    def matches_fielddef(self, fielddef):
+        t, c = split_db_table(fielddef)
+        tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
+        cr = regex.compile(fnmatch.translate(c), regex.IGNORECASE)
+        return (
+            (t is None and cr.match(self.src_field)) or
+            (tr.match(self.src_table) and cr.match(self.src_field))
+        )
+        
+    def matches_fielddef_list(self, fielddeflist):
+        return any(self.matches_fielddef(fd) for fd in fielddeflist)
 
     def set_from_src_db_info(self, db, table, field,
                              datatype_sqltext, sqla_coltype, cfg, comment=None,
@@ -488,7 +506,7 @@ class DataDictionaryRow(object):
         self._master_pid = False
         self._constant = False
         self._addition_only = False
-        if self.src_field in cfg.ddgen_pk_fields:
+        if self.matches_fielddef(cfg.ddgen_pk_fields):
             self._pk = True
             if cfg.ddgen_constant_content:
                 self._constant = True
@@ -496,29 +514,30 @@ class DataDictionaryRow(object):
                 self._add_src_hash = True
             if cfg.ddgen_addition_only:
                 self._addition_only = True
-        if self.src_field == cfg.ddgen_per_table_pid_field:
+        if self.matches_fielddef(cfg.ddgen_per_table_pid_field):
             self._primary_pid = True
-        if self.src_field == cfg.ddgen_master_pid_fieldname:
+        if self.matches_fielddef(cfg.ddgen_master_pid_fieldname):
             self._master_pid = True
-        if self.src_field in cfg.ddgen_pid_defining_fieldnames:  # unusual!
+        if self.matches_fielddef_list(cfg.ddgen_pid_defining_fieldnames):
             self._defines_primary_pids = True
 
         # Does the field contain sensitive data?
-        if (self.src_field in cfg.ddgen_scrubsrc_patient_fields or
-                self.src_field == cfg.ddgen_per_table_pid_field or
-                self.src_field == cfg.ddgen_master_pid_fieldname or
-                self.src_field in cfg.ddgen_pid_defining_fieldnames):
+        if (self.matches_fielddef_list(cfg.ddgen_scrubsrc_patient_fields) or
+                (self._primary_pid and
+                 cfg.ddgen_add_per_table_pids_to_scrubber) or
+                self._master_pid or
+                self._defines_primary_pids):
             self.scrub_src = SCRUBSRC.PATIENT
-        elif self.src_field in cfg.ddgen_scrubsrc_thirdparty_fields:
+        elif self.matches_fielddef_list(cfg.ddgen_scrubsrc_thirdparty_fields):
             self.scrub_src = SCRUBSRC.THIRDPARTY
-        elif (self.src_field in cfg.ddgen_scrubmethod_code_fields or
-                self.src_field in cfg.ddgen_scrubmethod_date_fields or
-                self.src_field in cfg.ddgen_scrubmethod_number_fields or
-                self.src_field in cfg.ddgen_scrubmethod_phrase_fields):
-            # We're not sure what sort these are, but it seems conservative to
-            # include these! Easy to miss them otherwise, and better to be
-            # overly conservative.
-            self.scrub_src = SCRUBSRC.PATIENT
+        # elif self.matches_fielddef_list(cfg.ddgen_scrubmethod_code_fields +
+        #                                 cfg.ddgen_scrubmethod_date_fields +
+        #                                 cfg.ddgen_scrubmethod_number_fields +
+        #                                 cfg.ddgen_scrubmethod_phrase_fields):
+        #     # We're not sure what sort these are, but it seems conservative to
+        #     # include these! Easy to miss them otherwise, and better to be
+        #     # overly conservative.
+        #     self.scrub_src = SCRUBSRC.PATIENT
         else:
             self.scrub_src = ""
 
@@ -526,16 +545,17 @@ class DataDictionaryRow(object):
         if not self.scrub_src:
             self.scrub_method = ""
         elif (is_sqltype_numeric(datatype_sqltext) or
-                self.src_field == cfg.ddgen_per_table_pid_field or
-                self.src_field == cfg.ddgen_master_pid_fieldname or
-                self.src_field in cfg.ddgen_scrubmethod_number_fields):
+                self.matches_fielddef(cfg.ddgen_per_table_pid_field) or
+                self.matches_fielddef(cfg.ddgen_master_pid_fieldname) or
+                self.matches_fielddef_list(cfg.ddgen_scrubmethod_number_fields)
+                ):
             self.scrub_method = SCRUBMETHOD.NUMERIC
         elif (is_sqltype_date(datatype_sqltext) or
-                self.src_field in cfg.ddgen_scrubmethod_date_fields):
+                self.matches_fielddef_list(cfg.ddgen_scrubmethod_date_fields)):
             self.scrub_method = SCRUBMETHOD.DATE
-        elif self.src_field in cfg.ddgen_scrubmethod_code_fields:
+        elif self.matches_fielddef_list(cfg.ddgen_scrubmethod_code_fields):
             self.scrub_method = SCRUBMETHOD.CODE
-        elif self.src_field in cfg.ddgen_scrubmethod_phrase_fields:
+        elif self.matches_fielddef_list(cfg.ddgen_scrubmethod_phrase_fields):
             self.scrub_method = SCRUBMETHOD.PHRASE
         else:
             self.scrub_method = SCRUBMETHOD.WORDS
@@ -573,29 +593,30 @@ class DataDictionaryRow(object):
         )
 
         # How should we manipulate the destination?
-        if self.src_field in cfg.ddgen_truncate_date_fields:
+        if self.matches_fielddef_list(cfg.ddgen_truncate_date_fields):
             self._alter_methods.append(AlterMethod(truncate_date=True))
-        elif self.src_field in cfg.ddgen_filename_to_text_fields:
+        elif self.matches_fielddef_list(cfg.ddgen_filename_to_text_fields):
             self._alter_methods.append(AlterMethod(extract_from_filename=True))
             self.dest_datatype = LONGTEXT
-            if (self.src_field not in
-                    cfg.ddgen_safe_fields_exempt_from_scrubbing):
+            if (not self.matches_fielddef_list(
+                    cfg.ddgen_safe_fields_exempt_from_scrubbing)):
                 self._alter_methods.append(AlterMethod(scrub=True))
-        elif self.src_field in cfg.bin2text_dict.keys():
-            self._alter_methods.append(AlterMethod(
-                extract_from_blob=True,
-                extract_ext_field=cfg.bin2text_dict[self.src_field]))
+        elif self.matches_fielddef_list(cfg.bin2text_dict.keys()):
+            for binfielddef, extfield in cfg.bin2text_dict.items():
+                if self.matches_fielddef(binfielddef):
+                    self._alter_methods.append(AlterMethod(
+                        extract_from_blob=True,
+                        extract_ext_field=extfield))
             self.dest_datatype = LONGTEXT
-            if (self.src_field not in
-                    cfg.ddgen_safe_fields_exempt_from_scrubbing):
+            if (not self.matches_fielddef_list(
+                    cfg.ddgen_safe_fields_exempt_from_scrubbing)):
                 self._alter_methods.append(AlterMethod(scrub=True))
         elif (is_sqltype_text_of_length_at_least(
                 datatype_sqltext, cfg.ddgen_min_length_for_scrubbing) and
-                not self.omit and
                 not self._primary_pid and
                 not self._master_pid and
-                self.src_field not in
-                cfg.ddgen_safe_fields_exempt_from_scrubbing):
+                not self.matches_fielddef_list(
+                    cfg.ddgen_safe_fields_exempt_from_scrubbing)):
             self._alter_methods.append(AlterMethod(scrub=True))
 
         # Manipulate the destination table name?
@@ -619,7 +640,7 @@ class DataDictionaryRow(object):
         elif (does_sqltype_merit_fulltext_index(self.dest_datatype) and
                 cfg.ddgen_allow_fulltext_indexing):
             self.index = INDEX.FULLTEXT
-        elif self.src_field in cfg.ddgen_index_fields:
+        elif self.matches_fielddef(cfg.ddgen_index_fields):
             self.index = INDEX.NORMAL
         else:
             self.index = ""
@@ -697,7 +718,7 @@ class DataDictionaryRow(object):
         #         "Field has invalid source data type: {}".format(
         #             self.src_datatype))
 
-        if (self.src_field == srccfg.ddgen_per_table_pid_field and
+        if (self.self._primary_pid and
                 not is_sqltype_integer(self.src_datatype)):
             raise ValueError(
                 "All fields with src_field = {} should be integer, for work "
@@ -749,7 +770,7 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     "Field has invalid destination data type: "
                     "{}".format(self.dest_datatype))
-            if self.src_field == srccfg.ddgen_per_table_pid_field:
+            if self.matches_fielddef(srccfg.ddgen_per_table_pid_field):
                 if not self._primary_pid:
                     raise ValueError(
                         "All fields with src_field={} used in output should "
@@ -760,7 +781,7 @@ class DataDictionaryRow(object):
                         "Primary PID field should have "
                         "dest_field = {}".format(
                             self.config.research_id_fieldname))
-            if (self.src_field == srccfg.ddgen_master_pid_fieldname and
+            if (self.matches_fielddef(srccfg.ddgen_master_pid_fieldname) and
                     not self._master_pid):
                 raise ValueError(
                     "All fields with src_field = {} used in output should have"
@@ -996,6 +1017,7 @@ class DataDictionary(object):
             for t in meta.sorted_tables:
                 tablename = t.name
                 log.info("... ... table: {}".format(tablename))
+                new_rows = []
                 for c in t.columns:
                     i += 1
                     if report_every and i % report_every == 0:
@@ -1028,7 +1050,18 @@ class DataDictionary(object):
                         cfg=cfg,
                         comment=comment,
                         default_omit=default_omit)
-                    # Here's where we filter out any that exist already:
+                    new_rows.append(ddr)
+
+                # Now, table-wide checks across all columns:
+                is_patient_table = any(ddr.contains_patient_info()
+                                       for ddr in new_rows)
+                if not is_patient_table:
+                    for ddr in new_rows:
+                        ddr.remove_scrub_from_alter_methods()
+                        # Pointless to scrub in a non-patient table
+
+                # Now, filter out any rows that exist already:
+                for ddr in new_rows:
                     sig = ddr.get_signature()
                     if sig not in signatures:
                         self.rows.append(ddr)
