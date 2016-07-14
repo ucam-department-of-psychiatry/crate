@@ -1391,8 +1391,11 @@ class DDHint(object):
 def report_rio_dd_settings(progargs, ddhint):
     settings_text = """
 ddgen_allow_no_patient_info = False
+
 ddgen_per_table_pid_field = crate_rio_number
+
 ddgen_add_per_table_pids_to_scrubber = False
+
 ddgen_master_pid_fieldname = crate_nhs_number_int
 
 ddgen_table_whitelist = #
@@ -1454,6 +1457,7 @@ ddgen_table_blacklist = #
     # Blacklist: Suffixes
     # -------------------------------------------------------------------------
     *Cache  # system
+    # *** what happened to others here?
     # -------------------------------------------------------------------------
     # Blacklist: Individual tables
     # -------------------------------------------------------------------------
@@ -1474,15 +1478,21 @@ ddgen_table_blacklist = #
 # =========================================
 # Assessment* = includes maps of non-core assessments (see e.g. AssessmentIndex)
 # CDL_OUTDATEDPATIENTS_TWI = map from TWI (trust-wide identifier) to old CPFT M number
-# UserAssess* = ?non-core assessments themselves
+# UserAssess* = non-core assessments themselves
 # UserMaster* = lookup tables for non-core assessments
 
 ddgen_field_whitelist =
+
 ddgen_field_blacklist =
+
 ddgen_pk_fields = crate_pk
+
 ddgen_constant_content = False
+
 ddgen_addition_only = False
+
 ddgen_pid_defining_fieldnames = ClientIndex.crate_rio_number
+
 ddgen_scrubsrc_patient_fields = # several of these:
     ClientIndex.crate_pk
     ClientIndex.DateOfBirth
@@ -1504,6 +1514,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientName.Surname
     client_address_with_geography_crate.AddressLine*
     client_address_with_geography_crate.PostCode
+
 ddgen_scrubsrc_thirdparty_fields = # several:
     ClientContact.AddressLine*
     ClientContact.EmailAddress
@@ -1512,13 +1523,18 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     ClientContact.NHSNumber
     ClientContact.SpineID
     ClientContact.Surname
+
 ddgen_scrubmethod_code_fields = PostCode
+
 ddgen_scrubmethod_date_fields = DateOfBirth
+
 ddgen_scrubmethod_number_fields = # several:
     DaytimePhone
     EveningPhone
     MobilePhone
+
 ddgen_scrubmethod_phrase_fields = AddressLine*
+
 ddgen_safe_fields_exempt_from_scrubbing =
 
     # RiO mostly uses string column lengths of 4, 10, 20, 40, 80, 500,
@@ -1527,15 +1543,22 @@ ddgen_safe_fields_exempt_from_scrubbing =
     # (Note that many scrub-SOURCE fields are of length 80, e.g. address
     # fields, but they need different special handling.)
 ddgen_min_length_for_scrubbing = 81
+
 ddgen_truncate_date_fields = ClientIndex.DateOfBirth
+
 ddgen_filename_to_text_fields =
+
 ddgen_binary_to_text_field_pairs =
+
 ddgen_index_fields =
+
 ddgen_allow_fulltext_indexing = True
+
 ddgen_force_lower_case = False
+
 ddgen_convert_odd_chars_to_underscore = True
     """.format(
-        suppress_tables = " ".join(ddhint.get_suppressed_tables()),
+        suppress_tables = "\n    ".join(ddhint.get_suppressed_tables()),
     )
     with open(progargs.settings_filename, 'w') as f:
         print(settings_text, file=f)
