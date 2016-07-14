@@ -119,8 +119,8 @@ CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
 CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
 
 # Views added:
-VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"
-VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography_crate"
+VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current"
+VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography"
 
 RIO_6_2_ATYPICAL_PKS = {
     # These are table: pk_field mappings for PATIENT tables, i.e. those
@@ -1206,7 +1206,7 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
 # =============================================================================
 
 RIO_VIEWS = {
-    'progress_notes_crate': {
+    'progress_notes': {
         'basetable': RIO_TABLE_PROGRESS_NOTES,
         'additions': [
             {
@@ -1491,9 +1491,27 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientIndex.EveningPhone
     ClientIndex.Firstname
     ClientIndex.MobilePhone
+    ClientIndex.NINumber
+    ClientIndex.OtherAddress
+    ClientIndex.SpineID
+    ClientIndex.Surname
+    ClientName.GivenName1
+    ClientName.GivenName2
+    ClientName.GivenName3
+    ClientName.GivenName4
+    ClientName.GivenName5
+    ClientName.SpineID
+    ClientName.Surname
     client_address_with_geography_crate.AddressLine*
     client_address_with_geography_crate.PostCode
-ddgen_scrubsrc_thirdparty_fields =
+ddgen_scrubsrc_thirdparty_fields = # several:
+    ClientContact.AddressLine*
+    ClientContact.EmailAddress
+    ClientContact.Firstname
+    ClientContact.MainPhone
+    ClientContact.NHSNumber
+    ClientContact.SpineID
+    ClientContact.Surname
 ddgen_scrubmethod_code_fields = PostCode
 ddgen_scrubmethod_date_fields = DateOfBirth
 ddgen_scrubmethod_number_fields = # several:
