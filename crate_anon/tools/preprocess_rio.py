@@ -508,7 +508,8 @@ How is RiO non-core structured?
         ... fields to omit
         ... default actions on fields
             ... e.g. exclude if type12_DeletedDate is None
-                *** add this as a ddgen_ option
+            ... however, we could also do that more efficiently as a view,
+                and that suits all use cases so far.
 
 """  # noqa
 

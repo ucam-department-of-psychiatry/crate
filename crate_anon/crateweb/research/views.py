@@ -159,7 +159,7 @@ def build_query(request):
     #   optimization.
     # - Another, potentially better, solution, is not to send dozens or
     #   hundreds of forms, but to write some Javascript to make this happen
-    #   mostly on the client side. Might look better, too. ***
+    #   mostly on the client side. Might look better, too. (Yes, it does.)
 
     # NB: first "submit" button takes the Enter key, so place WHERE
     # before SELECT so users can hit enter in the WHERE value fields.

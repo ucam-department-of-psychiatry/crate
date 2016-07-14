@@ -523,14 +523,14 @@ def process_table(sourcedbname, sourcetable,
     # validation process).
     ddrows = [ddr for ddr in ddrows
               if (
-                  (not ddr.omit) or
-                  (addhash and ddr.scrub_src) or
-                  ddr.inclusion_values or
-                  ddr.exclusion_values
+                  (not ddr.omit) or  # used for data
+                  (addhash and ddr.scrub_src) or  # used for hash
+                  ddr.inclusion_values or  # used for filter
+                  ddr.exclusion_values  # used for filter
               )]
     if not ddrows:
+        # No columns to process at all.
         return
-    # It is imperative to continue ***
     dest_table = ddrows[0].dest_table
     sourcefields = []
     pkfield_index = None

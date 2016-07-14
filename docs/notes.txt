@@ -610,5 +610,3 @@ Static files, speed, etc.
 - Now, base_email.html and base_pdf.html have CSS passed to them by the
   convenience functions (extracted in Python). The web one, base.html, uses
   links to static files.
-
-*** ALSO TO DO: support multiple data dictionaries on a single research database
