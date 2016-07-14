@@ -1025,13 +1025,13 @@ def drop_for_progress_notes(table, engine, progargs):
 # =============================================================================
 
 class ViewMaker(object):
-    def __init__(self, engine, basetable):
+    def __init__(self, engine, basetable, existing_to_lower=False):
         self.engine = engine
         self.basetable = basetable
         self.select_elements = [
             ", ".join("{}.{}".format(basetable, x)
                       for x in get_column_names(engine, tablename=basetable,
-                                                to_lower=True))
+                                                to_lower=existing_to_lower))
         ]
         self.from_elements = [basetable]
         self.where_elements = []
@@ -1415,7 +1415,7 @@ ddgen_table_whitelist = #
 
 ddgen_table_blacklist = #
     # -------------------------------------------------------------------------
-    # Blacklist: Prefixes: groups of tables
+    # Blacklist: Prefixes: groups of tables; individual tables
     # -------------------------------------------------------------------------
     Agresso*  # Agresso [sic] module (comms to social worker systems)
     ADT*  # ?admit/discharge/transfer messages (see codes in ADTMessage)
@@ -1423,7 +1423,10 @@ ddgen_table_blacklist = #
     Audit*  # RiO Audit Trail
     CDSContract*  # something to do with commissioner contracts
     Chd*  # Child development (interesting, but lots of tables and all empty)
+    ClientAddressHistory  # defunct according to RIO 6.2 docs
+    ClientAddressMerged  # defunct according to RIO 6.2 docs
     ClientChild*  # child info e.g. birth/immunisation (interesting, but several tables and all empty)
+    ClientCommunityDomain # defunct according to RIO 6.2 docs
     ClientMerge*  # record of admin events (merging of client records)
     ClientPhoto*  # no use to us or identifiable!
     ClientRestrictedRecord*  # ? but admin
@@ -1433,14 +1436,25 @@ ddgen_table_blacklist = #
     EP*  # E-Prescribing (EP) module, which we don't have
     #   ... mostly we don't have it, but we may have EPClientAllergies etc.
     #   ... so see whitelist too
+    ESRImport  # user-to-?role map? Small and system.
     ExternalSystem*  # system
     GenChd*  # lookup codes for Chd*
     GenCon*  # lookup codes for Con*
+    GenDiagnosis  # "Obsolete"
+    GenError*  # system
+    GenExtract*  # details of reporting extracts
+    GenHCPTemplateDetails  # HCP diary template
+    GenIDSeed  # system (counters for different ID types)
+    GenLicenseKeys  # system; NB shows what components are licensed!
+    GenPrinter*  # printers
+    GenToDoList  # user to-do list items/notifications
+    KP90ErrorLog  # error log for KP90 report; http://www.hscic.gov.uk/datacollections/kp90
     LR*  # Legitimate Relationships module
     Meeting*  # Meetings module
     Mes*  # messaging
     MonthlyPlanner*  # system
     PSS*  # Prevention, Screening & Surveillance (PSS)
+    RioPerformanceTimings  # system
     RR*  # Results Reporting (e.g. laboratories, radiology)
     #   ... would be great, but we don't have it
     RTT*  # RTT* = Referral-to-Treatment (RTT) data collection (see NHS England docs)
@@ -1448,6 +1462,7 @@ ddgen_table_blacklist = #
     Scheduler*  # Scheduler* = Scheduler module (for RiO computing)
     Sec*  # Security? Definitely RiO internal stuff.
     SPINE*  # system
+    SPRExternalNotification  # system?
     tbl*  # records of changes to tables?
     TeamPlanner*  # system
     Temp*  # system
@@ -1455,19 +1470,13 @@ ddgen_table_blacklist = #
     Wfl*  # workflow
     WL*  # Waiting lists (WL) module
     # -------------------------------------------------------------------------
-    # Blacklist: Suffixes
+    # Blacklist: Middle bits, suffixes
     # -------------------------------------------------------------------------
-    *Cache  # system
-    # *** what happened to others here?
-    # -------------------------------------------------------------------------
-    # Blacklist: Individual tables
-    # -------------------------------------------------------------------------
-    ClientAddressHistory  # defunct according to RIO 6.2 docs
-    ClientAddressMerged  # defunct according to RIO 6.2 docs
-    ClientCommunityDomain # defunct according to RIO 6.2 docs
-    ESRImport  # user-to-?role map? Small and system.
-    RioPerformanceTimings  # system
-    SPRExternalNotification  # system?
+    *Access*  # system access controls
+    *Backup  # I'm guessing backups...
+    *Cache*  # system
+    *Lock*  # system
+    *Timeout*  # system
     # -------------------------------------------------------------------------
     # Blacklist: Views supersede
     # Below here, we have other tables suppressed because CRATE's views offer
@@ -1486,12 +1495,22 @@ ddgen_field_whitelist =
 
 ddgen_field_blacklist = #
     ClientID  # replaced by crate_rio_number
+    *Soundex  # identifying 4-character code; https://msdn.microsoft.com/en-us/library/ms187384.aspx
 
 ddgen_pk_fields = crate_pk
 
 ddgen_constant_content = False
 
+ddgen_constant_content_tables =
+
+ddgen_nonconstant_content_tables =
+
 ddgen_addition_only = False
+
+ddgen_addition_only_tables = #
+    UserMaster*  # Lookup tables for non-core ***
+
+ddgen_deletion_possible_tables =
 
 ddgen_pid_defining_fieldnames = ClientIndex.crate_rio_number
 

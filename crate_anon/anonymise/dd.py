@@ -37,10 +37,12 @@ Copyright/licensing:
 import ast
 import collections
 import csv
+import fnmatch
 from functools import lru_cache
 import logging
 import operator
 
+import regex
 from sortedcontainers import SortedSet
 from sqlalchemy import (
     Column,
@@ -474,24 +476,29 @@ class DataDictionaryRow(object):
         self._from_file = True
         self.check_valid()
     
-    def matches_tabledef(self, tabledef):
-        tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
+    def _matches_tabledef(self, tabledef):
+        tr = regex.compile(fnmatch.translate(tabledef), regex.IGNORECASE)
         return tr.match(self.src_table)
     
-    def matches_tabledef_list(self, tabledeflist):
-        return any(self.matches_tabledef(td) for td in tabledeflist)
+    def matches_tabledef(self, tabledef):
+        if isinstance(tabledef, str):
+            return self._matches_tabledef(tabledef)
+        else:  # list
+            return any(self._matches_tabledef(td) for td in tabledef)
 
-    def matches_fielddef(self, fielddef):
+    def _matches_fielddef(self, fielddef):
         t, c = split_db_table(fielddef)
-        tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
         cr = regex.compile(fnmatch.translate(c), regex.IGNORECASE)
-        return (
-            (t is None and cr.match(self.src_field)) or
-            (tr.match(self.src_table) and cr.match(self.src_field))
-        )
+        if not t:
+            return cr.match(self.src_field)
+        tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
+        return tr.match(self.src_table) and cr.match(self.src_field)
         
-    def matches_fielddef_list(self, fielddeflist):
-        return any(self.matches_fielddef(fd) for fd in fielddeflist)
+    def matches_fielddef(self, fielddef):
+        if isinstance(fielddef, str):
+            return self._matches_fielddef(fielddef)
+        else:  # list
+            return any(self._matches_fielddef(fd) for fd in fielddef)
 
     def set_from_src_db_info(self, db, table, field,
                              datatype_sqltext, sqla_coltype, cfg, comment=None,
@@ -517,36 +524,32 @@ class DataDictionaryRow(object):
             self._pk = True
             self._constant = (
                 (cfg.ddgen_constant_content or
-                 self.matches_tabledef_list(
-                    cfg.ddgen_constant_content_tables)) and
-                not self.matches_tabledef_list(
-                    cfg.ddgen_nonconstant_content_tables)
+                 self.matches_tabledef(cfg.ddgen_constant_content_tables)) and
+                not self.matches_tabledef(cfg.ddgen_nonconstant_content_tables)
             )
             self._add_src_hash = not self._constant
             self._addition_only = (
                 (cfg.ddgen_addition_only or
-                 self.matches_tabledef_list(
-                    cfg.ddgen_addition_only_tables)) and
-                not self.matches_tabledef_list(
-                    cfg.ddgen_deletion_possible_tables)
+                 self.matches_tabledef(cfg.ddgen_addition_only_tables)) and
+                not self.matches_tabledef(cfg.ddgen_deletion_possible_tables)
             )
         if self.matches_fielddef(cfg.ddgen_per_table_pid_field):
             self._primary_pid = True
         if self.matches_fielddef(cfg.ddgen_master_pid_fieldname):
             self._master_pid = True
-        if self.matches_fielddef_list(cfg.ddgen_pid_defining_fieldnames):
+        if self.matches_fielddef(cfg.ddgen_pid_defining_fieldnames):
             self._defines_primary_pids = True
 
         # Does the field contain sensitive data?
-        if (self.matches_fielddef_list(cfg.ddgen_scrubsrc_patient_fields) or
+        if (self.matches_fielddef(cfg.ddgen_scrubsrc_patient_fields) or
                 (self._primary_pid and
                  cfg.ddgen_add_per_table_pids_to_scrubber) or
                 self._master_pid or
                 self._defines_primary_pids):
             self.scrub_src = SCRUBSRC.PATIENT
-        elif self.matches_fielddef_list(cfg.ddgen_scrubsrc_thirdparty_fields):
+        elif self.matches_fielddef(cfg.ddgen_scrubsrc_thirdparty_fields):
             self.scrub_src = SCRUBSRC.THIRDPARTY
-        # elif self.matches_fielddef_list(cfg.ddgen_scrubmethod_code_fields +
+        # elif self.matches_fielddef(cfg.ddgen_scrubmethod_code_fields +
         #                                 cfg.ddgen_scrubmethod_date_fields +
         #                                 cfg.ddgen_scrubmethod_number_fields +
         #                                 cfg.ddgen_scrubmethod_phrase_fields):
@@ -563,15 +566,15 @@ class DataDictionaryRow(object):
         elif (is_sqltype_numeric(datatype_sqltext) or
                 self.matches_fielddef(cfg.ddgen_per_table_pid_field) or
                 self.matches_fielddef(cfg.ddgen_master_pid_fieldname) or
-                self.matches_fielddef_list(cfg.ddgen_scrubmethod_number_fields)
+                self.matches_fielddef(cfg.ddgen_scrubmethod_number_fields)
                 ):
             self.scrub_method = SCRUBMETHOD.NUMERIC
         elif (is_sqltype_date(datatype_sqltext) or
-                self.matches_fielddef_list(cfg.ddgen_scrubmethod_date_fields)):
+                self.matches_fielddef(cfg.ddgen_scrubmethod_date_fields)):
             self.scrub_method = SCRUBMETHOD.DATE
-        elif self.matches_fielddef_list(cfg.ddgen_scrubmethod_code_fields):
+        elif self.matches_fielddef(cfg.ddgen_scrubmethod_code_fields):
             self.scrub_method = SCRUBMETHOD.CODE
-        elif self.matches_fielddef_list(cfg.ddgen_scrubmethod_phrase_fields):
+        elif self.matches_fielddef(cfg.ddgen_scrubmethod_phrase_fields):
             self.scrub_method = SCRUBMETHOD.PHRASE
         else:
             self.scrub_method = SCRUBMETHOD.WORDS
@@ -609,29 +612,29 @@ class DataDictionaryRow(object):
         )
 
         # How should we manipulate the destination?
-        if self.matches_fielddef_list(cfg.ddgen_truncate_date_fields):
+        if self.matches_fielddef(cfg.ddgen_truncate_date_fields):
             self._alter_methods.append(AlterMethod(truncate_date=True))
-        elif self.matches_fielddef_list(cfg.ddgen_filename_to_text_fields):
+        elif self.matches_fielddef(cfg.ddgen_filename_to_text_fields):
             self._alter_methods.append(AlterMethod(extract_from_filename=True))
             self.dest_datatype = LONGTEXT
-            if (not self.matches_fielddef_list(
+            if (not self.matches_fielddef(
                     cfg.ddgen_safe_fields_exempt_from_scrubbing)):
                 self._alter_methods.append(AlterMethod(scrub=True))
-        elif self.matches_fielddef_list(cfg.bin2text_dict.keys()):
+        elif self.matches_fielddef(cfg.bin2text_dict.keys()):
             for binfielddef, extfield in cfg.bin2text_dict.items():
                 if self.matches_fielddef(binfielddef):
                     self._alter_methods.append(AlterMethod(
                         extract_from_blob=True,
                         extract_ext_field=extfield))
             self.dest_datatype = LONGTEXT
-            if (not self.matches_fielddef_list(
+            if (not self.matches_fielddef(
                     cfg.ddgen_safe_fields_exempt_from_scrubbing)):
                 self._alter_methods.append(AlterMethod(scrub=True))
         elif (is_sqltype_text_of_length_at_least(
                 datatype_sqltext, cfg.ddgen_min_length_for_scrubbing) and
                 not self._primary_pid and
                 not self._master_pid and
-                not self.matches_fielddef_list(
+                not self.matches_fielddef(
                     cfg.ddgen_safe_fields_exempt_from_scrubbing)):
             self._alter_methods.append(AlterMethod(scrub=True))
 
@@ -734,7 +737,7 @@ class DataDictionaryRow(object):
         #         "Field has invalid source data type: {}".format(
         #             self.src_datatype))
 
-        if (self.self._primary_pid and
+        if (self._primary_pid and
                 not is_sqltype_integer(self.src_datatype)):
             raise ValueError(
                 "All fields with src_field = {} should be integer, for work "
