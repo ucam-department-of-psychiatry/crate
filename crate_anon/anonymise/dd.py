@@ -473,7 +473,14 @@ class DataDictionaryRow(object):
         self.comment = valuedict['comment']
         self._from_file = True
         self.check_valid()
-        
+    
+    def matches_tabledef(self, tabledef):
+        tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
+        return tr.match(self.src_table)
+    
+    def matches_tabledef_list(self, tabledeflist):
+        return any(self.matches_tabledef(td) for td in tabledeflist)
+
     def matches_fielddef(self, fielddef):
         t, c = split_db_table(fielddef)
         tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
@@ -508,12 +515,21 @@ class DataDictionaryRow(object):
         self._addition_only = False
         if self.matches_fielddef(cfg.ddgen_pk_fields):
             self._pk = True
-            if cfg.ddgen_constant_content:
-                self._constant = True
-            else:
-                self._add_src_hash = True
-            if cfg.ddgen_addition_only:
-                self._addition_only = True
+            self._constant = (
+                (cfg.ddgen_constant_content or
+                 self.matches_tabledef_list(
+                    cfg.ddgen_constant_content_tables)) and
+                not self.matches_tabledef_list(
+                    cfg.ddgen_nonconstant_content_tables)
+            )
+            self._add_src_hash = not self._constant
+            self._addition_only = (
+                (cfg.ddgen_addition_only or
+                 self.matches_tabledef_list(
+                    cfg.ddgen_addition_only_tables)) and
+                not self.matches_tabledef_list(
+                    cfg.ddgen_deletion_possible_tables)
+            )
         if self.matches_fielddef(cfg.ddgen_per_table_pid_field):
             self._primary_pid = True
         if self.matches_fielddef(cfg.ddgen_master_pid_fieldname):

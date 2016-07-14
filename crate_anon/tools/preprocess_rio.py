@@ -1483,7 +1483,8 @@ ddgen_table_blacklist = #
 
 ddgen_field_whitelist =
 
-ddgen_field_blacklist =
+ddgen_field_blacklist = #
+    ClientID  # replaced by crate_rio_number
 
 ddgen_pk_fields = crate_pk
 

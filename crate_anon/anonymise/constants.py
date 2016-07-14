@@ -227,6 +227,7 @@ DEMO_CONFIG = """
 #         - Intended for very data-intensive fields, such as BLOB fields
 #           containing binary documents, where hashing would be quite slow
 #           over many gigabytes of data.
+#         - Does not imply that the whole table cannot change!
 #
 #     {SRCFLAG.ADDITION_ONLY}
 #         Addition only. It is assumed that records can only be added, not
@@ -754,10 +755,22 @@ ddgen_field_whitelist =
 ddgen_pk_fields =
 
     # Assume that content stays constant?
+    # (Applies {SRCFLAG.CONSTANT} to PK fields; q.v.)
+    # This is the default; then ddgen_constant_content_tables and
+    # ddgen_nonconstant_content_tables can override (of which,
+    # ddgen_nonconstant_content_tables takes priority if a table matches both).
 ddgen_constant_content = False
+
+    # Table-specific overrides for ddgen_constant_content, as above.
+ddgen_constant_content_tables =
+ddgen_nonconstant_content_tables =
 
     # Assume that records can only be added, not deleted?
 ddgen_addition_only = False
+
+    # Table-specific overrides for ddgen_addition_only, similarly.
+ddgen_addition_only_tables =
+ddgen_deletion_possible_tables =
 
     # Predefine field(s) that define the existence of patient IDs? UNUSUAL.
 ddgen_pid_defining_fieldnames =

@@ -164,7 +164,14 @@ class DatabaseSafeConfig(object):
         self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
         self.ddgen_constant_content = opt_bool(
             'ddgen_constant_content', False)
+        self.ddgen_constant_content_tables = opt_str(
+            'ddgen_constant_content_tables')
+        self.ddgen_nonconstant_content_tables = opt_str(
+            'ddgen_nonconstant_content_tables')
         self.ddgen_addition_only = opt_bool('ddgen_addition_only', False)
+        self.ddgen_addition_only_tables = opt_str('ddgen_addition_only_tables')
+        self.ddgen_deletion_possible_tables = opt_str(
+            'ddgen_deletion_possible_tables')
         self.ddgen_min_length_for_scrubbing = opt_int(
             'ddgen_min_length_for_scrubbing', 0)
         self.ddgen_allow_fulltext_indexing = opt_bool(
