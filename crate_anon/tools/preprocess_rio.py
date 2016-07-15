@@ -1391,7 +1391,7 @@ def rio_add_diagnosis_lookup(viewmaker,
     # - We use unique table aliases here, so that overall we can make >1 sets
     #   of different "user" joins simultaneously.
     viewmaker.add_from("""
-        LEFT JOIN DiagnosisCode
+        LEFT JOIN DiagnosisCode {ap}_diag
             ON {basetable}.{basecolumn_scheme} = {ap}_diag.CodingScheme
             AND {basetable}.{basecolumn_code} = {ap}_diag.Code
     """.format(  # noqa
