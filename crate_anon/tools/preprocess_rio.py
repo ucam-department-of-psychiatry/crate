@@ -1497,7 +1497,7 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
         column_prefix += '_'
     viewmaker.add_select("""
         {basetable}.{basecolumn_ward} AS {cp}Ward_Code,
-        {ap}_bay.CodeDescription AS {cp}Ward_Description,
+        {ap}_ward.WardDescription AS {cp}Ward_Description,
         {basetable}.{basecolumn_bay} AS {cp}Bay_Code,
         {ap}_bay.BayDescription AS {cp}Bay_Description
     """.format(  # noqa
@@ -1508,8 +1508,11 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
         ap=internal_alias_prefix,
     ))
     viewmaker.add_from("""
-        LEFT JOIN ImsBay {ap}_bay
-            ON {ap}_bay.WardCode = {basetable}.{basecolumn_ward}
+        LEFT JOIN (
+            ImsBay {ap}_bay
+            INNER JOIN ImsWard {ap}_ward
+                ON {ap}_ward.WardCode = {ap}_bay.WardCode
+        ) ON {ap}_bay.WardCode = {basetable}.{basecolumn_ward}
             AND {ap}_bay.BayCode = {basetable}.{basecolumn_bay}
     """.format(  # noqa
         ap=internal_alias_prefix,
@@ -1518,6 +1521,7 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
         basecolumn_bay=basecolumn_bay,
     ))
     viewmaker.record_lookup_table_keyfield('ImsBay', ['WardCode', 'BayCode'])
+    viewmaker.record_lookup_table_keyfield('ImsWard', ['WardCode'])
 
 # =============================================================================
 # RiO view creators: collection
