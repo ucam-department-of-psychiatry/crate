@@ -2158,42 +2158,43 @@ RIO_VIEWS = OrderedDict([
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': 'CASE WHEN MovementTypeFlag & 1 THEN 1 ELSE 0 END',
+                    # http://stackoverflow.com/questions/7778444
+                    'expr': 'CAST((MovementTypeFlag & 1) AS BIT)',
                     'alias': 'Consultant_Change_Flag',
                 },
             },
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': 'CASE WHEN MovementTypeFlag & 2 THEN 1 ELSE 0 END',
+                    'expr': 'CAST((MovementTypeFlag & 2) AS BIT)',
                     'alias': 'Bed_Change_Flag',
                 },
             },
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': 'CASE WHEN MovementTypeFlag & 4 THEN 1 ELSE 0 END',
+                    'expr': 'CAST((MovementTypeFlag & 4) AS BIT)',
                     'alias': 'Bay_Change_Flag',
                 },
             },
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': 'CASE WHEN MovementTypeFlag & 8 THEN 1 ELSE 0 END',
+                    'expr': 'CAST((MovementTypeFlag & 8) AS BIT)',
                     'alias': 'Ward_Change_Flag',
                 },
             },
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': 'CASE WHEN MovementTypeFlag & 16 THEN 1 ELSE 0 END',  # noqa
+                    'expr': 'CAST((MovementTypeFlag & 16) AS BIT)',
                     'alias': 'Service_Change_Flag',
                 },
             },
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': 'CASE WHEN MovementTypeFlag & 32 THEN 1 ELSE 0 END',  # noqa
+                    'expr': 'CAST((MovementTypeFlag & 32) AS BIT)',
                     'alias': 'Nurse_Change_Flag',
                 },
             },
