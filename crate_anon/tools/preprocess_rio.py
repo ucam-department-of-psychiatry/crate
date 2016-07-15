@@ -1491,6 +1491,12 @@ def where_prognotes_current(viewmaker):
         "AND {last_note_col} = 1".format(last_note_col=CRATE_COL_LAST_NOTE))
 
 
+def where_not_deleted_flag(viewmaker, basecolumn):
+    viewmaker.add_where(
+        "({table}.{col} IS NULL OR {table}.{col} = 0)".format(
+            table=viewmaker.basetable, col=basecolumn))
+
+
 def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
                        column_prefix, internal_alias_prefix):
     if column_prefix:
@@ -1522,6 +1528,7 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
     ))
     viewmaker.record_lookup_table_keyfield('ImsBay', ['WardCode', 'BayCode'])
     viewmaker.record_lookup_table_keyfield('ImsWard', ['WardCode'])
+
 
 # =============================================================================
 # RiO view creators: collection
@@ -2012,10 +2019,9 @@ RIO_VIEWS = OrderedDict([
                 },
             },
             {
-                'function': simple_view_where,
+                'function': where_not_deleted_flag,
                 'kwargs': {
-                    'where_clause':
-                        '(Deleted IS NULL OR Deleted = 0)',
+                    'basecolumn': 'Deleted',
                 },
             },
             {
@@ -3247,9 +3253,10 @@ def main():
 
 
 if __name__ == '__main__':
+    # noinspection PyBroadException
     try:
         main()
     except:
-        type, value, tb = sys.exc_info()
+        type_, value, tb = sys.exc_info()
         traceback.print_exc()
         pdb.post_mortem(tb)
