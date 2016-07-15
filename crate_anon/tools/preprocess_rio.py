@@ -2118,7 +2118,7 @@ def process_table(table, engine, progargs):
 class DDHint(object):
     def __init__(self):
         self._suppressed_tables = set()
-        self._index_requests = {}  # dict of sets
+        self._index_requests = {}  # dict of dicts
         
     def suppress_table(self, table):
         self._suppressed_tables.add(table)
@@ -2133,27 +2133,32 @@ class DDHint(object):
     def add_source_index_request(self, table, columns):
         if isinstance(columns, str):
             columns = [columns]
+        index_name = 'crate_idx_' + '_'.join(columns)
         if table not in self._index_requests:
-            self._index_requests[table] = set()
-        self._index_requests[table].add({
-            'index_name': 'crate_idx_' + '_'.join(columns),
-            'column': ', '.join(columns),
-            'unique': False,
-        })
+            self._index_requests[table] = {}
+            if index_name not in self._index_requests[table]:
+                self._index_requests[table][index_name] = {
+                    'index_name': index_name,
+                    'column': ', '.join(columns),
+                    'unique': False,
+                }
 
     def add_bulk_source_index_request(self, table_columns_list):
         for table, columns in table_columns_list:
             self.add_source_index_request(table, columns)
 
+    def _do_indexes(self, engine, progargs, action_func):
+        for table, tabledict in self._index_requests:
+            indexdictlist = []
+            for indexname, indexdict in tabledict:
+                indexdictlist.append(indexdict)
+            action_func(engine, progargs, table, indexdictlist)
+
     def add_indexes(self, engine, progargs):
-        for table, indexdictset in self._index_requests:
-            indexdictlist = list(indexdictset)
-            add_indexes(engine, progargs, table, indexdictlist)
+        self._do_indexes(engine, progargs, add_indexes)
 
     def drop_indexes(self, engine, progargs):
-        for table, indexdictset in self._index_requests:
-            indexdictlist = list(indexdictset)
-            drop_indexes(engine, progargs, table, indexdictlist)
+        self._do_indexes(engine, progargs, drop_indexes)
 
 
 def report_rio_dd_settings(progargs, ddhint):
