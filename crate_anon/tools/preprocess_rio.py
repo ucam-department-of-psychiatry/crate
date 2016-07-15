@@ -2076,18 +2076,6 @@ RIO_VIEWS = OrderedDict([
         },
         'add': [
             {
-                'function': simple_lookup_join,
-                'kwargs': {
-                    'basecolumn': 'WardCode',
-                    'lookup_table': 'ImsWard',
-                    'lookup_pk': 'WardCode',
-                    'lookup_fields_aliases': {
-                        'WardDescription': 'Ward_Description',  # RCEP
-                    },
-                    'internal_alias_prefix': 'rw',
-                },
-            },
-            {
                 'function': rio_add_bay_lookup,
                 'kwargs': {
                     'basecolumn_ward': 'WardCode',
