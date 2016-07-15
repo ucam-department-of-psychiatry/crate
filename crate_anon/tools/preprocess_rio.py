@@ -1528,7 +1528,7 @@ RIO_VIEWS = {
         'rename': {
             'CodingScheme': None,  # put back in below
             # Comment: unchanged
-            'Diagnosis': 'Diagnosis_Code',  # RCEP
+            'Diagnosis': None,  # becomes 'Diagnosis_Code' below
             'DiagnosisStartDate': 'Diagnosis_Start_Date',  # RCEP
             'DiagnosisEndDate': 'Diagnosis_End_Date',  # RCEP
             'EntryBy': None,  # RCEP; is user code
@@ -2025,7 +2025,7 @@ def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
         rio_postcodecol])
     select_sql = """
         SELECT {origcols},
-               {geogcols}
+            {geogcols}
         FROM {addresstable}
         LEFT JOIN {pdb}.{pcdtab}
         ON {addresstable}.{rio_postcodecol} = {pdb}.{pcdtab}.pcds
@@ -2037,8 +2037,8 @@ def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
         --            '') = {pdb}.{pcdtab}.pcd_nospace
     """.format(
         addresstable=addresstable,
-        origcols=", ".join(orig_column_specs),
-        geogcols=", ".join(geog_col_specs),
+        origcols=",\n            ".join(orig_column_specs),
+        geogcols=",\n            ".join(geog_col_specs),
         pdb=progargs.postcodedb,
         pcdtab=ONSPD_TABLE_POSTCODE,
         rio_postcodecol=rio_postcodecol,
