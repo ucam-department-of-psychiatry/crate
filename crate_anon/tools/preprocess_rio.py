@@ -301,6 +301,7 @@ import argparse
 import logging
 import sys
 
+from IPython.core import ultratb
 from sqlalchemy import (
     create_engine,
     inspect,
@@ -1174,14 +1175,14 @@ def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
     rio_views = get_rio_views(engine, metadata, progargs, ddhint)
     for viewname, select_sql in rio_views.items():
         create_view(engine, progargs, viewname, select_sql)
-    ddhint.add_indexes(engine, progargs)
+    ddhint.add_indexes(engine, metadata, progargs)
 
 
 def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
     rio_views, _ = get_rio_views(engine, metadata, progargs, ddhint)
     ddhint.drop_indexes(engine, progargs)
     for viewname, _ in rio_views.items():
-        drop_view(engine, progargs, viewname)
+        drop_view(engine, metadata, progargs, viewname)
 
 
 # =============================================================================
@@ -2147,18 +2148,19 @@ class DDHint(object):
         for table, columns in table_columns_list:
             self.add_source_index_request(table, columns)
 
-    def _do_indexes(self, engine, progargs, action_func):
-        for table, tabledict in self._index_requests.items():
+    def _do_indexes(self, engine, metadata, progargs, action_func):
+        for tablename, tabledict in self._index_requests.items():
             indexdictlist = []
             for indexname, indexdict in tabledict.items():
                 indexdictlist.append(indexdict)
+            table = metadata.tables[tablename]
             action_func(engine, progargs, table, indexdictlist)
 
-    def add_indexes(self, engine, progargs):
-        self._do_indexes(engine, progargs, add_indexes)
+    def add_indexes(self, engine, metadata, progargs):
+        self._do_indexes(engine, metadata, progargs, add_indexes)
 
-    def drop_indexes(self, engine, progargs):
-        self._do_indexes(engine, progargs, drop_indexes)
+    def drop_indexes(self, engine, metadata, progargs):
+        self._do_indexes(engine, metadata, progargs, drop_indexes)
 
 
 def report_rio_dd_settings(progargs, ddhint):
@@ -2489,4 +2491,6 @@ def main():
 
 
 if __name__ == '__main__':
+    sys.excepthook = ultratb.FormattedTB(mode='Verbose',
+                                         color_scheme='Linux', call_pdb=1)
     main()
