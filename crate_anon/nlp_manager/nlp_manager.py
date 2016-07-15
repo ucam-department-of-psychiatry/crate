@@ -517,6 +517,7 @@ class Config(object):
         # Read config from file.
         parser = CrateConfigParser()
         parser.optionxform = str  # make it case-sensitive
+        log.info("Reading config file: {}".format(self.config_filename))
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = nlpname
 

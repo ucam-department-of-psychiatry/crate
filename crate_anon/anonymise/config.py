@@ -263,6 +263,7 @@ class Config(object):
 
         # Read config from file.
         parser = CrateConfigParser()
+        log.info("Reading config file: {}".format(self.config_filename))
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = "main"
 

@@ -1,6 +1,302 @@
 #!/usr/bin/env python
 # crate_anon/tools/preprocess_rio.py
 
+"""
+NOTES
+
+===============================================================================
+Primary keys
+===============================================================================
+In RCEP, Document_ID is VARCHAR(MAX), and is often:
+    'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
+
+HOWEVER, the last part is not always unique; e.g. Care_Plan_Interventions.
+
+-   Care_Plan_Interventions has massive tranches of ENTIRELY identical rows,
+    including a column called, ironically, "Unique_Key".
+-   Therefore, we could either ditch the key entirely, or just use a non-UNIQUE
+    index (and call it "key" not "pk").
+
+-   AND THEN... In Client_Family, we have Document_ID values like
+    773577794_1000000_1000001
+    ^^^^^^^^^ ^^^^^^^ ^^^^^^^
+    table ID  RiO#    Family member's RiO#
+
+    ... there is no unique ID. And we don't need the middle part as we already
+    have Client_ID. So this is not very useful. We could mangle out the second
+    and subsequent '_' characters to give a unique number here, which would
+    meaning having PK as BIGINT not INTEGER.
+-   SQL Server's ROW_NUMBER() relates to result sets.
+-   However, ADD pkname INT IDENTITY(1, 1) works beautifully and
+    autopopulates existing tables.
+
+===============================================================================
+How is RiO non-core structured?
+===============================================================================
+
+- INDEX TABLES
+    AssessmentDates
+        associates AssessmentID and ClientID with dates
+
+    AssessmentFormGroupsIndex, e.g.:
+        Name               Description          Version    Deleted
+        CoreAssess         Core Assessment      16          0
+        CoreAssess         Core Assessment      17          0
+        CoreAssessNewV1    Core Assessment v1   0           0
+        CoreAssessNewV1    Core Assessment v1   1           0
+        CoreAssessNewV2    Core Assessment v2   0           0
+        CoreAssessNewV2    Core Assessment v2   1           0
+        CoreAssessNewV2    Core Assessment v2   2           0
+        ^^^                ^^^
+        RiO form groups    Nice names
+
+    AssessmentFormGroupsStructure, e.g.:
+        name            FormName           AddedDate FormgroupVersion FormOrder
+        CoreAssessNewV2	coreasspresprob	    2013-10-30 15:46:00.000	0	0
+        CoreAssessNewV2	coreassesspastpsy	2013-10-30 15:46:00.000	0	1
+        CoreAssessNewV2	coreassessbackhist	2013-10-30 15:46:00.000	0	2
+        CoreAssessNewV2	coreassesmentstate	2013-10-30 15:46:00.000	0	3
+        CoreAssessNewV2	coreassescapsafrisk	2013-10-30 15:46:00.000	0	4
+        CoreAssessNewV2	coreasssumminitplan	2013-10-30 15:46:00.000	0	5
+        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:19:06.410	1	0
+        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:19:06.410	1	1
+        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:19:06.413	1	2
+        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:19:06.413	1	3
+        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:19:06.417	1	4
+        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:19:06.417	1	5
+        CoreAssessNewV2	coresocial1	        2014-12-14 19:19:06.420	1	6
+        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:31:25.377	2	0 } NB
+        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:31:25.377	2	1 }
+        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:31:25.380	2	2 }
+        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:31:25.380	2	3 }
+        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:31:25.380	2	4 }
+        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:31:25.383	2	5 }
+        CoreAssessNewV2	coresocial1	        2014-12-14 19:31:25.383	2	6 }
+        CoreAssessNewV2	kcsahyper	        2014-12-14 19:31:25.387	2	7 }
+        ^^^             ^^^
+        Form groups     RiO forms; these correspond to UserAssess___ tables.
+
+    AssessmentFormsIndex, e.g.
+        Name                InUse Style Deleted    Description  ...
+        core_10             1     6     0    Clinical Outcomes in Routine Evaluation Screening Measure-10 (core-10)
+        corealcsub          1     6     0    Alcohol and Substance Misuse
+        coreassescapsafrisk 1     6     0    Capacity, Safeguarding and Risk
+        coreassesmentstate  1     6     0    Mental State
+        coreassessbackhist  1     6     0    Background and History
+        coreassesspastpsy   1     6     0    Past Psychiatric History and Physical Health
+        coreasspresprob     1     6     0    Presenting Problem
+        coreasssumminitplan 1     6     0    Summary and Initial Plan
+        corecarer           1     6     0    Carers and Cared For
+        corediversity       1     6     0    Diversity Needs
+        coremedsum          1     6     0    Medication, Allergies and Adverse Reactions
+        coremenhis          1     6     0    Mental Health / Psychiatric History
+        coremenstate        1     6     0    Mental State and Formulation
+        coreperdev          1     6     0    Personal History and Developmental History
+        ^^^                                  ^^^
+        |||                                  Nice names.
+        RiO forms; these correspond to UserAssess___ tables,
+        e.g. UserAssesscoreassesmentstate
+
+    AssessmentFormsLocks
+        system only; not relevant
+
+    AssessmentFormsTimeout
+        system only; not relevant
+
+    AssessmentImageForms
+        SequenceID, FormName, ClientID, AssessmentDate, UserID, ImagePath
+        ?
+        no data
+
+    AssessmentIndex, e.g.
+        Name          InUse Version DateBound RequiresClientID  Deleted Description ...
+        ConsentShare  1     3       1         0                 1       Consent to Share Information
+        CoreAssess    1     1       0         1                 0       Core Assessment
+        CoreAssess    1     2       0         1                 0       Core Assessment
+        CoreAssess    1     3       0         1                 0       Core Assessment
+        CoreAssess    1     4       0         1                 0       Core Assessment
+        CoreAssess    1     5       0         1                 0       Core Assessment
+        CoreAssess    1     6       0         1                 0       Core Assessment
+        CoreAssess    1     7       0         1                 0       Core Assessment
+        crhtaaucp     1     1       0         0                 0       CRHTT / AAU Care Plan
+        ^^^
+        These correspond to AssessmentStructure.Assessment
+
+    AssessmentMasterTableIndex, e.g.
+        TableName       TableDescription
+        core10          core10
+        Corealc1        TAUDIT - Q1
+        Corealc2        TAUDIT Q2
+        Corealc3        TAUDIT - Q3,4,5,6,7,8
+        Corealc4        TAUDIT - Q9,10
+        Corealc5        Dependence
+        Corealc6        Cocaine Use
+        CoreOtherAssess Other Assessments
+        crhttcpstat     CRHTT Care Plan Status
+        ^^^
+        These correspond to UserMaster___ tables.
+        ... Find with:
+            SELECT * FROM rio_data_raw.information_schema.columns
+            WHERE table_name LIKE '%core10%';
+
+    AssessmentPseudoForms, e.g. (all rows):
+        Name            Link
+        CaseNoteBar     ../Letters/LetterEditableMain.aspx?ClientID
+        CaseNoteoview   ../Reports/RioReports.asp?ReportID=15587&ClientID
+        kcsahyper       tfkcsa
+        physv1hypa      physassess16a&readonlymode=1
+        physv1hypb1     physasses16b1&readonlymode=1
+        physv1hypb2     physasses16b22&readonlymode=1
+        physv1hypbody   testbmap&readonlymode=1
+        physv1hypvte    vte&readonlymode=1
+
+    AssessmentReadOnlyFields, e.g.
+        Code        CodeDescription       SQLStatementLookup    SQLStatementSearch
+        ADCAT       Adminstrative Cat...  SELECT TOP 1 u.Cod... ...
+        ADD         Client  Address       SELECT '$LookupVal... ...
+        AdmCons     Consultant            SELECT '$LookupVal... ...
+        AdmglStat   Status at Admission   SELECT '$LookupVal... ...
+        AdmitDate   Admission Date        SELECT '$LookupVal... ...
+        AEDEXLI     AED Exceptions...     SELECT TOP 1 ISNUL... ...
+        Age         Client Age            SELECT '$LookupVal... ...
+        Allergies   Client Allergies      SELECT dbo.LocalCo... ...
+        bg          Background (PSOC323)  SELECT TOP 1 ISNUL... ...
+
+        That Allergies one in full:
+        - SQLStatementLookup
+            SELECT dbo.LocalConfig_GetClientAllergies('$key$') AS Allergies
+        - SQLStatementSearch = SQLStatementLookup
+
+        And the bg/Background... one:
+        - SQLStatementLookup
+            SELECT TOP 1
+                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled'),
+                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled')
+            FROM dbo.view_userassesscoremenhis
+              -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              -- view in which data column names renamed 'Men01', 'Men02'...
+            WHERE ClientID = '$ClientID$'
+            AND dbo.udf_Config_SystemValidationStatus(system_validationData,'Men03','v') = 1
+            ORDER BY
+                AssessmentDate DESC,
+                type12_UpdatedDate DESC
+        - SQLStatementSearch = SQLStatementLookup
+
+        - EXEC sp_helptext 'production.rio62camlive.dbo.udf_Config_SystemValidationStatus';
+          ... can't view this at present (am on the wrong machine?).
+
+    AssessmentStructure, e.g.:
+        FormGroup       Assessment  AssessmentVersion FormGroupVersion FormGroupOrder
+        CoreAssessNewV1 CoreAssess    7    1    1
+        CoreAssessNewV2 CoreAssess    7    2    0
+        CoreAssessNewV2 CoreAssess    6    1    0
+        CoreAssessNewV2 CoreAssess    5    0    0
+        CoreAssessNewV2 CoreAssess    2    0    1
+        CoreAssessNewV2 CoreAssess    3    0    0
+
+        ... FORM GROUP to ASSESSMENT mapping
+
+- MAIN DATA TABLES
+
+    e.g.:
+    UserAssesscoreassesmentstate
+        ClientID
+        system_ValidationData  -- e.g. (with newlines added):
+            '<v n="3">
+                <MentState s="v" a="<userID>" v="" d="" e="10/11/2013 13:23" o="1" n="3" b="" c="">
+                </MentState>
+            </v>'
+            ... where <userID> was a specific user ID
+        NHSNum  -- as VARCHAR
+        AssessmentDate
+        ServRef
+        MentState   -- this contains the text
+        type12_NoteID -- PK
+        type12_OriginalNoteID  -- can be NULL
+        type12_DeletedDate  -- can be NULL
+        type12_UpdatedBy
+        type12_UpdatedDate
+        formref
+
+    UserAssesscoreassesspastpsy
+        ClientID
+        system_ValidationData
+        NHSNum
+        AssessmentDate
+        ServRef
+        PastPsyHist  -- contains text
+        PhyHealth    -- contains text
+        Allergies    -- contains text
+        type12_NoteID
+        type12_OriginalNoteID
+        type12_DeletedDate
+        type12_UpdatedBy
+        type12_UpdatedDate
+        formref
+        frailty  -- numeric; in passing, here's the Rockwood frailty score
+
+- LOOKUP TABLES
+
+    UserMasterfrailty, in full:
+        Code CodeDescription            Deleted
+        1    1 - Very Fit               0
+        2    2 - Well                   0
+        3    3 - Managing Well          0
+        4    4 - Vulnerable             0
+        5    5 - Mildly Frail           0
+        7    7 - Severely Frail         0
+        6    6 - Moderately Frail       0
+        9    9 - Terminally Ill         0
+        8    8 - Very Serverely Frail   0
+
+- SO, OVERALL STRUCTURE, APPROXIMATELY:
+
+    RiO front-end example:
+        Assessments [on menu]
+            -> Core Assessment [menu dropdown]
+            -> Core Assessment v2 [LHS, expands to...]
+                ->  Presenting Problem [LHS]
+                    Past Psychiatric History and Physical Health
+                        ->  Service/Team
+                            Past Psychiatric History
+                            Physical Health / Medical History
+                            Allergies
+                            Frailty Score
+                    Background and History
+                    Mental State
+                    Capacity, Safeguarding and Risk
+                    Summary and Initial Plan
+                    Social Circumstances and Employment
+                    Keeping Children Safe Assessment
+
+    So, hierarchy at the backend (> forward, < backward keys):
+
+        AssessmentIndex.Name(>) / .Description ('Core Assessment')
+            AssessmentStructure.Assessment(<) / .FormGroup(>)
+                AssessmentFormGroupsIndex.Name(<) / .Description ('Core Assessment v2')
+                AssessmentFormGroupsStructure.name(<) / .FormName(>) ('coreassesspastpsy')
+                    AssessmentFormsIndex.FormName(<) / .Description ('Past Psychiatric History and Physical Health')
+                    UserAssesscoreassesspastpsy = data
+                              _________________(<)
+                        UserAssesscoreassesspastpsy.frailty(>) [lookup]
+                            UserMasterfrailty.Code(<) / .CodeDescription
+
+- Simplifying views (for core and non-core RiO) could be implemented in the
+  preprocessor, or after anonymisation.
+  Better to do it in the preprocessor, because this knows about RiO.
+  The two points of "RiO knowledge" should be:
+    - the preprocessor;
+        ... PK, RiO number as integer, views
+    - the ddgen_* information in the anonymiser config file.
+        ... tables to omit
+        ... fields to omit
+        ... default actions on fields
+            ... e.g. exclude if type12_DeletedDate is None
+            ... however, we could also do that more efficiently as a view,
+                and that suits all use cases so far.
+
+"""  # noqa
+
 import argparse
 import logging
 import sys
@@ -51,34 +347,6 @@ RCEP_COL_POSTCODE = "Post_Code"  # RCEP: NVARCHAR(10)
 # ... general format (empirically): "XX12 3YY" or "XX1 3YY"; "ZZ99" for unknown
 # This matches the ONPD "pdcs" format.
 RCEP_COL_MANGLED_KEY = "Document_ID"
-
-"""
-===============================================================================
-Primary keys
-===============================================================================
-In RCEP, Document_ID is VARCHAR(MAX), and is often:
-    'global_table_id_9_or_10_digits' + '_' + 'pk_int_as_string'
-
-HOWEVER, the last part is not always unique; e.g. Care_Plan_Interventions.
-
--   Care_Plan_Interventions has massive tranches of ENTIRELY identical rows,
-    including a column called, ironically, "Unique_Key".
--   Therefore, we could either ditch the key entirely, or just use a non-UNIQUE
-    index (and call it "key" not "pk").
-
--   AND THEN... In Client_Family, we have Document_ID values like
-    773577794_1000000_1000001
-    ^^^^^^^^^ ^^^^^^^ ^^^^^^^
-    table ID  RiO#    Family member's RiO#
-
-    ... there is no unique ID. And we don't need the middle part as we already
-    have Client_ID. So this is not very useful. We could mangle out the second
-    and subsequent '_' characters to give a unique number here, which would
-    meaning having PK as BIGINT not INTEGER.
--   SQL Server's ROW_NUMBER() relates to result sets.
--   However, ADD pkname INT IDENTITY(1, 1) works beautifully and
-    autopopulates existing tables.
-"""
 
 # CPFT hacks (RiO tables added to RCEP output):
 CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES = "Progress_Notes_II"
@@ -245,273 +513,6 @@ RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
     'SNOMED_Client': 'SC_ClientID',
 }
 
-"""
-===============================================================================
-How is RiO non-core structured?
-===============================================================================
-
-- INDEX TABLES
-    AssessmentDates
-        associates AssessmentID and ClientID with dates
-
-    AssessmentFormGroupsIndex, e.g.:
-        Name               Description          Version    Deleted
-        CoreAssess         Core Assessment      16          0
-        CoreAssess         Core Assessment      17          0
-        CoreAssessNewV1    Core Assessment v1   0           0
-        CoreAssessNewV1    Core Assessment v1   1           0
-        CoreAssessNewV2    Core Assessment v2   0           0
-        CoreAssessNewV2    Core Assessment v2   1           0
-        CoreAssessNewV2    Core Assessment v2   2           0
-        ^^^                ^^^
-        RiO form groups    Nice names
-
-    AssessmentFormGroupsStructure, e.g.:
-        name            FormName           AddedDate FormgroupVersion FormOrder
-        CoreAssessNewV2	coreasspresprob	    2013-10-30 15:46:00.000	0	0
-        CoreAssessNewV2	coreassesspastpsy	2013-10-30 15:46:00.000	0	1
-        CoreAssessNewV2	coreassessbackhist	2013-10-30 15:46:00.000	0	2
-        CoreAssessNewV2	coreassesmentstate	2013-10-30 15:46:00.000	0	3
-        CoreAssessNewV2	coreassescapsafrisk	2013-10-30 15:46:00.000	0	4
-        CoreAssessNewV2	coreasssumminitplan	2013-10-30 15:46:00.000	0	5
-        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:19:06.410	1	0
-        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:19:06.410	1	1
-        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:19:06.413	1	2
-        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:19:06.413	1	3
-        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:19:06.417	1	4
-        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:19:06.417	1	5
-        CoreAssessNewV2	coresocial1	        2014-12-14 19:19:06.420	1	6
-        CoreAssessNewV2	coreasspresprob	    2014-12-14 19:31:25.377	2	0 } NB
-        CoreAssessNewV2	coreassesspastpsy	2014-12-14 19:31:25.377	2	1 }
-        CoreAssessNewV2	coreassessbackhist	2014-12-14 19:31:25.380	2	2 }
-        CoreAssessNewV2	coreassesmentstate	2014-12-14 19:31:25.380	2	3 }
-        CoreAssessNewV2	coreassescapsafrisk	2014-12-14 19:31:25.380	2	4 }
-        CoreAssessNewV2	coreasssumminitplan	2014-12-14 19:31:25.383	2	5 }
-        CoreAssessNewV2	coresocial1	        2014-12-14 19:31:25.383	2	6 }
-        CoreAssessNewV2	kcsahyper	        2014-12-14 19:31:25.387	2	7 }
-        ^^^             ^^^
-        Form groups     RiO forms; these correspond to UserAssess___ tables.
-
-    AssessmentFormsIndex, e.g.
-        Name                InUse Style Deleted    Description  ...
-        core_10             1     6     0    Clinical Outcomes in Routine Evaluation Screening Measure-10 (core-10)
-        corealcsub          1     6     0    Alcohol and Substance Misuse
-        coreassescapsafrisk 1     6     0    Capacity, Safeguarding and Risk
-        coreassesmentstate  1     6     0    Mental State
-        coreassessbackhist  1     6     0    Background and History
-        coreassesspastpsy   1     6     0    Past Psychiatric History and Physical Health
-        coreasspresprob     1     6     0    Presenting Problem
-        coreasssumminitplan 1     6     0    Summary and Initial Plan
-        corecarer           1     6     0    Carers and Cared For
-        corediversity       1     6     0    Diversity Needs
-        coremedsum          1     6     0    Medication, Allergies and Adverse Reactions
-        coremenhis          1     6     0    Mental Health / Psychiatric History
-        coremenstate        1     6     0    Mental State and Formulation
-        coreperdev          1     6     0    Personal History and Developmental History
-        ^^^                                  ^^^
-        |||                                  Nice names.
-        RiO forms; these correspond to UserAssess___ tables,
-        e.g. UserAssesscoreassesmentstate
-
-    AssessmentFormsLocks
-        system only; not relevant
-    
-    AssessmentFormsTimeout
-        system only; not relevant
-    
-    AssessmentImageForms
-        SequenceID, FormName, ClientID, AssessmentDate, UserID, ImagePath
-        ?
-        no data
-        
-    AssessmentIndex, e.g.
-        Name          InUse Version DateBound RequiresClientID  Deleted Description ...
-        ConsentShare  1     3       1         0                 1       Consent to Share Information
-        CoreAssess    1     1       0         1                 0       Core Assessment
-        CoreAssess    1     2       0         1                 0       Core Assessment
-        CoreAssess    1     3       0         1                 0       Core Assessment
-        CoreAssess    1     4       0         1                 0       Core Assessment
-        CoreAssess    1     5       0         1                 0       Core Assessment
-        CoreAssess    1     6       0         1                 0       Core Assessment
-        CoreAssess    1     7       0         1                 0       Core Assessment
-        crhtaaucp     1     1       0         0                 0       CRHTT / AAU Care Plan
-        ^^^
-        These correspond to AssessmentStructure.Assessment
-
-    AssessmentMasterTableIndex, e.g.
-        TableName       TableDescription
-        core10          core10
-        Corealc1        TAUDIT - Q1
-        Corealc2        TAUDIT Q2
-        Corealc3        TAUDIT - Q3,4,5,6,7,8
-        Corealc4        TAUDIT - Q9,10
-        Corealc5        Dependence
-        Corealc6        Cocaine Use
-        CoreOtherAssess Other Assessments
-        crhttcpstat     CRHTT Care Plan Status
-        ^^^
-        These correspond to UserMaster___ tables.
-        ... Find with:
-            SELECT * FROM rio_data_raw.information_schema.columns
-            WHERE table_name LIKE '%core10%';
-        
-    AssessmentPseudoForms, e.g. (all rows):
-        Name            Link
-        CaseNoteBar     ../Letters/LetterEditableMain.aspx?ClientID
-        CaseNoteoview   ../Reports/RioReports.asp?ReportID=15587&ClientID
-        kcsahyper       tfkcsa
-        physv1hypa      physassess16a&readonlymode=1
-        physv1hypb1     physasses16b1&readonlymode=1
-        physv1hypb2     physasses16b22&readonlymode=1
-        physv1hypbody   testbmap&readonlymode=1
-        physv1hypvte    vte&readonlymode=1
-        
-    AssessmentReadOnlyFields, e.g.
-        Code        CodeDescription       SQLStatementLookup    SQLStatementSearch
-        ADCAT       Adminstrative Cat...  SELECT TOP 1 u.Cod... ...
-        ADD         Client  Address       SELECT '$LookupVal... ...
-        AdmCons     Consultant            SELECT '$LookupVal... ...
-        AdmglStat   Status at Admission   SELECT '$LookupVal... ...
-        AdmitDate   Admission Date        SELECT '$LookupVal... ...
-        AEDEXLI     AED Exceptions...     SELECT TOP 1 ISNUL... ...
-        Age         Client Age            SELECT '$LookupVal... ...
-        Allergies   Client Allergies      SELECT dbo.LocalCo... ...
-        bg          Background (PSOC323)  SELECT TOP 1 ISNUL... ...
-        
-        That Allergies one in full:
-        - SQLStatementLookup
-            SELECT dbo.LocalConfig_GetClientAllergies('$key$') AS Allergies
-        - SQLStatementSearch = SQLStatementLookup
-        
-        And the bg/Background... one:
-        - SQLStatementLookup
-            SELECT TOP 1
-                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled'),
-                ISNULL(Men03,'History of Mental Health Problems / Psychiatric History section of core assessment not filled')
-            FROM dbo.view_userassesscoremenhis
-              -- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-              -- view in which data column names renamed 'Men01', 'Men02'...
-            WHERE ClientID = '$ClientID$'
-            AND dbo.udf_Config_SystemValidationStatus(system_validationData,'Men03','v') = 1
-            ORDER BY
-                AssessmentDate DESC,
-                type12_UpdatedDate DESC
-        - SQLStatementSearch = SQLStatementLookup
-        
-        - EXEC sp_helptext 'production.rio62camlive.dbo.udf_Config_SystemValidationStatus';
-          ... can't view this at present (am on the wrong machine?).
-
-    AssessmentStructure, e.g.:
-        FormGroup       Assessment  AssessmentVersion FormGroupVersion FormGroupOrder
-        CoreAssessNewV1 CoreAssess    7    1    1
-        CoreAssessNewV2 CoreAssess    7    2    0
-        CoreAssessNewV2 CoreAssess    6    1    0
-        CoreAssessNewV2 CoreAssess    5    0    0
-        CoreAssessNewV2 CoreAssess    2    0    1
-        CoreAssessNewV2 CoreAssess    3    0    0
-        
-        ... FORM GROUP to ASSESSMENT mapping
-
-- MAIN DATA TABLES
-
-    e.g.:
-    UserAssesscoreassesmentstate
-        ClientID
-        system_ValidationData  -- e.g. (with newlines added):
-            '<v n="3">
-                <MentState s="v" a="<userID>" v="" d="" e="10/11/2013 13:23" o="1" n="3" b="" c="">
-                </MentState>
-            </v>'
-            ... where <userID> was a specific user ID
-        NHSNum  -- as VARCHAR
-        AssessmentDate
-        ServRef
-        MentState   -- this contains the text
-        type12_NoteID -- PK
-        type12_OriginalNoteID  -- can be NULL
-        type12_DeletedDate  -- can be NULL
-        type12_UpdatedBy
-        type12_UpdatedDate
-        formref
-        
-    UserAssesscoreassesspastpsy
-        ClientID    
-        system_ValidationData    
-        NHSNum    
-        AssessmentDate    
-        ServRef    
-        PastPsyHist  -- contains text
-        PhyHealth    -- contains text  
-        Allergies    -- contains text
-        type12_NoteID    
-        type12_OriginalNoteID    
-        type12_DeletedDate    
-        type12_UpdatedBy    
-        type12_UpdatedDate    
-        formref
-        frailty  -- numeric; in passing, here's the Rockwood frailty score
-
-- LOOKUP TABLES
-
-    UserMasterfrailty, in full:
-        Code CodeDescription            Deleted
-        1    1 - Very Fit               0
-        2    2 - Well                   0
-        3    3 - Managing Well          0
-        4    4 - Vulnerable             0
-        5    5 - Mildly Frail           0
-        7    7 - Severely Frail         0
-        6    6 - Moderately Frail       0
-        9    9 - Terminally Ill         0
-        8    8 - Very Serverely Frail   0
-
-- SO, OVERALL STRUCTURE, APPROXIMATELY:
-
-    RiO front-end example:
-        Assessments [on menu]
-            -> Core Assessment [menu dropdown]
-            -> Core Assessment v2 [LHS, expands to...]
-                ->  Presenting Problem [LHS]   
-                    Past Psychiatric History and Physical Health
-                        ->  Service/Team
-                            Past Psychiatric History
-                            Physical Health / Medical History
-                            Allergies
-                            Frailty Score
-                    Background and History 
-                    Mental State 
-                    Capacity, Safeguarding and Risk 
-                    Summary and Initial Plan 
-                    Social Circumstances and Employment 
-                    Keeping Children Safe Assessment 
-
-    So, hierarchy at the backend (> forward, < backward keys):
-    
-        AssessmentIndex.Name(>) / .Description ('Core Assessment')
-            AssessmentStructure.Assessment(<) / .FormGroup(>)
-                AssessmentFormGroupsIndex.Name(<) / .Description ('Core Assessment v2')
-                AssessmentFormGroupsStructure.name(<) / .FormName(>) ('coreassesspastpsy')
-                    AssessmentFormsIndex.FormName(<) / .Description ('Past Psychiatric History and Physical Health')
-                    UserAssesscoreassesspastpsy = data
-                              _________________(<)
-                        UserAssesscoreassesspastpsy.frailty(>) [lookup]
-                            UserMasterfrailty.Code(<) / .CodeDescription
-
-- Simplifying views (for core and non-core RiO) could be implemented in the
-  preprocessor, or after anonymisation.
-  Better to do it in the preprocessor, because this knows about RiO.
-  The two points of "RiO knowledge" should be:
-    - the preprocessor;
-        ... PK, RiO number as integer, views
-    - the ddgen_* information in the anonymiser config file.
-        ... tables to omit
-        ... fields to omit
-        ... default actions on fields
-            ... e.g. exclude if type12_DeletedDate is None
-            ... however, we could also do that more efficiently as a view,
-                and that suits all use cases so far.
-
-"""  # noqa
 
 # =============================================================================
 # Ancillary functions
@@ -1025,16 +1026,28 @@ def drop_for_progress_notes(table, engine, progargs):
 # =============================================================================
 
 class ViewMaker(object):
-    def __init__(self, engine, basetable, existing_to_lower=False):
+    def __init__(self, engine, basetable, existing_to_lower=False,
+                 rename=None):
+        self.rename = rename or {}
         self.engine = engine
         self.basetable = basetable
-        self.select_elements = [
-            ", ".join("{}.{}".format(basetable, x)
-                      for x in get_column_names(engine, tablename=basetable,
-                                                to_lower=existing_to_lower))
-        ]
+        self.select_elements = []
+        for colname in get_column_names(engine, tablename=basetable,
+                                        to_lower=existing_to_lower):
+            if colname in rename:
+                rename_to = rename[colname]
+                if not rename_to:
+                    continue
+                as_clause = " AS {}".format(rename_to)
+            else:
+                as_clause = ""
+            self.select_elements.append("{t}.{c}{as_clause}".format(
+                t=basetable, c=colname, as_clause=as_clause))
+        assert self.select_elements, "Must have some active SELECT elements " \
+                                     "from base table"
         self.from_elements = [basetable]
         self.where_elements = []
+        self.lookup_tables = set()
         
     def add_select(self, clause):
         self.select_elements.append(clause)
@@ -1047,14 +1060,26 @@ class ViewMaker(object):
         
     def get_sql(self):
         if self.where_elements:
-            where = " WHERE {}".format(" AND ".join(self.where_elements))
+            where = "\n    WHERE {}".format(
+                "\n        AND ".join(self.where_elements))
         else:
             where = ""
-        return "\n    SELECT {select_elements} FROM {from_elements}{where}".format(
-            select_elements=", ".join(self.select_elements),
-            from_elements="\n".join(self.from_elements),
-            where=where,
-        )
+        return (
+            "\n    SELECT {select_elements}"
+            "\n    FROM {from_elements}{where}".format(
+                select_elements=", ".join(self.select_elements),
+                from_elements="\n        ".join(self.from_elements),
+                where=where))
+
+    def record_lookup_table(self, table):
+        self.lookup_tables.add(table)
+
+    def record_lookup_tables(self, tables):
+        for t in tables:
+            self.record_lookup_table(t)
+
+    def get_lookup_table(self):
+        return list(self.lookup_tables)
 
 
 def simple_lookup_join(viewmaker, progargs, basetable, basecolumn,
@@ -1064,24 +1089,51 @@ def simple_lookup_join(viewmaker, progargs, basetable, basecolumn,
     for column, alias in lookup_fields_aliases.items():
         viewmaker.add_select("{aliased_table}.{column} AS {alias}".format(
             aliased_table=aliased_table, column=column, alias=alias))
-    viewmaker.add_from("""
-        LEFT JOIN {lookup_table} {aliased_table}
-            ON {aliased_table}.{lookup_pk} = {basetable}.{basecolumn}
-    """.format(
-        lookup_table=lookup_table,
-        aliased_table=aliased_table,
-        lookup_pk=lookup_pk,
+    viewmaker.add_from(
+        "LEFT JOIN {lookup_table} {aliased_table}"
+        "            ON {aliased_table}.{lookup_pk} = "
+        "{basetable}.{basecolumn}".format(
+            lookup_table=lookup_table,
+            aliased_table=aliased_table,
+            lookup_pk=lookup_pk,
+            basetable=basetable,
+            basecolumn=basecolumn))
+    viewmaker.record_lookup_table(lookup_table)
+
+
+def standard_rio_code_lookup(viewmaker, progargs, basetable,
+                             basecolumn, lookup_table,
+                             result_alias, internal_alias_prefix):
+    return simple_lookup_join(
+        viewmaker=viewmaker,
+        progargs=progargs,
         basetable=basetable,
         basecolumn=basecolumn,
-    ))
+        lookup_table=lookup_table,
+        lookup_pk="Code",
+        lookup_fields_aliases={'CodeDescription': result_alias},
+        internal_alias_prefix=internal_alias_prefix)
 
 
-def simple_view_where(viewmaker, progargs, basetable, basecolumn,
-                      where_clause):
+def view_formatting_dict(viewmaker, progargs, basetable):
+    return {
+        'basetable': basetable,
+    }
+
+
+def simple_view_expr(viewmaker, progargs, basetable, expr, alias):
+    vd = view_formatting_dict(viewmaker, progargs, basetable)
+    formatted_expr = expr.format(**vd)
+    viewmaker.add_select(formatted_expr + " AS {}".format(alias))
+
+
+def simple_view_where(viewmaker, progargs, basetable, where_clause):
     viewmaker.add_where(where_clause)
 
 
-def get_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+def get_rio_views(engine, metadata, progargs, ddhint,
+                  suppress_basetables=True, suppress_lookup=True):
+    # ddhint modified
     # Returns dictionary of {viewname: select_sql} pairs.
     views = {}
     all_tables_lower = [t.name.lower() for t in metadata.tables.values()]
@@ -1089,22 +1141,26 @@ def get_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
         basetable = viewdetails['basetable']
         if basetable.lower() not in all_tables_lower:
             continue
-        suppress_basetable = viewdetails.get('suppress_basetable', False)
+        suppress_basetable = viewdetails.get('suppress_basetable',
+                                             suppress_basetables)
         suppress_other_tables = viewdetails.get('suppress_other_tables', [])
         if suppress_basetable:
             ddhint.suppress_table(basetable)
         ddhint.suppress_tables(suppress_other_tables)
-        viewmaker = ViewMaker(engine, basetable)
-        for addition in viewdetails['additions']:
-            function = addition['function']
-            kwargs = addition['kwargs']
-            kwargs['basetable'] = basetable
-            kwargs['basecolumn'] = addition['basecolumn']
-            kwargs['viewmaker'] = viewmaker
-            kwargs['progargs'] = progargs
-            function(**kwargs)  # will alter viewmaker
+        rename = viewdetails.get('rename', None)
+        viewmaker = ViewMaker(engine, basetable, rename=rename)
+        if 'add' in viewdetails:
+            for addition in viewdetails['add']:
+                function = addition['function']
+                kwargs = addition['kwargs']
+                kwargs['basetable'] = basetable
+                kwargs['viewmaker'] = viewmaker
+                kwargs['progargs'] = progargs
+                function(**kwargs)  # will alter viewmaker
         views[viewname] = viewmaker.get_sql()
-    return views
+        if suppress_lookup:
+            ddhint.suppress_tables(viewmaker.get_lookup_table())
+        return views
 
 
 def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
@@ -1131,7 +1187,7 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     # ... table alias
     viewmaker.add_select("""
-        {basetable}.{basecolumn_usercode} AS {cp}_user_code,
+        {basetable}.{basecolumn_usercode} AS {cp}_code,
 
         {ap}_genhcp.ConsultantFlag AS {cp}_consultant_flag,
 
@@ -1161,8 +1217,9 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
         cp=column_prefix,
         ap=internal_alias_prefix,
     ))
+    # - RECP had "speciality" / "specialty" inconsistency.
     # - {cp}_location... ?? Presumably from GenLocation, but via what? Seems
-    #   meaningless.
+    #   meaningless. In our snapshut, all are NULL anyway.
     # - User codes are keyed to GenUser.GenUserID, but also to several other
     #   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID
     # - We use unique table aliases here, so that overall we can make >1 sets
@@ -1200,6 +1257,83 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
     #       WHERE column_name LIKE '%Occup%'
     #   you only get Client_Demographic_Details.Occupation and
     #   Client_Demographic_Details.Partner_Occupation
+    viewmaker.record_lookup_tables([
+        'GenHCP',
+        'GenUser',
+        'GenPerson',
+        'GenHCPRCProfession',
+        'GenServiceTeam',
+        'GenSpecialty',
+        'GenStaffProfessionalGroup',
+        'GenOrganisationType',
+    ])
+
+
+def rio_add_team_lookup(viewmaker, progargs, basetable, basecolumn,
+                        column_prefix=None, internal_alias_prefix=None):
+    column_prefix = column_prefix or basecolumn
+    internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
+    viewmaker.add_select("""
+        {basetable}.{basecolumn_teamcode} AS {cp}_code,
+        {ap}_team.CodeDescription AS {cp}_description,
+        {ap}_classif.Code AS {cp}_classification_group_code,
+        {ap}_classif.CodeDescription AS {cp}_classification_group_description
+    """.format(  # noqa
+        basetable=basetable,
+        basecolumn_teamcode=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN (
+            GenServiceTeam {ap}_team
+            INNER JOIN GenServiceTeamClassification {ap}_classif
+                ON {ap}_classif.Code = {ap}_team.ClassificationGroup
+        ) ON {basetable}.{basecolumn_teamcode} = {ap}_team.Code
+    """.format(  # noqa
+        basetable=basetable,
+        basecolumn_teamcode=basecolumn,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.record_lookup_tables([
+        'GenServiceTeam',
+        'GenServiceTeamClassification',
+    ])
+
+
+def rio_add_diagnosis_lookup(viewmaker, progargs, basetable,
+                             basecolumn_scheme, basecolumn_code,
+                             alias_scheme, alias_code, alias_description,
+                             internal_alias_prefix=None):
+    internal_alias_prefix = internal_alias_prefix or "t"
+    viewmaker.add_select("""
+        {ap}_diag.CodingScheme AS {alias_scheme},
+        {ap}_diag.Code AS {alias_code},
+        {ap}_diag.CodeDescription AS {alias_description}
+    """.format(  # noqa
+        ap=internal_alias_prefix,
+        alias_scheme=alias_scheme,
+        alias_code=alias_code,
+        alias_description=alias_description,
+    ))
+    # - RECP had "speciality" / "specialty" inconsistency.
+    # - {cp}_location... ?? Presumably from GenLocation, but via what? Seems
+    #   meaningless. In our snapshut, all are NULL anyway.
+    # - User codes are keyed to GenUser.GenUserID, but also to several other
+    #   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID
+    # - We use unique table aliases here, so that overall we can make >1 sets
+    #   of different "user" joins simultaneously.
+    viewmaker.add_from("""
+        LEFT JOIN DiagnosisCode
+            ON {basetable}.{basecolumn_scheme} = {ap}_diag.CodingScheme
+            AND {basetable}.{basecolumn_code} = {ap}_diag.Code
+    """.format(  # noqa
+        basetable=basetable,
+        basecolumn_scheme=basecolumn_scheme,
+        basecolumn_code=basecolumn_code,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.record_lookup_table('DiagnosisCode')
 
 
 # =============================================================================
@@ -1207,36 +1341,418 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
 # =============================================================================
 
 RIO_VIEWS = {
-    'progress_notes': {
-        'basetable': RIO_TABLE_PROGRESS_NOTES,
-        'additions': [
+    # -------------------------------------------------------------------------
+    # Template
+    # -------------------------------------------------------------------------
+    # 'XXX': {
+    #     'basetable': 'XXX',
+    #     'rename': {
+    #         'XXX': 'XXX',  #
+    #         'XXX': None,  #
+    #     },
+    #     'add': [
+    #         {
+    #             'function': simple_view_expr,
+    #             'kwargs': {
+    #                 'expr': 'XXX',
+    #                 'alias': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': simple_lookup_join,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'lookup_pk': 'XXX',
+    #                 'lookup_fields_aliases': {
+    #                     'XXX': 'XXX',
+    #                 },
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': standard_rio_code_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'result_alias': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_user_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_team_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_diagnosis_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_scheme': 'XXX',
+    #                 'basecolumn_code': 'XXX',
+    #                 'alias_scheme': 'XXX',
+    #                 'alias_code': 'XXX',
+    #                 'alias_description': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': simple_view_where,
+    #             'kwargs': {
+    #                 'where_clause': 'XXX',
+    #             },
+    #         },
+    #     ],
+    #     'suppress_basetable': True,
+    #     'suppress_other_tables': [],
+    # },
+    # -------------------------------------------------------------------------
+    # Core: views provided by RCEP (with some extensions)
+    # -------------------------------------------------------------------------
+    # 'assessmentsCRISSpec' is RCEP internal for CRIS tree/form/field/... info
+    # *** 'Care_Plan_index'
+    # *** 'Care_Plan_Interventions'
+    # *** 'Care_Plan_Problems'
+    # *** 'Client_Address_History'
+    # *** 'Client_Alternative_ID'
+    'Client_Allergies': {
+        # ***
+    },
+    # *** 'Client_Communications_History'
+    # *** 'Client_CPA'
+    # *** 'Client_Demographic_Details'
+    # *** 'Client_Family'
+    # *** 'Client_GP_History'
+    # *** 'Client_Medication'
+    # *** 'Client_Name_History'
+    # *** 'Client_Personal_Contacts'
+    # *** 'Client_Physical_Details'
+    # *** 'Client_Prescription'
+    # *** 'Client_Professional_Contacts'
+    # *** 'Client_School'
+    # *** 'CPA_CareCoordinator'
+    # *** 'CPA_Review'
+    'Diagnosis': {
+        'basetable': 'DiagnosisClient',
+        'rename': {
+            'CodingScheme': None,  # put back in below
+            # Comment: unchanged
+            'Diagnosis': 'Diagnosis_Code',  # RCEP
+            'DiagnosisStartDate': 'Diagnosis_Start_Date',  # RCEP
+            'DiagnosisEndDate': 'Diagnosis_End_Date',  # RCEP
+            'EntryBy': None,  # RCEP; is user code
+            'EntryDate': 'Entry_Date',
+            'RemovalBy': None,  # RCEP; is user code
+            # RemovalComment: unchanged
+            'RemovalDate': 'Removal_Date',
+            'RemovalReason': 'Removal_Reason_Code',  # RCEP
+        },
+        'add': [
             {
-                'basecolumn': 'EnteredBy',
+                'function': rio_add_diagnosis_lookup,
+                'kwargs': {
+                    'basecolumn_scheme': 'CodingScheme',
+                    'basecolumn_code': 'Diagnosis',
+                    'alias_scheme': 'CodingScheme',  # RCEP
+                    'alias_code': 'Diagnosis_Code',  # RCEP
+                    'alias_description': 'Diagnosis',  # RCEP
+                    'internal_alias_prefix': 'd',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'RemovalReason',
+                    'lookup_table': 'DiagnosisRemovalReason',
+                    'result_alias': 'Removal_Reason_Description',  # RCEP
+                    'internal_alias_prefix': 'rr',
+                },
+            },
+            {
                 'function': rio_add_user_lookup,
                 'kwargs': {
-                    'column_prefix': 'originating_user',
+                    'basecolumn': 'EntryBy',
+                    'column_prefix': 'Entered_By',
+                    'internal_alias_prefix': 'eb',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'RemovalBy',
+                    'column_prefix': 'Removal_By',
+                    'internal_alias_prefix': 'rb',
+                },
+            },
+        ],
+    },
+    # *** 'Inpatient_Leave'
+    # *** 'Inpatient_Movement'
+    # *** 'Inpatient_Named_Nurse'
+    # *** 'Inpatient_Sleepover'
+    # *** 'Inpatient_Stay'
+    # 'LSOA_buffer' is RCEP internal, cf. my ONS PD geography database
+    'Main_Referral_Data': {
+        # *** IN PROGRESS
+        'basetable': 'AmsReferral',
+        'rename': {
+            'ReferralNumber': 'Referral_Number',  # RCEP
+            'ReferralSource': 'Referral_Source',  # RCEP
+            'ReferringGP': 'Referring_GP_Code',  # RCEP
+            'ReferringConsultant': None, # *** tricky lookup
+            # 'Referrer': unchanged
+            'TeamReferredTo': 'XXX',
+            'ServiceReferredTo': 'XXX',
+            'HCPReferredTo': 'XXX',
+            'SpecialtyReferredTo': 'XXX',
+            'ReferralActionDate': 'XXX',
+            'ReferralDateTime': 'XXX',
+            'Urgency': 'XXX',
+            'ReferralComment': 'XXX',
+            'DischargeDateTime': 'XXX',
+            'DischargeReason': 'XXX',
+            'DischargeHCP': 'XXX',
+            'DischargeComment': 'XXX',
+            'ClientCareSpell': 'XXX',
+            'ReferralReason': 'XXX',
+            'AdministrativeCategory': 'XXX',
+            'PatientArea': 'XXX',
+            'RemovalCode': 'XXX',
+            'RemovalUser': 'XXX',
+            'RemovalDateTime': 'XXX',
+            'ReferralReceivedDate': 'XXX',
+            'ReferralAllocation': 'XXX',
+            'DischargeAllocation': 'XXX',
+            'HCPAllocationDate': 'HCP_Allocation_Date',  # RCEP
+            'ReferralAcceptedDate': 'Referral_Accepted_Date',  # RCEP
+            'IWSComment': 'IWS_Comment',  # RCEP
+            'IWSHeld': 'IWS_Held',  # RCEP
+            'ReferrerOther': 'XXX',
+            'ReferringGPPracticeCode': 'XXX',
+            'ExternalReferralId': 'External_Referral_Id',  # RCEP (field is not VARCHAR(8000) as docs suggest; 25 in RiO, 50 in RCEP)  # noqa
+            'LikelyFunder': 'Likely_Funder',  # RCEP
+            # EnquiryNumber: unchanged
+            'ReferredWard': 'XXX',
+            'ReferredConsultant': 'XXX',
+            'DischargeAddressLine1': 'Discharge_Address_Line_1',  # RCEP
+            'DischargeAddressLine2': 'Discharge_Address_Line_2',  # RCEP
+            'DischargeAddressLine3': 'Discharge_Address_Line_3',  # RCEP
+            'DischargeAddressLine4': 'Discharge_Address_Line_4',  # RCEP
+            'DischargeAddressLine5': 'Discharge_Address_Line_5',  # RCEP
+            'DischargePostCode': 'Discharge_Post_Code',  # RCEP
+            'LikelyLegalStatus': 'Likely_Legal_Status',  # RCEP
+            'CABReferral': 'CAB_Referral',  # RCEP
+            'DischargedOnAdmission': 'Discharged_On_Admission',  # RCEP
+            'WaitingListID': 'Waiting_List_ID',  # RCEP; FK to WLConfig.WLCode (ignored)  # noqa
+            'RTTCode': 'RTT_Code',  # RCEP; FK to RTTPathwayConfig.RTTCode (ignored)  # noqa
+        },
+        'add': [
+
+        ],
+    },
+    'Progress_Notes': {
+        'basetable': RIO_TABLE_PROGRESS_NOTES,
+        'rename': {
+            'DateAndTime': 'Created_Date',  # RCEP; RCEP synonym: 'Date'
+            'EnterDatetime': 'Updated_Date',  # RCEP
+            'VerifyDate': 'Verified_Date',  # RCEP was: Validate_This_Note
+            'NoteType': None,  # RCEP; this is a code
+            'SubNoteType': None,  # RCEP; this is a code
+            'NoteText': 'Text',  # RCEP
+            # 'Significant': 'This_Is_A_Significant_Event',  # RCEP
+            'ThirdPartyInfo': 'Third_Party_Info',  # RCEP was: This_Note_Contains_Third_Party_Information  # noqa
+            'RiskRelated': 'Risk_Related',  # RCEP was: Add_To_Risk_History
+            'RiskType': None,  # RCEP; this is a code
+            'EnteredInError': 'Entered_In_Error',  # RCEP
+            # 'NoteNum': None,  # RCEP
+            # 'SubNum': None,  # RCEP
+            # 'HTMLIncludedFlag': None,  # RCEP
+            'Problem': None,  # RCEP; "obsolete"
+            'UserID': None,  # RCEP: ignored? Same as EnteredBy? ***
+            'EnteredBy': None,  # RCEP; user lookup
+            'VerifyUserID': None,  # RCEP; user lookup
+        },
+        'add': [
+            {  # not in RCEP
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN {basetable}.VerifyDate IS NULL THEN 0 '
+                            'ELSE 1 END',
+                    'alias': 'validated',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'NoteType',
+                    'lookup_table': 'GenUserPrgNoteType',
+                    'result_alias': 'Note_Type',  # RCEP
+                    'internal_alias_prefix': 'nt',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'SubNoteType',
+                    'lookup_table': 'GenUserPrgNoteSubType',
+                    'result_alias': 'Sub_Note_Type',  # RCEP
+                    'internal_alias_prefix': 'snt',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'RiskType',
+                    'lookup_table': 'RskRiskType',
+                    'result_alias': 'Risk_Type',  # RCEP
+                    'internal_alias_prefix': 'rt',
+                }
+            },
+            {  # not in RCEP
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ClinicalEventType',
+                    'lookup_table': 'GenClinicalEventType',
+                    'result_alias': 'clinical_event_type_description',
+                    'internal_alias_prefix': 'cet',
+                }
+            },
+            {  # not in RCEP
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'SpecialtyID',
+                    'lookup_table': 'GenSpecialty',
+                    'result_alias': 'specialty_description',
+                    'internal_alias_prefix': 'spec',
+                }
+            },
+            {  # not in RCEP
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'RoleID',
+                    'lookup_table': 'GenUserType',
+                    'lookup_pk': 'UserTypeID',
+                    'lookup_fields_aliases': {
+                        'RoleDescription': 'role_description',
+                    },
+                    'internal_alias_prefix': 'rl',
+                }
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'EnteredBy',  # or UserID? ***
+                    'column_prefix': 'originating_user',  # RCEP: was originator_user  # noqa
                     'internal_alias_prefix': 'ou',
                 },
             },
             {
-                'basecolumn': 'VerifyUserID',
                 'function': rio_add_user_lookup,
                 'kwargs': {
-                    'column_prefix': 'verifying_user',
+                    'basecolumn': 'VerifyUserID',
+                    'column_prefix': 'verifying_user',  # RCEP: was verified_by_user  # noqa
                     'internal_alias_prefix': 'vu',
+                },
+            },
+        ],
+    },
+    'Referral_Staff_History': {
+        'basetable': 'AmsReferralAllocation',
+        'rename': {
+            'ReferralID': 'Referral_Key',  # RCEP
+            'TransferDate': 'Transfer_Date',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'HCPCode': None,  # RCEP was HCPCode but this is in user lookup
+            # Comment: unchanged
+            'CurrentAtDischarge': 'Current_At_Discharge',
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'HCPCode',
+                    'column_prefix': 'HCP_User',
+                    'internal_alias_prefix': 'hu',
                 },
             },
         ],
         'suppress_basetable': True,
         'suppress_other_tables': [],
     },
+    'Referral_Team_History': {
+        'basetable': 'AmsReferralTeam',
+        'rename': {
+            'ReferralID': 'Referral_Key',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'TeamCode': 'Team_Code',  # RCEP
+            # Comment - unchanged
+            'CurrentAtDischarge': 'Current_At_Discharge',  # RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_team_lookup,
+                'kwargs': {
+                    'basecolumn': 'TeamCode',
+                    'column_prefix': 'team',
+                    'internal_alias_prefix': 't',
+                },
+            },
+        ],
+    },
+    'Referral_Waiting_Status_History': {
+        'basetable': 'AmsReferralListWaitingStatus',
+        'rename': {
+            'ReferralID': 'Referral_Key',  # RCEP
+            'WaitingStatus': None,  # RCEP; is a code
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'ChangeDateTime': 'Change_Date_Time',  # RCEP
+            'ChangeBy': None,  # RCEP; user lookup
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'WaitingStatus',
+                    'lookup_table': 'GenReferralWaitingStatus',
+                    'result_alias': 'Waiting_Status',
+                    'internal_alias_prefix': 'ws',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'ChangeBy',
+                    'column_prefix': 'Changed_By',  # RCEP
+                    'internal_alias_prefix': 'cb',
+                },
+            },
+        ],
+    },
+    # -------------------------------------------------------------------------
+    # Non-core: CPFT
+    # -------------------------------------------------------------------------
     'core_assess_past_psy': {
         'basetable': 'UserAssesscoreassesspastpsy',
-        'additions': [
+        'rename': {},
+        'add': [
             {
-                'basecolumn': 'frailty',
+                # Rockwood frailty score
                 'function': simple_lookup_join,
                 'kwargs': {
+                    'basecolumn': 'frailty',
                     'lookup_table': 'UserMasterfrailty',
                     'lookup_pk': 'Code',
                     'lookup_fields_aliases': {
@@ -1246,15 +1762,13 @@ RIO_VIEWS = {
                 }
             },
             {
-                'basecolumn': None,
                 'function': simple_view_where,
                 'kwargs': {
+                    # remove deleted entries
                     'where_clause': 'type12_DeletedDate IS NULL',
                 },
             },
         ],
-        'suppress_basetable': True,
-        'suppress_other_tables': ['UserMasterfrailty'],
     },
 }
 
@@ -1432,6 +1946,7 @@ ddgen_table_blacklist = #
     ClientRestrictedRecord*  # ? but admin
     Con*  # Contracts module
     DA*  # Drug Administration within EP
+    DgnDiagnosis  # "Obsolete"; see DiagnosisClient
     DS*  # Drug Service within EP
     EP*  # E-Prescribing (EP) module, which we don't have
     #   ... mostly we don't have it, but we may have EPClientAllergies etc.
@@ -1494,7 +2009,7 @@ ddgen_table_blacklist = #
 ddgen_field_whitelist =
 
 ddgen_field_blacklist = #
-    ClientID  # replaced by crate_rio_number
+    {RIO_COL_PATIENT_ID}  # replaced by crate_rio_number
     *Soundex  # identifying 4-character code; https://msdn.microsoft.com/en-us/library/ms187384.aspx
 
 ddgen_pk_fields = crate_pk
@@ -1508,13 +2023,18 @@ ddgen_nonconstant_content_tables =
 ddgen_addition_only = False
 
 ddgen_addition_only_tables = #
-    UserMaster*  # Lookup tables for non-core ***
+    UserMaster*  # Lookup tables for non-core - addition only?
 
 ddgen_deletion_possible_tables =
 
 ddgen_pid_defining_fieldnames = ClientIndex.crate_rio_number
 
 ddgen_scrubsrc_patient_fields = # several of these:
+    # ----------------------------------------------------------------------
+    # Original RiO tables (some may be superseded by views; list both here)
+    # ----------------------------------------------------------------------
+    AmsReferral.DischargeAddressLine*
+    AmsReferral.DischargePostCode
     ClientIndex.crate_pk
     ClientIndex.DateOfBirth
     ClientIndex.DaytimePhone
@@ -1533,8 +2053,13 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientName.GivenName5
     ClientName.SpineID
     ClientName.Surname
-    client_address_with_geography_crate.AddressLine*
-    client_address_with_geography_crate.PostCode
+    # ----------------------------------------------------------------------
+    # Views
+    # ----------------------------------------------------------------------
+    Main_Referral_Data.Discharge_Address_Line_*
+    Main_Referral_Data.Discharge_Post_Code*
+    {VIEW_ADDRESS_WITH_GEOGRAPHY}.AddressLine*
+    {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode
 
 ddgen_scrubsrc_thirdparty_fields = # several:
     ClientContact.AddressLine*
@@ -1545,14 +2070,19 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     ClientContact.SpineID
     ClientContact.Surname
 
-ddgen_scrubmethod_code_fields = PostCode
+ddgen_scrubmethod_code_fields = # variants:
+    *PostCode*
+    *Post_Code*
 
-ddgen_scrubmethod_date_fields = DateOfBirth
+ddgen_scrubmethod_date_fields = *Date*
 
 ddgen_scrubmethod_number_fields = # several:
-    DaytimePhone
-    EveningPhone
-    MobilePhone
+    *DaytimePhone*
+    *EveningPhone*
+    *MobilePhone*
+    *Daytime_Phone*
+    *Evening_Phone*
+    *Mobile_Phone*
 
 ddgen_scrubmethod_phrase_fields = AddressLine*
 
@@ -1580,6 +2110,8 @@ ddgen_force_lower_case = False
 ddgen_convert_odd_chars_to_underscore = True
     """.format(
         suppress_tables = "\n    ".join(ddhint.get_suppressed_tables()),
+        RIO_COL_PATIENT_ID=RIO_COL_PATIENT_ID,
+        VIEW_ADDRESS_WITH_GEOGRAPHY=VIEW_ADDRESS_WITH_GEOGRAPHY,
     )
     with open(progargs.settings_filename, 'w') as f:
         print(settings_text, file=f)
