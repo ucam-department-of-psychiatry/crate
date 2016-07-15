@@ -1306,13 +1306,13 @@ def rio_add_team_lookup(viewmaker, basecolumn,
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     viewmaker.add_select("""
-        {basetable}.{basecolumn_teamcode} AS {cp}_code,
+        {basetable}.{basecolumn} AS {cp}_code,
         {ap}_team.CodeDescription AS {cp}_description,
         {ap}_classif.Code AS {cp}_classification_group_code,
         {ap}_classif.CodeDescription AS {cp}_classification_group_description
     """.format(  # noqa
         basetable=viewmaker.basetable,
-        basecolumn_teamcode=basecolumn,
+        basecolumn=basecolumn,
         cp=column_prefix,
         ap=internal_alias_prefix,
     ))
@@ -1321,10 +1321,10 @@ def rio_add_team_lookup(viewmaker, basecolumn,
             GenServiceTeam {ap}_team
             INNER JOIN GenServiceTeamClassification {ap}_classif
                 ON {ap}_classif.Code = {ap}_team.ClassificationGroup
-        ) ON {basetable}.{basecolumn_teamcode} = {ap}_team.Code
+        ) ON {basetable}.{basecolumn} = {ap}_team.Code
     """.format(  # noqa
         basetable=viewmaker.basetable,
-        basecolumn_teamcode=basecolumn,
+        basecolumn=basecolumn,
         ap=internal_alias_prefix,
     ))
     viewmaker.record_lookup_tables([
@@ -1346,8 +1346,6 @@ def rio_add_carespell_lookup(viewmaker, basecolumn,
         {ap}_spec.CodeDescription AS {cp}_Specialty_Description,
         {ap}_spec.NationalCode AS {cp}_Specialty_National_Code
     """.format(  # noqa
-        basetable=viewmaker.basetable,
-        basecolumn_teamcode=basecolumn,
         cp=column_prefix,
         ap=internal_alias_prefix,
     ))
@@ -1909,7 +1907,7 @@ RIO_VIEWS = {
             'ReferralID': 'Referral_Key',  # RCEP
             'StartDate': 'Start_Date',  # RCEP
             'EndDate': 'End_Date',  # RCEP
-            'TeamCode': 'Team_Code',  # RCEP
+            'TeamCode': None,  # see lookup below, which will produce Team_Code as per RCEP  # noqa
             # Comment - unchanged
             'CurrentAtDischarge': 'Current_At_Discharge',  # RCEP
         },
