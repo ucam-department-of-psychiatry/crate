@@ -1028,10 +1028,10 @@ def drop_for_progress_notes(table, engine, progargs):
 class ViewMaker(object):
     def __init__(self, progargs, engine, basetable, existing_to_lower=False,
                  rename=None):
+        rename = rename or {}
         self.progargs = progargs
         self.engine = engine
         self.basetable = basetable
-        self.rename = rename or {}
         self.select_elements = []
         for colname in get_column_names(engine, tablename=basetable,
                                         to_lower=existing_to_lower):
