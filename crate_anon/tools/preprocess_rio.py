@@ -1546,7 +1546,7 @@ RIO_VIEWS = {
                 'kwargs': {
                     'basecolumn_scheme': 'CodingScheme',
                     'basecolumn_code': 'Diagnosis',
-                    'alias_scheme': 'CodingScheme',  # RCEP
+                    'alias_scheme': 'Coding_Scheme',  # RCEP: CodingScheme
                     'alias_code': 'Diagnosis_Code',  # RCEP
                     'alias_description': 'Diagnosis',  # RCEP
                     'internal_alias_prefix': 'd',
