@@ -2417,7 +2417,9 @@ def main():
     log.info("Database: {}".format(repr(engine.url)))  # ... repr hides p/w
     log.debug("Dialect: {}".format(engine.dialect.name))
 
+    log.info("Reflecting (inspecting) database...")
     metadata.reflect(engine)
+    log.info("... inspection complete")
     
     ddhint = DDHint()
 
