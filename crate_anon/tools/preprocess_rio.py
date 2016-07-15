@@ -386,7 +386,7 @@ CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
 CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
 
 # Views added:
-VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current"
+VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"
 VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography"
 
 RIO_6_2_ATYPICAL_PKS = {
@@ -606,6 +606,8 @@ def add_indexes(engine, progargs, table, indexdictlist):
     for idxdefdict in indexdictlist:
         index_name = idxdefdict['index_name']
         column = idxdefdict['column']
+        if not isinstance(column, str):
+            column = ", ".join(column)  # must be a list
         unique = idxdefdict.get('unique', False)
         if index_name.lower() not in existing_index_names:
             log.info("Table '{}': adding index '{}' on columns '{}'".format(
@@ -1048,8 +1050,8 @@ class ViewMaker(object):
                                      "from base table"
         self.from_elements = [basetable]
         self.where_elements = []
-        self.lookup_tables = set()
-        
+        self.lookup_table_keyfields = set()  # of (table, keyfield(s)) tuples
+
     def add_select(self, clause):
         self.select_elements.append(clause)
         
@@ -1072,15 +1074,19 @@ class ViewMaker(object):
                 from_elements="\n        ".join(self.from_elements),
                 where=where))
 
-    def record_lookup_table(self, table):
-        self.lookup_tables.add(table)
+    def record_lookup_table_keyfield(self, table, keyfield):
+        self.lookup_table_keyfields.add((table, keyfield))
 
-    def record_lookup_tables(self, tables):
-        for t in tables:
-            self.record_lookup_table(t)
+    def record_lookup_table_keyfields(self, table_keyfield_tuples):
+        for t, k in table_keyfield_tuples:
+            self.record_lookup_table_keyfield(t, k)
 
-    def get_lookup_table(self):
-        return list(self.lookup_tables)
+    def get_lookup_tables(self):
+        return list(set(table for table, keyfield
+                        in self.lookup_table_keyfields))
+
+    def get_lookup_table_keyfields(self):
+        return list(self.lookup_table_keyfields)
 
 
 def simple_lookup_join(viewmaker, basecolumn,
@@ -1099,7 +1105,7 @@ def simple_lookup_join(viewmaker, basecolumn,
             lookup_pk=lookup_pk,
             basetable=viewmaker.basetable,
             basecolumn=basecolumn))
-    viewmaker.record_lookup_table(lookup_table)
+    viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
 def standard_rio_code_lookup(viewmaker, basecolumn, lookup_table,
@@ -1158,7 +1164,7 @@ def get_rio_views(engine, metadata, progargs, ddhint,
                 function(**kwargs)  # will alter viewmaker
         views[viewname] = viewmaker.get_sql()
         if suppress_lookup:
-            ddhint.suppress_tables(viewmaker.get_lookup_table())
+            ddhint.suppress_tables(viewmaker.get_lookup_tables())
     return views
 
 
@@ -1166,10 +1172,12 @@ def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
     rio_views = get_rio_views(engine, metadata, progargs, ddhint)
     for viewname, select_sql in rio_views.items():
         create_view(engine, progargs, viewname, select_sql)
+    ddhint.add_indexes(engine, progargs)
 
 
 def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
     rio_views, _ = get_rio_views(engine, metadata, progargs, ddhint)
+    ddhint.drop_indexes(engine, progargs)
     for viewname, _ in rio_views.items():
         drop_view(engine, progargs, viewname)
 
@@ -1186,7 +1194,7 @@ def rio_add_user_lookup(viewmaker, basecolumn,
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     # ... table alias
     viewmaker.add_select("""
-        {basetable}.{basecolumn_usercode} AS {cp}_code,
+        {basetable}.{basecolumn} AS {cp}_code,
 
         {ap}_genhcp.ConsultantFlag AS {cp}_consultant_flag,
 
@@ -1212,7 +1220,7 @@ def rio_add_user_lookup(viewmaker, basecolumn,
         {ap}_genorg.CodeDescription AS {cp}_organisation_type_description
     """.format(  # noqa
         basetable=viewmaker.basetable,
-        basecolumn_usercode=basecolumn,
+        basecolumn=basecolumn,
         cp=column_prefix,
         ap=internal_alias_prefix,
     ))
@@ -1227,23 +1235,23 @@ def rio_add_user_lookup(viewmaker, basecolumn,
         LEFT JOIN (
             GenHCP {ap}_genhcp
             INNER JOIN GenUser {ap}_genuser
-                ON {ap}_genhcp.GenHCPCode = {ap}_genuser.GenUserID
+                ON {ap}_genuser.GenUserID = {ap}_genhcp.GenHCPCode
             INNER JOIN GenPerson {ap}_genperson
-                ON {ap}_genhcp.GenHCPCode = {ap}_genperson.GenPersonID
+                ON {ap}_genperson.GenPersonID = {ap}_genhcp.GenHCPCode
             LEFT JOIN GenHCPRCProfession {ap}_prof
-                ON {ap}_genhcp.RCProfession = {ap}_prof.Code
+                ON {ap}_prof.Code = {ap}_genhcp.RCProfession
             LEFT JOIN GenServiceTeam {ap}_serviceteam
-                ON {ap}_genhcp.PrimaryTeam = {ap}_serviceteam.Code
+                ON {ap}_serviceteam.Code = {ap}_genhcp.PrimaryTeam
             LEFT JOIN GenSpecialty {ap}_genspec
-                ON {ap}_genhcp.MainGenSpecialtyCode = {ap}_genspec.Code
+                ON {ap}_genspec.Code = {ap}_genhcp.MainGenSpecialtyCode
             LEFT JOIN GenStaffProfessionalGroup {ap}_profgroup
-                ON {ap}_genhcp.StaffProfessionalGroup = {ap}_profgroup.Code
+                ON {ap}_profgroup.Code = {ap}_genhcp.StaffProfessionalGroup
             LEFT JOIN GenOrganisationType {ap}_genorg
-                ON {ap}_genuser.OrganisationType = {ap}_genorg.Code
-        ) ON {basetable}.{basecolumn_usercode} = {ap}_genhcp.GenHCPCode
+                ON {ap}_genorg.Code = {ap}_genuser.OrganisationType
+        ) ON {ap}_genhcp.GenHCPCode = {basetable}.{basecolumn}
     """.format(  # noqa
         basetable=viewmaker.basetable,
-        basecolumn_usercode=basecolumn,
+        basecolumn=basecolumn,
         ap=internal_alias_prefix,
     ))
     # OTHER THINGS:
@@ -1256,15 +1264,15 @@ def rio_add_user_lookup(viewmaker, basecolumn,
     #       WHERE column_name LIKE '%Occup%'
     #   you only get Client_Demographic_Details.Occupation and
     #   Client_Demographic_Details.Partner_Occupation
-    viewmaker.record_lookup_tables([
-        'GenHCP',
-        'GenUser',
-        'GenPerson',
-        'GenHCPRCProfession',
-        'GenServiceTeam',
-        'GenSpecialty',
-        'GenStaffProfessionalGroup',
-        'GenOrganisationType',
+    viewmaker.record_lookup_table_keyfields([
+        ('GenHCP', 'GenHCPCode'),
+        ('GenUser', 'GenUserID'),
+        ('GenPerson', 'GenPersonID'),
+        ('GenHCPRCProfession', 'Code'),
+        ('GenServiceTeam', 'Code'),
+        ('GenSpecialty', 'Code'),
+        ('GenStaffProfessionalGroup', 'Code'),
+        ('GenOrganisationType', 'Code'),
     ])
 
 
@@ -1289,15 +1297,15 @@ def rio_add_consultant_lookup(viewmaker, basecolumn,
             GenHospitalConsultant {ap}_cons
             LEFT JOIN GenSpecialty {ap}_spec
                 ON {ap}_spec.Code = {ap}_cons.SpecialtyID
-        ) ON {basetable}.{basecolumn} = {ap}_cons.ConsultantID
+        ) ON {ap}_cons.ConsultantID = {basetable}.{basecolumn}
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         ap=internal_alias_prefix,
     ))
-    viewmaker.record_lookup_tables([
-        'GenHospitalConsultant',
-        'GenSpecialty',
+    viewmaker.record_lookup_table_keyfields([
+        ('GenHospitalConsultant', 'ConsultantID'),
+        ('GenSpecialty', 'Code'),
     ])
 
 
@@ -1327,9 +1335,9 @@ def rio_add_team_lookup(viewmaker, basecolumn,
         basecolumn=basecolumn,
         ap=internal_alias_prefix,
     ))
-    viewmaker.record_lookup_tables([
-        'GenServiceTeam',
-        'GenServiceTeamClassification',
+    viewmaker.record_lookup_table_keyfields([
+        ('GenServiceTeam', 'Code'),
+        ('GenServiceTeamClassification', 'Code'),
     ])
 
 
@@ -1338,7 +1346,7 @@ def rio_add_carespell_lookup(viewmaker, basecolumn,
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     viewmaker.add_select("""
-        {ap}_spell.CareSpellNum AS {cp}_Number,
+        {basetable}.{basecolumn} AS {cp}_Number,
         {ap}_spell.StartDate AS {cp}_Start_Date,
         {ap}_spell.EndDate AS {cp}_End_Date,
         {ap}_spell.MentalHealth AS {cp}_Mental_Health,
@@ -1346,6 +1354,8 @@ def rio_add_carespell_lookup(viewmaker, basecolumn,
         {ap}_spec.CodeDescription AS {cp}_Specialty_Description,
         {ap}_spec.NationalCode AS {cp}_Specialty_National_Code
     """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
         cp=column_prefix,
         ap=internal_alias_prefix,
     ))
@@ -1360,9 +1370,9 @@ def rio_add_carespell_lookup(viewmaker, basecolumn,
         basecolumn=basecolumn,
         ap=internal_alias_prefix,
     ))
-    viewmaker.record_lookup_tables([
-        'ClientCareSpell',
-        'GenSpecialty',
+    viewmaker.record_lookup_table_keyfields([
+        ('ClientCareSpell', 'CareSpellNum'),
+        ('GenSpecialty', 'Code'),
     ])
 
 
@@ -1374,13 +1384,16 @@ def rio_add_diagnosis_lookup(viewmaker,
     # diagnostic scheme and diagnostic code.
     internal_alias_prefix = internal_alias_prefix or "t"
     viewmaker.add_select("""
-        {ap}_diag.CodingScheme AS {alias_scheme},
-        {ap}_diag.Code AS {alias_code},
+        {basetable}.{basecolumn_scheme} AS {alias_scheme},
+        {basetable}.{basecolumn_code} AS {alias_code},
         {ap}_diag.CodeDescription AS {alias_description}
     """.format(  # noqa
-        ap=internal_alias_prefix,
+        basetable=viewmaker.basetable,
+        basecolumn_scheme=basecolumn_scheme,
         alias_scheme=alias_scheme,
+        basecolumn_code=basecolumn_code,
         alias_code=alias_code,
+        ap=internal_alias_prefix,
         alias_description=alias_description,
     ))
     # - RECP had "speciality" / "specialty" inconsistency.
@@ -1392,15 +1405,16 @@ def rio_add_diagnosis_lookup(viewmaker,
     #   of different "user" joins simultaneously.
     viewmaker.add_from("""
         LEFT JOIN DiagnosisCode {ap}_diag
-            ON {basetable}.{basecolumn_scheme} = {ap}_diag.CodingScheme
-            AND {basetable}.{basecolumn_code} = {ap}_diag.Code
+            ON {ap}_diag.CodingScheme = {basetable}.{basecolumn_scheme}
+            AND {ap}_diag.Code = {basetable}.{basecolumn_code}
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn_scheme=basecolumn_scheme,
         basecolumn_code=basecolumn_code,
         ap=internal_alias_prefix,
     ))
-    viewmaker.record_lookup_table('DiagnosisCode')
+    viewmaker.record_lookup_table_keyfield('DiagnosisCode', ['CodingScheme',
+                                                             'Code'])
 
 
 # =============================================================================
@@ -1772,7 +1786,8 @@ RIO_VIEWS = {
         ],
     },
     'Progress_Notes': {
-        'basetable': RIO_TABLE_PROGRESS_NOTES,
+        'basetable': VIEW_PROGRESS_NOTES_CURRENT,
+        # ... not RIO_TABLE_PROGRESS_NOTES
         'rename': {
             'DateAndTime': 'Created_Date',  # RCEP; RCEP synonym: 'Date'
             'EnterDatetime': 'Updated_Date',  # RCEP
@@ -1955,7 +1970,7 @@ RIO_VIEWS = {
     # -------------------------------------------------------------------------
     # Non-core: CPFT
     # -------------------------------------------------------------------------
-    'core_assess_past_psy': {
+    'Core_Assessment_PPH_PMH_Allergies_Frailty': {
         'basetable': 'UserAssesscoreassesspastpsy',
         'add': [
             {
@@ -2101,6 +2116,7 @@ def process_table(table, engine, progargs):
 class DDHint(object):
     def __init__(self):
         self._suppressed_tables = set()
+        self._index_requests = []  # list of sets
         
     def suppress_table(self, table):
         self._suppressed_tables.add(table)
@@ -2111,6 +2127,27 @@ class DDHint(object):
 
     def get_suppressed_tables(self):
         return sorted(self._suppressed_tables)
+
+    def add_source_index_request(self, table, columns):
+        if isinstance(columns, str):
+            columns = [columns]
+        if table not in self._index_requests:
+            self._index_requests[table] = set()
+        self._index_requests[table].add({
+            'index_name': 'crate_idx_' + '_'.join(columns),
+            'column': ', '.join(columns),
+            'unique': False,
+        })
+
+    def add_indexes(self, engine, progargs):
+        for table, indexdictset in self._index_requests:
+            indexdictlist = list(indexdictset)
+            add_indexes(engine, progargs, table, indexdictlist)
+
+    def drop_indexes(self, engine, progargs):
+        for table, indexdictset in self._index_requests:
+            indexdictlist = list(indexdictset)
+            drop_indexes(engine, progargs, table, indexdictlist)
 
 
 def report_rio_dd_settings(progargs, ddhint):
