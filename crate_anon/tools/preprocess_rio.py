@@ -1446,7 +1446,7 @@ def rio_add_ims_event_lookup(viewmaker, basecolumn_event_num,
     viewmaker.add_from("""
         LEFT JOIN ImsEvent {ap}_evt
             ON {ap}_evt.{CRATE_COL_RIO_NUMBER} = {basetable}.{CRATE_COL_RIO_NUMBER}
-            AND {ap}_evt.Event_Number = {basetable}.{basecolumn_event_num}
+            AND {ap}_evt.EventNumber = {basetable}.{basecolumn_event_num}
     """.format(  # noqa
         basetable=viewmaker.basetable,
         ap=internal_alias_prefix,
@@ -2011,7 +2011,7 @@ RIO_VIEWS = OrderedDict([
                 'function': simple_view_where,
                 'kwargs': {
                     'where_clause':
-                        '(Deleted_Flag IS NULL OR Deleted_Flag = 0)',
+                        '(Deleted IS NULL OR Deleted = 0)',
                 },
             },
             {
