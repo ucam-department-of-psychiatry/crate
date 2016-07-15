@@ -2459,11 +2459,7 @@ RIO_VIEWS = OrderedDict([
     }),
 
     ('Progress_Notes', {
-        'basetable': VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT,
-        # ... not RIO_TABLE_PROGRESS_NOTES
-        'skip_existence_check': True,
-        # ... because we may have just added the view manually; it won't then
-        #     be in the metadata until we re-reflect; that would be slow.
+        'basetable': 'PrgProgressNote',
         'rename': {
             # create:
             'DateAndTime': 'Created_Date',  # RCEP; RCEP synonym: 'Date'
