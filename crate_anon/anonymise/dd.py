@@ -566,8 +566,7 @@ class DataDictionaryRow(object):
         elif (is_sqltype_numeric(datatype_sqltext) or
                 self.matches_fielddef(cfg.ddgen_per_table_pid_field) or
                 self.matches_fielddef(cfg.ddgen_master_pid_fieldname) or
-                self.matches_fielddef(cfg.ddgen_scrubmethod_number_fields)
-                ):
+                self.matches_fielddef(cfg.ddgen_scrubmethod_number_fields)):
             self.scrub_method = SCRUBMETHOD.NUMERIC
         elif (is_sqltype_date(datatype_sqltext) or
                 self.matches_fielddef(cfg.ddgen_scrubmethod_date_fields)):

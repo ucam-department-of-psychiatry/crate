@@ -45,7 +45,7 @@ def gen_ints(words, minimum=None, maximum=None, suppress_errors=False):
 class CrateConfigParser(configparser.ConfigParser):
     def __init__(self, *args, **kwargs):
         kwargs['interpolation'] = None
-        kwargs['inline_comment_prefixes'] = ('#', ';');
+        kwargs['inline_comment_prefixes'] = ('#', ';')
         # 'converters': Python 3.5 and up
         super().__init__(*args, **kwargs)
 

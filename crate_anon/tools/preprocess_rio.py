@@ -311,7 +311,6 @@ from crate_anon.anonymise.constants import MYSQL_CHARSET
 from crate_anon.anonymise.logsupport import configure_logger_for_colour
 
 log = logging.getLogger(__name__)
-metadata = MetaData()
 
 
 # =============================================================================
@@ -1026,11 +1025,12 @@ def drop_for_progress_notes(table, engine, progargs):
 # =============================================================================
 
 class ViewMaker(object):
-    def __init__(self, engine, basetable, existing_to_lower=False,
+    def __init__(self, progargs, engine, basetable, existing_to_lower=False,
                  rename=None):
-        self.rename = rename or {}
+        self.progargs = progargs
         self.engine = engine
         self.basetable = basetable
+        self.rename = rename or {}
         self.select_elements = []
         for colname in get_column_names(engine, tablename=basetable,
                                         to_lower=existing_to_lower):
@@ -1082,7 +1082,7 @@ class ViewMaker(object):
         return list(self.lookup_tables)
 
 
-def simple_lookup_join(viewmaker, progargs, basetable, basecolumn,
+def simple_lookup_join(viewmaker, basecolumn,
                        lookup_table, lookup_pk, lookup_fields_aliases,
                        internal_alias_prefix):
     aliased_table = internal_alias_prefix + "_" + lookup_table
@@ -1096,18 +1096,15 @@ def simple_lookup_join(viewmaker, progargs, basetable, basecolumn,
             lookup_table=lookup_table,
             aliased_table=aliased_table,
             lookup_pk=lookup_pk,
-            basetable=basetable,
+            basetable=viewmaker.basetable,
             basecolumn=basecolumn))
     viewmaker.record_lookup_table(lookup_table)
 
 
-def standard_rio_code_lookup(viewmaker, progargs, basetable,
-                             basecolumn, lookup_table,
+def standard_rio_code_lookup(viewmaker, basecolumn, lookup_table,
                              result_alias, internal_alias_prefix):
     return simple_lookup_join(
         viewmaker=viewmaker,
-        progargs=progargs,
-        basetable=basetable,
         basecolumn=basecolumn,
         lookup_table=lookup_table,
         lookup_pk="Code",
@@ -1115,19 +1112,19 @@ def standard_rio_code_lookup(viewmaker, progargs, basetable,
         internal_alias_prefix=internal_alias_prefix)
 
 
-def view_formatting_dict(viewmaker, progargs, basetable):
+def view_formatting_dict(viewmaker):
     return {
-        'basetable': basetable,
+        'basetable': viewmaker.basetable,
     }
 
 
-def simple_view_expr(viewmaker, progargs, basetable, expr, alias):
-    vd = view_formatting_dict(viewmaker, progargs, basetable)
+def simple_view_expr(viewmaker, expr, alias):
+    vd = view_formatting_dict(viewmaker)
     formatted_expr = expr.format(**vd)
     viewmaker.add_select(formatted_expr + " AS {}".format(alias))
 
 
-def simple_view_where(viewmaker, progargs, basetable, where_clause):
+def simple_view_where(viewmaker, where_clause):
     viewmaker.add_where(where_clause)
 
 
@@ -1148,14 +1145,13 @@ def get_rio_views(engine, metadata, progargs, ddhint,
             ddhint.suppress_table(basetable)
         ddhint.suppress_tables(suppress_other_tables)
         rename = viewdetails.get('rename', None)
-        viewmaker = ViewMaker(engine, basetable, rename=rename)
+        # noinspection PyTypeChecker
+        viewmaker = ViewMaker(progargs, engine, basetable, rename=rename)
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
                 function = addition['function']
                 kwargs = addition['kwargs']
-                kwargs['basetable'] = basetable
                 kwargs['viewmaker'] = viewmaker
-                kwargs['progargs'] = progargs
                 function(**kwargs)  # will alter viewmaker
         views[viewname] = viewmaker.get_sql()
         if suppress_lookup:
@@ -1179,7 +1175,7 @@ def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
 # RiO view creators: specific
 # =============================================================================
 
-def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
+def rio_add_user_lookup(viewmaker, basecolumn,
                         column_prefix=None, internal_alias_prefix=None):
     # NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for
     # each table (2016-07-12).
@@ -1212,7 +1208,7 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
         {ap}_genorg.Code AS {cp}_organisation_type_code,
         {ap}_genorg.CodeDescription AS {cp}_organisation_type_description
     """.format(  # noqa
-        basetable=basetable,
+        basetable=viewmaker.basetable,
         basecolumn_usercode=basecolumn,
         cp=column_prefix,
         ap=internal_alias_prefix,
@@ -1243,7 +1239,7 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
                 ON {ap}_genuser.OrganisationType = {ap}_genorg.Code
         ) ON {basetable}.{basecolumn_usercode} = {ap}_genhcp.GenHCPCode
     """.format(  # noqa
-        basetable=basetable,
+        basetable=viewmaker.basetable,
         basecolumn_usercode=basecolumn,
         ap=internal_alias_prefix,
     ))
@@ -1269,7 +1265,40 @@ def rio_add_user_lookup(viewmaker, progargs, basetable, basecolumn,
     ])
 
 
-def rio_add_team_lookup(viewmaker, progargs, basetable, basecolumn,
+def rio_add_consultant_lookup(viewmaker, basecolumn,
+                              column_prefix=None, internal_alias_prefix=None):
+    column_prefix = column_prefix or basecolumn
+    internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}_id,
+        {ap}_cons.Firstname AS {cp}_first_name,
+        {ap}_cons.Surname AS {cp}_surname,
+        {ap}_cons.SpecialtyID AS {cp}_specialty_code,
+        {ap}_spec.CodeDescription AS {cp}_specialty_description,
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN (
+            GenHospitalConsultant {ap}_cons
+            LEFT JOIN GenSpecialty {ap}_spec
+                ON {ap}_spec.Code = {ap}_cons.SpecialtyID
+        ) ON {basetable}.{basecolumn} = {ap}_cons.ConsultantID
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.record_lookup_tables([
+        'GenHospitalConsultant',
+        'GenSpecialty',
+    ])
+
+
+def rio_add_team_lookup(viewmaker, basecolumn,
                         column_prefix=None, internal_alias_prefix=None):
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -1279,7 +1308,7 @@ def rio_add_team_lookup(viewmaker, progargs, basetable, basecolumn,
         {ap}_classif.Code AS {cp}_classification_group_code,
         {ap}_classif.CodeDescription AS {cp}_classification_group_description
     """.format(  # noqa
-        basetable=basetable,
+        basetable=viewmaker.basetable,
         basecolumn_teamcode=basecolumn,
         cp=column_prefix,
         ap=internal_alias_prefix,
@@ -1291,7 +1320,7 @@ def rio_add_team_lookup(viewmaker, progargs, basetable, basecolumn,
                 ON {ap}_classif.Code = {ap}_team.ClassificationGroup
         ) ON {basetable}.{basecolumn_teamcode} = {ap}_team.Code
     """.format(  # noqa
-        basetable=basetable,
+        basetable=viewmaker.basetable,
         basecolumn_teamcode=basecolumn,
         ap=internal_alias_prefix,
     ))
@@ -1301,10 +1330,47 @@ def rio_add_team_lookup(viewmaker, progargs, basetable, basecolumn,
     ])
 
 
-def rio_add_diagnosis_lookup(viewmaker, progargs, basetable,
+def rio_add_carespell_lookup(viewmaker, basecolumn,
+                             column_prefix=None, internal_alias_prefix=None):
+    column_prefix = column_prefix or basecolumn
+    internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
+    viewmaker.add_select("""
+        {ap}_spell.CareSpellNum AS {cp}_Number,
+        {ap}_spell.StartDate AS {cp}_Start_Date,
+        {ap}_spell.EndDate AS {cp}_End_Date,
+        {ap}_spell.MentalHealth AS {cp}_Mental_Health,
+        {ap}_spell.GenSpecialtyCode AS {cp}_Specialty_Code,
+        {ap}_spec.CodeDescription AS {cp}_Specialty_Description,
+        {ap}_spec.NationalCode AS {cp}_Specialty_National_Code
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn_teamcode=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN (
+            ClientCareSpell {ap}_spell
+            INNER JOIN GenSpecialty {ap}_spec
+                ON {ap}_spec.Code = {ap}_spell.GenSpecialtyCode
+        ) ON {basetable}.{basecolumn} = {ap}_spell.CareSpellNum
+    """.format(
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.record_lookup_tables([
+        'ClientCareSpell',
+        'GenSpecialty',
+    ])
+
+
+def rio_add_diagnosis_lookup(viewmaker,
                              basecolumn_scheme, basecolumn_code,
                              alias_scheme, alias_code, alias_description,
                              internal_alias_prefix=None):
+    # Can't use simple_lookup_join as we have to join on two fields,
+    # diagnostic scheme and diagnostic code.
     internal_alias_prefix = internal_alias_prefix or "t"
     viewmaker.add_select("""
         {ap}_diag.CodingScheme AS {alias_scheme},
@@ -1328,7 +1394,7 @@ def rio_add_diagnosis_lookup(viewmaker, progargs, basetable,
             ON {basetable}.{basecolumn_scheme} = {ap}_diag.CodingScheme
             AND {basetable}.{basecolumn_code} = {ap}_diag.Code
     """.format(  # noqa
-        basetable=basetable,
+        basetable=viewmaker.basetable,
         basecolumn_scheme=basecolumn_scheme,
         basecolumn_code=basecolumn_code,
         ap=internal_alias_prefix,
@@ -1388,7 +1454,23 @@ RIO_VIEWS = {
     #             },
     #         },
     #         {
+    #             'function': rio_add_consultant_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
     #             'function': rio_add_team_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_carespell_lookup,
     #             'kwargs': {
     #                 'basecolumn': 'XXX',
     #                 'column_prefix': 'XXX',
@@ -1509,41 +1591,42 @@ RIO_VIEWS = {
             'ReferralNumber': 'Referral_Number',  # RCEP
             'ReferralSource': 'Referral_Source',  # RCEP
             'ReferringGP': 'Referring_GP_Code',  # RCEP
-            'ReferringConsultant': None, # *** tricky lookup
-            # 'Referrer': unchanged
-            'TeamReferredTo': 'XXX',
-            'ServiceReferredTo': 'XXX',
-            'HCPReferredTo': 'XXX',
-            'SpecialtyReferredTo': 'XXX',
-            'ReferralActionDate': 'XXX',
-            'ReferralDateTime': 'XXX',
-            'Urgency': 'XXX',
-            'ReferralComment': 'XXX',
-            'DischargeDateTime': 'XXX',
-            'DischargeReason': 'XXX',
-            'DischargeHCP': 'XXX',
-            'DischargeComment': 'XXX',
-            'ClientCareSpell': 'XXX',
-            'ReferralReason': 'XXX',
-            'AdministrativeCategory': 'XXX',
-            'PatientArea': 'XXX',
-            'RemovalCode': 'XXX',
-            'RemovalUser': 'XXX',
-            'RemovalDateTime': 'XXX',
-            'ReferralReceivedDate': 'XXX',
-            'ReferralAllocation': 'XXX',
-            'DischargeAllocation': 'XXX',
+            'ReferringConsultant': None,  # tricky lookup; see below
+            # 'Referrer': unchanged; not in RCEP; missing?
+            'TeamReferredTo': None,  # not in RCEP; lookup added below
+            'ServiceReferredTo': 'Service_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
+            'HCPReferredTo': None,  # not in RCEP; lookup added below
+            'SpecialtyReferredTo': 'Specialty_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
+            'ReferralActionDate': 'Referral_ActionDate',  # not in RCEP; missing?  # noqa
+            'ReferralDateTime': 'Referral_DateTime',  # not in RCEP; missing?
+            'Urgency': 'Urgency_Code',  # not in RCEP; missing?
+            'ReferralComment': 'Referral_Comment',  # not in RCEP; missing?
+            'DischargeDateTime': 'Discharge_DateTime',  # not in RCEP; missing?
+            'DischargeReason': 'Discharge_Reason',  # not in RCEP; missing?
+            'DischargeHCP': None,  # RCEP; user lookup
+            'DischargeComment': 'Discharge_Comment',  # RCEP
+            'ClientCareSpell': None,  # see lookup below
+            'ReferralReason': 'Referral_Reason_Code',  # RCEP
+            # RCEP 'Referral_Reason_National_Code': ?? can't find. Only AmsReferralSource.NationalCode  # noqa
+            'AdministrativeCategory': 'Administrative_Category_Code',  # RCEP
+            'PatientArea': 'Patient_Area',  # RCEP
+            'RemovalCode': 'Removal_Code',  # RCEP
+            'RemovalUser': None,  # RCEP; user lookup
+            'RemovalDateTime': 'Removal_DateTime',  # RCEP
+            'ReferralReceivedDate': 'Referral_Received_Date',  # RCEP
+            'ReferralAllocation': 'Referral_Allocation',  # RCEP
+            'DischargeAllocation': 'Discharge_Allocation',  # RCEP
             'HCPAllocationDate': 'HCP_Allocation_Date',  # RCEP
             'ReferralAcceptedDate': 'Referral_Accepted_Date',  # RCEP
             'IWSComment': 'IWS_Comment',  # RCEP
             'IWSHeld': 'IWS_Held',  # RCEP
-            'ReferrerOther': 'XXX',
-            'ReferringGPPracticeCode': 'XXX',
+            'ReferrerOther': 'Referrer_Other',  # RCEP
+            'ReferringGPPracticeCode': 'Referring_GP_Practice_Code',  # RCEP
             'ExternalReferralId': 'External_Referral_Id',  # RCEP (field is not VARCHAR(8000) as docs suggest; 25 in RiO, 50 in RCEP)  # noqa
             'LikelyFunder': 'Likely_Funder',  # RCEP
             # EnquiryNumber: unchanged
-            'ReferredWard': 'XXX',
-            'ReferredConsultant': 'XXX',
+            'ReferredWard': 'Referred_Ward_Code',  # RCEP
+            'ReferredConsultant': None,  # RCEP; user lookup
             'DischargeAddressLine1': 'Discharge_Address_Line_1',  # RCEP
             'DischargeAddressLine2': 'Discharge_Address_Line_2',  # RCEP
             'DischargeAddressLine3': 'Discharge_Address_Line_3',  # RCEP
@@ -1557,7 +1640,137 @@ RIO_VIEWS = {
             'RTTCode': 'RTT_Code',  # RCEP; FK to RTTPathwayConfig.RTTCode (ignored)  # noqa
         },
         'add': [
-
+            {  # not in RCEP
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Urgency',
+                    'lookup_table': 'GenUrgency',
+                    'result_alias': 'Urgency_Description',
+                    'internal_alias_prefix': 'ur',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'PatientArea',
+                    'lookup_table': 'AmsPatientArea',
+                    'result_alias': 'Patient_Area_Description',  # RCEP
+                    'internal_alias_prefix': 'pa',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'AdministrativeCategory',
+                    'lookup_table': 'GenAdministrativeCategory',
+                    'result_alias': 'Administrative_Category_Description',  # RCEP  # noqa
+                    'internal_alias_prefix': 'ac',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferralReason',
+                    'lookup_table': 'GenReferralReason',
+                    'result_alias': 'Referral_Reason_Description',  # RCEP
+                    'internal_alias_prefix': 'rr',
+                },
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'ReferredWard',
+                    'lookup_table': 'ImsWard',
+                    'lookup_pk': 'WardCode',
+                    'lookup_fields_aliases': {
+                        'WardDescription': 'Referred_Ward_Description',  # RCEP
+                    },
+                    'internal_alias_prefix': 'rw',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'DischargeHCP',
+                    'column_prefix': 'Discharge_HCP',  # RCEP
+                    'internal_alias_prefix': 'dhcp',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferredConsultant',
+                    'column_prefix': 'Referred_Consultant',  # RCEP
+                    'internal_alias_prefix': 'rc',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'RemovalUser',
+                    'column_prefix': 'Removal_User',  # RCEP
+                    'internal_alias_prefix': 'ru',
+                },
+            },
+            {
+                'function': rio_add_carespell_lookup,
+                'kwargs': {
+                    'basecolumn': 'ClientCareSpell',
+                    'column_prefix': 'Care_Spell',  # RCEP
+                    'internal_alias_prefix': 'cs',
+                },
+            },
+            {  # not in RCEP
+                'function': rio_add_team_lookup,
+                'kwargs': {
+                    'basecolumn': 'TeamCode',
+                    'column_prefix': 'Team_Referred_To',
+                    'internal_alias_prefix': 'trt',
+                },
+            },
+            {  # not in RCEP
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'HCPReferredTo',
+                    'column_prefix': 'HCP_Referred_To',
+                    'internal_alias_prefix': 'hrt',
+                },
+            },
+            {  # not in RCEP
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'SpecialtyReferredTo',
+                    'lookup_table': 'GenSpecialty',
+                    'result_alias': 'Specialty_Referred_To_Description',
+                    'internal_alias_prefix': 'sprt',
+                }
+            },
+            {  # not in RCEP
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ServiceReferredTo',
+                    'lookup_table': 'GenService',
+                    'result_alias': 'Service_Referred_To_Description',
+                    'internal_alias_prefix': 'sert',
+                }
+            },
+            # Look up the same field two ways.
+            {  # If AmsReferralSource.Behaviour = 'CS'...
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferringConsultant',
+                    'column_prefix': 'Referring_Consultant_Cons',
+                    'internal_alias_prefix': 'rcc',
+                },
+            },
+            {  # If AmsReferralSource.Behaviour = 'CH'...
+                'function': rio_add_consultant_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferringConsultant',
+                    'column_prefix': 'Referring_Consultant_HCP',  # RCEP: Referring_Consultant_User  # noqa
+                    'internal_alias_prefix': 'rch',
+                },
+            },
         ],
     },
     'Progress_Notes': {
@@ -2108,8 +2321,8 @@ ddgen_allow_fulltext_indexing = True
 ddgen_force_lower_case = False
 
 ddgen_convert_odd_chars_to_underscore = True
-    """.format(
-        suppress_tables = "\n    ".join(ddhint.get_suppressed_tables()),
+    """.format(  # noqa
+        suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
         RIO_COL_PATIENT_ID=RIO_COL_PATIENT_ID,
         VIEW_ADDRESS_WITH_GEOGRAPHY=VIEW_ADDRESS_WITH_GEOGRAPHY,
     )
@@ -2199,6 +2412,7 @@ def main():
 
     engine = create_engine(progargs.url, echo=progargs.echo,
                            encoding=MYSQL_CHARSET)
+    metadata = MetaData()
     metadata.bind = engine
     log.info("Database: {}".format(repr(engine.url)))  # ... repr hides p/w
     log.debug("Dialect: {}".format(engine.dialect.name))
