@@ -1473,7 +1473,7 @@ def rio_add_gp_lookup(viewmaker, basecolumn,
         ap=internal_alias_prefix,
     ))
     viewmaker.add_from("""
-        LEFT JOIN ImsEvent {ap}_gp
+        LEFT JOIN GenGP {ap}_gp
             ON {ap}_gp.Code = {basetable}.{basecolumn}
     """.format(  # noqa
         ap=internal_alias_prefix,
