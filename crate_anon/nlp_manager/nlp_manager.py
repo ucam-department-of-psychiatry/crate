@@ -1090,7 +1090,7 @@ def gen_text(ifconfig, tasknum=0, ntasks=1):
         order_by(pkcol)
     )
     if ntasks > 1:
-        query = query.where(func.mod(pkcol, ntasks) == tasknum)
+        query = query.where(pkcol % ntasks == tasknum)
     return session.execute(query)  # ... a generator itself
 
 

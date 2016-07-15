@@ -359,7 +359,6 @@ def gen_patient_ids(tasknum=0, ntasks=1):
             order_by(pidcol)
         )
         if ntasks > 1:
-            # query = query.where(func.mod(pidcol, ntasks) == tasknum)
             query = query.where(pidcol % ntasks == tasknum)
         result = session.execute(query)
         for row in result:
@@ -407,7 +406,6 @@ def gen_rows(dbname, sourcetable, sourcefields, pid=None,
     else:
         # For non-patient tables: divide up rows across tasks?
         if pkname is not None and tasknum is not None and ntasks is not None:
-            # q = q.where(func.mod(column(pkname), ntasks) == tasknum)
             q = q.where(column(pkname) % ntasks == tasknum)
             # This does not require a user-defined PK to be unique. But other
             # constraints do: see delete_dest_rows_with_no_src_row().
