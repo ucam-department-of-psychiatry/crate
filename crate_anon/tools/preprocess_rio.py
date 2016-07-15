@@ -2555,7 +2555,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'EnteredBy',
                     'column_prefix': 'Updating_User',  # not in RCEP
-                    'internal_alias_prefix': 'ou',
+                    'internal_alias_prefix': 'uu',
                 },
             },
             {
