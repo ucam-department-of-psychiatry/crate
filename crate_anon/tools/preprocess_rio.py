@@ -2118,7 +2118,7 @@ def process_table(table, engine, progargs):
 class DDHint(object):
     def __init__(self):
         self._suppressed_tables = set()
-        self._index_requests = []  # list of sets
+        self._index_requests = {}  # dict of sets
         
     def suppress_table(self, table):
         self._suppressed_tables.add(table)
