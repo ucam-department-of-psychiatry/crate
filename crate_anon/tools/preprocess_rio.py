@@ -1050,7 +1050,7 @@ class ViewMaker(object):
                                      "from base table"
         self.from_elements = [basetable]
         self.where_elements = []
-        self.lookup_table_keyfields = set()  # of (table, keyfield(s)) tuples
+        self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
 
     def add_select(self, clause):
         self.select_elements.append(clause)
@@ -1075,7 +1075,7 @@ class ViewMaker(object):
                 where=where))
 
     def record_lookup_table_keyfield(self, table, keyfield):
-        self.lookup_table_keyfields.add((table, keyfield))
+        self.lookup_table_keyfields.append((table, keyfield))
 
     def record_lookup_table_keyfields(self, table_keyfield_tuples):
         for t, k in table_keyfield_tuples:
@@ -1165,6 +1165,8 @@ def get_rio_views(engine, metadata, progargs, ddhint,
         views[viewname] = viewmaker.get_sql()
         if suppress_lookup:
             ddhint.suppress_tables(viewmaker.get_lookup_tables())
+        ddhint.add_bulk_source_index_request(
+            viewmaker.get_lookup_table_keyfields())
     return views
 
 
@@ -2138,6 +2140,10 @@ class DDHint(object):
             'column': ', '.join(columns),
             'unique': False,
         })
+
+    def add_bulk_source_index_request(self, table_columns_list):
+        for table, columns in table_columns_list:
+            self.add_source_index_request(table, columns)
 
     def add_indexes(self, engine, progargs):
         for table, indexdictset in self._index_requests:
