@@ -1144,10 +1144,12 @@ def get_rio_views(engine, metadata, progargs, ddhint,
     all_tables_lower = [t.name.lower() for t in metadata.tables.values()]
     for viewname, viewdetails in RIO_VIEWS.items():
         basetable = viewdetails['basetable']
-        if basetable.lower() not in all_tables_lower:
-            log.warning("Skipping view {} as base table {} not present".format(
-                viewname, basetable))
-            continue
+        skip_existence_check = viewdetails.get('skip_existence_check', False)
+        if not skip_existence_check:
+            if basetable.lower() not in all_tables_lower:
+                log.warning("Skipping view {} as base table {} not "
+                            "present".format(viewname, basetable))
+                continue
         suppress_basetable = viewdetails.get('suppress_basetable',
                                              suppress_basetables)
         suppress_other_tables = viewdetails.get('suppress_other_tables', [])
@@ -1791,6 +1793,9 @@ RIO_VIEWS = {
     'Progress_Notes': {
         'basetable': VIEW_PROGRESS_NOTES_CURRENT,
         # ... not RIO_TABLE_PROGRESS_NOTES
+        'skip_existence_check': True,
+        # ... because we may have just added the view manually; it won't then
+        #     be in the metadata until we re-reflect; that would be slow.
         'rename': {
             'DateAndTime': 'Created_Date',  # RCEP; RCEP synonym: 'Date'
             'EnterDatetime': 'Updated_Date',  # RCEP
