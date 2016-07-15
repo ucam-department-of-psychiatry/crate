@@ -298,6 +298,7 @@ How is RiO non-core structured?
 """  # noqa
 
 import argparse
+from collections import OrderedDict
 import logging
 import sys
 
@@ -387,7 +388,7 @@ CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
 CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
 
 # Views added:
-VIEW_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"
+VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"
 VIEW_ADDRESS_WITH_GEOGRAPHY = "client_address_with_geography"
 
 RIO_6_2_ATYPICAL_PKS = {
@@ -575,7 +576,7 @@ def add_columns(engine, progargs, table, name_coltype_dict):
     #   - i.e. no "COLUMN", no parentheses, multiple OK
     #   - https://msdn.microsoft.com/en-us/library/ms190238.aspx
     #   - https://msdn.microsoft.com/en-us/library/ms190273.aspx
-    #   - http://stackoverflow.com/questions/2523676/alter-table-add-multiple-columns-ms-sql  # noqa
+    #   - http://stackoverflow.com/questions/2523676
     # SQLAlchemy doesn't provide a shortcut for this.
     for column_def in column_defs:
         log.info("Table '{}': adding column {}".format(
@@ -597,8 +598,10 @@ def drop_columns(engine, progargs, table, column_names):
                                                                name))
             sql = "ALTER TABLE {t} DROP COLUMN {c}".format(t=table.name,
                                                            c=name)
-            # SQL Server: http://www.techonthenet.com/sql_server/tables/alter_table.php  # noqa
-            # MySQL: http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
+            # SQL Server:
+            #   http://www.techonthenet.com/sql_server/tables/alter_table.php
+            # MySQL:
+            #   http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
             execute(engine, progargs, sql)
 
 
@@ -1001,22 +1004,24 @@ def process_progress_notes(table, engine, progargs):
         max_subnum_col=CRATE_COL_MAX_SUBNUM,
     ))
 
-    # Create a view
-    select_sql = """
-        SELECT *
-        FROM {tablename}
-        WHERE
-            (EnteredInError <> 1 OR EnteredInError IS NULL)
-            AND {last_note_col} = 1
-    """.format(
-        tablename=table.name,
-        last_note_col=CRATE_COL_LAST_NOTE,
-    )
-    create_view(engine, progargs, VIEW_PROGRESS_NOTES_CURRENT, select_sql)
+    # Create a view, if we're on an RCEP database
+    if progargs.rcep and progargs.cpft:
+        select_sql = """
+            SELECT *
+            FROM {tablename}
+            WHERE
+                (EnteredInError <> 1 OR EnteredInError IS NULL)
+                AND {last_note_col} = 1
+        """.format(
+            tablename=table.name,
+            last_note_col=CRATE_COL_LAST_NOTE,
+        )
+        create_view(engine, progargs, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT,
+                    select_sql)
 
 
 def drop_for_progress_notes(table, engine, progargs):
-    drop_view(engine, progargs, VIEW_PROGRESS_NOTES_CURRENT)
+    drop_view(engine, progargs, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT)
     drop_indexes(engine, progargs, table, [CRATE_IDX_RIONUM_NOTENUM,
                                            CRATE_IDX_MAX_SUBNUM,
                                            CRATE_IDX_LAST_NOTE])
@@ -1162,7 +1167,7 @@ def get_rio_views(engine, metadata, progargs, ddhint,
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
                 function = addition['function']
-                kwargs = addition['kwargs']
+                kwargs = addition.get('kwargs', {})
                 kwargs['viewmaker'] = viewmaker
                 function(**kwargs)  # will alter viewmaker
         views[viewname] = viewmaker.get_sql()
@@ -1422,15 +1427,108 @@ def rio_add_diagnosis_lookup(viewmaker,
                                                              'Code'])
 
 
+def rio_add_ims_event_lookup(viewmaker, basecolumn_event_num,
+                             column_prefix, internal_alias_prefix):
+    # There is a twin key: ClientID and EventNumber
+    # However, we have made crate_rio_number, so we'll use that instead.
+    # Key to the TABLE, not the VIEW.
+    viewmaker.add_select("""
+        {basetable}.{basecolumn_event_num} AS {cp}_Event_Number
+        {ap}_evt.{CRATE_COL_PK} AS {cp}_Admission_PK
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn_event_num=basecolumn_event_num,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+        CRATE_COL_PK=CRATE_COL_PK,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN ImsEvent {ap}_evt
+            ON {ap}_evt.{CRATE_COL_RIO_NUMBER} = {basetable}.{CRATE_COL_RIO_NUMBER}
+            AND {ap}_evt.Event_Number = {basetable}.{basecolumn_event_num}
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        ap=internal_alias_prefix,
+        CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,
+        basecolumn_event_num=basecolumn_event_num,
+    ))
+    viewmaker.record_lookup_table_keyfield('ImsEvent', [CRATE_COL_RIO_NUMBER,
+                                                        'EventNumber'])
+
+
+def rio_add_gp_lookup(viewmaker, basecolumn,
+                      column_prefix, internal_alias_prefix):
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}_Code,
+        {ap}_gp.CodeDescription AS {cp}_Description,
+        {ap}_gp.NationalCode AS {cp}_National_Code,
+        {ap}_gp.Title AS {cp}_Title,
+        {ap}_gp.Forename AS {cp}_Forename,
+        {ap}_gp.Surname AS {cp}_Surname
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN ImsEvent {ap}_gp
+            ON {ap}_gp.Code = {basetable}.{basecolumn}
+    """.format(  # noqa
+        ap=internal_alias_prefix,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+    ))
+    viewmaker.record_lookup_table_keyfield('GenGP', 'Code')
+
+
+def where_prognotes_current(viewmaker):
+    if not viewmaker.progargs.prognotes_current_only:
+        return
+    viewmaker.add_where(
+        "(EnteredInError <> 1 OR EnteredInError IS NULL) "
+        "AND {last_note_col} = 1".format(last_note_col=CRATE_COL_LAST_NOTE))
+
+
+def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
+                       column_prefix, internal_alias_prefix):
+    viewmaker.add_select("""
+        {basetable}.{basecolumn_ward} AS {cp}Ward_Code,
+        {ap}_bay.CodeDescription AS {cp}Ward_Description,
+        {basetable}.{basecolumn_bay} AS {cp}Bay_Code,
+        {ap}_bay.BayDescription AS {cp}Bay_Description
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn_ward=basecolumn_ward,
+        basecolumn_bay=basecolumn_bay,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN ImsBay {ap}_bay
+            ON {ap}_bay.WardCode = {basetable}.{basecolumn_ward}
+            AND {ap}_bay.BayCode = {basetable}.{basecolumn_bay}
+    """.format(  # noqa
+        ap=internal_alias_prefix,
+        basetable=viewmaker.basetable,
+        basecolumn_ward=basecolumn_ward,
+        basecolumn_bay=basecolumn_bay,
+    ))
+    viewmaker.record_lookup_table_keyfield('ImsBay', ['WardCode', 'BayCode'])
+
 # =============================================================================
 # RiO view creators: collection
 # =============================================================================
 
-RIO_VIEWS = {
+RIO_VIEWS = OrderedDict([
+    # An OrderedDict in case you wanted to make views from views.
+    # But that is a silly idea.
+
     # -------------------------------------------------------------------------
     # Template
     # -------------------------------------------------------------------------
-    # 'XXX': {
+
+    # ('XXX', {
     #     'basetable': 'XXX',
     #     'rename': {
     #         'XXX': 'XXX',  #
@@ -1509,6 +1607,31 @@ RIO_VIEWS = {
     #             }
     #         },
     #         {
+    #             'function': rio_add_ims_event_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_event_num': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_gp_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_bay_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_ward': 'XXX',
+    #                 'basecolumn_bay': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
     #             'function': simple_view_where,
     #             'kwargs': {
     #                 'where_clause': 'XXX',
@@ -1517,10 +1640,12 @@ RIO_VIEWS = {
     #     ],
     #     'suppress_basetable': True,
     #     'suppress_other_tables': [],
-    # },
+    # }),
+
     # -------------------------------------------------------------------------
     # Core: views provided by RCEP (with some extensions)
     # -------------------------------------------------------------------------
+
     # 'assessmentsCRISSpec' is RCEP internal for CRIS tree/form/field/... info
     # *** 'Care_Plan_index'
     # *** 'Care_Plan_Interventions'
@@ -1542,18 +1667,19 @@ RIO_VIEWS = {
     # *** 'Client_School'
     # *** 'CPA_CareCoordinator'
     # *** 'CPA_Review'
-    'Diagnosis': {
+
+    ('Diagnosis', {
         'basetable': 'DiagnosisClient',
         'rename': {
-            'CodingScheme': None,  # put back in below
             # Comment: unchanged
+            # RemovalComment: unchanged
+            'CodingScheme': None,  # put back in below
             'Diagnosis': None,  # becomes 'Diagnosis_Code' below
-            'DiagnosisStartDate': 'Diagnosis_Start_Date',  # RCEP
             'DiagnosisEndDate': 'Diagnosis_End_Date',  # RCEP
+            'DiagnosisStartDate': 'Diagnosis_Start_Date',  # RCEP
             'EntryBy': None,  # RCEP; is user code
             'EntryDate': 'Entry_Date',
             'RemovalBy': None,  # RCEP; is user code
-            # RemovalComment: unchanged
             'RemovalDate': 'Removal_Date',
             'RemovalReason': 'Removal_Reason_Code',  # RCEP
         },
@@ -1595,66 +1721,529 @@ RIO_VIEWS = {
                 },
             },
         ],
-    },
-    # *** 'Inpatient_Leave'
-    # *** 'Inpatient_Movement'
-    # *** 'Inpatient_Named_Nurse'
-    # *** 'Inpatient_Sleepover'
-    # *** 'Inpatient_Stay'
-    # 'LSOA_buffer' is RCEP internal, cf. my ONS PD geography database
-    'Main_Referral_Data': {
-        'basetable': 'AmsReferral',
+    }),
+
+    ('Admission', {  # in RCEP, was Inpatient_Stay = confusing
+        'basetable': 'ImsEvent',
         'rename': {
-            'ReferralNumber': 'Referral_Number',  # RCEP
-            'ReferralSource': 'Referral_Source',  # RCEP
-            'ReferringGP': 'Referring_GP_Code',  # RCEP
-            'ReferringConsultant': None,  # tricky lookup; see below
-            # 'Referrer': unchanged; not in RCEP; missing?
-            'TeamReferredTo': None,  # not in RCEP; lookup added below
-            'ServiceReferredTo': 'Service_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
-            'HCPReferredTo': None,  # not in RCEP; lookup added below
-            'SpecialtyReferredTo': 'Specialty_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
-            'ReferralActionDate': 'Referral_ActionDate',  # not in RCEP; missing?  # noqa
-            'ReferralDateTime': 'Referral_DateTime',  # not in RCEP; missing?
-            'Urgency': 'Urgency_Code',  # not in RCEP; missing?
-            'ReferralComment': 'Referral_Comment',  # not in RCEP; missing?
-            'DischargeDateTime': 'Discharge_DateTime',  # not in RCEP; missing?
-            'DischargeReason': 'Discharge_Reason',  # not in RCEP; missing?
-            'DischargeHCP': None,  # RCEP; user lookup
-            'DischargeComment': 'Discharge_Comment',  # RCEP
-            'ClientCareSpell': None,  # see lookup below
-            'ReferralReason': 'Referral_Reason_Code',  # RCEP
-            # RCEP 'Referral_Reason_National_Code': ?? can't find. Only AmsReferralSource.NationalCode  # noqa
-            'AdministrativeCategory': 'Administrative_Category_Code',  # RCEP
-            'PatientArea': 'Patient_Area',  # RCEP
-            'RemovalCode': 'Removal_Code',  # RCEP
-            'RemovalUser': None,  # RCEP; user lookup
-            'RemovalDateTime': 'Removal_DateTime',  # RCEP
-            'ReferralReceivedDate': 'Referral_Received_Date',  # RCEP
-            'ReferralAllocation': 'Referral_Allocation',  # RCEP
-            'DischargeAllocation': 'Discharge_Allocation',  # RCEP
-            'HCPAllocationDate': 'HCP_Allocation_Date',  # RCEP
-            'ReferralAcceptedDate': 'Referral_Accepted_Date',  # RCEP
-            'IWSComment': 'IWS_Comment',  # RCEP
-            'IWSHeld': 'IWS_Held',  # RCEP
-            'ReferrerOther': 'Referrer_Other',  # RCEP
-            'ReferringGPPracticeCode': 'Referring_GP_Practice_Code',  # RCEP
-            'ExternalReferralId': 'External_Referral_Id',  # RCEP (field is not VARCHAR(8000) as docs suggest; 25 in RiO, 50 in RCEP)  # noqa
-            'LikelyFunder': 'Likely_Funder',  # RCEP
-            # EnquiryNumber: unchanged
-            'ReferredWard': 'Referred_Ward_Code',  # RCEP
-            'ReferredConsultant': None,  # RCEP; user lookup
+            # Created_Date: RCEP; ?source ***
+            # Referrer: unchanged
+            # Updated_Date: RCEP; ?source ***
+            'AdministrativeCategory': 'Administrative_Category_Code',  # not in RCEP; see also lookup  # noqa
+            'AdmissionAllocation': 'Admission_Allocation_PCT_Code',  # in RCEP, Admission_Allocation; see lookup  # noqa
+            'AdmissionDate': 'Admission_Date',  # RCEP
+            'AdmissionMethod': 'Admission_Method_Code',  # not in RCEP; see also lookup  # noqa
+            'AdmissionSource': 'Admission_Source_Code',  # not in RCEP; see also lookup  # noqa
+            'ClientClassification': 'Client_Classification_Code',  # not in RCEP; see also lookup  # noqa
+            'DecideToAdmitDate': 'Decide_To_Admit_Date',  # RCEP
             'DischargeAddressLine1': 'Discharge_Address_Line_1',  # RCEP
             'DischargeAddressLine2': 'Discharge_Address_Line_2',  # RCEP
             'DischargeAddressLine3': 'Discharge_Address_Line_3',  # RCEP
             'DischargeAddressLine4': 'Discharge_Address_Line_4',  # RCEP
             'DischargeAddressLine5': 'Discharge_Address_Line_5',  # RCEP
+            'DischargeAllocation': 'Discharge_Allocation_PCT_Code',  # in RCEP, Discharge_Allocation; see lookup  # noqa
+            'DischargeAwaitedReason': 'Discharge_Awaited_Reason_Code',  # not in RCEP; see also lookup  # noqa
+            'DischargeComment': 'Discharge_Comment',  # RCEP
+            'DischargeDate': 'Discharge_Date',  # RCEP
+            'DischargeDestination': 'Discharge_Destination_Code',  # not in RCEP; see also lookup  # noqa
+            'DischargeDiagnosis1': 'Discharge_Diagnosis_1_FK_Diagnosis',  # in RCEP, DischargeDiagnosis1, etc.  # noqa
+            'DischargeDiagnosis10': 'Discharge_Diagnosis_10_FK_Diagnosis',
+            'DischargeDiagnosis11': 'Discharge_Diagnosis_11_FK_Diagnosis',
+            'DischargeDiagnosis12': 'Discharge_Diagnosis_12_FK_Diagnosis',
+            'DischargeDiagnosis13': 'Discharge_Diagnosis_13_FK_Diagnosis',
+            'DischargeDiagnosis14': 'Discharge_Diagnosis_14_FK_Diagnosis',
+            'DischargeDiagnosis2': 'Discharge_Diagnosis_2_FK_Diagnosis',
+            'DischargeDiagnosis3': 'Discharge_Diagnosis_3_FK_Diagnosis',
+            'DischargeDiagnosis4': 'Discharge_Diagnosis_4_FK_Diagnosis',
+            'DischargeDiagnosis5': 'Discharge_Diagnosis_5_FK_Diagnosis',
+            'DischargeDiagnosis6': 'Discharge_Diagnosis_6_FK_Diagnosis',
+            'DischargeDiagnosis7': 'Discharge_Diagnosis_7_FK_Diagnosis',
+            'DischargeDiagnosis8': 'Discharge_Diagnosis_8_FK_Diagnosis',
+            'DischargeDiagnosis9': 'Discharge_Diagnosis_9_FK_Diagnosis',
+            'DischargeDiagnosisBy': None,  # user lookup
+            'DischargeDiagnosisConfirmed': 'Discharge_Diagnosis_Confirmed_Date',  # RCEP  # noqa
+            'DischargeMethod': 'Discharge_Method_Code',  # not in RCEP; see also lookup  # noqa
             'DischargePostCode': 'Discharge_Post_Code',  # RCEP
-            'LikelyLegalStatus': 'Likely_Legal_Status',  # RCEP
+            'DischargeReadyDate': 'Discharge_Ready_Date',  # RCEP
+            'EventNumber': 'Event_Number',  # RCEP
+            'FirstInSeries': 'First_In_Series',  # RCEP
+            'HighSecurityCategory': 'High_Security_Category',  # RCEP
+            'IntendedDischargeDate': 'Intended_Discharge_Date',  # RCEP
+            'IntendedManagement': 'Intended_Management_Code',  # not in RCEP; see also lookup  # noqa
+            'LegalStatus': 'Legal_Status_Code',  # in RCEP, Legal_Status
+            'ReferralID': 'Referral_ID_FK_Referral',  # Referral_ID in RCEP
+            'ReferralReason': 'Referral_Reason',  # RCEP
+            'ReferralRequest': None,  # present in RCEP but "no longer used" in docs  # noqa
+            'ReferralSource': 'ReferralSource_Code',  # not in RCEP; see also lookup  # noqa
+            'ReferringConsultant': None,  # not in RCEP; see lookup below
+            'ReferringGP': None,  # see lookup below
+            'WaitingStartDateA': 'Waiting_Start_Date_A',  # RCEP
+            'WaitingStartDateB': 'Waiting_Start_Date_B',  # RCEP
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'AdmissionMethod',
+                    'lookup_table': 'ImsAdmissionMethod',
+                    'result_alias': 'Admission_Method_Description',
+                    # ... in RCEP, Admission_Method
+                    'internal_alias_prefix': 'am',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'AdmissionSource',
+                    'lookup_table': 'ImsAdmissionSource',
+                    'result_alias': 'Admission_Source_Description',
+                    # ... in RCEP, Admission_Source
+                    'internal_alias_prefix': 'as',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ClientClassification',
+                    'lookup_table': 'ImsClientClassification',
+                    'result_alias': 'Client_Classification_Description',
+                    # ... in RCEP, Client_Classification
+                    'internal_alias_prefix': 'cc',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'DischargeAwaitedReason',
+                    'lookup_table': 'ImsClientClassification',
+                    'result_alias': 'Discharge_Awaited_Reason_Description',
+                    # ... in RCEP, Discharge_Awaited_Reason
+                    'internal_alias_prefix': 'dar',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'DischargeDestination',
+                    'lookup_table': 'ImsDischargeDestination',
+                    'result_alias': 'Discharge_Destination_Description',
+                    # ... in RCEP, Discharge_Destination
+                    'internal_alias_prefix': 'dd',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'DischargeMethod',
+                    'lookup_table': 'ImsDischargeMethod',
+                    'result_alias': 'Discharge_Method_Description',
+                    # ... in RCEP, Discharge_Method
+                    'internal_alias_prefix': 'dm',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'IntendedManagement',
+                    'lookup_table': 'ImsIntendedManagement',
+                    'result_alias': 'Intended_Management_Description',
+                    # ... in RCEP, Intended_Management
+                    'internal_alias_prefix': 'im',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'AdministrativeCategory',
+                    'lookup_table': 'GenAdministrativeCategory',
+                    'result_alias': 'Administrative_Category_Description',
+                    # ... in RCEP, Administrative_Category
+                    'internal_alias_prefix': 'ac',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferralSource',
+                    'lookup_table': 'AmsReferralSource',
+                    'result_alias': 'Referral_Source_Description',
+                    # ... in RCEP, Referral_Source
+                    'internal_alias_prefix': 'rs',
+                },
+            },
+            {
+                'function': rio_add_gp_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferringGP',
+                    'column_prefix': 'Referring_GP',  # RCEP
+                    'internal_alias_prefix': 'rgp',
+                },
+            },
+            # Look up the same field two ways.
+            {  # If AmsReferralSource.Behaviour = 'CS'...
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferringConsultant',
+                    'column_prefix': 'Referring_Consultant_Cons',
+                    'internal_alias_prefix': 'rcc',
+                },
+            },
+            {  # If AmsReferralSource.Behaviour = 'CH'...
+                'function': rio_add_consultant_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReferringConsultant',
+                    'column_prefix': 'Referring_Consultant_HCP',
+                    'internal_alias_prefix': 'rch',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'AdmissionAllocation',
+                    'lookup_table': 'GenPCG',
+                    'result_alias': 'Admission_Allocation_PCT_Description',
+                    # ... not in RCEP
+                    'internal_alias_prefix': 'aa',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'DischargeAllocation',
+                    'lookup_table': 'GenPCG',
+                    'result_alias': 'Discharge_Allocation_PCT_Description',
+                    # ... not in RCEP
+                    'internal_alias_prefix': 'da',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'LegalStatus',
+                    'lookup_table': 'ImsLegalStatusClassification',
+                    'result_alias': 'Legal_Status_Description',
+                    # ... not in RCEP
+                    'internal_alias_prefix': 'ls',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'DischargeDiagnosisBy',
+                    'column_prefix': 'Discharge_Diagnosis_By',  # RCEP
+                    'internal_alias_prefix': 'eb',
+                },
+            },
+        ],
+        'suppress_basetable': True,
+        'suppress_other_tables': [],
+    }),
+
+    ('Inpatient_Leave', {
+        'basetable': 'ImsEventLeave',
+        'rename': {
+            # Created_Date: RCEP ?source ***
+            # Escorted: unchanged  # RCEP
+            # Updated_Date: RCEP ?source ***
+            'AddressLine1': 'Address_Line_1',  # RCEP
+            'AddressLine2': 'Address_Line_2',  # RCEP
+            'AddressLine3': 'Address_Line_3',  # RCEP
+            'AddressLine4': 'Address_Line_4',  # RCEP
+            'AddressLine5': 'Address_Line_5',  # RCEP
+            'Deleted': 'Deleted_Flag',  # RCEP
+            'EndDateTime': 'End_Date_Time',  # RCEP
+            'EndedByAWOL': 'Ended_By_AWOL',  # RCEP
+            'EventNumber': 'Event_Number',
+            # ... RCEP; event number within this admission? Clusters near 1.
+            'ExpectedReturnDateTime': 'Expected_Return_Date_Time',  # RCEP
+            'LeaveEndReason': 'Leave_End_Reason_Code',  # RCEP
+            'LeaveType': 'Leave_Type_Code',  # RCEP was LeaveType_Code
+            'OtherInformation': 'Other_Information',  # RCEP
+            'PlannedStartDateTime': 'Planned_Start_Date_Time',  # RCEP
+            'PostCode': 'Post_Code',  # RCEP
+            'SequenceID': 'Leave_Instance_Number',  # I think... RCEP
+            'StartDateTime': 'Start_Date_Time',  # RCEP
+            'UniqueSequenceID': 'Unique_Key',
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'LeaveType',
+                    'lookup_table': 'ImsLeaveType',
+                    'result_alias': 'Leave_Type_Description',  # RCEP
+                    'internal_alias_prefix': 'lt',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'LeaveEndReason',
+                    'lookup_table': 'ImsLeaveEndReason',
+                    'result_alias': 'Leave_End_Reason',  # RCEP
+                    'internal_alias_prefix': 'lt',
+                },
+            },
+            {
+                'function': simple_view_where,
+                'kwargs': {
+                    'where_clause':
+                        '(Deleted_Flag IS NULL OR Deleted_Flag = 0)',
+                },
+            },
+            {
+                'function': rio_add_ims_event_lookup,
+                'kwargs': {
+                    'basecolumn_event_num': 'EventNumber',
+                    'column_prefix': 'Admission',
+                    'internal_alias_prefix': 'ad',
+                },
+            },
+        ],
+    }),
+
+    ('Inpatient_Movement', {
+        'basetable': 'ImsEventMovement',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'EventNumber': 'Event_Number',  # RCEP
+            'SequenceID': 'Movement_Key',  # RCEP *** check
+            'StartDateTime': 'Start_Date',  # RCEP
+            'EndDateTime': 'End_Date',  # RCEP
+            'WardCode': None,  # Ward_Code (RCEP) is from bay lookup
+            'BayCode': None,  # Bay_Code (RCEP) is from bay lookup
+            'BedNumber': 'Bed',  # RCEP
+            'IdentitySequenceID': 'Unique_Key',  #  RCEP
+            'EpisodeType': 'Episode_Type_Code',  # Episode_Type in RCEP
+            'PsychiatricPatientStatus': 'Psychiatric_Patient_Status_Code',  # Psychiatric_Patient_Status in RCEP  # noqa
+            'Consultant': None,  # user lookup
+            'Specialty': 'Specialty_Code',  # RCEP
+            'OtherConsultant': None,  # user lookup
+            'MovementTypeFlag': 'Movement_Type_Flag',  # RCEP
+            # RCEP: Initial_Movement_Flag ?source ?extra bit flag in new RiO
+            'Diagnosis1': 'Diagnosis_1_FK_Diagnosis',  # in RCEP, DischargeDiagnosis1, etc.  # noqa
+            'Diagnosis10': 'Diagnosis_10_FK_Diagnosis',
+            'Diagnosis11': 'Diagnosis_11_FK_Diagnosis',
+            'Diagnosis12': 'Diagnosis_12_FK_Diagnosis',
+            'Diagnosis13': 'Diagnosis_13_FK_Diagnosis',
+            'Diagnosis14': 'Diagnosis_14_FK_Diagnosis',
+            'Diagnosis2': 'Diagnosis_2_FK_Diagnosis',
+            'Diagnosis3': 'Diagnosis_3_FK_Diagnosis',
+            'Diagnosis4': 'Diagnosis_4_FK_Diagnosis',
+            'Diagnosis5': 'Diagnosis_5_FK_Diagnosis',
+            'Diagnosis6': 'Diagnosis_6_FK_Diagnosis',
+            'Diagnosis7': 'Diagnosis_7_FK_Diagnosis',
+            'Diagnosis8': 'Diagnosis_8_FK_Diagnosis',
+            'Diagnosis9': 'Diagnosis_9_FK_Diagnosis',
+            'DiagnosisConfirmed': 'Diagnosis_Confirmed_Date_Time',  # RCEP
+            'DiagnosisBy': None,  # user lookup
+            'Service': 'Service_Code',  # RCEP
+            'ServiceChargeRate': 'Service_Charge_Rate',  # RCEP
+        },
+        'add': [
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'WardCode',
+                    'lookup_table': 'ImsWard',
+                    'lookup_pk': 'WardCode',
+                    'lookup_fields_aliases': {
+                        'WardDescription': 'Ward_Description',  # RCEP
+                    },
+                    'internal_alias_prefix': 'rw',
+                },
+            },
+            {
+                'function': rio_add_bay_lookup,
+                'kwargs': {
+                    'basecolumn_ward': 'WardCode',
+                    'basecolumn_bay': 'BayCode',
+                    'column_prefix': '',
+                    # Ward_Description, Bay_Description as per RCEP
+                    'internal_alias_prefix': 'bay',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'EpisodeType',
+                    'lookup_table': 'ImsEpisodeType',
+                    'result_alias': 'Episode_Type_Description', # not in RCEP
+                    'internal_alias_prefix': 'et',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'PsychiatricPatientStatus',
+                    'lookup_table': 'ImsPsychiatricPatientStatus',
+                    'result_alias': 'Psychiatric_Patient_Status_Description',
+                    # ... not in RCEP
+                    'internal_alias_prefix': 'pp',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'Consultant',
+                    'column_prefix': 'Consultant',  # RCEP
+                    'internal_alias_prefix': 'co',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'OtherConsultant',
+                    'column_prefix': 'Other_Consultant',  # RCEP
+                    'internal_alias_prefix': 'oc',
+                },
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'Specialty',
+                    'lookup_table': 'GenSpecialty',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'Specialty_Description',  # RCEP
+                        'NationalCode': 'Specialty_National_Code',  # RCEP
+                    },
+                    'internal_alias_prefix': 'rw',
+                },
+            },
+            {  # not in RCEP
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': '',
+                    'lookup_table': '',
+                    'result_alias': 'Specialty_Referred_To_Description',
+                    'internal_alias_prefix': 'sprt',
+                }
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN MovementTypeFlag & 1 THEN 1 ELSE 0 END',
+                    'alias': 'Consultant_Change_Flag',
+                },
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN MovementTypeFlag & 2 THEN 1 ELSE 0 END',
+                    'alias': 'Bed_Change_Flag',
+                },
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN MovementTypeFlag & 4 THEN 1 ELSE 0 END',
+                    'alias': 'Bay_Change_Flag',
+                },
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN MovementTypeFlag & 8 THEN 1 ELSE 0 END',
+                    'alias': 'Ward_Change_Flag',
+                },
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN MovementTypeFlag & 16 THEN 1 ELSE 0 END',  # noqa
+                    'alias': 'Service_Change_Flag',
+                },
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN MovementTypeFlag & 32 THEN 1 ELSE 0 END',  # noqa
+                    'alias': 'Nurse_Change_Flag',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'DiagnosisBy',
+                    'column_prefix': 'Diagnosis_Confirmed_By',  # RCEP
+                    'internal_alias_prefix': 'dcb',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Service',
+                    'lookup_table': 'GenService',
+                    'result_alias': 'Service_Description',  # RCEP
+                    'internal_alias_prefix': 'sv',
+                },
+            },
+        ],
+    }),
+
+    # *** 'Inpatient_Named_Nurse'
+
+    # *** 'Inpatient_Sleepover'
+
+    # 'LSOA_buffer' is RCEP internal, cf. my ONS PD geography database
+
+    ('Referral', {  # was Main_Referral_Data
+        'basetable': 'AmsReferral',
+        'rename': {
+            # EnquiryNumber: unchanged
+            # Referrer: unchanged; not in RCEP; missing?
+            # Referral_Reason_National_Code: RCEP; ?source ***. Only AmsReferralSource.NationalCode  # noqa
+            'AdministrativeCategory': 'Administrative_Category_Code',  # RCEP
             'CABReferral': 'CAB_Referral',  # RCEP
+            'ClientCareSpell': None,  # see lookup below
+            'DischargeAddressLine1': 'Discharge_Address_Line_1',  # RCEP
+            'DischargeAddressLine2': 'Discharge_Address_Line_2',  # RCEP
+            'DischargeAddressLine3': 'Discharge_Address_Line_3',  # RCEP
+            'DischargeAddressLine4': 'Discharge_Address_Line_4',  # RCEP
+            'DischargeAddressLine5': 'Discharge_Address_Line_5',  # RCEP
+            'DischargeAllocation': 'Discharge_Allocation',  # RCEP
+            'DischargeComment': 'Discharge_Comment',  # RCEP
+            'DischargeDateTime': 'Discharge_DateTime',  # not in RCEP; missing?
             'DischargedOnAdmission': 'Discharged_On_Admission',  # RCEP
-            'WaitingListID': 'Waiting_List_ID',  # RCEP; FK to WLConfig.WLCode (ignored)  # noqa
+            'DischargeHCP': None,  # RCEP; user lookup
+            'DischargePostCode': 'Discharge_Post_Code',  # RCEP
+            'DischargeReason': 'Discharge_Reason',  # not in RCEP; missing?
+            'ExternalReferralId': 'External_Referral_Id',
+            # ... RCEP (field is not VARCHAR(8000) as docs suggest; 25 in RiO,
+            #     50 in RCEP)
+            'HCPAllocationDate': 'HCP_Allocation_Date',  # RCEP
+            'HCPReferredTo': None,  # not in RCEP; lookup added below
+            'IWSComment': 'IWS_Comment',  # RCEP
+            'IWSHeld': 'IWS_Held',  # RCEP
+            'LikelyFunder': 'Likely_Funder',  # RCEP
+            'LikelyLegalStatus': 'Likely_Legal_Status',  # RCEP
+            'PatientArea': 'Patient_Area',  # RCEP
+            'ReferralAcceptedDate': 'Referral_Accepted_Date',  # RCEP
+            'ReferralActionDate': 'Referral_ActionDate',  # not in RCEP; missing?  # noqa
+            'ReferralAllocation': 'Referral_Allocation',  # RCEP
+            'ReferralComment': 'Referral_Comment',  # not in RCEP; missing?
+            'ReferralDateTime': 'Referral_DateTime',  # not in RCEP; missing?
+            'ReferralNumber': 'Referral_Number',  # RCEP
+            'ReferralReason': 'Referral_Reason_Code',  # RCEP
+            'ReferralReceivedDate': 'Referral_Received_Date',  # RCEP
+            'ReferralSource': 'Referral_Source',  # RCEP
+            'ReferredConsultant': None,  # RCEP; user lookup
+            'ReferredWard': 'Referred_Ward_Code',  # RCEP
+            'ReferrerOther': 'Referrer_Other',  # RCEP
+            'ReferringConsultant': None,  # tricky lookup; see below
+            'ReferringGP': 'Referring_GP_Code',  # RCEP
+            'ReferringGPPracticeCode': 'Referring_GP_Practice_Code',  # RCEP
+            'RemovalCode': 'Removal_Code',  # RCEP
+            'RemovalDateTime': 'Removal_DateTime',  # RCEP
+            'RemovalUser': None,  # RCEP; user lookup
             'RTTCode': 'RTT_Code',  # RCEP; FK to RTTPathwayConfig.RTTCode (ignored)  # noqa
+            'ServiceReferredTo': 'Service_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
+            'SpecialtyReferredTo': 'Specialty_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
+            'TeamReferredTo': None,  # not in RCEP; lookup added below
+            'Urgency': 'Urgency_Code',  # not in RCEP; missing?
+            'WaitingListID': 'Waiting_List_ID',  # RCEP; FK to WLConfig.WLCode (ignored)  # noqa
         },
         'add': [
             {  # not in RCEP
@@ -1680,7 +2269,8 @@ RIO_VIEWS = {
                 'kwargs': {
                     'basecolumn': 'AdministrativeCategory',
                     'lookup_table': 'GenAdministrativeCategory',
-                    'result_alias': 'Administrative_Category_Description',  # RCEP  # noqa
+                    'result_alias': 'Administrative_Category_Description',
+                    # ... RCEP
                     'internal_alias_prefix': 'ac',
                 },
             },
@@ -1784,37 +2374,44 @@ RIO_VIEWS = {
                 'function': rio_add_consultant_lookup,
                 'kwargs': {
                     'basecolumn': 'ReferringConsultant',
-                    'column_prefix': 'Referring_Consultant_HCP',  # RCEP: Referring_Consultant_User  # noqa
+                    'column_prefix': 'Referring_Consultant_HCP',
+                    # ... RCEP: Referring_Consultant_User
                     'internal_alias_prefix': 'rch',
                 },
             },
         ],
-    },
-    'Progress_Notes': {
-        'basetable': VIEW_PROGRESS_NOTES_CURRENT,
+    }),
+
+    ('Progress_Notes', {
+        'basetable': VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT,
         # ... not RIO_TABLE_PROGRESS_NOTES
         'skip_existence_check': True,
         # ... because we may have just added the view manually; it won't then
         #     be in the metadata until we re-reflect; that would be slow.
         'rename': {
+            # create:
             'DateAndTime': 'Created_Date',  # RCEP; RCEP synonym: 'Date'
-            'EnterDatetime': 'Updated_Date',  # RCEP
+            'UserID': None,  # RCEP; user lookup
+            # update:
+            'EnterDatetime': 'Updated_Date',  # RCEP; later than DateAndTime
+            'EnteredBy': None,  # not in RCEP; user lookup
+            # verify:
             'VerifyDate': 'Verified_Date',  # RCEP was: Validate_This_Note
-            'NoteType': None,  # RCEP; this is a code
-            'SubNoteType': None,  # RCEP; this is a code
-            'NoteText': 'Text',  # RCEP
+            'VerifyUserID': None,  # RCEP; user lookup
+            # other:
+            # 'HTMLIncludedFlag': None,  # RCEP
+            # 'NoteNum': None,  # RCEP
             # 'Significant': 'This_Is_A_Significant_Event',  # RCEP
-            'ThirdPartyInfo': 'Third_Party_Info',  # RCEP was: This_Note_Contains_Third_Party_Information  # noqa
+            # 'SubNum': None,  # RCEP
+            'EnteredInError': 'Entered_In_Error',  # RCEP
+            'NoteText': 'Text',  # RCEP
+            'NoteType': None,  # RCEP; this is a code
+            'Problem': None,  # RCEP; "obsolete"
             'RiskRelated': 'Risk_Related',  # RCEP was: Add_To_Risk_History
             'RiskType': None,  # RCEP; this is a code
-            'EnteredInError': 'Entered_In_Error',  # RCEP
-            # 'NoteNum': None,  # RCEP
-            # 'SubNum': None,  # RCEP
-            # 'HTMLIncludedFlag': None,  # RCEP
-            'Problem': None,  # RCEP; "obsolete"
-            'UserID': None,  # RCEP: ignored? Same as EnteredBy? ***
-            'EnteredBy': None,  # RCEP; user lookup
-            'VerifyUserID': None,  # RCEP; user lookup
+            'SubNoteType': None,  # RCEP; this is a code
+            'ThirdPartyInfo': 'Third_Party_Info',
+            # ... RCEP was: This_Note_Contains_Third_Party_Information
         },
         'add': [
             {  # not in RCEP
@@ -1885,8 +2482,17 @@ RIO_VIEWS = {
             {
                 'function': rio_add_user_lookup,
                 'kwargs': {
-                    'basecolumn': 'EnteredBy',  # or UserID? ***
-                    'column_prefix': 'Originating_User',  # RCEP: was originator_user  # noqa
+                    'basecolumn': 'UserID',
+                    'column_prefix': 'Originating_User',
+                    # ... RCEP: was originator_user
+                    'internal_alias_prefix': 'ou',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'EnteredBy',
+                    'column_prefix': 'Updating_User',  # not in RCEP
                     'internal_alias_prefix': 'ou',
                 },
             },
@@ -1894,22 +2500,28 @@ RIO_VIEWS = {
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'VerifyUserID',
-                    'column_prefix': 'Verifying_User',  # RCEP: was verified_by_user  # noqa
+                    'column_prefix': 'Verifying_User',
+                    # ... RCEP: was verified_by_user
                     'internal_alias_prefix': 'vu',
                 },
             },
+            {
+                # Restrict to current progress notes using CRATE extra info?
+                'function': where_prognotes_current,
+            },
         ],
-    },
-    'Referral_Staff_History': {
+    }),
+
+    ('Referral_Staff_History', {
         'basetable': 'AmsReferralAllocation',
         'rename': {
-            'ReferralID': 'Referral_Key',  # RCEP
-            'TransferDate': 'Transfer_Date',  # RCEP
-            'StartDate': 'Start_Date',  # RCEP
-            'EndDate': 'End_Date',  # RCEP
-            'HCPCode': None,  # RCEP was HCPCode but this is in user lookup
             # Comment: unchanged
             'CurrentAtDischarge': 'Current_At_Discharge',
+            'EndDate': 'End_Date',  # RCEP
+            'HCPCode': None,  # RCEP was HCPCode but this is in user lookup
+            'ReferralID': 'Referral_Key',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'TransferDate': 'Transfer_Date',  # RCEP
         },
         'add': [
             {
@@ -1923,16 +2535,17 @@ RIO_VIEWS = {
         ],
         'suppress_basetable': True,
         'suppress_other_tables': [],
-    },
-    'Referral_Team_History': {
+    }),
+
+    ('Referral_Team_History', {
         'basetable': 'AmsReferralTeam',
         'rename': {
-            'ReferralID': 'Referral_Key',  # RCEP
-            'StartDate': 'Start_Date',  # RCEP
-            'EndDate': 'End_Date',  # RCEP
-            'TeamCode': None,  # see lookup below, which will produce Team_Code as per RCEP  # noqa
             # Comment - unchanged
             'CurrentAtDischarge': 'Current_At_Discharge',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'ReferralID': 'Referral_Key',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'TeamCode': None,  # Team_Code (as per RCEP) from lookup below
         },
         'add': [
             {
@@ -1944,16 +2557,17 @@ RIO_VIEWS = {
                 },
             },
         ],
-    },
-    'Referral_Waiting_Status_History': {
+    }),
+
+    ('Referral_Waiting_Status_History', {
         'basetable': 'AmsReferralListWaitingStatus',
         'rename': {
-            'ReferralID': 'Referral_Key',  # RCEP
-            'WaitingStatus': None,  # RCEP; is a code
-            'StartDate': 'Start_Date',  # RCEP
-            'EndDate': 'End_Date',  # RCEP
-            'ChangeDateTime': 'Change_Date_Time',  # RCEP
             'ChangeBy': None,  # RCEP; user lookup
+            'ChangeDateTime': 'Change_Date_Time',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'ReferralID': 'Referral_Key',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'WaitingStatus': None,  # RCEP; is a code
         },
         'add': [
             {
@@ -1974,11 +2588,13 @@ RIO_VIEWS = {
                 },
             },
         ],
-    },
+    }),
+
     # -------------------------------------------------------------------------
     # Non-core: CPFT
     # -------------------------------------------------------------------------
-    'Core_Assessment_PPH_PMH_Allergies_Frailty': {
+
+    ('Core_Assessment_PPH_PMH_Allergies_Frailty', {
         'basetable': 'UserAssesscoreassesspastpsy',
         'add': [
             {
@@ -2002,8 +2618,8 @@ RIO_VIEWS = {
                 },
             },
         ],
-    },
-}
+    }),
+])
 
 
 # =============================================================================
@@ -2318,11 +2934,19 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientName.GivenName5
     ClientName.SpineID
     ClientName.Surname
+    ImsEvent.DischargeAddressLine*
+    ImsEvent.DischargePostCode*
+    ImsEventLeave.AddressLine*
+    ImsEventLeave.PostCode
     # ----------------------------------------------------------------------
     # Views
     # ----------------------------------------------------------------------
-    Main_Referral_Data.Discharge_Address_Line_*
-    Main_Referral_Data.Discharge_Post_Code*
+    Inpatient_Leave.Address_Line*
+    Inpatient_Leave.PostCode
+    Admission.Discharge_Address_Line_*  # renamed from RCEP Inpatient_Stay
+    Admission.Discharge_Post_Code*  # renamed from RCEP Inpatient_Stay
+    Referral.Discharge_Address_Line_*  # renamed from RCEP Main_Referral_Data
+    Referral.Discharge_Post_Code*  # renamed from RCEP Main_Referral_Data
     {VIEW_ADDRESS_WITH_GEOGRAPHY}.AddressLine*
     {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode
 
@@ -2341,15 +2965,9 @@ ddgen_scrubmethod_code_fields = # variants:
 
 ddgen_scrubmethod_date_fields = *Date*
 
-ddgen_scrubmethod_number_fields = # several:
-    *DaytimePhone*
-    *EveningPhone*
-    *MobilePhone*
-    *Daytime_Phone*
-    *Evening_Phone*
-    *Mobile_Phone*
+ddgen_scrubmethod_number_fields = *Phone*
 
-ddgen_scrubmethod_phrase_fields = AddressLine*
+ddgen_scrubmethod_phrase_fields = *Address*
 
 ddgen_safe_fields_exempt_from_scrubbing =
 
@@ -2398,14 +3016,13 @@ def main():
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
     """)  # noqa
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     parser.add_argument(
         "--print", action="store_true",
         help="Print SQL but do not execute it. (You can redirect the printed "
              "output to create an SQL script.")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
-    parser.add_argument(
-        "--debug_skiptables", action="store_true",
-        help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
+
     parser.add_argument(
         "--rcep", action="store_true",
         help="Treat the source database as the product of Servelec's RiO CRIS "
@@ -2417,6 +3034,23 @@ def main():
         "--cpft", action="store_true",
         help="Apply hacks for Cambridgeshire & Peterborough NHS Foundation "
              "Trust (CPFT)")
+
+    parser.add_argument(
+        "--debug_skiptables", action="store_true",
+        help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
+
+    parser.add_argument(
+        "--prognotes_current_only",
+        dest="prognotes_current_only",
+        action="store_true",
+        help="Progress_Notes view restricted to current versions only")
+    parser.add_argument(
+        "--prognotes_all",
+        dest="prognotes_current_only",
+        action="store_false",
+        help="Progress_Notes view shows old versions too")
+    parser.set_defaults(prognotes_current_only=True)
+
     parser.add_argument(
         "--postcodedb",
         help="Specify database (schema) name for ONS Postcode Database (as "
@@ -2426,11 +3060,12 @@ def main():
         help="List of geographical information columns to link in from ONS "
              "Postcode Database. BEWARE that you do not specify anything too "
              "identifying. Default: {}".format(' '.join(DEFAULT_GEOG_COLS)))
+
     parser.add_argument(
         "--settings_filename",
         help="Specify filename to write draft ddgen_* settings to, for use in "
              "a CRATE anonymiser configuration file.")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
+
     progargs = parser.parse_args()
 
     configure_logger_for_colour(
@@ -2499,3 +3134,6 @@ if __name__ == '__main__':
     sys.excepthook = ultratb.FormattedTB(mode='Verbose',
                                          color_scheme='Linux', call_pdb=1)
     main()
+
+*** ddgen_* for "omit these fields" / "include these fields"
+*** then implement them for the RCEP-style views
