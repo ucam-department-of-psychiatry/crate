@@ -708,7 +708,7 @@ def create_view(engine, progargs, viewname, select_sql):
             select_sql=select_sql,
         )
     else:
-        drop_view(engine, progargs, viewname)
+        drop_view(engine, progargs, viewname, quiet=True)
         sql = "CREATE VIEW {viewname} AS {select_sql}".format(
             viewname=viewname,
             select_sql=select_sql,
@@ -717,7 +717,7 @@ def create_view(engine, progargs, viewname, select_sql):
     execute(engine, progargs, sql)
 
 
-def drop_view(engine, progargs, viewname):
+def drop_view(engine, progargs, viewname, quiet=False):
     # MySQL has DROP VIEW IF EXISTS, but SQL Server only has that from
     # SQL Server 2016 onwards.
     # - https://msdn.microsoft.com/en-us/library/ms173492.aspx
@@ -726,6 +726,8 @@ def drop_view(engine, progargs, viewname):
     if viewname.lower() not in view_names:
         log.debug("View {} does not exist; not dropping".format(viewname))
     else:
+        if not quiet:
+            log.info("Dropping view: '{}'".format(viewname))
         sql = "DROP VIEW {viewname}".format(viewname=viewname)
         execute(engine, progargs, sql)
 
@@ -997,7 +999,6 @@ def process_progress_notes(table, engine, progargs):
     ))
 
     # Create a view
-    log.info("Creating view '{}'".format(VIEW_PROGRESS_NOTES_CURRENT))
     select_sql = """
         SELECT *
         FROM {tablename}
@@ -1137,6 +1138,8 @@ def get_rio_views(engine, metadata, progargs, ddhint,
     for viewname, viewdetails in RIO_VIEWS.items():
         basetable = viewdetails['basetable']
         if basetable.lower() not in all_tables_lower:
+            log.warning("Skipping view {} as base table {} not present".format(
+                viewname, basetable))
             continue
         suppress_basetable = viewdetails.get('suppress_basetable',
                                              suppress_basetables)
