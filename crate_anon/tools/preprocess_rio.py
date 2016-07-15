@@ -2146,15 +2146,6 @@ RIO_VIEWS = OrderedDict([
                     'internal_alias_prefix': 'rw',
                 },
             },
-            {  # not in RCEP
-                'function': standard_rio_code_lookup,
-                'kwargs': {
-                    'basecolumn': '',
-                    'lookup_table': '',
-                    'result_alias': 'Specialty_Referred_To_Description',
-                    'internal_alias_prefix': 'sprt',
-                }
-            },
             {
                 'function': simple_view_expr,
                 'kwargs': {
