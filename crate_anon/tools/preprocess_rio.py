@@ -1507,9 +1507,7 @@ RIO_VIEWS = {
     # *** 'Care_Plan_Problems'
     # *** 'Client_Address_History'
     # *** 'Client_Alternative_ID'
-    'Client_Allergies': {
-        # ***
-    },
+    # *** 'Client_Allergies'
     # *** 'Client_Communications_History'
     # *** 'Client_CPA'
     # *** 'Client_Demographic_Details'
@@ -1585,7 +1583,6 @@ RIO_VIEWS = {
     # *** 'Inpatient_Stay'
     # 'LSOA_buffer' is RCEP internal, cf. my ONS PD geography database
     'Main_Referral_Data': {
-        # *** IN PROGRESS
         'basetable': 'AmsReferral',
         'rename': {
             'ReferralNumber': 'Referral_Number',  # RCEP
@@ -1959,7 +1956,6 @@ RIO_VIEWS = {
     # -------------------------------------------------------------------------
     'core_assess_past_psy': {
         'basetable': 'UserAssesscoreassesspastpsy',
-        'rename': {},
         'add': [
             {
                 # Rockwood frailty score
