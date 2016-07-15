@@ -1141,7 +1141,6 @@ def get_rio_views(engine, metadata, progargs, ddhint,
             log.warning("Skipping view {} as base table {} not present".format(
                 viewname, basetable))
             continue
-        log.critical(viewname)
         suppress_basetable = viewdetails.get('suppress_basetable',
                                              suppress_basetables)
         suppress_other_tables = viewdetails.get('suppress_other_tables', [])
@@ -1160,7 +1159,7 @@ def get_rio_views(engine, metadata, progargs, ddhint,
         views[viewname] = viewmaker.get_sql()
         if suppress_lookup:
             ddhint.suppress_tables(viewmaker.get_lookup_table())
-        return views
+    return views
 
 
 def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
