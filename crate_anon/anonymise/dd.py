@@ -501,8 +501,8 @@ class DataDictionaryRow(object):
             return any(self._matches_fielddef(fd) for fd in fielddef)
 
     def set_from_src_db_info(self, db, table, field,
-                             datatype_sqltext, sqla_coltype, cfg, comment=None,
-                             default_omit=True):
+                             datatype_sqltext, sqla_coltype, cfg,
+                             comment=None):
         """
         Create a draft data dictionary row from a field in the source database.
         """
@@ -579,12 +579,16 @@ class DataDictionaryRow(object):
             self.scrub_method = SCRUBMETHOD.WORDS
 
         # Should we omit it (at least until a human has looked at the DD)?
-        self.omit = (
-            (default_omit or bool(self.scrub_src)) and
-            not self._pk and
-            not self._primary_pid and
-            not self._master_pid
-        )
+        # In order:
+        self.omit = cfg.ddgen_omit_by_default
+        if self.matches_fielddef(cfg.ddgen_include_fields):
+            self.omit = True
+        if self.matches_fielddef(cfg.ddgen_omit_fields):
+            self.omit = False
+        if bool(self.scrub_src):
+            self.omit = True
+        if self._pk or self._primary_pid or self._master_pid:
+            self.omit = False
 
         # Do we want to change the destination fieldname?
         if self._primary_pid:
@@ -1020,8 +1024,7 @@ class DataDictionary(object):
             log.debug("... content loaded.")
         self.clear_caches()
 
-    def read_from_source_databases(self, report_every=100,
-                                   default_omit=True):
+    def read_from_source_databases(self, report_every=100):
         """
         Create a draft DD from a source database.
         """
@@ -1066,8 +1069,7 @@ class DataDictionary(object):
                         datatype_sqltext,
                         sqla_coltype,
                         cfg=cfg,
-                        comment=comment,
-                        default_omit=default_omit)
+                        comment=comment)
                     new_rows.append(ddr)
 
                 # Now, table-wide checks across all columns:

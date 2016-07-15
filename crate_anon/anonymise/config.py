@@ -67,7 +67,6 @@ Thoughts on configuration method
 # Imports
 # =============================================================================
 
-import ast
 import codecs
 import fnmatch
 import logging
@@ -95,7 +94,6 @@ from crate_anon.anonymise.constants import (
     MAX_PID_STR,
     SEP,
 )
-from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.hash import (
     # MD5Hasher,
@@ -153,15 +151,23 @@ class DatabaseSafeConfig(object):
         def opt_int(option, default):
             return parser.get_int_default_if_failure(section, option, default)
 
-        self.ddgen_force_lower_case = opt_bool('ddgen_force_lower_case', True)
-        self.ddgen_convert_odd_chars_to_underscore = opt_bool(
-            'ddgen_convert_odd_chars_to_underscore', True)
+        self.ddgen_omit_by_default = opt_bool(
+            'ddgen_omit_by_default', True)
+        self.ddgen_omit_fields = opt_multiline('ddgen_omit_fields')
+        self.ddgen_include_fields = opt_multiline('ddgen_include_fields')
+
         self.ddgen_allow_no_patient_info = opt_bool(
             'ddgen_allow_no_patient_info', False)
         self.ddgen_per_table_pid_field = opt_str('ddgen_per_table_pid_field')
         self.ddgen_add_per_table_pids_to_scrubber = opt_bool(
             'ddgen_add_per_table_pids_to_scrubber', False)
         self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
+        self.ddgen_table_blacklist = opt_multiline('ddgen_table_blacklist')
+        self.ddgen_table_whitelist = opt_multiline('ddgen_table_whitelist')
+        self.ddgen_field_blacklist = opt_multiline('ddgen_field_blacklist')
+        self.ddgen_field_whitelist = opt_multiline('ddgen_field_whitelist')
+        self.ddgen_pk_fields = opt_multiline('ddgen_pk_fields')
+
         self.ddgen_constant_content = opt_bool(
             'ddgen_constant_content', False)
         self.ddgen_constant_content_tables = opt_str(
@@ -172,19 +178,9 @@ class DatabaseSafeConfig(object):
         self.ddgen_addition_only_tables = opt_str('ddgen_addition_only_tables')
         self.ddgen_deletion_possible_tables = opt_str(
             'ddgen_deletion_possible_tables')
-        self.ddgen_min_length_for_scrubbing = opt_int(
-            'ddgen_min_length_for_scrubbing', 0)
-        self.ddgen_allow_fulltext_indexing = opt_bool(
-            'ddgen_allow_fulltext_indexing', True)
-        self.debug_row_limit = opt_int('debug_row_limit', 0)
 
         self.ddgen_pid_defining_fieldnames = opt_multiline(
             'ddgen_pid_defining_fieldnames')
-        self.ddgen_pk_fields = opt_multiline('ddgen_pk_fields')
-        self.ddgen_table_blacklist = opt_multiline('ddgen_table_blacklist')
-        self.ddgen_table_whitelist = opt_multiline('ddgen_table_whitelist')
-        self.ddgen_field_blacklist = opt_multiline('ddgen_field_blacklist')
-        self.ddgen_field_whitelist = opt_multiline('ddgen_field_whitelist')
         self.ddgen_scrubsrc_patient_fields = opt_multiline(
             'ddgen_scrubsrc_patient_fields')
         self.ddgen_scrubsrc_thirdparty_fields = opt_multiline(
@@ -199,12 +195,13 @@ class DatabaseSafeConfig(object):
             'ddgen_scrubmethod_phrase_fields')
         self.ddgen_safe_fields_exempt_from_scrubbing = opt_multiline(
             'ddgen_safe_fields_exempt_from_scrubbing')
+        self.ddgen_min_length_for_scrubbing = opt_int(
+            'ddgen_min_length_for_scrubbing', 0)
+
         self.ddgen_truncate_date_fields = opt_multiline(
             'ddgen_truncate_date_fields')
         self.ddgen_filename_to_text_fields = opt_multiline(
             'ddgen_filename_to_text_fields')
-        self.ddgen_index_fields = opt_multiline('ddgen_index_fields')
-        self.debug_limited_tables = opt_multiline('debug_limited_tables')
 
         ddgen_binary_to_text_field_pairs = opt_multiline(
             'ddgen_binary_to_text_field_pairs')
@@ -215,6 +212,17 @@ class DatabaseSafeConfig(object):
                 raise ValueError("ddgen_binary_to_text_field_pairs: specify "
                                  "fields in pairs")
             self.bin2text_dict[items[0]] = items[1]
+
+        self.ddgen_index_fields = opt_multiline('ddgen_index_fields')
+        self.ddgen_allow_fulltext_indexing = opt_bool(
+            'ddgen_allow_fulltext_indexing', True)
+
+        self.ddgen_force_lower_case = opt_bool('ddgen_force_lower_case', True)
+        self.ddgen_convert_odd_chars_to_underscore = opt_bool(
+            'ddgen_convert_odd_chars_to_underscore', True)
+
+        self.debug_row_limit = opt_int('debug_row_limit', 0)
+        self.debug_limited_tables = opt_multiline('debug_limited_tables')
 
     def is_table_blacklisted(self, table):
         for white in self.ddgen_table_whitelist:

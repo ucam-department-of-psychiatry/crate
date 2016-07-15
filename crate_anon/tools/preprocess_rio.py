@@ -1204,30 +1204,30 @@ def rio_add_user_lookup(viewmaker, basecolumn,
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     # ... table alias
     viewmaker.add_select("""
-        {basetable}.{basecolumn} AS {cp}_code,
+        {basetable}.{basecolumn} AS {cp}_Code,
 
-        {ap}_genhcp.ConsultantFlag AS {cp}_consultant_flag,
+        {ap}_genhcp.ConsultantFlag AS {cp}_Consultant_Flag,
 
-        {ap}_genperson.Email AS {cp}_email,
-        {ap}_genperson.Title AS {cp}_title,
-        {ap}_genperson.FirstName AS {cp}_first_name,
-        {ap}_genperson.Surname AS {cp}_surname,
+        {ap}_genperson.Email AS {cp}_Email,
+        {ap}_genperson.Title AS {cp}_Title,
+        {ap}_genperson.FirstName AS {cp}_First_Name,
+        {ap}_genperson.Surname AS {cp}_Surname,
 
-        {ap}_prof.Code AS {cp}_responsible_clinician_profession_code,
-        {ap}_prof.CodeDescription AS {cp}_responsible_clinician_profession_description,
+        {ap}_prof.Code AS {cp}_Responsible_Clinician_Profession_Code,
+        {ap}_prof.CodeDescription AS {cp}_Responsible_Clinician_Profession_Description,
 
-        {ap}_serviceteam.Code AS {cp}_primary_team_code,
-        {ap}_serviceteam.CodeDescription AS {cp}_primary_team_description,
+        {ap}_serviceteam.Code AS {cp}_Primary_Team_Code,
+        {ap}_serviceteam.CodeDescription AS {cp}_Primary_Team_Description,
 
-        {ap}_genspec.Code AS {cp}_main_specialty_code,
-        {ap}_genspec.CodeDescription AS {cp}_main_specialty_description,
+        {ap}_genspec.Code AS {cp}_Main_Specialty_Code,
+        {ap}_genspec.CodeDescription AS {cp}_Main_Specialty_Description,
         {ap}_genspec.NationalCode AS {cp}_main_specialty_national_code,
 
-        {ap}_profgroup.Code AS {cp}_professional_group_code,
-        {ap}_profgroup.CodeDescription AS {cp}_professional_group_description,
+        {ap}_profgroup.Code AS {cp}_Professional_Group_Code,
+        {ap}_profgroup.CodeDescription AS {cp}_Professional_Group_Description,
 
-        {ap}_genorg.Code AS {cp}_organisation_type_code,
-        {ap}_genorg.CodeDescription AS {cp}_organisation_type_description
+        {ap}_genorg.Code AS {cp}_Organisation_Type_Code,
+        {ap}_genorg.CodeDescription AS {cp}_Organisation_Type_Description
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -1291,11 +1291,11 @@ def rio_add_consultant_lookup(viewmaker, basecolumn,
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     viewmaker.add_select("""
-        {basetable}.{basecolumn} AS {cp}_id,
-        {ap}_cons.Firstname AS {cp}_first_name,
-        {ap}_cons.Surname AS {cp}_surname,
-        {ap}_cons.SpecialtyID AS {cp}_specialty_code,
-        {ap}_spec.CodeDescription AS {cp}_specialty_description
+        {basetable}.{basecolumn} AS {cp}_ID,
+        {ap}_cons.Firstname AS {cp}_First_Name,
+        {ap}_cons.Surname AS {cp}_Surname,
+        {ap}_cons.SpecialtyID AS {cp}_Specialty_Code,
+        {ap}_spec.CodeDescription AS {cp}_Specialty_Description
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -1324,10 +1324,10 @@ def rio_add_team_lookup(viewmaker, basecolumn,
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
     viewmaker.add_select("""
-        {basetable}.{basecolumn} AS {cp}_code,
-        {ap}_team.CodeDescription AS {cp}_description,
-        {ap}_classif.Code AS {cp}_classification_group_code,
-        {ap}_classif.CodeDescription AS {cp}_classification_group_description
+        {basetable}.{basecolumn} AS {cp}_Code,
+        {ap}_team.CodeDescription AS {cp}_Description,
+        {ap}_classif.Code AS {cp}_Classification_Group_Code,
+        {ap}_classif.CodeDescription AS {cp}_Classification_Group_Description
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -1434,7 +1434,7 @@ def rio_add_ims_event_lookup(viewmaker, basecolumn_event_num,
     # Key to the TABLE, not the VIEW.
     viewmaker.add_select("""
         {basetable}.{basecolumn_event_num} AS {cp}_Event_Number
-        {ap}_evt.{CRATE_COL_PK} AS {cp}_Admission_PK
+        {ap}_evt.{CRATE_COL_PK} AS {cp}_Inpatient_Stay_PK
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn_event_num=basecolumn_event_num,
@@ -1492,6 +1492,8 @@ def where_prognotes_current(viewmaker):
 
 def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
                        column_prefix, internal_alias_prefix):
+    if column_prefix:
+        column_prefix += '_'
     viewmaker.add_select("""
         {basetable}.{basecolumn_ward} AS {cp}Ward_Code,
         {ap}_bay.CodeDescription AS {cp}Ward_Description,
@@ -1647,25 +1649,45 @@ RIO_VIEWS = OrderedDict([
     # -------------------------------------------------------------------------
 
     # 'assessmentsCRISSpec' is RCEP internal for CRIS tree/form/field/... info
-    # *** 'Care_Plan_index'
+
+    # *** 'Care_Plan_Index'
+
     # *** 'Care_Plan_Interventions'
+
     # *** 'Care_Plan_Problems'
+
     # *** 'Client_Address_History'
+
     # *** 'Client_Alternative_ID'
+
     # *** 'Client_Allergies'
+
     # *** 'Client_Communications_History'
+
     # *** 'Client_CPA'
+
     # *** 'Client_Demographic_Details'
+
     # *** 'Client_Family'
+
     # *** 'Client_GP_History'
+
     # *** 'Client_Medication'
+
     # *** 'Client_Name_History'
+
     # *** 'Client_Personal_Contacts'
+
     # *** 'Client_Physical_Details'
+
     # *** 'Client_Prescription'
+
     # *** 'Client_Professional_Contacts'
+
     # *** 'Client_School'
+
     # *** 'CPA_CareCoordinator'
+
     # *** 'CPA_Review'
 
     ('Diagnosis', {
@@ -1723,7 +1745,7 @@ RIO_VIEWS = OrderedDict([
         ],
     }),
 
-    ('Admission', {  # in RCEP, was Inpatient_Stay = confusing
+    ('Inpatient_Stay', {
         'basetable': 'ImsEvent',
         'rename': {
             # Created_Date: RCEP; ?source ***
@@ -2014,7 +2036,7 @@ RIO_VIEWS = OrderedDict([
             'WardCode': None,  # Ward_Code (RCEP) is from bay lookup
             'BayCode': None,  # Bay_Code (RCEP) is from bay lookup
             'BedNumber': 'Bed',  # RCEP
-            'IdentitySequenceID': 'Unique_Key',  #  RCEP
+            'IdentitySequenceID': 'Unique_Key',  # RCEP
             'EpisodeType': 'Episode_Type_Code',  # Episode_Type in RCEP
             'PsychiatricPatientStatus': 'Psychiatric_Patient_Status_Code',  # Psychiatric_Patient_Status in RCEP  # noqa
             'Consultant': None,  # user lookup
@@ -2060,7 +2082,8 @@ RIO_VIEWS = OrderedDict([
                     'basecolumn_ward': 'WardCode',
                     'basecolumn_bay': 'BayCode',
                     'column_prefix': '',
-                    # Ward_Description, Bay_Description as per RCEP
+                    # Ward_Code, Ward_Description,
+                    # Bay_Code, Bay_Description as per RCEP
                     'internal_alias_prefix': 'bay',
                 },
             },
@@ -2069,7 +2092,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'EpisodeType',
                     'lookup_table': 'ImsEpisodeType',
-                    'result_alias': 'Episode_Type_Description', # not in RCEP
+                    'result_alias': 'Episode_Type_Description',  # not in RCEP
                     'internal_alias_prefix': 'et',
                 },
             },
@@ -2183,9 +2206,61 @@ RIO_VIEWS = OrderedDict([
         ],
     }),
 
-    # *** 'Inpatient_Named_Nurse'
+    ('Inpatient_Named_Nurse', {
+        'basetable': 'ImsEventNamedNurse',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'EventNumber': 'Event_Number',  # RCEP
+            'GenHCPCode': 'Named_Nurse_User_Code',  # RCEP
+            'StartDateTime': 'Start_Date_Time',  # RCEP
+            'EndDateTime': 'End_Date_Time',  # RCEP
+            'SequenceID': 'Unique_Key',  # RCEP
+            'EventMovementID': 'Key_To_Associated_Movement',  # RCEP
+            'EndedOnDeath': 'Ended_On_Death_Flag',  # RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'GenHCPCode',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+        ],
+    }),
 
-    # *** 'Inpatient_Sleepover'
+    ('Inpatient_Sleepover', {
+        'basetable': 'ImsEventSleepover',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'SequenceID': 'Event_Key',  # RCEP; not sure this one is worthwhile
+            'EventID': 'Event_ID',  # RCEP
+            'StartDate': 'Start_Date',  # StartDate in RCEP
+            'ExpectedEndDate': 'Expected_End_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'WardCode': None,  # Ward_Code (RCEP) is from bay lookup
+            'BayCode': None,  # Bay_Code (RCEP) is from bay lookup
+            'BedNumber': 'Bed',  # RCEP
+            # Comment: unchanged  # RCEP
+            'EndedOnDeath': 'Ended_On_Death_Flag',  # RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_bay_lookup,
+                'kwargs': {
+                    'basecolumn_ward': 'WardCode',
+                    'basecolumn_bay': 'BayCode',
+                    'column_prefix': '',
+                    # Ward_Code, Ward_Description,
+                    # Bay_Code, Bay_Description as per RCEP
+                    'internal_alias_prefix': 'bay',
+                },
+            },
+        ],
+    }),
 
     # 'LSOA_buffer' is RCEP internal, cf. my ONS PD geography database
 
@@ -2786,6 +2861,50 @@ class DDHint(object):
 
 def report_rio_dd_settings(progargs, ddhint):
     settings_text = """
+ddgen_omit_by_default = True
+
+ddgen_omit_fields =
+
+ddgen_include_fields = #
+    # -------------------------------------------------------------------------
+    # RCEP core views:
+    # -------------------------------------------------------------------------
+    Care_Plan_Index.*
+    Care_Plan_Interventions.*
+    Care_Plan_Problems.*
+    Client_Address_History.*
+    Client_Alternative_ID.*
+    Client_Allergies.*
+    Client_Communications_History.*
+    Client_CPA.*
+    Client_Demographic_Details.*
+    Client_Family.*
+    Client_GP_History.*
+    Client_Medication.*
+    Client_Name_History.*
+    Client_Personal_Contacts.*
+    Client_Physical_Details.*
+    Client_Prescription.*
+    Client_Professional_Contacts.*
+    Client_School.*
+    CPA_CareCoordinator.*
+    CPA_Review.*
+    Diagnosis.*
+    Inpatient_Stay.*
+    Inpatient_Leave.*
+    Inpatient_Movement.*
+    Inpatient_Named_Nurse.*
+    Inpatient_Sleepover.*
+    Referral.*
+    Progress_Notes.*
+    Referral_Staff_History.*
+    Referral_Team_History.*
+    Referral_Waiting_Status_History.*
+    # -------------------------------------------------------------------------
+    # Non-core:
+    # -------------------------------------------------------------------------
+    Core_Assessment_PPH_PMH_Allergies_Frailty.*
+
 ddgen_allow_no_patient_info = False
 
 ddgen_per_table_pid_field = crate_rio_number
@@ -2927,11 +3046,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientIndex.OtherAddress
     ClientIndex.SpineID
     ClientIndex.Surname
-    ClientName.GivenName1
-    ClientName.GivenName2
-    ClientName.GivenName3
-    ClientName.GivenName4
-    ClientName.GivenName5
+    ClientName.GivenName*
     ClientName.SpineID
     ClientName.Surname
     ImsEvent.DischargeAddressLine*
@@ -2943,10 +3058,10 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     Inpatient_Leave.Address_Line*
     Inpatient_Leave.PostCode
-    Admission.Discharge_Address_Line_*  # renamed from RCEP Inpatient_Stay
-    Admission.Discharge_Post_Code*  # renamed from RCEP Inpatient_Stay
-    Referral.Discharge_Address_Line_*  # renamed from RCEP Main_Referral_Data
-    Referral.Discharge_Post_Code*  # renamed from RCEP Main_Referral_Data
+    Inpatient_Stay.Discharge_Address_Line_*
+    Inpatient_Stay.Discharge_Post_Code*
+    Referral.Discharge_Address_Line_*
+    Referral.Discharge_Post_Code*
     {VIEW_ADDRESS_WITH_GEOGRAPHY}.AddressLine*
     {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode
 
@@ -3134,6 +3249,3 @@ if __name__ == '__main__':
     sys.excepthook = ultratb.FormattedTB(mode='Verbose',
                                          color_scheme='Linux', call_pdb=1)
     main()
-
-*** ddgen_* for "omit these fields" / "include these fields"
-*** then implement them for the RCEP-style views

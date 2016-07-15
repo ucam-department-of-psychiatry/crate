@@ -62,10 +62,6 @@ def main():
                         help="Print a draft data dictionary")
     parser.add_argument("--incrementaldd", action="store_true",
                         help="Print an INCREMENTAL draft data dictionary")
-    parser.add_argument("--makeddpermitbydefaultdangerous",
-                        action="store_true",
-                        help="When creating or adding to a data dictionary, "
-                             "set the 'omit' flag to False. DANGEROUS.")
     parser.add_argument("--debugscrubbers", action="store_true",
                         help="Report sensitive scrubbing information, for "
                              "debugging")

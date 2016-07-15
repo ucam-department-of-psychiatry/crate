@@ -1089,8 +1089,7 @@ def anonymise(args):
         # Note: the difference is that for incrementaldd, the data dictionary
         # will have been loaded from disk; for draftdd, it won't (so a
         # completely fresh one will be generated).
-        config.dd.read_from_source_databases(
-            default_omit=(not args.makeddpermitbydefaultdangerous))
+        config.dd.read_from_source_databases()
         print(config.dd.get_tsv())
         return
 

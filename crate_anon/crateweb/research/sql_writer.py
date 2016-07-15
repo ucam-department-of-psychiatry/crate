@@ -7,9 +7,6 @@ import sqlparse
 
 from crate_anon.anonymise.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.sql import (
-    sql_string_literal,
-    sql_date_literal,
-    sql_datetime_literal,
     combine_db_table,
     split_db_table,
 )

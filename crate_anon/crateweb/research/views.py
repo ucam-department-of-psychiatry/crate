@@ -57,10 +57,12 @@ from crate_anon.crateweb.research.models import (
     Query,
     research_database_info,
 )
-from crate_anon.crateweb.research.sql_writer import (
-    add_to_select,
+from crate_anon.common.sql import (
     sql_date_literal,
     sql_string_literal,
+)
+from crate_anon.crateweb.research.sql_writer import (
+    add_to_select,
     toggle_distinct,
 )
 

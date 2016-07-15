@@ -22,7 +22,7 @@ from crate_anon.crateweb.extra.forms import (
     MultipleWordAreaField,
 )
 from crate_anon.crateweb.research.models import ColumnInfo, Highlight, Query
-from crate_anon.crateweb.research.sql_writer import (
+from crate_anon.common.sql import (
     sql_date_literal,
     sql_string_literal,
 )

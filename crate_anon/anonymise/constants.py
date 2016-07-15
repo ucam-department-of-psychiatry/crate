@@ -712,8 +712,23 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charse
 url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
 
 # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
-# Fields can either be specified as "column" (to match any table) or
-# "table.column", to match a specific table.
+# - For field specifications, fields can either be specified as "column" (to
+#   match any table) or "table.column", to match a specific table.
+#   They are case-insensitive.
+#   Wildcards (*, ?) may also be used (as per Python's fnmatch).
+
+    # By default, most fields (except PKs and patient ID codes) are marked
+    # as "OMIT", pending human review. If you want to live dangerously, set
+    # this to False, and they will be marked as "include" from the outset.
+ddgen_omit_by_default = True
+
+    # You can specify additional fields to omit...
+ddgen_omit_fields =
+
+    # ... or include. "Omit" overrides "include".
+    # If a field contains scrubbing source information, it will also be omitted
+    # pending human review, regardless of other settings.
+ddgen_include_fields =
 
     # Allow the absence of patient info? Used to copy databases; WILL NOT
     # ANONYMISE. Boolean; default is False.
