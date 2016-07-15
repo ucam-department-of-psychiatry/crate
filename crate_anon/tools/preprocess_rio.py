@@ -1068,7 +1068,7 @@ class ViewMaker(object):
         return (
             "\n    SELECT {select_elements}"
             "\n    FROM {from_elements}{where}".format(
-                select_elements=", ".join(self.select_elements),
+                select_elements=",\n        ".join(self.select_elements),
                 from_elements="\n        ".join(self.from_elements),
                 where=where))
 
@@ -1091,7 +1091,7 @@ def simple_lookup_join(viewmaker, basecolumn,
         viewmaker.add_select("{aliased_table}.{column} AS {alias}".format(
             aliased_table=aliased_table, column=column, alias=alias))
     viewmaker.add_from(
-        "LEFT JOIN {lookup_table} {aliased_table}"
+        "LEFT JOIN {lookup_table} {aliased_table}\n"
         "            ON {aliased_table}.{lookup_pk} = "
         "{basetable}.{basecolumn}".format(
             lookup_table=lookup_table,
@@ -1141,6 +1141,7 @@ def get_rio_views(engine, metadata, progargs, ddhint,
             log.warning("Skipping view {} as base table {} not present".format(
                 viewname, basetable))
             continue
+        log.critical(viewname)
         suppress_basetable = viewdetails.get('suppress_basetable',
                                              suppress_basetables)
         suppress_other_tables = viewdetails.get('suppress_other_tables', [])
