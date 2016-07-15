@@ -2148,9 +2148,9 @@ class DDHint(object):
             self.add_source_index_request(table, columns)
 
     def _do_indexes(self, engine, progargs, action_func):
-        for table, tabledict in self._index_requests:
+        for table, tabledict in self._index_requests.items():
             indexdictlist = []
-            for indexname, indexdict in tabledict:
+            for indexname, indexdict in tabledict.items():
                 indexdictlist.append(indexdict)
             action_func(engine, progargs, table, indexdictlist)
 
