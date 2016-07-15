@@ -1721,7 +1721,7 @@ RIO_VIEWS = {
             {  # not in RCEP
                 'function': rio_add_team_lookup,
                 'kwargs': {
-                    'basecolumn': 'TeamCode',
+                    'basecolumn': 'TeamReferredTo',
                     'column_prefix': 'Team_Referred_To',
                     'internal_alias_prefix': 'trt',
                 },
