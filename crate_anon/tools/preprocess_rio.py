@@ -1277,7 +1277,7 @@ def rio_add_consultant_lookup(viewmaker, basecolumn,
         {ap}_cons.Firstname AS {cp}_first_name,
         {ap}_cons.Surname AS {cp}_surname,
         {ap}_cons.SpecialtyID AS {cp}_specialty_code,
-        {ap}_spec.CodeDescription AS {cp}_specialty_description,
+        {ap}_spec.CodeDescription AS {cp}_specialty_description
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -1836,7 +1836,7 @@ RIO_VIEWS = {
                 'kwargs': {
                     'basecolumn': 'ClinicalEventType',
                     'lookup_table': 'GenClinicalEventType',
-                    'result_alias': 'clinical_event_type_description',
+                    'result_alias': 'Clinical_Event_Type_Description',
                     'internal_alias_prefix': 'cet',
                 }
             },
@@ -1845,7 +1845,7 @@ RIO_VIEWS = {
                 'kwargs': {
                     'basecolumn': 'SpecialtyID',
                     'lookup_table': 'GenSpecialty',
-                    'result_alias': 'specialty_description',
+                    'result_alias': 'Specialty_Description',
                     'internal_alias_prefix': 'spec',
                 }
             },
@@ -1856,7 +1856,7 @@ RIO_VIEWS = {
                     'lookup_table': 'GenUserType',
                     'lookup_pk': 'UserTypeID',
                     'lookup_fields_aliases': {
-                        'RoleDescription': 'role_description',
+                        'RoleDescription': 'Role_Description',
                     },
                     'internal_alias_prefix': 'rl',
                 }
@@ -1865,7 +1865,7 @@ RIO_VIEWS = {
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'EnteredBy',  # or UserID? ***
-                    'column_prefix': 'originating_user',  # RCEP: was originator_user  # noqa
+                    'column_prefix': 'Originating_User',  # RCEP: was originator_user  # noqa
                     'internal_alias_prefix': 'ou',
                 },
             },
@@ -1873,7 +1873,7 @@ RIO_VIEWS = {
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'VerifyUserID',
-                    'column_prefix': 'verifying_user',  # RCEP: was verified_by_user  # noqa
+                    'column_prefix': 'Verifying_User',  # RCEP: was verified_by_user  # noqa
                     'internal_alias_prefix': 'vu',
                 },
             },
@@ -1895,7 +1895,7 @@ RIO_VIEWS = {
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'HCPCode',
-                    'column_prefix': 'HCP_User',
+                    'column_prefix': 'HCP_User',  # RCEP
                     'internal_alias_prefix': 'hu',
                 },
             },
@@ -1918,7 +1918,7 @@ RIO_VIEWS = {
                 'function': rio_add_team_lookup,
                 'kwargs': {
                     'basecolumn': 'TeamCode',
-                    'column_prefix': 'team',
+                    'column_prefix': 'Team',  # RCEP
                     'internal_alias_prefix': 't',
                 },
             },
@@ -1968,7 +1968,7 @@ RIO_VIEWS = {
                     'lookup_table': 'UserMasterfrailty',
                     'lookup_pk': 'Code',
                     'lookup_fields_aliases': {
-                        'CodeDescription': 'frailty_description',
+                        'CodeDescription': 'Frailty_Description',
                     },
                     'internal_alias_prefix': 'fr',
                 }
