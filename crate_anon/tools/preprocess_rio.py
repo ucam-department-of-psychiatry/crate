@@ -1434,7 +1434,7 @@ def rio_add_ims_event_lookup(viewmaker, basecolumn_event_num,
     # However, we have made crate_rio_number, so we'll use that instead.
     # Key to the TABLE, not the VIEW.
     viewmaker.add_select("""
-        {basetable}.{basecolumn_event_num} AS {cp}_Event_Number
+        {basetable}.{basecolumn_event_num} AS {cp}_Event_Number,
         {ap}_evt.{CRATE_COL_PK} AS {cp}_Inpatient_Stay_PK
     """.format(  # noqa
         basetable=viewmaker.basetable,
