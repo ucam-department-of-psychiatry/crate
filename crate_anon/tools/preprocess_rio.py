@@ -3121,7 +3121,6 @@ ddgen_convert_odd_chars_to_underscore = True
 # =============================================================================
 
 def main():
-    arse
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=
