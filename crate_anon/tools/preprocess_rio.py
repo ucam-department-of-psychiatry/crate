@@ -300,9 +300,10 @@ How is RiO non-core structured?
 import argparse
 from collections import OrderedDict
 import logging
+import pdb
 import sys
+import traceback
 
-from IPython.core import ultratb
 from sqlalchemy import (
     create_engine,
     inspect,
@@ -3120,6 +3121,7 @@ ddgen_convert_odd_chars_to_underscore = True
 # =============================================================================
 
 def main():
+    arse
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=
@@ -3246,6 +3248,9 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.excepthook = ultratb.FormattedTB(mode='Verbose',
-                                         color_scheme='Linux', call_pdb=1)
-    main()
+    try:
+        main()
+    except:
+        type, value, tb = sys.exc_info()
+        traceback.print_exc()
+        pdb.post_mortem(tb)
