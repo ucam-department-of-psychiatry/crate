@@ -29,7 +29,7 @@ from crate_anon.crateweb.extra.admin import (
     disable_bool_icon,
     ReadOnlyModelAdmin,
 )
-from crate_anon.crateweb.core.utils import replace_in_list
+from crate_anon.common.stringfunc import replace_in_list
 from crate_anon.crateweb.userprofile.models import UserProfile
 from crate_anon.crateweb.consent.models import (
     CharityPaymentRecord,

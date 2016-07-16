@@ -43,13 +43,15 @@ from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
     get_code_regex_elements,
     get_date_regex_elements,
-    get_digit_string_from_vaguely_numeric_string,
     get_number_of_length_n_regex_elements,
     get_phrase_regex_elements,
     get_regex_from_elements,
     get_regex_string_from_elements,
     get_string_regex_elements,
     get_uk_postcode_regex_elements,
+)
+from crate_anon.common.stringfunc import (
+    get_digit_string_from_vaguely_numeric_string,
     reduce_to_alphanumeric,
 )
 

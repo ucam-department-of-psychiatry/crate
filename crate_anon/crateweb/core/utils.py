@@ -2,7 +2,6 @@
 # crate_anon/crateweb/core/utils.py
 
 import logging
-import re
 import urllib.parse
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -138,26 +137,6 @@ def modelrepr(instance):
     # - type(instance).__name__ gives the Python class name from an instance
     # - ... as does ModelClass.__name__ but we don't have that directly here
     # - instance._meta.model_name gives a lower-case version
-
-
-# =============================================================================
-# String parsing
-# =============================================================================
-
-def replace_in_list(stringlist, replacedict):
-    newlist = []
-    for i in range(len(stringlist)):
-        newlist.append(multiple_replace(stringlist[i], replacedict))
-    return newlist
-
-
-def multiple_replace(text, rep):
-    """Returns text in which the keys of rep (a dict) have been replaced by
-    their values."""
-    # http://stackoverflow.com/questions/6116978/python-replace-multiple-strings  # noqa
-    rep = dict((re.escape(k), v) for k, v in rep.items())
-    pattern = re.compile("|".join(rep.keys()))
-    return pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
 
 
 # =============================================================================

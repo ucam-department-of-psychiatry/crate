@@ -34,8 +34,9 @@ Copyright/licensing:
 import html
 import logging
 import random
-import regex
 import sys
+
+import regex
 # import xml.etree
 
 from sortedcontainers import SortedSet
@@ -77,7 +78,7 @@ from crate_anon.anonymise.models import (
     TridRecord,
 )
 from crate_anon.anonymise.patient import Patient
-from crate_anon.anonymise.sqla import (
+from crate_anon.common.sqla import (
     count_star,
     get_column_names,
     add_index,

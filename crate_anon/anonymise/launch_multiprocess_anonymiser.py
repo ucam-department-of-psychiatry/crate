@@ -30,8 +30,8 @@ import multiprocessing
 import sys
 import time
 
-from crate_anon.anonymise.logsupport import configure_logger_for_colour
-from crate_anon.anonymise.subproc import (
+from crate_anon.common.logsupport import configure_logger_for_colour
+from crate_anon.common.subproc import (
     check_call_process,
     run_multiple_processes,
 )

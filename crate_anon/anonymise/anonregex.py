@@ -58,29 +58,6 @@ WB = r"\b"  # word boundary; escape the slash if not using a raw string
 # String manipulation
 # =============================================================================
 
-def get_digit_string_from_vaguely_numeric_string(s):
-    """
-    Strips non-digit characters from a string.
-    For example, converts "(01223) 123456" to "01223123456".
-    """
-    return "".join([d for d in s if d.isdigit()])
-
-
-def reduce_to_alphanumeric(s):
-    """
-    Strips non-alphanumeric characters from a string.
-    For example, converts "PE12 3AB" to "PE12 3AB".
-    """
-    return "".join([d for d in s if d.isalnum()])
-
-
-def remove_whitespace(s):
-    """
-    Removes whitespace from a string.
-    """
-    return ''.join(s.split())
-
-
 def get_anon_fragments_from_string(s):
     """
     Takes a complex string, such as a name or address with its components
@@ -351,6 +328,11 @@ import dateutil.parser
 import regex
 
 import logging
+
+from crate_anon.common.stringfunc import (
+    get_digit_string_from_vaguely_numeric_string,
+)
+
 logging.basicConfig()  # just in case nobody else has done this
 log = logging.getLogger("anonymise")
 

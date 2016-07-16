@@ -74,17 +74,15 @@ import os
 import sys
 
 import regex
-from sqlalchemy import String
-from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
-from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
-
-from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
+from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
+from sqlalchemy import String
+from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
+from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 
-from crate_anon.anonymise.crateconfigparser import CrateConfigParser
 from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
@@ -95,7 +93,12 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.anonymise.dd import DataDictionary
-from crate_anon.anonymise.hash import (
+from crate_anon.anonymise.scrub import (
+    NonspecificScrubber,
+    WordList,
+)
+from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.common.hash import (
     # MD5Hasher,
     # SHA256Hasher,
     # SHA512Hasher,
@@ -103,11 +106,7 @@ from crate_anon.anonymise.hash import (
     HmacSHA256Hasher,
     HmacSHA512Hasher,
 )
-from crate_anon.anonymise.scrub import (
-    NonspecificScrubber,
-    WordList,
-)
-from crate_anon.anonymise.sqla import monkeypatch_TableClause
+from crate_anon.common.sqla import monkeypatch_TableClause
 
 log = logging.getLogger(__name__)
 monkeypatch_TableClause()
@@ -270,7 +269,7 @@ class Config(object):
             sys.exit(1)
 
         # Read config from file.
-        parser = CrateConfigParser()
+        parser = ExtendedConfigParser()
         log.info("Reading config file: {}".format(self.config_filename))
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = "main"

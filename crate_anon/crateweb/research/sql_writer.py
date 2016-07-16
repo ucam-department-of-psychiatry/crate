@@ -5,19 +5,12 @@ import logging
 
 import sqlparse
 
-from crate_anon.anonymise.logsupport import main_only_quicksetup_rootlogger
+from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.sql import (
     combine_db_table,
     split_db_table,
 )
-from crate_anon.crateweb.research.models import (
-    get_schema_trid_field,
-    get_schema_rid_field,
-    get_schema_rid_family,
-    get_schema_mrid_table,
-    get_schema_mrid_field,
-)
-from crate_anon.crateweb.research.sql_grammar_mysql import (
+from crate_anon.common.sql_grammar_mysql import (
     column_spec,
     expr,
     # flatten,
@@ -26,6 +19,13 @@ from crate_anon.crateweb.research.sql_grammar_mysql import (
     select_statement,
     table_spec,
     text_from_parsed,
+)
+from crate_anon.crateweb.research.models import (
+    get_schema_trid_field,
+    get_schema_rid_field,
+    get_schema_rid_family,
+    get_schema_mrid_table,
+    get_schema_mrid_field,
 )
 
 log = logging.getLogger(__name__)

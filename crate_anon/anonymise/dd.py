@@ -38,17 +38,11 @@ import ast
 import collections
 import csv
 import fnmatch
-from functools import lru_cache
 import logging
 import operator
+from functools import lru_cache
 
 import regex
-from sortedcontainers import SortedSet
-from sqlalchemy import (
-    Column,
-    Table,
-)
-
 from cardinal_pythonlib.rnc_db import (
     does_sqltype_merit_fulltext_index,
     does_sqltype_require_index_len,
@@ -67,6 +61,11 @@ from cardinal_pythonlib.rnc_lang import (
     count_bool,
     raise_if_attr_blank,
 )
+from sortedcontainers import SortedSet
+from sqlalchemy import (
+    Column,
+    Table,
+)
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
@@ -82,7 +81,7 @@ from crate_anon.anonymise.constants import (
     SRCFLAG,
     TridType,
 )
-from crate_anon.anonymise.sqla import (
+from crate_anon.common.sqla import (
     convert_sqla_type_for_dialect,
     get_sqla_coltype_from_dialect_str,
 )

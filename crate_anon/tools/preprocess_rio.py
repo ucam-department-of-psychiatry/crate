@@ -306,12 +306,25 @@ import traceback
 
 from sqlalchemy import (
     create_engine,
-    inspect,
     MetaData,
 )
 
 from crate_anon.anonymise.constants import MYSQL_CHARSET
-from crate_anon.anonymise.logsupport import configure_logger_for_colour
+from crate_anon.common.logsupport import configure_logger_for_colour
+from crate_anon.common.sql import (
+    add_columns,
+    add_indexes,
+    create_view,
+    drop_columns,
+    drop_indexes,
+    drop_view,
+    ensure_columns_present,
+    execute,
+    get_column_names,
+    set_print_not_execute,
+    sql_fragment_cast_to_int,
+    ViewMaker,
+)
 
 log = logging.getLogger(__name__)
 
@@ -517,229 +530,6 @@ RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
 
 
 # =============================================================================
-# Ancillary functions
-# =============================================================================
-
-def die(msg):
-    log.critical(msg)
-    sys.exit(1)
-
-
-def format_sql_for_print(sql):
-    # Remove blank lines and trailing spaces
-    lines = list(filter(None, [x.replace("\t", "    ").rstrip()
-                               for x in sql.splitlines()]))
-    # Shift all lines left if they're left-padded
-    firstleftpos = float('inf')
-    for line in lines:
-        leftpos = len(line) - len(line.lstrip())
-        firstleftpos = min(firstleftpos, leftpos)
-    if firstleftpos > 0:
-        lines = [x[firstleftpos:] for x in lines]
-    return "\n".join(lines)
-
-
-def sql_fragment_cast_to_int(expr):
-    # Conversion to INT:
-    # http://stackoverflow.com/questions/2000045
-    # http://stackoverflow.com/questions/14719760  # this one
-    # http://stackoverflow.com/questions/14692131
-    return "CASE WHEN {expr} NOT LIKE '%[^0-9]%' " \
-           "THEN CAST({expr} AS INTEGER) ELSE NULL END".format(expr=expr)
-
-
-def execute(engine, progargs, sql):
-    log.debug(sql)
-    if progargs.print:
-        print(format_sql_for_print(sql) + "\n;")
-        # extra \n in case the SQL ends in a comment
-    else:
-        engine.execute(sql)
-
-
-def add_columns(engine, progargs, table, name_coltype_dict):
-    existing_column_names = get_column_names(engine, table=table,
-                                             to_lower=True)
-    column_defs = []
-    for name, coltype in name_coltype_dict.items():
-        if name.lower() not in existing_column_names:
-            column_defs.append("{} {}".format(name, coltype))
-        else:
-            log.debug("Table '{}': column '{}' already exists; not "
-                      "adding".format(table.name, name))
-    # ANSI SQL: add one column at a time: ALTER TABLE ADD [COLUMN] coldef
-    #   - i.e. "COLUMN" optional, one at a time, no parentheses
-    #   - http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
-    # MySQL: ALTER TABLE ADD [COLUMN] (a INT, b VARCHAR(32));
-    #   - i.e. "COLUMN" optional, parentheses required for >1, multiple OK
-    #   - http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
-    # MS SQL Server: ALTER TABLE ADD COLUMN a INT, B VARCHAR(32);
-    #   - i.e. no "COLUMN", no parentheses, multiple OK
-    #   - https://msdn.microsoft.com/en-us/library/ms190238.aspx
-    #   - https://msdn.microsoft.com/en-us/library/ms190273.aspx
-    #   - http://stackoverflow.com/questions/2523676
-    # SQLAlchemy doesn't provide a shortcut for this.
-    for column_def in column_defs:
-        log.info("Table '{}': adding column {}".format(
-            table.name, column_def))
-        execute(engine, progargs, """
-            ALTER TABLE {tablename} ADD {column_def}
-        """.format(tablename=table.name, column_def=column_def))
-
-
-def drop_columns(engine, progargs, table, column_names):
-    existing_column_names = get_column_names(engine, table=table,
-                                             to_lower=True)
-    for name in column_names:
-        if name.lower() not in existing_column_names:
-            log.debug("Table '{}': column '{}' does not exist; not "
-                      "dropping".format(table.name, name))
-        else:
-            log.info("Table '{}': dropping column '{}'".format(table.name,
-                                                               name))
-            sql = "ALTER TABLE {t} DROP COLUMN {c}".format(t=table.name,
-                                                           c=name)
-            # SQL Server:
-            #   http://www.techonthenet.com/sql_server/tables/alter_table.php
-            # MySQL:
-            #   http://dev.mysql.com/doc/refman/5.7/en/alter-table.html
-            execute(engine, progargs, sql)
-
-
-def add_indexes(engine, progargs, table, indexdictlist):
-    existing_index_names = get_index_names(engine, table=table, to_lower=True)
-    for idxdefdict in indexdictlist:
-        index_name = idxdefdict['index_name']
-        column = idxdefdict['column']
-        if not isinstance(column, str):
-            column = ", ".join(column)  # must be a list
-        unique = idxdefdict.get('unique', False)
-        if index_name.lower() not in existing_index_names:
-            log.info("Table '{}': adding index '{}' on columns '{}'".format(
-                table.name, index_name, column))
-            execute(engine, progargs, """
-              CREATE{unique} INDEX {idxname} ON {tablename} ({column})
-            """.format(
-                unique=" UNIQUE" if unique else "",
-                idxname=index_name,
-                tablename=table.name,
-                column=column,
-            ))
-        else:
-            log.debug("Table '{}': index '{}' already exists; not "
-                      "adding".format(table.name, index_name))
-
-
-def drop_indexes(engine, progargs, table, index_names):
-    existing_index_names = get_index_names(engine, table=table, to_lower=True)
-    for index_name in index_names:
-        if index_name.lower() not in existing_index_names:
-            log.debug("Table '{}': index '{}' does not exist; not "
-                      "dropping".format(table.name, index_name))
-        else:
-            log.info("Table '{}': dropping index '{}'".format(table.name,
-                                                              index_name))
-            if engine.dialect.name == 'mysql':
-                sql = "ALTER TABLE {t} DROP INDEX {i}".format(t=table.name,
-                                                              i=index_name)
-            elif engine.dialect.name == 'mssql':
-                sql = "DROP INDEX {t}.{i}".format(t=table.name, i=index_name)
-            else:
-                assert False, "Unknown dialect: {}".format(engine.dialect.name)
-            execute(engine, progargs, sql)
-
-
-def get_view_names(engine, to_lower=False, sort=False):
-    inspector = inspect(engine)
-    view_names = inspector.get_view_names()
-    if to_lower:
-        view_names = [x.lower() for x in view_names]
-    if sort:
-        view_names = sorted(view_names, key=lambda x: x.lower())
-    return view_names
-
-
-def get_column_names(engine, tablename=None, table=None, to_lower=False,
-                     sort=False):
-    """
-    Reads columns names afresh from the database (in case metadata is out of
-    date.
-    """
-    assert (table is not None) != bool(tablename), "Need table XOR tablename"
-    tablename = tablename or table.name
-    inspector = inspect(engine)
-    columns = inspector.get_columns(tablename)
-    column_names = [x['name'] for x in columns]
-    if to_lower:
-        column_names = [x.lower() for x in column_names]
-    if sort:
-        column_names = sorted(column_names, key=lambda x: x.lower())
-    return column_names
-
-
-def get_index_names(engine, tablename=None, table=None, to_lower=False):
-    """
-    Reads index names from the database.
-    """
-    # http://docs.sqlalchemy.org/en/latest/core/reflection.html
-    assert (table is not None) != bool(tablename), "Need table XOR tablename"
-    tablename = tablename or table.name
-    inspector = inspect(engine)
-    indexes = inspector.get_indexes(tablename)
-    index_names = [x['name'] for x in indexes if x['name']]
-    # ... at least for SQL Server, there always seems to be a blank one
-    # with {'name': None, ...}.
-    if to_lower:
-        index_names = [x.lower() for x in index_names]
-    return index_names
-
-
-def ensure_columns_present(engine, table=None, tablename=None,
-                           column_names=None):
-    assert column_names, "Need column_names"
-    assert (table is not None) != bool(tablename), "Need table XOR tablename"
-    tablename = tablename or table.name
-    existing_column_names = get_column_names(engine, tablename=tablename,
-                                             to_lower=True)
-    for col in column_names:
-        if col.lower() not in existing_column_names:
-            die("Column '{}' missing from table '{}'".format(col, tablename))
-
-
-def create_view(engine, progargs, viewname, select_sql):
-    # MySQL has CREATE OR REPLACE VIEW.
-    # SQL Server doesn't: http://stackoverflow.com/questions/18534919
-    if engine.dialect.name == 'mysql':
-        sql = "CREATE OR REPLACE VIEW {viewname} AS {select_sql}".format(
-            viewname=viewname,
-            select_sql=select_sql,
-        )
-    else:
-        drop_view(engine, progargs, viewname, quiet=True)
-        sql = "CREATE VIEW {viewname} AS {select_sql}".format(
-            viewname=viewname,
-            select_sql=select_sql,
-        )
-    log.info("Creating view: '{}'".format(viewname))
-    execute(engine, progargs, sql)
-
-
-def drop_view(engine, progargs, viewname, quiet=False):
-    # MySQL has DROP VIEW IF EXISTS, but SQL Server only has that from
-    # SQL Server 2016 onwards.
-    # - https://msdn.microsoft.com/en-us/library/ms173492.aspx
-    # - http://dev.mysql.com/doc/refman/5.7/en/drop-view.html
-    view_names = get_view_names(engine, to_lower=True)
-    if viewname.lower() not in view_names:
-        log.debug("View {} does not exist; not dropping".format(viewname))
-    else:
-        if not quiet:
-            log.info("Dropping view: '{}'".format(viewname))
-        sql = "DROP VIEW {viewname}".format(viewname=viewname)
-        execute(engine, progargs, sql)
-
-
-# =============================================================================
 # Generic table processors
 # =============================================================================
 
@@ -799,7 +589,7 @@ def process_patient_table(table, engine, progargs):
         required_cols.append(rio_pk)
     else:  # RCEP type, or no PK in RiO
         crate_pk_type = AUTONUMBER_COLTYPE  # autopopulates
-    add_columns(engine, progargs, table, {
+    add_columns(engine, table, {
         CRATE_COL_PK: crate_pk_type,
         CRATE_COL_RIO_NUMBER: 'INTEGER',
     })
@@ -812,7 +602,7 @@ def process_patient_table(table, engine, progargs):
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
     cast_id_to_int = sql_fragment_cast_to_int(string_pt_id)
     if rio_type and rio_pk:
-        execute(engine, progargs, """
+        execute(engine, """
             UPDATE {tablename} SET
                 {crate_pk} = {rio_pk},
                 {crate_rio_number} = {cast_id_to_int}
@@ -829,7 +619,7 @@ def process_patient_table(table, engine, progargs):
     else:
         # RCEP format, or RiO with no PK
         # crate_pk is autogenerated as an INT IDENTITY field
-        execute(engine, progargs, """
+        execute(engine, """
             UPDATE {tablename} SET
                 {crate_rio_number} = {cast_id_to_int}
             WHERE
@@ -860,7 +650,7 @@ def process_patient_table(table, engine, progargs):
     # Note that the indexes are unlikely to speed up the WHERE NOT NULL search
     # above, so it doesn't matter that we add these last. Their use is for
     # the subsequent CRATE anonymisation table scans.
-    add_indexes(engine, progargs, table, [
+    add_indexes(engine, table, [
         {
             'index_name': CRATE_IDX_PK,
             'column': CRATE_COL_PK,
@@ -873,9 +663,9 @@ def process_patient_table(table, engine, progargs):
     ])
 
 
-def drop_for_patient_table(table, engine, progargs):
-    drop_indexes(engine, progargs, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
-    drop_columns(engine, progargs, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+def drop_for_patient_table(table, engine):
+    drop_indexes(engine, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
+    drop_columns(engine, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
 
 
 def process_nonpatient_table(table, engine, progargs):
@@ -883,28 +673,27 @@ def process_nonpatient_table(table, engine, progargs):
         return
     pk_col = get_rio_pk_col_nonpatient_table(table)
     if pk_col:
-        add_columns(engine, progargs, table, {CRATE_COL_PK: 'INTEGER'})
+        add_columns(engine, table, {CRATE_COL_PK: 'INTEGER'})
     else:
-        add_columns(engine, progargs, table,
-                    {CRATE_COL_PK: AUTONUMBER_COLTYPE})
+        add_columns(engine, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
     if not progargs.print:
         ensure_columns_present(engine, table=table,
                                column_names=[CRATE_COL_PK])
     if pk_col:
-        execute(engine, progargs, """
+        execute(engine, """
             UPDATE {tablename} SET {crate_pk} = {rio_pk}
             WHERE {crate_pk} IS NULL
         """.format(tablename=table.name,
                    crate_pk=CRATE_COL_PK,
                    rio_pk=pk_col))
-    add_indexes(engine, progargs, table, [{'index_name': CRATE_IDX_PK,
-                                           'column': CRATE_COL_PK,
-                                           'unique': True}])
+    add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
+                                 'column': CRATE_COL_PK,
+                                 'unique': True}])
 
 
-def drop_for_nonpatient_table(table, engine, progargs):
-    drop_indexes(engine, progargs, table, [CRATE_IDX_PK])
-    drop_columns(engine, progargs, table, [CRATE_COL_PK])
+def drop_for_nonpatient_table(table, engine):
+    drop_indexes(engine, table, [CRATE_IDX_PK])
+    drop_columns(engine, table, [CRATE_COL_PK])
 
 
 # =============================================================================
@@ -912,9 +701,7 @@ def drop_for_nonpatient_table(table, engine, progargs):
 # =============================================================================
 
 def process_master_patient_table(table, engine, progargs):
-    add_columns(engine, progargs, table, {
-        CRATE_COL_NHS_NUMBER: 'BIGINT',
-    })
+    add_columns(engine, table, {CRATE_COL_NHS_NUMBER: 'BIGINT'})
     if progargs.rcep:
         nhscol = RCEP_COL_NHS_NUMBER
     else:
@@ -924,7 +711,7 @@ def process_master_patient_table(table, engine, progargs):
     if not progargs.print:
         ensure_columns_present(engine, table=table, column_names=[
             CRATE_COL_NHS_NUMBER])
-    execute(engine, progargs, """
+    execute(engine, """
         UPDATE {tablename} SET
             {nhs_number_int} = CAST({nhscol} AS BIGINT)
             WHERE {nhs_number_int} IS NULL
@@ -935,17 +722,17 @@ def process_master_patient_table(table, engine, progargs):
     ))
 
 
-def drop_for_master_patient_table(table, engine, progargs):
-    drop_columns(engine, progargs, table, [CRATE_COL_NHS_NUMBER])
+def drop_for_master_patient_table(table, engine):
+    drop_columns(engine, table, [CRATE_COL_NHS_NUMBER])
 
 
 def process_progress_notes(table, engine, progargs):
-    add_columns(engine, progargs, table, {
+    add_columns(engine, table, {
         CRATE_COL_MAX_SUBNUM: 'INTEGER',
         CRATE_COL_LAST_NOTE: 'INTEGER',
     })
     # We're always in "RiO land", not "RCEP land", for this one.
-    add_indexes(engine, progargs, table, [
+    add_indexes(engine, table, [
         {  # Joint index, for JOIN in UPDATE statement below
             'index_name': CRATE_IDX_RIONUM_NOTENUM,
             'column': '{rio_number}, NoteNum'.format(
@@ -971,7 +758,7 @@ def process_progress_notes(table, engine, progargs):
     # Slow query, even with index.
     log.info("Progress notes table '{}': "
              "updating 'max_subnum_for_notenum'".format(table.name))
-    execute(engine, progargs, """
+    execute(engine, """
         UPDATE p1
         SET p1.{max_subnum_col} = subq.max_subnum
         FROM {tablename} p1 JOIN (
@@ -991,7 +778,7 @@ def process_progress_notes(table, engine, progargs):
     # Set a single column accordingly
     log.info("Progress notes table '{}': "
              "updating 'last_note_in_edit_chain'".format(table.name))
-    execute(engine, progargs, """
+    execute(engine, """
         UPDATE {tablename} SET
             {last_note_col} =
                 CASE
@@ -1017,84 +804,21 @@ def process_progress_notes(table, engine, progargs):
             tablename=table.name,
             last_note_col=CRATE_COL_LAST_NOTE,
         )
-        create_view(engine, progargs, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT,
-                    select_sql)
+        create_view(engine, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT, select_sql)
 
 
-def drop_for_progress_notes(table, engine, progargs):
-    drop_view(engine, progargs, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT)
-    drop_indexes(engine, progargs, table, [CRATE_IDX_RIONUM_NOTENUM,
-                                           CRATE_IDX_MAX_SUBNUM,
-                                           CRATE_IDX_LAST_NOTE])
-    drop_columns(engine, progargs, table, [CRATE_COL_MAX_SUBNUM,
-                                           CRATE_COL_LAST_NOTE])
+def drop_for_progress_notes(table, engine):
+    drop_view(engine, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT)
+    drop_indexes(engine, table, [CRATE_IDX_RIONUM_NOTENUM,
+                                 CRATE_IDX_MAX_SUBNUM,
+                                 CRATE_IDX_LAST_NOTE])
+    drop_columns(engine, table, [CRATE_COL_MAX_SUBNUM,
+                                 CRATE_COL_LAST_NOTE])
 
 
 # =============================================================================
 # RiO view creators: generic
 # =============================================================================
-
-class ViewMaker(object):
-    def __init__(self, progargs, engine, basetable, existing_to_lower=False,
-                 rename=None):
-        rename = rename or {}
-        self.progargs = progargs
-        self.engine = engine
-        self.basetable = basetable
-        self.select_elements = []
-        for colname in get_column_names(engine, tablename=basetable,
-                                        to_lower=existing_to_lower):
-            if colname in rename:
-                rename_to = rename[colname]
-                if not rename_to:
-                    continue
-                as_clause = " AS {}".format(rename_to)
-            else:
-                as_clause = ""
-            self.select_elements.append("{t}.{c}{as_clause}".format(
-                t=basetable, c=colname, as_clause=as_clause))
-        assert self.select_elements, "Must have some active SELECT elements " \
-                                     "from base table"
-        self.from_elements = [basetable]
-        self.where_elements = []
-        self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
-
-    def add_select(self, clause):
-        self.select_elements.append(clause)
-        
-    def add_from(self, clause):
-        self.from_elements.append(clause)
-        
-    def add_where(self, clause):
-        self.where_elements.append(clause)
-        
-    def get_sql(self):
-        if self.where_elements:
-            where = "\n    WHERE {}".format(
-                "\n        AND ".join(self.where_elements))
-        else:
-            where = ""
-        return (
-            "\n    SELECT {select_elements}"
-            "\n    FROM {from_elements}{where}".format(
-                select_elements=",\n        ".join(self.select_elements),
-                from_elements="\n        ".join(self.from_elements),
-                where=where))
-
-    def record_lookup_table_keyfield(self, table, keyfield):
-        self.lookup_table_keyfields.append((table, keyfield))
-
-    def record_lookup_table_keyfields(self, table_keyfield_tuples):
-        for t, k in table_keyfield_tuples:
-            self.record_lookup_table_keyfield(t, k)
-
-    def get_lookup_tables(self):
-        return list(set(table for table, keyfield
-                        in self.lookup_table_keyfields))
-
-    def get_lookup_table_keyfields(self):
-        return list(self.lookup_table_keyfields)
-
 
 def simple_lookup_join(viewmaker, basecolumn,
                        lookup_table, lookup_pk, lookup_fields_aliases,
@@ -1142,7 +866,7 @@ def simple_view_where(viewmaker, where_clause):
     viewmaker.add_where(where_clause)
 
 
-def get_rio_views(engine, metadata, progargs, ddhint,
+def get_rio_views(engine, metadata, ddhint,
                   suppress_basetables=True, suppress_lookup=True):
     # ddhint modified
     # Returns dictionary of {viewname: select_sql} pairs.
@@ -1164,7 +888,7 @@ def get_rio_views(engine, metadata, progargs, ddhint,
         ddhint.suppress_tables(suppress_other_tables)
         rename = viewdetails.get('rename', None)
         # noinspection PyTypeChecker
-        viewmaker = ViewMaker(progargs, engine, basetable, rename=rename)
+        viewmaker = ViewMaker(engine, basetable, rename=rename)
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
                 function = addition['function']
@@ -1179,18 +903,18 @@ def get_rio_views(engine, metadata, progargs, ddhint,
     return views
 
 
-def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
-    rio_views = get_rio_views(engine, metadata, progargs, ddhint)
+def create_rio_views(engine, metadata, ddhint):  # ddhint modified
+    rio_views = get_rio_views(engine, metadata, ddhint)
     for viewname, select_sql in rio_views.items():
-        create_view(engine, progargs, viewname, select_sql)
-    ddhint.add_indexes(engine, metadata, progargs)
+        create_view(engine, viewname, select_sql)
+    ddhint.add_indexes(engine, metadata)
 
 
-def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
-    rio_views, _ = get_rio_views(engine, metadata, progargs, ddhint)
-    ddhint.drop_indexes(engine, progargs)
+def drop_rio_views(engine, metadata, ddhint):  # ddhint modified
+    rio_views, _ = get_rio_views(engine, metadata, ddhint)
+    ddhint.drop_indexes(engine)
     for viewname, _ in rio_views.items():
-        drop_view(engine, metadata, progargs, viewname)
+        drop_view(engine, viewname)
 
 
 # =============================================================================
@@ -2215,8 +1939,12 @@ RIO_VIEWS = OrderedDict([
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'GenHCPCode',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
+                    'column_prefix': 'User',
+                    # ... RCEP is a bit confused, with
+                    #   GenHCPCode -> Named_Nurse_User_Code
+                    # and User_* for the other fields.
+                    # Still, stick with it for now...
+                    'internal_alias_prefix': 'nn',
                 },
             },
         ],
@@ -2718,7 +2446,8 @@ def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
     ]
     overlap = set(orig_column_names) & set(progargs.geogcols)
     if overlap:
-        die("Columns overlap: address table contains columns {}; "
+        raise ValueError(
+            "Columns overlap: address table contains columns {}; "
             "geogcols = {}; overlap = {}".format(
                 orig_column_names, progargs.geogcols, overlap))
     log.info("Creating view '{}'".format(VIEW_ADDRESS_WITH_GEOGRAPHY))
@@ -2744,7 +2473,7 @@ def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
         pcdtab=ONSPD_TABLE_POSTCODE,
         rio_postcodecol=rio_postcodecol,
     )
-    create_view(engine, progargs, VIEW_ADDRESS_WITH_GEOGRAPHY, select_sql)
+    create_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY, select_sql)
     ddhint.suppress_table(addresstable)
 
 
@@ -2771,14 +2500,14 @@ def process_table(table, engine, progargs):
         # ---------------------------------------------------------------------
         # Specific
         if tablename == progargs.master_patient_table:
-            drop_for_master_patient_table(table, engine, progargs)
+            drop_for_master_patient_table(table, engine)
         elif tablename == progargs.full_prognotes_table:
-            drop_for_progress_notes(table, engine, progargs)
+            drop_for_progress_notes(table, engine)
         # Generic
         if is_patient_table:
-            drop_for_patient_table(table, engine, progargs)
+            drop_for_patient_table(table, engine)
         else:
-            drop_for_nonpatient_table(table, engine, progargs)
+            drop_for_nonpatient_table(table, engine)
     else:
         # ---------------------------------------------------------------------
         # CREATE STUFF!
@@ -2831,19 +2560,19 @@ class DDHint(object):
         for table, columns in table_columns_list:
             self.add_source_index_request(table, columns)
 
-    def _do_indexes(self, engine, metadata, progargs, action_func):
+    def _do_indexes(self, engine, metadata, action_func):
         for tablename, tabledict in self._index_requests.items():
             indexdictlist = []
             for indexname, indexdict in tabledict.items():
                 indexdictlist.append(indexdict)
             table = metadata.tables[tablename]
-            action_func(engine, progargs, table, indexdictlist)
+            action_func(engine, table, indexdictlist)
 
-    def add_indexes(self, engine, metadata, progargs):
-        self._do_indexes(engine, metadata, progargs, add_indexes)
+    def add_indexes(self, engine, metadata):
+        self._do_indexes(engine, metadata, add_indexes)
 
-    def drop_indexes(self, engine, metadata, progargs):
-        self._do_indexes(engine, metadata, progargs, drop_indexes)
+    def drop_indexes(self, engine, metadata):
+        self._do_indexes(engine, metadata, drop_indexes)
 
 
 def report_rio_dd_settings(progargs, ddhint):
@@ -3191,13 +2920,16 @@ def main():
         progargs.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
     if progargs.postcodedb and not progargs.geogcols:
-        die("If you specify postcodedb, you must specify some geogcols")
+        raise ValueError(
+            "If you specify postcodedb, you must specify some geogcols")
 
     log.info("CRATE in-place preprocessor for RiO or RiO CRIS Extract Program "
              "(RCEP) databases")
     safeargs = {k: v for k, v in vars(progargs).items() if k != 'url'}
     log.debug("args = {}".format(repr(safeargs)))
     log.info("RiO mode" if progargs.rio else "RCEP mode")
+
+    set_print_not_execute(progargs.print)
 
     engine = create_engine(progargs.url, echo=progargs.echo,
                            encoding=MYSQL_CHARSET)
@@ -3218,13 +2950,13 @@ def main():
             process_table(table, engine, progargs)
     if progargs.rio:
         if progargs.drop_danger_drop:
-            drop_rio_views(engine, metadata, progargs, ddhint)
+            drop_rio_views(engine, metadata, ddhint)
         else:
-            create_rio_views(engine, metadata, progargs, ddhint)
+            create_rio_views(engine, metadata, ddhint)
             
     if progargs.postcodedb:
         if progargs.drop_danger_drop:
-            drop_view(engine, progargs, VIEW_ADDRESS_WITH_GEOGRAPHY)
+            drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
         else:
             add_postcode_geography_view(engine, progargs, ddhint)
 

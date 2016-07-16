@@ -2,7 +2,8 @@
 # crate_anon/crateweb/extra/forms.py
 
 from django import forms
-from crate_anon.crateweb.extra.nhs import is_valid_nhs_number
+
+from crate_anon.common.nhs import is_valid_nhs_number
 
 
 # =============================================================================

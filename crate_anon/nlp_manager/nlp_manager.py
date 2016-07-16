@@ -66,12 +66,12 @@ TO DO:
 import argparse
 import ast
 import codecs
-from functools import lru_cache
 import logging
 import os
 import shlex
 import subprocess
 import sys
+from functools import lru_cache
 
 from cardinal_pythonlib.rnc_datetime import (
     get_now_utc,
@@ -83,27 +83,26 @@ from cardinal_pythonlib.rnc_db import (
     is_sqltype_valid
 )
 from cardinal_pythonlib.rnc_lang import chunks
-
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, select, table
 from sqlalchemy.types import BigInteger, DateTime, String
 
-from crate_anon.anonymise.crateconfigparser import CrateConfigParser
 from crate_anon.anonymise.constants import (
     MAX_PID_STR,
     MYSQL_TABLE_ARGS,
     SEP,
 )
-from crate_anon.anonymise.hash import HmacMD5Hasher
-from crate_anon.anonymise.logsupport import configure_logger_for_colour
-from crate_anon.anonymise.sqla import (
+from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.common.hash import HmacMD5Hasher
+from crate_anon.common.logsupport import configure_logger_for_colour
+from crate_anon.common.sqla import (
     add_index,
     get_sqla_coltype_from_dialect_str,
     index_exists,
 )
-from crate_anon.version import VERSION, VERSION_DATE
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
+from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
 
@@ -515,7 +514,7 @@ class Config(object):
             sys.exit(1)
 
         # Read config from file.
-        parser = CrateConfigParser()
+        parser = ExtendedConfigParser()
         parser.optionxform = str  # make it case-sensitive
         log.info("Reading config file: {}".format(self.config_filename))
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))

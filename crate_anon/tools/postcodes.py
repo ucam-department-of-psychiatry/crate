@@ -41,7 +41,7 @@ import xlrd
 
 from cardinal_pythonlib.rnc_extract_text import docx_process_simple_text
 from crate_anon.anonymise.constants import MYSQL_CHARSET, MYSQL_TABLE_ARGS
-from crate_anon.anonymise.logsupport import configure_logger_for_colour
+from crate_anon.common.logsupport import configure_logger_for_colour
 
 log = logging.getLogger(__name__)
 metadata = MetaData()

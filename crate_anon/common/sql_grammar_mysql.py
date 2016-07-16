@@ -74,7 +74,7 @@ from pyparsing import (
 )
 import sqlparse
 
-from crate_anon.anonymise.logsupport import main_only_quicksetup_rootlogger
+from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 
 log = logging.getLogger(__name__)
 

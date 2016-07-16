@@ -42,7 +42,7 @@ def gen_ints(words, minimum=None, maximum=None, suppress_errors=False):
                 raise
 
 
-class CrateConfigParser(configparser.ConfigParser):
+class ExtendedConfigParser(configparser.ConfigParser):
     def __init__(self, *args, **kwargs):
         kwargs['interpolation'] = None
         kwargs['inline_comment_prefixes'] = ('#', ';')

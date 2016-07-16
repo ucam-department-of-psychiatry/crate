@@ -16,7 +16,7 @@ import os
 import shutil
 import subprocess
 
-from crate_anon.anonymise.logsupport import configure_logger_for_colour
+from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
 

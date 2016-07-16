@@ -10,6 +10,15 @@
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />
+    <option name="TEMPLATE_FOLDERS">
+      <list>
+        <option value="$MODULE_DIR$/crate_anon/crateweb/templates" />
+        <option value="$MODULE_DIR$/crate_anon/crateweb/research/templates" />
+        <option value="$MODULE_DIR$/crate_anon/crateweb/consent/templates" />
+        <option value="$MODULE_DIR$/crate_anon/crateweb/userprofile/templates" />
+        <option value="$MODULE_DIR$/crate_anon/crateweb/static" />
+      </list>
+    </option>
   </component>
   <component name="TestRunnerService">
     <option name="PROJECT_TEST_RUNNER" value="Unittests" />

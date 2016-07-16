@@ -3,21 +3,24 @@
 
 import logging
 import mimetypes
+
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
 from django.http import HttpResponse, Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, render
-from crate_anon.crateweb.extra.nhs import generate_random_nhs_number
+
+from crate_anon.common.nhs import generate_random_nhs_number
+from crate_anon.crateweb.core.utils import (
+    is_developer,
+    is_superuser,
+)
 from crate_anon.crateweb.extra.pdf import (
     serve_concatenated_pdf_from_disk,
     serve_html_or_pdf,
 )
 from crate_anon.crateweb.extra.serve import serve_buffer, serve_file
-from crate_anon.crateweb.core.utils import (
-    is_developer,
-    is_superuser,
-)
+
 # from research.models import PidLookup
 from crate_anon.crateweb.consent.forms import (
     ClinicianResponseForm,

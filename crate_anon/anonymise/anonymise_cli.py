@@ -9,12 +9,12 @@ import os
 
 from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
 
-from crate_anon.anonymise.logsupport import configure_logger_for_colour
 from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
 )
+from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.version import VERSION, VERSION_DATE
 
 

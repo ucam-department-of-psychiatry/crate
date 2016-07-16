@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import MetaData
 
-from crate_anon.anonymise.sqla import get_table_names
+from crate_anon.common.sqla import get_table_names
 
 log = logging.getLogger(__name__)
 

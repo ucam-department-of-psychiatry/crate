@@ -23,15 +23,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.exc import NoResultFound
 
+from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     MAX_TRID,
     MYSQL_TABLE_ARGS,
     PidType,
     TridType,
 )
-from crate_anon.anonymise.config_singleton import config
-from crate_anon.anonymise.sqla import exists_orm
-
+from crate_anon.common.sqla import exists_orm
 
 log = logging.getLogger(__name__)
 admin_meta = MetaData()
