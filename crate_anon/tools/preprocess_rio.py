@@ -850,6 +850,21 @@ def standard_rio_code_lookup(viewmaker, basecolumn, lookup_table,
         internal_alias_prefix=internal_alias_prefix)
 
 
+def standard_rio_code_lookup_with_national_code(
+        viewmaker, basecolumn, lookup_table,
+        result_prefix, internal_alias_prefix):
+    return simple_lookup_join(
+        viewmaker=viewmaker,
+        basecolumn=basecolumn,
+        lookup_table=lookup_table,
+        lookup_pk="Code",
+        lookup_fields_aliases={
+            'CodeDescription': result_prefix + '_Description',
+            'NationalCode': result_prefix + '_National_Code',
+        },
+        internal_alias_prefix=internal_alias_prefix)
+
+
 def view_formatting_dict(viewmaker):
     return {
         'basetable': viewmaker.basetable,
@@ -1254,9 +1269,54 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
     viewmaker.record_lookup_table_keyfield('ImsWard', ['WardCode'])
 
 
+def rio_add_location_lookup(viewmaker, basecolumn,
+                            column_prefix, internal_alias_prefix):
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}_Code,
+        {ap}_loc.CodeDescription AS {cp}_Description,
+        {ap}_loc.NationalCode AS {cp}_National_Code,
+        {ap}_loc.AddressLine1 as {cp}_Address_1,
+        {ap}_loc.AddressLine2 as {cp}_Address_2,
+        {ap}_loc.AddressLine3 as {cp}_Address_3,
+        {ap}_loc.AddressLine4 as {cp}_Address_4,
+        {ap}_loc.AddressLine5 as {cp}_Address_5,
+        {ap}_loc.Postcode as {cp}_Post_Code,
+        {ap}_loc.LocationType as {cp}_Type_Code,
+        {ap}_loctype.CodeDescription as {cp}_Type_Description,
+        {ap}_loctype.NationalCode as {cp}_Type_National_Code,
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN (
+            GenLocation {ap}_loc
+            INNER JOIN GenLocationType {ap}_loctype
+                ON {ap}_loctype.Code = {ap}_loc.LocationType
+        ) ON {ap}_loc.Code = {basetable}.{basecolumn}
+    """.format(  # noqa
+        ap=internal_alias_prefix,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+    ))
+    viewmaker.record_lookup_table_keyfield('GenLocation', ['Code'])
+    viewmaker.record_lookup_table_keyfield('GenLocationType', ['Code'])
+
+
 # =============================================================================
 # RiO view creators: collection
 # =============================================================================
+
+# Quickest way to develop these: open
+# 1. RiO information schema
+#    SELECT *
+#    FROM <databasename>.information_schema.columns
+#    -- +/- WHERE column_name NOT LIKE 'crate_%'
+#    ORDER BY table_name, ordinal_position
+# 2. RiO data model reference guide
+# 3. RCEP information schema
 
 RIO_VIEWS = OrderedDict([
     # An OrderedDict in case you wanted to make views from views.
@@ -1300,6 +1360,15 @@ RIO_VIEWS = OrderedDict([
     #                 'result_alias': 'XXX',
     #                 'internal_alias_prefix': 'XXX',
     #             },
+    #         },
+    #         {
+    #             'function': standard_rio_code_lookup_with_national_code,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'result_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
     #         },
     #         {
     #             'function': rio_add_user_lookup,
@@ -1370,6 +1439,14 @@ RIO_VIEWS = OrderedDict([
     #             },
     #         },
     #         {
+    #             'function': rio_add_location_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
     #             'function': simple_view_where,
     #             'kwargs': {
     #                 'where_clause': 'XXX',
@@ -1386,11 +1463,309 @@ RIO_VIEWS = OrderedDict([
 
     # 'assessmentsCRISSpec' is RCEP internal for CRIS tree/form/field/... info
 
-    # *** 'Care_Plan_Index'
+    ('Care_Plan_Index', {
+        'basetable': 'CarePlanIndex',
+        'rename': {
+            'CarePlanID': 'CarePlanID',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'StartUserID': None,  # user lookup
+            'EndUserID': None,  # user lookup
+            'EndReason': None,  # "Obsolete field"
+            'CarePlanType': 'Care_Plan_Type_Code',  # RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'StartUserID',
+                    'column_prefix': 'Start_User',  # RCEP
+                    'internal_alias_prefix': 'su',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'EndUserID',
+                    'column_prefix': 'End_User',  # RCEP
+                    'internal_alias_prefix': 'eu',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'CarePlanType',
+                    'lookup_table': 'CarePlanType',
+                    'result_alias': 'Care_Plan_Type_Description',  # RCEP
+                    'internal_alias_prefix': 'cpt',
+                },
+            },
+        ],
+    }),
 
     # *** 'Care_Plan_Interventions'
+    # ('XXX', {
+    #     'basetable': 'XXX',
+    #     'rename': {
+    #         'XXX': 'XXX',  #
+    #         'XXX': None,  #
+    #     },
+    #     'add': [
+    #         {
+    #             'function': simple_view_expr,
+    #             'kwargs': {
+    #                 'expr': 'XXX',
+    #                 'alias': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': simple_lookup_join,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'lookup_pk': 'XXX',
+    #                 'lookup_fields_aliases': {
+    #                     'XXX': 'XXX',
+    #                 },
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': standard_rio_code_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'result_alias': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': standard_rio_code_lookup_with_national_code,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'result_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': rio_add_user_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_consultant_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_team_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_carespell_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_diagnosis_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_scheme': 'XXX',
+    #                 'basecolumn_code': 'XXX',
+    #                 'alias_scheme': 'XXX',
+    #                 'alias_code': 'XXX',
+    #                 'alias_description': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': rio_add_ims_event_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_event_num': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_gp_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_bay_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_ward': 'XXX',
+    #                 'basecolumn_bay': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_location_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': simple_view_where,
+    #             'kwargs': {
+    #                 'where_clause': 'XXX',
+    #             },
+    #         },
+    #     ],
+    #     'suppress_basetable': True,
+    #     'suppress_other_tables': [],
+    # }),
 
     # *** 'Care_Plan_Problems'
+    # ('XXX', {
+    #     'basetable': 'XXX',
+    #     'rename': {
+    #         'XXX': 'XXX',  #
+    #         'XXX': None,  #
+    #     },
+    #     'add': [
+    #         {
+    #             'function': simple_view_expr,
+    #             'kwargs': {
+    #                 'expr': 'XXX',
+    #                 'alias': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': simple_lookup_join,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'lookup_pk': 'XXX',
+    #                 'lookup_fields_aliases': {
+    #                     'XXX': 'XXX',
+    #                 },
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': standard_rio_code_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'result_alias': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': standard_rio_code_lookup_with_national_code,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'lookup_table': 'XXX',
+    #                 'result_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': rio_add_user_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_consultant_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_team_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_carespell_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_diagnosis_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_scheme': 'XXX',
+    #                 'basecolumn_code': 'XXX',
+    #                 'alias_scheme': 'XXX',
+    #                 'alias_code': 'XXX',
+    #                 'alias_description': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             }
+    #         },
+    #         {
+    #             'function': rio_add_ims_event_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_event_num': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_gp_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_bay_lookup,
+    #             'kwargs': {
+    #                 'basecolumn_ward': 'XXX',
+    #                 'basecolumn_bay': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': rio_add_location_lookup,
+    #             'kwargs': {
+    #                 'basecolumn': 'XXX',
+    #                 'column_prefix': 'XXX',
+    #                 'internal_alias_prefix': 'XXX',
+    #             },
+    #         },
+    #         {
+    #             'function': simple_view_where,
+    #             'kwargs': {
+    #                 'where_clause': 'XXX',
+    #             },
+    #         },
+    #     ],
+    #     'suppress_basetable': True,
+    #     'suppress_other_tables': [],
+    # }),
 
     # *** 'Client_Address_History'
 
@@ -1422,9 +1797,252 @@ RIO_VIEWS = OrderedDict([
 
     # *** 'Client_School'
 
-    # *** 'CPA_CareCoordinator'
+    ('CPA_Care_Coordinator', {  # RCEP: was CPA_CareCoordinator
+        'basetable': 'CPACareCoordinator',
+        'rename': {
+            'CareCoordinatorID': None,  # user lookup below
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'EndReason': 'End_Reason_Code',  # RCEP
+            'CPASequenceID': 'CPA_Key',  # RCEP
+            'SequenceID': 'Unique_Key',  # RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'CareCoordinatorID',
+                    'column_prefix': 'Care_Coordinator',
+                    'internal_alias_prefix': 'cc',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'EndReason',
+                    'lookup_table': 'CPAReviewCareSpellEnd',
+                    'result_prefix': 'End_Reason',  # RCEP
+                    'internal_alias_prefix': 'er',
+                }
+            },
+        ],
+    }),
 
-    # *** 'CPA_Review'
+    ('CPA_Review', {
+        'basetable': 'CPAReviewDate',
+        'rename': {
+            # Created_Date: RCEP; ?source ***
+            # Updated_Date: RCEP; ?source ***
+            'ReviewDate': 'Review_Date',  # RCEP
+            'CurrentFlag': 'Is_Current_Flag',  # RCEP
+            'EndReason': 'End_Reason_Code',  # RCEP was: End_Reason; lookup added  # noqa
+            'CPASequenceID': 'CPA_Key',  # RCEP
+            'CPAReviewOutcome': 'CPA_Review_Outcome_Code',  # RCEP
+            'FullHoNOS': 'Full_HoNOS',  # not in RCEP
+            'ReviewType': 'Review_Type',  # RCEP
+            'SWInvolved': 'Social_Worker_Involved_Flag',  # RCEP
+            'DayCentreInvolved': 'Day_Centre_Involved_Flag',  # RCEP
+            'ShelteredWorkInvolved': 'Sheltered_Work_Involved_Flag',  # RCEP
+            'NonNHSResAccom': 'Non_NHS_Residential_Accommodation',  # RCEP
+            'DomicilCareInvolved': 'Domicile_Care_Involved',  # RCEP
+            'ReviewDiagnosis1': 'Review_Diagnosis_1_FK_Diagnosis',  # in RCEP, Review_Diagnosis_1, etc.  # noqa
+            'ReviewDiagnosis2': 'Review_Diagnosis_2_FK_Diagnosis',
+            'ReviewDiagnosis3': 'Review_Diagnosis_3_FK_Diagnosis',
+            'ReviewDiagnosis4': 'Review_Diagnosis_4_FK_Diagnosis',
+            'ReviewDiagnosis5': 'Review_Diagnosis_5_FK_Diagnosis',
+            'ReviewDiagnosis6': 'Review_Diagnosis_6_FK_Diagnosis',
+            'ReviewDiagnosis7': 'Review_Diagnosis_7_FK_Diagnosis',
+            'ReviewDiagnosis8': 'Review_Diagnosis_8_FK_Diagnosis',
+            'ReviewDiagnosis9': 'Review_Diagnosis_9_FK_Diagnosis',
+            'ReviewDiagnosis10': 'Review_Diagnosis_10_FK_Diagnosis',
+            'ReviewDiagnosis11': 'Review_Diagnosis_11_FK_Diagnosis',
+            'ReviewDiagnosis12': 'Review_Diagnosis_12_FK_Diagnosis',
+            'ReviewDiagnosis13': 'Review_Diagnosis_13_FK_Diagnosis',
+            'ReviewDiagnosis14': 'Review_Diagnosis_14_FK_Diagnosis',
+            'ReviewDiagnosisConfirmed': 'Review_Diagnosis_Confirmed_Date',  # RCEP  # noqa
+            'ReviewDiagnosisBy': None,  # user lookup
+            'ReferralSource': 'Referral_Source_Code',  # RCEP
+            'CareSpellEndCode': 'Care_Spell_End_Code',  # RCEP
+            'SequenceID': 'Unique_Key',  # RCEP
+            'CareTeam': None,  # team lookup below
+            'LastReviewDate': 'Last_Review_Date',  # RCEP
+            'OtherReviewOutcome': 'Other_Review_Outcome',  # RCEP
+            'ReviewLength': 'Review_Length',  # RCEP was ReviewLength
+            'Validated': 'Validated',  # RCEP
+            'ThirdPartyInformation': 'Third_Party_Information',  # RCEP: was ThirdPartyInformation  # noqa
+            'Text1': 'Notes_Text_1',  # not in RCEP
+            'Text2': 'Notes_Text_2',  # not in RCEP
+            'Text3': 'Notes_Text_3',  # not in RCEP
+            'Text4': 'Notes_Text_4',  # not in RCEP
+            'Text5': 'Notes_Text_5',  # not in RCEP
+            'Text6': 'Notes_Text_6',  # not in RCEP
+            'Text7': 'Notes_Text_7',  # not in RCEP
+            'Text8': 'Notes_Text_8',  # not in RCEP
+            'Text9': 'Notes_Text_9',  # not in RCEP
+            'Text10': 'Notes_Text_10',  # not in RCEP
+            'ScheduledRecord': 'Scheduled_Record',  # RCEP was ScheduledRecord
+            'LastUpdatedBy': None,  # user lookup
+            'LastUpdatedDate': 'Last_Updated_Date',  # RCEP
+            'ParentSequenceID': 'Parent_Key',  # RCEP
+            'AppointmentSequenceID': 'Appointment_Key',  # RCEP
+            'CPAReviewPackFilename': 'CPA_Review_Pack_Filename',  # RCEP
+            'LocationDescription': 'Location_Description_Text',  # RCEP
+            'Section117StartDate': 'Section117_Start_Date',  # RCEP
+            'Section117Continue': 'Section117_Continue',  # RCEP
+            'Section117Decision': 'Section117_Decision',  # RCEP
+            'ProgSequenceID': 'Progress_Note_Key',  # RCEP: was Progress__Note_Key  # noqa
+            'CancellationDateTime': 'Cancellation_Date_Time',  # RCEP
+            'CancellationReason': 'Cancellation_Reason_Code',  # RCEP
+            'CancellationBy': None,  # user lookup
+            'EmploymentStatus': 'Employment_Status_Code',  # RCEP
+            'WeeklyHoursWorked': 'Weekly_Hours_Worked_Code',  # RCEP: was Weekly_Hours_Worked  # noqa
+            'AccommodationStatus': 'Accommodation_Status_Code',  # RCEP
+            'SettledAccommodationIndicator': 'Settled_Accommodation_Indicator_Code',  # RCEP  # noqa
+            'Location': None,  # location lookup
+            'Section117EndDate': 'Section117_End_Date',  # RCEP
+            'Section117Eligibility': 'Section117_Eligibility',  # RCEP
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'EndReason',
+                    'lookup_table': 'CPAReviewOutcomes',
+                    'result_prefix': 'End_Reason',  # RCEP
+                    'internal_alias_prefix': 'er',
+                }
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'CPAReviewOutcome',
+                    'lookup_table': 'CPAReviewCareSpellEnd',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'CPA_Review_Outcome_Description',
+                        'NationalCode': 'CPA_Review_Outcome_National_Code',
+                        'DischargeFromCPA': 'CPA_Review_Outcome_Is_Discharge',
+                        # ... all RCEP
+                    },
+                    'internal_alias_prefix': 'ro',
+                }
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReviewDiagnosisBy',
+                    'column_prefix': 'Review_Diagnosis_By',
+                    'internal_alias_prefix': 'rdb',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'ReferralSource',
+                    'lookup_table': 'AmsReferralSource',
+                    'result_prefix': 'Referral_Source',  # RCEP
+                    'internal_alias_prefix': 'rs',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'CareSpellEndCode',
+                    'lookup_table': 'CPAReviewCareSpellEnd',
+                    'result_prefix': 'Care_Spell_End',  # RCEP
+                    'internal_alias_prefix': 'cse',
+                }
+            },
+            {
+                'function': rio_add_team_lookup,
+                'kwargs': {
+                    'basecolumn': 'CareTeam',
+                    'column_prefix': 'Care_Team',
+                    'internal_alias_prefix': 'tm',
+                    # ... all RCEP, except REP has Care_Team_Code and
+                    # Team* for others; this has Care_Team_*
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'OtherReviewOutcome',
+                    'lookup_table': 'CPAReviewOutcomes',
+                    'result_prefix': 'Other_Review_Outcome',  # RCEP
+                    'internal_alias_prefix': 'oro',
+                }
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'LastUpdatedBy',
+                    'column_prefix': 'Last_Updated_By',
+                    'internal_alias_prefix': 'lub',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'CancellationReason',
+                    'lookup_table': 'CPACancellationReasons',
+                    'result_prefix': 'Cancellation_Reason',  # RCEP
+                    'internal_alias_prefix': 'cr',
+                }
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'CancellationBy',
+                    'column_prefix': 'Cancellation_By',
+                    'internal_alias_prefix': 'cb',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'EmploymentStatus',
+                    'lookup_table': 'GenEmpStatus',
+                    'result_prefix': 'Employment_Status',  # RCEP
+                    'internal_alias_prefix': 'es',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'WeeklyHoursWorked',
+                    'lookup_table': 'GenWeeklyHoursWorked',
+                    'result_prefix': 'Weekly_Hours_Worked',  # not in RCEP
+                    'internal_alias_prefix': 'whw',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'AccommodationStatus',
+                    'lookup_table': 'GenAccommodationStatus',
+                    'result_prefix': 'Accommodation_Status',  # RCEP
+                    'internal_alias_prefix': 'as',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'SettledAccommodationIndicator',
+                    'lookup_table': 'GenSettledAccommodation',
+                    'result_prefix': 'Settled_Accommodation_Indicator',  # RCEP
+                    'internal_alias_prefix': 'sa',
+                }
+            },
+            {
+                'function': rio_add_location_lookup,
+                'kwargs': {
+                    'basecolumn': 'Location',
+                    'column_prefix': 'Location',  # RCEP
+                    'internal_alias_prefix': 'loc',
+                },
+            },
+        ],
+    }),
 
     ('Diagnosis', {
         'basetable': 'DiagnosisClient',
