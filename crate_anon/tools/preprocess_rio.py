@@ -1558,7 +1558,7 @@ RIO_VIEWS = OrderedDict([
     ('Care_Plan_Index', {
         'basetable': 'CarePlanIndex',
         'rename': {
-            'CarePlanID': 'CarePlanID',  # RCEP
+            'CarePlanID': 'Care_Plan_ID',  # RCEP
             'StartDate': 'Start_Date',  # RCEP
             'EndDate': 'End_Date',  # RCEP
             'StartUserID': None,  # user lookup
@@ -1595,269 +1595,138 @@ RIO_VIEWS = OrderedDict([
         ],
     }),
 
-    # *** 'Care_Plan_Interventions'
-    # ('XXX', {
-    #     'basetable': 'XXX',
-    #     'rename': {
-    #         'XXX': 'XXX',  #
-    #         'XXX': None,  #
-    #     },
-    #     'add': [
-    #         {
-    #             'function': simple_view_expr,
-    #             'kwargs': {
-    #                 'expr': 'XXX',
-    #                 'alias': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': simple_lookup_join,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'lookup_table': 'XXX',
-    #                 'lookup_pk': 'XXX',
-    #                 'lookup_fields_aliases': {
-    #                     'XXX': 'XXX',
-    #                 },
-    #                 'internal_alias_prefix': 'XXX',
-    #             }
-    #         },
-    #         {
-    #             'function': standard_rio_code_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'lookup_table': 'XXX',
-    #                 'result_alias': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': standard_rio_code_lookup_with_national_code,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'lookup_table': 'XXX',
-    #                 'result_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             }
-    #         },
-    #         {
-    #             'function': rio_add_user_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_consultant_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_team_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_carespell_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_diagnosis_lookup,
-    #             'kwargs': {
-    #                 'basecolumn_scheme': 'XXX',
-    #                 'basecolumn_code': 'XXX',
-    #                 'alias_scheme': 'XXX',
-    #                 'alias_code': 'XXX',
-    #                 'alias_description': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             }
-    #         },
-    #         {
-    #             'function': rio_add_ims_event_lookup,
-    #             'kwargs': {
-    #                 'basecolumn_event_num': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_gp_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_bay_lookup,
-    #             'kwargs': {
-    #                 'basecolumn_ward': 'XXX',
-    #                 'basecolumn_bay': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_location_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': simple_view_where,
-    #             'kwargs': {
-    #                 'where_clause': 'XXX',
-    #             },
-    #         },
-    #     ],
-    #     'suppress_basetable': True,
-    #     'suppress_other_tables': [],
-    # }),
+    ('Care_Plan_Interventions', {
+        'basetable': 'CarePlanInterventions',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'ProblemID': 'Problem_FK_Care_Plan_Problems',  # RCEP: Problem_Key
+            'InterventionID': 'Intervention_Key',  # RCEP; non-unique
+            'Box1': 'Box_1',  # not in RCEP
+            'Box2': 'Box_2',  # not in RCEP
+            'Box3': 'Box_3',  # not in RCEP
+            'Box4': 'Box_4',  # not in RCEP
+            'Box5': 'Box_5',  # not in RCEP
+            'Box6': 'Box_6',  # not in RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'UserID': None,  # user lookup
+            'EntryDate': 'Entry_Date',  # RCEP
+            'InterventionType': 'Intervention_Type_Code',  # RCEP: InterventionType_Code  # noqa
+            'Outcome': 'Outcome_Code',  # RCEP
+            # Comment: unchanged
+            'Picklist1Code': 'Picklist_1_Code',  # not in RCEP
+            'Picklist1Description': 'Picklist_1_Description',  # not in RCEP
+            'Picklist2Code': 'Picklist_2_Code',  # not in RCEP
+            'Picklist2Description': 'Picklist_2_Description',  # not in RCEP
+            'Picklist3Code': 'Picklist_3_Code',  # not in RCEP
+            'Picklist3Description': 'Picklist_3_Description',  # not in RCEP
+            'DateField1': 'Date_Field_1',  # not in RCEP
+            'DateField2': 'Date_Field_2',  # not in RCEP
+            'LibraryID': 'Library_ID',  # not in RCEP
+            'LibraryEdited': 'Library_Edited',  # not in RCEP
+            'SequenceID': 'Unique_Key',  # RCEP
+            'InterventionCategory': 'Intervention_Category_Code',  # RCEP
+            'CheckBox1': 'Check_Box_1',  # not in RCEP
+            'CheckBox2': 'Check_Box_2',  # not in RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'UserID',
+                    'column_prefix': 'User',  # RCEP
+                    'internal_alias_prefix': 'u',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'InterventionType',
+                    'lookup_table': 'CarePlanInterventionTypes',
+                    'result_prefix': 'Intervention_Type',
+                    # ... RCEP, except RCEP had InterventionType_Code
+                    'internal_alias_prefix': 'it',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Outcome',
+                    'lookup_table': 'CarePlanInterventionOutcomes',
+                    'result_alias': 'Outcome_Description',  # RCEP
+                    'internal_alias_prefix': 'od',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'InterventionCategory',
+                    'lookup_table': 'CarePlanInterventionCategory',
+                    'result_alias': 'Intervention_Category_Description',  # RCEP
+                    'internal_alias_prefix': 'ic',
+                },
+            },
+        ],
+    }),
 
-    # *** 'Care_Plan_Problems'
-    # ('XXX', {
-    #     'basetable': 'XXX',
-    #     'rename': {
-    #         'XXX': 'XXX',  #
-    #         'XXX': None,  #
-    #     },
-    #     'add': [
-    #         {
-    #             'function': simple_view_expr,
-    #             'kwargs': {
-    #                 'expr': 'XXX',
-    #                 'alias': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': simple_lookup_join,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'lookup_table': 'XXX',
-    #                 'lookup_pk': 'XXX',
-    #                 'lookup_fields_aliases': {
-    #                     'XXX': 'XXX',
-    #                 },
-    #                 'internal_alias_prefix': 'XXX',
-    #             }
-    #         },
-    #         {
-    #             'function': standard_rio_code_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'lookup_table': 'XXX',
-    #                 'result_alias': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': standard_rio_code_lookup_with_national_code,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'lookup_table': 'XXX',
-    #                 'result_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             }
-    #         },
-    #         {
-    #             'function': rio_add_user_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_consultant_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_team_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_carespell_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_diagnosis_lookup,
-    #             'kwargs': {
-    #                 'basecolumn_scheme': 'XXX',
-    #                 'basecolumn_code': 'XXX',
-    #                 'alias_scheme': 'XXX',
-    #                 'alias_code': 'XXX',
-    #                 'alias_description': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             }
-    #         },
-    #         {
-    #             'function': rio_add_ims_event_lookup,
-    #             'kwargs': {
-    #                 'basecolumn_event_num': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_gp_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_bay_lookup,
-    #             'kwargs': {
-    #                 'basecolumn_ward': 'XXX',
-    #                 'basecolumn_bay': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': rio_add_location_lookup,
-    #             'kwargs': {
-    #                 'basecolumn': 'XXX',
-    #                 'column_prefix': 'XXX',
-    #                 'internal_alias_prefix': 'XXX',
-    #             },
-    #         },
-    #         {
-    #             'function': simple_view_where,
-    #             'kwargs': {
-    #                 'where_clause': 'XXX',
-    #             },
-    #         },
-    #     ],
-    #     'suppress_basetable': True,
-    #     'suppress_other_tables': [],
-    # }),
+    ('Care_Plan_Problems', {
+        'basetable': 'CarePlanProblems',
+        'rename': {
+            'ProblemID': 'Problem_ID',  # RCEP
+            'CarePlanID': 'Care_Plan_ID_FK_Care_Plan_Index',  # RCEP: was Care_Plan_ID
+            'Text': 'Text',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'UserID': None,  # user lookup
+            'EntryDate': 'Entry_Date',  # RCEP
+            'ProblemType': 'Problem_Type_Code',  # RCEP
+            'OutCome': 'Outcome_Code',  # RCEP
+            # Comment: unchanged
+            'LibraryID': 'Library_ID',  # not in RCEP
+            'LibraryEdited': 'Library_Edited',  # not in RCEP
+            'SequenceID': 'Unique_Key',  # RCEP
+            'ProblemCategory': 'Problem_Category_Code',  # RCEP
+            # RCEP: Problem_Date: ?source ***
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'UserID',
+                    'column_prefix': 'User',  # RCEP
+                    'internal_alias_prefix': 'u',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ProblemType',
+                    'lookup_table': 'CarePlanProblemTypes',
+                    'result_alias': 'Problem_Type_Description',  # RCEP
+                    'internal_alias_prefix': 'pt',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'OutCome',
+                    'lookup_table': 'CarePlanProblemOutcomes',
+                    'result_alias': 'Outcome_Description',  # RCEP
+                    'internal_alias_prefix': 'oc',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ProblemCategory',
+                    'lookup_table': 'CarePlanProblemCategory',
+                    'result_alias': 'Problem_Category_Description',  # RCEP
+                    'internal_alias_prefix': 'pc',
+                },
+            },
+        ],
+    }),
 
     # *** 'Client_Address_History'
 
