@@ -1728,7 +1728,83 @@ RIO_VIEWS = OrderedDict([
         ],
     }),
 
-    # *** 'Client_Address_History'
+    ('Client_Address_History', {
+        'basetable': VIEW_ADDRESS_WITH_GEOGRAPHY,  # original: 'ClientAddress'
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'FromDate': 'Address_From_Date',  # RCEP
+            'ToDate': 'Address_To_Date',  # RCEP
+            'AddressLine1': 'Address_Line_1',  # RCEP
+            'AddressLine2': 'Address_Line_2',  # RCEP
+            'AddressLine3': 'Address_Line_3',  # RCEP
+            'AddressLine4': 'Address_Line_4',  # RCEP
+            'AddressLine5': 'Address_Line_5',  # RCEP
+            'PostCode': 'Post_Code',  # RCEP
+            'ElectoralWard': 'Electoral_Ward_Code',  # RCEP: was Electoral_Ward
+            'MailsortCode': 'Mailsort_Code',  # RCEP
+            'PrimaryCareGroup': 'Primary_Care_Group_Code',  # RCEP: was Primary_Care_Group  # noqa
+            'HealthAuthority': 'Health_Authority_Code',  # RCEP: was Health_Authority  # noqa
+            'SequenceID': 'Unique_Key',  # RCEP
+            'LastUpdated': 'Last_Updated',  # RCEP
+            'AddressType': 'Address_Type_Code',  # RCEP
+            'AccommodationType': 'Accommodation_Type_Code',  # RCEP
+            'AddressGroup': 'Address_Group',  # RCEP; ?nature; RiO docs wrong
+            'PAFKey': None,  # NHS Spine interaction field
+            'SpineID': None,  # NHS Spine interaction field
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ElectoralWard',
+                    'lookup_table': 'GenElectoralWard',
+                    'result_alias': 'Electoral_Ward_Description',
+                    'internal_alias_prefix': 'ew',
+                    # ... not in RCEP
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'PrimaryCareGroup',
+                    'lookup_table': 'GenPCG',
+                    'result_alias': 'Primary_Care_Group_Description',
+                    # ... not in RCEP
+                    'internal_alias_prefix': 'pcg',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'HealthAuthority',
+                    'lookup_table': 'GenHealthAuthority',
+                    'result_alias': 'Health_Authority_Description',
+                    # ... not in RCEP
+                    'internal_alias_prefix': 'ha',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'AddressType',
+                    'lookup_table': 'GenAddressType',
+                    'result_alias': 'Address_Type_Description',  # RCEP
+                    'internal_alias_prefix': 'adt',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'AccommodationType',
+                    'lookup_table': 'GenAccommodationType',
+                    'result_prefix': 'Accommodation_Type',
+                    # ... RCEP, though National_Code added
+                    'internal_alias_prefix': 'act',
+                },
+            },
+        ],
+    }),
 
     # *** 'Client_Alternative_ID'
 
@@ -3407,6 +3483,8 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     AmsReferral.DischargeAddressLine*
     AmsReferral.DischargePostCode
+    ClientAddress.AddressLine*
+    ClientAddress.PostCode
     ClientIndex.crate_pk
     ClientIndex.DateOfBirth
     ClientIndex.DaytimePhone
@@ -3428,6 +3506,8 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     # Views
     # ----------------------------------------------------------------------
+    Client_Address_History.Address_Line_*
+    Client_Address_History.Post_Code
     Inpatient_Leave.Address_Line*
     Inpatient_Leave.PostCode
     Inpatient_Stay.Discharge_Address_Line_*
