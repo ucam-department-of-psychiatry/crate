@@ -590,11 +590,12 @@ def process_table(sourcedbname, sourcetable,
                 )
                 continue
         destvalues = {}
+        skip_row = False
         for i, ddr in enumerate(ddrows):
             value = row[i]
             if ddr.skip_row_by_value(value):
                 # log.debug("skipping row based on inclusion/exclusion values")
-                destvalues = {}
+                skip_row = True
                 break  # skip row
             # NOTE: would be most efficient if ddrows were ordered with
             # inclusion/exclusion fields first. (Not yet done automatically.)
@@ -623,16 +624,26 @@ def process_table(sourcedbname, sourcetable,
                                 ALTERMETHOD=ALTERMETHOD, v=value))
                         value = None
                 elif alter_method.extract_text:
-                    value = extract_text(value, row, alter_method, ddrows)
+                    value, extracted = extract_text(value, row, alter_method,
+                                                    ddrows)
+                    if not extracted and ddr.skip_row_if_extract_text_fails():
+                        log.debug("Skipping row as text extraction failed")
+                        skip_row = True
+                        break
                 # elif alter_method.html_escape:
                 #     value = html.escape(value)
                 elif alter_method.html_unescape:
                     value = html.unescape(value)
                 elif alter_method.html_untag:
                     value = html_untag(value)
+                elif alter_method.skip_if_text_extract_fails:
+                    # Modifies other alter methods; doesn't do anything itself
+                    pass
+            if skip_row:
+                break
             destvalues[ddr.dest_field] = value
 
-        if not destvalues:  # e.g. if exclusion/inclusion criteria failed
+        if skip_row or not destvalues:
             continue  # next row
 
         if addhash:
@@ -668,6 +679,8 @@ def extract_text(value, row, alter_method, ddrows):
     """
     Take a field's value and return extracted text, for file-related fields,
     where the DD row indicates that this field contains a filename or a BLOB.
+
+    Returns tuple: value, extracted
     """
     filename = None
     blob = None
@@ -685,6 +698,7 @@ def extract_text(value, row, alter_method, ddrows):
             raise ValueError(
                 "Bug: missing extension field for "
                 "alter_method={}".format(alter_method.get_text()))
+        # Configuration error
         extension = row[extindex]
         log.debug("extract_text: database blob, extension={}".format(
             extension))
@@ -695,9 +709,10 @@ def extract_text(value, row, alter_method, ddrows):
                                  plain=config.extract_text_plain,
                                  width=config.extract_text_width)
     except Exception as e:
+        # Runtime error
         log.error("Exception from document_to_text: {}".format(e))
-        value = None
-    return value
+        return None, False
+    return value, True
 
 
 HTML_TAG_RE = regex.compile('<[^>]*>')

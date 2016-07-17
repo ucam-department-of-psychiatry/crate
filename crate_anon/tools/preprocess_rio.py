@@ -344,6 +344,7 @@ AUTONUMBER_COLTYPE = "INTEGER IDENTITY(1, 1) NOT NULL"
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
 RIO_TABLE_ADDRESS = "ClientAddress"
 RIO_TABLE_PROGRESS_NOTES = "PrgProgressNote"
+RIO_TABLE_CLINICAL_DOCUMENTS = "ClientDocument"
 # Columns in RiO Core:
 RIO_COL_PATIENT_ID = "ClientID"  # RiO 6.2: VARCHAR(15)
 RIO_COL_NHS_NUMBER = "NNN"  # RiO 6.2: CHAR(10) ("National NHS Number")
@@ -393,13 +394,21 @@ CRATE_COL_NHS_NUMBER = "crate_nhs_number_int"
 # For progress notes:
 CRATE_COL_MAX_SUBNUM = "crate_max_subnum_for_notenum"
 CRATE_COL_LAST_NOTE = "crate_last_note_in_edit_chain"
+# For clinical documents:
+CRATE_COL_MAX_DOCVER = "crate_max_docver_for_doc"
+CRATE_COL_LAST_DOC = "crate_last_doc_in_chain"
 
-# Indexes added:
+# Indexes added... generic:
 CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
 CRATE_IDX_RIONUM = "crate_idx_rionum"  # for any patient table
-CRATE_IDX_RIONUM_NOTENUM = "crate_idx_rionum_notenum"  # for Progress Notes
+# For progress notes:
+CRATE_IDX_RIONUM_NOTENUM = "crate_idx_rionum_notenum"
 CRATE_IDX_MAX_SUBNUM = "crate_idx_max_subnum"
 CRATE_IDX_LAST_NOTE = "crate_idx_last_note"
+# For clinical documents:
+CRATE_IDX_RIONUM_SERIALNUM = "crateidx_rionum_serialnum"
+CRATE_IDX_MAX_DOCVER = "crate_idx_max_docver"
+CRATE_IDX_LAST_DOC = "crate_idx_last_doc"
 
 # Views added:
 VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT = "progress_notes_current_crate"
@@ -756,8 +765,8 @@ def process_progress_notes(table, engine, progargs):
 
     # Find the maximum SubNum for each note, and store it.
     # Slow query, even with index.
-    log.info("Progress notes table '{}': "
-             "updating 'max_subnum_for_notenum'".format(table.name))
+    log.info("Progress notes table '{}': updating '{}'".format(
+        table.name, CRATE_COL_MAX_SUBNUM))
     execute(engine, """
         UPDATE p1
         SET p1.{max_subnum_col} = subq.max_subnum
@@ -776,8 +785,8 @@ def process_progress_notes(table, engine, progargs):
     ))
 
     # Set a single column accordingly
-    log.info("Progress notes table '{}': "
-             "updating 'last_note_in_edit_chain'".format(table.name))
+    log.info("Progress notes table '{}': updating '{}'".format(
+        table.name, CRATE_COL_LAST_NOTE))
     execute(engine, """
         UPDATE {tablename} SET
             {last_note_col} =
@@ -814,6 +823,82 @@ def drop_for_progress_notes(table, engine):
                                  CRATE_IDX_LAST_NOTE])
     drop_columns(engine, table, [CRATE_COL_MAX_SUBNUM,
                                  CRATE_COL_LAST_NOTE])
+
+
+def process_clindocs_table(table, engine, progargs):
+    # For RiO only, not RCEP
+    add_columns(engine, table, {
+        CRATE_COL_MAX_DOCVER: 'INTEGER',
+        CRATE_COL_LAST_DOC: 'INTEGER',
+    })
+    add_indexes(engine, table, [
+        {
+            'index_name': CRATE_IDX_RIONUM_SERIALNUM,
+            'column': '{rio_number}, SerialNumber'.format(
+                rio_number=CRATE_COL_RIO_NUMBER),
+        },
+        {
+            'index_name': CRATE_IDX_MAX_DOCVER,
+            'column': CRATE_COL_MAX_DOCVER,
+        },
+        {
+            'index_name': CRATE_IDX_LAST_DOC,
+            'column': CRATE_COL_LAST_DOC,
+        },
+    ])
+
+    required_cols = ["SerialNumber", "RevisionID"]
+    if not progargs.print:
+        required_cols.extend([CRATE_COL_MAX_DOCVER, 
+                              CRATE_COL_LAST_DOC, 
+                              CRATE_COL_RIO_NUMBER])
+    ensure_columns_present(engine, table=table, column_names=required_cols)
+
+    # Find the maximum SerialNumber for each note, and store it.
+    # Slow query, even with index.
+    log.info("Clinical documents table '{}': updating '{}'".format(
+        table.name, CRATE_COL_MAX_DOCVER))
+    execute(engine, """
+        UPDATE p1
+        SET p1.{max_docver_col} = subq.max_docver
+        FROM {tablename} p1 JOIN (
+            SELECT {rio_number}, SerialNumber, MAX(RevisionID) AS max_docver
+            FROM {tablename} p2
+            GROUP BY {rio_number}, SerialNumber
+        ) subq
+        ON subq.{rio_number} = p1.{rio_number}
+        AND subq.SerialNumber = p1.SerialNumber
+        WHERE p1.{max_docver_col} IS NULL
+    """.format(
+        max_docver_col=CRATE_COL_MAX_DOCVER,
+        tablename=table.name,
+        rio_number=CRATE_COL_RIO_NUMBER,
+    ))
+
+    # Set a single column accordingly
+    log.info("Clinical documents table '{}': updating '{}'".format(
+        table.name, CRATE_COL_LAST_NOTE))
+    execute(engine, """
+        UPDATE {tablename} SET
+            {last_doc_col} =
+                CASE
+                    WHEN RevisionID = {max_docver_col} THEN 1
+                    ELSE 0
+                END
+        WHERE {last_doc_col} IS NULL
+    """.format(
+        tablename=table.name,
+        last_doc_col=CRATE_COL_LAST_NOTE,
+        max_docver_col=CRATE_COL_MAX_DOCVER,
+    ))
+
+
+def drop_for_clindocs_table(table, engine):
+    drop_indexes(engine, table, [CRATE_IDX_RIONUM_SERIALNUM,
+                                 CRATE_IDX_MAX_DOCVER,
+                                 CRATE_IDX_LAST_DOC])
+    drop_columns(engine, table, [CRATE_COL_MAX_DOCVER,
+                                 CRATE_COL_LAST_DOC])
 
 
 # =============================================================================
@@ -1228,6 +1313,13 @@ def where_prognotes_current(viewmaker):
     viewmaker.add_where(
         "(EnteredInError <> 1 OR EnteredInError IS NULL) "
         "AND {last_note_col} = 1".format(last_note_col=CRATE_COL_LAST_NOTE))
+
+
+def where_clindocs_current(viewmaker):
+    if not viewmaker.progargs.clindocs_current_only:
+        return
+    viewmaker.add_where("{last_doc_col} = 1 AND DeletedDate IS NULL".format(
+        last_doc_col=CRATE_COL_LAST_DOC))
 
 
 def where_not_deleted_flag(viewmaker, basecolumn):
@@ -2999,6 +3091,79 @@ RIO_VIEWS = OrderedDict([
     }),
 
     # -------------------------------------------------------------------------
+    # Core: important things missed out by RCEP
+    # -------------------------------------------------------------------------
+
+    ('Clinical_Documents', {
+        'basetable': 'ClientDocument',
+        'rename': {
+            # ClientID: ignored; CRATE_COL_RIO_NUMBER instead
+            # SequenceID: ignored; CRATE_COL_PK instead
+            'UserID': None,  # user lookup
+            'Type': 'Type_Code',
+            'DateCreated': 'Date_Created',
+            'SerialNumber': 'Serial_Number',  # can repeat across ClientID
+            'Path': 'Path',  # ... no path, just filename (but CONTAINS ID)
+            # ... filename format is e.g.:
+            #   46-1-20130903-XXXXXXX-OC.pdf
+            # where 46 = SerialNumber; 1 = RevisionID; 20130903 = date;
+            # XXXXXXX = RiO number; OC = Type
+            'Description': 'Description',
+            'Title': 'Title',
+            'Author': 'Author',
+            'DocumentDate': 'Document_Date',
+            'InsertedDate': 'Inserted_Date',
+            'RevisionID': 'Document_Version',  # starts from 1 for each
+            'FinalRevFlag': 'Is_Final_Version',  # 0 (draft) or 1 (final)
+            'DeletedDate': 'Deleted_Date',
+            'DeletedBy': None,  # user lookup
+            'DeletedReason': 'Deleted_Reason_Code',
+            'FileSize': 'File_Size',
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'UserID',
+                    'column_prefix': 'Storing_User',
+                    'internal_alias_prefix': 'su',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Type',
+                    'lookup_table': 'GenDocumentType',
+                    'result_alias': 'Type_Description',
+                    'internal_alias_prefix': 'ty',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'DeletedBy',
+                    'column_prefix': 'Deleting_User',
+                    'internal_alias_prefix': 'du',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'DeletedReason',
+                    'lookup_table': 'GenDocumentRemovalReason',
+                    'result_alias': 'Deleted_Reason_Description',
+                    'internal_alias_prefix': 'dr',
+                },
+            },
+            {
+                # Restrict to current progress notes using CRATE extra info?
+                'function': where_clindocs_current,
+            },
+        ],
+    }),
+
+
+    # -------------------------------------------------------------------------
     # Non-core: CPFT
     # -------------------------------------------------------------------------
 
@@ -3124,6 +3289,8 @@ def process_table(table, engine, progargs):
         # Generic
         if is_patient_table:
             drop_for_patient_table(table, engine)
+        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
+            drop_for_clindocs_table(table, engine)
         else:
             drop_for_nonpatient_table(table, engine)
     else:
@@ -3138,6 +3305,8 @@ def process_table(table, engine, progargs):
         # Specific
         if tablename == progargs.master_patient_table:
             process_master_patient_table(table, engine, progargs)
+        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
+            process_clindocs_table(table, engine, progargs)
         elif tablename == progargs.full_prognotes_table:
             process_progress_notes(table, engine, progargs)
 
@@ -3429,9 +3598,11 @@ ddgen_min_length_for_scrubbing = 81
 
 ddgen_truncate_date_fields = ClientIndex.DateOfBirth
 
-ddgen_filename_to_text_fields =
+ddgen_filename_to_text_fields = Clinical_Documents.Path
 
 ddgen_binary_to_text_field_pairs =
+
+ddgen_skip_row_if_extract_text_fails_fields = Clinical_Documents.Path
 
 ddgen_index_fields =
 
@@ -3499,6 +3670,18 @@ def main():
         action="store_false",
         help="Progress_Notes view shows old versions too")
     parser.set_defaults(prognotes_current_only=True)
+
+    parser.add_argument(
+        "--clindocs_current_only",
+        dest="clindocs_current_only",
+        action="store_true",
+        help="Clinical_Documents view restricted to current versions only")
+    parser.add_argument(
+        "--clindocs_all",
+        dest="clindocs_current_only",
+        action="store_false",
+        help="Clinical_Documents view shows old versions too")
+    parser.set_defaults(clindocs_current_only=True)
 
     parser.add_argument(
         "--postcodedb",

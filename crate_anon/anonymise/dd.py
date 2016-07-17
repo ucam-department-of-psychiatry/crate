@@ -98,6 +98,7 @@ class AlterMethod(object):
     def __init__(self, text_value=None,
                  scrub=False, truncate_date=False,
                  extract_from_filename=False, extract_from_blob=False,
+                 skip_if_text_extract_fails=False,
                  extract_ext_field="",
                  # html_escape=False,
                  html_unescape=False,
@@ -107,6 +108,7 @@ class AlterMethod(object):
         self.extract_text = (extract_from_filename or extract_from_blob)
         self.extract_from_blob = extract_from_blob
         self.extract_from_filename = extract_from_filename
+        self.skip_if_text_extract_fails = skip_if_text_extract_fails
         self.extract_ext_field = extract_ext_field
         # self.html_escape = html_escape
         self.html_unescape = html_unescape
@@ -124,6 +126,7 @@ class AlterMethod(object):
         self.extract_text = False
         self.extract_from_blob = False
         self.extract_from_filename = False
+        self.skip_if_text_extract_fails = False
         self.extract_ext_field = ""
         if value == ALTERMETHOD.TRUNCATEDATE:
             self.truncate_date = True
@@ -144,6 +147,8 @@ class AlterMethod(object):
         elif value == ALTERMETHOD.FILENAME2TEXT:
             self.extract_text = True
             self.extract_from_filename = True
+        elif value == ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS:
+            self.skip_if_text_extract_fails = True
         # elif value == ALTERMETHOD.HTML_ESCAPE:
         #     self.html_escape = True
         elif value == ALTERMETHOD.HTML_UNESCAPE:
@@ -166,6 +171,8 @@ class AlterMethod(object):
                 return ALTERMETHOD.BIN2TEXT + "=" + self.extract_ext_field
             else:
                 return ALTERMETHOD.FILENAME2TEXT
+        if self.skip_if_text_extract_fails:
+            return ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS
         # if self.html_escape:
         #     return ALTERMETHOD.HTML_ESCAPE
         if self.html_unescape:
@@ -395,6 +402,9 @@ class DataDictionaryRow(object):
     def get_alter_methods(self):
         return self._alter_methods
 
+    def skip_row_if_extract_text_fails(self):
+        return any(x.skip_if_text_extract_fails for x in self._alter_methods)
+
     @property
     def from_file(self):
         return self._from_file
@@ -614,14 +624,13 @@ class DataDictionaryRow(object):
         )
 
         # How should we manipulate the destination?
+        extracting_text = False
         if self.matches_fielddef(cfg.ddgen_truncate_date_fields):
             self._alter_methods.append(AlterMethod(truncate_date=True))
         elif self.matches_fielddef(cfg.ddgen_filename_to_text_fields):
             self._alter_methods.append(AlterMethod(extract_from_filename=True))
             self.dest_datatype = LONGTEXT
-            if (not self.matches_fielddef(
-                    cfg.ddgen_safe_fields_exempt_from_scrubbing)):
-                self._alter_methods.append(AlterMethod(scrub=True))
+            extracting_text = True
         elif self.matches_fielddef(cfg.bin2text_dict.keys()):
             for binfielddef, extfield in cfg.bin2text_dict.items():
                 if self.matches_fielddef(binfielddef):
@@ -629,16 +638,25 @@ class DataDictionaryRow(object):
                         extract_from_blob=True,
                         extract_ext_field=extfield))
             self.dest_datatype = LONGTEXT
-            if (not self.matches_fielddef(
-                    cfg.ddgen_safe_fields_exempt_from_scrubbing)):
-                self._alter_methods.append(AlterMethod(scrub=True))
+            extracting_text = True
         elif (is_sqltype_text_of_length_at_least(
                 datatype_sqltext, cfg.ddgen_min_length_for_scrubbing) and
                 not self._primary_pid and
                 not self._master_pid and
                 not self.matches_fielddef(
                     cfg.ddgen_safe_fields_exempt_from_scrubbing)):
+            # Text field meeting the criteria to scrub
             self._alter_methods.append(AlterMethod(scrub=True))
+        if extracting_text:
+            # Scrub all extract-text fields, unless asked not to
+            if (not self.matches_fielddef(
+                    cfg.ddgen_safe_fields_exempt_from_scrubbing)):
+                self._alter_methods.append(AlterMethod(scrub=True))
+            # Set skip_if_text_extract_fails flag?
+            if self.matches_fielddef(
+                    cfg.ddgen_skip_row_if_extract_text_fails_fields):
+                self._alter_methods.append(AlterMethod(
+                    skip_if_text_extract_fails=True))
 
         # Manipulate the destination table name?
         # http://stackoverflow.com/questions/10017147

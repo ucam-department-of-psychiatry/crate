@@ -78,6 +78,7 @@ ALTERMETHOD = AttrDict(
     SCRUBIN="scrub",
     BIN2TEXT="binary_to_text",
     FILENAME2TEXT="filename_to_text",
+    SKIP_IF_TEXT_EXTRACT_FAILS="skip_if_extract_fails",
     # HTML_ESCAPE="html_escape",
     HTML_UNESCAPE="html_unescape",
     HTML_UNTAG="html_untag",
@@ -349,6 +350,15 @@ DEMO_CONFIG = """
 #       (the contents of which is converted to text), rather than containing
 #       binary data directly.
 #
+#     - "{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS}"
+#       If one of the text extraction methods is specified, and this flag is
+#       also specified, then the data row will be skipped if text extrcation
+#       fails (rather than inserted with a NULL value for the text). This is
+#       helpful, for example, if your text-processing pipeline breaks; the
+#       option prevents rows being created erroneously with NULL text values,
+#       so that a subsequent incremental update will fix the problems once
+#       you've fixed your text extraction tools.
+#
 #     - "{ALTERMETHOD.HTML_UNESCAPE}"
 #       HTML encoding is removed, e.g. convert "&amp;" to "&" and "&lt;" to "<"
 #
@@ -362,9 +372,10 @@ DEMO_CONFIG = """
 #     Not all are compatible (e.g. scrubbing is for text; date truncation is
 #     for dates).
 #     If there's more than one, text extraction from BLOBs/files is performed
-#     first. After that, they are executed in sequence.
+#     first. After that, they are executed in sequence. (The position of the
+#     skip-if-text-extraction-fails flag is immaterial.)
 #     A typical combination might be:
-#           {ALTERMETHOD.FILENAME2TEXT},{ALTERMETHOD.SCRUBIN}
+#           {ALTERMETHOD.FILENAME2TEXT},{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS},{ALTERMETHOD.SCRUBIN}
 #     or:
 #           {ALTERMETHOD.HTML_UNTAG},{ALTERMETHOD.HTML_UNESCAPE},{ALTERMETHOD.SCRUBIN}
 #
@@ -707,15 +718,19 @@ url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charse
 
 [mysourcedb1]
 
-# CONNECTION DETAILS
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # CONNECTION DETAILS
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
 
-# INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
-# - For field specifications, fields can either be specified as "column" (to
-#   match any table) or "table.column", to match a specific table.
-#   They are case-insensitive.
-#   Wildcards (*, ?) may also be used (as per Python's fnmatch).
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # - For field specifications, fields can either be specified as "column"
+    #   (to match any table) or "table.column", to match a specific table.
+    #   They are case-insensitive.
+    #   Wildcards (*, ?) may also be used (as per Python's fnmatch).
 
     # By default, most fields (except PKs and patient ID codes) are marked
     # as "OMIT", pending human review. If you want to live dangerously, set
@@ -824,6 +839,14 @@ ddgen_filename_to_text_fields =
     # but the second must be column only.
 ddgen_binary_to_text_field_pairs =
 
+    # Specify any text-extraction rows for which you also want to set the flag
+    # "{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS}":
+ddgen_skip_row_if_extract_text_fails_fields =
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # DESTINATION INDEXING
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     # Fields to apply an index to
 ddgen_index_fields =
 
@@ -831,7 +854,9 @@ ddgen_index_fields =
     # don't support them?
 ddgen_allow_fulltext_indexing = True
 
-# DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     # Force all destination tables/fields to lower case?
     # Boolean; default is True.
@@ -840,7 +865,9 @@ ddgen_force_lower_case = True
     # Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.
 ddgen_convert_odd_chars_to_underscore = True
 
-# PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     # Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to
     # apply to any tables listed in debug_limited_tables. For those tables,

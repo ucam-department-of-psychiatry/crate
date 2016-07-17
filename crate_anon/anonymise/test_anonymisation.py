@@ -144,7 +144,8 @@ def get_patientnum_rawtext(docid, fieldinfo):
     pid = row[idx_pidfield]
     text = row[idx_textfield]
     if fieldinfo.text_ddrow._extract_text:
-        text = extract_text(text, row, fieldinfo.text_ddrow, src_ddrows)
+        text, extracted = extract_text(text, row, fieldinfo.text_ddrow,
+                                       src_ddrows)
     return pid, text
 
 

@@ -211,6 +211,8 @@ class DatabaseSafeConfig(object):
                 raise ValueError("ddgen_binary_to_text_field_pairs: specify "
                                  "fields in pairs")
             self.bin2text_dict[items[0]] = items[1]
+        self.ddgen_skip_row_if_extract_text_fails_fields = opt_multiline(
+            'ddgen_skip_row_if_extract_text_fails_fields')
 
         self.ddgen_index_fields = opt_multiline('ddgen_index_fields')
         self.ddgen_allow_fulltext_indexing = opt_bool(
