@@ -1336,6 +1336,81 @@ def rio_add_gp_lookup(viewmaker, basecolumn,
     viewmaker.record_lookup_table_keyfield('GenGP', 'Code')
 
 
+def rio_add_gp_practice_lookup(viewmaker, basecolumn,
+                               column_prefix, internal_alias_prefix):
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}_Code,
+        {ap}_prac.CodeDescription AS {cp}_Description,
+        {ap}_prac.AddressLine1 AS {cp}_Address_Line_1,
+        {ap}_prac.AddressLine2 AS {cp}_Address_Line_2,
+        {ap}_prac.AddressLine3 AS {cp}_Address_Line_3,
+        {ap}_prac.AddressLine4 AS {cp}_Address_Line_4,
+        {ap}_prac.AddressLine5 AS {cp}_Address_Line_5,
+        {ap}_prac.PostCode AS {cp}_Post_Code,
+        {ap}_prac.NationalCode AS {cp}_National_Code
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN GenGPPractice {ap}_prac
+            ON {ap}_prac.Code = {basetable}.{basecolumn}
+    """.format(  # noqa
+        ap=internal_alias_prefix,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+    ))
+    viewmaker.record_lookup_table_keyfield('GenGPPractice', 'Code')
+
+
+def rio_add_gp_lookup_with_practice(viewmaker, basecolumn,
+                                    column_prefix, internal_alias_prefix):
+    if column_prefix:
+        column_prefix += '_'
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}GP_Code,
+        {ap}_gp.CodeDescription AS {cp}GP_Description,
+        {ap}_gp.NationalCode AS {cp}GP_National_Code,
+        {ap}_gp.Title AS {cp}GP_Title,
+        {ap}_gp.Forename AS {cp}GP_Forename,
+        {ap}_gp.Surname AS {cp}GP_Surname,
+        {ap}_prac.Code AS {cp}Practice_Code,
+        {ap}_prac.CodeDescription AS {cp}Practice_Description,
+        {ap}_prac.AddressLine1 AS {cp}Practice_Address_Line_1,
+        {ap}_prac.AddressLine2 AS {cp}Practice_Address_Line_2,
+        {ap}_prac.AddressLine3 AS {cp}Practice_Address_Line_3,
+        {ap}_prac.AddressLine4 AS {cp}Practice_Address_Line_4,
+        {ap}_prac.AddressLine5 AS {cp}Practice_Address_Line_5,
+        {ap}_prac.PostCode AS {cp}Practice_Post_Code,
+        {ap}_prac.NationalCode AS {cp}Practice_National_Code
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    viewmaker.add_from("""
+        LEFT JOIN (
+            GenGP {ap}_gp
+            INNER JOIN GenGPGPPractice  -- linking table
+                ON GenGPPractice.GenGPCode = {ap}_gp.Code
+            INNER JOIN GenGPPractice {ap}_prac
+                ON {ap}_prac.Code = GenGPPractice.GenPracticeCode
+        ) ON {ap}_gp.Code = {basetable}.{basecolumn}
+    """.format(  # noqa
+        ap=internal_alias_prefix,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+    ))
+    viewmaker.record_lookup_table_keyfields([
+        ('GenGP', 'Code'),
+        ('GenGPPractice', 'Code'),
+        ('GenGPGPPractice', 'GenGPCode'),
+    ])
+
+
 def where_prognotes_current(viewmaker):
     if not viewmaker.progargs.prognotes_current_only:
         return
@@ -1641,8 +1716,8 @@ RIO_VIEWS = OrderedDict([
     ('Care_Plan_Interventions', {
         'basetable': 'CarePlanInterventions',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'ProblemID': 'Problem_FK_Care_Plan_Problems',  # RCEP: Problem_Key
             'InterventionID': 'Intervention_Key',  # RCEP; non-unique
             'Box1': 'Box_1',  # not in RCEP
@@ -1774,8 +1849,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Address_History', {
         'basetable': VIEW_ADDRESS_WITH_GEOGRAPHY,  # original: 'ClientAddress'
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'FromDate': 'Address_From_Date',  # RCEP
             'ToDate': 'Address_To_Date',  # RCEP
             'AddressLine1': 'Address_Line_1',  # RCEP
@@ -1853,8 +1928,8 @@ RIO_VIEWS = OrderedDict([
         # IDs on other systems
         'basetable': 'ClientAlternativeID',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'SystemID': None,  # lookup below
             'ID': 'ID',  # RCEP; this is the foreign ID
             'SequenceID': 'Unique_Key',  # RCEP
@@ -1876,8 +1951,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Allergies', {
         'basetable': 'EPClientAllergies',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'ReactionID': 'Unique_Key',  # RCEP
             'UserID': None,  # user lookup
             # Substance: unchanged, RCEP
@@ -1962,8 +2037,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Communications_History', {
         'basetable': 'ClientTelecom',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'ClientTelecomID': 'Unique_Key',  # RCEP
             'Detail': 'Contact_Details',  # RCEP; may be phone no. or email addr
             'ContactMethod': None,  # lookup below
@@ -2062,107 +2137,63 @@ RIO_VIEWS = OrderedDict([
     ('Client_Demographic_Details', {
         'basetable': 'ClientIndex',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'NNN': 'NHS_Number',  # RCEP
-Shared_ID ***
+            # RCEP: Shared_ID = hashed NHS number (CRATE does this); skipped
             'NNNStatus': None,  # lookup below
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-            'XXX': 'XXX',  #
-
-
-AlternativeID
-Surname
-SurnameSoundex
-Firstname
-FirstnameSoundex
-Title
-Gender
-DateOfBirth
-EstimatedDOB
-DaytimePhone
-EveningPhone
-Occupation
-PartnerOccupation
-MaritalStatus
-Ethnicity
-Religion
-Nationality
-DateOfDeath
-OtherAddress
-MotherLink
-FatherLink
-DateRegistered
-EMailAddress
-MobilePhone
-FirstLanguage
-School
-NonClient
-DiedInHospital
-MainCarer
-NINumber
-DeathFlag
-TimeStamps
-FirstCareDate
-NNNLastTape
-OtherCarer
-LastUpdated
-ReportsFile
-SENFile
-Interpreter
-OutPatMedAdminRecord
-SpineID
-SpineSyncDate
-SensitiveFlag
-DeathDateNational
-DeathDateStatus
-SupersedingNNN
-Deleted
-PersonRole
-Exited
+            'AlternativeID': 'Alternative_RiO_Number',  # may always be NULL
+            'Surname': None,  # always NULL; see ClientName instead
+            'SurnameSoundex': None,  # always NULL; see ClientName instead
+            'Firstname': None,  # always NULL; see ClientName instead
+            'FirstnameSoundex': None,  # always NULL; see ClientName instead
+            'Title': None,  # always NULL; see ClientName instead
+            'Gender': None,  # lookup below
+            # RCEP: CAMHS_National_Gender_Code: ?source
+            'DateOfBirth': 'Date_Of_Birth',  # RCEP
+            # Truncated_Date_of_Birth (RCEP): ignored (CRATE does this)
+            'EstimatedDOB': 'Estimated_Date_Of_Birth',  # 0/1 flag
+            'DaytimePhone': 'Daytime_Phone',  # not in RCEP
+            'EveningPhone': 'Evening_Phone',  # not in RCEP
+            'Occupation': 'Occupation',  # RCEP
+            'PartnerOccupation': 'Partner_Occupation',  # RCEP
+            'MaritalStatus': None,  # lookup below
+            'Ethnicity': None,  # lookup below
+            'Religion': None,  # lookup below
+            'Nationality': None,  # lookup below
+            'DateOfDeath': 'Date_Of_Death',  # RCEP
+            # RCEP: comment: ?source
+            'OtherAddress': None,  # Not in RCEP. Occasional (0.34%) confused mismash e.g. "Temporary Address: 1 Thing Lane, ..."; so unhelpful for anon. but identifying  # noqa
+            'MotherLink': None,  # Not in RCEP. ?Always NULL. See ClientFamilyLink instead  # noqa
+            'FatherLink': None,  # Not in RCEP. ?Always NULL. See ClientFamilyLink instead  # noqa
+            'DateRegistered': 'Date_Registered',  # RCEP
+            'EMailAddress': None,  # always NULL; see ClientTelecom instead
+            'MobilePhone': None,  # always NULL; see ClientTelecom instead
+            'FirstLanguage': None,  # lookup below
+            'School': None,  # always NULL; see ClientSchool instead
+            'NonClient': 'Non_Client',  # RCEP; 0/1 indicator
+            'DiedInHospital': 'Died_In_Hospital',  # RCEP
+            'MainCarer': 'Main_Carer',  # RCEP; RiO number CROSS-REFERENCE ***
+            'NINumber': 'National_Insurance_Number',  # RCEP
+            'DeathFlag': 'Death_Flag',  # RCEP; 0/1 indicator
+            'TimeStamps': None,  # RiO internal system record-locking field (!)
+            'FirstCareDate': 'Date_Of_First_Mental_Health_Care',  # RCEP
+            'NNNLastTape': None,  # Not in RCEP. May refer to tape storage of NHS numbers, i.e. system internal; see NNNTape.  # noqa
+            'OtherCarer': 'Other_Carer',  # RCEP; RiO number CROSS-REFERENCE ***
+            'LastUpdated': 'Last_Updated',  # RCEP
+            'ReportsFile': 'Reports_File',  # RCEP; 0/1 flag
+            'SENFile': 'SEN_File',  # RCEP; 0/1 flag
+            'Interpreter': 'Interpreter_Required',  # RCEP; 0/1 flag
+            'OutPatMedAdminRecord': 'Outpatient_Medical_Admin_Record',  # 0/1 flag; RCEP was OutPatMedAdminRecord  # noqa
+            'SpineID': None,  # omitted from RCEP
+            'SpineSyncDate': None,  # omitted from RCEP
+            'SensitiveFlag': 'Sensitive_Flag',  # RCEP
+            'DeathDateNational': 'Death_Date_National',  # RCEP
+            'DeathDateStatus': 'Death_Date_Status',  # RCEP
+            'SupersedingNNN': 'Superseding_NHS_Number',  # RCEP
+            'Deleted': 'Deleted_Flag',  # RCEP
+            'PersonRole': None,  # lookup below
+            'Exited': 'Exited_NHS_Care',  # RCEP was Exited; 0/1 flag
         },
         'add': [
             {
@@ -2170,12 +2201,500 @@ Exited
                 'kwargs': {
                     'basecolumn': 'NNNStatus',
                     'lookup_table': 'NNNStatus',
-                    'column_prefix': 'NNN_Status',  # RCEP
+                    'column_prefix': 'NNN_Status',
                     # ... RCEP except code was NNN_Status
-                    'internal_alias_prefix': 'XXX',
+                    'internal_alias_prefix': 'ns',
                 },
             },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Gender',
+                    'lookup_table': 'GenGender',
+                    'column_prefix': 'Gender',  # RCEP
+                    'internal_alias_prefix': 'gd',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'MaritalStatus',
+                    'lookup_table': 'GenMaritalStatus',
+                    'column_prefix': 'Marital_Status',
+                    # RCEP, except national was National_Marital_Status_Code
+                    'internal_alias_prefix': 'ms',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'Ethnicity',
+                    'lookup_table': 'GenEthnicity',
+                    'column_prefix': 'Ethnicity',
+                    # RCEP, except national was National_Ethnicity_Code
+                    'internal_alias_prefix': 'et',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'Religion',
+                    'lookup_table': 'GenReligion',
+                    'column_prefix': 'Religion',
+                    # RCEP, except national was National_Religion_Code
+                    'internal_alias_prefix': 're',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'Nationality',
+                    'lookup_table': 'GenNationality',
+                    'column_prefix': 'Nationality',  # RCEP
+                    'internal_alias_prefix': 'nt',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'FirstLanguage',
+                    'lookup_table': 'GenLanguage',
+                    'column_prefix': 'First_Language',
+                    # RCEP, except national was National_Language_Code
+                    'internal_alias_prefix': 'la',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'PersonRole',
+                    'lookup_table': 'ClientPersonRole',
+                    'column_prefix': 'Person_Role',  # RCEP
+                    'internal_alias_prefix': 'pr',
+                },
+            },
+        ],
+    }),
 
+    # Ignored: ClientFamily, which has a single field (comment), with
+    # probably-identifying and hard-to-anonymise-with information.
+
+    ('Client_Family', {
+        'basetable': 'ClientFamilyLink',
+        'rename': {
+            'RelatedClientID': 'Related_Client_ID',  # RCEP
+            'Relationship': None,  # lookup below
+            'ParentalResponsibility': None,  # lookup below
+            'LegalStatus': None,  # lookup below
+            'TempVal': None,  # Temporary_Value in RCEP, but who cares!?
+            # RCEP: Comment: ?the comment from ClientFamily -- ignored
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'Relationship',
+                    'lookup_table': 'GenFamilyRelationship',
+                    'column_prefix': 'Relationship',  # RCEP
+                    'internal_alias_prefix': 'rl',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ParentalResponsibility',
+                    'lookup_table': 'GenFamilyParentalResponsibility',
+                    'column_prefix': 'Parental_Responsibility',  # RCEP
+                    'internal_alias_prefix': 'pr',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'LegalStatus',
+                    'lookup_table': 'GenFamilyLegalStatus',
+                    'column_prefix': 'Legal_Status',  # RCEP
+                    'internal_alias_prefix': 'ls',
+                }
+            },
+        ],
+    }),
+
+    ('Client_GP_History', {
+        # Ignored: ClientGPMerged = ?old data
+        # RiO docs say ClientHealthCareProvider supersedes ClientGP
+        'basetable': 'ClientHealthCareProvider',
+        'rename': {
+            'GPCode': None,  # lookup below
+            'PracticeCode': None,  # lookup below
+            'FromDate': 'GP_From_Date',  # RCEP
+            'ToDate': 'GP_To_Date',  # RCEP
+            # Allocation: RCEP; unchanged - but what is it?
+            'PersonHCPProviderID': 'Person_HCP_Provider_ID',  # RCEP
+            'LastUpdated': 'Last_Updated',  # RCEP
+            # RCEP Care_Group: PCG marked defunct in RiO GenGPPractice
+            'HCProviderTypeID': None,  # lookup below
+            # HCProviderID: not in RCEP; unchanged
+        },
+        'add': [
+            {
+                'function': rio_add_gp_lookup,
+                'kwargs': {
+                    'basecolumn': 'GPCode',
+                    'column_prefix': 'GP',  # RCEP with some modifications
+                    'internal_alias_prefix': 'gp',
+                },
+            },
+            {
+                'function': rio_add_gp_practice_lookup,
+                'kwargs': {
+                    'basecolumn': 'PracticeCode',
+                    'column_prefix': 'GP_Practice',  # RCEP with extras
+                    'internal_alias_prefix': 'prac',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'HCProviderTypeID',
+                    'lookup_table': 'GenHealthCareProviderType',
+                    'column_prefix': 'Provider_Type',  # RCEP
+                    'internal_alias_prefix': 'pt',
+                },
+            },
+        ],
+    }),
+
+    ('Client_Medication', {
+        # UNTESTED as no data in CPFT
+        'basetable': 'EPClientMedication',
+        'rename': {
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
+            'SequenceID': 'Unique_Key',  # RCEP
+            'EventNumber': 'Event_Number',  # RCEP
+            'EventSequenceID': 'Event_ID',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'RoutePrescribed': 'Route_Prescribed',  # RCEP
+            'Frequency': 'Frequency_Code',  # RCEP; also lookup below
+            'Units': None,  # lookup below
+            'DosageComment': 'Dosage_Comment',  # RCEP
+            'AdminInstructions': 'Admin_Instructions',  # CEP
+            'MedicationType': None,  # lookup below
+            'EndDate': 'End_Date',  # RCEP: was EndDate
+            # Incomplete: unchanged, in RCEP
+            'EndDateCommit': 'End_Date_Commit',  # RCEP: was EndDateCommit; 1/0
+            'StartBy': None,  # user lookup
+            'EndBy': None,  # user lookup
+            'MinDose': 'Min_Dose',  # RCEP
+            'MaxDose': 'Max_Dose',  # RCEP
+            'AdminTime': 'Admin_Time',  # RCEP
+            'AdminNumber': 'Admin_Number',  # RCEP
+            'ConfirmText': 'Confirm_Text',  # RCEP
+            'HourlyStartTime': 'Hourly_Start_Time',  # RCEP
+            'DRCWarning': 'DRC_Warning',  # RCEP
+            'DailyFrequency': 'Daily_Frequency_Code',  # RCEP; also lookup
+            'ReasonID': 'DRC_Override_Reason_ID',  # INT; not RCEP; also lookup
+            'AdministeredInError': 'Administered_In_Error_Flag',  # RCEP
+            # Deleted: unchanged, in RCEP
+            # Confirmed: unchanged, in RCEP
+            'NumOfDays': 'Num_Of_Days',  # in RCEP
+            'VTMFormulation': 'VTMFormulation',  # RCEP; VTM = Virtual Therapeutic Moieties  # noqa
+        },
+        'add': [
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'Frequency',
+                    'lookup_table': 'EPMedicationFrequency',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'Frequency_Description',
+                        'Depot': 'Frequency_Is_Depot',
+                        'AdminNum': 'Frequency_Admin_Number',
+                        'DayInterval': 'Frequency_Day_Interval',
+                        # ... all RCEP
+                    },
+                    'internal_alias_prefix': 'fr',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Units',
+                    'lookup_table': 'EPMedicationBaseUnits',
+                    'column_prefix': 'Units',
+                    # RiO docs: EPClientMedication.Units is VARCHAR(100) but
+                    # also FK to EPMedicationBaseUnits.Code; is 100 a typo for
+                    # 10?
+                    # RCEP: Units VARCHAR(200) so who knows.
+                    'internal_alias_prefix': 'un',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'MedicationType',
+                    'lookup_table': 'EPMedicationType',
+                    'column_prefix': 'Medication_Type',  # RCEP
+                    'internal_alias_prefix': 'mt',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'StartBy',
+                    'column_prefix': 'Start_By',  # RCEP
+                    'internal_alias_prefix': 'sb',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'EndBy',
+                    'column_prefix': 'End_By',  # RCEP
+                    'internal_alias_prefix': 'eb',
+                },
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'DailyFrequency',
+                    'lookup_table': 'EPMedicationDailyFrequency',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'Daily_Frequency_Description',
+                        'AdminNum': 'Daily_Frequency_Admin_Number',
+                        'AdvancedMed': 'Daily_Frequency_Advanced_Med_Flag',
+                        'HourlyMed': 'Daily_Frequency_Hourly_Med_Flag',
+                        'HourlyMedIntervalMinutes': 'Daily_Frequency_Hourly_Med_Interval_Minutes',  # noqa
+                        # 'DisplayOrder': 'Daily_Frequency_Display_Order',
+                        # ... all RCEP except AdminNum, DisplayOrder not RCEP
+                        # DisplayOrder just governs order in picklist
+                    },
+                    'internal_alias_prefix': 'df',
+                }
+            },
+            {  # DRC = dose range checking [override]
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'ReasonID',
+                    'lookup_table': 'EPDRCOverRide',
+                    'lookup_pk': 'ReasonID',  # not Code (also present)
+                    'lookup_fields_aliases': {
+                        'Code': 'DRC_Override_Reason_Code',
+                        'Reason': 'DRC_Override_Reason_Description',
+                        # ... all RCEP
+                        # ReasonID is INT; Code is VARCHAR(10)
+                    },
+                    'internal_alias_prefix': 'drc',
+                }
+            },
+        ],
+    }),
+
+    ('Client_Name_History', {
+        'basetable': 'ClientName',
+        'rename': {
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
+            'Surname': 'Family_Name',  # RCEP
+            'ClientNameID': 'Unique_Key',  # RCEP
+            'EffectiveDate': 'Effective_Date',  # RCEP
+            'Deleted': 'Deleted_Flag',  # RCEP
+            'AliasType': None,  # lookup below
+            'EndDate': 'End_Date',  # RCEP: was End_Date_
+            'SpineID': None,  # not in RCEP
+            'Prefix': 'Title',  # RCEP
+            'Suffix': 'Suffix',  # RCEP
+            'GivenName1': 'Given_Name_1',  # RCEP
+            'GivenName2': 'Given_Name_2',  # RCEP
+            'GivenName3': 'Given_Name_3',  # RCEP
+            'GivenName4': 'Given_Name_4',  # RCEP
+            'GivenName5': 'Given_Name_5',  # RCEP
+            'GivenName1Soundex': None,  # not in RCEP
+            'GivenName2Soundex': None,  # not in RCEP
+            'GivenName3Soundex': None,  # not in RCEP
+            'GivenName4Soundex': None,  # not in RCEP
+            'GivenName5Soundex': None,  # not in RCEP
+            'SurnameSoundex': None,  # not in RCEP
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'AliasType',
+                    'lookup_table': 'ClientAliasType',
+                    'column_prefix': 'Name_Type',  # RCEP
+                    'internal_alias_prefix': 'al',
+                },
+            },
+        ],
+    }),
+
+    ('Client_Personal_Contacts', {
+        'basetable': 'ClientContact',
+        'rename': {
+            'SequenceID': 'Unique_Key',  # RCEP
+            'ContactType': None,  # lookup below
+            'Surname': 'Family_Name',  # RCEP
+            'Firstname': 'Given_Name',  # RCEP
+            'Title': 'Title',  # RCEP
+            'AddressLine1': 'Address_Line_1',  # RCEP
+            'AddressLine2': 'Address_Line_2',  # RCEP
+            'AddressLine3': 'Address_Line_3',  # RCEP
+            'AddressLine4': 'Address_Line_4',  # RCEP
+            'AddressLine5': 'Address_Line_5',  # RCEP
+            'PostCode': 'Post_Code',  # RCEP
+            'MainPhone': 'Main_Phone',  # RCEP
+            'OtherPhone': 'Other_Phone',  # RCEP
+            'EMailAddress': 'Email',  # RCEP
+            'Relationship': 'Contact_Relationship_Code',  # RCEP + lookup
+            'ContactComment': 'Comment',  # RCEP
+            'Organisation': 'Organisation',  # VARCHAR(40); SEE NOTE 1.
+            'Deleted': 'Deleted_Flag',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'LanguageCommunication': None,  # lookup below
+            'LanguageProficiencyLevel': None,  # lookup below
+            'PreferredContactMethod': None,  # lookup below
+            'NHSNumber': 'NHS_Number',  # RCEP
+            'SpineID': None,  # not in RCEP; spine interaction field
+            'PAFKey': None,  # not in RCEP; spine interaction field [2]
+            'PositionNumber': 'Position_Number',  # RCEP
+            'MainContactMethod': None,  # lookup below
+            'MainContext': None,  # lookup below
+            'OtherContactMethod': None,  # lookup below
+            'OtherContext': None,  # lookup below
+            # [1] RiO's ClientContact.Organisation is VARCHAR(40).
+            #   Unclear what it links to.
+            #   Typical data: NULL, 'CPFT', 'Independent Living Service',
+            #       'Solicitors'  - which makes it look like free text.
+            #   RCEP has:
+            #       - Organisation_ID VARCHAR(40)  -- looks like the link field
+            #       - Organisation_Name VARCHAR(80) } all NULL in our snapshot
+            #       - Organisation_Code VARCHAR(20) }
+            #   Candidate RiO lookup tables are
+            #       - GenOrganisation  -- only content maps RT1 to "Cambrigeshire and Peterborough..."  # noqa
+            #       - OrgOrganisation  -- empty for us
+            #   So I think they've screwed it up, and it's free text that
+            #   RCEP is incorrectly trying to link.
+            # [2] PAF Key = PAF address key, postal address file key
+            #   = unique ID keyed to Royal Mail PAF Directory
+            #   http://systems.hscic.gov.uk/demographics/spineconnect/spineconnectpds.pdf  # noqa
+
+
+
+
+
+
+
+
+
+
+
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'ContactType',
+                    'lookup_table': 'ClientContactType',
+                    'column_prefix': 'Contact_Type',  # RCEP
+                    'internal_alias_prefix': 'ct',
+                },
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'Relationship',
+                    'lookup_table': 'ClientContactRelationship',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'Contact_Relationship_Description',
+                        'NationalCode': 'Contact_Relationship_National_Code',
+                        'FamilyRelationship': 'Family_Relationship_Flag',
+                        # ... all RCEP except was
+                        # National_Contact_Relationship_Code
+                    },
+                    'internal_alias_prefix': 'cr',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': '',
+                    'lookup_table': '',
+                    'column_prefix': 'Contact_Relationship',
+                    'internal_alias_prefix': 'cr',
+                    # ... RCEP except was National_Contact_Relationship_Code
+                },
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'LanguageCommunication',
+                    'lookup_table': 'GenLanguage',
+                    'column_prefix': 'Language',
+                    # ... RCEP except was National_Language_Code
+                    'internal_alias_prefix': 'la',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'LanguageProficiencyLevel',
+                    'lookup_table': 'GenLanguageProficiencyLevel',
+                    'column_prefix': 'Language_Proficiency',
+                    # ... RCEP: code = Language_Proficiency, desc absent
+                    'internal_alias_prefix': 'la',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'PreferredContactMethod',
+                    'lookup_table': 'GenPreferredContactMethod',
+                    'column_prefix': 'Preferred_Contact_Method',  # RCEP
+                    'internal_alias_prefix': 'pcm',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'MainContactMethod',
+                    'lookup_table': 'GenTelecomContactMethod',
+                    'column_prefix': 'Main_Phone_Method',  # RCEP
+                    'internal_alias_prefix': 'mcm',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'MainContext',
+                    'lookup_table': 'GenTelecomContext',
+                    'column_prefix': 'Main_Phone_Context',  # RCEP
+                    'internal_alias_prefix': 'mcx',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'OtherContactMethod',
+                    'lookup_table': 'GenTelecomContactMethod',
+                    'column_prefix': 'Other_Phone_Method',  # RCEP
+                    'internal_alias_prefix': 'mcm',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'OtherContext',
+                    'lookup_table': 'GenTelecomContext',
+                    'column_prefix': 'Other_Phone_Context',  # RCEP
+                    'internal_alias_prefix': 'ocx',
+                }
+            },
 
             {
                 'function': simple_view_expr,
@@ -2183,18 +2702,6 @@ Exited
                     'expr': 'XXX',
                     'alias': 'XXX',
                 },
-            },
-            {
-                'function': simple_lookup_join,
-                'kwargs': {
-                    'basecolumn': 'XXX',
-                    'lookup_table': 'XXX',
-                    'lookup_pk': 'XXX',
-                    'lookup_fields_aliases': {
-                        'XXX': 'XXX',
-                    },
-                    'internal_alias_prefix': 'XXX',
-                }
             },
             {
                 'function': standard_rio_code_lookup_with_national_code,
@@ -2290,16 +2797,6 @@ Exited
             },
         ],
     }),
-
-    # *** 'Client_Family'
-
-    # *** 'Client_GP_History'
-
-    # *** 'Client_Medication'
-
-    # *** 'Client_Name_History'
-
-    # *** 'Client_Personal_Contacts'
 
     # *** 'Client_Physical_Details'
 
@@ -2762,10 +3259,11 @@ Exited
                 },
             },
             {
-                'function': rio_add_gp_lookup,
+                'function': rio_add_gp_practice_lookup,
                 'kwargs': {
                     'basecolumn': 'ReferringGP',
-                    'column_prefix': 'Referring_GP',  # RCEP
+                    'column_prefix': 'Referring_GP',
+                    # RCEP + slight renaming + GP practice extras
                     'internal_alias_prefix': 'rgp',
                 },
             },
@@ -2895,8 +3393,8 @@ Exited
     ('Inpatient_Movement', {
         'basetable': 'ImsEventMovement',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'EventNumber': 'Event_Number',  # RCEP
             'SequenceID': 'Movement_Key',  # RCEP *** check
             'StartDateTime': 'Start_Date',  # RCEP
@@ -3054,8 +3552,8 @@ Exited
     ('Inpatient_Named_Nurse', {
         'basetable': 'ImsEventNamedNurse',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'EventNumber': 'Event_Number',  # RCEP
             'GenHCPCode': 'Named_Nurse_User_Code',  # RCEP
             'StartDateTime': 'Start_Date_Time',  # RCEP
@@ -3083,8 +3581,8 @@ Exited
     ('Inpatient_Sleepover', {
         'basetable': 'ImsEventSleepover',
         'rename': {
-            # RCEP: Created_Date: ?source ***
-            # RCEP: Updated_Date: ?source ***
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
             'SequenceID': 'Event_Key',  # RCEP; not sure this one is worthwhile
             'EventID': 'Event_ID',  # RCEP
             'StartDate': 'Start_Date',  # StartDate in RCEP
@@ -3873,6 +4371,7 @@ ddgen_table_blacklist = #
     ClientAddressMerged  # defunct according to RIO 6.2 docs
     ClientChild*  # child info e.g. birth/immunisation (interesting, but several tables and all empty)
     ClientCommunityDomain # defunct according to RIO 6.2 docs
+    ClientFamily  # contains only a comment; see ClientFamilyLink instead
     ClientMerge*  # record of admin events (merging of client records)
     ClientPhoto*  # no use to us or identifiable!
     ClientRestrictedRecord*  # ? but admin
@@ -3943,6 +4442,7 @@ ddgen_field_whitelist =
 ddgen_field_blacklist = #
     {RIO_COL_PATIENT_ID}  # replaced by crate_rio_number
     *Soundex  # identifying 4-character code; https://msdn.microsoft.com/en-us/library/ms187384.aspx
+    Spine*  # NHS Spine identifying codes
 
 ddgen_pk_fields = crate_pk
 
@@ -3970,20 +4470,19 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientAddress.AddressLine*  # superseded by view Client_Address_History
     ClientAddress.PostCode  # superseded by view Client_Address_History
     ClientAlternativeID.ID  # superseded by view Client_Alternative_ID
-    ClientIndex.crate_pk
-    ClientIndex.DateOfBirth
-    ClientIndex.DaytimePhone
-    ClientIndex.EMailAddress
-    ClientIndex.EveningPhone
-    ClientIndex.Firstname
-    ClientIndex.MobilePhone
-    ClientIndex.NINumber
-    ClientIndex.OtherAddress
-    ClientIndex.SpineID
-    ClientIndex.Surname
-    ClientName.GivenName*
-    ClientName.SpineID
-    ClientName.Surname
+    ClientIndex.crate_pk  # superseded by view Client_Demographic_Details
+    ClientIndex.DateOfBirth  # superseded by view Client_Demographic_Details
+    ClientIndex.DaytimePhone  # superseded by view Client_Demographic_Details
+    ClientIndex.EMailAddress  # superseded by view Client_Demographic_Details
+    ClientIndex.EveningPhone  # superseded by view Client_Demographic_Details
+    ClientIndex.Firstname  # superseded by view Client_Demographic_Details
+    ClientIndex.MobilePhone  # superseded by view Client_Demographic_Details
+    ClientIndex.NINumber  # superseded by view Client_Demographic_Details
+    ClientIndex.OtherAddress  # superseded by view Client_Demographic_Details
+    ClientIndex.SpineID  # superseded by view Client_Demographic_Details
+    ClientIndex.Surname  # superseded by view Client_Demographic_Details
+    ClientName.GivenName*  # superseded by view Client_Name_History
+    ClientName.Surname  # superseded by view Client_Name_History
     ClientTelecom.Detail  # superseded by view Client_Communications_History
     ImsEvent.DischargeAddressLine*  # superseded by view Inpatient_Stay
     ImsEvent.DischargePostCode*  # superseded by view Inpatient_Stay
@@ -3997,6 +4496,14 @@ ddgen_scrubsrc_patient_fields = # several of these:
     Client_Alternative_ID.ID
     Client_Communications_History.crate_telephone
     Client_Communications_History.crate_email_address
+    Client_Demographic_Details.crate_rio_number
+    Client_Demographic_Details.NHS_Number
+    Client_Demographic_Details.Firstname
+    Client_Demographic_Details.Surname
+    Client_Demographic_Details.Date_of_Birth
+    Client_Demographic_Details.*Phone
+    Client_Name_History.Given_Name_*
+    Client_Name_History.Family_Name
     Inpatient_Leave.Address_Line*
     Inpatient_Leave.PostCode
     Inpatient_Stay.Discharge_Address_Line_*
@@ -4012,18 +4519,22 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     ClientContact.Firstname
     ClientContact.MainPhone
     ClientContact.NHSNumber
-    ClientContact.SpineID
     ClientContact.Surname
 
 ddgen_scrubmethod_code_fields = # variants:
     *PostCode*
     *Post_Code*
+    NINumber
+    National_Insurance_Number
     ClientAlternativeID.ID
     Client_Alternative_ID.ID
 
 ddgen_scrubmethod_date_fields = *Date*
 
-ddgen_scrubmethod_number_fields = *Phone*
+ddgen_scrubmethod_number_fields = #
+    *Phone*
+    *NNN*
+    *NHS_Number*
 
 ddgen_scrubmethod_phrase_fields = *Address*
 
