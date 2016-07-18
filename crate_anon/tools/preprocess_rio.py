@@ -925,29 +925,55 @@ def simple_lookup_join(viewmaker, basecolumn,
 
 
 def standard_rio_code_lookup(viewmaker, basecolumn, lookup_table,
-                             result_alias, internal_alias_prefix):
-    return simple_lookup_join(
-        viewmaker=viewmaker,
+                             column_prefix, internal_alias_prefix):
+    aliased_table = internal_alias_prefix + "_" + lookup_table
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}_Code,
+        {aliased_table}.CodeDescription AS {cp}_Description
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
         basecolumn=basecolumn,
-        lookup_table=lookup_table,
-        lookup_pk="Code",
-        lookup_fields_aliases={'CodeDescription': result_alias},
-        internal_alias_prefix=internal_alias_prefix)
+        cp=column_prefix,
+        aliased_table=aliased_table,
+    ))
+    lookup_pk = 'Code'
+    viewmaker.add_from(
+        "LEFT JOIN {lookup_table} {aliased_table}\n"
+        "            ON {aliased_table}.{lookup_pk} = "
+        "{basetable}.{basecolumn}".format(
+            lookup_table=lookup_table,
+            aliased_table=aliased_table,
+            lookup_pk=lookup_pk,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn))
+    viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
 def standard_rio_code_lookup_with_national_code(
         viewmaker, basecolumn, lookup_table,
-        result_prefix, internal_alias_prefix):
-    return simple_lookup_join(
-        viewmaker=viewmaker,
+        column_prefix, internal_alias_prefix):
+    aliased_table = internal_alias_prefix + "_" + lookup_table
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}_Code,
+        {aliased_table}.CodeDescription AS {cp}_Description,
+        {aliased_table}.NationalCode AS {cp}_National_Code
+    """.format(  # noqa
+        basetable=viewmaker.basetable,
         basecolumn=basecolumn,
-        lookup_table=lookup_table,
-        lookup_pk="Code",
-        lookup_fields_aliases={
-            'CodeDescription': result_prefix + '_Description',
-            'NationalCode': result_prefix + '_National_Code',
-        },
-        internal_alias_prefix=internal_alias_prefix)
+        cp=column_prefix,
+        aliased_table=aliased_table,
+    ))
+    lookup_pk = 'Code'
+    viewmaker.add_from(
+        "LEFT JOIN {lookup_table} {aliased_table}\n"
+        "            ON {aliased_table}.{lookup_pk} = "
+        "{basetable}.{basecolumn}".format(
+            lookup_table=lookup_table,
+            aliased_table=aliased_table,
+            lookup_pk=lookup_pk,
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn))
+    viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
 def view_formatting_dict(viewmaker):
@@ -962,8 +988,11 @@ def simple_view_expr(viewmaker, expr, alias):
     viewmaker.add_select(formatted_expr + " AS {}".format(alias))
 
 
-def simple_view_where(viewmaker, where_clause):
+def simple_view_where(viewmaker, where_clause, index_cols=None):
+    index_cols = index_cols or []
     viewmaker.add_where(where_clause)
+    for col in index_cols:
+        viewmaker.record_lookup_table_keyfield(viewmaker.basetable, col)
 
 
 def get_rio_views(engine, metadata, ddhint,
@@ -1313,6 +1342,9 @@ def where_prognotes_current(viewmaker):
     viewmaker.add_where(
         "(EnteredInError <> 1 OR EnteredInError IS NULL) "
         "AND {last_note_col} = 1".format(last_note_col=CRATE_COL_LAST_NOTE))
+    viewmaker.record_lookup_table_keyfields(viewmaker.basetable,
+                                            'EnteredInError')
+    # CRATE_COL_LAST_NOTE already indexed
 
 
 def where_clindocs_current(viewmaker):
@@ -1320,12 +1352,22 @@ def where_clindocs_current(viewmaker):
         return
     viewmaker.add_where("{last_doc_col} = 1 AND DeletedDate IS NULL".format(
         last_doc_col=CRATE_COL_LAST_DOC))
+    viewmaker.record_lookup_table_keyfields(viewmaker.basetable, 'DeletedDate')
+    # CRATE_COL_LAST_DOC already indexed
+
+
+def where_allergies_current(viewmaker):
+    if not viewmaker.progargs.allergies_current_only:
+        return
+    viewmaker.add_where("Deleted = 0 OR Deleted IS NULL")
+    viewmaker.record_lookup_table_keyfields(viewmaker.basetable, 'Deleted')
 
 
 def where_not_deleted_flag(viewmaker, basecolumn):
     viewmaker.add_where(
         "({table}.{col} IS NULL OR {table}.{col} = 0)".format(
             table=viewmaker.basetable, col=basecolumn))
+    viewmaker.record_lookup_table_keyfields(viewmaker.basetable, basecolumn)
 
 
 def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
@@ -1449,7 +1491,7 @@ RIO_VIEWS = OrderedDict([
     #             'kwargs': {
     #                 'basecolumn': 'XXX',
     #                 'lookup_table': 'XXX',
-    #                 'result_alias': 'XXX',
+    #                 'column_prefix': 'XXX',
     #                 'internal_alias_prefix': 'XXX',
     #             },
     #         },
@@ -1458,7 +1500,7 @@ RIO_VIEWS = OrderedDict([
     #             'kwargs': {
     #                 'basecolumn': 'XXX',
     #                 'lookup_table': 'XXX',
-    #                 'result_prefix': 'XXX',
+    #                 'column_prefix': 'XXX',
     #                 'internal_alias_prefix': 'XXX',
     #             }
     #         },
@@ -1542,6 +1584,7 @@ RIO_VIEWS = OrderedDict([
     #             'function': simple_view_where,
     #             'kwargs': {
     #                 'where_clause': 'XXX',
+    #                 'index_cols': [],
     #             },
     #         },
     #     ],
@@ -1564,7 +1607,7 @@ RIO_VIEWS = OrderedDict([
             'StartUserID': None,  # user lookup
             'EndUserID': None,  # user lookup
             'EndReason': None,  # "Obsolete field"
-            'CarePlanType': 'Care_Plan_Type_Code',  # RCEP
+            'CarePlanType': None,  # lookup below
         },
         'add': [
             {
@@ -1588,7 +1631,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'CarePlanType',
                     'lookup_table': 'CarePlanType',
-                    'result_alias': 'Care_Plan_Type_Description',  # RCEP
+                    'column_prefix': 'Care_Plan_Type',  # RCEP
                     'internal_alias_prefix': 'cpt',
                 },
             },
@@ -1612,8 +1655,8 @@ RIO_VIEWS = OrderedDict([
             'EndDate': 'End_Date',  # RCEP
             'UserID': None,  # user lookup
             'EntryDate': 'Entry_Date',  # RCEP
-            'InterventionType': 'Intervention_Type_Code',  # RCEP: InterventionType_Code  # noqa
-            'Outcome': 'Outcome_Code',  # RCEP
+            'InterventionType': None,  # lookup below
+            'Outcome': None,  # lookup below
             # Comment: unchanged
             'Picklist1Code': 'Picklist_1_Code',  # not in RCEP
             'Picklist1Description': 'Picklist_1_Description',  # not in RCEP
@@ -1626,7 +1669,7 @@ RIO_VIEWS = OrderedDict([
             'LibraryID': 'Library_ID',  # not in RCEP
             'LibraryEdited': 'Library_Edited',  # not in RCEP
             'SequenceID': 'Unique_Key',  # RCEP
-            'InterventionCategory': 'Intervention_Category_Code',  # RCEP
+            'InterventionCategory': None,  # lookup below
             'CheckBox1': 'Check_Box_1',  # not in RCEP
             'CheckBox2': 'Check_Box_2',  # not in RCEP
         },
@@ -1644,7 +1687,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'InterventionType',
                     'lookup_table': 'CarePlanInterventionTypes',
-                    'result_prefix': 'Intervention_Type',
+                    'column_prefix': 'Intervention_Type',
                     # ... RCEP, except RCEP had InterventionType_Code
                     'internal_alias_prefix': 'it',
                 }
@@ -1654,7 +1697,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'Outcome',
                     'lookup_table': 'CarePlanInterventionOutcomes',
-                    'result_alias': 'Outcome_Description',  # RCEP
+                    'column_prefix': 'Outcome',  # RCEP
                     'internal_alias_prefix': 'od',
                 },
             },
@@ -1663,7 +1706,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'InterventionCategory',
                     'lookup_table': 'CarePlanInterventionCategory',
-                    'result_alias': 'Intervention_Category_Description',  # RCEP
+                    'column_prefix': 'Intervention_Category',  # RCEP
                     'internal_alias_prefix': 'ic',
                 },
             },
@@ -1680,13 +1723,13 @@ RIO_VIEWS = OrderedDict([
             'EndDate': 'End_Date',  # RCEP
             'UserID': None,  # user lookup
             'EntryDate': 'Entry_Date',  # RCEP
-            'ProblemType': 'Problem_Type_Code',  # RCEP
-            'OutCome': 'Outcome_Code',  # RCEP
+            'ProblemType': None,  # lookup below
+            'OutCome': None,  # lookup below
             # Comment: unchanged
             'LibraryID': 'Library_ID',  # not in RCEP
             'LibraryEdited': 'Library_Edited',  # not in RCEP
             'SequenceID': 'Unique_Key',  # RCEP
-            'ProblemCategory': 'Problem_Category_Code',  # RCEP
+            'ProblemCategory': None,  # lookup below
             # RCEP: Problem_Date: ?source ***
         },
         'add': [
@@ -1703,7 +1746,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ProblemType',
                     'lookup_table': 'CarePlanProblemTypes',
-                    'result_alias': 'Problem_Type_Description',  # RCEP
+                    'column_prefix': 'Problem_Type',  # RCEP
                     'internal_alias_prefix': 'pt',
                 },
             },
@@ -1712,7 +1755,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'OutCome',
                     'lookup_table': 'CarePlanProblemOutcomes',
-                    'result_alias': 'Outcome_Description',  # RCEP
+                    'column_prefix': 'Outcome',  # RCEP
                     'internal_alias_prefix': 'oc',
                 },
             },
@@ -1721,7 +1764,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ProblemCategory',
                     'lookup_table': 'CarePlanProblemCategory',
-                    'result_alias': 'Problem_Category_Description',  # RCEP
+                    'column_prefix': 'Problem_Category',  # RCEP
                     'internal_alias_prefix': 'pc',
                 },
             },
@@ -1741,14 +1784,14 @@ RIO_VIEWS = OrderedDict([
             'AddressLine4': 'Address_Line_4',  # RCEP
             'AddressLine5': 'Address_Line_5',  # RCEP
             'PostCode': 'Post_Code',  # RCEP
-            'ElectoralWard': 'Electoral_Ward_Code',  # RCEP: was Electoral_Ward
+            'ElectoralWard': None,  # lookup below
             'MailsortCode': 'Mailsort_Code',  # RCEP
-            'PrimaryCareGroup': 'Primary_Care_Group_Code',  # RCEP: was Primary_Care_Group  # noqa
-            'HealthAuthority': 'Health_Authority_Code',  # RCEP: was Health_Authority  # noqa
+            'PrimaryCareGroup': None,  # lookup below
+            'HealthAuthority': None,  # lookup below
             'SequenceID': 'Unique_Key',  # RCEP
             'LastUpdated': 'Last_Updated',  # RCEP
-            'AddressType': 'Address_Type_Code',  # RCEP
-            'AccommodationType': 'Accommodation_Type_Code',  # RCEP
+            'AddressType': None,  # lookup below
+            'AccommodationType': None,  # lookup below
             'AddressGroup': 'Address_Group',  # RCEP; ?nature; RiO docs wrong
             'PAFKey': None,  # NHS Spine interaction field
             'SpineID': None,  # NHS Spine interaction field
@@ -1759,9 +1802,9 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ElectoralWard',
                     'lookup_table': 'GenElectoralWard',
-                    'result_alias': 'Electoral_Ward_Description',
+                    'column_prefix': 'Electoral_Ward',
                     'internal_alias_prefix': 'ew',
-                    # ... not in RCEP
+                    # ... RCEP: code was Electoral_Ward and description absent
                 },
             },
             {
@@ -1769,8 +1812,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'PrimaryCareGroup',
                     'lookup_table': 'GenPCG',
-                    'result_alias': 'Primary_Care_Group_Description',
-                    # ... not in RCEP
+                    'column_prefix': 'Primary_Care_Group',
+                    # ... RCEP: code was Primary_Care_Group and descr. absent
                     'internal_alias_prefix': 'pcg',
                 },
             },
@@ -1779,8 +1822,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'HealthAuthority',
                     'lookup_table': 'GenHealthAuthority',
-                    'result_alias': 'Health_Authority_Description',
-                    # ... not in RCEP
+                    'column_prefix': 'Health_Authority',
+                    # ... RCEP: code was Health_Authority and descr. absent
                     'internal_alias_prefix': 'ha',
                 },
             },
@@ -1789,7 +1832,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AddressType',
                     'lookup_table': 'GenAddressType',
-                    'result_alias': 'Address_Type_Description',  # RCEP
+                    'column_prefix': 'Address_Type',  # RCEP
                     'internal_alias_prefix': 'adt',
                 },
             },
@@ -1798,7 +1841,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AccommodationType',
                     'lookup_table': 'GenAccommodationType',
-                    'result_prefix': 'Accommodation_Type',
+                    'column_prefix': 'Accommodation_Type',
                     # ... RCEP, though National_Code added
                     'internal_alias_prefix': 'act',
                 },
@@ -1806,15 +1849,447 @@ RIO_VIEWS = OrderedDict([
         ],
     }),
 
-    # *** 'Client_Alternative_ID'
+    ('Client_Alternative_ID', {
+        # IDs on other systems
+        'basetable': 'ClientAlternativeID',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'SystemID': None,  # lookup below
+            'ID': 'ID',  # RCEP; this is the foreign ID
+            'SequenceID': 'Unique_Key',  # RCEP
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'SystemID',
+                    'lookup_table': 'GenOtherSystem',
+                    'column_prefix': 'System',
+                    'internal_alias_prefix': 'sys',
+                    # RCEP: was SystemID (code), System (description)
+                },
+            },
+        ],
+    }),
 
-    # *** 'Client_Allergies'
+    ('Client_Allergies', {
+        'basetable': 'EPClientAllergies',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'ReactionID': 'Unique_Key',  # RCEP
+            'UserID': None,  # user lookup
+            # Substance: unchanged, RCEP
+            'ReactionType': None,  # lookup below
+            # Reaction: unchanged, RCEP
+            'ReactionSeverity': None,  # lookup below
+            'ReportedBy': None,  # lookup below
+            'Name': 'Name',  # RCEP; think this is "reported by" name
+            'WitnessingHCP': 'Witnessing_HCP',  # RCEP
+            'YearOfIdentification': 'Year_Of_Identification',  # RCEP
+            # Comment: unchanged, RCEP
+            # Deleted: unchanged, RCEP
+            'DeletionReason': 'Deletion_Reason_Code',  # not in RCEP
+            'DeletedBy': None,  # user lookup
+            'RemovalDate': 'Removal_Date',  # RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'UserID',
+                    'column_prefix': 'Entered_By',  # RCEP
+                    'internal_alias_prefix': 'eb',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReactionType',
+                    'lookup_table': 'EPReactionType',
+                    'column_prefix': 'Reaction_Type',  # RCEP
+                    'internal_alias_prefix': 'rt',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReactionSeverity',
+                    'lookup_table': 'EPSeverity',
+                    'column_prefix': 'Reaction_Severity',  # RCEP
+                    'internal_alias_prefix': 'rs',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ReportedBy',
+                    'lookup_table': 'EPReportedBy',
+                    'column_prefix': 'Reported_By',  # RCEP
+                    # RCEP code is Reported_By; NB error in RiO docs AND RCEP;
+                    # code is INT ranging from 1-4
+                    'internal_alias_prefix': 'rb',
+                },
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'DeletionReason',
+                    'lookup_table': 'EPClientAllergyRemovalReason',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'Reason': 'Deletion_Reason_Description',  # not in RCEP
+                    },
+                    'internal_alias_prefix': 'dr',
+                }
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'DeletedBy',
+                    'column_prefix': 'Deleted_By',  # RCEP
+                    'internal_alias_prefix': 'db',
+                },
+            },
+            {
+                # Restrict to current allergies only?
+                'function': where_allergies_current,
+            },
+        ],
+    }),
 
-    # *** 'Client_Communications_History'
+    ('Client_Communications_History', {
+        'basetable': 'ClientTelecom',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'ClientTelecomID': 'Unique_Key',  # RCEP
+            'Detail': 'Contact_Details',  # RCEP; may be phone no. or email addr
+            'ContactMethod': None,  # lookup below
+            'Context': None,  # lookup below
+            'StartDate': 'Valid_From',  # RCEP
+            'EndDate': 'Valid_To',  # RCEP
+            'SpineID': None,  # omitted in RCEP
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'ContactMethod',
+                    'lookup_table': 'GenTelecomContactMethod',
+                    'column_prefix': 'Method',  # RCEP
+                    'internal_alias_prefix': 'cm',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Context',
+                    'lookup_table': 'GenTelecomContext',
+                    'column_prefix': 'Context',  # RCEP
+                    'internal_alias_prefix': 'cx',
+                },
+            },
+            # Extras for CRATE anonymisation:
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN (ContactMethod = 1 OR ContactMethod = 2'
+                            ' OR ContactMethod = 4) THEN Detail ELSE NULL END',
+                    # 1 = telephone; 2 = fax; 4 = minicom/textphone
+                    'alias': 'crate_telephone',
+                },
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'CASE WHEN ContactMethod = 3 THEN Detail '
+                            'ELSE NULL END',
+                    'alias': 'crate_email_address',
+                },
+            },
+        ],
+    }),
 
-    # *** 'Client_CPA'
+    ('Client_CPA', {
+        'basetable': 'CPAClientCPA',
+        'rename': {
+            'SequenceID': 'Unique_Key',  # RCEP
+            'StartDate': 'Start_Date',  # RCEP
+            'EndDate': 'End_Date',  # RCEP
+            'ChangedBy': None,  # user lookup
+            'EndReason': 'End_Reason_Code',  # RCEP
+            'NextReviewDate': 'Next_CPA_Review_Date',  # RCEP
+            'CPALevel': None,  # lookup below
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'ChangedBy',
+                    'column_prefix': 'Changed_By',  # RCEP
+                    'internal_alias_prefix': 'cb',
+                },
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'EndReason',
+                    'lookup_table': 'CPAReviewOutcomes',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'End_Reason_Description',
+                        'NationalCode': 'End_Reason_National_Code',
+                        'DischargeFromCPA': 'End_Reason_Is_Discharge',
+                        # ... all RCEP
+                    },
+                    'internal_alias_prefix': 'er',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'CPALevel',
+                    'lookup_table': 'CPALevel',
+                    'column_prefix': 'CPA_Level',
+                    'internal_alias_prefix': 'lv',
+                }
+            },
+        ],
+    }),
 
-    # *** 'Client_Demographic_Details'
+    ('Client_Demographic_Details', {
+        'basetable': 'ClientIndex',
+        'rename': {
+            # RCEP: Created_Date: ?source ***
+            # RCEP: Updated_Date: ?source ***
+            'NNN': 'NHS_Number',  # RCEP
+Shared_ID ***
+            'NNNStatus': None,  # lookup below
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+            'XXX': 'XXX',  #
+
+
+AlternativeID
+Surname
+SurnameSoundex
+Firstname
+FirstnameSoundex
+Title
+Gender
+DateOfBirth
+EstimatedDOB
+DaytimePhone
+EveningPhone
+Occupation
+PartnerOccupation
+MaritalStatus
+Ethnicity
+Religion
+Nationality
+DateOfDeath
+OtherAddress
+MotherLink
+FatherLink
+DateRegistered
+EMailAddress
+MobilePhone
+FirstLanguage
+School
+NonClient
+DiedInHospital
+MainCarer
+NINumber
+DeathFlag
+TimeStamps
+FirstCareDate
+NNNLastTape
+OtherCarer
+LastUpdated
+ReportsFile
+SENFile
+Interpreter
+OutPatMedAdminRecord
+SpineID
+SpineSyncDate
+SensitiveFlag
+DeathDateNational
+DeathDateStatus
+SupersedingNNN
+Deleted
+PersonRole
+Exited
+        },
+        'add': [
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'NNNStatus',
+                    'lookup_table': 'NNNStatus',
+                    'column_prefix': 'NNN_Status',  # RCEP
+                    # ... RCEP except code was NNN_Status
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+
+
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': 'XXX',
+                    'alias': 'XXX',
+                },
+            },
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'lookup_table': 'XXX',
+                    'lookup_pk': 'XXX',
+                    'lookup_fields_aliases': {
+                        'XXX': 'XXX',
+                    },
+                    'internal_alias_prefix': 'XXX',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'lookup_table': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                }
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': rio_add_consultant_lookup,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': rio_add_team_lookup,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': rio_add_carespell_lookup,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': rio_add_diagnosis_lookup,
+                'kwargs': {
+                    'basecolumn_scheme': 'XXX',
+                    'basecolumn_code': 'XXX',
+                    'alias_scheme': 'XXX',
+                    'alias_code': 'XXX',
+                    'alias_description': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                }
+            },
+            {
+                'function': rio_add_ims_event_lookup,
+                'kwargs': {
+                    'basecolumn_event_num': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': rio_add_gp_lookup,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': rio_add_bay_lookup,
+                'kwargs': {
+                    'basecolumn_ward': 'XXX',
+                    'basecolumn_bay': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': rio_add_location_lookup,
+                'kwargs': {
+                    'basecolumn': 'XXX',
+                    'column_prefix': 'XXX',
+                    'internal_alias_prefix': 'XXX',
+                },
+            },
+            {
+                'function': simple_view_where,
+                'kwargs': {
+                    'where_clause': 'XXX',
+                    'index_cols': [],
+                },
+            },
+        ],
+    }),
 
     # *** 'Client_Family'
 
@@ -1840,7 +2315,7 @@ RIO_VIEWS = OrderedDict([
             'CareCoordinatorID': None,  # user lookup below
             'StartDate': 'Start_Date',  # RCEP
             'EndDate': 'End_Date',  # RCEP
-            'EndReason': 'End_Reason_Code',  # RCEP
+            'EndReason': None,  # lookup below
             'CPASequenceID': 'CPA_Key',  # RCEP
             'SequenceID': 'Unique_Key',  # RCEP
         },
@@ -1858,7 +2333,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'EndReason',
                     'lookup_table': 'CPAReviewCareSpellEnd',
-                    'result_prefix': 'End_Reason',  # RCEP
+                    'column_prefix': 'End_Reason',  # RCEP
                     'internal_alias_prefix': 'er',
                 }
             },
@@ -1872,7 +2347,7 @@ RIO_VIEWS = OrderedDict([
             # Updated_Date: RCEP; ?source ***
             'ReviewDate': 'Review_Date',  # RCEP
             'CurrentFlag': 'Is_Current_Flag',  # RCEP
-            'EndReason': 'End_Reason_Code',  # RCEP was: End_Reason; lookup added  # noqa
+            'EndReason': None,  # lookup below
             'CPASequenceID': 'CPA_Key',  # RCEP
             'CPAReviewOutcome': 'CPA_Review_Outcome_Code',  # RCEP
             'FullHoNOS': 'Full_HoNOS',  # not in RCEP
@@ -1898,12 +2373,12 @@ RIO_VIEWS = OrderedDict([
             'ReviewDiagnosis14': 'Review_Diagnosis_14_FK_Diagnosis',
             'ReviewDiagnosisConfirmed': 'Review_Diagnosis_Confirmed_Date',  # RCEP  # noqa
             'ReviewDiagnosisBy': None,  # user lookup
-            'ReferralSource': 'Referral_Source_Code',  # RCEP
-            'CareSpellEndCode': 'Care_Spell_End_Code',  # RCEP
+            'ReferralSource': None,  # lookup below
+            'CareSpellEndCode': None,  # lookup below
             'SequenceID': 'Unique_Key',  # RCEP
             'CareTeam': None,  # team lookup below
             'LastReviewDate': 'Last_Review_Date',  # RCEP
-            'OtherReviewOutcome': 'Other_Review_Outcome',  # RCEP
+            'OtherReviewOutcome': None,  # lookup below
             'ReviewLength': 'Review_Length',  # RCEP was ReviewLength
             'Validated': 'Validated',  # RCEP
             'ThirdPartyInformation': 'Third_Party_Information',  # RCEP: was ThirdPartyInformation  # noqa
@@ -1929,12 +2404,12 @@ RIO_VIEWS = OrderedDict([
             'Section117Decision': 'Section117_Decision',  # RCEP
             'ProgSequenceID': 'Progress_Note_Key',  # RCEP: was Progress__Note_Key  # noqa
             'CancellationDateTime': 'Cancellation_Date_Time',  # RCEP
-            'CancellationReason': 'Cancellation_Reason_Code',  # RCEP
+            'CancellationReason': None,  # lookup below
             'CancellationBy': None,  # user lookup
-            'EmploymentStatus': 'Employment_Status_Code',  # RCEP
-            'WeeklyHoursWorked': 'Weekly_Hours_Worked_Code',  # RCEP: was Weekly_Hours_Worked  # noqa
-            'AccommodationStatus': 'Accommodation_Status_Code',  # RCEP
-            'SettledAccommodationIndicator': 'Settled_Accommodation_Indicator_Code',  # RCEP  # noqa
+            'EmploymentStatus': None,  # lookup below
+            'WeeklyHoursWorked': None,  # lookup below
+            'AccommodationStatus': None,  # lookup below
+            'SettledAccommodationIndicator': None,  # lookup below
             'Location': None,  # location lookup
             'Section117EndDate': 'Section117_End_Date',  # RCEP
             'Section117Eligibility': 'Section117_Eligibility',  # RCEP
@@ -1945,7 +2420,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'EndReason',
                     'lookup_table': 'CPAReviewOutcomes',
-                    'result_prefix': 'End_Reason',  # RCEP
+                    'column_prefix': 'End_Reason',
+                    # ... RCEP code was End_Reason; lookup added
                     'internal_alias_prefix': 'er',
                 }
             },
@@ -1977,7 +2453,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ReferralSource',
                     'lookup_table': 'AmsReferralSource',
-                    'result_prefix': 'Referral_Source',  # RCEP
+                    'column_prefix': 'Referral_Source',  # RCEP
                     'internal_alias_prefix': 'rs',
                 }
             },
@@ -1986,7 +2462,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'CareSpellEndCode',
                     'lookup_table': 'CPAReviewCareSpellEnd',
-                    'result_prefix': 'Care_Spell_End',  # RCEP
+                    'column_prefix': 'Care_Spell_End',  # RCEP
                     'internal_alias_prefix': 'cse',
                 }
             },
@@ -2005,7 +2481,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'OtherReviewOutcome',
                     'lookup_table': 'CPAReviewOutcomes',
-                    'result_prefix': 'Other_Review_Outcome',  # RCEP
+                    'column_prefix': 'Other_Review_Outcome',  # RCEP
                     'internal_alias_prefix': 'oro',
                 }
             },
@@ -2022,7 +2498,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'CancellationReason',
                     'lookup_table': 'CPACancellationReasons',
-                    'result_prefix': 'Cancellation_Reason',  # RCEP
+                    'column_prefix': 'Cancellation_Reason',  # RCEP
                     'internal_alias_prefix': 'cr',
                 }
             },
@@ -2039,7 +2515,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'EmploymentStatus',
                     'lookup_table': 'GenEmpStatus',
-                    'result_prefix': 'Employment_Status',  # RCEP
+                    'column_prefix': 'Employment_Status',  # RCEP
                     'internal_alias_prefix': 'es',
                 }
             },
@@ -2048,7 +2524,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'WeeklyHoursWorked',
                     'lookup_table': 'GenWeeklyHoursWorked',
-                    'result_prefix': 'Weekly_Hours_Worked',  # not in RCEP
+                    'column_prefix': 'Weekly_Hours_Worked',  # not in RCEP
+                    # RCEP code was Weekly_Hours_Worked
                     'internal_alias_prefix': 'whw',
                 }
             },
@@ -2057,7 +2534,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AccommodationStatus',
                     'lookup_table': 'GenAccommodationStatus',
-                    'result_prefix': 'Accommodation_Status',  # RCEP
+                    'column_prefix': 'Accommodation_Status',  # RCEP
                     'internal_alias_prefix': 'as',
                 }
             },
@@ -2066,7 +2543,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'SettledAccommodationIndicator',
                     'lookup_table': 'GenSettledAccommodation',
-                    'result_prefix': 'Settled_Accommodation_Indicator',  # RCEP
+                    'column_prefix': 'Settled_Accommodation_Indicator',  # RCEP
                     'internal_alias_prefix': 'sa',
                 }
             },
@@ -2094,7 +2571,7 @@ RIO_VIEWS = OrderedDict([
             'EntryDate': 'Entry_Date',
             'RemovalBy': None,  # RCEP; is user code
             'RemovalDate': 'Removal_Date',
-            'RemovalReason': 'Removal_Reason_Code',  # RCEP
+            'RemovalReason': None,  # lookup below
         },
         'add': [
             {
@@ -2113,7 +2590,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'RemovalReason',
                     'lookup_table': 'DiagnosisRemovalReason',
-                    'result_alias': 'Removal_Reason_Description',  # RCEP
+                    'column_prefix': 'Removal_Reason',  # RCEP
                     'internal_alias_prefix': 'rr',
                 },
             },
@@ -2142,23 +2619,23 @@ RIO_VIEWS = OrderedDict([
             # Created_Date: RCEP; ?source ***
             # Referrer: unchanged
             # Updated_Date: RCEP; ?source ***
-            'AdministrativeCategory': 'Administrative_Category_Code',  # not in RCEP; see also lookup  # noqa
-            'AdmissionAllocation': 'Admission_Allocation_PCT_Code',  # in RCEP, Admission_Allocation; see lookup  # noqa
+            'AdministrativeCategory': None,  # lookup below
+            'AdmissionAllocation': None,  # lookup below
             'AdmissionDate': 'Admission_Date',  # RCEP
-            'AdmissionMethod': 'Admission_Method_Code',  # not in RCEP; see also lookup  # noqa
-            'AdmissionSource': 'Admission_Source_Code',  # not in RCEP; see also lookup  # noqa
-            'ClientClassification': 'Client_Classification_Code',  # not in RCEP; see also lookup  # noqa
+            'AdmissionMethod': None,  # lookup below
+            'AdmissionSource': None,  # lookup below
+            'ClientClassification': None,  # lookup below
             'DecideToAdmitDate': 'Decide_To_Admit_Date',  # RCEP
             'DischargeAddressLine1': 'Discharge_Address_Line_1',  # RCEP
             'DischargeAddressLine2': 'Discharge_Address_Line_2',  # RCEP
             'DischargeAddressLine3': 'Discharge_Address_Line_3',  # RCEP
             'DischargeAddressLine4': 'Discharge_Address_Line_4',  # RCEP
             'DischargeAddressLine5': 'Discharge_Address_Line_5',  # RCEP
-            'DischargeAllocation': 'Discharge_Allocation_PCT_Code',  # in RCEP, Discharge_Allocation; see lookup  # noqa
-            'DischargeAwaitedReason': 'Discharge_Awaited_Reason_Code',  # not in RCEP; see also lookup  # noqa
+            'DischargeAllocation': None,  # lookup below
+            'DischargeAwaitedReason': None,  # lookup below
             'DischargeComment': 'Discharge_Comment',  # RCEP
             'DischargeDate': 'Discharge_Date',  # RCEP
-            'DischargeDestination': 'Discharge_Destination_Code',  # not in RCEP; see also lookup  # noqa
+            'DischargeDestination': None,  # lookup below
             'DischargeDiagnosis1': 'Discharge_Diagnosis_1_FK_Diagnosis',  # in RCEP, DischargeDiagnosis1, etc.  # noqa
             'DischargeDiagnosis10': 'Discharge_Diagnosis_10_FK_Diagnosis',
             'DischargeDiagnosis11': 'Discharge_Diagnosis_11_FK_Diagnosis',
@@ -2175,19 +2652,19 @@ RIO_VIEWS = OrderedDict([
             'DischargeDiagnosis9': 'Discharge_Diagnosis_9_FK_Diagnosis',
             'DischargeDiagnosisBy': None,  # user lookup
             'DischargeDiagnosisConfirmed': 'Discharge_Diagnosis_Confirmed_Date',  # RCEP  # noqa
-            'DischargeMethod': 'Discharge_Method_Code',  # not in RCEP; see also lookup  # noqa
+            'DischargeMethod': None,  # lookup below
             'DischargePostCode': 'Discharge_Post_Code',  # RCEP
             'DischargeReadyDate': 'Discharge_Ready_Date',  # RCEP
             'EventNumber': 'Event_Number',  # RCEP
             'FirstInSeries': 'First_In_Series',  # RCEP
             'HighSecurityCategory': 'High_Security_Category',  # RCEP
             'IntendedDischargeDate': 'Intended_Discharge_Date',  # RCEP
-            'IntendedManagement': 'Intended_Management_Code',  # not in RCEP; see also lookup  # noqa
-            'LegalStatus': 'Legal_Status_Code',  # in RCEP, Legal_Status
+            'IntendedManagement': None,  # lookup below
+            'LegalStatus': None,  # lookup below
             'ReferralID': 'Referral_ID_FK_Referral',  # Referral_ID in RCEP
             'ReferralReason': 'Referral_Reason',  # RCEP
             'ReferralRequest': None,  # present in RCEP but "no longer used" in docs  # noqa
-            'ReferralSource': 'ReferralSource_Code',  # not in RCEP; see also lookup  # noqa
+            'ReferralSource': None,  # lookup below
             'ReferringConsultant': None,  # not in RCEP; see lookup below
             'ReferringGP': None,  # see lookup below
             'WaitingStartDateA': 'Waiting_Start_Date_A',  # RCEP
@@ -2199,8 +2676,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AdmissionMethod',
                     'lookup_table': 'ImsAdmissionMethod',
-                    'result_alias': 'Admission_Method_Description',
-                    # ... in RCEP, Admission_Method
+                    'column_prefix': 'Admission_Method',
+                    # ... in RCEP, code absent, desc = Admission_Method
                     'internal_alias_prefix': 'am',
                 },
             },
@@ -2209,8 +2686,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AdmissionSource',
                     'lookup_table': 'ImsAdmissionSource',
-                    'result_alias': 'Admission_Source_Description',
-                    # ... in RCEP, Admission_Source
+                    'column_prefix': 'Admission_Source',
+                    # ... in RCEP, code absent, desc = Admission_Source
                     'internal_alias_prefix': 'as',
                 },
             },
@@ -2219,8 +2696,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ClientClassification',
                     'lookup_table': 'ImsClientClassification',
-                    'result_alias': 'Client_Classification_Description',
-                    # ... in RCEP, Client_Classification
+                    'column_prefix': 'Client_Classification',
+                    # ... in RCEP, code absent, desc = Client_Classification
                     'internal_alias_prefix': 'cc',
                 },
             },
@@ -2229,8 +2706,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'DischargeAwaitedReason',
                     'lookup_table': 'ImsClientClassification',
-                    'result_alias': 'Discharge_Awaited_Reason_Description',
-                    # ... in RCEP, Discharge_Awaited_Reason
+                    'column_prefix': 'Discharge_Awaited_Reason',
+                    # ... in RCEP, code absent, desc = Discharge_Awaited_Reason
                     'internal_alias_prefix': 'dar',
                 },
             },
@@ -2239,8 +2716,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'DischargeDestination',
                     'lookup_table': 'ImsDischargeDestination',
-                    'result_alias': 'Discharge_Destination_Description',
-                    # ... in RCEP, Discharge_Destination
+                    'column_prefix': 'Discharge_Destination',
+                    # ... in RCEP, code absent, desc = Discharge_Destination
                     'internal_alias_prefix': 'dd',
                 },
             },
@@ -2249,8 +2726,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'DischargeMethod',
                     'lookup_table': 'ImsDischargeMethod',
-                    'result_alias': 'Discharge_Method_Description',
-                    # ... in RCEP, Discharge_Method
+                    'column_prefix': 'Discharge_Method',
+                    # ... in RCEP, code absent, desc = Discharge_Method
                     'internal_alias_prefix': 'dm',
                 },
             },
@@ -2259,8 +2736,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'IntendedManagement',
                     'lookup_table': 'ImsIntendedManagement',
-                    'result_alias': 'Intended_Management_Description',
-                    # ... in RCEP, Intended_Management
+                    'column_prefix': 'Intended_Management',
+                    # ... in RCEP, code absent, desc = Intended_Management
                     'internal_alias_prefix': 'im',
                 },
             },
@@ -2269,8 +2746,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AdministrativeCategory',
                     'lookup_table': 'GenAdministrativeCategory',
-                    'result_alias': 'Administrative_Category_Description',
-                    # ... in RCEP, Administrative_Category
+                    'column_prefix': 'Administrative_Category',
+                    # ... in RCEP, code absent, desc = Administrative_Category
                     'internal_alias_prefix': 'ac',
                 },
             },
@@ -2279,8 +2756,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ReferralSource',
                     'lookup_table': 'AmsReferralSource',
-                    'result_alias': 'Referral_Source_Description',
-                    # ... in RCEP, Referral_Source
+                    'column_prefix': 'Referral_Source',
+                    # ... in RCEP, code absent, desc = Referral_Source
                     'internal_alias_prefix': 'rs',
                 },
             },
@@ -2314,8 +2791,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AdmissionAllocation',
                     'lookup_table': 'GenPCG',
-                    'result_alias': 'Admission_Allocation_PCT_Description',
-                    # ... not in RCEP
+                    'column_prefix': 'Admission_Allocation_PCT',
+                    # ... in RCEP, code = Admission_Allocation, desc absent
                     'internal_alias_prefix': 'aa',
                 },
             },
@@ -2324,8 +2801,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'DischargeAllocation',
                     'lookup_table': 'GenPCG',
-                    'result_alias': 'Discharge_Allocation_PCT_Description',
-                    # ... not in RCEP
+                    'column_prefix': 'Discharge_Allocation_PCT',
+                    # ... in RCEP, code = Discharge_Allocation, desc absent
                     'internal_alias_prefix': 'da',
                 },
             },
@@ -2334,8 +2811,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'LegalStatus',
                     'lookup_table': 'ImsLegalStatusClassification',
-                    'result_alias': 'Legal_Status_Description',
-                    # ... not in RCEP
+                    'column_prefix': 'Legal_Status',
+                    # ... in RCEP, code = Legal_Status, desc absent
                     'internal_alias_prefix': 'ls',
                 },
             },
@@ -2369,8 +2846,8 @@ RIO_VIEWS = OrderedDict([
             'EventNumber': 'Event_Number',
             # ... RCEP; event number within this admission? Clusters near 1.
             'ExpectedReturnDateTime': 'Expected_Return_Date_Time',  # RCEP
-            'LeaveEndReason': 'Leave_End_Reason_Code',  # RCEP
-            'LeaveType': 'Leave_Type_Code',  # RCEP was LeaveType_Code
+            'LeaveEndReason': None,  # lookup below
+            'LeaveType': None,  # lookup below
             'OtherInformation': 'Other_Information',  # RCEP
             'PlannedStartDateTime': 'Planned_Start_Date_Time',  # RCEP
             'PostCode': 'Post_Code',  # RCEP
@@ -2384,7 +2861,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'LeaveType',
                     'lookup_table': 'ImsLeaveType',
-                    'result_alias': 'Leave_Type_Description',  # RCEP
+                    'column_prefix': 'Leave_Type',  # RCEP
+                    # RCEP except code was LeaveType_Code
                     'internal_alias_prefix': 'lt',
                 },
             },
@@ -2393,7 +2871,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'LeaveEndReason',
                     'lookup_table': 'ImsLeaveEndReason',
-                    'result_alias': 'Leave_End_Reason',  # RCEP
+                    'column_prefix': 'Leave_End_Reason',  # RCEP
                     'internal_alias_prefix': 'lt',
                 },
             },
@@ -2427,10 +2905,10 @@ RIO_VIEWS = OrderedDict([
             'BayCode': None,  # Bay_Code (RCEP) is from bay lookup
             'BedNumber': 'Bed',  # RCEP
             'IdentitySequenceID': 'Unique_Key',  # RCEP
-            'EpisodeType': 'Episode_Type_Code',  # Episode_Type in RCEP
-            'PsychiatricPatientStatus': 'Psychiatric_Patient_Status_Code',  # Psychiatric_Patient_Status in RCEP  # noqa
+            'EpisodeType': None,  # lookup below
+            'PsychiatricPatientStatus': None,  # lookup below
             'Consultant': None,  # user lookup
-            'Specialty': 'Specialty_Code',  # RCEP
+            'Specialty': None,  # lookup below
             'OtherConsultant': None,  # user lookup
             'MovementTypeFlag': 'Movement_Type_Flag',  # RCEP
             # RCEP: Initial_Movement_Flag ?source ?extra bit flag in new RiO
@@ -2450,7 +2928,7 @@ RIO_VIEWS = OrderedDict([
             'Diagnosis9': 'Diagnosis_9_FK_Diagnosis',
             'DiagnosisConfirmed': 'Diagnosis_Confirmed_Date_Time',  # RCEP
             'DiagnosisBy': None,  # user lookup
-            'Service': 'Service_Code',  # RCEP
+            'Service': None,  # lookup below
             'ServiceChargeRate': 'Service_Charge_Rate',  # RCEP
         },
         'add': [
@@ -2470,7 +2948,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'EpisodeType',
                     'lookup_table': 'ImsEpisodeType',
-                    'result_alias': 'Episode_Type_Description',  # not in RCEP
+                    'column_prefix': 'Episode_Type',
+                    # in RCEP, code = Episode_Type, desc absent
                     'internal_alias_prefix': 'et',
                 },
             },
@@ -2479,8 +2958,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'PsychiatricPatientStatus',
                     'lookup_table': 'ImsPsychiatricPatientStatus',
-                    'result_alias': 'Psychiatric_Patient_Status_Description',
-                    # ... not in RCEP
+                    'column_prefix': 'Psychiatric_Patient_Status',
+                    # in RCEP, code = Psychiatric_Patient_Status, desc absent
                     'internal_alias_prefix': 'pp',
                 },
             },
@@ -2501,17 +2980,13 @@ RIO_VIEWS = OrderedDict([
                 },
             },
             {
-                'function': simple_lookup_join,
+                'function': standard_rio_code_lookup_with_national_code,
                 'kwargs': {
                     'basecolumn': 'Specialty',
                     'lookup_table': 'GenSpecialty',
-                    'lookup_pk': 'Code',
-                    'lookup_fields_aliases': {
-                        'CodeDescription': 'Specialty_Description',  # RCEP
-                        'NationalCode': 'Specialty_National_Code',  # RCEP
-                    },
-                    'internal_alias_prefix': 'rw',
-                },
+                    'column_prefix': 'Specialty',  # RCEP
+                    'internal_alias_prefix': 'sp',
+                }
             },
             {
                 'function': simple_view_expr,
@@ -2569,7 +3044,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'Service',
                     'lookup_table': 'GenService',
-                    'result_alias': 'Service_Description',  # RCEP
+                    'column_prefix': 'Service',  # RCEP
                     'internal_alias_prefix': 'sv',
                 },
             },
@@ -2644,7 +3119,7 @@ RIO_VIEWS = OrderedDict([
             # EnquiryNumber: unchanged
             # Referrer: unchanged; not in RCEP; missing?
             # Referral_Reason_National_Code: RCEP; ?source ***. Only AmsReferralSource.NationalCode  # noqa
-            'AdministrativeCategory': 'Administrative_Category_Code',  # RCEP
+            'AdministrativeCategory': None,  # lookup below
             'CABReferral': 'CAB_Referral',  # RCEP
             'ClientCareSpell': None,  # see lookup below
             'DischargeAddressLine1': 'Discharge_Address_Line_1',  # RCEP
@@ -2668,14 +3143,14 @@ RIO_VIEWS = OrderedDict([
             'IWSHeld': 'IWS_Held',  # RCEP
             'LikelyFunder': 'Likely_Funder',  # RCEP
             'LikelyLegalStatus': 'Likely_Legal_Status',  # RCEP
-            'PatientArea': 'Patient_Area',  # RCEP
+            'PatientArea': None,  # lookup below
             'ReferralAcceptedDate': 'Referral_Accepted_Date',  # RCEP
             'ReferralActionDate': 'Referral_ActionDate',  # not in RCEP; missing?  # noqa
             'ReferralAllocation': 'Referral_Allocation',  # RCEP
             'ReferralComment': 'Referral_Comment',  # not in RCEP; missing?
             'ReferralDateTime': 'Referral_DateTime',  # not in RCEP; missing?
             'ReferralNumber': 'Referral_Number',  # RCEP
-            'ReferralReason': 'Referral_Reason_Code',  # RCEP
+            'ReferralReason': None,  # lookup below
             'ReferralReceivedDate': 'Referral_Received_Date',  # RCEP
             'ReferralSource': 'Referral_Source',  # RCEP
             'ReferredConsultant': None,  # RCEP; user lookup
@@ -2688,10 +3163,10 @@ RIO_VIEWS = OrderedDict([
             'RemovalDateTime': 'Removal_DateTime',  # RCEP
             'RemovalUser': None,  # RCEP; user lookup
             'RTTCode': 'RTT_Code',  # RCEP; FK to RTTPathwayConfig.RTTCode (ignored)  # noqa
-            'ServiceReferredTo': 'Service_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
-            'SpecialtyReferredTo': 'Specialty_Referred_To_Code',  # not in RCEP; lookup added below  # noqa
+            'ServiceReferredTo': None,  # lookup below
+            'SpecialtyReferredTo': None,  # lookup below
             'TeamReferredTo': None,  # not in RCEP; lookup added below
-            'Urgency': 'Urgency_Code',  # not in RCEP; missing?
+            'Urgency': None,  # lookup below
             'WaitingListID': 'Waiting_List_ID',  # RCEP; FK to WLConfig.WLCode (ignored)  # noqa
         },
         'add': [
@@ -2700,7 +3175,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'Urgency',
                     'lookup_table': 'GenUrgency',
-                    'result_alias': 'Urgency_Description',
+                    'column_prefix': 'Urgency',
+                    # not in RCEP; missing?
                     'internal_alias_prefix': 'ur',
                 },
             },
@@ -2709,7 +3185,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'PatientArea',
                     'lookup_table': 'AmsPatientArea',
-                    'result_alias': 'Patient_Area_Description',  # RCEP
+                    'column_prefix': 'Patient_Area',  # RCEP
+                    # in RCEP, code = Patient_Area
                     'internal_alias_prefix': 'pa',
                 },
             },
@@ -2718,7 +3195,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'AdministrativeCategory',
                     'lookup_table': 'GenAdministrativeCategory',
-                    'result_alias': 'Administrative_Category_Description',
+                    'column_prefix': 'Administrative_Category',
                     # ... RCEP
                     'internal_alias_prefix': 'ac',
                 },
@@ -2728,7 +3205,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ReferralReason',
                     'lookup_table': 'GenReferralReason',
-                    'result_alias': 'Referral_Reason_Description',  # RCEP
+                    'column_prefix': 'Referral_Reason',  # RCEP
                     'internal_alias_prefix': 'rr',
                 },
             },
@@ -2797,7 +3274,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'SpecialtyReferredTo',
                     'lookup_table': 'GenSpecialty',
-                    'result_alias': 'Specialty_Referred_To_Description',
+                    'column_prefix': 'Specialty_Referred_To',
                     'internal_alias_prefix': 'sprt',
                 }
             },
@@ -2806,7 +3283,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ServiceReferredTo',
                     'lookup_table': 'GenService',
-                    'result_alias': 'Service_Referred_To_Description',
+                    'column_prefix': 'Service_Referred_To',
                     'internal_alias_prefix': 'sert',
                 }
             },
@@ -2850,13 +3327,15 @@ RIO_VIEWS = OrderedDict([
             # 'SubNum': None,  # RCEP
             'EnteredInError': 'Entered_In_Error',  # RCEP
             'NoteText': 'Text',  # RCEP
-            'NoteType': None,  # RCEP; this is a code
+            'NoteType': None,  # lookup below
             'Problem': None,  # RCEP; "obsolete"
             'RiskRelated': 'Risk_Related',  # RCEP was: Add_To_Risk_History
-            'RiskType': None,  # RCEP; this is a code
-            'SubNoteType': None,  # RCEP; this is a code
+            'RiskType': None,  # lookup below
+            'SubNoteType': None,  # lookup below
             'ThirdPartyInfo': 'Third_Party_Info',
             # ... RCEP was: This_Note_Contains_Third_Party_Information
+            'ClinicalEventType': None,  # lookup below
+            'SpecialtyID': None,  # lookup below
         },
         'add': [
             {  # not in RCEP
@@ -2872,7 +3351,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'NoteType',
                     'lookup_table': 'GenUserPrgNoteType',
-                    'result_alias': 'Note_Type',  # RCEP
+                    'column_prefix': 'Note_Type',
+                    # in RCEP, code absent, desc = Note_Type
                     'internal_alias_prefix': 'nt',
                 }
             },
@@ -2881,7 +3361,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'SubNoteType',
                     'lookup_table': 'GenUserPrgNoteSubType',
-                    'result_alias': 'Sub_Note_Type',  # RCEP
+                    'column_prefix': 'Sub_Note_Type',
+                    # in RCEP, code absent, desc = Sub_Note_Type
                     'internal_alias_prefix': 'snt',
                 }
             },
@@ -2890,7 +3371,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'RiskType',
                     'lookup_table': 'RskRiskType',
-                    'result_alias': 'Risk_Type',  # RCEP
+                    'column_prefix': 'Risk_Type',
+                    # in RCEP, code absent, desc = Risk_Type
                     'internal_alias_prefix': 'rt',
                 }
             },
@@ -2899,7 +3381,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'ClinicalEventType',
                     'lookup_table': 'GenClinicalEventType',
-                    'result_alias': 'Clinical_Event_Type_Description',
+                    'column_prefix': 'Clinical_Event_Type',
                     'internal_alias_prefix': 'cet',
                 }
             },
@@ -2908,7 +3390,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'SpecialtyID',
                     'lookup_table': 'GenSpecialty',
-                    'result_alias': 'Specialty_Description',
+                    'column_prefix': 'Specialty',
                     'internal_alias_prefix': 'spec',
                 }
             },
@@ -3012,7 +3494,7 @@ RIO_VIEWS = OrderedDict([
             'EndDate': 'End_Date',  # RCEP
             'ReferralID': 'Referral_Key',  # RCEP
             'StartDate': 'Start_Date',  # RCEP
-            'WaitingStatus': None,  # RCEP; is a code
+            'WaitingStatus': None,  # lookup below
         },
         'add': [
             {
@@ -3020,7 +3502,8 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'WaitingStatus',
                     'lookup_table': 'GenReferralWaitingStatus',
-                    'result_alias': 'Waiting_Status',
+                    'column_prefix': 'Waiting_Status',
+                    # in RCEP, code absent, desc = Waiting_Status
                     'internal_alias_prefix': 'ws',
                 },
             },
@@ -3045,7 +3528,7 @@ RIO_VIEWS = OrderedDict([
             # ClientID: ignored; CRATE_COL_RIO_NUMBER instead
             # SequenceID: ignored; CRATE_COL_PK instead
             'UserID': None,  # user lookup
-            'Type': 'Type_Code',
+            'Type': None,  # lookup below
             'DateCreated': 'Date_Created',
             'SerialNumber': 'Serial_Number',  # can repeat across ClientID
             'Path': 'Path',  # ... no path, just filename (but CONTAINS ID)
@@ -3062,7 +3545,7 @@ RIO_VIEWS = OrderedDict([
             'FinalRevFlag': 'Is_Final_Version',  # 0 (draft) or 1 (final)
             'DeletedDate': 'Deleted_Date',
             'DeletedBy': None,  # user lookup
-            'DeletedReason': 'Deleted_Reason_Code',
+            'DeletedReason': None,  # lookup below
             'FileSize': 'File_Size',
         },
         'add': [
@@ -3079,7 +3562,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'Type',
                     'lookup_table': 'GenDocumentType',
-                    'result_alias': 'Type_Description',
+                    'column_prefix': 'Type',
                     'internal_alias_prefix': 'ty',
                 },
             },
@@ -3096,7 +3579,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'DeletedReason',
                     'lookup_table': 'GenDocumentRemovalReason',
-                    'result_alias': 'Deleted_Reason_Description',
+                    'column_prefix': 'Deleted_Reason',
                     'internal_alias_prefix': 'dr',
                 },
             },
@@ -3133,6 +3616,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     # remove deleted entries
                     'where_clause': 'type12_DeletedDate IS NULL',
+                    'index_cols': ['type12_DeletedDate'],
                 },
             },
         ],
@@ -3481,10 +3965,11 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     # Original RiO tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
-    AmsReferral.DischargeAddressLine*
-    AmsReferral.DischargePostCode
-    ClientAddress.AddressLine*
-    ClientAddress.PostCode
+    AmsReferral.DischargeAddressLine*  # superseded by view Referral
+    AmsReferral.DischargePostCode  # superseded by view Referral
+    ClientAddress.AddressLine*  # superseded by view Client_Address_History
+    ClientAddress.PostCode  # superseded by view Client_Address_History
+    ClientAlternativeID.ID  # superseded by view Client_Alternative_ID
     ClientIndex.crate_pk
     ClientIndex.DateOfBirth
     ClientIndex.DaytimePhone
@@ -3499,23 +3984,27 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientName.GivenName*
     ClientName.SpineID
     ClientName.Surname
-    ImsEvent.DischargeAddressLine*
-    ImsEvent.DischargePostCode*
-    ImsEventLeave.AddressLine*
-    ImsEventLeave.PostCode
+    ClientTelecom.Detail  # superseded by view Client_Communications_History
+    ImsEvent.DischargeAddressLine*  # superseded by view Inpatient_Stay
+    ImsEvent.DischargePostCode*  # superseded by view Inpatient_Stay
+    ImsEventLeave.AddressLine*  # superseded by view Inpatient_Leave
+    ImsEventLeave.PostCode  # superseded by view Inpatient_Leave
     # ----------------------------------------------------------------------
     # Views
     # ----------------------------------------------------------------------
     Client_Address_History.Address_Line_*
     Client_Address_History.Post_Code
+    Client_Alternative_ID.ID
+    Client_Communications_History.crate_telephone
+    Client_Communications_History.crate_email_address
     Inpatient_Leave.Address_Line*
     Inpatient_Leave.PostCode
     Inpatient_Stay.Discharge_Address_Line_*
     Inpatient_Stay.Discharge_Post_Code*
     Referral.Discharge_Address_Line_*
     Referral.Discharge_Post_Code*
-    {VIEW_ADDRESS_WITH_GEOGRAPHY}.AddressLine*
-    {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode
+    {VIEW_ADDRESS_WITH_GEOGRAPHY}.AddressLine*  # superseded by other view Client_Address_History
+    {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode  # superseded by other view Client_Address_History
 
 ddgen_scrubsrc_thirdparty_fields = # several:
     ClientContact.AddressLine*
@@ -3529,6 +4018,8 @@ ddgen_scrubsrc_thirdparty_fields = # several:
 ddgen_scrubmethod_code_fields = # variants:
     *PostCode*
     *Post_Code*
+    ClientAlternativeID.ID
+    Client_Alternative_ID.ID
 
 ddgen_scrubmethod_date_fields = *Date*
 
@@ -3612,7 +4103,8 @@ def main():
         "--prognotes_current_only",
         dest="prognotes_current_only",
         action="store_true",
-        help="Progress_Notes view restricted to current versions only")
+        help="Progress_Notes view restricted to current versions only "
+             "(* default)")
     parser.add_argument(
         "--prognotes_all",
         dest="prognotes_current_only",
@@ -3624,13 +4116,25 @@ def main():
         "--clindocs_current_only",
         dest="clindocs_current_only",
         action="store_true",
-        help="Clinical_Documents view restricted to current versions only")
+        help="Clinical_Documents view restricted to current versions only (*)")
     parser.add_argument(
         "--clindocs_all",
         dest="clindocs_current_only",
         action="store_false",
         help="Clinical_Documents view shows old versions too")
     parser.set_defaults(clindocs_current_only=True)
+
+    parser.add_argument(
+        "--allergies_current_only",
+        dest="allergies_current_only",
+        action="store_true",
+        help="Client_Allergies view restricted to current info only")
+    parser.add_argument(
+        "--allergies_all",
+        dest="allergies_current_only",
+        action="store_false",
+        help="Client_Allergies view shows deleted allergies too (*)")
+    parser.set_defaults(allergies_current_only=False)
 
     parser.add_argument(
         "--postcodedb",
