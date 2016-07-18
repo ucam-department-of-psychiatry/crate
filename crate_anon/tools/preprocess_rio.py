@@ -2582,17 +2582,6 @@ RIO_VIEWS = OrderedDict([
             # [2] PAF Key = PAF address key, postal address file key
             #   = unique ID keyed to Royal Mail PAF Directory
             #   http://systems.hscic.gov.uk/demographics/spineconnect/spineconnectpds.pdf  # noqa
-
-
-
-
-
-
-
-
-
-
-
         },
         'add': [
             {
@@ -2695,110 +2684,95 @@ RIO_VIEWS = OrderedDict([
                     'internal_alias_prefix': 'ocx',
                 }
             },
+        ],
+    }),
 
+    ('Client_Physical_Details', {
+        'basetable': 'ClientPhysicalDetail',
+        'rename': {
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
+RCEP: From_Date
+RCEP: Last_Updated
+            'Height': 'Height_cm',  # RCEP was Height
+            'Weight': 'Weight_kg',  # RCEP was Weight
+            'Comment': 'Extra_Comment',  # RCEP
+            'BloodGroup': None,  # lookup below
+            'SequenceID': 'Unique_Key',  # RCEP
+            'BSA': 'BSA',  # RCEP
+            'BMI': 'BMI',  # RCEP
+            'HeadCircumference': 'Head_Circumference',  # RCEP: HeadCircumference  # noqa
+            'RecordedBy': None,  # user lookup
+            'Area': None,  # lookup below
+            'DateTaken': 'Date_Taken',  # RCEP
+            'DateRecorded': 'Date_Recorded',  # RCEP
+            'DateDeleted': 'Date_Deleted',  # RCEP
+            'ParentSeqID': 'Preceding_Entry_Key',  # RCEP: ParentSeqID [1]
+            'FieldName': 'System_Field_Name',  # RCEP: Field_Name
+            'BSAFormulaID': 'BSA_Formula_ID',  # RCEP
+            'BSAFormulaAlterationReasonID': 'BSA_Formula_Alteration_Reason_ID',  # RCEP # noqa
+            # [1] ParentSeqID a silly name because (a) we've named SequenceID
+            #     to UniqueKey, so users won't know what "SeqID" is, and
+            #     (b) because "preceding" isn't a "parent" relationship.
+        },
+        'add': [
             {
-                'function': simple_view_expr,
+                'function': standard_rio_code_lookup,
                 'kwargs': {
-                    'expr': 'XXX',
-                    'alias': 'XXX',
+                    'basecolumn': 'BloodGroup',
+                    'lookup_table': 'GenBloodGroup',
+                    'column_prefix': 'Blood_Group',  # RCEP
+                    'internal_alias_prefix': 'bg',
                 },
-            },
-            {
-                'function': standard_rio_code_lookup_with_national_code,
-                'kwargs': {
-                    'basecolumn': 'XXX',
-                    'lookup_table': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
-                }
             },
             {
                 'function': rio_add_user_lookup,
                 'kwargs': {
-                    'basecolumn': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
+                    'basecolumn': 'RecordedBy',
+                    'column_prefix': 'Recorded_By',
+                    # RCEP: Recorded_By_User_Code but rest User_*
+                    'internal_alias_prefix': 'rb',
                 },
             },
             {
-                'function': rio_add_consultant_lookup,
+                'function': standard_rio_code_lookup,
                 'kwargs': {
-                    'basecolumn': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
+                    'basecolumn': 'Area',
+                    'lookup_table': 'MasterTableAreaCode',
+                    'column_prefix': 'System_Area',
+                    # RCEP: code = Area, description absent
+                    'internal_alias_prefix': 'bg',
                 },
             },
             {
-                'function': rio_add_team_lookup,
+                'function': simple_lookup_join,
                 'kwargs': {
-                    'basecolumn': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
-                },
-            },
-            {
-                'function': rio_add_carespell_lookup,
-                'kwargs': {
-                    'basecolumn': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
-                },
-            },
-            {
-                'function': rio_add_diagnosis_lookup,
-                'kwargs': {
-                    'basecolumn_scheme': 'XXX',
-                    'basecolumn_code': 'XXX',
-                    'alias_scheme': 'XXX',
-                    'alias_code': 'XXX',
-                    'alias_description': 'XXX',
-                    'internal_alias_prefix': 'XXX',
+                    'basecolumn': 'BSAFormulaID',
+                    'lookup_table': 'EPBSAFormula',
+                    'lookup_pk': 'SequenceID',
+                    'lookup_fields_aliases': {
+                        'Description': 'BSA_Formula_Description',
+                        'Formula': 'BSA_Formula',
+                        # ... all RCEP
+                    },
+                    'internal_alias_prefix': 'bsaf',
                 }
             },
             {
-                'function': rio_add_ims_event_lookup,
+                'function': simple_lookup_join,
                 'kwargs': {
-                    'basecolumn_event_num': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
-                },
-            },
-            {
-                'function': rio_add_gp_lookup,
-                'kwargs': {
-                    'basecolumn': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
-                },
-            },
-            {
-                'function': rio_add_bay_lookup,
-                'kwargs': {
-                    'basecolumn_ward': 'XXX',
-                    'basecolumn_bay': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
-                },
-            },
-            {
-                'function': rio_add_location_lookup,
-                'kwargs': {
-                    'basecolumn': 'XXX',
-                    'column_prefix': 'XXX',
-                    'internal_alias_prefix': 'XXX',
-                },
-            },
-            {
-                'function': simple_view_where,
-                'kwargs': {
-                    'where_clause': 'XXX',
-                    'index_cols': [],
-                },
+                    'basecolumn': 'BSAFormulaAlterationReasonID',
+                    'lookup_table': 'EPBSAFormulaAlterationReason',
+                    # ... documentation error in RiO 6.2 docs
+                    'lookup_pk': 'SequenceID',
+                    'lookup_fields_aliases': {
+                        'Reason': 'BSA_Formula_Alteration_Reason',  # RCEP
+                    },
+                    'internal_alias_prefix': 'bsaf',
+                }
             },
         ],
     }),
-
-    # *** 'Client_Physical_Details'
 
     # *** 'Client_Prescription'
 
