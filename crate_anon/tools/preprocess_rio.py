@@ -2774,7 +2774,61 @@ RCEP: Last_Updated
         ],
     }),
 
-    # *** 'Client_Prescription'
+    ('Client_Prescription', {
+        'basetable': 'EPClientPrescription',
+        'rename': {
+            'PrescriptionID': 'Unique_Key',  # RCEP
+            'IssueDate': 'Issue_Date',  # RCEP
+            'CourseStartDate': 'Course_Start_Date',  # RCEP
+            'NumberOfDays': 'Number_Of_Days',  # RCEP
+            'IssueMethod': 'Issue_Method',  # RCEP [1]
+            'IssuedBy': None,  # user lookup
+            'ReferralCode': 'ReferralCode',  # RCEP [2]
+            'HCPCode': None,  # user lookup
+            'NonIssueReason': None,  # lookup below
+            'ReprintReason': 'Reprint_Reason',  # RCEP
+            # 'Prescriber': None,  # user lookup
+            # [1] Looks like it should be an FK, but can't see any link.
+            # [2] ? FK to Referral? Unclear and not in docs.
+        },
+        'add': [
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'IssuedBy',
+                    'column_prefix': 'HCP_User',  # RCEP
+                    'internal_alias_prefix': 'ib',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'HCPCode',
+                    'column_prefix': 'Issued_By',  # RCEP
+                    'internal_alias_prefix': 'ihcp',
+                },
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'NonIssueReason',
+                    'lookup_table': 'EPPrescriptionsNonIssueReasons',
+                    'column_prefix': 'Non_Issue_Reason',  # RCEP
+                    'internal_alias_prefix': 'nir',
+                },
+            },
+            {
+                'function': rio_add_user_lookup,
+                'kwargs': {
+                    'basecolumn': 'Prescriber',
+                    'column_prefix': 'Prescriber',  # RCEP
+                    # .. keys to GenPerson and GenUser should be equivalent,
+                    # I think
+                    'internal_alias_prefix': 'pr',
+                },
+            },
+        ],
+    }),
 
     # *** 'Client_Professional_Contacts'
 
