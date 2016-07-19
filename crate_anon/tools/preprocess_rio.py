@@ -2148,21 +2148,21 @@ RIO_VIEWS = OrderedDict([
         'rename': {
             # RCEP: Created_Date: ?source
             # RCEP: Updated_Date: ?source
-            'ReactionID': 'Unique_Key',  # RCEP
-            'UserID': None,  # user lookup
-            # Substance: unchanged, RCEP
-            'ReactionType': 'Reaction_Type_ID',  # and lookup below
-            # Reaction: unchanged, RCEP
-            'ReactionSeverity': None,  # lookup below
-            'ReportedBy': 'Reported_By_ID',  # and lookup below
-            'Name': 'Name',  # RCEP; think this is "reported by" name
-            'WitnessingHCP': 'Witnessing_HCP',  # RCEP
-            'YearOfIdentification': 'Year_Of_Identification',  # RCEP
-            # Comment: unchanged, RCEP
-            # Deleted: unchanged, RCEP
-            'DeletionReason': 'Deletion_Reason_ID',  # not in RCEP
-            'DeletedBy': None,  # user lookup
-            'RemovalDate': 'Removal_Date',  # RCEP
+            'ReactionID': 'Unique_Key',  # RCEP; INT
+            'UserID': None,  # user lookup; VARCHAR(15)
+            # Substance: unchanged, RCEP; VARCHAR(255)
+            'ReactionType': 'Reaction_Type_ID',  # and lookup below; INT
+            # Reaction: unchanged, RCEP; VARCHAR(255)
+            'ReactionSeverity': 'Reaction_Severity_ID',  # not RCEP; lookup below; INT  # noqa
+            'ReportedBy': 'Reported_By_ID',  # and lookup below; INT
+            'Name': 'Name',  # RCEP; think this is "reported by" name; VARCHAR(50)  # noqa
+            'WitnessingHCP': 'Witnessing_HCP',  # RCEP; VARCHAR(50)
+            'YearOfIdentification': 'Year_Of_Identification',  # RCEP; INT
+            # Comment: unchanged, RCEP; VARCHAR(500)
+            # Deleted: unchanged, RCEP; BIT
+            'DeletionReason': 'Deletion_Reason_ID',  # not in RCEP; INT
+            'DeletedBy': None,  # user lookup; VARCHAR(15)
+            'RemovalDate': 'Removal_Date',  # RCEP; DATETIME
         },
         'add': [
             {
@@ -2188,13 +2188,18 @@ RIO_VIEWS = OrderedDict([
                 }
             },
             {
-                'function': standard_rio_code_lookup,
+                'function': simple_lookup_join,
                 'kwargs': {
                     'basecolumn': 'ReactionSeverity',
                     'lookup_table': 'EPSeverity',
-                    'column_prefix': 'Reaction_Severity',  # RCEP
+                    'lookup_pk': 'SeverityID',
+                    'lookup_fields_aliases': {
+                        'Code': 'Reaction_Severity_Code',
+                        'CodeDescription': 'Reaction_Severity_Description',
+                        # ... all RCEP
+                    },
                     'internal_alias_prefix': 'rs',
-                },
+                }
             },
             {
                 'function': simple_lookup_join,
