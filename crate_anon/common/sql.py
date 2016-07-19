@@ -178,6 +178,16 @@ def drop_indexes(engine, table, index_names):
             execute(engine, sql)
 
 
+def get_table_names(engine, to_lower=False, sort=False):
+    inspector = inspect(engine)
+    table_names = inspector.get_table_names()
+    if to_lower:
+        table_names = [x.lower() for x in table_names]
+    if sort:
+        table_names = sorted(table_names, key=lambda x: x.lower())
+    return table_names
+
+
 def get_view_names(engine, to_lower=False, sort=False):
     inspector = inspect(engine)
     view_names = inspector.get_view_names()
@@ -192,7 +202,7 @@ def get_column_names(engine, tablename=None, table=None, to_lower=False,
                      sort=False):
     """
     Reads columns names afresh from the database (in case metadata is out of
-    date.
+    date).
     """
     assert (table is not None) != bool(tablename), "Need table XOR tablename"
     tablename = tablename or table.name

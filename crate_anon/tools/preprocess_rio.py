@@ -347,6 +347,8 @@ from crate_anon.common.sql import (
     drop_view,
     ensure_columns_present,
     execute,
+    get_table_names,
+    get_view_names,
     get_column_names,
     set_print_not_execute,
     sql_fragment_cast_to_int,
@@ -879,8 +881,8 @@ def process_clindocs_table(table, engine, progargs):
 
     required_cols = ["SerialNumber", "RevisionID"]
     if not progargs.print:
-        required_cols.extend([CRATE_COL_MAX_DOCVER, 
-                              CRATE_COL_LAST_DOC, 
+        required_cols.extend([CRATE_COL_MAX_DOCVER,
+                              CRATE_COL_LAST_DOC,
                               CRATE_COL_RIO_NUMBER])
     ensure_columns_present(engine, table=table, column_names=required_cols)
 
@@ -1030,15 +1032,15 @@ def get_rio_views(engine, metadata, progargs, ddhint,
     # ddhint modified
     # Returns dictionary of {viewname: select_sql} pairs.
     views = {}
-    all_tables_lower = [t.name.lower() for t in metadata.tables.values()]
+    all_tables_lower = get_table_names(engine, to_lower=True)
+    all_views_lower = get_view_names(engine, to_lower=True)
+    all_selectables_lower = list(set(all_tables_lower + all_views_lower))
     for viewname, viewdetails in RIO_VIEWS.items():
         basetable = viewdetails['basetable']
-        skip_existence_check = viewdetails.get('skip_existence_check', False)
-        if not skip_existence_check:
-            if basetable.lower() not in all_tables_lower:
-                log.warning("Skipping view {} as base table {} not "
-                            "present".format(viewname, basetable))
-                continue
+        if basetable.lower() not in all_selectables_lower:
+            log.warning("Skipping view {} as base table/view {} not "
+                        "present".format(viewname, basetable))
+            continue
         suppress_basetable = viewdetails.get('suppress_basetable',
                                              suppress_basetables)
         suppress_other_tables = viewdetails.get('suppress_other_tables', [])
@@ -1993,7 +1995,6 @@ RIO_VIEWS = OrderedDict([
 
     ('Client_Address_History', {
         'basetable': VIEW_ADDRESS_WITH_GEOGRAPHY,  # original: 'ClientAddress'
-        'skip_existence_check': True,  # as we're basing this on another view
         'rename': {
             # RCEP: Created_Date: ?source
             # RCEP: Updated_Date: ?source
@@ -4878,10 +4879,10 @@ class DDHint(object):
     def __init__(self):
         self._suppressed_tables = set()
         self._index_requests = {}  # dict of dicts
-        
+
     def suppress_table(self, table):
         self._suppressed_tables.add(table)
-    
+
     def suppress_tables(self, tables):
         for t in tables:
             self.suppress_table(t)
@@ -5396,7 +5397,7 @@ def main():
     log.info("Reflecting (inspecting) database...")
     metadata.reflect(engine)
     log.info("... inspection complete")
-    
+
     ddhint = DDHint()
 
     if progargs.drop_danger_drop:
