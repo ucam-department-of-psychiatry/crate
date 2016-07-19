@@ -2160,7 +2160,7 @@ RIO_VIEWS = OrderedDict([
             'YearOfIdentification': 'Year_Of_Identification',  # RCEP
             # Comment: unchanged, RCEP
             # Deleted: unchanged, RCEP
-            'DeletionReason': 'Deletion_Reason_Code',  # not in RCEP
+            'DeletionReason': 'Deletion_Reason_ID',  # not in RCEP
             'DeletedBy': None,  # user lookup
             'RemovalDate': 'Removal_Date',  # RCEP
         },
@@ -2211,8 +2211,9 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'DeletionReason',
                     'lookup_table': 'EPClientAllergyRemovalReason',
-                    'lookup_pk': 'Code',
+                    'lookup_pk': 'RemovalReasonID',
                     'lookup_fields_aliases': {
+                        'Code': 'Deletion_Reason_Code',  # not in RCEP
                         'Reason': 'Deletion_Reason_Description',  # not in RCEP
                     },
                     'internal_alias_prefix': 'dr',
