@@ -1523,7 +1523,7 @@ def rio_add_location_lookup(viewmaker, basecolumn,
         {ap}_loc.Postcode as {cp}_Post_Code,
         {ap}_loc.LocationType as {cp}_Type_Code,
         {ap}_loctype.CodeDescription as {cp}_Type_Description,
-        {ap}_loctype.NationalCode as {cp}_Type_National_Code,
+        {ap}_loctype.NationalCode as {cp}_Type_National_Code
     """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
