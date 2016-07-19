@@ -2830,7 +2830,7 @@ RIO_VIEWS = OrderedDict([
                     'basecolumn': 'OtherContactMethod',
                     'lookup_table': 'GenTelecomContactMethod',
                     'column_prefix': 'Other_Phone_Method',  # RCEP
-                    'internal_alias_prefix': 'mcm',
+                    'internal_alias_prefix': 'ocm',
                 }
             },
             {
