@@ -4905,22 +4905,19 @@ class DDHint(object):
                     repr(columns), repr(table_columns_list)))
             self.add_source_index_request(table, columns)
 
-    def _do_indexes(self, engine, metadata, action_func):
+    def add_indexes(self, engine, metadata):
         for tablename, tabledict in self._index_requests.items():
-            log.critical("Table: {}".format(tablename))
             indexdictlist = []
             for indexname, indexdict in tabledict.items():
-                log.critical("... indexname: {}".format(indexname))
-                log.critical("... indexdict: {}".format(indexdict))
                 indexdictlist.append(indexdict)
             table = metadata.tables[tablename]
-            action_func(engine, table, indexdictlist)
-
-    def add_indexes(self, engine, metadata):
-        self._do_indexes(engine, metadata, add_indexes)
+            add_indexes(engine, table, indexdictlist)
 
     def drop_indexes(self, engine, metadata):
-        self._do_indexes(engine, metadata, drop_indexes)
+        for tablename, tabledict in self._index_requests.items():
+            index_names = list(tabledict.keys())
+            table = metadata.tables[tablename]
+            drop_indexes(engine, table, index_names)
 
 
 def report_rio_dd_settings(progargs, ddhint):
