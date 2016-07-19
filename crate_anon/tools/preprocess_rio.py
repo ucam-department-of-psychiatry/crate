@@ -2201,7 +2201,7 @@ RIO_VIEWS = OrderedDict([
                     'lookup_pk': 'ReportedID',  # not Code!
                     'lookup_fields_aliases': {
                         'Code': 'Reported_By_Code',
-                        'Description': 'Reported_By_Description',
+                        'CodeDescription': 'Reported_By_Description',
                     },
                     'internal_alias_prefix': 'rb',
                 }
