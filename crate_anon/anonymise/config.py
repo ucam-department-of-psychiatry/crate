@@ -184,6 +184,8 @@ class DatabaseSafeConfig(object):
             'ddgen_scrubsrc_patient_fields')
         self.ddgen_scrubsrc_thirdparty_fields = opt_multiline(
             'ddgen_scrubsrc_thirdparty_fields')
+        self.ddgen_scrubsrc_thirdparty_xref_pid_fields = opt_multiline(
+            'ddgen_scrubsrc_thirdparty_xref_pid_fields')
         self.ddgen_scrubmethod_code_fields = opt_multiline(
             'ddgen_scrubmethod_code_fields')
         self.ddgen_scrubmethod_date_fields = opt_multiline(
@@ -318,6 +320,8 @@ class Config(object):
             'replace_third_party_info_with')
         self.replace_nonspecific_info_with = opt_str(
             'replace_nonspecific_info_with')
+        self.thirdparty_xref_max_depth = opt_int('thirdparty_xref_max_depth',
+                                                 1)
         self.string_max_regex_errors = opt_int('string_max_regex_errors', 0)
         self.min_string_length_for_errors = opt_int(
             'min_string_length_for_errors', 1)

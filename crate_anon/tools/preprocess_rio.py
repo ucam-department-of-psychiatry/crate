@@ -275,7 +275,7 @@ How is RiO non-core structured?
             AssessmentStructure.Assessment(<) / .FormGroup(>)
                 AssessmentFormGroupsIndex.Name(<) / .Description ('Core Assessment v2')
                 AssessmentFormGroupsStructure.name(<) / .FormName(>) ('coreassesspastpsy')
-                    AssessmentFormsIndex.FormName(<) / .Description ('Past Psychiatric History and Physical Health')
+                    AssessmentFormsIndex.Name(<) / .Description ('Past Psychiatric History and Physical Health')
                     UserAssesscoreassesspastpsy = data
                               _________________(<)
                         UserAssesscoreassesspastpsy.frailty(>) [lookup]
@@ -295,6 +295,29 @@ How is RiO non-core structured?
             ... however, we could also do that more efficiently as a view,
                 and that suits all use cases so far.
 
+===============================================================================
+Scrubbing references to other patients
+===============================================================================
+
+There are two ways to do this, in principle.
+
+The first is to reshape the data so that data from "referred-to" patients
+appear in fields that can be marked as "third-party". The difficulty is that
+the mapping is not 1:1 with any database row. For example, if row A has
+fields "MainCarer" and "OtherCarer" that can refer to other patients, then
+if the "OtherCarer" field changes, the number of rows to be examined changes.
+This prohibits using a real-world PK. (A view that joined according to these
+fields would not have an immutable pseudo-PK either.) And that causes
+difficulties for a change-detection system. One would have to mark such a view
+as something not otherwise read/copied by the anonymiser.
+
+The other method, which is more powerful, is to do this work in the anonymiser
+itself, by defining fields that are marked as "third_party_xref_pid", and
+building the scrubber recursively with "depth" and "max_depth" parameters;
+if depth > 0, the information is taken as third-party.
+
+Well, that sounds achievable.
+
 """  # noqa
 
 import argparse
@@ -310,6 +333,7 @@ from sqlalchemy import (
 )
 
 from crate_anon.anonymise.constants import MYSQL_CHARSET
+from crate_anon.common.lang import merge_two_dicts
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sql import (
     add_columns,
@@ -1577,6 +1601,33 @@ def rio_add_org_contact_lookup(viewmaker, basecolumn,
         ('OrgType', 'XXX'),
     ])
 
+
+def rio_amend_standard_noncore(viewmaker):
+    # Add user:
+    rio_add_user_lookup(viewmaker, "type12_UpdatedBy",
+                        column_prefix="Updated_By", internal_alias_prefix="ub")
+    # Omit deleted:
+    viewmaker.add_where("type12_DeletedDate IS NULL")
+    viewmaker.record_lookup_table_keyfields(viewmaker.basetable,
+                                            'type12_DeletedDate')
+
+
+def rio_noncore_yn(viewmaker, basecolumn, result_alias):
+    # 1 = yes, 2 = no
+    # ... clue: "pregnant?" for males, in UserAssesstfkcsa.expectQ
+    viewmaker.add_select(
+        "CASE "
+        "WHEN {basetable}.{basecolumn} = 1 THEN 1 "  # 1 = yes
+        "WHEN {basetable}.{basecolumn} = 2 THEN 0 "  # 2 = no
+        "ELSE NULL "
+        "AS {}".format(
+            basetable=viewmaker.basetable,
+            basecolumn=basecolumn,
+            result_alias=result_alias
+        )
+    )
+
+
 # =============================================================================
 # RiO view creators: collection
 # =============================================================================
@@ -1589,6 +1640,27 @@ def rio_add_org_contact_lookup(viewmaker, basecolumn,
 #    ORDER BY table_name, ordinal_position
 # 2. RiO data model reference guide
 # 3. RCEP information schema
+
+DEFAULT_NONCORE_RENAMES = {
+    # Identifiers:
+    'ClientID': None,  # we have crate_rio_number instead
+    'NHSNum': None,  # not needed and would have to scrub
+
+    # System:
+    'system_ValidationData': 'system_Validation_Data',
+    'ServRef': None,  # e.g. "I6337", "R47800"; ?internal reference
+    'formref': None,
+
+    # Relevant:
+    # type12_NoteID: unchanged
+    # type12_OriginalNoteID: unchanged
+    # type12_DeletedDate: unchanged (but filtered on)
+    # type12_UpdatedBy
+    'type12_UpdatedDate': 'Updated_Date',
+
+    # Common to all assessments:
+    'AssessmentDate': 'Assessment_Date',
+}
 
 RIO_VIEWS = OrderedDict([
     # An OrderedDict in case you wanted to make views from views.
@@ -1855,7 +1927,7 @@ RIO_VIEWS = OrderedDict([
         'basetable': 'CarePlanProblems',
         'rename': {
             'ProblemID': 'Problem_ID',  # RCEP
-            'CarePlanID': 'Care_Plan_ID_FK_Care_Plan_Index',  # RCEP: was Care_Plan_ID
+            'CarePlanID': 'Care_Plan_ID_FK_Care_Plan_Index',  # RCEP: was Care_Plan_ID  # noqa
             'Text': 'Text',  # RCEP
             'StartDate': 'Start_Date',  # RCEP
             'EndDate': 'End_Date',  # RCEP
@@ -2635,7 +2707,7 @@ RIO_VIEWS = OrderedDict([
             'PostCode': 'Post_Code',  # RCEP
             'MainPhone': 'Main_Phone',  # RCEP
             'OtherPhone': 'Other_Phone',  # RCEP
-            'EMailAddress': 'Email',  # RCEP
+            'EMailAddress': 'Email_Address',  # RCEP was Email (inconsistent)
             'Relationship': 'Contact_Relationship_Code',  # RCEP + lookup
             'ContactComment': 'Comment',  # RCEP
             'Organisation': 'Organisation',  # VARCHAR(40); SEE NOTE 1.
@@ -4277,10 +4349,45 @@ RIO_VIEWS = OrderedDict([
     # Non-core: CPFT
     # -------------------------------------------------------------------------
 
-    # *** others
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # CPFT Core Assessment v2
+    #
+    # 1. Getting form and table names (prepend 'UserAssess' to table names):
+    #
+    #    USE rio_data_raw;
+    #
+    #    SELECT *
+    #    FROM AssessmentFormGroupsIndex afgi
+    #    INNER JOIN AssessmentFormGroupsStructure afgs
+    #      ON afgs.name = afgi.Name
+    #    INNER JOIN AssessmentFormsIndex afi
+    #      ON afi.name = afgs.FormName
+    #    WHERE afgi.deleted = 0
+    #    AND afgi.Description = 'Core Assessment v2'
+    #    ORDER BY afgs.FormOrder, afgs.FormName, afgs.FormgroupVersion;
+    #
+    # 2. Getting field descriptions: explore the front end
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    ('Core_Assessment_PPH_PMH_Allergies_Frailty', {
+    ('CPFT_Core_Assessment_v2_Presenting_Problem', {
+        'basetable': 'UserAssesscoreasspresprob',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'ReasonRef': 'Reasons_For_Referral',
+            'HistProb': 'History_Of_Presenting_Problem',
+            'CurrInt': 'Current_Interventions_Medication',
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_PPH_PMH_Allergies_Frailty', {
         'basetable': 'UserAssesscoreassesspastpsy',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'PastPsyHist': 'Past_Psychiatric_History',
+            'PhyHealth': 'Physical_Health_Medical_History',
+            'Allergies': 'Allergies',
+        }),
         'add': [
             {
                 # Rockwood frailty score
@@ -4295,16 +4402,275 @@ RIO_VIEWS = OrderedDict([
                     'internal_alias_prefix': 'fr',
                 }
             },
+            {'function': rio_amend_standard_noncore},
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_Background_History', {
+        'basetable': 'UserAssesscoreassessbackhist',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'FamPersHist': 'Family_Personal_History',
+            'ScoHist': 'Social_History',  # sic (Sco not Soc)
+            'DruAlc': 'Drugs_Alcohol',
+            'ForHist': 'Forensic_History',
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_Mental_State', {
+        'basetable': 'UserAssesscoreassesmentstat',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'MentState': 'Mental_State_Examination',
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_Capacity_Safeguarding_Risk', {
+        'basetable': 'UserAssesscoreassescapsafrisk',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'CapIssCon': 'Capacity_Issues_Consent',
+            'Safeguard': 'Safeguarding',
+            # "Please indicate whether any issues were identified..."
+            'sovayn': 'Risk_SOVA',
+            'childprotyn': 'Risk_Child_Protection',
+            'sshyn': 'Risk_Suicide_Self_Harm',
+            'violyn': 'Risk_Violence',
+            'negvulyn': 'Risk_Neglect_Vulnerability',
+            'fallsyn': 'Risk_Falls',
+            'CurrDL2': 'Current_Driving_Licence',
+            'Riskida': 'Risk_Impaired_Driving',
+            'Risk': 'Risk_Screen',
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_Summary_Initial_Plan', {
+        'basetable': 'UserAssesscoreasssumminitplan',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'ServStre': 'Service_User_Strengths_Needs_Expectations',
+            'CareView': 'Carer_Views_Needs',
+            'SummForm': 'Summary_Formulation',
+            'Plan1': 'Plan',
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_Social_Circumstances_Employment', {
+        'basetable': 'UserAssesscoresocial1',
+        # no free text
+        # bad field names!
+        'rename': DEFAULT_NONCORE_RENAMES,
+        'add': [
+            {'function': rio_amend_standard_noncore},
             {
-                'function': simple_view_where,
+                'function': standard_rio_code_lookup_with_national_code,
                 'kwargs': {
-                    # remove deleted entries
-                    'where_clause': 'type12_DeletedDate IS NULL',
-                    'index_cols': ['type12_DeletedDate'],
+                    'basecolumn': 'Social06',
+                    # ... range 1-50, and field order
+                    'lookup_table': 'GenAccommodationStatus',
+                    'column_prefix': 'Accommodation_Status',  # RCEP
+                    'internal_alias_prefix': 'as',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'Social07',
+                    # ... range 1-5, and field order
+                    'lookup_table': 'GenSettledAccommodation',
+                    'column_prefix': 'Settled_Accommodation_Indicator',  # RCEP
+                    'internal_alias_prefix': 'sa',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'Social16',
+                    # ... range 1-12, and field order
+                    'lookup_table': 'GenEmpStatus',
+                    'column_prefix': 'Employment_Status',  # RCEP
+                    'internal_alias_prefix': 'es',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup_with_national_code,
+                'kwargs': {
+                    'basecolumn': 'Social17',
+                    # ... by elimination, and field order
+                    'lookup_table': 'GenWeeklyHoursWorked',
+                    'column_prefix': 'Weekly_Hours_Worked',  # not in RCEP
+                    # RCEP code was Weekly_Hours_Worked
+                    'internal_alias_prefix': 'whw',
+                }
+            },
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_Keeping_Children_Safe_Assessment', {
+        # Stem was kcsahyper, so you'd expect the table to be
+        # UserAssesskcsahyper; however, that doesn't exist. For '%kcsa%', there
+        # are:
+        # - UserAssesstfkcsa
+        #       ... this is the main one
+        # - UserAssesstfkcsa_childs
+        #       ... this is the list of children in current household
+        # - UserAssesstfkcsa_childprev
+        #       ... this is the list of children from prev. relationships
+        'basetable': 'UserAssesstfkcsa',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            # - Does SU live in household where there are children?
+            # - Please specify relationship?
+            # - Is SU expecting a baby?
+            # - If so, what is the EDD?
+            # - Children in household:
+            #   - List of: {name of child, date of birth, gender}
+            #     (with minimum list size, with child name = "N/A" if none)
+            # - Does the SU have contact with children (not living in the same
+            #   household) from previous relationships?
+            #   - If yes, specify (LIST as above)
+            # - Comments
+            # - Does the SU have significant contact with other children?
+            # - If yes, please specify
+            #
+            # [FAMILY/ENVIRONMENTAL FACTORS]
+            # - Does the SU experience any family and environmental
+            #   difficulties that could impact on their ability to care for
+            #   children?
+            # - Please use this space to support your assessment outcome
+            # [PARENTING CAPACITY]
+            # - "Consider the outcomes of the adult assessment. Can the service
+            #   user demonstrate their ability to care for children or do they
+            #   require any additional support with parenting?"
+            #   ... Exceptionally bad phrasing! Field is "DemAb"
+            # - comments
+            # [CHILD DEVELOPMENTAL NEEDS]
+            # - Does info suggest there could be... difficulties with child's
+            #   developmental needs?
+            # - comments
+            # [DOMESTIC ABUSE]
+            # - Is this person affected by domestic abuse?
+            # - comments
+            # [SUBSTANCE MISUSE#
+            # - Any concerns in relation to substance misuse?
+            # - comments
+            # [MENTAL HEALTH, DELUSIONAL IDEATION, SUICIDE PLANNING]
+            # - does risk profile indicate delusional beliefs involving
+            #   children?
+            # - does... indicat suicidal ideation and/or suicide plan involving
+            #   children?
+            # - are there any other MH concerns which may impact on SU's
+            #   ability to care for children?
+            # - comments
+            #
+            # - CURRENT RISK/NEED STATUS (1 low to 4 serious+imminent)
+
+            'ChildHous': None,  # transform below
+            'Relation': 'Children_In_Household_Relationship',
+            'expectQ': None,  # transform below
+            'dodv': 'Estimated_Delivery_Date',
+            'ChildCon': None,  # transform below
+            'commts': 'Comments',
+            'SigCon': None,  # transform below
+            'SigConSpec': 'Significant_Contact_Other_Children_Specify',
+            'EnvDiff': None,  # transform below
+            'EnvDiffSpec': 'Family_Environment_Difficulty_Specify',
+            'DemAb': None,  # transform below
+            'DemAbSpec': 'Demonstrate_Ability_Care_Children_Specify',
+            'DevNeeds': None,  # transform below
+            'DevNeedsSpec': 'Child_Developmental_Needs_Specify',
+            'domab1': None,  # transform below
+            'DomAbSpec': 'Domestic_Abuse_Specify',
+            'SubMis': None,  # transform below
+            'SubMisSpec': 'Substance_Misuse_Specify',
+            'Q1': None,  # transform below
+            'Q2': None,  # transform below
+            'Q3': None,  # transform below
+            'QSpec': 'Mental_Health_Specify',
+            'CRNS': None,  # lookup below
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'ChildHous',
+                'result_alias': 'Children_In_Household',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'expectQ',
+                'result_alias': 'Pregnant',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'ChildCon',
+                'result_alias': 'Contact_Children_Prev_Relationship_Other_Household',  # noqa
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'SigCon',
+                'result_alias': 'Significant_Contact_Other_Children',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'EnvDiff',
+                'result_alias': 'Family_Environment_Difficulty_Concern',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'DemAb',
+                'result_alias': 'Demonstrate_Ability_Care_Children_Or_Requires_Support',  # noqa
+                #  ... not safe to fail to allude to ambiguity of this
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'DevNeeds',
+                'result_alias': 'Child_Developmental_Needs_Concern',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'domab1',
+                'result_alias': 'Domestic_Abuse_Concern',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'SubMis',
+                'result_alias': 'Substance_Misuse_Concern',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'Q1',
+                'result_alias': 'Mental_Health_Delusional_Beliefs_Re_Children',
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'Q2',
+                'result_alias': 'Mental_Health_Suicidal_Or_Suicide_Plan_Re_Children',  # noqa
+            },
+            {
+                'function': rio_noncore_yn,
+                'basecolumn': 'Q3',
+                'result_alias': 'Mental_Health_Other_Concern_Affecting_Child_Care',  # noqa
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'CRNS',
+                    'lookup_table': 'UserMasterCRNS',
+                    'column_prefix': 'Current_Risk_Need_Status',
+                    'internal_alias_prefix': 'crns',
                 },
             },
         ],
     }),
+
 ])
 
 
@@ -4704,7 +5070,7 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     # ----------------------------------------------------------------------
     # Original RiO tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
-    ClientFamilyLink.RelatedClientID  # superseded by view Client_Family
+    # ClientFamilyLink.RelatedClientID  # superseded by view Client_Family
     ClientContact.Surname  # superseded by view Client_Personal_Contacts
     ClientContact.Firstname  # superseded by view Client_Personal_Contacts
     ClientContact.AddressLine*  # superseded by view Client_Personal_Contacts
@@ -4712,24 +5078,33 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     ClientContact.*Phone  # superseded by view Client_Personal_Contacts
     ClientContact.EmailAddress  # superseded by view Client_Personal_Contacts
     ClientContact.NHSNumber  # superseded by view Client_Personal_Contacts
-    ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
-    ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
+    # ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
+    # ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
     # ----------------------------------------------------------------------
     # Views
     # ----------------------------------------------------------------------
-    Client_Demographic_Details.Main_Carer
-    #   # *** ... follow link through (via a view) to get other scrubbing info?
-    Client_Demographic_Details.Other_Carer
-    #   # *** ... follow link through (via a view) to get other scrubbing info?
-    Client_Family.Related_Client_ID
-    #   # *** ... follow link through (via a view) to get other scrubbing info?
     Client_Personal_Contacts.Family_Name
     Client_Personal_Contacts.Given_Name
     Client_Personal_Contacts.Address_Line_*
     Client_Personal_Contacts.Post_Code
     Client_Personal_Contacts.*Phone
-    Client_Personal_Contacts.Email
+    Client_Personal_Contacts.Email_Address
     Client_Personal_Contacts.NHS_Number
+
+ddgen_scrubsrc_thirdparty_xref_pid_fields = # several:
+    # ----------------------------------------------------------------------
+    # Original RiO tables (some may be superseded by views; list both here)
+    # ----------------------------------------------------------------------
+    # none; these are not integer:
+    # ClientFamilyLink.RelatedClientID  # superseded by view Client_Family
+    # ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
+    # ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
+    # ----------------------------------------------------------------------
+    # Views
+    # ----------------------------------------------------------------------
+    Client_Demographic_Details.Main_Carer
+    Client_Demographic_Details.Other_Carer
+    Client_Family.Related_Client_ID
 
 ddgen_scrubmethod_code_fields = # variants:
     *PostCode*
@@ -4947,3 +5322,5 @@ if __name__ == '__main__':
         type_, value, tb = sys.exc_info()
         traceback.print_exc()
         pdb.post_mortem(tb)
+
+# *** field history

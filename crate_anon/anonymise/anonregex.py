@@ -32,18 +32,22 @@ Copyright/licensing:
 # =============================================================================
 
 import calendar
+import dateutil.parser  # for unit tests
 import logging
+import unittest
 
 import regex  # sudo apt-get install python-regex
+
+from crate_anon.common.logsupport import configure_logger_for_colour
+from crate_anon.common.stringfunc import (
+    get_digit_string_from_vaguely_numeric_string,  # for unit testing
+)
 
 log = logging.getLogger(__name__)
 
 # =============================================================================
 # Constants
 # =============================================================================
-
-NON_ALPHANUMERIC_SPLITTERS = regex.compile("[\W]+", regex.UNICODE)
-# 1 or more non-alphanumeric characters...
 
 REGEX_METACHARS = ["\\", "^", "$", ".",
                    "|", "?", "*", "+",
@@ -52,6 +56,17 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # Start with \, for replacement.
 
 WB = r"\b"  # word boundary; escape the slash if not using a raw string
+
+# The Kleene star has highest precedence.
+# So, for example, ab*c matches abbbc, but not (all of) ababc. See regexr.com
+OPTIONAL_NONWORD = r"\W*"  # zero or more non-alphanumeric characters...
+# ... doesn't need to be [\W]*, for precedence reasons as above.
+AT_LEAST_ONE_NONWORD = r"\W+"  # 1 or more non-alphanumeric character
+
+NON_ALPHANUMERIC_SPLITTERS = regex.compile(AT_LEAST_ONE_NONWORD, regex.UNICODE)
+
+OPTIONAL_WHITESPACE = r"\s*"  # zero or more whitespace chars
+OPTIONAL_NON_NEWLINE_WHITESPACE = r"[ \t]*"  # zero or more spaces/tabs
 
 
 # =============================================================================
@@ -146,7 +161,7 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
     if len(year) == 4:
         year = "(?:" + year[0:2] + ")?" + year[2:4]
         # ... converts e.g. 1986 to (19)?86, to match 1986 or 86
-    sep = "[\W]*"  # zero or more non-alphanumeric characters...
+    sep = OPTIONAL_NONWORD
     # Regexes
     basic_regexes = [
         day + sep + month + sep + year,  # e.g. 13 Sep 2014
@@ -159,7 +174,8 @@ def get_date_regex_elements(dt, at_word_boundaries_only=False):
         return basic_regexes
 
 
-def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
+def get_code_regex_elements(s, liberal=True, very_liberal=True,
+                            at_word_boundaries_only=True):
     """
     Takes a STRING representation of a number or an alphanumeric code, which
     may include leading zeros (as for phone numbers), and produces a list of
@@ -180,9 +196,13 @@ def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
     if not s:
         return []
     s = escape_literal_string_for_regex(s)  # escape any decimal points, etc.
-    if liberal:
-        separators = "[\W]*"  # zero or more non-alphanumeric characters...
-        s = separators.join([c for c in s])  # ... can appear anywhere
+    if very_liberal:
+        separators = OPTIONAL_NONWORD
+    elif liberal:
+        separators = OPTIONAL_NON_NEWLINE_WHITESPACE
+    else:
+        separators = ""
+    s = separators.join([c for c in s])  # ... can appear anywhere
     if at_word_boundaries_only:
         return [WB + s + WB]
     else:
@@ -190,6 +210,7 @@ def get_code_regex_elements(s, liberal=True, at_word_boundaries_only=True):
 
 
 def get_number_of_length_n_regex_elements(n, liberal=True,
+                                          very_liberal=False,
                                           at_word_boundaries_only=True):
     """
     Get a list of regex strings for scrubbing n-digit numbers -- for
@@ -197,8 +218,10 @@ def get_number_of_length_n_regex_elements(n, liberal=True,
     11-digit numbers as putative UK phone numbers.
     """
     s = ["[0-9]"] * n
-    if liberal:
-        separators = "[\W]*"  # zero or more non-alphanumeric characters...
+    if very_liberal:
+        separators = OPTIONAL_NONWORD
+    elif liberal:
+        separators = OPTIONAL_NON_NEWLINE_WHITESPACE
     else:
         separators = ""
     s = separators.join([c for c in s])
@@ -223,7 +246,7 @@ def get_uk_postcode_regex_elements(at_word_boundaries_only=True):
     for i in range(len(e)):
         e[i] = e[i].replace("A", "[A-Z]")  # letter
         e[i] = e[i].replace("N", "[0-9]")  # number
-        e[i] = e[i].replace(" ", "\s*")  # zero or more whitespace chars
+        e[i] = e[i].replace(" ", OPTIONAL_WHITESPACE)
         if at_word_boundaries_only:
             e[i] = WB + e[i] + WB
     return e
@@ -276,7 +299,7 @@ def get_phrase_regex_elements(phrase, at_word_boundaries_only=True,
     if not strings:
         return
     strings = [escape_literal_string_for_regex(x) for x in strings]
-    s = "[\W]+".join(strings)  # 1 or more non-alphanumeric character
+    s = AT_LEAST_ONE_NONWORD.join(strings)
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"
     if at_word_boundaries_only:
@@ -319,118 +342,149 @@ def get_regex_from_elements(elementlist):
         raise
 
 
-# Testing:
-if False:
-    TEST_REGEXES = '''
-from __future__ import print_function
-import calendar
-import dateutil.parser
-import regex
+# =============================================================================
+# Unit tests
+# =============================================================================
 
-import logging
+class TestAnonRegexes(unittest.TestCase):
+    STRING_1 = r"""
+        I was born on 07 Jan 2013, m'lud.
+        It was 7 January 13, or 7/1/13, or 1/7/13, or
+        Jan 7 2013, or 2013/01/07, or 2013-01-07,
+        or 7th January
+        13 (split over a line)
+        or Jan 7th 13
+        or 07.01.13 or 7.1.2013
+        or a host of other variations.
+        And ISO-8601 formats like 20130107T0123, or just 20130107.
 
-from crate_anon.common.stringfunc import (
-    get_digit_string_from_vaguely_numeric_string,
-)
+        BUT NOT 8 Jan 2013, or 2013/02/07, or 2013
+        Jan 17, or just a number like 7, or a month
+        like January, or a nonspecific date like
+        Jan 2013 or 7 January. And not ISO-8601-formatted other dates
+        like 20130108T0123, or just 20130108.
 
-logging.basicConfig()  # just in case nobody else has done this
-log = logging.getLogger("anonymise")
+        I am 34 years old. My mother was 348, or 834, or perhaps 8348.
+        Was she 34.6? Don't think so.
 
-testnumber = 34
-testnumber_as_text = "123456"
-testdate = dateutil.parser.parse("7 Jan 2013")
-teststring = "mother"
-testphrase = "348 or 834"
-old_testdate = dateutil.parser.parse("3 Sep 1847")
+        Her IDs include NHS#123456, or 123 456, or (123) 456, or 123456.
 
-s = u"""
+        I am 34 years old. My mother was 348, or 834, or perhaps 8348.
+        She wasn't my step-mother, or my grandmother, or my mother-in-law.
+        She was my MOTHER!
+        A typo is mther.
 
-SHOULD REPLACE:
-    I was born on 07 Jan 2013, m'lud.
-    It was 7 January 13, or 7/1/13, or 1/7/13, or
-    Jan 7 2013, or 2013/01/07, or 2013-01-07,
-    or 7th January
-    13 (split over a line)
-    or Jan 7th 13
-    or 07.01.13 or 7.1.2013
-    or a host of other variations.
-    And ISO-8601 formats like 20130107T0123, or just 20130107.
+        Unicode apostrophe: the thread’s possession
 
-    BUT NOT 8 Jan 2013, or 2013/02/07, or 2013
-    Jan 17, or just a number like 7, or a month
-    like January, or a nonspecific date like
-    Jan 2013 or 7 January. And not ISO-8601-formatted other dates
-    like 20130108T0123, or just 20130108.
+        E-mail: bob@pobox.com, mr.jones@somewhere.nhs.uk, blah@place.com
+        Mr.Jones@somewhere.nhs.uk
 
-    I am 34 years old. My mother was 348, or 834, or perhaps 8348.
-    Was she 34.6? Don't think so.
+        Some numbers by size:
+            1
+            12
+            123
+            1234
+            12345
+            123456
+            1234567
+            12345678
+            123456789
+            1234567890
+            12345678901
+            123456789012
+            1234567890123
+            12345678901234
+            123456789012345
+        Some postcodes (from https://www.mrs.org.uk/pdf/postcodeformat.pdf)
+            M1 1AA
+            M60 1NW
+            CR2 6XH
+            DN55 1PT
+            W1A 1HQ
+            EC1A 1BB
+    """
 
-    Her IDs include NHS#123456, or 123 456, or (123) 456, or 123456.
+    @staticmethod
+    def report(title, string):
+        print("=" * 79)
+        print(title)
+        print("=" * 79)
+        print(string)
 
-    I am 34 years old. My mother was 348, or 834, or perhaps 8348.
-    She wasn't my step-mother, or my grandmother, or my mother-in-law.
-    She was my MOTHER!
-    A typo is mther.
+    def test_most(self):
+        s = self.STRING_1
+        testnumber = 34
+        testnumber_as_text = "123456"
+        testdate_str = "7 Jan 2013"
+        testdate = dateutil.parser.parse(testdate_str)
+        teststring = "mother"
+        testphrase = "348 or 834"
+        date_19th_c = "3 Sep 1847"
+        old_testdate = dateutil.parser.parse(date_19th_c)
+        testemail = "mr.jones@somewhere.nhs.uk"
 
-    Unicode apostrophe: the thread’s possession
+        regex_date = get_regex_from_elements(get_date_regex_elements(testdate))
+        regex_number = get_regex_from_elements(
+            get_code_regex_elements(str(testnumber)))
+        regex_number_as_text = get_regex_from_elements(
+            get_code_regex_elements(
+                get_digit_string_from_vaguely_numeric_string(
+                    testnumber_as_text)))
+        regex_string = get_regex_from_elements(
+            get_string_regex_elements(teststring))
+        regex_email = get_regex_from_elements(
+            get_string_regex_elements(testemail))
+        regex_phrase = get_regex_from_elements(
+            get_phrase_regex_elements(testphrase))
+        regex_10digit = get_regex_from_elements(
+            get_number_of_length_n_regex_elements(10))
+        regex_postcode = get_regex_from_elements(
+            get_uk_postcode_regex_elements())
+        all_elements = (
+            get_date_regex_elements(testdate) +
+            get_code_regex_elements(str(testnumber)) +
+            get_code_regex_elements(
+                get_digit_string_from_vaguely_numeric_string(
+                    testnumber_as_text)) +
+            get_string_regex_elements(teststring) +
+            get_string_regex_elements(testemail) +
+            get_phrase_regex_elements(testphrase) +
+            get_number_of_length_n_regex_elements(10) +
+            get_uk_postcode_regex_elements()
+        )
+        regex_all = get_regex_from_elements(all_elements)
 
-    Some numbers by size:
-        1
-        12
-        123
-        1234
-        12345
-        123456
-        1234567
-        12345678
-        123456789
-        1234567890
-        12345678901
-        123456789012
-        1234567890123
-        12345678901234
-        123456789012345
-    Some postcodes:
-        M1 1AA
-        M60 1NW
-        CR2 6XH
-        DN55 1PT
-        W1A 1HQ
-        EC1A 1BB
-"""
+        self.report("Removing date: " + testdate_str,
+                    regex_date.sub("DATE_GONE", s))
+        self.report("Removing number: {}".format(testnumber),
+                    regex_number.sub("NUMBER_GONE", s))
+        self.report("Removing numbers as text: " + testnumber_as_text,
+                    regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
+        self.report("Removing string: " + teststring,
+                    regex_string.sub("STRING_GONE", s))
+        self.report("Removing email: " + testemail,
+                    regex_email.sub("EMAIL_GONE", s))
+        self.report("Removing phrase: " + testphrase,
+                    regex_phrase.sub("PHRASE_GONE", s))
+        self.report("Removing 10-digit numbers",
+                    regex_10digit.sub("TEN_DIGIT_NUMBERS_GONE", s))
+        self.report("Removing postcodes",
+                    regex_postcode.sub("POSTCODES_GONE", s))
+        self.report("Removing everything", regex_all.sub("EVERYTHING_GONE", s))
+        self.report("All-elements regex",
+                    get_regex_string_from_elements(all_elements))
+        self.report("Date regex",
+                    get_regex_string_from_elements(
+                        get_date_regex_elements(testdate)))
+        self.report("Date regex for 19th century",
+                    get_regex_string_from_elements(
+                        get_date_regex_elements(old_testdate)))
+        self.report("Phrase regex", get_regex_string_from_elements(
+            get_phrase_regex_elements(testphrase)))
+        self.report("10-digit-number regex", get_regex_string_from_elements(
+            get_number_of_length_n_regex_elements(10)))
 
-regex_date = get_regex_from_elements(get_date_regex_elements(testdate))
-regex_number = get_regex_from_elements(
-    get_code_regex_elements(str(testnumber)))
-regex_number_as_text = get_regex_from_elements(
-    get_code_regex_elements(
-        get_digit_string_from_vaguely_numeric_string(testnumber_as_text)))
-regex_string = get_regex_from_elements(get_string_regex_elements(teststring))
-regex_phrase = get_regex_from_elements(get_phrase_regex_elements(testphrase))
-regex_10digit = get_regex_from_elements(
-    get_number_of_length_n_regex_elements(10))
-regex_postcode = get_regex_from_elements(get_uk_postcode_regex_elements())
-all_elements = (
-    get_date_regex_elements(testdate)
-    + get_code_regex_elements(str(testnumber))
-    + get_code_regex_elements(
-        get_digit_string_from_vaguely_numeric_string(testnumber_as_text))
-    + get_string_regex_elements(teststring)
-    + get_phrase_regex_elements(testphrase)
-    + get_number_of_length_n_regex_elements(10)
-    + get_uk_postcode_regex_elements()
-)
-regex_all = get_regex_from_elements(all_elements)
-print(regex_date.sub("DATE_GONE", s))
-print(regex_number.sub("NUMBER_GONE", s))
-print(regex_number_as_text.sub("NUMBER_AS_TEXT_GONE", s))
-print(regex_string.sub("STRING_GONE", s))
-print(regex_phrase.sub("PHRASE_GONE", s))
-print(regex_10digit.sub("TEN_DIGIT_NUMBERS_GONE", s))
-print(regex_postcode.sub("POSTCODES_GONE", s))
-print(regex_all.sub("EVERYTHING_GONE", s))
-print(get_regex_string_from_elements(all_elements))
-print(get_regex_string_from_elements(get_date_regex_elements(testdate)))
-print(get_regex_string_from_elements(get_date_regex_elements(old_testdate)))
-print(get_regex_string_from_elements(get_phrase_regex_elements(testphrase)))
-'''
+
+if __name__ == '__main__':
+    configure_logger_for_colour(log, level=logging.DEBUG)
+    unittest.main()

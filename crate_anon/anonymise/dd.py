@@ -558,21 +558,17 @@ class DataDictionaryRow(object):
             self.scrub_src = SCRUBSRC.PATIENT
         elif self.matches_fielddef(cfg.ddgen_scrubsrc_thirdparty_fields):
             self.scrub_src = SCRUBSRC.THIRDPARTY
-        # elif self.matches_fielddef(cfg.ddgen_scrubmethod_code_fields +
-        #                                 cfg.ddgen_scrubmethod_date_fields +
-        #                                 cfg.ddgen_scrubmethod_number_fields +
-        #                                 cfg.ddgen_scrubmethod_phrase_fields):
-        #     # We're not sure what sort these are, but it seems conservative to
-        #     # include these! Easy to miss them otherwise, and better to be
-        #     # overly conservative.
-        #     self.scrub_src = SCRUBSRC.PATIENT
+        elif self.matches_fielddef(
+                cfg.ddgen_scrubsrc_thirdparty_xref_pid_fields):
+            self.scrub_src = SCRUBSRC.THIRDPARTY_XREF_PID
         else:
             self.scrub_src = ""
 
         # What kind of sensitive data? Date, text, number, code?
         if not self.scrub_src:
             self.scrub_method = ""
-        elif (is_sqltype_numeric(datatype_sqltext) or
+        elif (self.scrub_src == SCRUBSRC.THIRDPARTY_XREF_PID or
+                is_sqltype_numeric(datatype_sqltext) or
                 self.matches_fielddef(cfg.ddgen_per_table_pid_field) or
                 self.matches_fielddef(cfg.ddgen_master_pid_fieldname) or
                 self.matches_fielddef(cfg.ddgen_scrubmethod_number_fields)):
@@ -780,7 +776,7 @@ class DataDictionaryRow(object):
                 "Field can be any ONE of: src_flags={}, src_flags={}, "
                 "alter_method".format(SRCFLAG.PRIMARYPID, SRCFLAG.MASTERPID))
 
-        valid_scrubsrc = [SCRUBSRC.PATIENT, SCRUBSRC.THIRDPARTY, ""]
+        valid_scrubsrc = list(SCRUBSRC.keys()) + [""]
         if self.scrub_src not in valid_scrubsrc:
             raise ValueError(
                 "Invalid scrub_src - must be one of [{}]".format(

@@ -139,6 +139,21 @@ class Patient(object):
         # database.
         log.debug("Building scrubber")
         db_table_pair_list = config.dd.get_scrub_from_db_table_pairs()
+        self._build_scrubber(pid,
+                             depth=0,
+                             max_depth=config.thirdparty_xref_max_depth,
+                             db_table_pair_list=db_table_pair_list)
+        self._unchanged = self.get_scrubber_hash() == self.info.scrubber_hash
+        self.info.set_scrubber_info(self.scrubber)
+        self.session.commit()
+        # Commit immediately, because other processes may need this table
+        # promptly. Otherwise, might get:
+        #   Deadlock found when trying to get lock; try restarting transaction
+
+    def _build_scrubber(self, pid, depth, max_depth, db_table_pair_list):
+        if depth > 0:
+            log.debug("Building scrubber recursively: depth = {}".format(
+                depth))
         for (src_db, src_table) in db_table_pair_list:
             # Build a list of fields for this table, and corresponding lists of
             # scrub methods and a couple of other flags.
@@ -147,29 +162,38 @@ class Patient(object):
             scrub_methods = []
             is_patient = []
             is_mpid = []
+            recurse = []
             for ddr in ddrows:
                 fields.append(ddr.src_field)
                 scrub_methods.append(PersonalizedScrubber.get_scrub_method(
                     ddr.src_datatype, ddr.scrub_method))
-                is_patient.append(ddr.scrub_src == SCRUBSRC.PATIENT)
-                is_mpid.append(SRCFLAG.MASTERPID in ddr.src_flags)
+                is_patient.append(depth == 0 and
+                                  ddr.scrub_src == SCRUBSRC.PATIENT)
+                is_mpid.append(depth == 0 and
+                               SRCFLAG.MASTERPID in ddr.src_flags)
+                recurse.append(depth < max_depth and
+                               ddr.scrub_src == SCRUBSRC.THIRDPARTY_XREF_PID)
             # Collect the actual patient-specific values for this table.
             for values in gen_all_values_for_patient(src_db, src_table,
                                                      fields, pid):
                 for i, val in enumerate(values):
-                    self.scrubber.add_value(val,
-                                            scrub_methods[i],
-                                            is_patient[i])
+                    self.scrubber.add_value(val, scrub_methods[i],
+                                            patient=is_patient[i])
                     if is_mpid[i] and self.get_mpid() is None:
                         # We've come across the master ID.
                         self.set_mpid(val)
-
-        self._unchanged = self.get_scrubber_hash() == self.info.scrubber_hash
-        self.info.set_scrubber_info(self.scrubber)
-        self.session.commit()
-        # Commit immediately, because other processes may need this table
-        # promptly. Otherwise, might get:
-        #   Deadlock found when trying to get lock; try restarting transaction
+                    if recurse[i]:
+                        # We've come across a patient ID of another patient,
+                        # whose information should be trawled and treated
+                        # as third-party information
+                        try:
+                            related_pid = int(val)
+                        except (ValueError, TypeError):
+                            # TypeError: NULL value (None)
+                            # ValueError: duff value, i.e. non-integer
+                            continue
+                        self._build_scrubber(related_pid, depth + 1, max_depth,
+                                             db_table_pair_list)
 
     def get_pid(self):
         """Return the patient ID (PID)."""

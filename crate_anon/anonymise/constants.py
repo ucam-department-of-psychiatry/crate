@@ -124,7 +124,8 @@ SCRUBMETHOD = AttrDict(
 
 SCRUBSRC = AttrDict(
     PATIENT="patient",
-    THIRDPARTY="thirdparty"
+    THIRDPARTY="thirdparty",
+    THIRDPARTY_XREF_PID="thirdparty_xref_pid"
 )
 
 SRCFLAG = AttrDict(
@@ -265,13 +266,22 @@ DEMO_CONFIG = """
 #         the anonymised database.
 #
 # scrub_src
-#     Either "{SCRUBSRC.PATIENT}", "{SCRUBSRC.THIRDPARTY}", or blank.
+#     One of:
+#           "{SCRUBSRC.PATIENT}",
+#           "{SCRUBSRC.THIRDPARTY}",
+#           "{SCRUBSRC.THIRDPARTY_XREF_PID}",
+#           or blank.
+#     Explanations:
 #     - "{SCRUBSRC.PATIENT}":
 #       Contains patient-identifiable information that must be removed from
 #       "scrub_in" fields.
 #     - "{SCRUBSRC.THIRDPARTY}":
 #       Contains identifiable information about carer/family/other third party,
 #       which must be removed from "scrub_in" fields.
+#     - "{SCRUBSRC.THIRDPARTY_XREF_PID}":
+#       This field is a patient identifier for ANOTHER patient (such as a
+#       relative). The scrubber should recursively include THAT patient's
+#       identifying information as third-party information for THIS patient.
 #
 # scrub_method
 #     Applicable to scrub_src fields. Manner in which this field should be
@@ -281,6 +291,7 @@ DEMO_CONFIG = """
 #     - "{SCRUBMETHOD.WORDS}"
 #       Treat as a set of textual words. This is the default for all textual
 #       fields (e.g. CHAR, VARCHAR, TEXT). Typically used for names.
+#       Also OK for e-mail addresses.
 #
 #     - "{SCRUBMETHOD.PHRASE}"
 #       Treat as a textual phrase (a sequence of words to be replaced only when
@@ -458,6 +469,12 @@ replace_patient_info_with = [__PPP__]
     # Third-party information will be replaced by this.
     # For example, YYYYYY or [...] or [__TTT__] or [__QQQ__].
 replace_third_party_info_with = [__TTT__]
+
+    # For fields marked as scrub_src = {SCRUBSRC.THIRDPARTY_XREF_PID},
+    # how deep should we recurse? The default is 1. Beware making this too
+    # large; the recursion trawls a lot of information (and also uses an
+    # extra simultaneous database cursor for each recursion).
+thirdparty_xref_max_depth = 1
 
     # Things to be removed irrespective of patient-specific information will be
     # replaced by this (for example, if you opt to remove all things looking
@@ -808,6 +825,7 @@ ddgen_pid_defining_fieldnames =
     # Default fields to scrub from
 ddgen_scrubsrc_patient_fields =
 ddgen_scrubsrc_thirdparty_fields =
+ddgen_scrubsrc_thirdparty_xref_pid_fields =
 
     # Override default scrubbing methods
 ddgen_scrubmethod_code_fields =
