@@ -1147,11 +1147,11 @@ def rio_add_user_lookup(viewmaker, basecolumn,
     #   of different "user" joins simultaneously.
     viewmaker.add_from("""
         LEFT JOIN (
-            GenHCP {ap}_genhcp
-            INNER JOIN GenUser {ap}_genuser
-                ON {ap}_genuser.GenUserID = {ap}_genhcp.GenHCPCode
-            INNER JOIN GenPerson {ap}_genperson
-                ON {ap}_genperson.GenPersonID = {ap}_genhcp.GenHCPCode
+            GenUser {ap}_genuser
+            LEFT JOIN GenPerson {ap}_genperson
+                ON {ap}_genperson.GenPersonID = {ap}_genuser.GenUserID
+            LEFT JOIN GenHCP {ap}_genhcp
+                ON {ap}_genhcp.GenHCPCode = {ap}_genuser.GenUserID
             LEFT JOIN GenHCPRCProfession {ap}_prof
                 ON {ap}_prof.Code = {ap}_genhcp.RCProfession
             LEFT JOIN GenServiceTeam {ap}_serviceteam
@@ -1162,7 +1162,7 @@ def rio_add_user_lookup(viewmaker, basecolumn,
                 ON {ap}_profgroup.Code = {ap}_genhcp.StaffProfessionalGroup
             LEFT JOIN GenOrganisationType {ap}_genorg
                 ON {ap}_genorg.Code = {ap}_genuser.OrganisationType
-        ) ON {ap}_genhcp.GenHCPCode = {basetable}.{basecolumn}
+        ) ON {ap}_genuser.GenUserID = {basetable}.{basecolumn}
     """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -5497,5 +5497,4 @@ if __name__ == '__main__':
         pdb.post_mortem(tb)
 
 # *** field history
-# *** Client_Allergies: 'RB1' not INT
 # *** people lookups very thin - e.g. CPA_Care_Coordinator - lack of data? bug?
