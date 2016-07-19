@@ -4894,8 +4894,8 @@ class DDHint(object):
     def add_source_index_request(self, table, columns):
         if isinstance(columns, str):
             columns = [columns]
-        assert table, "Bad table: {}".format(table)
-        assert columns, "Bad columns: {}".format(columnss)
+        assert table, "Bad table: {}".format(repr(table))
+        assert columns, "Bad columns: {}".format(repr(columns))
         index_name = 'crate_idx_' + '_'.join(columns)
         if table not in self._index_requests:
             self._index_requests[table] = {}
@@ -4910,9 +4910,9 @@ class DDHint(object):
         for table, columns in table_columns_list:
             assert table, ("Bad table; table={}, table_columns_list={}".format(
                 repr(table), repr(table_columns_list)))
-            assert columns, ("Bad table; columns={}, "
-                             "table_columns_list={}".format(
-                columns, table_columns_list))
+            assert columns, (
+                "Bad table; columns={}, table_columns_list={}".format(
+                    repr(columns), repr(table_columns_list)))
             self.add_source_index_request(table, columns)
 
     def _do_indexes(self, engine, metadata, action_func):
