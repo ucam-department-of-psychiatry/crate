@@ -1560,7 +1560,7 @@ def rio_add_org_contact_lookup(viewmaker, basecolumn,
         {ap}_con.OtherPhoneNo AS {cp}_Other_Phone_Number,
         {ap}_con.FaxNo AS {cp}_Fax_Number,
         {ap}_con.EmailAddress AS {cp}_Email_Address,
-        {ap}_con.Comments AS {cp}_Comments
+        {ap}_con.Comments AS {cp}_Comments,
         {ap}_con.OrganisationID AS {cp}_Organisation_ID,
         {ap}_org.OrganisationCode AS {cp}_Organisation_Code,
         {ap}_org.OrganisationName AS {cp}_Organisation_Name,
@@ -1993,6 +1993,7 @@ RIO_VIEWS = OrderedDict([
 
     ('Client_Address_History', {
         'basetable': VIEW_ADDRESS_WITH_GEOGRAPHY,  # original: 'ClientAddress'
+        'skip_existence_check': True,  # as we're basing this on another view
         'rename': {
             # RCEP: Created_Date: ?source
             # RCEP: Updated_Date: ?source
