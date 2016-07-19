@@ -2208,15 +2208,6 @@ RIO_VIEWS = OrderedDict([
                 }
             },
             {
-                'function': standard_rio_code_lookup,
-                'kwargs': {
-                    'basecolumn': '',
-                    'lookup_table': '',
-                    'column_prefix': 'Reported_By',  # RCEP
-                    'internal_alias_prefix': 'rb',
-                },
-            },
-            {
                 'function': simple_lookup_join,
                 'kwargs': {
                     'basecolumn': 'DeletionReason',
