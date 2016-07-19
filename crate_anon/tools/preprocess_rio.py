@@ -4457,7 +4457,9 @@ RIO_VIEWS = OrderedDict([
             'ServStre': 'Service_User_Strengths_Needs_Expectations',
             'CareView': 'Carer_Views_Needs',
             'SummForm': 'Summary_Formulation',
-            'Plan1': 'Plan',
+            'Plan1': 'Initial_Plan',
+            # PLAN is an SQL Server reserved word:
+            # https://msdn.microsoft.com/en-us/library/ms189822.aspx
         }),
         'add': [
             {'function': rio_amend_standard_noncore},
