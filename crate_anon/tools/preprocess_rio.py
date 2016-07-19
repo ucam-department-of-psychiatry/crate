@@ -333,7 +333,10 @@ from sqlalchemy import (
 )
 
 from crate_anon.anonymise.constants import MYSQL_CHARSET
-from crate_anon.common.lang import merge_two_dicts
+from crate_anon.common.lang import (
+    get_case_insensitive_dict_key,
+    merge_two_dicts,
+)
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sql import (
     add_columns,
@@ -2644,7 +2647,7 @@ RIO_VIEWS = OrderedDict([
                 'function': simple_lookup_join,
                 'kwargs': {
                     'basecolumn': 'ReasonID',
-                    'lookup_table': 'EPDRCOverRide',
+                    'lookup_table': 'EPDRCOverride',  # not EPDRCOverRide
                     'lookup_pk': 'ReasonID',  # not Code (also present)
                     'lookup_fields_aliases': {
                         'Code': 'DRC_Override_Reason_Code',
@@ -4910,13 +4913,25 @@ class DDHint(object):
             indexdictlist = []
             for indexname, indexdict in tabledict.items():
                 indexdictlist.append(indexdict)
-            table = metadata.tables[tablename]
+            tablename_casematch = get_case_insensitive_dict_key(
+                metadata.tables, tablename)
+            if not tablename_casematch:
+                log.warning("add_indexes: Skipping index as table {} "
+                            "absent".format(tablename))
+                continue
+            table = metadata.tables[tablename_casematch]
             add_indexes(engine, table, indexdictlist)
 
     def drop_indexes(self, engine, metadata):
         for tablename, tabledict in self._index_requests.items():
             index_names = list(tabledict.keys())
-            table = metadata.tables[tablename]
+            tablename_casematch = get_case_insensitive_dict_key(
+                metadata.tables, tablename)
+            if not tablename_casematch:
+                log.warning("add_indexes: Skipping index as table {} "
+                            "absent".format(tablename))
+                continue
+            table = metadata.tables[tablename_casematch]
             drop_indexes(engine, table, index_names)
 
 
