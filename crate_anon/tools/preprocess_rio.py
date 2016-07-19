@@ -2211,7 +2211,7 @@ RIO_VIEWS = OrderedDict([
                 'kwargs': {
                     'basecolumn': 'DeletionReason',
                     'lookup_table': 'EPClientAllergyRemovalReason',
-                    'lookup_pk': 'RemovalReasonID',
+                    'lookup_pk': 'RemovalID',
                     'lookup_fields_aliases': {
                         'Code': 'Deletion_Reason_Code',  # not in RCEP
                         'Reason': 'Deletion_Reason_Description',  # not in RCEP
