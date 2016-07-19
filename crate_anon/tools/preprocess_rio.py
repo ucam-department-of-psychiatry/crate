@@ -1625,6 +1625,7 @@ def rio_noncore_yn(viewmaker, basecolumn, result_alias):
         "WHEN {basetable}.{basecolumn} = 1 THEN 1 "  # 1 = yes
         "WHEN {basetable}.{basecolumn} = 2 THEN 0 "  # 2 = no
         "ELSE NULL "
+        "END "
         "AS {result_alias}".format(
             basetable=viewmaker.basetable,
             basecolumn=basecolumn,
