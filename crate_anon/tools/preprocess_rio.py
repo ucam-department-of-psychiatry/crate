@@ -2151,7 +2151,7 @@ RIO_VIEWS = OrderedDict([
             'ReactionID': 'Unique_Key',  # RCEP
             'UserID': None,  # user lookup
             # Substance: unchanged, RCEP
-            'ReactionType': None,  # lookup below
+            'ReactionType': 'Reaction_Type_ID',  # and lookup below
             # Reaction: unchanged, RCEP
             'ReactionSeverity': None,  # lookup below
             'ReportedBy': 'Reported_By_ID',  # and lookup below
@@ -2174,13 +2174,18 @@ RIO_VIEWS = OrderedDict([
                 },
             },
             {
-                'function': standard_rio_code_lookup,
+                'function': simple_lookup_join,
                 'kwargs': {
                     'basecolumn': 'ReactionType',
                     'lookup_table': 'EPReactionType',
-                    'column_prefix': 'Reaction_Type',  # RCEP
+                    'lookup_pk': 'ReactionID',
+                    'lookup_fields_aliases': {
+                        'Code': 'Reaction_Type_Code',
+                        'CodeDescription': 'Reaction_Type_Description',
+                        # ... all RCEP
+                    },
                     'internal_alias_prefix': 'rt',
-                },
+                }
             },
             {
                 'function': standard_rio_code_lookup,
