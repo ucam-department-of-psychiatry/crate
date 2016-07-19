@@ -2106,7 +2106,7 @@ RIO_VIEWS = OrderedDict([
             'ReactionType': None,  # lookup below
             # Reaction: unchanged, RCEP
             'ReactionSeverity': None,  # lookup below
-            'ReportedBy': None,  # lookup below
+            'ReportedBy': 'Reported_By_ID',  # and lookup below
             'Name': 'Name',  # RCEP; think this is "reported by" name
             'WitnessingHCP': 'Witnessing_HCP',  # RCEP
             'YearOfIdentification': 'Year_Of_Identification',  # RCEP
@@ -2144,13 +2144,26 @@ RIO_VIEWS = OrderedDict([
                 },
             },
             {
-                'function': standard_rio_code_lookup,
+                'function': simple_lookup_join,
                 'kwargs': {
                     'basecolumn': 'ReportedBy',
-                    'lookup_table': 'EPReportedBy',
-                    'column_prefix': 'Reported_By',  # RCEP
                     # RCEP code is Reported_By; NB error in RiO docs AND RCEP;
                     # code is INT ranging from 1-4
+                    'lookup_table': 'EPReportedBy',
+                    'lookup_pk': 'ReportedID',  # not Code!
+                    'lookup_fields_aliases': {
+                        'Code': 'Reported_By_Code',
+                        'Description': 'Reported_By_Description',
+                    },
+                    'internal_alias_prefix': 'rb',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': '',
+                    'lookup_table': '',
+                    'column_prefix': 'Reported_By',  # RCEP
                     'internal_alias_prefix': 'rb',
                 },
             },
@@ -2855,7 +2868,7 @@ RIO_VIEWS = OrderedDict([
             # RCEP: Updated_Date: ?source
             # RCEP: From_Date: ?source
             # RCEP: Last_Updated: ?source
-            'Height': 'Height_cm',  # RCEP was Height
+            'Height': 'Height_m',  # RCEP was Height; definitely not cm...
             'Weight': 'Weight_kg',  # RCEP was Weight
             'Comment': 'Extra_Comment',  # RCEP
             'BloodGroup': None,  # lookup below
@@ -4476,7 +4489,12 @@ RIO_VIEWS = OrderedDict([
         'basetable': 'UserAssesscoresocial1',
         # no free text
         # bad field names!
-        'rename': DEFAULT_NONCORE_RENAMES,
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'Social06': None,  # lookup below
+            'Social07': None,  # lookup below
+            'Social16': None,  # lookup below
+            'Social17': None,  # lookup below
+        }),
         'add': [
             {'function': rio_amend_standard_noncore},
             {
@@ -5382,7 +5400,7 @@ def main():
     log.info("CRATE in-place preprocessor for RiO or RiO CRIS Extract Program "
              "(RCEP) databases")
     safeargs = {k: v for k, v in vars(progargs).items() if k != 'url'}
-    log.debug("args = {}".format(repr(safeargs)))
+    log.debug("args (except url): {}".format(repr(safeargs)))
     log.info("RiO mode" if progargs.rio else "RCEP mode")
 
     set_print_not_execute(progargs.print)
@@ -5429,3 +5447,5 @@ if __name__ == '__main__':
         pdb.post_mortem(tb)
 
 # *** field history
+# *** Client_Allergies: 'RB1' not INT
+# *** people lookups very thin - e.g. CPA_Care_Coordinator - lack of data? bug?
