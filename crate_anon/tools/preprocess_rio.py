@@ -2777,16 +2777,6 @@ RIO_VIEWS = OrderedDict([
             {
                 'function': standard_rio_code_lookup_with_national_code,
                 'kwargs': {
-                    'basecolumn': '',
-                    'lookup_table': '',
-                    'column_prefix': 'Contact_Relationship',
-                    'internal_alias_prefix': 'cr',
-                    # ... RCEP except was National_Contact_Relationship_Code
-                },
-            },
-            {
-                'function': standard_rio_code_lookup_with_national_code,
-                'kwargs': {
                     'basecolumn': 'LanguageCommunication',
                     'lookup_table': 'GenLanguage',
                     'column_prefix': 'Language',
