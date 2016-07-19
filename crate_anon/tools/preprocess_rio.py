@@ -5218,8 +5218,9 @@ def main():
         r"""
 *   Alters a RiO database to be suitable for CRATE.
 
-*   By default, this treats the source database as being a copy of a RiO 6.2
-    database. Use the "--rcep" (+/- "--cpft") switch(es) to treat it as a
+*   By default, this treats the source database as being a copy of a RiO
+    database (slightly later than version 6.2; exact version unclear).
+    Use the "--rcep" (+/- "--cpft") switch(es) to treat it as a
     Servelec RiO CRIS Extract Program (RCEP) v2 output database.
     """)  # noqa
     parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
