@@ -4703,7 +4703,6 @@ RIO_VIEWS = OrderedDict([
             'Gender': None,  # lookup below
         }),
         'add': [
-            {'function': rio_amend_standard_noncore},
             {
                 'function': standard_rio_code_lookup,
                 'kwargs': {
@@ -4725,7 +4724,6 @@ RIO_VIEWS = OrderedDict([
             'chgend': None,  # lookup below
         }),
         'add': [
-            {'function': rio_amend_standard_noncore},
             {
                 'function': standard_rio_code_lookup,
                 'kwargs': {
@@ -4737,7 +4735,6 @@ RIO_VIEWS = OrderedDict([
             },
         ],
     }),
-
 ])
 
 
