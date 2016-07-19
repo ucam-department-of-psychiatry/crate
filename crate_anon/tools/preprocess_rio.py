@@ -555,6 +555,9 @@ RIO_6_2_ATYPICAL_PKS = {
 
     'ReportsOutpatientWaitersHashNotSeenReferrals': None,
     'ReportsOutpatientWaitersNotSeenReferrals': None,
+
+    'UserAssesstfkcsa_childprev': 'type12_RowID',  # Keeping Children Safe Assessment subtable  # noqa
+    'UserAssesstfkcsa_childs': 'type12_RowID',  # Keeping Children Safe Assessment subtable  # noqa
 }
 
 RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
@@ -1620,10 +1623,10 @@ def rio_noncore_yn(viewmaker, basecolumn, result_alias):
         "WHEN {basetable}.{basecolumn} = 1 THEN 1 "  # 1 = yes
         "WHEN {basetable}.{basecolumn} = 2 THEN 0 "  # 2 = no
         "ELSE NULL "
-        "AS {}".format(
+        "AS {result_alias}".format(
             basetable=viewmaker.basetable,
             basecolumn=basecolumn,
-            result_alias=result_alias
+            result_alias=result_alias,
         )
     )
 
@@ -1652,14 +1655,18 @@ DEFAULT_NONCORE_RENAMES = {
     'formref': None,
 
     # Relevant:
-    # type12_NoteID: unchanged
-    # type12_OriginalNoteID: unchanged
-    # type12_DeletedDate: unchanged (but filtered on)
-    # type12_UpdatedBy
+    'type12_NoteID': 'Note_ID',
+    'type12_OriginalNoteID': 'Original_Note_ID',
+    'type12_DeletedDate': 'Deleted_Date',  # also filtered on
+    'type12_UpdatedBy': None,  # user lookup
     'type12_UpdatedDate': 'Updated_Date',
 
     # Common to all assessments:
     'AssessmentDate': 'Assessment_Date',
+
+    # For subtables:
+    'type12_RowID': 'Row_ID',
+    'type12_OriginalRowID': 'Original_Row_ID',
 }
 
 RIO_VIEWS = OrderedDict([
@@ -4666,6 +4673,50 @@ RIO_VIEWS = OrderedDict([
                     'lookup_table': 'UserMasterCRNS',
                     'column_prefix': 'Current_Risk_Need_Status',
                     'internal_alias_prefix': 'crns',
+                },
+            },
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_KCSA_Children_In_Household', {
+        'basetable': 'UserAssesstfkcsa_childs',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'type12_NoteID': 'KCSA_Note_ID',
+            'NOC': 'Child_Name',
+            'DOB': 'Child_Date_Of_Birth',
+            'Gender': None,  # lookup below
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'Gender',
+                    'lookup_table': 'UserMasterGender',
+                    'column_prefix': 'Child_Gender',
+                    'internal_alias_prefix': 'cg',
+                },
+            },
+        ],
+    }),
+
+    ('CPFT_Core_Assessment_v2_KCSA_Children_Previous_Relationships', {
+        'basetable': 'UserAssesstfkcsa_childprev',
+        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+            'type12_NoteID': 'KCSA_Note_ID',
+            'chname': 'Child_Name',
+            'chdob': 'Child_Date_Of_Birth',
+            'chgend': None,  # lookup below
+        }),
+        'add': [
+            {'function': rio_amend_standard_noncore},
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'chgend',
+                    'lookup_table': 'UserMasterGender',
+                    'column_prefix': 'Child_Gender',
+                    'internal_alias_prefix': 'cg',
                 },
             },
         ],
