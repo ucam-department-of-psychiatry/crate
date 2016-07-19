@@ -1603,7 +1603,7 @@ def rio_add_org_contact_lookup(viewmaker, basecolumn,
         ('OrgContact', 'OrganisationID'),
         ('OrgContactType', 'Code'),
         ('OrgOrganisation', 'SequenceID'),
-        ('OrgType', 'XXX'),
+        ('OrgType', 'Code'),
     ])
 
 
