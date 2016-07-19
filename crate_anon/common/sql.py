@@ -275,10 +275,11 @@ def drop_view(engine, viewname, quiet=False):
 
 class ViewMaker(object):
     def __init__(self, engine, basetable, existing_to_lower=False,
-                 rename=None):
+                 rename=None, progargs=None):
         rename = rename or {}
         self.engine = engine
         self.basetable = basetable
+        self.progargs = progargs  # only for others' benefit
         self.select_elements = []
         for colname in get_column_names(engine, tablename=basetable,
                                         to_lower=existing_to_lower):

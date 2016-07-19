@@ -904,7 +904,7 @@ def process_clindocs_table(table, engine, progargs):
 
     # Set a single column accordingly
     log.info("Clinical documents table '{}': updating '{}'".format(
-        table.name, CRATE_COL_LAST_NOTE))
+        table.name, CRATE_COL_LAST_DOC))
     execute(engine, """
         UPDATE {tablename} SET
             {last_doc_col} =
@@ -915,7 +915,7 @@ def process_clindocs_table(table, engine, progargs):
         WHERE {last_doc_col} IS NULL
     """.format(
         tablename=table.name,
-        last_doc_col=CRATE_COL_LAST_NOTE,
+        last_doc_col=CRATE_COL_LAST_DOC,
         max_docver_col=CRATE_COL_MAX_DOCVER,
     ))
 
@@ -1022,7 +1022,7 @@ def simple_view_where(viewmaker, where_clause, index_cols=None):
         viewmaker.record_lookup_table_keyfield(viewmaker.basetable, col)
 
 
-def get_rio_views(engine, metadata, ddhint,
+def get_rio_views(engine, metadata, progargs, ddhint,
                   suppress_basetables=True, suppress_lookup=True):
     # ddhint modified
     # Returns dictionary of {viewname: select_sql} pairs.
@@ -1044,7 +1044,8 @@ def get_rio_views(engine, metadata, ddhint,
         ddhint.suppress_tables(suppress_other_tables)
         rename = viewdetails.get('rename', None)
         # noinspection PyTypeChecker
-        viewmaker = ViewMaker(engine, basetable, rename=rename)
+        viewmaker = ViewMaker(engine, basetable,
+                              rename=rename, progargs=progargs)
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
                 function = addition['function']
@@ -1059,16 +1060,16 @@ def get_rio_views(engine, metadata, ddhint,
     return views
 
 
-def create_rio_views(engine, metadata, ddhint):  # ddhint modified
-    rio_views = get_rio_views(engine, metadata, ddhint)
+def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+    rio_views = get_rio_views(engine, metadata, progargs, ddhint)
     for viewname, select_sql in rio_views.items():
         create_view(engine, viewname, select_sql)
     ddhint.add_indexes(engine, metadata)
 
 
-def drop_rio_views(engine, metadata, ddhint):  # ddhint modified
-    rio_views, _ = get_rio_views(engine, metadata, ddhint)
-    ddhint.drop_indexes(engine)
+def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+    rio_views = get_rio_views(engine, metadata, progargs, ddhint)
+    ddhint.drop_indexes(engine, metadata)
     for viewname, _ in rio_views.items():
         drop_view(engine, viewname)
 
@@ -1444,8 +1445,8 @@ def where_prognotes_current(viewmaker):
     viewmaker.add_where(
         "(EnteredInError <> 1 OR EnteredInError IS NULL) "
         "AND {last_note_col} = 1".format(last_note_col=CRATE_COL_LAST_NOTE))
-    viewmaker.record_lookup_table_keyfields(viewmaker.basetable,
-                                            'EnteredInError')
+    viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
+                                           'EnteredInError')
     # CRATE_COL_LAST_NOTE already indexed
 
 
@@ -1454,7 +1455,7 @@ def where_clindocs_current(viewmaker):
         return
     viewmaker.add_where("{last_doc_col} = 1 AND DeletedDate IS NULL".format(
         last_doc_col=CRATE_COL_LAST_DOC))
-    viewmaker.record_lookup_table_keyfields(viewmaker.basetable, 'DeletedDate')
+    viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'DeletedDate')
     # CRATE_COL_LAST_DOC already indexed
 
 
@@ -1462,14 +1463,14 @@ def where_allergies_current(viewmaker):
     if not viewmaker.progargs.allergies_current_only:
         return
     viewmaker.add_where("Deleted = 0 OR Deleted IS NULL")
-    viewmaker.record_lookup_table_keyfields(viewmaker.basetable, 'Deleted')
+    viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'Deleted')
 
 
 def where_not_deleted_flag(viewmaker, basecolumn):
     viewmaker.add_where(
         "({table}.{col} IS NULL OR {table}.{col} = 0)".format(
             table=viewmaker.basetable, col=basecolumn))
-    viewmaker.record_lookup_table_keyfields(viewmaker.basetable, basecolumn)
+    viewmaker.record_lookup_table_keyfield(viewmaker.basetable, basecolumn)
 
 
 def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
@@ -1595,8 +1596,6 @@ def rio_add_org_contact_lookup(viewmaker, basecolumn,
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
     ))
-    viewmaker.record_lookup_table_keyfield('', [''])
-    viewmaker.record_lookup_table_keyfield('', [''])
     viewmaker.record_lookup_table_keyfields([
         ('OrgContact', 'OrganisationID'),
         ('OrgContactType', 'Code'),
@@ -1611,8 +1610,8 @@ def rio_amend_standard_noncore(viewmaker):
                         column_prefix="Updated_By", internal_alias_prefix="ub")
     # Omit deleted:
     viewmaker.add_where("type12_DeletedDate IS NULL")
-    viewmaker.record_lookup_table_keyfields(viewmaker.basetable,
-                                            'type12_DeletedDate')
+    viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
+                                           'type12_DeletedDate')
 
 
 def rio_noncore_yn(viewmaker, basecolumn, result_alias):
@@ -4607,64 +4606,88 @@ RIO_VIEWS = OrderedDict([
             {'function': rio_amend_standard_noncore},
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'ChildHous',
-                'result_alias': 'Children_In_Household',
+                'kwargs': {
+                    'basecolumn': 'ChildHous',
+                    'result_alias': 'Children_In_Household',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'expectQ',
-                'result_alias': 'Pregnant',
+                'kwargs': {
+                    'basecolumn': 'expectQ',
+                    'result_alias': 'Pregnant',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'ChildCon',
-                'result_alias': 'Contact_Children_Prev_Relationship_Other_Household',  # noqa
+                'kwargs': {
+                    'basecolumn': 'ChildCon',
+                    'result_alias': 'Contact_Children_Prev_Relationship_Other_Household',  # noqa
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'SigCon',
-                'result_alias': 'Significant_Contact_Other_Children',
+                'kwargs': {
+                    'basecolumn': 'SigCon',
+                    'result_alias': 'Significant_Contact_Other_Children',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'EnvDiff',
-                'result_alias': 'Family_Environment_Difficulty_Concern',
+                'kwargs': {
+                    'basecolumn': 'EnvDiff',
+                    'result_alias': 'Family_Environment_Difficulty_Concern',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'DemAb',
-                'result_alias': 'Demonstrate_Ability_Care_Children_Or_Requires_Support',  # noqa
-                #  ... not safe to fail to allude to ambiguity of this
+                'kwargs': {
+                    'basecolumn': 'DemAb',
+                    'result_alias': 'Demonstrate_Ability_Care_Children_Or_Requires_Support',  # noqa
+                    #  ... not safe to fail to allude to ambiguity of this
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'DevNeeds',
-                'result_alias': 'Child_Developmental_Needs_Concern',
+                'kwargs': {
+                    'basecolumn': 'DevNeeds',
+                    'result_alias': 'Child_Developmental_Needs_Concern',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'domab1',
-                'result_alias': 'Domestic_Abuse_Concern',
+                'kwargs': {
+                    'basecolumn': 'domab1',
+                    'result_alias': 'Domestic_Abuse_Concern',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'SubMis',
-                'result_alias': 'Substance_Misuse_Concern',
+                'kwargs': {
+                    'basecolumn': 'SubMis',
+                    'result_alias': 'Substance_Misuse_Concern',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'Q1',
-                'result_alias': 'Mental_Health_Delusional_Beliefs_Re_Children',
+                'kwargs': {
+                    'basecolumn': 'Q1',
+                    'result_alias': 'Mental_Health_Delusional_Beliefs_Re_Children',
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'Q2',
-                'result_alias': 'Mental_Health_Suicidal_Or_Suicide_Plan_Re_Children',  # noqa
+                'kwargs': {
+                    'basecolumn': 'Q2',
+                    'result_alias': 'Mental_Health_Suicidal_Or_Suicide_Plan_Re_Children',  # noqa
+                },
             },
             {
                 'function': rio_noncore_yn,
-                'basecolumn': 'Q3',
-                'result_alias': 'Mental_Health_Other_Concern_Affecting_Child_Care',  # noqa
+                'kwargs': {
+                    'basecolumn': 'Q3',
+                    'result_alias': 'Mental_Health_Other_Concern_Affecting_Child_Care',  # noqa
+                },
             },
             {
                 'function': standard_rio_code_lookup,
@@ -4816,11 +4839,11 @@ def process_table(table, engine, progargs):
             drop_for_master_patient_table(table, engine)
         elif tablename == progargs.full_prognotes_table:
             drop_for_progress_notes(table, engine)
+        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
+            drop_for_clindocs_table(table, engine)
         # Generic
         if is_patient_table:
             drop_for_patient_table(table, engine)
-        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
-            drop_for_clindocs_table(table, engine)
         else:
             drop_for_nonpatient_table(table, engine)
     else:
@@ -4839,6 +4862,14 @@ def process_table(table, engine, progargs):
             process_clindocs_table(table, engine, progargs)
         elif tablename == progargs.full_prognotes_table:
             process_progress_notes(table, engine, progargs)
+
+
+def process_all_tables(engine, metadata, progargs):
+    if progargs.debug_skiptables:
+        return
+    for table in sorted(metadata.tables.values(),
+                        key=lambda t: t.name.lower()):
+        process_table(table, engine, progargs)
 
 
 # =============================================================================
@@ -4863,6 +4894,8 @@ class DDHint(object):
     def add_source_index_request(self, table, columns):
         if isinstance(columns, str):
             columns = [columns]
+        assert table, "Bad table: {}".format(table)
+        assert columns, "Bad columns: {}".format(columnss)
         index_name = 'crate_idx_' + '_'.join(columns)
         if table not in self._index_requests:
             self._index_requests[table] = {}
@@ -4875,12 +4908,20 @@ class DDHint(object):
 
     def add_bulk_source_index_request(self, table_columns_list):
         for table, columns in table_columns_list:
+            assert table, ("Bad table; table={}, table_columns_list={}".format(
+                repr(table), repr(table_columns_list)))
+            assert columns, ("Bad table; columns={}, "
+                             "table_columns_list={}".format(
+                columns, table_columns_list))
             self.add_source_index_request(table, columns)
 
     def _do_indexes(self, engine, metadata, action_func):
         for tablename, tabledict in self._index_requests.items():
+            log.critical("Table: {}".format(tablename))
             indexdictlist = []
             for indexname, indexdict in tabledict.items():
+                log.critical("... indexname: {}".format(indexname))
+                log.critical("... indexdict: {}".format(indexdict))
                 indexdictlist.append(indexdict)
             table = metadata.tables[tablename]
             action_func(engine, table, indexdictlist)
@@ -5241,7 +5282,7 @@ def main():
     parser.add_argument(
         "--cpft", action="store_true",
         help="Apply hacks for Cambridgeshire & Peterborough NHS Foundation "
-             "Trust (CPFT)")
+             "Trust (CPFT) RCEP database. Only appicable with --rcep")
 
     parser.add_argument(
         "--debug_skiptables", action="store_true",
@@ -5286,8 +5327,10 @@ def main():
 
     parser.add_argument(
         "--postcodedb",
-        help="Specify database (schema) name for ONS Postcode Database (as "
-             "imported by CRATE) to link to addresses as a view")
+        help='Specify database (schema) name for ONS Postcode Database (as '
+             'imported by CRATE) to link to addresses as a view. With SQL '
+             'Server, you will have to specify the schema as well as the '
+             'database; e.g. "--postcodedb ONS_PD.dbo"')
     parser.add_argument(
         "--geogcols", nargs="*", default=DEFAULT_GEOG_COLS,
         help="List of geographical information columns to link in from ONS "
@@ -5346,21 +5389,20 @@ def main():
     
     ddhint = DDHint()
 
-    if not progargs.debug_skiptables:
-        for table in sorted(metadata.tables.values(),
-                            key=lambda t: t.name.lower()):
-            process_table(table, engine, progargs)
-    if progargs.rio:
-        if progargs.drop_danger_drop:
-            drop_rio_views(engine, metadata, ddhint)
-        else:
-            create_rio_views(engine, metadata, ddhint)
-            
-    if progargs.postcodedb:
-        if progargs.drop_danger_drop:
+    if progargs.drop_danger_drop:
+        # Drop views (and view-induced table indexes) first
+        if progargs.rio:
+            drop_rio_views(engine, metadata, progargs, ddhint)
+        if progargs.postcodedb:
             drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
-        else:
+        process_all_tables(engine, metadata, progargs)
+    else:
+        # Tables first, then views
+        process_all_tables(engine, metadata, progargs)
+        if progargs.postcodedb:
             add_postcode_geography_view(engine, progargs, ddhint)
+        if progargs.rio:
+            create_rio_views(engine, metadata, progargs, ddhint)
 
     if progargs.settings_filename:
         report_rio_dd_settings(progargs, ddhint)
