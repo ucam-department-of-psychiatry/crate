@@ -1113,7 +1113,7 @@ def rio_add_user_lookup(viewmaker, basecolumn,
             LEFT JOIN GenOrganisationType {ap}_genorg
                 ON {ap}_genorg.Code = {ap}_genuser.OrganisationType
         ) ON {ap}_genhcp.GenHCPCode = {basetable}.{basecolumn}
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         ap=internal_alias_prefix,
@@ -1150,7 +1150,7 @@ def rio_add_consultant_lookup(viewmaker, basecolumn,
         {ap}_cons.Surname AS {cp}_Surname,
         {ap}_cons.SpecialtyID AS {cp}_Specialty_Code,
         {ap}_spec.CodeDescription AS {cp}_Specialty_Description
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
@@ -1162,7 +1162,7 @@ def rio_add_consultant_lookup(viewmaker, basecolumn,
             LEFT JOIN GenSpecialty {ap}_spec
                 ON {ap}_spec.Code = {ap}_cons.SpecialtyID
         ) ON {ap}_cons.ConsultantID = {basetable}.{basecolumn}
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         ap=internal_alias_prefix,
@@ -1182,7 +1182,7 @@ def rio_add_team_lookup(viewmaker, basecolumn,
         {ap}_team.CodeDescription AS {cp}_Description,
         {ap}_classif.Code AS {cp}_Classification_Group_Code,
         {ap}_classif.CodeDescription AS {cp}_Classification_Group_Description
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
@@ -1194,7 +1194,7 @@ def rio_add_team_lookup(viewmaker, basecolumn,
             INNER JOIN GenServiceTeamClassification {ap}_classif
                 ON {ap}_classif.Code = {ap}_team.ClassificationGroup
         ) ON {basetable}.{basecolumn} = {ap}_team.Code
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         ap=internal_alias_prefix,
@@ -1217,7 +1217,7 @@ def rio_add_carespell_lookup(viewmaker, basecolumn,
         {ap}_spell.GenSpecialtyCode AS {cp}_Specialty_Code,
         {ap}_spec.CodeDescription AS {cp}_Specialty_Description,
         {ap}_spec.NationalCode AS {cp}_Specialty_National_Code
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
@@ -1251,7 +1251,7 @@ def rio_add_diagnosis_lookup(viewmaker,
         {basetable}.{basecolumn_scheme} AS {alias_scheme},
         {basetable}.{basecolumn_code} AS {alias_code},
         {ap}_diag.CodeDescription AS {alias_description}
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn_scheme=basecolumn_scheme,
         alias_scheme=alias_scheme,
@@ -1271,7 +1271,7 @@ def rio_add_diagnosis_lookup(viewmaker,
         LEFT JOIN DiagnosisCode {ap}_diag
             ON {ap}_diag.CodingScheme = {basetable}.{basecolumn_scheme}
             AND {ap}_diag.Code = {basetable}.{basecolumn_code}
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn_scheme=basecolumn_scheme,
         basecolumn_code=basecolumn_code,
@@ -1289,7 +1289,7 @@ def rio_add_ims_event_lookup(viewmaker, basecolumn_event_num,
     viewmaker.add_select("""
         {basetable}.{basecolumn_event_num} AS {cp}_Event_Number,
         {ap}_evt.{CRATE_COL_PK} AS {cp}_Inpatient_Stay_PK
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn_event_num=basecolumn_event_num,
         cp=column_prefix,
@@ -1319,7 +1319,7 @@ def rio_add_gp_lookup(viewmaker, basecolumn,
         {ap}_gp.Title AS {cp}_Title,
         {ap}_gp.Forename AS {cp}_Forename,
         {ap}_gp.Surname AS {cp}_Surname
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
@@ -1328,7 +1328,7 @@ def rio_add_gp_lookup(viewmaker, basecolumn,
     viewmaker.add_from("""
         LEFT JOIN GenGP {ap}_gp
             ON {ap}_gp.Code = {basetable}.{basecolumn}
-    """.format(  # noqa
+    """.format(
         ap=internal_alias_prefix,
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -1348,7 +1348,7 @@ def rio_add_gp_practice_lookup(viewmaker, basecolumn,
         {ap}_prac.AddressLine5 AS {cp}_Address_Line_5,
         {ap}_prac.PostCode AS {cp}_Post_Code,
         {ap}_prac.NationalCode AS {cp}_National_Code
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
@@ -1357,7 +1357,7 @@ def rio_add_gp_practice_lookup(viewmaker, basecolumn,
     viewmaker.add_from("""
         LEFT JOIN GenGPPractice {ap}_prac
             ON {ap}_prac.Code = {basetable}.{basecolumn}
-    """.format(  # noqa
+    """.format(
         ap=internal_alias_prefix,
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -1385,7 +1385,7 @@ def rio_add_gp_lookup_with_practice(viewmaker, basecolumn,
         {ap}_prac.AddressLine5 AS {cp}Practice_Address_Line_5,
         {ap}_prac.PostCode AS {cp}Practice_Post_Code,
         {ap}_prac.NationalCode AS {cp}Practice_National_Code
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
@@ -1399,7 +1399,7 @@ def rio_add_gp_lookup_with_practice(viewmaker, basecolumn,
             INNER JOIN GenGPPractice {ap}_prac
                 ON {ap}_prac.Code = GenGPPractice.GenPracticeCode
         ) ON {ap}_gp.Code = {basetable}.{basecolumn}
-    """.format(  # noqa
+    """.format(
         ap=internal_alias_prefix,
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
@@ -1454,7 +1454,7 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
         {ap}_ward.WardDescription AS {cp}Ward_Description,
         {basetable}.{basecolumn_bay} AS {cp}Bay_Code,
         {ap}_bay.BayDescription AS {cp}Bay_Description
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn_ward=basecolumn_ward,
         basecolumn_bay=basecolumn_bay,
@@ -1468,7 +1468,7 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
                 ON {ap}_ward.WardCode = {ap}_bay.WardCode
         ) ON {ap}_bay.WardCode = {basetable}.{basecolumn_ward}
             AND {ap}_bay.BayCode = {basetable}.{basecolumn_bay}
-    """.format(  # noqa
+    """.format(
         ap=internal_alias_prefix,
         basetable=viewmaker.basetable,
         basecolumn_ward=basecolumn_ward,
@@ -1493,7 +1493,7 @@ def rio_add_location_lookup(viewmaker, basecolumn,
         {ap}_loc.LocationType as {cp}_Type_Code,
         {ap}_loctype.CodeDescription as {cp}_Type_Description,
         {ap}_loctype.NationalCode as {cp}_Type_National_Code,
-    """.format(  # noqa
+    """.format(
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
@@ -1513,6 +1513,69 @@ def rio_add_location_lookup(viewmaker, basecolumn,
     viewmaker.record_lookup_table_keyfield('GenLocation', ['Code'])
     viewmaker.record_lookup_table_keyfield('GenLocationType', ['Code'])
 
+
+def rio_add_org_contact_lookup(viewmaker, basecolumn,
+                               column_prefix, internal_alias_prefix):
+    viewmaker.add_select("""
+        {basetable}.{basecolumn} AS {cp}_ID,
+        {ap}_con.ContactType AS {cp}_Contact_Type_Code,
+        {ap}_ct.CodeDescription AS {cp}_Contact_Type_Description,
+        {ap}_ct.NationalCode AS {cp}_Contact_Type_National_Code,
+        {ap}_con.Title AS {cp}_Title,
+        {ap}_con.FirstName AS {cp}_First_Name,
+        {ap}_con.Surname AS {cp}_Surname,
+        {ap}_con.JobTitle AS {cp}_Job_Title,
+        {ap}_con.MainPhoneNo AS {cp}_Main_Phone_Number,
+        {ap}_con.OtherPhoneNo AS {cp}_Other_Phone_Number,
+        {ap}_con.FaxNo AS {cp}_Fax_Number,
+        {ap}_con.EmailAddress AS {cp}_Email_Address,
+        {ap}_con.Comments AS {cp}_Comments
+        {ap}_con.OrganisationID AS {cp}_Organisation_ID,
+        {ap}_org.OrganisationCode AS {cp}_Organisation_Code,
+        {ap}_org.OrganisationName AS {cp}_Organisation_Name,
+        {ap}_org.OrganisationType AS {cp}_Organisation_Type_Code,
+        {ap}_orgtype.CodeDescription AS {cp}_Organisation_Type_Description,
+        {ap}_org.DepartmentName AS {cp}_Organisation_Department_Name,
+        {ap}_org.MainPhoneNo AS {cp}_Organisation_Main_Phone_Number,
+        {ap}_org.OtherPhoneNo AS {cp}_Organisation_Other_Phone_Number,
+        {ap}_org.FaxNo AS {cp}_Organisation_Fax_Number,
+        {ap}_org.EmailAddress AS {cp}_Organisation_Email_Address,
+        {ap}_org.AddressLine1 AS {cp}_Organisation_Address_Line_1,
+        {ap}_org.AddressLine2 AS {cp}_Organisation_Address_Line_2,
+        {ap}_org.AddressLine3 AS {cp}_Organisation_Address_Line_3,
+        {ap}_org.AddressLine4 AS {cp}_Organisation_Address_Line_4,
+        {ap}_org.AddressLine5 AS {cp}_Organisation_Address_Line_5,
+        {ap}_org.PostCode AS {cp}_Organisation_Post_Code
+    """.format(
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+        cp=column_prefix,
+        ap=internal_alias_prefix,
+    ))
+    # Phone/fax/email/comments not in RCEP
+    viewmaker.add_from("""
+        LEFT JOIN (
+            OrgContact {ap}_con
+            INNER JOIN OrgContactType {ap}_ct
+                ON {ap}_ct.Code = {ap}_con.ContactType
+            INNER JOIN OrgOrganisation {ap}_org
+                ON {ap}_org.SequenceID = {ap}_con.OrganisationID  -- ?
+            INNER JOIN OrgType {ap}_orgtype
+                ON {ap}_orgtype.Code = {ap}_org.OrganisationType
+        ) ON {ap}_con.OrganisationID = {basetable}.{basecolumn}
+    """.format(
+        ap=internal_alias_prefix,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn,
+    ))
+    viewmaker.record_lookup_table_keyfield('', [''])
+    viewmaker.record_lookup_table_keyfield('', [''])
+    viewmaker.record_lookup_table_keyfields([
+        ('OrgContact', 'OrganisationID'),
+        ('OrgContactType', 'Code'),
+        ('OrgOrganisation', 'SequenceID'),
+        ('OrgType', 'XXX'),
+    ])
 
 # =============================================================================
 # RiO view creators: collection
@@ -1805,7 +1868,7 @@ RIO_VIEWS = OrderedDict([
             'LibraryEdited': 'Library_Edited',  # not in RCEP
             'SequenceID': 'Unique_Key',  # RCEP
             'ProblemCategory': None,  # lookup below
-            # RCEP: Problem_Date: ?source ***
+            'ProblemDate': 'Problem_Date',  # RCEP; not in RiO 6.2 docs
         },
         'add': [
             {
@@ -2173,13 +2236,13 @@ RIO_VIEWS = OrderedDict([
             'School': None,  # always NULL; see ClientSchool instead
             'NonClient': 'Non_Client',  # RCEP; 0/1 indicator
             'DiedInHospital': 'Died_In_Hospital',  # RCEP
-            'MainCarer': 'Main_Carer',  # RCEP; RiO number CROSS-REFERENCE ***
+            'MainCarer': None,  # see CAST below
             'NINumber': 'National_Insurance_Number',  # RCEP
             'DeathFlag': 'Death_Flag',  # RCEP; 0/1 indicator
             'TimeStamps': None,  # RiO internal system record-locking field (!)
             'FirstCareDate': 'Date_Of_First_Mental_Health_Care',  # RCEP
             'NNNLastTape': None,  # Not in RCEP. May refer to tape storage of NHS numbers, i.e. system internal; see NNNTape.  # noqa
-            'OtherCarer': 'Other_Carer',  # RCEP; RiO number CROSS-REFERENCE ***
+            'OtherCarer': None,  # see CAST below
             'LastUpdated': 'Last_Updated',  # RCEP
             'ReportsFile': 'Reports_File',  # RCEP; 0/1 flag
             'SENFile': 'SEN_File',  # RCEP; 0/1 flag
@@ -2196,6 +2259,22 @@ RIO_VIEWS = OrderedDict([
             'Exited': 'Exited_NHS_Care',  # RCEP was Exited; 0/1 flag
         },
         'add': [
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': sql_fragment_cast_to_int('MainCarer'),
+                    'alias': 'Main_Carer',
+                    # RCEP; RiO number CROSS-REFERENCE
+                },
+            },
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': sql_fragment_cast_to_int('OtherCarer'),
+                    'alias': 'Other_Carer',
+                    # RCEP; RiO number CROSS-REFERENCE
+                },
+            },
             {
                 'function': standard_rio_code_lookup,
                 'kwargs': {
@@ -2282,7 +2361,7 @@ RIO_VIEWS = OrderedDict([
     ('Client_Family', {
         'basetable': 'ClientFamilyLink',
         'rename': {
-            'RelatedClientID': 'Related_Client_ID',  # RCEP
+            'RelatedClientID': None,  # see CAST below
             'Relationship': None,  # lookup below
             'ParentalResponsibility': None,  # lookup below
             'LegalStatus': None,  # lookup below
@@ -2290,6 +2369,14 @@ RIO_VIEWS = OrderedDict([
             # RCEP: Comment: ?the comment from ClientFamily -- ignored
         },
         'add': [
+            {
+                'function': simple_view_expr,
+                'kwargs': {
+                    'expr': sql_fragment_cast_to_int('RelatedClientID'),
+                    'alias': 'Related_Client_ID',
+                    # RCEP; RiO number CROSS-REFERENCE
+                },
+            },
             {
                 'function': standard_rio_code_lookup_with_national_code,
                 'kwargs': {
@@ -2692,8 +2779,8 @@ RIO_VIEWS = OrderedDict([
         'rename': {
             # RCEP: Created_Date: ?source
             # RCEP: Updated_Date: ?source
-RCEP: From_Date
-RCEP: Last_Updated
+            # RCEP: From_Date: ?source
+            # RCEP: Last_Updated: ?source
             'Height': 'Height_cm',  # RCEP was Height
             'Weight': 'Weight_kg',  # RCEP was Weight
             'Comment': 'Extra_Comment',  # RCEP
@@ -2830,9 +2917,70 @@ RCEP: Last_Updated
         ],
     }),
 
-    # *** 'Client_Professional_Contacts'
+    ('Client_Professional_Contacts', {
+        'basetable': 'DemClientOtherContact',
+        'rename': {
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
+            'SequenceID': 'Unique_Key',  # RCEP
+            'OrgContactID': None,  # lookup below
+            'OrgContactRelationshipID': None,  # lookup below
+            'FromDate': 'Effective_From_Date',  # RCEP
+            'ToDate': 'Effective_To_Date',  # RCEP
+            'Deleted': 'Deleted_Flag',  # RCEP
+            'ClosedByDeletion': 'Closed_By_Deletion_Flag',  # RCEP
+            'ContactGroup': 'Contact_Group',  # RCEP
+        },
+        'add': [
+            {
+                'function': rio_add_org_contact_lookup,
+                'kwargs': {
+                    'basecolumn': 'OrgContactID',
+                    'column_prefix': 'Contact',
+                    # ... renamed prefix from RCEP for several
+                    'internal_alias_prefix': 'c',
+                }
+            },
+            {
+                'function': standard_rio_code_lookup,
+                'kwargs': {
+                    'basecolumn': 'OrgContactRelationshipID',
+                    'lookup_table': 'OrgContactRelationshipType',
+                    'column_prefix': 'Relationship_Type',
+                    # RCEP except description was Relationship
+                    'internal_alias_prefix': 'rt',
+                },
+            },
+        ],
+    }),
 
-    # *** 'Client_School'
+    ('Client_School', {
+        'basetable': 'ClientSchool',
+        'rename': {
+            # RCEP: Created_Date: ?source
+            # RCEP: Updated_Date: ?source
+            'SequenceID': 'Unique_Key',  # RCEP
+            'FromDate': 'School_From_Date',  # RCEP
+            'ToDate': 'School_To_Date',  # RCEP
+            'SchoolCode': 'School_Code',  # RCEP
+            'ChangeReason': 'Change_Reason',  # RCEP
+        },
+        'add': [
+            {
+                'function': simple_lookup_join,
+                'kwargs': {
+                    'basecolumn': 'SchoolCode',
+                    'lookup_table': 'GenSchool',
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'School_Name',
+                        'Address': 'School_Address',
+                    },
+                    'internal_alias_prefix': 'sc',
+                }
+            },
+        ],
+    }),
 
     ('CPA_Care_Coordinator', {  # RCEP: was CPA_CareCoordinator
         'basetable': 'CPACareCoordinator',
@@ -2868,8 +3016,8 @@ RCEP: Last_Updated
     ('CPA_Review', {
         'basetable': 'CPAReviewDate',
         'rename': {
-            # Created_Date: RCEP; ?source ***
-            # Updated_Date: RCEP; ?source ***
+            # Created_Date: RCEP; ?source
+            # Updated_Date: RCEP; ?source
             'ReviewDate': 'Review_Date',  # RCEP
             'CurrentFlag': 'Is_Current_Flag',  # RCEP
             'EndReason': None,  # lookup below
@@ -3141,9 +3289,9 @@ RCEP: Last_Updated
     ('Inpatient_Stay', {
         'basetable': 'ImsEvent',
         'rename': {
-            # Created_Date: RCEP; ?source ***
+            # Created_Date: RCEP; ?source
             # Referrer: unchanged
-            # Updated_Date: RCEP; ?source ***
+            # Updated_Date: RCEP; ?source
             'AdministrativeCategory': None,  # lookup below
             'AdmissionAllocation': None,  # lookup below
             'AdmissionDate': 'Admission_Date',  # RCEP
@@ -3358,9 +3506,9 @@ RCEP: Last_Updated
     ('Inpatient_Leave', {
         'basetable': 'ImsEventLeave',
         'rename': {
-            # Created_Date: RCEP ?source ***
+            # Created_Date: RCEP ?source
             # Escorted: unchanged  # RCEP
-            # Updated_Date: RCEP ?source ***
+            # Updated_Date: RCEP ?source
             'AddressLine1': 'Address_Line_1',  # RCEP
             'AddressLine2': 'Address_Line_2',  # RCEP
             'AddressLine3': 'Address_Line_3',  # RCEP
@@ -3644,7 +3792,7 @@ RCEP: Last_Updated
         'rename': {
             # EnquiryNumber: unchanged
             # Referrer: unchanged; not in RCEP; missing?
-            # Referral_Reason_National_Code: RCEP; ?source ***. Only AmsReferralSource.NationalCode  # noqa
+            # Referral_Reason_National_Code: RCEP; ?source. Only AmsReferralSource.NationalCode  # noqa
             'AdministrativeCategory': None,  # lookup below
             'CABReferral': 'CAB_Referral',  # RCEP
             'ClientCareSpell': None,  # see lookup below
@@ -3676,7 +3824,7 @@ RCEP: Last_Updated
             'ReferralComment': 'Referral_Comment',  # not in RCEP; missing?
             'ReferralDateTime': 'Referral_DateTime',  # not in RCEP; missing?
             'ReferralNumber': 'Referral_Number',  # RCEP
-            'ReferralReason': None,  # lookup below
+            'ReferralReason': 'Referral_Reason_Code',  # RCEP, + lookup below
             'ReferralReceivedDate': 'Referral_Received_Date',  # RCEP
             'ReferralSource': 'Referral_Source',  # RCEP
             'ReferredConsultant': None,  # RCEP; user lookup
@@ -3727,13 +3875,21 @@ RCEP: Last_Updated
                 },
             },
             {
-                'function': standard_rio_code_lookup,
+                'function': simple_lookup_join,
                 'kwargs': {
                     'basecolumn': 'ReferralReason',
                     'lookup_table': 'GenReferralReason',
-                    'column_prefix': 'Referral_Reason',  # RCEP
+                    'lookup_pk': 'Code',
+                    'lookup_fields_aliases': {
+                        'CodeDescription': 'Referral_Reason_Description',
+                        'NationalCode_CIDS': 'Referral_Reason_National_Code_CIDS',  # noqa
+                        'NationalCode_CAMH': 'Referral_Reason_National_Code_CAMH',  # noqa
+                        # ... RCEP, except Referral_Reason_National_Code;
+                        # unsure which it refers to! Probably *_CIDS;
+                        # http://www.datadictionary.nhs.uk/data_dictionary/messages/clinical_data_sets/data_sets/community_information_data_set_fr.asp?shownav=1  # noqa
+                    },
                     'internal_alias_prefix': 'rr',
-                },
+                }
             },
             {
                 'function': simple_lookup_join,
@@ -4120,6 +4276,8 @@ RCEP: Last_Updated
     # -------------------------------------------------------------------------
     # Non-core: CPFT
     # -------------------------------------------------------------------------
+
+    # *** others
 
     ('Core_Assessment_PPH_PMH_Allergies_Frailty', {
         'basetable': 'UserAssesscoreassesspastpsy',
@@ -4530,6 +4688,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     Client_Demographic_Details.Surname
     Client_Demographic_Details.Date_of_Birth
     Client_Demographic_Details.*Phone
+    Client_Demographic_Details.Superseding_NHS_Number
     Client_Name_History.Given_Name_*
     Client_Name_History.Family_Name
     Inpatient_Leave.Address_Line*
@@ -4542,12 +4701,35 @@ ddgen_scrubsrc_patient_fields = # several of these:
     {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode  # superseded by other view Client_Address_History
 
 ddgen_scrubsrc_thirdparty_fields = # several:
-    ClientContact.AddressLine*
-    ClientContact.EmailAddress
-    ClientContact.Firstname
-    ClientContact.MainPhone
-    ClientContact.NHSNumber
-    ClientContact.Surname
+    # ----------------------------------------------------------------------
+    # Original RiO tables (some may be superseded by views; list both here)
+    # ----------------------------------------------------------------------
+    ClientFamilyLink.RelatedClientID  # superseded by view Client_Family
+    ClientContact.Surname  # superseded by view Client_Personal_Contacts
+    ClientContact.Firstname  # superseded by view Client_Personal_Contacts
+    ClientContact.AddressLine*  # superseded by view Client_Personal_Contacts
+    ClientContact.PostCode  # superseded by view Client_Personal_Contacts
+    ClientContact.*Phone  # superseded by view Client_Personal_Contacts
+    ClientContact.EmailAddress  # superseded by view Client_Personal_Contacts
+    ClientContact.NHSNumber  # superseded by view Client_Personal_Contacts
+    ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
+    ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
+    # ----------------------------------------------------------------------
+    # Views
+    # ----------------------------------------------------------------------
+    Client_Demographic_Details.Main_Carer
+    #   # *** ... follow link through (via a view) to get other scrubbing info?
+    Client_Demographic_Details.Other_Carer
+    #   # *** ... follow link through (via a view) to get other scrubbing info?
+    Client_Family.Related_Client_ID
+    #   # *** ... follow link through (via a view) to get other scrubbing info?
+    Client_Personal_Contacts.Family_Name
+    Client_Personal_Contacts.Given_Name
+    Client_Personal_Contacts.Address_Line_*
+    Client_Personal_Contacts.Post_Code
+    Client_Personal_Contacts.*Phone
+    Client_Personal_Contacts.Email
+    Client_Personal_Contacts.NHS_Number
 
 ddgen_scrubmethod_code_fields = # variants:
     *PostCode*
