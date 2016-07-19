@@ -3955,7 +3955,7 @@ RIO_VIEWS = OrderedDict([
                     'lookup_fields_aliases': {
                         'CodeDescription': 'Referral_Reason_Description',
                         'NationalCode_CIDS': 'Referral_Reason_National_Code_CIDS',  # noqa
-                        'NationalCode_CAMH': 'Referral_Reason_National_Code_CAMH',  # noqa
+                        'NationalCode_CAMHS': 'Referral_Reason_National_Code_CAMHS',  # noqa
                         # ... RCEP, except Referral_Reason_National_Code;
                         # unsure which it refers to! Probably *_CIDS;
                         # http://www.datadictionary.nhs.uk/data_dictionary/messages/clinical_data_sets/data_sets/community_information_data_set_fr.asp?shownav=1  # noqa
