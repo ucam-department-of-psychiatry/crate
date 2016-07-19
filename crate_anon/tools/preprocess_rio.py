@@ -4785,7 +4785,6 @@ def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
             "Columns overlap: address table contains columns {}; "
             "geogcols = {}; overlap = {}".format(
                 orig_column_names, progargs.geogcols, overlap))
-    log.info("Creating view '{}'".format(VIEW_ADDRESS_WITH_GEOGRAPHY))
     ensure_columns_present(engine, tablename=addresstable, column_names=[
         rio_postcodecol])
     select_sql = """
@@ -5286,7 +5285,9 @@ def main():
              "Extract Program v2 (instead of raw RiO)")
     parser.add_argument(
         "--drop_danger_drop", action="store_true",
-        help="REMOVES new columns and indexes, rather than creating them.")
+        help="REMOVES new columns and indexes, rather than creating them. "
+             "(There's not very much danger; no real information is lost, but "
+             "it might take a while to recalculate it.)")
     parser.add_argument(
         "--cpft", action="store_true",
         help="Apply hacks for Cambridgeshire & Peterborough NHS Foundation "
@@ -5352,8 +5353,9 @@ def main():
 
     progargs = parser.parse_args()
 
+    rootlogger = logging.getLogger()
     configure_logger_for_colour(
-        log, level=logging.DEBUG if progargs.verbose else logging.INFO)
+        rootlogger, level=logging.DEBUG if progargs.verbose else logging.INFO)
 
     progargs.rio = not progargs.rcep
     if progargs.rcep:

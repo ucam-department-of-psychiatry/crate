@@ -1367,8 +1367,9 @@ def main():
                         help="Show help for postcode table then stop")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
     args = parser.parse_args()
+    rootlogger = logging.getLogger()
     configure_logger_for_colour(
-        log, level=logging.DEBUG if args.verbose else logging.INFO)
+        rootlogger, level=logging.DEBUG if args.verbose else logging.INFO)
     log.debug("args = {}".format(repr(args)))
 
     if args.docsonly:

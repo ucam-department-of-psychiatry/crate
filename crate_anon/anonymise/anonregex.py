@@ -486,5 +486,6 @@ class TestAnonRegexes(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    configure_logger_for_colour(log, level=logging.DEBUG)
+    rootlogger = logging.getLogger()
+    configure_logger_for_colour(rootlogger, level=logging.DEBUG)
     unittest.main()
