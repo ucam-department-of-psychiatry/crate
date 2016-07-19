@@ -1520,7 +1520,6 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
                        column_prefix, internal_alias_prefix):
     assert basecolumn_ward, "Missing basecolumn_ward"
     assert basecolumn_bay, "Missing basecolumn_bay"
-    assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     if column_prefix:
         column_prefix += '_'
