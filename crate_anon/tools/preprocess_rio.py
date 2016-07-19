@@ -4420,7 +4420,7 @@ RIO_VIEWS = OrderedDict([
     }),
 
     ('CPFT_Core_Assessment_v2_Mental_State', {
-        'basetable': 'UserAssesscoreassesmentstat',
+        'basetable': 'UserAssesscoreassesmentstate',
         'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
             'MentState': 'Mental_State_Examination',
         }),
