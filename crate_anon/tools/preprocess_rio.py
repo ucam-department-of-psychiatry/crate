@@ -3240,10 +3240,15 @@ RIO_VIEWS = OrderedDict([
                 },
             },
             {
-                'function': standard_rio_code_lookup_with_national_code,
+                'function': standard_rio_code_lookup,
                 'kwargs': {
                     'basecolumn': 'CancellationReason',
-                    'lookup_table': 'CPACancellationReasons',
+                    # 'lookup_table': 'CPACancellationReasons',
+                    # CPACancellationReasons has a single column, Code, which
+                    # is a key to GenCancellationReason, thus making it
+                    # entirely pointless (except, presumably, as a filter for
+                    # data entry).
+                    'lookup_table': 'GenCancellationReason',
                     'column_prefix': 'Cancellation_Reason',  # RCEP
                     'internal_alias_prefix': 'cr',
                 }
