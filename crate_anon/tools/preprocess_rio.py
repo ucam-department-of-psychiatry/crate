@@ -4662,7 +4662,7 @@ RIO_VIEWS = OrderedDict([
                 'function': rio_noncore_yn,
                 'kwargs': {
                     'basecolumn': 'Q1',
-                    'result_alias': 'Mental_Health_Delusional_Beliefs_Re_Children',
+                    'result_alias': 'Mental_Health_Delusional_Beliefs_Re_Children',  # noqa
                 },
             },
             {
