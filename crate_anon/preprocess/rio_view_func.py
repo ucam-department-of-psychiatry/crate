@@ -4,6 +4,12 @@
 from crate_anon.common.sql import (
     sql_string_literal,
 )
+from crate_anon.preprocess.rio_constants import (
+    CRATE_COL_LAST_DOC,
+    CRATE_COL_LAST_NOTE,
+    CRATE_COL_PK,
+    CRATE_COL_RIO_NUMBER,
+)
 
 
 # =============================================================================
@@ -706,52 +712,65 @@ def rio_noncore_yn(viewmaker, basecolumn, result_alias):
 
 
 def rio_add_audit_info(viewmaker):
-    # *** in progress; but how do we find AuditTrail.RowID?
-    # *** join going wrong
-    # -------------------------------------------------------------------------
-    # Created_Date
-    # -------------------------------------------------------------------------
-    ap = "_au_cr"
-    viewmaker.add_select(
-        "{ap}_audit.ActionDateTime AS Audit_Created_Date".format(ap=ap))
+    # - In RCEP: lots of tables have Created_Date, Updated_Date with no source
+    #   column; likely from audit table.
+    # - Here: Audit_Created_Date, Audit_Updated_Date
+    ap1 = "_au_cr"
+    ap2 = "_au_up"
+    viewmaker.add_select("""
+        {ap1}_subq.Audit_Created_Date AS Audit_Created_Date,
+        {ap2}_subq.Audit_Updated_Date AS Audit_Updated_Date
+    """.format(
+        ap1=ap1,
+        ap2=ap2,
+    ))
     viewmaker.add_from("""
         LEFT JOIN (
-            AuditTrail {ap}_audit
-            INNER JOIN GenTable {ap}_table
-                ON {ap}_table.TableNumber = {ap}_audit.TableNumber
-        ) ON {ap}_audit.RowID = {basetable}.{CRATE_COL_PK}
-    """.format(
-        ap=ap,
-        basetable=viewmaker.basetable,
-        CRATE_COL_PK=CRATE_COL_PK,
-    ))
-    viewmaker.add_where("{ap}_table.GenTableCode = {literal}".format(
-        ap=ap,
-        literal=sql_string_literal(viewmaker.basetable),
-    ))
-
-    # -------------------------------------------------------------------------
-    # Updated_Date
-    # -------------------------------------------------------------------------
-    ap = "_au_up"
-    viewmaker.add_select(
-        "{ap}_audit.ActionDateTime AS Audit_Updated_Date".format(ap=ap))
-    viewmaker.add_from("""
+            SELECT {ap1}_audit.RowID,
+                MIN({ap1}_audit.ActionDateTime) AS Audit_Created_Date
+            FROM AuditTrail {ap1}_audit
+            INNER JOIN GenTable {ap1}_table
+                ON {ap1}_table.TableNumber = {ap1}_audit.TableNumber
+            WHERE {ap1}_table.GenTableCode = {literal}
+                AND {ap1}_audit.AuditAction = 2  -- INSERT
+            GROUP BY {ap1}_audit.RowID
+        ) {ap1}_subq
+            ON {ap1}_subq.RowID = {basetable}.{CRATE_COL_PK}
         LEFT JOIN (
-            AuditTrail {ap}_audit
-            INNER JOIN GenTable {ap}_table
-                ON {ap}_table.TableNumber = {ap}_audit.TableNumber
-        ) ON {ap}_audit.RowID = {basetable}.{CRATE_COL_PK}
+            SELECT {ap2}_audit.RowID,
+                MAX({ap2}_audit.ActionDateTime) AS Audit_Updated_Date
+            FROM AuditTrail {ap2}_audit
+            INNER JOIN GenTable {ap2}_table
+                ON {ap2}_table.TableNumber = {ap2}_audit.TableNumber
+            WHERE {ap2}_table.GenTableCode = {literal}
+                AND {ap2}_audit.AuditAction = 3  -- UPDATE
+            GROUP BY {ap2}_audit.RowID
+        ) {ap2}_subq
+            ON {ap2}_subq.RowID = {basetable}.{CRATE_COL_PK}
     """.format(
-        ap=ap,
+        ap1=ap1,
+        ap2=ap2,
         basetable=viewmaker.basetable,
-        CRATE_COL_PK=CRATE_COL_PK,
-    ))
-    viewmaker.add_where("{ap}_table.GenTableCode = {literal}".format(
-        ap=ap,
         literal=sql_string_literal(viewmaker.basetable),
+        CRATE_COL_PK=CRATE_COL_PK,
     ))
     viewmaker.record_lookup_table_keyfields([
-        ('AuditTrail', ['TableNumber', 'RowID', 'AuditAction']),
+        ('AuditTrail', ['AuditAction', 'RowID', 'TableNumber']),
         ('GenTable', 'GenTableCode'),
     ])
+    # AuditTrail indexes based on SQL Server recommendations (Query -> Analyze
+    # Query in Database Engine Tuning Advisor -> ... -> Recommendations ->
+    # Index Recommendations -> Definition). Specifically:
+    # CREATE STATISTICS [_dta_stat_1213247377_6_4] ON [dbo].[AuditTrail](
+    #     [TableNumber], [AuditAction])
+    # CREATE STATISTICS [_dta_stat_1213247377_5_4] ON [dbo].[AuditTrail](
+    #     [RowID], [AuditAction])
+    # CREATE NONCLUSTERED INDEX [_dta_index_AuditTrail_blahblah]
+    #     ON [dbo].[AuditTrail]
+    # (
+    # 	[AuditAction] ASC,
+    # 	[RowID] ASC,
+    # 	[TableNumber] ASC
+    # )
+    # INCLUDE ( [ActionDateTime]) WITH (SORT_IN_TEMPDB = OFF,
+    #     IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]

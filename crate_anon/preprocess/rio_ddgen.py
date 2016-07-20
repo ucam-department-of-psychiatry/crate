@@ -92,8 +92,8 @@ class DDHint(object):
 # Default settings for CRATE anonymiser "ddgen_*" fields, for RiO
 # =============================================================================
 
-def report_rio_dd_settings(progargs, ddhint):
-    settings_text = """
+def get_rio_dd_settings(ddhint):
+    return """
 ddgen_omit_by_default = True
 
 ddgen_omit_fields =
@@ -403,5 +403,3 @@ ddgen_convert_odd_chars_to_underscore = True
         RIO_COL_PATIENT_ID=RIO_COL_PATIENT_ID,
         VIEW_ADDRESS_WITH_GEOGRAPHY=VIEW_ADDRESS_WITH_GEOGRAPHY,
     )
-    with open(progargs.settings_filename, 'w') as f:
-        print(settings_text, file=f)

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # crate_anon/preprocess/rio_constants.py
 
-
 # Tables in RiO v6.2 Core:
 RIO_TABLE_MASTER_PATIENT = "ClientIndex"
 RIO_TABLE_ADDRESS = "ClientAddress"

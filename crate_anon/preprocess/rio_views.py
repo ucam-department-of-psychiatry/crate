@@ -6,6 +6,34 @@ from collections import OrderedDict
 from crate_anon.common.lang import (
     merge_two_dicts,
 )
+from crate_anon.common.sql import sql_fragment_cast_to_int
+from crate_anon.preprocess.rio_constants import (
+    VIEW_ADDRESS_WITH_GEOGRAPHY,
+)
+from crate_anon.preprocess.rio_view_func import (
+    rio_add_bay_lookup,
+    rio_add_carespell_lookup,
+    rio_add_consultant_lookup,
+    rio_add_diagnosis_lookup,
+    rio_add_gp_lookup,
+    rio_add_gp_practice_lookup,
+    rio_add_ims_event_lookup,
+    rio_add_location_lookup,
+    rio_add_org_contact_lookup,
+    rio_add_team_lookup,
+    rio_add_user_lookup,
+    rio_amend_standard_noncore,
+    rio_noncore_yn,
+    simple_lookup_join,
+    simple_view_expr,
+    # simple_view_where,
+    standard_rio_code_lookup,
+    standard_rio_code_lookup_with_national_code,
+    where_allergies_current,
+    where_clindocs_current,
+    where_not_deleted_flag,
+    where_prognotes_current,
+)
 
 
 # =============================================================================
@@ -235,8 +263,8 @@ RIO_VIEWS = OrderedDict([
     ('Care_Plan_Interventions', {
         'basetable': 'CarePlanInterventions',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'ProblemID': 'Problem_FK_Care_Plan_Problems',  # RCEP: Problem_Key
             'InterventionID': 'Intervention_Key',  # RCEP; non-unique
             'Box1': 'Box_1',  # not in RCEP
@@ -268,7 +296,6 @@ RIO_VIEWS = OrderedDict([
             'CheckBox2': 'Check_Box_2',  # not in RCEP
         },
         'add': [
-            {'function': rio_add_audit_info},
             {
                 'function': rio_add_user_lookup,
                 'kwargs': {
@@ -369,8 +396,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Address_History', {
         'basetable': VIEW_ADDRESS_WITH_GEOGRAPHY,  # original: 'ClientAddress'
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'FromDate': 'Address_From_Date',  # RCEP
             'ToDate': 'Address_To_Date',  # RCEP
             'AddressLine1': 'Address_Line_1',  # RCEP
@@ -448,8 +475,8 @@ RIO_VIEWS = OrderedDict([
         # IDs on other systems
         'basetable': 'ClientAlternativeID',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'SystemID': None,  # lookup below
             'ID': 'ID',  # RCEP; this is the foreign ID
             'SequenceID': 'Unique_Key',  # RCEP
@@ -471,8 +498,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Allergies', {
         'basetable': 'EPClientAllergies',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'ReactionID': 'Unique_Key',  # RCEP; INT
             'UserID': None,  # user lookup; VARCHAR(15)
             # Substance: unchanged, RCEP; VARCHAR(255)
@@ -572,8 +599,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Communications_History', {
         'basetable': 'ClientTelecom',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'ClientTelecomID': 'Unique_Key',  # RCEP
             'Detail': 'Contact_Details',  # RCEP; may be phone no. or email addr
             'ContactMethod': None,  # lookup below
@@ -672,8 +699,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Demographic_Details', {
         'basetable': 'ClientIndex',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'NNN': 'NHS_Number',  # RCEP
             # RCEP: Shared_ID = hashed NHS number (CRATE does this); skipped
             'NNNStatus': None,  # lookup below
@@ -928,8 +955,8 @@ RIO_VIEWS = OrderedDict([
         # UNTESTED as no data in CPFT
         'basetable': 'EPClientMedication',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'SequenceID': 'Unique_Key',  # RCEP
             'EventNumber': 'Event_Number',  # RCEP
             'EventSequenceID': 'Event_ID',  # RCEP
@@ -1055,8 +1082,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Name_History', {
         'basetable': 'ClientName',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'Surname': 'Family_Name',  # RCEP
             'ClientNameID': 'Unique_Key',  # RCEP
             'EffectiveDate': 'Effective_Date',  # RCEP
@@ -1239,8 +1266,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Physical_Details', {
         'basetable': 'ClientPhysicalDetail',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             # RCEP: From_Date: ?source
             # RCEP: Last_Updated: ?source
             'Height': 'Height_m',  # RCEP was Height; definitely not cm...
@@ -1382,8 +1409,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_Professional_Contacts', {
         'basetable': 'DemClientOtherContact',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'SequenceID': 'Unique_Key',  # RCEP
             'OrgContactID': None,  # lookup below
             'OrgContactRelationshipID': None,  # lookup below
@@ -1419,8 +1446,8 @@ RIO_VIEWS = OrderedDict([
     ('Client_School', {
         'basetable': 'ClientSchool',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'SequenceID': 'Unique_Key',  # RCEP
             'FromDate': 'School_From_Date',  # RCEP
             'ToDate': 'School_To_Date',  # RCEP
@@ -2036,10 +2063,10 @@ RIO_VIEWS = OrderedDict([
     ('Inpatient_Movement', {
         'basetable': 'ImsEventMovement',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'EventNumber': 'Event_Number',  # RCEP
-            'SequenceID': 'Movement_Key',  # RCEP *** check
+            'SequenceID': 'Movement_Key',  # RCEP
             'StartDateTime': 'Start_Date',  # RCEP
             'EndDateTime': 'End_Date',  # RCEP
             'WardCode': None,  # Ward_Code (RCEP) is from bay lookup
@@ -2195,8 +2222,8 @@ RIO_VIEWS = OrderedDict([
     ('Inpatient_Named_Nurse', {
         'basetable': 'ImsEventNamedNurse',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'EventNumber': 'Event_Number',  # RCEP
             'GenHCPCode': 'Named_Nurse_User_Code',  # RCEP
             'StartDateTime': 'Start_Date_Time',  # RCEP
@@ -2224,8 +2251,8 @@ RIO_VIEWS = OrderedDict([
     ('Inpatient_Sleepover', {
         'basetable': 'ImsEventSleepover',
         'rename': {
-            # RCEP: Created_Date: ?source
-            # RCEP: Updated_Date: ?source
+            # RCEP: Created_Date: see our Audit_Created_Date
+            # RCEP: Updated_Date: see our Audit_Updated_Date
             'SequenceID': 'Event_Key',  # RCEP; not sure this one is worthwhile
             'EventID': 'Event_ID',  # RCEP
             'StartDate': 'Start_Date',  # StartDate in RCEP
