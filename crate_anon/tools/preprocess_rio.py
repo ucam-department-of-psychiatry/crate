@@ -318,6 +318,25 @@ if depth > 0, the information is taken as third-party.
 
 Well, that sounds achievable.
 
+Done.
+
+===============================================================================
+RiO audit trail and change history
+===============================================================================
+
+- AuditTrail
+    SequenceID -- PK for AuditTrail
+    UserNumber -- FK to GenUser.UserNumber
+    ActionDateTime
+    AuditAction -- 2 = insert, 3 = update
+    RowID -- row number -- how does that work?
+        ... cheerfully, SQL Server doesn't have an automatic row ID;
+        http://stackoverflow.com/questions/909155/equivalent-of-oracles-rowid-in-sql-server  # noqa
+        ... so is it the PK we've already identified and called crate_pk?
+    TableNumber -- FK to GenTable.Code
+    ClientID -- FK to ClientIndex.ClientID
+    ...
+
 """  # noqa
 
 import argparse
@@ -352,6 +371,7 @@ from crate_anon.common.sql import (
     get_column_names,
     set_print_not_execute,
     sql_fragment_cast_to_int,
+    sql_string_literal,
     ViewMaker,
 )
 
@@ -1684,6 +1704,58 @@ def rio_noncore_yn(viewmaker, basecolumn, result_alias):
     )
 
 
+def rio_add_audit_info(viewmaker):
+    # *** in progress; but how do we find AuditTrail.RowID?
+    # -------------------------------------------------------------------------
+    # Created_Date
+    # -------------------------------------------------------------------------
+    ap = "_au_cr"
+    viewmaker.add_select(
+        "{ap}_audit.ActionDateTime AS Audit_Created_Date".format(ap=ap))
+    viewmaker.add_from("""
+        LEFT JOIN (
+            AuditTrail {ap}_audit
+            INNER JOIN GenTable {ap}_table
+                ON {ap}_table.TableNumber = {ap}_audit.TableNumber
+        ) ON {ap}_audit.RowID = {basetable}.{CRATE_COL_PK}
+    """.format(
+        ap=ap,
+        basetable=viewmaker.basetable,
+        CRATE_COL_PK=CRATE_COL_PK,
+    ))
+    viewmaker.add_where("{ap}_table.GenTableCode = {literal}".format(
+        ap=ap,
+        literal=sql_string_literal(viewmaker.basetable),
+    ))
+
+    # -------------------------------------------------------------------------
+    # Updated_Date
+    # -------------------------------------------------------------------------
+    ap = "_au_up"
+    viewmaker.add_select(
+        "{ap}_audit.ActionDateTime AS Audit_Updated_Date".format(ap=ap))
+    viewmaker.add_from("""
+        LEFT JOIN (
+            AuditTrail {ap}_audit
+            INNER JOIN GenTable {ap}_table
+                ON {ap}_table.TableNumber = {ap}_audit.TableNumber
+        ) ON {ap}_audit.RowID = {basetable}.{CRATE_COL_PK}
+    """.format(
+        ap=ap,
+        basetable=viewmaker.basetable,
+        CRATE_COL_PK=CRATE_COL_PK,
+    ))
+    viewmaker.add_where("{ap}_table.GenTableCode = {literal}".format(
+        ap=ap,
+        literal=sql_string_literal(viewmaker.basetable),
+    ))
+
+    viewmaker.record_lookup_table_keyfields([
+        ('AuditTrail', ['TableNumber', 'RowID', 'AuditAction']),
+        ('GenTable', 'GenTableCode'),
+    ])
+
+
 # =============================================================================
 # RiO view creators: collection
 # =============================================================================
@@ -1944,6 +2016,7 @@ RIO_VIEWS = OrderedDict([
             'CheckBox2': 'Check_Box_2',  # not in RCEP
         },
         'add': [
+            {'function': rio_add_audit_info},
             {
                 'function': rio_add_user_lookup,
                 'kwargs': {
@@ -5495,6 +5568,3 @@ if __name__ == '__main__':
         type_, value, tb = sys.exc_info()
         traceback.print_exc()
         pdb.post_mortem(tb)
-
-# *** field history
-# *** people lookups very thin - e.g. CPA_Care_Coordinator - lack of data? bug?
