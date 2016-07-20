@@ -1755,6 +1755,8 @@ def rio_add_audit_info(viewmaker):
         ('GenTable', 'GenTableCode'),
     ])
 
+    print(viewmaker.get_sql())  # ***
+
 
 # =============================================================================
 # RiO view creators: collection
@@ -1998,7 +2000,7 @@ RIO_VIEWS = OrderedDict([
             'UserID': None,  # user lookup
             'EntryDate': 'Entry_Date',  # RCEP
             'InterventionType': None,  # lookup below
-            'Outcome': None,  # lookup below
+            'OutCome': None,  # lookup below
             # Comment: unchanged
             'Picklist1Code': 'Picklist_1_Code',  # not in RCEP
             'Picklist1Description': 'Picklist_1_Description',  # not in RCEP
