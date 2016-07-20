@@ -1093,6 +1093,8 @@ def get_rio_views(engine, progargs, ddhint,
                 kwargs = addition.get('kwargs', {})
                 kwargs['viewmaker'] = viewmaker
                 function(**kwargs)  # will alter viewmaker
+        if progargs.audit_info:
+            rio_add_audit_info(viewmaker)  # will alter viewmaker
         views[viewname] = viewmaker.get_sql()
         if suppress_lookup:
             ddhint.suppress_tables(viewmaker.get_lookup_tables())
@@ -1705,58 +1707,65 @@ def rio_noncore_yn(viewmaker, basecolumn, result_alias):
 
 
 def rio_add_audit_info(viewmaker):
-    # *** in progress; but how do we find AuditTrail.RowID?
-    # *** join going wrong
-    # -------------------------------------------------------------------------
-    # Created_Date
-    # -------------------------------------------------------------------------
-    ap = "_au_cr"
-    viewmaker.add_select(
-        "{ap}_audit.ActionDateTime AS Audit_Created_Date".format(ap=ap))
+    ap1 = "_au_cr"
+    ap2 = "_au_up"
+    viewmaker.add_select("""
+        {ap1}_subq.Audit_Created_Date AS Audit_Created_Date,
+        {ap2}_subq.Audit_Updated_Date AS Audit_Updated_Date
+    """.format(
+        ap1=ap1,
+        ap2=ap2,
+    ))
     viewmaker.add_from("""
         LEFT JOIN (
-            AuditTrail {ap}_audit
-            INNER JOIN GenTable {ap}_table
-                ON {ap}_table.TableNumber = {ap}_audit.TableNumber
-        ) ON {ap}_audit.RowID = {basetable}.{CRATE_COL_PK}
-    """.format(
-        ap=ap,
-        basetable=viewmaker.basetable,
-        CRATE_COL_PK=CRATE_COL_PK,
-    ))
-    viewmaker.add_where("{ap}_table.GenTableCode = {literal}".format(
-        ap=ap,
-        literal=sql_string_literal(viewmaker.basetable),
-    ))
-
-    # -------------------------------------------------------------------------
-    # Updated_Date
-    # -------------------------------------------------------------------------
-    ap = "_au_up"
-    viewmaker.add_select(
-        "{ap}_audit.ActionDateTime AS Audit_Updated_Date".format(ap=ap))
-    viewmaker.add_from("""
+            SELECT {ap1}_audit.RowID,
+                MIN({ap1}_audit.ActionDateTime) AS Audit_Created_Date
+            FROM AuditTrail {ap1}_audit
+            INNER JOIN GenTable {ap1}_table
+                ON {ap1}_table.TableNumber = {ap1}_audit.TableNumber
+            WHERE {ap1}_table.GenTableCode = {literal}
+                AND {ap1}_audit.AuditAction = 2  -- INSERT
+            GROUP BY {ap1}_audit.RowID
+        ) {ap1}_subq
+            ON {ap1}_subq.RowID = {basetable}.{CRATE_COL_PK}
         LEFT JOIN (
-            AuditTrail {ap}_audit
-            INNER JOIN GenTable {ap}_table
-                ON {ap}_table.TableNumber = {ap}_audit.TableNumber
-        ) ON {ap}_audit.RowID = {basetable}.{CRATE_COL_PK}
+            SELECT {ap2}_audit.RowID,
+                MAX({ap2}_audit.ActionDateTime) AS Audit_Updated_Date
+            FROM AuditTrail {ap2}_audit
+            INNER JOIN GenTable {ap2}_table
+                ON {ap2}_table.TableNumber = {ap2}_audit.TableNumber
+            WHERE {ap2}_table.GenTableCode = {literal}
+                AND {ap2}_audit.AuditAction = 3  -- UPDATE
+            GROUP BY {ap2}_audit.RowID
+        ) {ap2}_subq
+            ON {ap2}_subq.RowID = {basetable}.{CRATE_COL_PK}
     """.format(
-        ap=ap,
+        ap1=ap1,
+        ap2=ap2,
         basetable=viewmaker.basetable,
+        literal=sql_string_literal(viewmaker.basetable),
         CRATE_COL_PK=CRATE_COL_PK,
     ))
-    viewmaker.add_where("{ap}_table.GenTableCode = {literal}".format(
-        ap=ap,
-        literal=sql_string_literal(viewmaker.basetable),
-    ))
-
     viewmaker.record_lookup_table_keyfields([
-        ('AuditTrail', ['TableNumber', 'RowID', 'AuditAction']),
+        ('AuditTrail', ['AuditAction', 'RowID', 'TableNumber']),
         ('GenTable', 'GenTableCode'),
     ])
-
-    print(viewmaker.get_sql())  # ***
+    # AuditTrail indexes based on SQL Server recommendations (Query -> Analyze
+    # Query in Database Engine Tuning Advisor -> ... -> Recommendations ->
+    # Index Recommendations -> Definition). Specifically:
+    # CREATE STATISTICS [_dta_stat_1213247377_6_4] ON [dbo].[AuditTrail](
+    #     [TableNumber], [AuditAction])
+    # CREATE STATISTICS [_dta_stat_1213247377_5_4] ON [dbo].[AuditTrail](
+    #     [RowID], [AuditAction])
+    # CREATE NONCLUSTERED INDEX [_dta_index_AuditTrail_blahblah]
+    #     ON [dbo].[AuditTrail] 
+    # (
+    # 	[AuditAction] ASC,
+    # 	[RowID] ASC,
+    # 	[TableNumber] ASC
+    # )
+    # INCLUDE ( [ActionDateTime]) WITH (SORT_IN_TEMPDB = OFF,
+    #     IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]
 
 
 # =============================================================================
@@ -2019,7 +2028,6 @@ RIO_VIEWS = OrderedDict([
             'CheckBox2': 'Check_Box_2',  # not in RCEP
         },
         'add': [
-            {'function': rio_add_audit_info},
             {
                 'function': rio_add_user_lookup,
                 'kwargs': {
@@ -5429,7 +5437,7 @@ def main():
         help="Treat the source database as the product of Servelec's RiO CRIS "
              "Extract Program v2 (instead of raw RiO)")
     parser.add_argument(
-        "--drop_danger_drop", action="store_true",
+        "--drop-danger-drop", action="store_true",
         help="REMOVES new columns and indexes, rather than creating them. "
              "(There's not very much danger; no real information is lost, but "
              "it might take a while to recalculate it.)")
@@ -5439,45 +5447,57 @@ def main():
              "Trust (CPFT) RCEP database. Only appicable with --rcep")
 
     parser.add_argument(
-        "--debug_skiptables", action="store_true",
+        "--debug-skiptables", action="store_true",
         help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
 
     parser.add_argument(
-        "--prognotes_current_only",
+        "--prognotes-current-only",
         dest="prognotes_current_only",
         action="store_true",
         help="Progress_Notes view restricted to current versions only "
              "(* default)")
     parser.add_argument(
-        "--prognotes_all",
+        "--prognotes-all",
         dest="prognotes_current_only",
         action="store_false",
         help="Progress_Notes view shows old versions too")
     parser.set_defaults(prognotes_current_only=True)
 
     parser.add_argument(
-        "--clindocs_current_only",
+        "--clindocs-current-only",
         dest="clindocs_current_only",
         action="store_true",
         help="Clinical_Documents view restricted to current versions only (*)")
     parser.add_argument(
-        "--clindocs_all",
+        "--clindocs-all",
         dest="clindocs_current_only",
         action="store_false",
         help="Clinical_Documents view shows old versions too")
     parser.set_defaults(clindocs_current_only=True)
 
     parser.add_argument(
-        "--allergies_current_only",
+        "--allergies-current-only",
         dest="allergies_current_only",
         action="store_true",
         help="Client_Allergies view restricted to current info only")
     parser.add_argument(
-        "--allergies_all",
+        "--allergies-all",
         dest="allergies_current_only",
         action="store_false",
         help="Client_Allergies view shows deleted allergies too (*)")
     parser.set_defaults(allergies_current_only=False)
+
+    parser.add_argument(
+        "--audit-info",
+        dest="audit_info",
+        action="store_true",
+        help="Audit information (creation/update times) added to views")
+    parser.add_argument(
+        "--no-audit-info",
+        dest="audit_info",
+        action="store_false",
+        help="No audit information added (*)")
+    parser.set_defaults(audit_info=False)
 
     parser.add_argument(
         "--postcodedb",
