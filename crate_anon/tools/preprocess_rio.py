@@ -5512,7 +5512,7 @@ def main():
              "identifying. Default: {}".format(' '.join(DEFAULT_GEOG_COLS)))
 
     parser.add_argument(
-        "--settings_filename",
+        "--settings-filename",
         help="Specify filename to write draft ddgen_* settings to, for use in "
              "a CRATE anonymiser configuration file.")
 
