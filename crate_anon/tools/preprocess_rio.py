@@ -11,6 +11,8 @@ THINGS TO DO
     ... some data for Audit_Created_Date, but incomplete audit table
 *** Similarly, all cross-checks to RCEP output (currently limited by data
     availability)
+*** Test RiO ddgen
+*** CRATE docs: piccy, and overview of stages
 
 ===============================================================================
 Primary keys
