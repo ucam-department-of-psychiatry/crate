@@ -252,7 +252,7 @@ setup(
 
             'crate_windows_service=crate_anon.tools.winservice:main',
 
-            'crate_postcodes=crate_anon.tools.postcodes:main',
+            'crate_postcodes=crate_anon.preprocess.postcodes:main',
             'crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main',
         ],
     },

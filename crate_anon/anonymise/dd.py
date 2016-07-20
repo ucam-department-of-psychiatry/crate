@@ -776,7 +776,7 @@ class DataDictionaryRow(object):
                 "Field can be any ONE of: src_flags={}, src_flags={}, "
                 "alter_method".format(SRCFLAG.PRIMARYPID, SRCFLAG.MASTERPID))
 
-        valid_scrubsrc = list(SCRUBSRC.keys()) + [""]
+        valid_scrubsrc = list(SCRUBSRC.values()) + [""]
         if self.scrub_src not in valid_scrubsrc:
             raise ValueError(
                 "Invalid scrub_src - must be one of [{}]".format(
@@ -1272,7 +1272,8 @@ class DataDictionary(object):
         dst_sigs = []
         for r in self.rows:
             src_sigs.append(r.get_signature())
-            dst_sigs.append(r.get_dest_signature())
+            if not r.omit:
+                dst_sigs.append(r.get_dest_signature())
         # noinspection PyArgumentList
         src_duplicates = [
             item for item, count in collections.Counter(src_sigs).items()

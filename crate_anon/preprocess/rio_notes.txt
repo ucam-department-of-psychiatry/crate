@@ -1,12 +1,12 @@
 ===============================================================================
 THINGS TO DO
 ===============================================================================
-*** Imperfectly tested: Audit_Created_Date, Audit_Updated_Date
+TODO: Imperfectly tested: Audit_Created_Date, Audit_Updated_Date
     ... some data for Audit_Created_Date, but incomplete audit table
-*** Similarly, all cross-checks to RCEP output (currently limited by data
+TODO: Similarly, all cross-checks to RCEP output (currently limited by data
     availability)
-*** Test RiO ddgen
-*** CRATE docs: piccy, and overview of stages
+TODO: Test RiO ddgen
+TODO: CRATE docs: piccy, and overview of stages
 
 ===============================================================================
 Primary keys

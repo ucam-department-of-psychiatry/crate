@@ -126,6 +126,7 @@ class Patient(Base):
     phone = Column(String(50))
     postcode = Column(String(50))
     optout = Column(Boolean, default=False)
+    related_patient_id = Column(Integer)
 
 
 class Note(Base):
@@ -187,16 +188,16 @@ def main():
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
-        "--doctest_doc", default=DOCTEST_DOC,
+        "--doctest-doc", default=DOCTEST_DOC,
         help="Test file for .DOC (default: {})".format(DOCTEST_DOC))
     parser.add_argument(
-        "--doctest_docx", default=DOCTEST_DOCX,
+        "--doctest-docx", default=DOCTEST_DOCX,
         help="Test file for .DOCX (default: {})".format(DOCTEST_DOCX))
     parser.add_argument(
-        "--doctest_odt", default=DOCTEST_ODT,
+        "--doctest-odt", default=DOCTEST_ODT,
         help="Test file for .ODT (default: {})".format(DOCTEST_ODT))
     parser.add_argument(
-        "--doctest_pdf", default=DOCTEST_PDF,
+        "--doctest-pdf", default=DOCTEST_PDF,
         help="Test file for .PDF (default: {})".format(DOCTEST_PDF))
     args = parser.parse_args()
 
@@ -303,6 +304,7 @@ An HTML tag is <a href="http://somewhere">this link</a>.
         nhsnum=234567,
         phone="(01223)-234567",
         postcode="CB2 3EB",
+        related_patient_id=1,
     )
     session.add(p2)
     n2 = Note(
@@ -321,6 +323,8 @@ Bob Hope visited Seattle.
 
     # A bunch of patients
     random.seed(1)
+    prev_forename = ''
+    prev_surname = ''
     for p in range(n_patients):
         if p % REPORT_EVERY == 0:
             log.info("patient {}".format(p))
@@ -330,13 +334,14 @@ Bob Hope visited Seattle.
         ok_date = dob + datetime.timedelta(days=1)
         nhsnum = random.randint(1, 9999999999)
         patient = Patient(
-            patient_id=p+3,
+            patient_id=p + 3,
             forename=forename,
             surname=surname,
             dob=dob,
             nhsnum=nhsnum,
             phone="123456",
             postcode="CB2 3EB",
+            related_patient_id=p + 2,  # one back from patient_id
         )
         session.add(patient)
         patient_id = patient.patient_id
@@ -346,15 +351,18 @@ Bob Hope visited Seattle.
         ) + ". "
         fname = "FORENAME: " + forename + ". "
         sname = "SURNAME: " + surname + ". "
+        rname = "RELATIVE: " + prev_forename + " " + prev_surname + ". "
         numbers = "NUMBERS: {}, {}, {}. ".format(patient_id, patient_id + 1,
                                                  nhsnum)
         for n in range(notes_per_patient):
             wstr = " ".join(words[p % nwords:(p + words_per_note) % nwords])
             note = Note(
                 patient=patient,
-                note=fname + sname + numbers + dates + wstr,
+                note=fname + sname + rname + numbers + dates + wstr,
             )
             session.add(note)
+        prev_forename = forename
+        prev_surname = surname
 
     # 5. Commit
 
