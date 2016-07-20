@@ -1706,6 +1706,7 @@ def rio_noncore_yn(viewmaker, basecolumn, result_alias):
 
 def rio_add_audit_info(viewmaker):
     # *** in progress; but how do we find AuditTrail.RowID?
+    # *** join going wrong
     # -------------------------------------------------------------------------
     # Created_Date
     # -------------------------------------------------------------------------
