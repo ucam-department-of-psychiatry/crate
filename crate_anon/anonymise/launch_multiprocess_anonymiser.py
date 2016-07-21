@@ -30,6 +30,7 @@ import multiprocessing
 import sys
 import time
 
+from crate_anon.anonymise.constants import CONFIG_ENV_VAR
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.subproc import (
     check_call_process,
@@ -53,9 +54,19 @@ def main():
     description = "Runs the CRATE anonymiser in parallel. {}.".format(version)
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument(
-        'mode', choices=('incremental', 'full'),
-        help="Processing mode (full or incremental)")
+    parser.add_argument("--config",
+                        help="Config file (overriding environment "
+                             "variable {})".format(CONFIG_ENV_VAR))
+
+    parser.add_argument("-i", "--incremental",
+                        dest="incremental", action="store_true",
+                        help="Process only new/changed information, where "
+                             "possible (* default)")
+    parser.add_argument("-f", "--full",
+                        dest="incremental", action="store_false",
+                        help="Drop and remake everything")
+    parser.set_defaults(incremental=True)
+
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
         help="Number of processes (default: {})".format(CPUCOUNT))
@@ -71,12 +82,14 @@ def main():
     configure_logger_for_colour(rootlogger, level=loglevel)
 
     common_options = ["-v"] * args.verbose
-    if args.echo:
-        common_options.append('--echo')
-    if args.mode == 'incremental':
+    if args.config:
+        common_options.extend(['--config', args.config])
+    if args.incremental:
         common_options.append('--incremental')
     else:
         common_options.append('--full')
+    if args.echo:
+        common_options.append('--echo')
 
     log.debug("common_options: {}".format(common_options))
 

@@ -34,6 +34,7 @@ from crate_anon.common.subproc import (
     run_multiple_processes,
 )
 from crate_anon.common.logsupport import configure_logger_for_colour
+from crate_anon.nlp_manager.nlp_manager import NLP_CONFIG_ENV_VAR
 from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
@@ -54,13 +55,23 @@ def main():
     description = "Runs the CRATE NLP manager in parallel. {}.".format(version)
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument(
-        'mode', choices=('incremental', 'full'),
-        help="Processing mode (full or incremental)")
+    parser.add_argument("--config",
+                        help="Config file (overriding environment "
+                             "variable {})".format(NLP_CONFIG_ENV_VAR))
     parser.add_argument(
         "--nlpname", "-a", default=DEFAULT_NLP_NAME,
         help="NLP processing name, from the config file (default: {})".format(
             DEFAULT_NLP_NAME))
+
+    parser.add_argument("-i", "--incremental",
+                        dest="incremental", action="store_true",
+                        help="Process only new/changed information, where "
+                             "possible (* default)")
+    parser.add_argument("-f", "--full",
+                        dest="incremental", action="store_false",
+                        help="Drop and remake everything")
+    parser.set_defaults(incremental=True)
+
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
         help="Number of processes (default: {})".format(CPUCOUNT))
@@ -77,7 +88,9 @@ def main():
     configure_logger_for_colour(rootlogger, loglevel)
 
     common_options = ["-v"] * args.verbose
-    if args.mode == 'incremental':
+    if args.config:
+        common_options.extend(['--config', args.config])
+    if args.incremental:
         common_options.append('--incremental')
     else:
         common_options.append('--full')

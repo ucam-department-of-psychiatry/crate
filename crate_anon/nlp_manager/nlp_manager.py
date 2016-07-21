@@ -1288,13 +1288,15 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
                         help="Process cluster name")
     parser.add_argument("--democonfig", action="store_true",
                         help="Print a demo config file")
+
     parser.add_argument("--incremental", action="store_true",
                         help="Process only new/changed information, where "
-                             "possible")
+                             "possible (* default)")
     parser.add_argument("--full",
                         dest="incremental", action="store_false",
                         help="Drop and remake everything")
     parser.set_defaults(incremental=True)
+
     parser.add_argument("--dropremake", action="store_true",
                         help="Drop/remake destination tables only")
     parser.add_argument("--nlp", action="store_true",

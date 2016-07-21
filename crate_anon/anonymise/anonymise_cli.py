@@ -81,18 +81,20 @@ def main():
                         help="Process patient tables only")
     parser.add_argument("--index", action="store_true",
                         help="Create indexes only")
+
     parser.add_argument("-i", "--incremental",
                         dest="incremental", action="store_true",
                         help="Process only new/changed information, where "
-                             "possible")
-    parser.add_argument(
-        "--skipdelete", dest="skipdelete", action="store_true",
-        help="For incremental updates, Skip deletion of rows present in the "
-             "destination but not the source")
+                             "possible (* default)")
     parser.add_argument("-f", "--full",
                         dest="incremental", action="store_false",
                         help="Drop and remake everything")
     parser.set_defaults(incremental=True)
+
+    parser.add_argument(
+        "--skipdelete", dest="skipdelete", action="store_true",
+        help="For incremental updates, Skip deletion of rows present in the "
+             "destination but not the source")
     parser.add_argument(
         "--seed",
         help="String to use as the basis of the seed for the random number "
