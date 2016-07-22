@@ -162,6 +162,9 @@ MYSQL_TABLE_ARGS = {
     'mysql_engine': 'InnoDB',
 }
 
+MYSQL_MAX_IDENTIFIER_LENGTH = 64
+# http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
+
 # =============================================================================
 # Demo config
 # =============================================================================

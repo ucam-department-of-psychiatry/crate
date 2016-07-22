@@ -152,7 +152,7 @@ def rio_add_user_lookup(viewmaker, basecolumn,
 
         {ap}_genspec.Code AS {cp}_Main_Specialty_Code,
         {ap}_genspec.CodeDescription AS {cp}_Main_Specialty_Description,
-        {ap}_genspec.NationalCode AS {cp}_main_specialty_national_code,
+        {ap}_genspec.NationalCode AS {cp}_Main_Specialty_National_Code,
 
         {ap}_profgroup.Code AS {cp}_Professional_Group_Code,
         {ap}_profgroup.CodeDescription AS {cp}_Professional_Group_Description,

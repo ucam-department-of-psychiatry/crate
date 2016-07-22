@@ -2203,7 +2203,7 @@ RIO_VIEWS = OrderedDict([
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'DiagnosisBy',
-                    'column_prefix': 'Diagnosis_Confirmed_By',  # RCEP
+                    'column_prefix': 'Diag_Confirmed_By',  # RCEP
                     'internal_alias_prefix': 'dcb',
                 },
             },
