@@ -1,12 +1,12 @@
 ===============================================================================
 THINGS TO DO
 ===============================================================================
+TODO: specific supposed PK failing (non-unique) on incremental
+
 TODO: Imperfectly tested: Audit_Created_Date, Audit_Updated_Date
     ... some data for Audit_Created_Date, but incomplete audit table
 TODO: Similarly, all cross-checks to RCEP output (currently limited by data
     availability)
-TODO: Test RiO ddgen
-TODO: CRATE docs: piccy, and overview of stages
 
 ===============================================================================
 Primary keys
