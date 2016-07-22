@@ -29,9 +29,15 @@
 {% endcomment %}
     |
     {% if nav_on_results or not query_selected %}
-        <b>view results</b>
+        <b>results (table)</b>
     {% else %}
-        <a href="{% url 'results' current_query_id %}">view results</a>
+        <a href="{% url 'results' current_query_id %}">results (table)</a>
+    {% endif %}
+    |
+    {% if nav_on_results_recordwise or not query_selected %}
+        <b>results (recordwise)</b>
+    {% else %}
+        <a href="{% url 'results_recordwise' current_query_id %}">results (recordwise)</a>
     {% endif %}
     |
     {% if not query_selected %}

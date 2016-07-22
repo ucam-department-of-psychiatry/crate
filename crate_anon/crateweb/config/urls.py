@@ -85,6 +85,8 @@ urlpatterns = [
         research_views.count, name='count'),
     url(r'^results/(?P<query_id>[0-9]+)/$',
         research_views.results, name='results'),
+    url(r'^results_recordwise/(?P<query_id>[0-9]+)/$',
+        research_views.results_recordwise, name='results_recordwise'),
     url(r'^tsv/$', research_views.tsv, name='tsv'),
 
     # -------------------------------------------------------------------------

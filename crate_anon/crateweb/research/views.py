@@ -20,6 +20,7 @@ from django.http import HttpResponse
 # from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.utils.html import escape
 # from django.views.decorators.csrf import csrf_exempt
 from pyparsing import ParseException
 # from sqlalchemy.sql import sqltypes
@@ -478,7 +479,7 @@ def count_current(request):
 
 def results(request, query_id):
     """
-    View results of chosen query.
+    View results of chosen query, in tabular format
     """
     if query_id is None:
         return no_query_selected(request)
@@ -493,6 +494,26 @@ def results(request, query_id):
                             collapse_at_len=profile.collapse_at_len,
                             collapse_at_n_lines=profile.collapse_at_n_lines,
                             line_length=profile.line_length)
+
+
+def results_recordwise(request, query_id):
+    """
+    View results of chosen query, in tabular format
+    """
+    if query_id is None:
+        return no_query_selected(request)
+    try:
+        query_id = int(query_id)
+        query = Query.objects.get(id=query_id, user=request.user)
+    except ObjectDoesNotExist:
+        return render_bad_query_id(request, query_id)
+    profile = request.user.profile
+    highlights = Highlight.get_active_highlights(request)
+    return render_resultset_recordwise(
+        request, query, highlights,
+        collapse_at_len=profile.collapse_at_len,
+        collapse_at_n_lines=profile.collapse_at_n_lines,
+        line_length=profile.line_length)
 
 
 def tsv(request):
@@ -626,7 +647,7 @@ def render_resultset(request, query, highlights,
     table_html += '  <tr>\n'
     table_html += '    <th><i>#</i></th>\n'
     for field in fieldnames:
-        table_html += '    <th>{}</th>\n'.format(field)
+        table_html += '    <th>{}</th>\n'.format(escape(field))
     table_html += '  </tr>\n'
     for row_index, row in enumerate(display_rows):
         table_html += '  <tr class="{}">\n'.format(
@@ -665,6 +686,69 @@ def render_resultset(request, query, highlights,
         'rowcount': rowcount,
         'sql': query.get_original_sql(),
         'nav_on_results': True,
+    }
+    context.update(query_context(request))
+    return render(request, 'query_result.html', context)
+
+
+def render_resultset_recordwise(request, query, highlights,
+                                collapse_at_len=None, collapse_at_n_lines=None,
+                                line_length=None):
+    # Query
+    if query is None:
+        return render_missing_query(request)
+    try:
+        cursor = query.get_executed_cursor()
+    except DatabaseError as exception:
+        query.audit(failed=True, fail_msg=str(exception))
+        return render_bad_query(request, query, exception)
+    rowcount = cursor.rowcount
+    query.audit(n_records=rowcount)
+    fieldnames = get_fieldnames_from_cursor(cursor)
+    rows = cursor.fetchall()
+    row_indexes = list(range(len(rows)))
+    # We don't need to process all rows before we paginate.
+    page = paginate(request, row_indexes, per_page=1)
+    record_index = page.start_index() - 1
+    record = rows[record_index]
+    # Highlights
+    highlight_dict = Highlight.as_ordered_dict(highlights)
+    highlight_descriptions = get_highlight_descriptions(highlight_dict)
+    # Table
+    elementnum = 0  # used for collapsing divs/buttons
+    table_html = '<p><i>Record {}</i></p>\n'.format(page.start_index())
+    table_html += '<table>\n'
+    for col_index, value in enumerate(record):
+        fieldname = fieldnames[col_index]
+        table_html += '  <tr class="{}">\n'.format(
+            "stripy_even" if col_index % 2 == 0 else "stripy_odd"
+        )
+        table_html += '    <th>{}</th>'.format(escape(fieldname))
+        table_html += (
+            '    <td class="queryresult">{}</td>\n'.format(
+                make_result_element(
+                    value,
+                    elementnum,
+                    highlight_dict=highlight_dict,
+                    collapse_at_len=collapse_at_len,
+                    collapse_at_n_lines=collapse_at_n_lines,
+                    line_length=line_length,
+                    collapsed=False,
+                )
+            )
+        )
+        elementnum += 1
+        table_html += '  </tr>\n'
+    table_html += '</table>\n'
+    # Render
+    context = {
+        'fieldnames': fieldnames,
+        'highlight_descriptions': highlight_descriptions,
+        'table_html': table_html,
+        'page': page,
+        'rowcount': rowcount,
+        'sql': query.get_original_sql(),
+        'nav_on_results_recordwise': True,
     }
     context.update(query_context(request))
     return render(request, 'query_result.html', context)

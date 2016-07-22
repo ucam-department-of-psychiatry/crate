@@ -36,8 +36,9 @@ def is_developer(user):
 # Forms
 # =============================================================================
 
-def paginate(request, all_items):
-    per_page = get_per_page(request)
+def paginate(request, all_items, per_page=None):
+    if per_page is None:
+        per_page = get_per_page(request)
     paginator = Paginator(all_items, per_page)
     page = request.GET.get('page')
     try:

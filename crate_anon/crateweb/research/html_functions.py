@@ -71,7 +71,7 @@ def collapsible_div_contentdiv(tag, contents, extradivclasses=None,
     )
 
 
-def overflow_div(tag, contents, extradivclasses=None):
+def overflow_div(tag, contents, extradivclasses=None, collapsed=True):
     if extradivclasses is None:
         extradivclasses = []
     return """
@@ -79,10 +79,10 @@ def overflow_div(tag, contents, extradivclasses=None):
             <div class="expandcollapse" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}', 'collapse_summary_{tag}');">
                 <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{plus_img}">
             </div>
-            <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" style="display:none">
+            <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" {hide_detail}>
                 {contents}
             </div>
-            <div class="collapse_summary {extradivclasses}" id="collapse_summary_{tag}">
+            <div class="collapse_summary {extradivclasses}" id="collapse_summary_{tag}" {hide_summary}>
                 {contents}
             </div>
         </div>
@@ -91,6 +91,8 @@ def overflow_div(tag, contents, extradivclasses=None):
         tag=str(tag),
         contents=contents,
         plus_img=static('plus.gif'),
+        hide_detail='style="display:none"' if collapsed else '',
+        hide_summary='' if collapsed else 'style="display:none"',
     )
 
 
@@ -134,7 +136,8 @@ def make_highlight_replacement_regex(n=0):
 
 def make_result_element(x, elementnum, highlight_dict=None,
                         collapse_at_len=None, collapse_at_n_lines=None,
-                        line_length=None, keep_existing_newlines=True):
+                        line_length=None, keep_existing_newlines=True,
+                        collapsed=True):
     # return escape(repr(x))
     if x is None:
         return ""
@@ -165,7 +168,7 @@ def make_result_element(x, elementnum, highlight_dict=None,
         output = find.sub(replace, output)
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        return overflow_div(elementnum, output)
+        return overflow_div(elementnum, output, collapsed=collapsed)
     return output
 
 
