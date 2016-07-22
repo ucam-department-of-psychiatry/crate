@@ -591,9 +591,9 @@ class DataDictionaryRow(object):
         # In order:
         self.omit = cfg.ddgen_omit_by_default
         if self.matches_fielddef(cfg.ddgen_include_fields):
-            self.omit = True
-        if self.matches_fielddef(cfg.ddgen_omit_fields):
             self.omit = False
+        if self.matches_fielddef(cfg.ddgen_omit_fields):
+            self.omit = True
         if bool(self.scrub_src):
             self.omit = True
         if self._pk or self._primary_pid or self._master_pid:
