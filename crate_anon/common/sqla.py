@@ -333,6 +333,14 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
 # Do special dialect conversions on SQLAlchemy SQL types (of class type)
 # =============================================================================
 
+def remove_collation(coltype):
+    if not hasattr(coltype, 'collation') or not coltype.collation:
+        return coltype
+    coltype = copy.copy(coltype)
+    coltype.collation = None
+    return coltype
+
+
 def convert_sqla_type_for_dialect(coltype, dialect, strip_collation=True):
     # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
     #                                                     vars(coltype)))
@@ -348,9 +356,11 @@ def convert_sqla_type_for_dialect(coltype, dialect, strip_collation=True):
             # MySQL can't. Failure to convert gives:
             # 'NVARCHAR requires a length on dialect mysql'
             return sqltypes.Text()
-        if coltype.collation and strip_collation:
-            coltype = copy.copy(coltype)
-            coltype.collation = None
+        if strip_collation:
+            coltype = remove_collation(coltype)
+    elif typeclass in [sqltypes.CHAR]:
+        if strip_collation:
+            coltype = remove_collation(coltype)
     elif typeclass in [sqltypes.TEXT, mssql.base.NTEXT]:
         return sqltypes.Text()
 
