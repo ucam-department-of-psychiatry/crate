@@ -144,8 +144,8 @@ def rio_add_user_lookup(viewmaker, basecolumn,
         {ap}_genperson.FirstName AS {cp}_First_Name,
         {ap}_genperson.Surname AS {cp}_Surname,
 
-        {ap}_prof.Code AS {cp}_Responsible_Clinician_Profession_Code,
-        {ap}_prof.CodeDescription AS {cp}_Responsible_Clinician_Profession_Description,
+        {ap}_prof.Code AS {cp}_Resp_Clinician_Profession_Code,
+        {ap}_prof.CodeDescription AS {cp}_Resp_Clinician_Profession_Description,
 
         {ap}_serviceteam.Code AS {cp}_Primary_Team_Code,
         {ap}_serviceteam.CodeDescription AS {cp}_Primary_Team_Description,
