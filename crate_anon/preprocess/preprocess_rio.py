@@ -3,9 +3,6 @@
 
 import argparse
 import logging
-import pdb
-import sys
-import traceback
 
 from sqlalchemy import (
     create_engine,
@@ -13,6 +10,7 @@ from sqlalchemy import (
 )
 
 from crate_anon.anonymise.constants import MYSQL_CHARSET
+from crate_anon.common.debugfunc import pdb_run
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sql import (
     add_columns,
@@ -803,10 +801,4 @@ def main():
 
 
 if __name__ == '__main__':
-    # noinspection PyBroadException
-    try:
-        main()
-    except:
-        type_, value, tb = sys.exc_info()
-        traceback.print_exc()
-        pdb.post_mortem(tb)
+    pdb_run(main)

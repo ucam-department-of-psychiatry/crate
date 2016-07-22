@@ -14,6 +14,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
 )
+from crate_anon.common.debugfunc import pdb_run
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.version import VERSION, VERSION_DATE
 
@@ -144,4 +145,4 @@ def main():
 # =============================================================================
 
 if __name__ == '__main__':
-    main()
+    pdb_run(main)

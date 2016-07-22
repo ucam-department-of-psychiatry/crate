@@ -262,7 +262,7 @@ ddgen_addition_only_tables = #
 
 ddgen_deletion_possible_tables =
 
-ddgen_pid_defining_fieldnames = ClientIndex.crate_rio_number
+ddgen_pid_defining_fieldnames = Client_Demographic_Details.crate_rio_number
 
 ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
