@@ -492,6 +492,8 @@ class DataDictionaryRow(object):
     def matches_tabledef(self, tabledef):
         if isinstance(tabledef, str):
             return self._matches_tabledef(tabledef)
+        elif not tabledef:
+            return False
         else:  # list
             return any(self._matches_tabledef(td) for td in tabledef)
 
@@ -506,6 +508,8 @@ class DataDictionaryRow(object):
     def matches_fielddef(self, fielddef):
         if isinstance(fielddef, str):
             return self._matches_fielddef(fielddef)
+        elif not fielddef:
+            return False
         else:  # list
             return any(self._matches_fielddef(fd) for fd in fielddef)
 
