@@ -41,6 +41,8 @@
           <option value="servicemanager" />
           <option value="sqlalchemy.dialects.mysql.base.dialect" />
           <option value="sqlalchemy.dialects.mssql.base.dialect" />
+          <option value="super.get_queryset" />
+          <option value="super.change_view" />
         </list>
       </option>
     </inspection_tool>

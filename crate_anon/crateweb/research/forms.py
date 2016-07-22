@@ -179,9 +179,9 @@ class QueryBuilderForm(forms.Form):
         # ---------------------------------------------------------------------
         if where_op not in self.FILE_REQUIRED:
             return
-        file = cleaned_data['file']
+        fileobj = cleaned_data['file']
         # ... is an instance of InMemoryUploadedFile
-        if not file:
+        if not fileobj:
             self.add_error('file', forms.ValidationError("Must specify file"))
             return
 
@@ -204,7 +204,7 @@ class QueryBuilderForm(forms.Form):
             literal_func = sql_string_literal
         # Or: http://www.dabeaz.com/generators/Generators.pdf
         literals = []
-        for line in file.read().decode("utf8").splitlines():
+        for line in fileobj.read().decode("utf8").splitlines():
             raw_item = line.strip()
             if not raw_item or raw_item.startswith('#'):
                 continue

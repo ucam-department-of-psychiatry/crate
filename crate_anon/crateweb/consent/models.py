@@ -2930,7 +2930,7 @@ class Email(models.Model):
                     to_researcher=True)
         email.save()
         EmailAttachment.create(email=email,
-                               file=letter.pdf,
+                               fileobj=letter.pdf,
                                content_type="application/pdf")  # will save
         return email
 
@@ -2953,7 +2953,7 @@ class Email(models.Model):
                     to_researcher=True)
         email.save()
         EmailAttachment.create(email=email,
-                               file=letter.pdf,
+                               fileobj=letter.pdf,
                                content_type="application/pdf")  # will save
         return email
 
@@ -3050,12 +3050,12 @@ class EmailAttachment(models.Model):
         return os.path.getsize(self.file.path)
 
     @classmethod
-    def create(cls, email, file, content_type, sent_filename=None,
+    def create(cls, email, fileobj, content_type, sent_filename=None,
                owns_file=False):
         if sent_filename is None:
-            sent_filename = os.path.basename(file.name)
+            sent_filename = os.path.basename(fileobj.name)
         attachment = cls(email=email,
-                         file=file,
+                         file=fileobj,
                          sent_filename=sent_filename,
                          content_type=content_type,
                          owns_file=owns_file)

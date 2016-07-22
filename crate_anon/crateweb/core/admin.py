@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding=utf-8
 # crate_anon/crateweb/core/admin.py
 
 # NOTE that

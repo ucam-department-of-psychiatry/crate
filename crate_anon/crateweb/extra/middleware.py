@@ -113,6 +113,7 @@ if hasattr(settings, 'LOGIN_EXEMPT_URLS'):
                     for expr in settings.LOGIN_EXEMPT_URLS]
 
 
+# noinspection PyClassHasNoInit
 class LoginRequiredMiddleware:
     """
     Middleware that requires a user to be authenticated to view any page other

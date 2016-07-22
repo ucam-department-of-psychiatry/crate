@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding=utf-8
 # crate_anon/anonymise/make_demo_database.py
 
 """

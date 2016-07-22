@@ -33,8 +33,8 @@ DEFAULT_JAVAC = 'javac'
 
 def moveglob(src, dest, allow_nothing=False):
     something = False
-    for file in glob.glob(src):
-        shutil.move(file, dest)
+    for filename in glob.glob(src):
+        shutil.move(filename, dest)
         something = True
     if something or allow_nothing:
         return

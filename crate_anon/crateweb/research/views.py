@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding=utf-8
 # crate_anon/crateweb/research/views.py
 
 from functools import lru_cache

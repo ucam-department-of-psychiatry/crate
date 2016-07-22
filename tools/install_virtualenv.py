@@ -7,6 +7,9 @@ import platform
 import subprocess
 import sys
 
+# from crate_anon.common.fileops import get_lines_without_comments
+
+
 if sys.version_info[0] < 3:
     raise AssertionError("Need Python 3")
 LINUX = platform.system() == 'Linux'
@@ -41,18 +44,6 @@ def title(msg):
     print(SEP)
     print(msg)
     print(SEP)
-
-
-def get_lines_without_comments(filename):
-    lines = []
-    with open(filename) as f:
-        for line in f:
-            line = line.partition('#')[0]
-            line = line.rstrip()
-            line = line.lstrip()
-            if line:
-                lines.append(line)
-    return lines
 
 
 def cmd_returns_zero_success(cmdargs):

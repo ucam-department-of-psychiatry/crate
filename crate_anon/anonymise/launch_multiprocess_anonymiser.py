@@ -58,13 +58,14 @@ def main():
                         help="Config file (overriding environment "
                              "variable {})".format(CONFIG_ENV_VAR))
 
-    parser.add_argument("-i", "--incremental",
-                        dest="incremental", action="store_true",
-                        help="Process only new/changed information, where "
-                             "possible (* default)")
-    parser.add_argument("-f", "--full",
-                        dest="incremental", action="store_false",
-                        help="Drop and remake everything")
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
+        "-i", "--incremental", dest="incremental", action="store_true",
+        help="Process only new/changed information, where possible "
+             "(* default)")
+    mode_group.add_argument(
+        "-f", "--full", dest="incremental", action="store_false",
+        help="Drop and remake everything")
     parser.set_defaults(incremental=True)
 
     parser.add_argument(

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # crate/tools/make_package.py
 
-import glob
 from html import escape
 import os
 from os.path import join
@@ -10,6 +9,11 @@ import subprocess
 import sys
 import tempfile
 
+from crate_anon.common.fileops import (
+    mkdirp,
+    copytree,
+    get_lines_without_comments,
+)
 from crate_anon.version import VERSION, VERSION_DATE
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
@@ -61,48 +65,6 @@ def workpath(destpath, *args):
         return join(workdir, destpath[1:], *args)
     else:
         return join(workdir, destpath, *args)
-
-
-def mkdirp(path):
-    print("mkdir_p: " + path)
-    os.makedirs(path, exist_ok=True)
-
-
-def copyglob(src, dest, allow_nothing=False):
-    something = False
-    for file in glob.glob(src):
-        shutil.copy(file, dest)
-        something = True
-    if something or allow_nothing:
-        return
-    raise ValueError("No files found matching: {}".format(src))
-
-
-def copytree(src_dir, dest_parent):
-    dirname = os.path.basename(os.path.normpath(src_dir))
-    dest_dir = os.path.join(dest_parent, dirname)
-    shutil.copytree(src_dir, dest_dir)
-
-
-def chown_r(path, user, group):
-    # http://stackoverflow.com/questions/2853723
-    for root, dirs, files in os.walk(path):
-        for x in dirs:
-            shutil.chown(os.path.join(root, x), user, group)
-        for x in files:
-            shutil.chown(os.path.join(root, x), user, group)
-
-
-def get_lines_without_comments(filename):
-    lines = []
-    with open(filename) as f:
-        for line in f:
-            line = line.partition('#')[0]
-            line = line.rstrip()
-            line = line.lstrip()
-            if line:
-                lines.append(line)
-    return lines
 
 
 def webify_file(srcfilename, destfilename):

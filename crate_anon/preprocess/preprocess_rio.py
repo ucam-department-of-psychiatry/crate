@@ -628,6 +628,7 @@ def process_all_tables(engine, metadata, progargs):
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        # formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=
         r"""
 *   Alters a RiO database to be suitable for CRATE.
@@ -663,49 +664,53 @@ def main():
         "--debug-skiptables", action="store_true",
         help="DEBUG-ONLY OPTION. Skip tables (view creation only)")
 
-    parser.add_argument(
+    prog_curr_group = parser.add_mutually_exclusive_group()
+    prog_curr_group.add_argument(
         "--prognotes-current-only",
         dest="prognotes_current_only",
         action="store_true",
         help="Progress_Notes view restricted to current versions only "
              "(* default)")
-    parser.add_argument(
+    prog_curr_group.add_argument(
         "--prognotes-all",
         dest="prognotes_current_only",
         action="store_false",
         help="Progress_Notes view shows old versions too")
     parser.set_defaults(prognotes_current_only=True)
 
-    parser.add_argument(
+    clindocs_curr_group = parser.add_mutually_exclusive_group()
+    clindocs_curr_group.add_argument(
         "--clindocs-current-only",
         dest="clindocs_current_only",
         action="store_true",
         help="Clinical_Documents view restricted to current versions only (*)")
-    parser.add_argument(
+    clindocs_curr_group.add_argument(
         "--clindocs-all",
         dest="clindocs_current_only",
         action="store_false",
         help="Clinical_Documents view shows old versions too")
     parser.set_defaults(clindocs_current_only=True)
 
-    parser.add_argument(
+    allerg_curr_group = parser.add_mutually_exclusive_group()
+    allerg_curr_group.add_argument(
         "--allergies-current-only",
         dest="allergies_current_only",
         action="store_true",
         help="Client_Allergies view restricted to current info only")
-    parser.add_argument(
+    allerg_curr_group.add_argument(
         "--allergies-all",
         dest="allergies_current_only",
         action="store_false",
         help="Client_Allergies view shows deleted allergies too (*)")
     parser.set_defaults(allergies_current_only=False)
 
-    parser.add_argument(
+    audit_group = parser.add_mutually_exclusive_group()
+    audit_group.add_argument(
         "--audit-info",
         dest="audit_info",
         action="store_true",
         help="Audit information (creation/update times) added to views")
-    parser.add_argument(
+    audit_group.add_argument(
         "--no-audit-info",
         dest="audit_info",
         action="store_false",
