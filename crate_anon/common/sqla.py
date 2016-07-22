@@ -350,25 +350,29 @@ def convert_sqla_type_for_dialect(coltype, dialect, strip_collation=True):
     # -------------------------------------------------------------------------
     # Text
     # -------------------------------------------------------------------------
-    if typeclass in [sqltypes.VARCHAR, sqltypes.NVARCHAR]:
+    if typeclass in [sqltypes.TEXT, mssql.base.NTEXT]:
+        # Intrinsically unlimited text.
+        return sqltypes.Text()
+    if typeclass in [sqltypes.CHAR, sqltypes.VARCHAR, sqltypes.NVARCHAR]:
+        # Potentially unlimited text: SQL Server VARCHAR(MAX), NVARCHAR(MAX).
         if coltype.length is None and to_mysql:
             # SQL Server can have NVARCHAR() and VARCHAR(), with no length.
+            # (This is VARCHAR(MAX) and NVARCHAR(MAX) in DDL.)
             # MySQL can't. Failure to convert gives:
             # 'NVARCHAR requires a length on dialect mysql'
             return sqltypes.Text()
+        # Text with a length.
         if strip_collation:
-            coltype = remove_collation(coltype)
-    elif typeclass in [sqltypes.CHAR]:
-        if strip_collation:
-            coltype = remove_collation(coltype)
-    elif typeclass in [sqltypes.TEXT, mssql.base.NTEXT]:
-        return sqltypes.Text()
+            return remove_collation(coltype)
+        else:
+            return coltype
 
     # -------------------------------------------------------------------------
     # BIT
     # -------------------------------------------------------------------------
-    elif typeclass == mssql.base.BIT and to_mysql:
+    if typeclass == mssql.base.BIT and to_mysql:
         # MySQL BIT objects have a length attribute.
         return mysql.base.BIT()
 
+    # Some other type
     return coltype
