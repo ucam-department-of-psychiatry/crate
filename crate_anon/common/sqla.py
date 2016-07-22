@@ -6,6 +6,7 @@ import copy
 import logging
 import re
 
+from sqlalchemy.dialects import mssql, mysql
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import DDL, Index
@@ -333,8 +334,16 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
 # =============================================================================
 
 def convert_sqla_type_for_dialect(coltype, dialect, strip_collation=True):
-    if type(coltype) in [sqltypes.VARCHAR, sqltypes.NVARCHAR]:
-        if coltype.length is None and dialect.name == 'mysql':
+    # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
+    #                                                     vars(coltype)))
+    to_mysql = dialect.name == 'mysql'
+    typeclass = type(coltype)
+    
+    # -------------------------------------------------------------------------
+    # Text
+    # -------------------------------------------------------------------------
+    if typeclass in [sqltypes.VARCHAR, sqltypes.NVARCHAR]:
+        if coltype.length is None and to_mysql:
             # SQL Server can have NVARCHAR() and VARCHAR(), with no length.
             # MySQL can't. Failure to convert gives:
             # 'NVARCHAR requires a length on dialect mysql'
@@ -342,4 +351,14 @@ def convert_sqla_type_for_dialect(coltype, dialect, strip_collation=True):
         if coltype.collation and strip_collation:
             coltype = copy.copy(coltype)
             coltype.collation = None
+    elif typeclass in [sqltypes.TEXT, mssql.base.NTEXT]:
+        return sqltypes.Text()
+
+    # -------------------------------------------------------------------------
+    # BIT
+    # -------------------------------------------------------------------------
+    elif typeclass == mssql.base.BIT and to_mysql:
+        # MySQL BIT objects have a length attribute.
+        return mysql.base.BIT()
+
     return coltype
