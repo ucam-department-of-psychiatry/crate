@@ -186,6 +186,8 @@ class DatabaseSafeConfig(object):
             'ddgen_scrubsrc_thirdparty_fields')
         self.ddgen_scrubsrc_thirdparty_xref_pid_fields = opt_multiline(
             'ddgen_scrubsrc_thirdparty_xref_pid_fields')
+        self.ddgen_required_scrubsrc_fields = opt_multiline(
+            'ddgen_required_scrubsrc_fields')
         self.ddgen_scrubmethod_code_fields = opt_multiline(
             'ddgen_scrubmethod_code_fields')
         self.ddgen_scrubmethod_date_fields = opt_multiline(

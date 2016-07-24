@@ -248,6 +248,7 @@ class DataDictionaryRow(object):
         self._constant = False
         self._addition_only = False
         self._opt_out_info = False
+        self._required_scrubber = False
 
         self._inclusion_values = []
         self._exclusion_values = []
@@ -309,25 +310,28 @@ class DataDictionaryRow(object):
     def src_flags(self):
         return ''.join([
             SRCFLAG.PK if self._pk else '',
-            SRCFLAG.ADDSRCHASH if self._add_src_hash else '',
-            SRCFLAG.PRIMARYPID if self._primary_pid else '',
-            SRCFLAG.DEFINESPRIMARYPIDS if self._defines_primary_pids else '',
-            SRCFLAG.MASTERPID if self._master_pid else '',
+            SRCFLAG.ADD_SRC_HASH if self._add_src_hash else '',
+            SRCFLAG.PRIMARY_PID if self._primary_pid else '',
+            SRCFLAG.DEFINES_PRIMARY_PIDS if self._defines_primary_pids else '',
+            SRCFLAG.MASTER_PID if self._master_pid else '',
             SRCFLAG.CONSTANT if self._constant else '',
             SRCFLAG.ADDITION_ONLY if self._addition_only else '',
-            SRCFLAG.OPTOUT if self._opt_out_info else '',
+            SRCFLAG.OPT_OUT if self._opt_out_info else '',
+            (SRCFLAG.SRCFLAG.REQUIRED_SCRUBBER if self._required_scrubber
+             else ''),
         ])
 
     @src_flags.setter
     def src_flags(self, value):
         self._pk = SRCFLAG.PK in value
-        self._add_src_hash = SRCFLAG.ADDSRCHASH in value
-        self._primary_pid = SRCFLAG.PRIMARYPID in value
-        self._defines_primary_pids = SRCFLAG.DEFINESPRIMARYPIDS in value
-        self._master_pid = SRCFLAG.MASTERPID in value
+        self._add_src_hash = SRCFLAG.ADD_SRC_HASH in value
+        self._primary_pid = SRCFLAG.PRIMARY_PID in value
+        self._defines_primary_pids = SRCFLAG.DEFINES_PRIMARY_PIDS in value
+        self._master_pid = SRCFLAG.MASTER_PID in value
         self._constant = SRCFLAG.CONSTANT in value
         self._addition_only = SRCFLAG.ADDITION_ONLY in value
-        self._opt_out_info = SRCFLAG.OPTOUT in value
+        self._opt_out_info = SRCFLAG.OPT_OUT in value
+        self._required_scrubber = SRCFLAG.REQUIRED_SCRUBBER in value
 
     @property
     def inclusion_values(self):
@@ -569,6 +573,10 @@ class DataDictionaryRow(object):
         else:
             self.scrub_src = ""
 
+        # Is it a mandatory scrubbing field?
+        if self.matches_fielddef(cfg.ddgen_required_scrubsrc_fields):
+            self._required_scrubber = True
+
         # What kind of sensitive data? Date, text, number, code?
         if not self.scrub_src:
             self.scrub_method = ""
@@ -779,25 +787,29 @@ class DataDictionaryRow(object):
         if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(
                 "All fields with src_flags={} set must have src_flags={} "
-                "set".format(SRCFLAG.DEFINESPRIMARYPIDS, SRCFLAG.PRIMARYPID))
+                "set".format(SRCFLAG.DEFINES_PRIMARY_PIDS, SRCFLAG.PRIMARY_PID))
 
         if self._opt_out_info and not self.config.optout_col_values:
             raise ValueError(
                 "Fields with src_flags={} exist, but config's "
-                "optout_col_values setting is empty".format(SRCFLAG.OPTOUT))
+                "optout_col_values setting is empty".format(SRCFLAG.OPT_OUT))
 
         if count_bool([self._primary_pid,
                        self._master_pid,
                        bool(self.alter_method)]) > 1:
             raise ValueError(
                 "Field can be any ONE of: src_flags={}, src_flags={}, "
-                "alter_method".format(SRCFLAG.PRIMARYPID, SRCFLAG.MASTERPID))
+                "alter_method".format(SRCFLAG.PRIMARY_PID, SRCFLAG.MASTER_PID))
 
         valid_scrubsrc = list(SCRUBSRC.values()) + [""]
         if self.scrub_src not in valid_scrubsrc:
             raise ValueError(
                 "Invalid scrub_src - must be one of [{}]".format(
                     ",".join(valid_scrubsrc)))
+
+        if self._required_scrubber and not self.scrub_src:
+            raise ValueError("If you specify src_flags={}, you must specify "
+                             "scrub_src".format(SRCFLAG.REQUIRED_SCRUBBER))
 
         if (self.scrub_src and self.scrub_method and
                 self.scrub_method not in SCRUBMETHOD.values()):
@@ -827,7 +839,7 @@ class DataDictionaryRow(object):
                     raise ValueError(
                         "All fields with src_field={} used in output should "
                         "have src_flag={} set".format(self.src_field,
-                                                      SRCFLAG.PRIMARYPID))
+                                                      SRCFLAG.PRIMARY_PID))
                 if self.dest_field != self.config.research_id_fieldname:
                     raise ValueError(
                         "Primary PID field should have "
@@ -839,7 +851,7 @@ class DataDictionaryRow(object):
                     "All fields with src_field = {} used in output should have"
                     " src_flags={} set".format(
                         srccfg.ddgen_master_pid_fieldname,
-                        SRCFLAG.MASTERPID))
+                        SRCFLAG.MASTER_PID))
 
             for am in self._alter_methods:
                 if am.truncate_date:
@@ -875,8 +887,8 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     "All src_flags={}/src_flags={} fields used in output must "
                     "have destination_datatype = {}".format(
-                        SRCFLAG.PRIMARYPID,
-                        SRCFLAG.MASTERPID,
+                        SRCFLAG.PRIMARY_PID,
+                        SRCFLAG.MASTER_PID,
                         self.config.sqltype_encrypted_pid_as_sql))
 
             valid_index = [INDEX.NORMAL, INDEX.UNIQUE, INDEX.FULLTEXT, ""]
@@ -897,21 +909,21 @@ class DataDictionaryRow(object):
                 raise ValueError(
                     "src_flags={} can only be set on "
                     "src_flags={} fields".format(
-                        SRCFLAG.ADDSRCHASH,
+                        SRCFLAG.ADD_SRC_HASH,
                         SRCFLAG.PK))
             # if self.omit:
             #     raise ValueError(
             #         "Do not set omit on src_flags={} fields".format(
-            #             SRCFLAG.ADDSRCHASH))
+            #             SRCFLAG.ADD_SRC_HASH))
             if self.index != INDEX.UNIQUE:
                 raise ValueError(
                     "src_flags={} fields require index=={}".format(
-                        SRCFLAG.ADDSRCHASH,
+                        SRCFLAG.ADD_SRC_HASH,
                         INDEX.UNIQUE))
             if self._constant:
                 raise ValueError(
                     "cannot mix {} flag with {} flag".format(
-                        SRCFLAG.ADDSRCHASH,
+                        SRCFLAG.ADD_SRC_HASH,
                         SRCFLAG.CONSTANT))
 
         if self._constant:
@@ -956,6 +968,10 @@ class DataDictionaryRow(object):
             # log.debug("skipping row based on exclusion_values")
             return True
         return False
+
+    @property
+    def required_scrubber(self):
+        return self._required_scrubber
 
     # -------------------------------------------------------------------------
     # SQLAlchemy types
@@ -1165,7 +1181,7 @@ class DataDictionary(object):
                         raise ValueError(
                             "Source table {d}.{t} has a scrub_in or "
                             "src_flags={f} field but no {p} field".format(
-                                d=d, t=t, f=SRCFLAG.MASTERPID, p=pidfield))
+                                d=d, t=t, f=SRCFLAG.MASTER_PID, p=pidfield))
 
                 if t not in db.table_names:
                     log.debug(
@@ -1250,7 +1266,7 @@ class DataDictionary(object):
                 for r in self.get_rows_for_src_table(d, t):
                     if r.add_src_hash and r.omit:
                         raise ValueError("Do not set omit on src_flags={} "
-                                         "fields".format(SRCFLAG.ADDSRCHASH))
+                                         "fields".format(SRCFLAG.ADD_SRC_HASH))
                     if r.constant and r.omit:
                         raise ValueError("Do not set omit on src_flags={} "
                                          "fields".format(SRCFLAG.CONSTANT))
@@ -1271,7 +1287,7 @@ class DataDictionary(object):
                     "Field {}.{}.{} has src_flags={} set, but that table does "
                     "not have a primary patient ID field or a master patient "
                     "ID field".format(src_db, src_table, optout_colname,
-                                      SRCFLAG.OPTOUT))
+                                      SRCFLAG.OPT_OUT))
 
         log.debug("Checking DD: destination tables...")
         for t in self.get_dest_tables():
@@ -1320,11 +1336,11 @@ class DataDictionary(object):
             else:
                 raise ValueError(
                     "Must have at least one field with "
-                    "src_flags={} set.".format(SRCFLAG.DEFINESPRIMARYPIDS))
+                    "src_flags={} set.".format(SRCFLAG.DEFINES_PRIMARY_PIDS))
         elif self.n_definers > 1:
             log.warning(
                 "Unusual: >1 field with src_flags={} set.".format(
-                    SRCFLAG.DEFINESPRIMARYPIDS))
+                    SRCFLAG.DEFINES_PRIMARY_PIDS))
 
         log.debug("... DD checked.")
 
@@ -1444,6 +1460,11 @@ class DataDictionary(object):
             for ddr in self.rows
             if ddr.opt_out_info
         ])
+
+    @lru_cache(maxsize=None)
+    def get_mandatory_scrubber_sigs(self):
+        return set([ddr.get_signature() for ddr in self.rows
+                    if ddr.required_scrubber()])
 
     # =========================================================================
     # Queries by source DB
@@ -1666,6 +1687,7 @@ class DataDictionary(object):
             self.get_dest_tables,
             self.get_dest_tables_with_patient_info,
             self.get_optout_defining_fields,
+            self.get_mandatory_scrubber_sigs,
 
             self.get_src_tables,
             self.get_src_tables_with_active_dest,

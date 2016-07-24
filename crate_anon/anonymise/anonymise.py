@@ -777,6 +777,13 @@ def patient_processing_fn(tasknum=0, ntasks=1, incremental=False):
         # Gather scrubbing information for a patient. (Will save.)
         patient = Patient(pid)
 
+        if patient.mandatory_scrubbers_unfulfilled:
+            log.warning(
+                "Skipping patient with PID={} as the following scrub_src "
+                "fields are required and had no data: {}".format(
+                    pid, patient.mandatory_scrubbers_unfulfilled))
+            continue
+
         # Opt out based on MPID?
         if opting_out_mpid(patient.get_mpid()):
             log.info("... opt out based on MPID")

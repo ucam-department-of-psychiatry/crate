@@ -130,13 +130,14 @@ SCRUBSRC = AttrDict(
 
 SRCFLAG = AttrDict(
     PK="K",
-    ADDSRCHASH="H",
-    PRIMARYPID="P",
-    DEFINESPRIMARYPIDS="*",
-    MASTERPID="M",
+    ADD_SRC_HASH="H",
+    PRIMARY_PID="P",
+    DEFINES_PRIMARY_PIDS="*",
+    MASTER_PID="M",
     CONSTANT="C",
     ADDITION_ONLY="A",
-    OPTOUT="!"
+    OPT_OUT="!",
+    REQUIRED_SCRUBBER="R"
 )
 
 PidType = BigInteger
@@ -204,9 +205,11 @@ DEMO_CONFIG = """
 #     One or more of the following characters:
 #
 #     {SRCFLAG.PK}
+#         PK
 #         This field is the primary key (PK) for the table it's in.
 #
-#     {SRCFLAG.ADDSRCHASH}
+#     {SRCFLAG.ADD_SRC_HASH}
+#         ADD SOURCE HASH
 #         Add source hash of the record, for incremental updates?
 #         - This flag may only be set for src_pk fields (which cannot then be
 #           omitted in the destination, and which require the index={INDEX.UNIQUE}
@@ -220,11 +223,12 @@ DEMO_CONFIG = """
 #         - This table is then capable of incremental updates.
 #
 #     {SRCFLAG.CONSTANT}
+#         CONSTANT
 #         Record contents are constant (will not change) for a given PK.
-#         - An alternative to '{SRCFLAG.ADDSRCHASH}'. Can't be used with it.
+#         - An alternative to '{SRCFLAG.ADD_SRC_HASH}'. Can't be used with it.
 #         - The flag can be set only on src_pk fields, which can't be omitted
 #           in the destination, and which have the same index requirements as
-#           the '{SRCFLAG.ADDSRCHASH}' flag.
+#           the '{SRCFLAG.ADD_SRC_HASH}' flag.
 #         - If set, no hash is added to the destination, but the destination
 #           contents are assumed to exist and not to have changed.
 #         - Be CAUTIOUS with this flag, i.e. certain that the contents will
@@ -235,10 +239,12 @@ DEMO_CONFIG = """
 #         - Does not imply that the whole table cannot change!
 #
 #     {SRCFLAG.ADDITION_ONLY}
+#         ADDITION ONLY
 #         Addition only. It is assumed that records can only be added, not
 #         deleted.
 #
-#     {SRCFLAG.PRIMARYPID}
+#     {SRCFLAG.PRIMARY_PID}
+#         PRIMARY PID
 #         Primary patient ID field. If set,
 #         (a) This field will be used to link records for the same patient
 #             across all tables. It must therefore be present, and marked in
@@ -248,7 +254,8 @@ DEMO_CONFIG = """
 #             primary ID (database patient primary key) in the destination,
 #             and a transient research ID (TRID) also added.
 #
-#     {SRCFLAG.DEFINESPRIMARYPIDS}
+#     {SRCFLAG.DEFINES_PRIMARY_PIDS}
+#         DEFINES PRIMARY PIDS.
 #         This field *defines* primary PIDs. If set, this row will be used to
 #         search for all patient IDs, and will define them for this database.
 #         Only those patients will be processed (for all tables containing
@@ -256,17 +263,30 @@ DEMO_CONFIG = """
 #         SINGLE table, usually the principal patient registration/demographics
 #         table.
 #
-#     {SRCFLAG.MASTERPID}
+#     {SRCFLAG.MASTER_PID}
+#         MASTER PID
 #         Master ID (e.g. NHS number).
 #         The field will be hashed with the master PID hasher.
 #
-#     {SRCFLAG.OPTOUT}
+#     {SRCFLAG.OPT_OUT}
+#         OPT OUT
 #         This field is used to mark that the patient wishes to opt out
 #         entirely. It must be in a field that also has a primary patient ID
 #         field (because that's the ID that will be omitted). If the opt-out
 #         field contains a value that's defined in the optout_col_values
 #         setting (see below), that patient will be opted out entirely from
 #         the anonymised database.
+#
+#     {SRCFLAG.REQUIRED_SCRUBBER}
+#         REQUIRED SCRUBBER
+#         If this field is a scrub_src field (see below), and this flag is set,
+#         then at least one non-NULL value for this field must be present for
+#         each patient, or no information will be processed for this patient.
+#         (Typical use: where you have a master patient index separate from the
+#         patient name table, and data might have been brought across
+#         partially, so there are some missing names. In this situation, text
+#         might go unscrubbed because the names are missing. Setting this flag
+#         for the name field will prevent this.)
 #
 # scrub_src
 #     One of:
@@ -689,7 +709,7 @@ debug_pid_list =
 #   2. By maintaining a text file list of integer PIDs. Any PIDs in this file
 #      are added to the opt-out list.
 #   3. By flagging a source database field as indicating an opt-out, using the
-#      src_flags = "{SRCFLAG.OPTOUT}" marker.
+#      src_flags = "{SRCFLAG.OPT_OUT}" marker.
 
     # If you set this, each line of the file(s) is scanned for an integer,
     # taken to the PID of a patient who wishes to opt out.
@@ -829,6 +849,10 @@ ddgen_pid_defining_fieldnames =
 ddgen_scrubsrc_patient_fields =
 ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubsrc_thirdparty_xref_pid_fields =
+
+    # Are any scrub_src fields required (mandatory), i.e. must have non-NULL
+    # data in at least one row?
+ddgen_required_scrubsrc_fields =
 
     # Override default scrubbing methods
 ddgen_scrubmethod_code_fields =

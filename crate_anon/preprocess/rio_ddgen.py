@@ -357,6 +357,11 @@ ddgen_scrubsrc_thirdparty_xref_pid_fields = # several:
     Client_Demographic_Details.Other_Carer
     Client_Family.Related_Client_ID
 
+ddgen_required_scrubsrc_fields = # several:
+    Client_Demographic_Details.Firstname
+    Client_Demographic_Details.Surname
+    Client_Demographic_Details.Date_of_Birth
+
 ddgen_scrubmethod_code_fields = # variants:
     *PostCode*
     *Post_Code*

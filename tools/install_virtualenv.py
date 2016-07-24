@@ -13,9 +13,9 @@ import sys
 if sys.version_info[0] < 3:
     raise AssertionError("Need Python 3")
 LINUX = platform.system() == 'Linux'
-LINUX_DIST = platform.linux_distribution()[0].lower()
-DEB = LINUX_DIST in ['ubuntu', 'debian']
-RPM = LINUX_DIST in ['fedora', 'rhel', 'centos']
+# LINUX_DIST = platform.linux_distribution()[0].lower()
+# DEB = LINUX_DIST in ['ubuntu', 'debian']
+# RPM = LINUX_DIST in ['fedora', 'rhel', 'centos']
 
 DESCRIPTION = """
 Make a new virtual environment.
@@ -34,7 +34,7 @@ PYTHONBASE = os.path.basename(PYTHON)
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_BASE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, os.pardir))
 PIP_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements.txt')
-DEB_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements-ubuntu.txt')
+# DEB_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements-ubuntu.txt')
 # RPM_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements-rpm.txt')
 
 SEP = "=" * 79
@@ -60,13 +60,13 @@ def check_call(cmdargs):
     subprocess.check_call(cmdargs)
 
 
-def require_deb(package):
-    if cmd_returns_zero_success(['dpkg', '-l', package]):
-        return
-    print("You must install the package {package}. On Ubuntu, use the command:"
-          "\n"
-          "    sudo apt-get install {package}".format(package=package))
-    sys.exit(1)
+# def require_deb(package):
+#     if cmd_returns_zero_success(['dpkg', '-l', package]):
+#         return
+#     print("You must install the package {package}. On Ubuntu, use the command:"  # noqa
+#           "\n"
+#           "    sudo apt-get install {package}".format(package=package))
+#     sys.exit(1)
 
 
 # def require_rpm(package):

@@ -18,6 +18,8 @@ import sys
 import tempfile
 import urllib.request
 
+import distro
+
 if sys.version_info[0] < 3:
     raise AssertionError("Need Python 3")
 if not platform.system() == 'Linux':
@@ -48,7 +50,7 @@ if existing_cmd:
 # Basic distro rules
 # =============================================================================
 
-LINUX_DIST, LINUX_VERSION, LINUX_ID = platform.linux_distribution()
+LINUX_DIST, LINUX_VERSION, LINUX_ID = distro.linux_distribution()
 LINUX_DIST = LINUX_DIST.lower()
 
 BITS_64 = platform.architecture()[0] == '64bit'
