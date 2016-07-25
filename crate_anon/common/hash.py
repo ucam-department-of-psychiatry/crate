@@ -29,6 +29,7 @@ Copyright/licensing:
 
 import hashlib
 import hmac
+from typing import Any, Callable
 
 
 # =============================================================================
@@ -51,31 +52,29 @@ class GenericHasher(object):
 # =============================================================================
 
 class GenericSaltedHasher(GenericHasher):
-    def __init__(self, hashfunc, salt):
+    def __init__(self, hashfunc: Callable[[bytes], Any], salt: str) -> None:
         self.hashfunc = hashfunc
         self.salt_bytes = str(salt).encode('utf-8')
 
-    def hash(self, raw):
+    def hash(self, raw: Any) -> str:
         raw_bytes = str(raw).encode('utf-8')
-        return self._hash(raw_bytes).hexdigest()
-
-    def _hash(self, raw_bytes):
-        return self.hashfunc(self.salt_bytes + raw_bytes)
+        hasher = self.hashfunc(self.salt_bytes + raw_bytes)
+        return hasher(raw_bytes).hexdigest()
 
 
 class MD5Hasher(GenericSaltedHasher):
     """MD5 is cryptographically FLAWED; avoid."""
-    def __init__(self, salt):
+    def __init__(self, salt: str) -> None:
         super().__init__(hashlib.md5, salt)
 
 
 class SHA256Hasher(GenericSaltedHasher):
-    def __init__(self, salt):
+    def __init__(self, salt: str) -> None:
         super().__init__(hashlib.sha256, salt)
 
 
 class SHA512Hasher(GenericSaltedHasher):
-    def __init__(self, salt):
+    def __init__(self, salt: str) -> None:
         super().__init__(hashlib.sha512, salt)
 
 
@@ -84,11 +83,11 @@ class SHA512Hasher(GenericSaltedHasher):
 # =============================================================================
 
 class GenericHmacHasher(GenericHasher):
-    def __init__(self, digestmod, key):
+    def __init__(self, digestmod: Any, key: str) -> None:
         self.key_bytes = str(key).encode('utf-8')
         self.digestmod = digestmod
 
-    def hash(self, raw):
+    def hash(self, raw: Any) -> str:
         raw_bytes = str(raw).encode('utf-8')
         hmac_obj = hmac.new(key=self.key_bytes, msg=raw_bytes,
                             digestmod=self.digestmod)
@@ -96,15 +95,15 @@ class GenericHmacHasher(GenericHasher):
 
 
 class HmacMD5Hasher(GenericHmacHasher):
-    def __init__(self, key):
+    def __init__(self, key: str) -> None:
         super().__init__(hashlib.md5, key)
 
 
 class HmacSHA256Hasher(GenericHmacHasher):
-    def __init__(self, key):
+    def __init__(self, key: str) -> None:
         super().__init__(hashlib.sha256, key)
 
 
 class HmacSHA512Hasher(GenericHmacHasher):
-    def __init__(self, key):
+    def __init__(self, key: str) -> None:
         super().__init__(hashlib.sha512, key)

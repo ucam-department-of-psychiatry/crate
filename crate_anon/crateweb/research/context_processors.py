@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # crate_anon/crateweb/research/context_processors.py
 
+from typing import Any, Dict
+
 from django.conf import settings
+from django.http.request import HttpRequest
 # from crate_anon.crateweb.research.models import Query
 # from crate_anon.crateweb.extra.request_cache import get_request_cache
 
 
 # noinspection PyUnusedLocal
-def common_context(request):
+def common_context(request: HttpRequest) -> Dict[str, Any]:
     return {
         'RESEARCH_DB_TITLE': settings.RESEARCH_DB_TITLE,
         'nav_on_main_menu': False,

@@ -152,7 +152,7 @@ class BlobDoc(Base):
 
     patient = relationship("Patient")
 
-    def __init__(self, patient, filename):
+    def __init__(self, patient: Patient, filename: str) -> None:
         _, extension = os.path.splitext(filename)
         with open(filename, 'rb') as f:
             contents = f.read()  # will be of type 'bytes'
@@ -171,7 +171,7 @@ class FilenameDoc(Base):
 
 
 # noinspection PyPep8Naming
-def main():
+def main() -> None:
     default_size = 0
     parser = argparse.ArgumentParser()
     parser.add_argument(

@@ -43,14 +43,11 @@ NLP_MANAGER = 'crate_anon.nlp_manager.nlp_manager'
 
 CPUCOUNT = multiprocessing.cpu_count()
 
-DEFAULT_NLP_NAME = 'name_location_nlp'
-
-
 # =============================================================================
 # Main
 # =============================================================================
 
-def main():
+def main() -> None:
     version = "Version {} ({})".format(VERSION, VERSION_DATE)
     description = "Runs the CRATE NLP manager in parallel. {}.".format(version)
     parser = argparse.ArgumentParser(description=description)
@@ -59,9 +56,8 @@ def main():
                         help="Config file (overriding environment "
                              "variable {})".format(NLP_CONFIG_ENV_VAR))
     parser.add_argument(
-        "--nlpname", "-a", default=DEFAULT_NLP_NAME,
-        help="NLP processing name, from the config file (default: {})".format(
-            DEFAULT_NLP_NAME))
+        "--nlpname", "-a", required=True,
+        help="NLP processing name, from the config file")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(

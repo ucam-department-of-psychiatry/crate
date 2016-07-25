@@ -3,6 +3,7 @@
 
 import logging
 import random
+from typing import List, Union
 
 log = logging.getLogger(__name__)
 
@@ -14,7 +15,7 @@ log = logging.getLogger(__name__)
 NHS_DIGIT_WEIGHTINGS = [10, 9, 8, 7, 6, 5, 4, 3, 2]
 
 
-def nhs_check_digit(ninedigits):
+def nhs_check_digit(ninedigits: Union[str, List[Union[str, int]]]) -> int:
     """
     Calculates an NHS number check digit.
     ninedigits: string or list
@@ -28,10 +29,10 @@ def nhs_check_digit(ninedigits):
     If it's 10, the number is invalid
     If it doesn't match the actual check digit, the number is invalid
     """
-    if len(ninedigits) != 9 or not [str(x).isdigit() for x in ninedigits]:
+    if len(ninedigits) != 9 or not all(str(x).isdigit() for x in ninedigits):
         raise ValueError("bad string to nhs_check_digit")
     check_digit = 11 - (sum([
-        d * f
+        int(d) * f
         for (d, f) in zip(ninedigits, NHS_DIGIT_WEIGHTINGS)
     ]) % 11)
     # ... % 11 yields something in the range 0-10
@@ -41,7 +42,7 @@ def nhs_check_digit(ninedigits):
     return check_digit
 
 
-def is_valid_nhs_number(n):
+def is_valid_nhs_number(n: int) -> bool:
     """
     Validates an integer as an NHS number.
     Checksum details are at
@@ -70,7 +71,7 @@ def is_valid_nhs_number(n):
     return True
 
 
-def generate_random_nhs_number():
+def generate_random_nhs_number() -> int:
     """Returns a random valid NHS number, as an int."""
     check_digit = 10  # NHS numbers with this check digit are all invalid
     while check_digit == 10:

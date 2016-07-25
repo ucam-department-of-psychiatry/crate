@@ -2,13 +2,14 @@
 # crate_anon/anonymise/logsupport.py
 
 import logging
+from typing import List
 
 from colorlog import ColoredFormatter
 
 from crate_anon.anonymise.constants import LOG_COLORS, LOG_DATEFMT
 
 
-def get_colour_handler(extranames=None):
+def get_colour_handler(extranames: List[str] = None) -> logging.StreamHandler:
     extras = ":" + ":".join(extranames) if extranames else ""
     fmt = (
         "%(cyan)s%(asctime)s.%(msecs)03d %(name)s{extras}:%(levelname)s: "
@@ -27,8 +28,10 @@ def get_colour_handler(extranames=None):
     return ch
 
 
-def configure_logger_for_colour(log, level=logging.INFO, remove_existing=False,
-                                extranames=None):
+def configure_logger_for_colour(log: logging.Logger,
+                                level: int = logging.INFO,
+                                remove_existing: bool = False,
+                                extranames: List[str] = None) -> None:
     """
     Applies a preconfigured datetime/colour scheme to a logger.
     Should ONLY be called from the "if __name__ == 'main'" script:
@@ -40,7 +43,7 @@ def configure_logger_for_colour(log, level=logging.INFO, remove_existing=False,
     log.setLevel(level)
 
 
-def main_only_quicksetup_rootlogger(level=logging.DEBUG):
+def main_only_quicksetup_rootlogger(level: int = logging.DEBUG) -> None:
     # Nasty. Only call from "if __name__ == '__main__'" clauses!
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level)

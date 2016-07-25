@@ -8,6 +8,8 @@
 # - You can't filter on Python properties via the Django QuerySet ORM.
 
 import logging
+from typing import Any, Dict, Iterable, Tuple
+
 from django import forms
 from django.conf import settings
 from django.contrib import admin
@@ -16,7 +18,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
 from django.core.urlresolvers import reverse
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, QuerySet
+from django.http.request import HttpRequest
 from django.template.defaultfilters import yesno
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy
@@ -81,22 +84,22 @@ class QueryMgrAdmin(ReadOnlyModelAdmin):
     # Search text content of these:
     search_fields = ('query__sql', 'query__user__username')
 
-    def get_sql(self, obj):
+    def get_sql(self, obj: QueryAudit) -> str:
         return obj.query.sql
     get_sql.short_description = "SQL"
     get_sql.admin_order_field = 'query__sql'
 
-    def get_user(self, obj):
+    def get_user(self, obj: QueryAudit) -> str:
         return obj.query.user
     get_user.short_description = "User"
     get_user.admin_order_field = 'query__user'
 
-    def get_count_only(self, obj):
+    def get_count_only(self, obj: QueryAudit) -> str:
         return yesno(obj.count_only)
     get_count_only.short_description = "Count only?"
     get_count_only.admin_order_field = 'count_only'
 
-    def get_failed(self, obj):
+    def get_failed(self, obj: QueryAudit) -> str:
         return yesno(obj.failed)
     get_failed.short_description = "Failed?"
     get_failed.admin_order_field = 'failed'
@@ -146,7 +149,7 @@ class StudyResAdmin(AllStaffReadOnlyModelAdmin):
     list_display_links = ('id', 'institutional_id', 'title')
 
     # Restrict to studies that this researcher is affiliated to
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         qs = super().get_queryset(request)
         return Study.filter_studies_for_researcher(qs, request.user)
 
@@ -164,7 +167,7 @@ class LeafletResAdmin(AllStaffReadOnlyModelAdmin):
     fields = ('name', 'get_pdf')
     readonly_fields = fields
 
-    def get_pdf(self, obj):
+    def get_pdf(self, obj: Leaflet) -> str:
         if not obj.pdf:
             return "(Missing)"
         return '<a href="{}">PDF</a>'.format(
@@ -181,13 +184,15 @@ class EmailSentListFilter(SimpleListFilter):
     title = 'email sent'
     parameter_name = 'email_sent'
 
-    def lookups(self, request, model_admin):
+    def lookups(self,
+                request: HttpRequest,
+                model_admin: admin.ModelAdmin) -> Iterable[Tuple[str, str]]:
         return (
             ('y', "E-mail sent at least once"),
             ('n', "E-mail not sent"),
         )
 
-    def queryset(self, request, queryset):
+    def queryset(self, request: HttpRequest, queryset: QuerySet) -> QuerySet:
         if self.value() == 'y':
             return queryset.filter(emailtransmission__sent=True).distinct()
         if self.value() == 'n':
@@ -218,14 +223,14 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     # - http://blog.roseman.org.uk/2010/01/11/django-patterns-part-2-efficient-reverse-lookups/  # noqa
     # Anyway, premature optimization is the root of all evil, and all that.
 
-    def get_view_msg_html(self, obj):
+    def get_view_msg_html(self, obj: Email) -> str:
         url = reverse('view_email_html', args=[obj.id])
         return '<a href="{}">View HTML message</a> ({} bytes)'.format(
             url, len(obj.msg_html))
     get_view_msg_html.short_description = "Message HTML"
     get_view_msg_html.allow_tags = True
 
-    def get_view_attachments(self, obj):
+    def get_view_attachments(self, obj: Email) -> str:
         attachments = obj.emailattachment_set.all()
         if not attachments:
             return "(No attachments)"
@@ -255,7 +260,7 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
     get_view_attachments.short_description = "Attachments"
     get_view_attachments.allow_tags = True
 
-    def resend(self, request, queryset):
+    def resend(self, request: HttpRequest, queryset: QuerySet) -> None:
         email_ids = []
         for email in queryset:
             email_ids.append(email.id)
@@ -268,27 +273,27 @@ class EmailDevAdmin(ReadOnlyModelAdmin):
                     len(email_ids), str(email_ids)))
     resend.short_description = "Resend selected e-mails"
 
-    def get_transmissions(self, obj):
+    def get_transmissions(self, obj: Email) -> str:
         return "<br>".join(str(x) for x in obj.emailtransmission_set.all())
     get_transmissions.short_description = "Transmissions"
     get_transmissions.allow_tags = True
 
-    def get_sent(self, obj):
+    def get_sent(self, obj: Email) -> bool:
         return obj.has_been_sent()
     get_sent.short_description = "Sent"
     get_sent.boolean = True
 
-    def get_letter(self, obj):
+    def get_letter(self, obj: Email) -> str:
         return admin_view_fk_link(self, obj, "letter")
     get_letter.short_description = "Letter"
     get_letter.allow_tags = True
 
-    def get_study(self, obj):
+    def get_study(self, obj: Email) -> str:
         return admin_view_fk_link(self, obj, "study")
     get_study.short_description = "Study"
     get_study.allow_tags = True
 
-    def get_contact_request(self, obj):
+    def get_contact_request(self, obj: Email) -> str:
         return admin_view_fk_link(self, obj, "contact_request")
     get_contact_request.short_description = "Contact request"
     get_contact_request.allow_tags = True
@@ -315,29 +320,29 @@ class EmailMgrAdmin(EmailDevAdmin):
     fields = readonly_fields  # or other things appear
     actions = ['resend']
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         qs = super().get_queryset(request).filter(Q(to_researcher=True) |
                                                   Q(to_patient=True))
         return qs
 
     @staticmethod
-    def rdbm_may_view(obj):
+    def rdbm_may_view(obj: Email) -> bool:
         return obj.to_patient or obj.to_researcher
 
-    def get_restricted_msg_text(self, obj):
+    def get_restricted_msg_text(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
         return obj.msg_text
     get_restricted_msg_text.short_description = "Message text"
 
-    def get_restricted_msg_html(self, obj):
+    def get_restricted_msg_html(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
         return self.get_view_msg_html(obj)
     get_restricted_msg_html.short_description = "Message HTML"
     get_restricted_msg_html.allow_tags = True
 
-    def get_restricted_attachments(self, obj):
+    def get_restricted_attachments(self, obj: Email) -> str:
         if not self.rdbm_may_view(obj):
             return "(Not authorized)"
         return self.get_view_attachments(obj)
@@ -361,16 +366,18 @@ class EmailResAdmin(EmailDevAdmin):
     fields = readonly_fields  # or other things appear
     actions = None  # not [], which allows site-wide things
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         qs = super().get_queryset(request).filter(to_researcher=True)
         studies = Study.filter_studies_for_researcher(Study.objects.all(),
                                                       request.user)
         return qs.filter(study__in=studies)
 
-    def has_module_permission(self, request):
+    def has_module_permission(self, request: HttpRequest) -> bool:
         return request.user.is_staff
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(self,
+                              request: HttpRequest,
+                              obj: Email = None) -> bool:
         return request.user.is_staff
 
 
@@ -454,7 +461,7 @@ class PatientLookupDevAdmin(ReadOnlyModelAdmin):
                     'pt_first_name', 'pt_last_name', 'pt_dob')
     search_fields = ('nhs_number', 'pt_first_name', 'pt_last_name')
 
-    def get_test_views(self, obj):
+    def get_test_views(self, obj: PatientLookup) -> str:
         return '''
             <a href="{}">Draft letter to patient re first traffic-light
                 choice (as HTML)</a><br>
@@ -477,7 +484,7 @@ class ConsentModeInline(admin.TabularInline):
 
 
 class ConsentModeAdminForm(forms.ModelForm):
-    def clean(self):
+    def clean(self) -> Dict[str, Any]:
         if not self.cleaned_data.get('changed_by_clinician_override'):
             kwargs = {}
             for field in Decision.FIELDS:
@@ -529,7 +536,11 @@ class ConsentModeMgrAdmin(AddOnlyModelAdmin):
 
     # Populate the created_by field automatically, with the two functions below
     # https://code.djangoproject.com/wiki/CookBookNewformsAdminAndUser
-    def save_model(self, request, obj, form, change):
+    def save_model(self,
+                   request: HttpRequest,
+                   obj: ConsentMode,
+                   form: forms.ModelForm,
+                   change: bool) -> None:
         obj.current = False  # NOT YET; set by process_change()
         obj.created_by = request.user
         obj.save()
@@ -554,7 +565,7 @@ class ConsentModeMgrAdmin(AddOnlyModelAdmin):
     #         formset.save()
 
     # Restrict to current ones
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         qs = super().get_queryset(request)
         return qs.filter(current=True)
 
@@ -576,7 +587,7 @@ class ConsentModeDevAdmin(ReadOnlyModelAdmin):
     list_filter = ('current', 'consent_mode', 'consent_after_discharge',
                    'exclude_entirely', 'prefers_email')
 
-    def get_test_views(self, obj):
+    def get_test_views(self, obj: ConsentMode) -> str:
         return '''
             <a href="{}">Draft letter to patient confirming traffic-light
                 choice (as HTML)</a><br>
@@ -623,13 +634,15 @@ class ClinicianRespondedListFilter(SimpleListFilter):
     title = 'clinician responded'
     parameter_name = 'clinician_responded'
 
-    def lookups(self, request, model_admin):
+    def lookups(self,
+                request: HttpRequest,
+                model_admin: admin.ModelAdmin) -> Iterable[Tuple[str, str]]:
         return (
             ('y', "Clinician responded"),
             ('n', "Clinician asked but hasn’t responded"),
         )
 
-    def queryset(self, request, queryset):
+    def queryset(self, request: HttpRequest, queryset: QuerySet) -> QuerySet:
         if self.value() == 'y':
             return (
                 queryset
@@ -684,36 +697,36 @@ class ContactRequestMgrAdmin(ReadOnlyModelAdmin):
     )
     date_hierarchy = 'created_at'
 
-    def get_consent_mode(self, obj):
+    def get_consent_mode(self, obj: ContactRequest) -> ConsentMode:
         consent_mode = obj.consent_mode
         return consent_mode.consent_mode
     get_consent_mode.short_description = "Consent mode"
 
-    def get_study(self, obj):
+    def get_study(self, obj: ContactRequest) -> str:
         return admin_view_fk_link(self, obj, "study")
     get_study.allow_tags = True
     get_study.short_description = "Study"
 
-    def get_clinician_email_address(self, obj):
+    def get_clinician_email_address(self, obj: ContactRequest) -> str:
         if obj.decided_send_to_clinician:
             return obj.patient_lookup.clinician_email
         else:
             return ''
     get_clinician_email_address.short_description = "Clinician e-mail address"
 
-    def get_clinician_responded(self, obj):
+    def get_clinician_responded(self, obj: ContactRequest) -> bool:
         if not hasattr(obj, 'clinician_response'):
             return False
         return obj.clinician_response.responded
     get_clinician_responded.short_description = "Clinician responded"
     get_clinician_responded.boolean = True
 
-    def get_letters(self, obj):
+    def get_letters(self, obj: ContactRequest) -> str:
         return admin_view_reverse_fk_links(self, obj, "letter_set")
     get_letters.short_description = "Letter(s)"
     get_letters.allow_tags = True
 
-    def get_emails(self, obj):
+    def get_emails(self, obj: ContactRequest) -> str:
         return admin_view_reverse_fk_links(self, obj, "email_set")
     get_emails.short_description = "E-mail(s)"
     get_emails.allow_tags = True
@@ -724,16 +737,18 @@ class ContactRequestResAdmin(ContactRequestMgrAdmin):
     readonly_fields = fields
     list_display = ContactRequestMgrAdmin.NONCONFIDENTIAL_LIST_DISPLAY
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         qs = super().get_queryset(request)
         studies = Study.filter_studies_for_researcher(Study.objects.all(),
                                                       request.user)
         return qs.filter(study__in=studies)
 
-    def has_module_permission(self, request):
+    def has_module_permission(self, request: HttpRequest) -> bool:
         return request.user.is_staff
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(self,
+                              request: HttpRequest,
+                              obj: ContactRequest = None) -> bool:
         return request.user.is_staff
 
 
@@ -761,32 +776,32 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
         'get_clinician_email_address',
     )
 
-    def get_link_clinician_email(self, obj):
+    def get_link_clinician_email(self, obj: ContactRequest) -> str:
         return admin_view_reverse_fk_links(self, obj, "email_set")
     get_link_clinician_email.short_description = "E-mail to clinician"
     get_link_clinician_email.allow_tags = True
 
-    def get_link_clinician_response(self, obj):
+    def get_link_clinician_response(self, obj: ContactRequest) -> str:
         return admin_view_fk_link(self, obj, "clinician_response")
     get_link_clinician_response.short_description = "Clinician response"
     get_link_clinician_response.allow_tags = True
 
-    def get_patient_lookup(self, obj):
+    def get_patient_lookup(self, obj: ContactRequest) -> str:
         return admin_view_fk_link(self, obj, "patient_lookup")
     get_patient_lookup.short_description = "Patient lookup"
     get_patient_lookup.allow_tags = True
 
-    def get_consent_mode(self, obj):
+    def get_consent_mode(self, obj: ContactRequest) -> str:
         return admin_view_fk_link(self, obj, "consent_mode")
     get_consent_mode.short_description = "Consent mode"
     get_consent_mode.allow_tags = True
 
-    def get_letters(self, obj):
+    def get_letters(self, obj: ContactRequest) -> str:
         return admin_view_reverse_fk_links(self, obj, "letter_set")
     get_letters.allow_tags = True
     get_letters.short_description = "Letter(s)"
 
-    def get_test_views(self, obj):
+    def get_test_views(self, obj: ContactRequest) -> str:
         return '''
             <a href="{}">Draft e-mail to clinician</a><br>
             <a href="{}">Draft letter from clinician to patient re study
@@ -840,7 +855,7 @@ class ClinicianResponseDevAdmin(ReadOnlyModelAdmin):
     readonly_fields = fields
     date_hierarchy = 'created_at'
 
-    def get_contact_request(self, obj):
+    def get_contact_request(self, obj: ClinicianResponse) -> str:
         return admin_view_fk_link(self, obj, "contact_request")
     get_contact_request.allow_tags = True
     get_contact_request.short_description = "Contact request"
@@ -851,7 +866,7 @@ class ClinicianResponseDevAdmin(ReadOnlyModelAdmin):
 # -----------------------------------------------------------------------------
 
 class PatientResponseAdminForm(forms.ModelForm):
-    def clean(self):
+    def clean(self) -> Dict[str, Any]:
         kwargs = {}
         for field in Decision.FIELDS:
             kwargs[field] = self.cleaned_data.get(field)
@@ -869,7 +884,11 @@ class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
     date_hierarchy = 'created_at'
 
     # Populate the created_by field automatically, with the two functions below
-    def save_model(self, request, obj, form, change):
+    def save_model(self,
+                   request: HttpRequest,
+                   obj: PatientResponse,
+                   form: forms.ModelForm,
+                   change: bool) -> None:
         obj.recorded_by = request.user
         obj.save()
         # log.debug("PatientResponse: {}".format(modelrepr(obj)))
@@ -882,17 +901,19 @@ class PatientResponseMgrAdmin(EditOnceOnlyModelAdmin):
                 "Approval to researcher will be generated. You will be "
                 "e-mailed if the system can't send it to the researcher.")
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(self,
+                              request: HttpRequest,
+                              obj: PatientResponse = None) -> bool:
         if obj and obj.response:
             return False  # already saved
         return True
 
-    def get_contact_request(self, obj):
+    def get_contact_request(self, obj: PatientResponse) -> str:
         return admin_view_fk_link(self, obj, "contact_request")
     get_contact_request.short_description = "Contact request"
     get_contact_request.allow_tags = True
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         # Restrict to unresponded ones
         return super().get_queryset(request).filter(response__isnull=True)
 
@@ -902,7 +923,7 @@ class PatientResponseDevAdmin(ReadOnlyModelAdmin):
     readonly_fields = fields
     date_hierarchy = 'created_at'
 
-    def get_contact_request(self, obj):
+    def get_contact_request(self, obj: PatientResponse) -> str:
         return admin_view_fk_link(self, obj, "contact_request")
     get_contact_request.short_description = "Contact request"
     get_contact_request.allow_tags = True
@@ -916,7 +937,9 @@ class LetterSendingStatusFilter(SimpleListFilter):
     title = "sending status"
     parameter_name = 'sending_status'
 
-    def lookups(self, request, model_admin):
+    def lookups(self,
+                request: HttpRequest,
+                model_admin: admin.ModelAdmin) -> Iterable[Tuple[str, str]]:
         return (
             ('sent_manually', "Sent manually"),
             ('not_sent_manually', "Not sent manually"),
@@ -925,7 +948,7 @@ class LetterSendingStatusFilter(SimpleListFilter):
             ('require_sending', "REQUIRE SENDING"),
         )
 
-    def queryset(self, request, queryset):
+    def queryset(self, request: HttpRequest, queryset: QuerySet) -> QuerySet:
         if self.value() == 'sent_manually':
             return queryset.filter(sent_manually_at__isnull=False)
         if self.value() == 'not_sent_manually':
@@ -968,7 +991,7 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
     # ... see also http://stackoverflow.com/questions/991926/custom-filter-in-django-admin-on-django-1-3-or-below  # noqa
     actions = ['mark_sent']
 
-    def mark_sent(self, request, queryset):
+    def mark_sent(self, request: HttpRequest, queryset: QuerySet) -> None:
         ids = []
         for letter in queryset:
             letter.mark_sent()
@@ -979,17 +1002,17 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
                                                                str(ids)))
     mark_sent.short_description = "Mark selected letters as printed/sent"
 
-    def get_study(self, obj):
+    def get_study(self, obj: Letter) -> str:
         return admin_view_fk_link(self, obj, "study")
     get_study.allow_tags = True
     get_study.short_description = "Study"
 
-    def get_contact_request(self, obj):
+    def get_contact_request(self, obj: Letter) -> str:
         return admin_view_fk_link(self, obj, "contact_request")
     get_contact_request.allow_tags = True
     get_contact_request.short_description = "Contact request"
 
-    def get_emails(self, obj):
+    def get_emails(self, obj: Letter) -> str:
         return admin_view_reverse_fk_links(self, obj, "email_set")
     get_emails.allow_tags = True
     get_emails.short_description = "E-mail(s)"
@@ -997,7 +1020,7 @@ class LetterDevAdmin(ReadOnlyModelAdmin):
 
 class LetterMgrAdmin(LetterDevAdmin):
     """Restrict to letters visible to a researcher."""
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         return (
             super().get_queryset(request)
             .filter(Q(to_researcher=True) | Q(rdbm_may_view=True))
@@ -1011,19 +1034,21 @@ class LetterResAdmin(LetterDevAdmin):
               'sent_manually_at', 'email')
     readonly_fields = fields
     """Restrict to letters visible to a researcher."""
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         qs = super().get_queryset(request).filter(to_researcher=True)
         studies = Study.filter_studies_for_researcher(Study.objects.all(),
                                                       request.user)
         return qs.filter(study__in=studies)
 
-    def has_module_permission(self, request):
+    def has_module_permission(self, request: HttpRequest) -> bool:
         return request.user.is_staff
 
-    def has_change_permission(self, request, obj=None):
+    def has_change_permission(self,
+                              request: HttpRequest,
+                              obj: Letter = None) -> bool:
         return request.user.is_staff
 
-    def get_pdf(self, obj):
+    def get_pdf(self, obj: Letter) -> str:
         if not obj.pdf:
             return "(Missing)"
         return '<a href="{}">PDF</a>'.format(
@@ -1053,19 +1078,20 @@ class UserProfileInline(admin.StackedInline):
     readonly_fields = ('get_studies_as_lead', 'get_studies_as_researcher',
                        'enough_info_for_researcher')
 
-    def get_studies_as_lead(self, obj):
+    def get_studies_as_lead(self, obj: settings.AUTH_USER_MODEL) -> str:
         studies = obj.user.studies_as_lead.all()
         return render_to_string('shortlist_studies.html', {'studies': studies})
     get_studies_as_lead.short_description = "Studies as lead researcher"
     get_studies_as_lead.allow_tags = True
 
-    def get_studies_as_researcher(self, obj):
+    def get_studies_as_researcher(self, obj: settings.AUTH_USER_MODEL) -> str:
         studies = obj.user.studies_as_researcher.all()
         return render_to_string('shortlist_studies.html', {'studies': studies})
     get_studies_as_researcher.short_description = "Studies as researcher"
     get_studies_as_researcher.allow_tags = True
 
-    def enough_info_for_researcher(self, obj):
+    def enough_info_for_researcher(self,
+                                   obj: settings.AUTH_USER_MODEL) -> bool:
         return (
             bool(obj.title) and
             bool(obj.user.first_name) and
@@ -1084,7 +1110,8 @@ class ExtendedUserMgrAdmin(UserAdmin):
         'enough_info_for_researcher',
     )
 
-    def enough_info_for_researcher(self, obj):
+    def enough_info_for_researcher(self,
+                                   obj: settings.AUTH_USER_MODEL) -> bool:
         return (
             bool(obj.profile.title) and
             bool(obj.first_name) and

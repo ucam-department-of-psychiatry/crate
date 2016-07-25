@@ -163,6 +163,7 @@ setup(
         'psutil==4.1.0',  # process management
         'semver==2.4.1',  # comparing semantic versions
         'SQLAlchemy>=1.0.12',  # database access
+        'typing=3.5.2.2',  # part of stdlib in Python 3.5, but not 3.4
 
         # Web app:
         'celery==3.1.23',

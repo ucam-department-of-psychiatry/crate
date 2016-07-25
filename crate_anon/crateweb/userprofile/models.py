@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 # crate_anon/crateweb/userprofile/models.py
 
+from typing import Any, List, Optional, Type
 from django.conf import settings
 from django.db import models
 from django.dispatch import receiver
+from django.http.request import HttpRequest
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_PHONE,
@@ -101,27 +103,32 @@ class UserProfile(models.Model):
         max_length=255,
         verbose_name='Title for signature (e.g. "Consultant psychiatrist")')
 
-    def get_address_components(self):
+    def get_address_components(self) -> List[str]:
         return list(filter(None,
                            [self.address_1, self.address_2, self.address_3,
                             self.address_4, self.address_5, self.address_6,
                             self.address_7]))
 
-    def get_title_forename_surname(self):
+    def get_title_forename_surname(self) -> str:
+        # noinspection PyTypeChecker
         return title_forename_surname(self.title, self.user.first_name,
                                       self.user.last_name)
 
-    def get_salutation(self):
+    def get_salutation(self) -> str:
+        # noinspection PyTypeChecker
         return salutation(self.title, self.user.first_name,
                           self.user.last_name, assume_dr=True)
 
-    def get_forename_surname(self):
+    def get_forename_surname(self) -> str:
         return forename_surname(self.user.first_name, self.user.last_name)
 
 
 # noinspection PyUnusedLocal
 @receiver(models.signals.post_save, sender=settings.AUTH_USER_MODEL)
-def user_saved_so_create_profile(sender, instance, created, **kwargs):
+def user_saved_so_create_profile(sender: Type[settings.AUTH_USER_MODEL],
+                                 instance: settings.AUTH_USER_MODEL,
+                                 created: bool,
+                                 **kwargs: Any) -> None:
     UserProfile.objects.get_or_create(user=instance)
 
 
@@ -130,7 +137,7 @@ def user_saved_so_create_profile(sender, instance, created, **kwargs):
 # =============================================================================
 
 
-def get_per_page(request):
+def get_per_page(request: HttpRequest) -> Optional[int]:
     if not request.user.is_authenticated():
         return None
     return request.user.profile.per_page

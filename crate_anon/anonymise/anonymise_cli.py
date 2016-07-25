@@ -23,7 +23,7 @@ from crate_anon.version import VERSION, VERSION_DATE
 # Main
 # =============================================================================
 
-def main():
+def main() -> None:
     """
     Command-line entry point.
     """

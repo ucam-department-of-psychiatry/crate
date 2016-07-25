@@ -56,8 +56,8 @@ import csv
 import json
 import logging
 import os
+from typing import Any, Dict, List, Tuple
 
-from cardinal_pythonlib.rnc_lang import AttrDict
 from cardinal_pythonlib.rnc_ui import mkdir_p
 
 from crate_anon.anonymise.anonymise import config, extract_text
@@ -71,38 +71,39 @@ log = logging.getLogger(__name__)
 # Specific tests
 # =============================================================================
 
-# noinspection PyProtectedMember,PyProtectedMember
-def get_fieldinfo(args):
-    """
-    Fetches useful subsets from the data dictionary.
-    """
-    ddrows = config.dd.get_rows_for_dest_table(args.dsttable)
-    if not ddrows:
-        raise ValueError("No data dictionary rows for destination table "
-                         "{}".format(args.dsttable))
-    try:
-        textrow = next(x for x in ddrows if x.dest_field == args.dstfield)
-    except StopIteration:
-        raise ValueError("No destination field: {}".format(args.dstfield))
-    try:
-        pkrow = next(x for x in ddrows if x._pk)
-    except StopIteration:
-        raise ValueError("No PK field found")
-    try:
-        pidrow = next(x for x in ddrows if x._primary_pid)
-    except StopIteration:
-        raise ValueError("No PID field found")
-    info = AttrDict({
-        "pk_ddrow": pkrow,
-        "pid_ddrow": pidrow,
-        "text_ddrow": textrow,
-    })
-    log.info("Using fields: {}".format(info))
-    return info
+class FieldInfo(object):
+    def __init__(self, table: str, field: str) -> None:
+        """
+        Fetches useful subsets from the data dictionary.
+        """
+        ddrows = config.dd.get_rows_for_dest_table(table)
+        if not ddrows:
+            raise ValueError("No data dictionary rows for destination table "
+                             "{}".format(table))
+        try:
+            textrow = next(x for x in ddrows if x.dest_field == field)
+        except StopIteration:
+            raise ValueError("No destination field: {}".format(field))
+        try:
+            pkrow = next(x for x in ddrows if x.pk)
+        except StopIteration:
+            raise ValueError("No PK field found")
+        try:
+            pidrow = next(x for x in ddrows if x.primary_pid)
+        except StopIteration:
+            raise ValueError("No PID field found")
+
+        self.pk_ddrow = pkrow
+        self.pid_ddrow = pidrow
+        self.text_ddrow = textrow
+        log.info("Using fields: pk={}, pid={}, text={}".format(
+            self.pk_ddrow.get_dest_signature(),
+            self.pid_ddrow.get_dest_signature(),
+            self.text_ddrow.get_dest_signature()))
 
 
-# noinspection PyProtectedMember
-def get_patientnum_rawtext(docid, fieldinfo):
+def get_patientnum_rawtext(docid: int,
+                           fieldinfo: FieldInfo) -> Tuple[int, str]:
     """
     Fetches the original text for a given document PK, plus the associated
     patient ID.
@@ -143,13 +144,14 @@ def get_patientnum_rawtext(docid, fieldinfo):
         return None, None
     pid = row[idx_pidfield]
     text = row[idx_textfield]
-    if fieldinfo.text_ddrow._extract_text:
-        text, extracted = extract_text(text, row, fieldinfo.text_ddrow,
+    for altermethod in fieldinfo.text_ddrow.get_extracting_text_altermethods():
+        text, extracted = extract_text(text, row, altermethod,
                                        src_ddrows)
     return pid, text
 
 
-def get_patientnum_anontext(docid, fieldinfo):
+def get_patientnum_anontext(docid: int,
+                            fieldinfo: FieldInfo) -> Tuple[int, str]:
     """
     Fetches the anonymised text for a given document PK, plus the associated
     patient ID.
@@ -177,7 +179,12 @@ def get_patientnum_anontext(docid, fieldinfo):
     return pid, text
 
 
-def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
+def process_doc(docid: int,
+                args: Any,
+                fieldinfo: FieldInfo,
+                csvwriter: Any,
+                first: bool,
+                scrubdict: Dict[int, Dict[str, Any]]) -> int:
     """
     Write the original and anonymised documents to disk, plus some
     counts to a CSV file.
@@ -246,7 +253,9 @@ def process_doc(docid, args, fieldinfo, csvwriter, first, scrubdict):
     return patientnum
 
 
-def get_docids(args, fieldinfo, from_src=True):
+def get_docids(args: Any,
+               fieldinfo: FieldInfo,
+               from_src: bool = True) -> List[int]:
     """
     Generate a limited set of PKs for the documents.
     """
@@ -288,12 +297,12 @@ def get_docids(args, fieldinfo, from_src=True):
         return db.fetchallfirstvalues(query)
 
 
-def test_anon(args):
+def test_anon(args: Any) -> None:
     """
     Fetch raw and anonymised documents and store them in files for
     comparison, along with some summary information.
     """
-    fieldinfo = get_fieldinfo(args)
+    fieldinfo = FieldInfo(args.dsttable, args.dstfield)
     docids = get_docids(args, fieldinfo, args.from_src)
     mkdir_p(args.rawdir)
     mkdir_p(args.anondir)
@@ -325,7 +334,7 @@ def test_anon(args):
 # Main
 # =============================================================================
 
-def main():
+def main() -> None:
     """
     Command-line entry point.
     """

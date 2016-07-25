@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+from typing import Any, Optional
 
 from django import forms
 from django.conf import settings
@@ -84,15 +85,15 @@ class SQLHelperTextAnywhereForm(forms.Form):
         required=False)
 
 
-def html_form_date_to_python(text):
+def html_form_date_to_python(text: str) -> datetime.datetime:
     return datetime.datetime.strptime(text, "%Y-%m-%d")
 
 
-def int_validator(text):
+def int_validator(text: str) -> str:
     return str(int(text))  # may raise ValueError, TypeError
 
 
-def float_validator(text):
+def float_validator(text: str) -> str:
     return str(float(text))  # may raise ValueError, TypeError
 
 
@@ -118,22 +119,22 @@ class QueryBuilderForm(forms.Form):
     string_value = CharField(label="String value", required=False)
     file = FileField(label="File (for IN)", required=False)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.file_values_list = ''
         super().__init__(*args, **kwargs)
 
-    def get_datatype(self):
+    def get_datatype(self) -> Optional[str]:
         return self.data.get('datatype', None)
 
-    def is_datatype_unknown(self):
+    def is_datatype_unknown(self) -> bool:
         return self.get_datatype() == ColumnInfo.DATATYPE_UNKNOWN
 
-    def offering_where(self):
+    def offering_where(self) -> bool:
         if self.is_datatype_unknown():
             return False
         return self.data.get('offer_where', False)
 
-    def get_value_fieldname(self):
+    def get_value_fieldname(self) -> str:
         datatype = self.get_datatype()
         if datatype == ColumnInfo.DATATYPE_INTEGER:
             return "int_value"
@@ -147,11 +148,11 @@ class QueryBuilderForm(forms.Form):
             return ""
         raise ValueError("Invalid field type")
 
-    def get_cleaned_where_value(self):
+    def get_cleaned_where_value(self) -> Any:
         # Only call this if you've already cleaned/validated the form!
         return self.cleaned_data[self.get_value_fieldname()]
 
-    def clean(self):
+    def clean(self) -> None:
         # Check the WHERE information is sufficient.
         if 'submit_select' in self.data:
             # Form submitted via the "Add" method, so no checks required.

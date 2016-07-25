@@ -3,11 +3,14 @@
 
 import argparse
 import logging
+from typing import Any, Dict
 
 from sqlalchemy import (
     create_engine,
     MetaData,
 )
+from sqlalchemy.engine import Engine
+from sqlalchemy.schema import Table
 
 from crate_anon.anonymise.constants import MYSQL_CHARSET
 from crate_anon.common.debugfunc import pdb_run
@@ -94,7 +97,8 @@ AUTONUMBER_COLTYPE = "INTEGER IDENTITY(1, 1) NOT NULL"
 # Generic table processors
 # =============================================================================
 
-def table_is_rio_type(tablename, progargs):
+def table_is_rio_type(tablename: str,
+                      progargs: Any) -> bool:
     if progargs.rio:
         return True
     if not progargs.cpft:
@@ -103,7 +107,7 @@ def table_is_rio_type(tablename, progargs):
     return tablename == progargs.full_prognotes_table
 
 
-def get_rio_pk_col_patient_table(table):
+def get_rio_pk_col_patient_table(table: Table) -> str:
     if table.name.startswith('UserAssess'):
         default = RIO_COL_USER_ASSESS_DEFAULT_PK
     else:
@@ -113,7 +117,7 @@ def get_rio_pk_col_patient_table(table):
     return pkcol
 
 
-def get_rio_patient_id_col(table):
+def get_rio_patient_id_col(table: Table) -> str:
     patient_id_col = RIO_6_2_ATYPICAL_PATIENT_ID_COLS.get(table.name,
                                                           RIO_COL_PATIENT_ID)
     # log.debug("get_rio_patient_id_col: {} -> {}".format(table.name,
@@ -121,7 +125,7 @@ def get_rio_patient_id_col(table):
     return patient_id_col
 
 
-def get_rio_pk_col_nonpatient_table(table):
+def get_rio_pk_col_nonpatient_table(table: Table) -> str:
     if RIO_COL_DEFAULT_PK in table.columns.keys():
         default = RIO_COL_DEFAULT_PK
     else:
@@ -129,7 +133,7 @@ def get_rio_pk_col_nonpatient_table(table):
     return RIO_6_2_ATYPICAL_PKS.get(table.name, default)
 
 
-def process_patient_table(table, engine, progargs):
+def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
     log.info("Patient table: '{}'".format(table.name))
     rio_type = table_is_rio_type(table.name, progargs)
     if rio_type:
@@ -158,7 +162,8 @@ def process_patient_table(table, engine, progargs):
     # -------------------------------------------------------------------------
     # Update pk and rio_number values, if not NULL
     # -------------------------------------------------------------------------
-    ensure_columns_present(engine, table=table, column_names=required_cols)
+    ensure_columns_present(engine, tablename=table.name,
+                           column_names=required_cols)
     log.info("Table '{}': updating columns '{}' and '{}'".format(
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
     cast_id_to_int = sql_fragment_cast_to_int(string_pt_id)
@@ -209,12 +214,14 @@ def process_patient_table(table, engine, progargs):
     ])
 
 
-def drop_for_patient_table(table, engine):
+def drop_for_patient_table(table: Table, engine: Engine) -> None:
     drop_indexes(engine, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
     drop_columns(engine, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
 
 
-def process_nonpatient_table(table, engine, progargs):
+def process_nonpatient_table(table: Table,
+                             engine: Engine,
+                             progargs: Any) -> None:
     if progargs.rcep:
         return
     pk_col = get_rio_pk_col_nonpatient_table(table)
@@ -223,7 +230,7 @@ def process_nonpatient_table(table, engine, progargs):
     else:
         add_columns(engine, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
     if not progargs.print:
-        ensure_columns_present(engine, table=table,
+        ensure_columns_present(engine, tablename=table.name,
                                column_names=[CRATE_COL_PK])
     if pk_col:
         execute(engine, """
@@ -237,7 +244,7 @@ def process_nonpatient_table(table, engine, progargs):
                                  'unique': True}])
 
 
-def drop_for_nonpatient_table(table, engine):
+def drop_for_nonpatient_table(table: str, engine: Engine) -> None:
     drop_indexes(engine, table, [CRATE_IDX_PK])
     drop_columns(engine, table, [CRATE_COL_PK])
 
@@ -246,17 +253,20 @@ def drop_for_nonpatient_table(table, engine):
 # Specific table processors
 # =============================================================================
 
-def process_master_patient_table(table, engine, progargs):
+def process_master_patient_table(table: Table,
+                                 engine: Engine,
+                                 progargs: Any) -> None:
     add_columns(engine, table, {CRATE_COL_NHS_NUMBER: 'BIGINT'})
     if progargs.rcep:
         nhscol = RCEP_COL_NHS_NUMBER
     else:
         nhscol = RIO_COL_NHS_NUMBER
     log.info("Table '{}': updating column '{}'".format(table.name, nhscol))
-    ensure_columns_present(engine, table=table, column_names=[nhscol])
+    ensure_columns_present(engine, tablename=table.name,
+                           column_names=[nhscol])
     if not progargs.print:
-        ensure_columns_present(engine, table=table, column_names=[
-            CRATE_COL_NHS_NUMBER])
+        ensure_columns_present(engine, tablename=table.name,
+                               column_names=[CRATE_COL_NHS_NUMBER])
     execute(engine, """
         UPDATE {tablename} SET
             {nhs_number_int} = CAST({nhscol} AS BIGINT)
@@ -268,11 +278,13 @@ def process_master_patient_table(table, engine, progargs):
     ))
 
 
-def drop_for_master_patient_table(table, engine):
+def drop_for_master_patient_table(table: Table, engine: Engine) -> None:
     drop_columns(engine, table, [CRATE_COL_NHS_NUMBER])
 
 
-def process_progress_notes(table, engine, progargs):
+def process_progress_notes(table: Table,
+                           engine: Engine,
+                           progargs: Any) -> None:
     add_columns(engine, table, {
         CRATE_COL_MAX_SUBNUM: 'INTEGER',
         CRATE_COL_LAST_NOTE: 'INTEGER',
@@ -294,10 +306,10 @@ def process_progress_notes(table, engine, progargs):
         },
     ])
 
-    ensure_columns_present(engine, table=table, column_names=[
+    ensure_columns_present(engine, tablename=table.name, column_names=[
         "NoteNum", "SubNum", "EnteredInError", "EnteredInError"])
     if not progargs.print:
-        ensure_columns_present(engine, table=table, column_names=[
+        ensure_columns_present(engine, tablename=table.name, column_names=[
             CRATE_COL_MAX_SUBNUM, CRATE_COL_LAST_NOTE, CRATE_COL_RIO_NUMBER])
 
     # Find the maximum SubNum for each note, and store it.
@@ -353,7 +365,7 @@ def process_progress_notes(table, engine, progargs):
         create_view(engine, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT, select_sql)
 
 
-def drop_for_progress_notes(table, engine):
+def drop_for_progress_notes(table: Table, engine: Engine) -> None:
     drop_view(engine, VIEW_RCEP_CPFT_PROGRESS_NOTES_CURRENT)
     drop_indexes(engine, table, [CRATE_IDX_RIONUM_NOTENUM,
                                  CRATE_IDX_MAX_SUBNUM,
@@ -362,7 +374,7 @@ def drop_for_progress_notes(table, engine):
                                  CRATE_COL_LAST_NOTE])
 
 
-def process_clindocs_table(table, engine, progargs):
+def process_clindocs_table(table: Table, engine: Engine, progargs: Any) -> None:
     # For RiO only, not RCEP
     add_columns(engine, table, {
         CRATE_COL_MAX_DOCVER: 'INTEGER',
@@ -389,7 +401,8 @@ def process_clindocs_table(table, engine, progargs):
         required_cols.extend([CRATE_COL_MAX_DOCVER,
                               CRATE_COL_LAST_DOC,
                               CRATE_COL_RIO_NUMBER])
-    ensure_columns_present(engine, table=table, column_names=required_cols)
+    ensure_columns_present(engine, tablename=table.name,
+                           column_names=required_cols)
 
     # Find the maximum SerialNumber for each note, and store it.
     # Slow query, even with index.
@@ -430,7 +443,7 @@ def process_clindocs_table(table, engine, progargs):
     ))
 
 
-def drop_for_clindocs_table(table, engine):
+def drop_for_clindocs_table(table: str, engine: Engine) -> None:
     drop_indexes(engine, table, [CRATE_IDX_RIONUM_SERIALNUM,
                                  CRATE_IDX_MAX_DOCVER,
                                  CRATE_IDX_LAST_DOC])
@@ -442,8 +455,11 @@ def drop_for_clindocs_table(table, engine):
 # RiO views
 # =============================================================================
 
-def get_rio_views(engine, progargs, ddhint,
-                  suppress_basetables=True, suppress_lookup=True):
+def get_rio_views(engine: Engine,
+                  progargs: None,
+                  ddhint: DDHint,
+                  suppress_basetables: bool = True,
+                  suppress_lookup: bool = True) -> Dict[str, str]:
     # ddhint modified
     # Returns dictionary of {viewname: select_sql} pairs.
     views = {}
@@ -482,14 +498,20 @@ def get_rio_views(engine, progargs, ddhint,
     return views
 
 
-def create_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+def create_rio_views(engine: Engine,
+                     metadata: MetaData,
+                     progargs: Any,
+                     ddhint: DDHint) -> None:  # ddhint modified
     rio_views = get_rio_views(engine, progargs, ddhint)
     for viewname, select_sql in rio_views.items():
         create_view(engine, viewname, select_sql)
     ddhint.add_indexes(engine, metadata)
 
 
-def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
+def drop_rio_views(engine: Engine,
+                   metadata: MetaData,
+                   progargs: Any,
+                   ddhint: DDHint) -> None:  # ddhint modified
     rio_views = get_rio_views(engine, progargs, ddhint)
     ddhint.drop_indexes(engine, metadata)
     for viewname, _ in rio_views.items():
@@ -500,7 +522,9 @@ def drop_rio_views(engine, metadata, progargs, ddhint):  # ddhint modified
 # Geography views
 # =============================================================================
 
-def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
+def add_postcode_geography_view(engine: Engine,
+                                progargs: Any,
+                                ddhint: DDHint) -> None:  # ddhint modified
     # Re-read column names, as we may have inserted some recently by hand that
     # may not be in the initial metadata.
     if progargs.rio:
@@ -564,7 +588,7 @@ def add_postcode_geography_view(engine, progargs, ddhint):  # ddhint modified
 # Table action selector
 # =============================================================================
 
-def process_table(table, engine, progargs):
+def process_table(table: Table, engine: Engine, progargs: Any) -> None:
     tablename = table.name
     column_names = table.columns.keys()
     log.debug("TABLE: '{}'; COLUMNS: {}".format(tablename, column_names))
@@ -611,7 +635,9 @@ def process_table(table, engine, progargs):
             process_progress_notes(table, engine, progargs)
 
 
-def process_all_tables(engine, metadata, progargs):
+def process_all_tables(engine: Engine,
+                       metadata: MetaData,
+                       progargs: Any) -> None:
     if progargs.debug_skiptables:
         return
     for table in sorted(metadata.tables.values(),
@@ -623,7 +649,7 @@ def process_all_tables(engine, metadata, progargs):
 # Main
 # =============================================================================
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         # formatter_class=argparse.ArgumentDefaultsHelpFormatter,

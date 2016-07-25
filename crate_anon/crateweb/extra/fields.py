@@ -6,10 +6,12 @@ import dateutil.parser
 import logging
 import os
 import pytz
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 from django.db import models
-from django.db.models.fields import DateField, DateTimeField
+from django.db.models.fields import DateField, DateTimeField, Field
 from django.template.defaultfilters import filesizeformat
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy
@@ -39,14 +41,14 @@ class ContentTypeRestrictedFileField(models.FileField):
             250MB - 214958080
             500MB - 429916160
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.content_types = kwargs.pop("content_types", None)
         if self.content_types is None:
             self.content_types = []
         self.max_upload_size = kwargs.pop("max_upload_size", None)
         super().__init__(*args, **kwargs)
 
-    def clean(self, *args, **kwargs):
+    def clean(self, *args, **kwargs) -> Any:
         data = super().clean(*args, **kwargs)
         # log.debug("data: {}".format(repr(data)))
         f = data.file
@@ -76,7 +78,8 @@ class ContentTypeRestrictedFileField(models.FileField):
 # These two auto-delete files from filesystem when they are unneeded:
 # ... with a bit of modification to make them generic (RNC)
 # Attach them with signals; see e.g. Study model.
-def auto_delete_files_on_instance_delete(instance, fieldnames):
+def auto_delete_files_on_instance_delete(instance: Any,
+                                         fieldnames: Iterable[str]) -> None:
     """Deletes files from filesystem when object is deleted."""
     for fieldname in fieldnames:
         filefield = getattr(instance, fieldname, None)
@@ -85,7 +88,9 @@ def auto_delete_files_on_instance_delete(instance, fieldnames):
                 os.remove(filefield.path)
 
 
-def auto_delete_files_on_instance_change(instance, fieldnames, model):
+def auto_delete_files_on_instance_change(instance: Any,
+                                         fieldnames: Iterable[str],
+                                         model: models.Model) -> None:
     """Deletes files from filesystem when object is changed."""
     if not instance.pk:
         return  # instance not yet saved in database
@@ -107,7 +112,7 @@ def auto_delete_files_on_instance_change(instance, fieldnames, model):
 # Field choice assistance
 # =============================================================================
 
-def valid_choice(strvalue, choices):
+def valid_choice(strvalue: str, choices: Iterable[Tuple[str, str]]) -> bool:
     """
     Checks that value is one of the valid option in choices, where choices
     is a list/tuple of 2-tuples (option, description).
@@ -124,7 +129,7 @@ def valid_choice(strvalue, choices):
     return strvalue in [str(x[0]) for x in choices]
 
 
-def choice_explanation(value, choices):
+def choice_explanation(value: str, choices: Iterable[Tuple[str, str]]) -> str:
     """
     Returns the explanation associated with a Django choice tuple-list.
     """
@@ -142,19 +147,20 @@ def choice_explanation(value, choices):
 # Conversions: Python
 # -----------------------------------------------------------------------------
 
-def iso_string_to_python_datetime(isostring):
+def iso_string_to_python_datetime(isostring: str) -> datetime.datetime:
     """Takes an ISO-8601 string and returns a datetime."""
     if not isostring:
         return None  # if you parse() an empty string, you get today's date
     return dateutil.parser.parse(isostring)
 
 
-def python_utc_datetime_to_sqlite_strftime_string(value):
+def python_utc_datetime_to_sqlite_strftime_string(
+        value: datetime.datetime) -> str:
     millisec_str = str(round(value.microsecond / 1000)).zfill(3)
     return value.strftime("%Y-%m-%d %H:%M:%S") + "." + millisec_str
 
 
-def python_localized_datetime_to_human_iso(value):
+def python_localized_datetime_to_human_iso(value: datetime.datetime) -> str:
     s = value.strftime("%Y-%m-%dT%H:%M:%S.%f%z")
     return s[:29] + ":" + s[29:]
 
@@ -241,13 +247,13 @@ class IsoDateTimeTzField(models.CharField):
 
     description = "ISO-8601 date/time field with timezone, stored as text"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         """Declare that we're a VARCHAR(32) on the database side."""
         # https://docs.djangoproject.com/en/1.8/howto/custom-model-fields/
         kwargs['max_length'] = 32
         super().__init__(*args, **kwargs)
 
-    def deconstruct(self):
+    def deconstruct(self) -> Tuple[str, str, List[Any], Dict[str, Any]]:
         """Takes an instance and calculates the arguments to pass to __init__
         to reconstruct it."""
         name, path, args, kwargs = super().deconstruct()
@@ -267,7 +273,7 @@ class IsoDateTimeTzField(models.CharField):
             return None
         return iso_string_to_python_datetime(value)
 
-    def to_python(self, value):
+    def to_python(self, value: Optional[str]) -> Optional[Any]:
         """
         Called during deserialization and during form clean() calls.
         Must deal with an instance of the correct type; a string; or None
@@ -335,7 +341,7 @@ class IsoDateTimeTzField(models.CharField):
 # Conversions: MySQL
 # -----------------------------------------------------------------------------
 
-def iso_string_to_sql_utcdatetime_mysql(x):
+def iso_string_to_sql_utcdatetime_mysql(x: str) -> str:
     return (
         "CONVERT_TZ(STR_TO_DATE(LEFT({x}, 26),"
         "                       '%Y-%m-%dT%H:%i:%s.%f'),"
@@ -349,7 +355,7 @@ def iso_string_to_sql_utcdatetime_mysql(x):
     #    characters to UTC (though losing fractional seconds)
 
 
-def iso_string_to_sql_utcdate_mysql(x):
+def iso_string_to_sql_utcdate_mysql(x: str) -> str:
     return (
         "DATE(CONVERT_TZ(STR_TO_DATE(LEFT({x}, 26),"
         "                            '%Y-%m-%dT%H:%i:%s.%f'),"
@@ -358,7 +364,7 @@ def iso_string_to_sql_utcdate_mysql(x):
     ).format(x=x)
 
 
-def iso_string_to_sql_date_mysql(x):
+def iso_string_to_sql_date_mysql(x: str) -> str:
     return "STR_TO_DATE(LEFT({x}, 10), '%Y-%m-%d')".format(x=x)
 
 
@@ -366,7 +372,7 @@ def iso_string_to_sql_date_mysql(x):
 # Conversions: SQLite
 # -----------------------------------------------------------------------------
 
-def iso_string_to_sql_utcdatetime_sqlite(x):
+def iso_string_to_sql_utcdatetime_sqlite(x: str) -> str:
     """
     Output like:
         2015-11-14 18:52:47.000
@@ -383,7 +389,7 @@ def iso_string_to_sql_utcdatetime_sqlite(x):
     # http://www.sqlite.org/lang_datefunc.html
 
 
-def iso_string_to_sql_utcdatetime_pythonformat_sqlite(x):
+def iso_string_to_sql_utcdatetime_pythonformat_sqlite(x: str) -> str:
     """
     Output like
         2015-11-14 18:52:47
@@ -401,11 +407,11 @@ def iso_string_to_sql_utcdatetime_pythonformat_sqlite(x):
     """.format(x=x)
 
 
-def iso_string_to_sql_utcdate_sqlite(x):
+def iso_string_to_sql_utcdate_sqlite(x: str) -> str:
     return "DATE({x})".format(x=x)
 
 
-def iso_string_to_sql_date_sqlite(x):
+def iso_string_to_sql_date_sqlite(x: str) -> str:
     return "DATE(SUBSTR({x}, 1, 10))".format(x=x)
 
 
@@ -413,7 +419,7 @@ def iso_string_to_sql_date_sqlite(x):
 # Lookups
 # -----------------------------------------------------------------------------
 
-def isodt_lookup_mysql(lookup, compiler, connection, operator):
+def isodt_lookup_mysql(lookup, compiler, connection, operator) -> str:
     lhs, lhs_params = compiler.compile(lookup.lhs)
     rhs, rhs_params = lookup.process_rhs(compiler, connection)
     params = lhs_params + rhs_params
@@ -424,7 +430,7 @@ def isodt_lookup_mysql(lookup, compiler, connection, operator):
     ), params
 
 
-def isodt_lookup_sqlite(lookup, compiler, connection, operator):
+def isodt_lookup_sqlite(lookup, compiler, connection, operator) -> str:
     lhs, lhs_params = compiler.compile(lookup.lhs)
     rhs, rhs_params = lookup.process_rhs(compiler, connection)
     params = lhs_params + rhs_params
@@ -442,10 +448,10 @@ def isodt_lookup_sqlite(lookup, compiler, connection, operator):
 class IsoDateTimeLessThan(models.Lookup):
     lookup_name = 'lt'
 
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         return isodt_lookup_mysql(self, compiler, connection, "<")
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         return isodt_lookup_sqlite(self, compiler, connection, "<")
 
 
@@ -454,10 +460,10 @@ class IsoDateTimeLessThan(models.Lookup):
 class IsoDateTimeLessThanEqual(models.Lookup):
     lookup_name = 'lte'
 
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         return isodt_lookup_mysql(self, compiler, connection, "<=")
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         return isodt_lookup_sqlite(self, compiler, connection, "<=")
 
 
@@ -466,10 +472,10 @@ class IsoDateTimeLessThanEqual(models.Lookup):
 class IsoDateTimeExact(models.Lookup):
     lookup_name = 'exact'
 
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         return isodt_lookup_mysql(self, compiler, connection, "=")
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         return isodt_lookup_sqlite(self, compiler, connection, "=")
 
 
@@ -478,10 +484,10 @@ class IsoDateTimeExact(models.Lookup):
 class IsoDateTimeGreaterThan(models.Lookup):
     lookup_name = 'gt'
 
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         return isodt_lookup_mysql(self, compiler, connection, ">")
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         return isodt_lookup_sqlite(self, compiler, connection, ">")
 
 
@@ -490,10 +496,10 @@ class IsoDateTimeGreaterThan(models.Lookup):
 class IsoDateTimeGreaterThanEqual(models.Lookup):
     lookup_name = 'gte'
 
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         return isodt_lookup_mysql(self, compiler, connection, ">=")
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         return isodt_lookup_sqlite(self, compiler, connection, ">=")
 
 
@@ -513,16 +519,16 @@ class IsoStringToUtcDateTime(models.Transform):
     # MATCH THE FORMAT EXPECTED FOR A DateTimeField. The class's own
     # get_db_prep_value(), etc., will NOT be called.
     @property
-    def output_field(self):
+    def output_field(self) -> Field:
         return DateTimeField()
 
     # noinspection PyUnusedLocal
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         log.debug("IsoStringToUtcDateTime.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdatetime_mysql(lhs), params
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         log.debug("IsoStringToUtcDateTime.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdatetime_pythonformat_sqlite(lhs), params
@@ -537,16 +543,16 @@ class IsoStringToUtcDate(models.Transform):
     lookup_name = 'utcdate'
 
     @property
-    def output_field(self):
+    def output_field(self) -> Field:
         return DateField()
 
     # noinspection PyUnusedLocal
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         log.debug("IsoStringToUtcDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdate_mysql(lhs), params
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         log.debug("IsoStringToUtcDate.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdate_sqlite(lhs), params
@@ -562,16 +568,16 @@ class IsoStringToSourceDate(models.Transform):
     lookup_name = 'sourcedate'
 
     @property
-    def output_field(self):
+    def output_field(self) -> Field:
         return DateField()
 
     # noinspection PyUnusedLocal
-    def as_mysql(self, compiler, connection):
+    def as_mysql(self, compiler, connection) -> str:
         log.debug("IsoStringToSourceDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_date_mysql(lhs), params
 
-    def as_sqlite(self, compiler, connection):
+    def as_sqlite(self, compiler, connection) -> str:
         log.debug("IsoStringToSourceDate.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_date_sqlite(lhs), params
@@ -581,7 +587,7 @@ class IsoStringToSourceDate(models.Transform):
 # Other
 # -----------------------------------------------------------------------------
 
-def get_now_utc():
+def get_now_utc() -> datetime.datetime:
     """
     Get the time now in the UTC timezone.
     """

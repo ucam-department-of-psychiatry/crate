@@ -2,7 +2,9 @@
 # crate_anon/crateweb/research/sql_writer.py
 
 import logging
+from typing import Dict, List, Optional, Tuple
 
+from pyparsing import ParseResults
 import sqlparse
 
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
@@ -31,7 +33,8 @@ from crate_anon.crateweb.research.models import (
 log = logging.getLogger(__name__)
 
 
-def parser_add_result_column(parsed, column):
+def parser_add_result_column(parsed: ParseResults,
+                             column: str) -> ParseResults:
     # Presupposes at least one column already in the SELECT statement.
 
     existing_columns = parsed.select_expression.select_columns.asList()
@@ -48,7 +51,8 @@ def parser_add_result_column(parsed, column):
     return parsed
 
 
-def parser_add_from_tables(parsed, joininfo):
+def parser_add_from_tables(parsed: ParseResults,
+                           joininfo: List[Dict[str, str]]) -> ParseResults:
     """
     joininfo: list of dictionaries with keys:
         table, join_type, join_condition
@@ -75,8 +79,12 @@ def parser_add_from_tables(parsed, joininfo):
     return parsed
 
 
-def get_first_from_db_table(parsed, match_db=False, match_db_table=False,
-                            db=None, table=None):
+def get_first_from_db_table(
+        parsed: ParseResults,
+        match_db: bool = False,
+        match_db_table: bool = False,
+        db: str = None,
+        table: str = None) -> Tuple[Optional[str], Optional[str]]:
     existing_tables = parsed.join_source.from_tables.asList()
     for t in existing_tables:
         db_component, table_component = split_db_table(t)
@@ -88,7 +96,10 @@ def get_first_from_db_table(parsed, match_db=False, match_db_table=False,
     return None, None
 
 
-def toggle_distinct(sql, formatted=True, debug=False, debug_verbose=False):
+def toggle_distinct(sql: str,
+                    formatted: bool = True,
+                    debug: bool = False,
+                    debug_verbose: bool = False) -> str:
     p = select_statement.parseString(sql)
     if debug:
         log.info("START: {}".format(sql))
@@ -109,9 +120,12 @@ def toggle_distinct(sql, formatted=True, debug=False, debug_verbose=False):
     return result
 
 
-def get_join_info(parsed, joindb, jointable, magic_join=False,
-                  nonmagic_join_type="INNER JOIN",
-                  nonmagic_join_condition=None):
+def get_join_info(parsed: ParseResults,
+                  joindb: str,
+                  jointable: str,
+                  magic_join: bool = False,
+                  nonmagic_join_type: str = "INNER JOIN",
+                  nonmagic_join_condition: str = None) -> List[Dict[str, str]]:
     join_db_table = combine_db_table(joindb, jointable)
     first_db, first_table = get_first_from_db_table(parsed)
     db_match_db, db_match_table = get_first_from_db_table(
@@ -221,19 +235,25 @@ def get_join_info(parsed, joindb, jointable, magic_join=False,
     return joins
 
 
-def add_to_select(sql,
+def add_to_select(sql: str,
                   # For SELECT:
-                  select_db=None, select_table=None, select_column=None,
+                  select_db: str = None,
+                  select_table: str = None,
+                  select_column: str = None,
                   # For WHERE:
-                  where_expression=None, where_type="AND", 
-                  where_db=None, where_table=None,
-                  bracket_where=False,
+                  where_expression: str = None,
+                  where_type: str = "AND",
+                  where_db: str = None,
+                  where_table: str = None,
+                  bracket_where: bool = False,
                   # For either, for JOIN:
-                  magic_join=True,
-                  inner_join_to_first_on_keyfield=None,  # overrides others
-                  join_type="NATURAL JOIN", join_condition=None,
+                  magic_join: bool = True,
+                  join_type: str = "NATURAL JOIN",
+                  join_condition: str = None,
                   # General:
-                  formatted=True, debug=False, debug_verbose=False):
+                  formatted: bool = True,
+                  debug: bool = False,
+                  debug_verbose: bool = False) -> str:
     """
     This function encapsulates our query builder's common operations.
     One premise is that SQL parsing is relatively slow, so we should do this
@@ -252,8 +272,6 @@ def add_to_select(sql,
         log.info("START: {}".format(sql))
         log.debug("table: {}".format(select_table))
         log.debug("column: {}".format(select_column))
-        log.debug("inner_join_to_first_on_keyfield: {}".format(
-            inner_join_to_first_on_keyfield))
         log.debug("join_type: {}".format(join_type))
         log.debug("join_condition: {}".format(join_condition))
         log.debug("where_type: {}".format(where_type))
@@ -313,7 +331,9 @@ def add_to_select(sql,
             if where_table:
                 p = parser_add_from_tables(
                     p, get_join_info(p, where_db, where_table,
-                                     magic_join=magic_join))
+                                     magic_join=magic_join,
+                                     nonmagic_join_type=join_type,
+                                     nonmagic_join_condition=join_condition))
 
         if debug and debug_verbose:
             log.debug("end dump:\n" + p.dump())
@@ -323,7 +343,7 @@ def add_to_select(sql,
     return result
 
 
-def unit_tests():
+def unit_tests() -> None:
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
                   select_table="t2", select_column="c")
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",

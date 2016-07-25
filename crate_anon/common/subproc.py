@@ -12,6 +12,7 @@ from subprocess import (
     TimeoutExpired,
 )
 import sys
+from typing import Any, List
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ processes = []
 # =============================================================================
 
 @atexit.register
-def kill_child_processes():
+def kill_child_processes() -> None:
     timeout_sec = 5
     for p in processes:
         try:
@@ -41,7 +42,7 @@ def kill_child_processes():
                 p.kill()  # you're dead
 
 
-def fail():
+def fail() -> None:
     print("\nPROCESS FAILED; EXITING ALL\n")
     sys.exit(1)  # will call the atexit handler and kill everything else
 
@@ -50,12 +51,15 @@ def fail():
 # Subprocess handling
 # =============================================================================
 
-def check_call_process(args):
+def check_call_process(args: List[str]) -> None:
     log.debug(args)
     check_call(args)
 
 
-def start_process(args, stdin=None, stdout=None, stderr=None):
+def start_process(args: List[str],
+                  stdin: Any = None,
+                  stdout: Any = None,
+                  stderr: Any = None) -> Popen:
     """
 
     Args:
@@ -81,7 +85,8 @@ def start_process(args, stdin=None, stdout=None, stderr=None):
     return proc
 
 
-def wait_for_processes(die_on_failure=True, timeout_sec=1):
+def wait_for_processes(die_on_failure: bool = True,
+                       timeout_sec: float = 1) -> None:
     """
     If die_on_failure is True, then whenever a subprocess returns failure,
     all are killed.
@@ -111,7 +116,7 @@ def wait_for_processes(die_on_failure=True, timeout_sec=1):
     processes.clear()
 
 
-def print_lines(process):
+def print_lines(process: Popen) -> None:
     out, err = process.communicate()
     if out:
         for line in out.decode("utf-8").splitlines():
@@ -121,7 +126,8 @@ def print_lines(process):
             print(line)
 
 
-def run_multiple_processes(args_list, die_on_failure=True):
+def run_multiple_processes(args_list: List[List[str]],
+                           die_on_failure: bool = True) -> None:
     for procargs in args_list:
         start_process(procargs)
     # Wait for them all to finish

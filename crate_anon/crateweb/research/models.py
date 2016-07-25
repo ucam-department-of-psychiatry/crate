@@ -5,9 +5,12 @@ from collections import OrderedDict
 from functools import lru_cache
 import logging
 # import os
+from typing import Any, Dict, List, Iterator, Optional, Tuple, Type
 
 from django.db import connections, models
+from django.db.models import QuerySet
 from django.conf import settings
+from django.http.request import HttpRequest
 # from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 
@@ -33,14 +36,65 @@ log = logging.getLogger(__name__)
 # Debugging SQL
 # =============================================================================
 
-def debug_query():
+def debug_query() -> None:
     cursor = connections['research'].cursor()
     cursor.execute("SELECT 'debug'")
 
 
 # =============================================================================
+# Query highlighting class
+# =============================================================================
+
+HIGHLIGHT_FWD_REF = "Highlight"
+
+
+class Highlight(models.Model):
+    """
+    Represents the highlighting of a query.
+    """
+    id = models.AutoField(primary_key=True)  # automatic
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    colour = models.PositiveSmallIntegerField(verbose_name="Colour number")
+    text = models.CharField(max_length=255, verbose_name="Text to highlight")
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return "colour={}, text={}".format(self.colour, self.text)
+
+    def get_safe_colour(self) -> int:
+        if self.colour is None:
+            return 0
+        return min(self.colour, N_CSS_HIGHLIGHT_CLASSES - 1)
+
+    @staticmethod
+    def as_ordered_dict(highlight_list) -> Dict[int, HIGHLIGHT_FWD_REF]:
+        d = dict()
+        for highlight in highlight_list:
+            n = highlight.get_safe_colour()
+            if n not in d:
+                d[n] = []
+            d[n].append(highlight)
+        return OrderedDict(sorted(d.items()))
+
+    @staticmethod
+    def get_active_highlights(request: HttpRequest) -> QuerySet:
+        return Highlight.objects.filter(user=request.user, active=True)
+
+    def activate(self) -> None:
+        self.active = True
+        self.save()
+
+    def deactivate(self) -> None:
+        self.active = False
+        self.save()
+
+
+# =============================================================================
 # Query class
 # =============================================================================
+
+QUERY_FWD_REF = "Query"
+
 
 class Query(models.Model):
     """
@@ -72,7 +126,7 @@ class Query(models.Model):
     def __str__(self):
         return "<Query id={}>".format(self.id)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs) -> None:
         """
         Custom save method.
         Ensures that only one Query has active == True for a given user.
@@ -84,14 +138,15 @@ class Query(models.Model):
         super().save(*args, **kwargs)
 
     @staticmethod
-    def get_active_query_or_none(request):
+    def get_active_query_or_none(request: HttpRequest) \
+            -> Optional[QUERY_FWD_REF]:
         try:
             return Query.objects.get(user=request.user, active=True)
         except Query.DoesNotExist:
             return None
 
     @staticmethod
-    def get_active_query_id_or_none(request):
+    def get_active_query_id_or_none(request: HttpRequest) -> Optional[int]:
         if not request.user.is_authenticated():
             return None
         try:
@@ -100,17 +155,17 @@ class Query(models.Model):
         except Query.DoesNotExist:
             return None
 
-    def activate(self):
+    def activate(self) -> None:
         self.active = True
         self.save()
 
-    def mark_audited(self):
+    def mark_audited(self) -> None:
         if self.audited:
             return
         self.audited = True
         self.save()
 
-    def mark_deleted(self):
+    def mark_deleted(self) -> None:
         if self.deleted:
             log.debug("pointless)")
             return
@@ -120,7 +175,7 @@ class Query(models.Model):
         self.save()
         log.debug("saved")
 
-    def delete_if_permitted(self):
+    def delete_if_permitted(self) -> None:
         """If a query has been audited, it isn't properly deleted."""
         if self.deleted:
             log.debug("already flagged as deleted")
@@ -133,8 +188,8 @@ class Query(models.Model):
             log.debug("actually deleting")
             self.delete()
 
-    def audit(self, count_only=False, n_records=0,
-              failed=False, fail_msg=""):
+    def audit(self, count_only: bool = False, n_records: int = 0,
+              failed: bool = False, fail_msg: str = "") -> None:
         a = QueryAudit(query=self,
                        count_only=count_only,
                        n_records=n_records,
@@ -143,26 +198,28 @@ class Query(models.Model):
         a.save()
         self.mark_audited()
 
-    def get_original_sql(self):
+    def get_original_sql(self) -> str:
         return self.sql
 
-    def get_sql_args_for_mysql(self):
+    def get_sql_args_for_mysql(self) -> Tuple[str, Optional[List[Any]]]:
         """
         Get sql/args in a format suitable for MySQL, with %s placeholders,
         or as escaped raw SQL.
         """
         if self.raw:
+            # noinspection PyTypeChecker
             sql = escape_percent_for_python_dbapi(self.sql)
             args = None
         else:
             if self.qmark:
+                # noinspection PyTypeChecker
                 sql = translate_sql_qmark_to_percent(self.sql)
             else:
                 sql = self.sql
             args = self.args
         return sql, args
 
-    def get_executed_cursor(self, sql_append_raw=None):
+    def get_executed_cursor(self, sql_append_raw: str = None) -> Any:
         """
         Get cursor with a query executed
         """
@@ -176,7 +233,9 @@ class Query(models.Model):
             cursor.execute(sql)
         return cursor
 
-    def gen_rows(self, firstrow=0, lastrow=None):
+    def gen_rows(self,
+                 firstrow: int = 0,
+                 lastrow: int = None) -> Iterator[List[Any]]:
         """
         Generate rows from the query.
         """
@@ -194,7 +253,7 @@ class Query(models.Model):
             yield row
             row = cursor.fetchone()
 
-    def make_tsv(self):
+    def make_tsv(self) -> str:
         cursor = self.get_executed_cursor()
         fieldnames = get_fieldnames_from_cursor(cursor)
         tsv = "\t".join([tsv_escape(f) for f in fieldnames]) + "\n"
@@ -204,16 +263,16 @@ class Query(models.Model):
             row = cursor.fetchone()
         return tsv
 
-    def dictfetchall(self):
+    def dictfetchall(self) -> List[Dict[str, Any]]:
         """Generates all results as a list of OrderedDicts."""
         cursor = self.get_executed_cursor()
         return dictfetchall(cursor)
 
-    def add_highlight(self, text, colour=0):
+    def add_highlight(self, text: str, colour: int = 0) -> None:
         h = Highlight(text=text, colour=colour)
         self.highlight_set.add(h)
 
-    def get_highlights_as_dict(self):
+    def get_highlights_as_dict(self) -> Dict[int, Highlight]:
         d = OrderedDict()
         for n in range(N_CSS_HIGHLIGHT_CLASSES):
             d[n] = Highlight.objects.filter(query_id=self.id, colour=n)
@@ -250,51 +309,6 @@ class QueryAudit(models.Model):
 
 
 # =============================================================================
-# Query highlighting class
-# =============================================================================
-
-class Highlight(models.Model):
-    """
-    Represents the highlighting of a query.
-    """
-    id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    colour = models.PositiveSmallIntegerField(verbose_name="Colour number")
-    text = models.CharField(max_length=255, verbose_name="Text to highlight")
-    active = models.BooleanField(default=True)
-
-    def __str__(self):
-        return "colour={}, text={}".format(self.colour, self.text)
-
-    def get_safe_colour(self):
-        if self.colour is None:
-            return 0
-        return min(self.colour, N_CSS_HIGHLIGHT_CLASSES - 1)
-
-    @staticmethod
-    def as_ordered_dict(highlight_list):
-        d = dict()
-        for highlight in highlight_list:
-            n = highlight.get_safe_colour()
-            if n not in d:
-                d[n] = []
-            d[n].append(highlight)
-        return OrderedDict(sorted(d.items()))
-
-    @staticmethod
-    def get_active_highlights(request):
-        return Highlight.objects.filter(user=request.user, active=True)
-
-    def activate(self):
-        self.active = True
-        self.save()
-
-    def deactivate(self):
-        self.active = False
-        self.save()
-
-
-# =============================================================================
 # Information about the research database
 # =============================================================================
 
@@ -328,7 +342,7 @@ class ColumnInfo(object):
     DATATYPE_UNKNOWN = "unknown"
     STRING_TYPES = [DATATYPE_STRING, DATATYPE_STRING_FULLTEXT]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         self.table_schema = kwargs.pop('table_schema')
         self.table_name = kwargs.pop('table_name')
         self.column_name = kwargs.pop('column_name')
@@ -339,11 +353,11 @@ class ColumnInfo(object):
         self.indexed_fulltext = kwargs.pop('indexed_fulltext')
 
     @property
-    def basetype(self):
+    def basetype(self) -> str:
         return self.column_type.split("(")[0].upper()
 
     @property
-    def querybuilder_type(self):
+    def querybuilder_type(self) -> str:
         """
         Returns a string that is defined in querybuilder.js
         """
@@ -362,15 +376,15 @@ class ColumnInfo(object):
         return self.DATATYPE_UNKNOWN
 
 
-def get_researchdb_schemas():
+def get_researchdb_schemas() -> List[str]:
     return [x['schema'] for x in settings.RESEARCH_DB_INFO]
 
 
-def get_default_schema():
+def get_default_schema() -> str:
     return settings.DATABASES['research']['NAME']
 
 
-def get_schema_info(schema_name):
+def get_schema_info(schema_name) -> Optional[Dict[str, Any]]:
     if not schema_name:
         # Default schema
         return settings.RESEARCH_DB_INFO[0]
@@ -383,7 +397,7 @@ def get_schema_info(schema_name):
 
 
 @lru_cache(maxsize=None)
-def get_schema_trid_field(schema_name):
+def get_schema_trid_field(schema_name) -> Optional[str]:
     schema_info = get_schema_info(schema_name)
     if not schema_info:
         return None
@@ -391,7 +405,7 @@ def get_schema_trid_field(schema_name):
 
 
 @lru_cache(maxsize=None)
-def get_schema_rid_field(schema_name):
+def get_schema_rid_field(schema_name) -> Optional[str]:
     schema_info = get_schema_info(schema_name)
     if not schema_info:
         return None
@@ -399,7 +413,7 @@ def get_schema_rid_field(schema_name):
 
 
 @lru_cache(maxsize=None)
-def get_schema_rid_family(schema_name):
+def get_schema_rid_family(schema_name) -> Optional[str]:
     schema_info = get_schema_info(schema_name)
     if not schema_info:
         return None
@@ -407,7 +421,7 @@ def get_schema_rid_family(schema_name):
 
 
 @lru_cache(maxsize=None)
-def get_schema_mrid_table(schema_name):
+def get_schema_mrid_table(schema_name) -> Optional[str]:
     schema_info = get_schema_info(schema_name)
     if not schema_info:
         return None
@@ -415,7 +429,7 @@ def get_schema_mrid_table(schema_name):
 
 
 @lru_cache(maxsize=None)
-def get_schema_mrid_field(schema_name):
+def get_schema_mrid_field(schema_name) -> Optional[str]:
     schema_info = get_schema_info(schema_name)
     if not schema_info:
         return None
@@ -423,7 +437,7 @@ def get_schema_mrid_field(schema_name):
 
 
 @lru_cache(maxsize=None)
-def is_schema_eligible_for_query_builder(schema_name):
+def is_schema_eligible_for_query_builder(schema_name) -> bool:
     this_schema_info = get_schema_info(schema_name)
     if not this_schema_info:
         return False
@@ -460,7 +474,7 @@ class ResearchDatabaseInfo(object):
     ... replaced by lru_cache
     """
     @lru_cache(maxsize=None)
-    def get_infodictlist(self):
+    def get_infodictlist(self) -> List[Dict[str, Any]]:
         connection = connections['research']
         vendor = connection.vendor
         # Use connection.vendor to detect backend:
@@ -715,12 +729,13 @@ ORDER BY
         # - Similarly via SQLAlchemy reflection/inspection.
 
     @lru_cache(maxsize=None)
-    def get_colinfolist(self):
+    def get_colinfolist(self) -> List[ColumnInfo]:
         infodictlist = self.get_infodictlist()
         return [ColumnInfo(**d) for d in infodictlist]
 
     @lru_cache(maxsize=None)
-    def get_infodictlist_by_tables(self):
+    def get_infodictlist_by_tables(self) \
+            -> List[Tuple[str, str, List[Dict[str, Any]]]]:
         log.debug("... STARTING")
         idl = self.get_infodictlist()
         log.debug("... MIDWAY")
@@ -736,7 +751,7 @@ ORDER BY
         return schema_table_idl
 
     @lru_cache(maxsize=1000)
-    def tables_containing_field(self, fieldname):
+    def tables_containing_field(self, fieldname: str) -> List[Tuple[str, str]]:
         """
         Returns a list of [schema, table] pairs.
         The information_schema method is ANSI SQL.
@@ -763,7 +778,10 @@ ORDER BY
         return cursor.fetchall()
 
     @lru_cache(maxsize=1000)
-    def text_columns(self, schema, table, min_length=1):
+    def text_columns(self,
+                     schema: str,
+                     table: str,
+                     min_length: int = 1) -> List[Tuple[str, bool]]:
         """
         Returns list of (column_name, indexed_fulltext) pairs.
         """
@@ -793,7 +811,7 @@ class PidLookupRouter(object):
     # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/
     # https://newcircle.com/s/post/1242/django_multiple_database_support
     # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def db_for_read(self, model, **hints):
+    def db_for_read(self, model: Type[models.Model], **hints) -> Optional[str]:
         """
         read model PidLookup -> look at database secret
         """
@@ -830,7 +848,9 @@ class PidLookup(models.Model):
         db_table = settings.SECRET_MAP['TABLENAME']
 
 
-def get_pid_lookup(trid=None, rid=None, mrid=None):
+def get_pid_lookup(trid: int = None,
+                   rid: str = None,
+                   mrid: str = None) -> PidLookup:
     if trid is not None:
         lookup = PidLookup.objects.get(trid=trid)
     elif rid is not None:
@@ -842,11 +862,15 @@ def get_pid_lookup(trid=None, rid=None, mrid=None):
     return lookup
 
 
-def get_mpid(trid=None, rid=None, mrid=None):
+def get_mpid(trid: int = None,
+             rid: str = None,
+             mrid: str = None) -> int:
     lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
     return lookup.mpid
 
 
-def get_pid(trid=None, rid=None, mrid=None):
+def get_pid(trid: int = None,
+            rid: str = None,
+            mrid: str = None) -> int:
     lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
     return lookup.pid

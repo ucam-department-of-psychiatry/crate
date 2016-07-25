@@ -68,14 +68,14 @@ Race condition:
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def add(x, y):
+def add(x: float, y: float) -> float:
     return x + y
 
 
 # noinspection PyCallingNonCallable,PyPep8Naming
 @shared_task
 @task(ignore_result=True)
-def resend_email(email_id, user_id):
+def resend_email(email_id: int, user_id: int) -> None:
     User = get_user_model()
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.objects.get(pk=email_id)
@@ -86,7 +86,7 @@ def resend_email(email_id, user_id):
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def process_contact_request(contact_request_id):
+def process_contact_request(contact_request_id: int) -> None:
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
     contact_request = ContactRequest.objects.get(pk=contact_request_id)
@@ -96,7 +96,7 @@ def process_contact_request(contact_request_id):
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def finalize_clinician_response(clinician_response_id):
+def finalize_clinician_response(clinician_response_id: int) -> None:
     from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
     clinician_response = ClinicianResponse.objects.get(
         pk=clinician_response_id)
@@ -106,7 +106,7 @@ def finalize_clinician_response(clinician_response_id):
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def process_consent_change(consent_mode_id):
+def process_consent_change(consent_mode_id: int) -> None:
     from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
     consent_mode.process_change()
@@ -115,7 +115,7 @@ def process_consent_change(consent_mode_id):
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def process_patient_response(patient_response_id):
+def process_patient_response(patient_response_id: int) -> None:
     from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
     patient_response.process_response()
@@ -124,7 +124,7 @@ def process_patient_response(patient_response_id):
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def test_email_rdbm_task():
+def test_email_rdbm_task() -> None:
     subject = "TEST MESSAGE FROM RESEARCH DATABASE COMPUTER"
     text = (
         "Success! The CRATE framework can communicate via Celery with its "
@@ -137,7 +137,7 @@ def test_email_rdbm_task():
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def email_rdbm_task(subject, text):
+def email_rdbm_task(subject, text) -> None:
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)
     email.send()

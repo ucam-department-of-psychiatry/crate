@@ -20,22 +20,23 @@ class AppServerSvc(win32serviceutil.ServiceFramework):
     _svc_display_name_ = "Test Service"
     _svc_description_ = "Test service (Windows service via Python)"
 
-    def __init__(self, args):
+    def __init__(self, args) -> None:
         win32serviceutil.ServiceFramework.__init__(self, args)
         self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
         socket.setdefaulttimeout(60)
 
-    def SvcStop(self):
+    def SvcStop(self) -> None:
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         win32event.SetEvent(self.hWaitStop)
 
-    def SvcDoRun(self):
+    def SvcDoRun(self) -> None:
         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
                               servicemanager.PYS_SERVICE_STARTED,
                               (self._svc_name_, ''))
         self.main()
 
-    def main(self):
+    @staticmethod
+    def main() -> None:
         while True:
             with open(r"C:\current_time.txt", "w") as f:
                 f.write("The time is now " + time.ctime() + "\n")

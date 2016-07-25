@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # crate_anon/crateweb/research/html_functions.py
 
+import logging
 import re
 import textwrap
+from typing import Any, Dict, Iterable, Optional
+
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
 # from django.template import loader
 from django.template.defaultfilters import linebreaksbr
-import logging
+
 log = logging.getLogger(__name__)
 
 
@@ -23,8 +26,10 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # Collapsible div
 # =============================================================================
 
-def collapsible_div_with_divbutton(tag, contents, extradivclasses=None,
-                                   collapsed=True):
+def collapsible_div_with_divbutton(tag: str,
+                                   contents: str,
+                                   extradivclasses: Iterable[str] = None,
+                                   collapsed: bool = True) -> str:
     # The HTML pre-hides, rather than using an onload method
     if extradivclasses is None:
         extradivclasses = []
@@ -44,7 +49,7 @@ def collapsible_div_with_divbutton(tag, contents, extradivclasses=None,
     )
 
 
-def collapsible_div_spanbutton(tag, collapsed=True):
+def collapsible_div_spanbutton(tag: str, collapsed: bool = True) -> str:
     return """
         <span class="expandcollapse_span" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
             <img class="plusminus_image" id="collapse_img_{{ tag }}" alt="" src="{img}">
@@ -55,8 +60,10 @@ def collapsible_div_spanbutton(tag, collapsed=True):
     )
 
 
-def collapsible_div_contentdiv(tag, contents, extradivclasses=None,
-                               collapsed=True):
+def collapsible_div_contentdiv(tag: str,
+                               contents: str,
+                               extradivclasses: Iterable[str] = None,
+                               collapsed: bool = True) -> str:
     if extradivclasses is None:
         extradivclasses = []
     return """
@@ -71,7 +78,10 @@ def collapsible_div_contentdiv(tag, contents, extradivclasses=None,
     )
 
 
-def overflow_div(tag, contents, extradivclasses=None, collapsed=True):
+def overflow_div(tag: str,
+                 contents: str,
+                 extradivclasses: Iterable[str] = None,
+                 collapsed: bool = True) -> str:
     if extradivclasses is None:
         extradivclasses = []
     return """
@@ -100,7 +110,10 @@ def overflow_div(tag, contents, extradivclasses=None, collapsed=True):
 # Highlighting of query results
 # =============================================================================
 
-def escape_literal_string_for_regex(s):
+HIGHLIGHT_FWD_REF = "Highlight"
+
+
+def escape_literal_string_for_regex(s: str) -> str:
     r"""
     Escape any regex characters.
 
@@ -112,7 +125,8 @@ def escape_literal_string_for_regex(s):
     return s
 
 
-def get_regex_from_highlights(highlight_list, at_word_boundaries_only=False):
+def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
+                              at_word_boundaries_only: bool = False) -> Any:
     elements = []
     wb = r"\b"  # word boundary; escape the slash if not using a raw string
     for highlight in highlight_list:
@@ -125,19 +139,23 @@ def get_regex_from_highlights(highlight_list, at_word_boundaries_only=False):
     return re.compile(regexstring, re.IGNORECASE | re.UNICODE)
 
 
-def highlight_text(x, n=0):
+def highlight_text(x: str, n: int = 0) -> str:
     n %= N_CSS_HIGHLIGHT_CLASSES
     return r'<span class="highlight{n}">{x}</span>'.format(n=n, x=x)
 
 
-def make_highlight_replacement_regex(n=0):
+def make_highlight_replacement_regex(n: int = 0) -> str:
     return highlight_text(r"\1", n=n)
 
 
-def make_result_element(x, elementnum, highlight_dict=None,
-                        collapse_at_len=None, collapse_at_n_lines=None,
-                        line_length=None, keep_existing_newlines=True,
-                        collapsed=True):
+def make_result_element(x: Optional[str],
+                        elementnum: int,
+                        highlight_dict: Dict[int, HIGHLIGHT_FWD_REF] = None,
+                        collapse_at_len: int = None,
+                        collapse_at_n_lines: int = None,
+                        line_length: int = None,
+                        keep_existing_newlines: bool = True,
+                        collapsed: bool = True) -> str:
     # return escape(repr(x))
     if x is None:
         return ""
@@ -168,16 +186,18 @@ def make_result_element(x, elementnum, highlight_dict=None,
         output = find.sub(replace, output)
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        return overflow_div(elementnum, output, collapsed=collapsed)
+        return overflow_div(str(elementnum), output, collapsed=collapsed)
     return output
 
 
-def pre(x=''):
+def pre(x: str = '') -> str:
     return "<pre>{}</pre>".format(x)
 
 
-def make_collapsible_query(x, elementnum,
-                           collapse_at_len=400, collapse_at_n_lines=5):
+def make_collapsible_query(x: Optional[str],
+                           elementnum: int,
+                           collapse_at_len: int = 400,
+                           collapse_at_n_lines: int = 5) -> str:
     if x is None:
         return pre()
     x = str(x)
@@ -186,5 +206,5 @@ def make_collapsible_query(x, elementnum,
     x = linebreaksbr(escape(x))
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        return overflow_div(elementnum, pre(x))
+        return overflow_div(str(elementnum), pre(x))
     return pre(x)

@@ -5,13 +5,14 @@ import logging
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect
+from django.http.request import HttpRequest
 from django.shortcuts import redirect, render
 
 log = logging.getLogger(__name__)
 
 
-def login_view(request):
+def login_view(request: HttpRequest) -> HttpResponse:
     # don't call it login (name clash with django.contrib.auth.login)
     # https://www.fir3net.com/Web-Development/Django/django.html
     # http://www.flagonwiththedragon.com/2011/06/16/django-authenticationform-for-user-login/  # noqa
@@ -30,12 +31,12 @@ def login_view(request):
     return render(request, 'login.html', {'form': form, 'next': nextpage})
 
 
-def logout_view(request):
+def logout_view(request: HttpRequest) -> HttpResponse:
     logout(request)
     return render(request, 'logged_out.html')
 
 
-def password_change(request):
+def password_change(request: HttpRequest) -> HttpResponse:
     # https://docs.djangoproject.com/en/1.8/topics/auth/default/#module-django.contrib.auth.forms  # noqa
     form = PasswordChangeForm(
         data=request.POST if request.method == 'POST' else None,

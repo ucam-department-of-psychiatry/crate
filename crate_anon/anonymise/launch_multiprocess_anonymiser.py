@@ -49,7 +49,7 @@ CPUCOUNT = multiprocessing.cpu_count()
 # Main
 # =============================================================================
 
-def main():
+def main() -> None:
     version = "Version {} ({})".format(VERSION, VERSION_DATE)
     description = "Runs the CRATE anonymiser in parallel. {}.".format(version)
     parser = argparse.ArgumentParser(description=description)

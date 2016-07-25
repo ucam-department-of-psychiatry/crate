@@ -66,12 +66,13 @@ TO DO:
 import argparse
 import ast
 import codecs
+from functools import lru_cache
 import logging
 import os
 import shlex
 import subprocess
 import sys
-from functools import lru_cache
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from cardinal_pythonlib.rnc_datetime import (
     get_now_utc,
@@ -83,7 +84,9 @@ from cardinal_pythonlib.rnc_db import (
     is_sqltype_valid
 )
 from cardinal_pythonlib.rnc_lang import chunks
+from sqlalchemy.engine import Engine
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, select, table
 from sqlalchemy.types import BigInteger, DateTime, String
@@ -93,6 +96,7 @@ from crate_anon.anonymise.constants import (
     MYSQL_TABLE_ARGS,
     SEP,
 )
+from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.common.hash import HmacMD5Hasher
 from crate_anon.common.logsupport import configure_logger_for_colour
@@ -383,17 +387,20 @@ class OutputTypeConfig(object):
     Class defining configuration for the output of a given GATE app.
     """
 
-    def __init__(self, parser, section):
+    def __init__(self, parser: ExtendedConfigParser, section: str) -> None:
         """
         Read config from a configparser section.
         """
         if not parser.has_section(section):
             raise ValueError("config missing section: " + section)
 
-        def opt_str(option, required=False):
+        def opt_str(option: str, required: bool = False) -> str:
             return parser.get_str(section, option, required=required)
 
-        def opt_strlist(option, required=False, lower=True, as_words=True):
+        def opt_strlist(option: str,
+                        required: bool = False,
+                        lower: bool = True,
+                        as_words: bool = True) -> List[str]:
             return parser.get_str_list(section, option, required=required,
                                        lower=lower, as_words=as_words)
 
@@ -405,7 +412,7 @@ class OutputTypeConfig(object):
         self.destfields = []
         self.dest_datatypes = []
         dest_fields_datatypes = opt_strlist('destfields', required=True)
-        log.critical(dest_fields_datatypes)
+        # log.critical(dest_fields_datatypes)
         for c in chunks(dest_fields_datatypes, 2):
             field = c[0]
             datatype = c[1].upper()
@@ -437,7 +444,7 @@ class OutputTypeConfig(object):
         self.indexfields = []
         self.indexlengths = []
         indexdefs = opt_strlist('indexdefs')
-        log.critical(indexdefs)
+        # log.critical(indexdefs)
         if indexdefs:
             for c in chunks(indexdefs, 2):  # pairs: field, length
                 indexfieldname = c[0]
@@ -462,14 +469,16 @@ class InputFieldConfig(object):
     Class defining configuration for an input field (containing text).
     """
 
-    def __init__(self, parser, section):
+    def __init__(self, parser: ExtendedConfigParser, section: str) -> None:
         """
         Read config from a configparser section.
         """
-        def opt_str(option):
+        def opt_str(option: str) -> str:
             return parser.get_str(section, option, required=True)
 
-        def opt_strlist(option, required=False, lower=True):
+        def opt_strlist(option: str,
+                        required: bool = False,
+                        lower: bool = True) -> List[str]:
             return parser.get_str_list(section, option, as_words=False,
                                        lower=lower, required=required)
 
@@ -497,7 +506,7 @@ class Config(object):
     """
 
     # noinspection PyUnresolvedReferences
-    def __init__(self, nlpname, logtag=""):
+    def __init__(self, nlpname: str, logtag: str = "") -> None:
         """
         Read config from file.
         """
@@ -520,19 +529,25 @@ class Config(object):
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = nlpname
 
-        def opt_str(option, required=False, default=None):
+        def opt_str(option: str, required: bool = False,
+                    default: bool = None) -> str:
             return parser.get_str(section, option, default=default,
                                   required=required)
 
-        def opt_strlist(option, required=False, lower=True, as_words=True):
+        def opt_strlist(option: str,
+                        required: bool = False,
+                        lower: bool = True,
+                        as_words: bool = True) -> List[str]:
             return parser.get_str_list(section, option, as_words=as_words,
                                        lower=lower, required=required)
 
-        def opt_int(option, default):
+        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
             return parser.getint(nlpname, option, fallback=default)
 
-        def get_database(name_and_cfg_section, with_session=True,
-                         with_conn=False, reflect=False):
+        def get_database(name_and_cfg_section: str,
+                         with_session: bool = True,
+                         with_conn: bool = False,
+                         reflect: bool = False) -> DatabaseHolder:
             return parser.get_database(name_and_cfg_section,
                                        with_session=with_session,
                                        with_conn=with_conn,
@@ -560,7 +575,7 @@ class Config(object):
 
         # outputtypemap, databases
         typepairs = opt_strlist('outputtypemap', required=True, lower=False)
-        log.critical(typepairs)
+        # log.critical(typepairs)
         self.outputtypemap = {}
         for c in chunks(typepairs, 2):
             annottype = c[0]
@@ -569,7 +584,7 @@ class Config(object):
                 raise Exception(
                     "Section {}: annotation types in outputtypemap must be in "
                     "lower case: change {}".format(section, annottype))
-            log.critical(outputsection)
+            # log.critical(outputsection)
             c = OutputTypeConfig(parser, outputsection)
             self.outputtypemap[annottype] = c
             dbname = c.destdb
@@ -600,10 +615,10 @@ class Config(object):
         # other
         self.now = get_now_utc_notz()
 
-    def hash(self, text):
+    def hash(self, text: str) -> str:
         return self.hasher.hash(text)
 
-    def set_echo(self, echo):
+    def set_echo(self, echo: bool) -> None:
         self.progdb.engine.echo = echo
         for db in self.databases.values():
             db.engine.echo = echo
@@ -619,7 +634,7 @@ class Config(object):
 # Input support methods
 # =============================================================================
 
-def tsv_pairs_to_dict(line, key_lower=True):
+def tsv_pairs_to_dict(line: str, key_lower: bool = True) -> Dict[str, str]:
     """
     Converts a TSV line into sequential key/value pairs as a dictionary.
     """
@@ -634,7 +649,7 @@ def tsv_pairs_to_dict(line, key_lower=True):
     return d
 
 
-def escape_tabs_newlines(s):
+def escape_tabs_newlines(s: str) -> str:
     """
     Escapes CR, LF, tab, and backslashes. (Here just for testing; mirrors the
     equivalent function in the Java code.)
@@ -648,7 +663,7 @@ def escape_tabs_newlines(s):
     return s
 
 
-def unescape_tabs_newlines(s):
+def unescape_tabs_newlines(s: str) -> str:
     """
     Reverses escape_tabs_newlines.
     """
@@ -696,8 +711,13 @@ class NlpController(object):
     # -------------------------------------------------------------------------
     # Interprocess comms
     # -------------------------------------------------------------------------
-    def __init__(self, progargs, input_terminator, output_terminator,
-                 max_external_prog_uses, commit=False, encoding='utf8'):
+    def __init__(self,
+                 progargs: Any,
+                 input_terminator: str,
+                 output_terminator: str,
+                 max_external_prog_uses: int,
+                 commit: bool = False,
+                 encoding: str = 'utf8') -> None:
         self.progargs = progargs
         self.input_terminator = input_terminator
         self.output_terminator = output_terminator
@@ -708,7 +728,7 @@ class NlpController(object):
         self.encoding = encoding
         self.p = None
 
-    def start(self):
+    def start(self) -> None:
         """
         Launch the external process.
         """
@@ -727,21 +747,22 @@ class NlpController(object):
         # secondly if you don't consume it, you see it on the console, which is
         # helpful.
 
-    def _encode_to_subproc_stdin(self, text):
+    def _encode_to_subproc_stdin(self, text: str) -> None:
         log.debug("SENDING: " + text)
         bytes_ = text.encode(self.encoding)
         self.p.stdin.write(bytes_)
 
-    def _flush_subproc_stdin(self):
+    def _flush_subproc_stdin(self) -> None:
         self.p.stdin.flush()
 
-    def _decode_from_subproc_stdout(self):
+    def _decode_from_subproc_stdout(self) -> str:
         bytes_ = self.p.stdout.readline()
         text = bytes_.decode(self.encoding)
         log.debug("RECEIVING: " + repr(text))
         return text
 
-    def send(self, text, starting_fields_values=None):
+    def send(self, text: str,
+             starting_fields_values: Dict[str, Any] = None) -> None:
         """
         Send text to the external process and receive the result.
         Associated data -- in starting_fields_values -- is kept in the Python
@@ -774,7 +795,7 @@ class NlpController(object):
             self.start()
             self.n_uses = 0
 
-    def finish(self):
+    def finish(self) -> None:
         """
         Close down the external process.
         """
@@ -785,7 +806,8 @@ class NlpController(object):
     # -------------------------------------------------------------------------
 
     @lru_cache(maxsize=None)
-    def get_dest_info(self, annottype):
+    def get_dest_info(self, annottype: str) -> Tuple[bool, List[str],
+                                                     Session, Table]:
         annottype = annottype.lower()
         ok = False
         destfields = []
@@ -803,7 +825,7 @@ class NlpController(object):
             destfields = sqla_table.columns.keys()
         return ok, destfields, session, sqla_table
 
-    def receive(self, line):
+    def receive(self, line: str) -> None:
         """
         Receive a line from the external process and send the results to our
         database.
@@ -832,7 +854,7 @@ class NlpController(object):
     # Test
     # -------------------------------------------------------------------------
 
-    def _test(self):
+    def _test(self) -> None:
         """
         Test the send function.
         """
@@ -879,7 +901,7 @@ class NlpRecord(ProgressBase):
 
 
 @lru_cache(maxsize=None)
-def get_dest_sqla_table(engine, otconfig):
+def get_dest_sqla_table(engine: Engine, otconfig: OutputTypeConfig) -> Table:
     metadata = config.databases[otconfig.destdb].metadata
     columns = [
         Column('_pk', BigInteger, primary_key=True, autoincrement=True),
@@ -904,7 +926,9 @@ def get_dest_sqla_table(engine, otconfig):
 # Database queries
 # =============================================================================
 
-def get_progress_record(ifconfig, srcpkval, srchash=None):
+def get_progress_record(ifconfig: InputFieldConfig,
+                        srcpkval: int,
+                        srchash: str = None) -> NlpRecord:
     session = config.progdb.session
     query = (
         session.query(NlpRecord).
@@ -923,7 +947,10 @@ def get_progress_record(ifconfig, srcpkval, srchash=None):
 # Database operations
 # =============================================================================
 
-def insert_into_progress_db(ifconfig, srcpkval, srchash, commit=False):
+def insert_into_progress_db(ifconfig: InputFieldConfig,
+                            srcpkval: int,
+                            srchash: str,
+                            commit: bool = False) -> None:
     """
     Make a note in the progress database that we've processed a source record.
     """
@@ -948,7 +975,7 @@ def insert_into_progress_db(ifconfig, srcpkval, srchash, commit=False):
     # Commit immediately, because other processes may need this table promptly.
 
 
-def delete_where_no_source(ifconfig):
+def delete_where_no_source(ifconfig: InputFieldConfig) -> None:
     """
     Delete destination records where source records no longer exist.
 
@@ -1017,7 +1044,9 @@ def delete_where_no_source(ifconfig):
     progsession.commit()
 
 
-def delete_from_dest_dbs(ifconfig, srcpkval, commit=False):
+def delete_from_dest_dbs(ifconfig: InputFieldConfig,
+                         srcpkval: int,
+                         commit: bool = False) -> None:
     """
     For when a record has been updated; wipe older entries for it.
     """
@@ -1047,7 +1076,7 @@ def delete_from_dest_dbs(ifconfig, srcpkval, commit=False):
         # http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
 
 
-def commit_all():
+def commit_all() -> None:
     """
     Execute a COMMIT on all databases.
     """
@@ -1060,7 +1089,7 @@ def commit_all():
 # Generators
 # =============================================================================
 
-def gen_src_pks(ifconfig):
+def gen_src_pks(ifconfig: InputFieldConfig) -> Iterator(int):
     session = config.databases[ifconfig.srcdb].session
     query = (
         select([column(ifconfig.srcpkfield)]).
@@ -1071,7 +1100,9 @@ def gen_src_pks(ifconfig):
         yield row[0]
 
 
-def gen_text(ifconfig, tasknum=0, ntasks=1):
+def gen_text(ifconfig: InputFieldConfig,
+             tasknum: int = 0,
+             ntasks: int = 1) -> Iterator(str):
     """
     Generate text strings from the input database.
     Return value is: pk, text, copyfields...
@@ -1094,7 +1125,7 @@ def gen_text(ifconfig, tasknum=0, ntasks=1):
     return session.execute(query)  # ... a generator itself
 
 
-def get_count_max(ifconfig):
+def get_count_max(ifconfig: InputFieldConfig) -> int:
     """Used for progress monitoring"""
     session = config.databases[ifconfig.srcdb].session
     pkcol = column(ifconfig.srcpkfield)
@@ -1111,7 +1142,9 @@ def get_count_max(ifconfig):
 # Core functions
 # =============================================================================
 
-def process_nlp(incremental=False, tasknum=0, ntasks=1):
+def process_nlp(incremental: bool = False,
+                tasknum: int = 0,
+                ntasks: int = 1) -> None:
     """
     Main NLP processing function. Fetch text, send it to the GATE app
     (storing the results), and make a note in the progress database.
@@ -1162,7 +1195,7 @@ def process_nlp(incremental=False, tasknum=0, ntasks=1):
                 if get_progress_record(ifconfig, pkval, srchash) is not None:
                     log.debug("Record previously processed; skipping")
                     continue
-            starting_fields_values = list(zip(fieldnames, values))
+            starting_fields_values = dict(zip(fieldnames, values))
             if incremental:
                 delete_from_dest_dbs(ifconfig, pkval,
                                      commit=incremental)
@@ -1173,7 +1206,7 @@ def process_nlp(incremental=False, tasknum=0, ntasks=1):
     commit_all()
 
 
-def drop_remake(incremental=False):
+def drop_remake(incremental: bool = False) -> None:
     """
     Drop output tables and recreate them.
     """
@@ -1224,7 +1257,7 @@ def drop_remake(incremental=False):
     commit_all()
 
 
-def create_indexes(tasknum=0, ntasks=1):
+def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     """
     Create indexes on destination table(s).
     """
@@ -1258,7 +1291,7 @@ def create_indexes(tasknum=0, ntasks=1):
 # Main
 # =============================================================================
 
-def main():
+def main() -> None:
     """
     Command-line entry point.
     """

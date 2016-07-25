@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 # crate_anon/crateweb/extra/salutation.py
 
+from typing import Optional, Tuple
+
 
 # =============================================================================
 # Salutation and other forms of name/title generation
 # =============================================================================
 
-def title_forename_surname(title, forename, surname, always_title=False,
-                           sex='', assume_dr=False):
+def title_forename_surname(title: Optional[str],
+                           forename: Optional[str],
+                           surname: Optional[str],
+                           always_title: bool = False,
+                           sex: str = '',
+                           assume_dr: bool = False) -> str:
     """
     When reporting names:
         Prof. John Smith
@@ -20,14 +26,14 @@ def title_forename_surname(title, forename, surname, always_title=False,
     return " ".join(filter(None, [title, forename, surname]))
 
 
-def forename_surname(forename, surname):
+def forename_surname(forename: Optional[str], surname: Optional[str]) -> str:
     """
     For use when reporting names.
     """
     return " ".join(filter(None, [forename, surname]))
 
 
-def salutation_default_title(sex='', assume_dr=False):
+def salutation_default_title(sex: str = '', assume_dr: bool = False) -> str:
     if assume_dr:
         return "Dr"
     if sex.upper() == 'M':
@@ -39,7 +45,11 @@ def salutation_default_title(sex='', assume_dr=False):
     return "Mx"
 
 
-def salutation(title, forename, surname, sex='', assume_dr=False):
+def salutation(title: Optional[str],
+               forename: Optional[str],
+               surname: Optional[str],
+               sex: str = '',
+               assume_dr: bool = False) -> str:
     """
     For salutations: Dear ...
     """
@@ -54,7 +64,7 @@ def salutation(title, forename, surname, sex='', assume_dr=False):
 # String parsing
 # =============================================================================
 
-def get_initial_surname_tuple_from_string(s):
+def get_initial_surname_tuple_from_string(s: str) -> Tuple[str, str]:
     """
     Parses a name-like string into plausible parts. Try:
 

@@ -32,7 +32,7 @@ class SmtpEmailBackendTls1(EmailBackend):
         s.ehlo()
         s.starttls(context=c)  # works
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         if not self.use_tls:
             raise ValueError("This backend is specifically for TLS.")
@@ -43,7 +43,7 @@ class SmtpEmailBackendTls1(EmailBackend):
         # noinspection PyUnresolvedReferences
         return ssl.PROTOCOL_TLSv1
 
-    def open(self):
+    def open(self) -> bool:
         """
         Ensures we have a connection to the email server. Returns whether or
         not a new connection was required (True or False).

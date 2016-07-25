@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # crate_anon/common/sql.py
 
+import argparse
+import datetime
 import logging
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from sqlalchemy import inspect
+import sqlalchemy.engine
+import sqlalchemy.schema
 
 log = logging.getLogger(__name__)
 
@@ -12,27 +17,28 @@ log = logging.getLogger(__name__)
 # SQL elements: literals, identifiers
 # =============================================================================
 
-def sql_string_literal(text):
+def sql_string_literal(text: str) -> str:
     return "'" + text.replace("'", "''") + "'"
 
 
-def sql_date_literal(dt):
+def sql_date_literal(dt: datetime.datetime) -> str:
     return dt.strftime("'%Y-%m-%d'")
 
 
-def sql_datetime_literal(dt, subsecond=False):
+def sql_datetime_literal(dt: datetime.datetime,
+                         subsecond: bool = False) -> str:
     fmt = "'%Y-%m-%dT%H:%M:%S{}'".format(".%f" if subsecond else "")
     return dt.strftime(fmt)
 
 
-def combine_db_table(db, table):
+def combine_db_table(db: str, table: str) -> str:
     if db:
         return "{}.{}".format(db, table)
     else:
         return table
 
 
-def split_db_table(dbtable):
+def split_db_table(dbtable: str) -> Tuple[Optional[str], str]:
     components = dbtable.split('.')
     if len(components) == 2:  # db.table
         return components[0], components[1]
@@ -49,12 +55,12 @@ def split_db_table(dbtable):
 _print_not_execute = False
 
 
-def set_print_not_execute(print_not_execute):
+def set_print_not_execute(print_not_execute: bool) -> None:
     global _print_not_execute
     _print_not_execute = print_not_execute
 
 
-def format_sql_for_print(sql):
+def format_sql_for_print(sql: str) -> str:
     # Remove blank lines and trailing spaces
     lines = list(filter(None, [x.replace("\t", "    ").rstrip()
                                for x in sql.splitlines()]))
@@ -68,7 +74,7 @@ def format_sql_for_print(sql):
     return "\n".join(lines)
 
 
-def sql_fragment_cast_to_int(expr):
+def sql_fragment_cast_to_int(expr: str) -> str:
     # Conversion to INT:
     # http://stackoverflow.com/questions/2000045
     # http://stackoverflow.com/questions/14719760  # this one
@@ -77,7 +83,7 @@ def sql_fragment_cast_to_int(expr):
            "THEN CAST({expr} AS INTEGER) ELSE NULL END".format(expr=expr)
 
 
-def execute(engine, sql):
+def execute(engine: sqlalchemy.engine.Engine, sql: str) -> None:
     log.debug(sql)
     if _print_not_execute:
         print(format_sql_for_print(sql) + "\n;")
@@ -86,8 +92,11 @@ def execute(engine, sql):
         engine.execute(sql)
 
 
-def add_columns(engine, table, name_coltype_dict):
-    existing_column_names = get_column_names(engine, table=table,
+def add_columns(engine: sqlalchemy.engine.Engine,
+                table: sqlalchemy.schema.Table,
+                name_coltype_dict: Dict[str,
+                                        sqlalchemy.schema.Column]) -> None:
+    existing_column_names = get_column_names(engine, tablename=table.name,
                                              to_lower=True)
     column_defs = []
     for name, coltype in name_coltype_dict.items():
@@ -116,8 +125,10 @@ def add_columns(engine, table, name_coltype_dict):
         """.format(tablename=table.name, column_def=column_def))
 
 
-def drop_columns(engine, table, column_names):
-    existing_column_names = get_column_names(engine, table=table,
+def drop_columns(engine: sqlalchemy.engine.Engine,
+                 table: sqlalchemy.schema.Table,
+                 column_names: Iterable[str]) -> None:
+    existing_column_names = get_column_names(engine, tablename=table.name,
                                              to_lower=True)
     for name in column_names:
         if name.lower() not in existing_column_names:
@@ -135,8 +146,11 @@ def drop_columns(engine, table, column_names):
             execute(engine, sql)
 
 
-def add_indexes(engine, table, indexdictlist):
-    existing_index_names = get_index_names(engine, table=table, to_lower=True)
+def add_indexes(engine: sqlalchemy.engine.Engine,
+                table: sqlalchemy.schema.Table,
+                indexdictlist: Iterable[Dict[str, Any]]) -> None:
+    existing_index_names = get_index_names(engine, tablename=table.name,
+                                           to_lower=True)
     for idxdefdict in indexdictlist:
         index_name = idxdefdict['index_name']
         column = idxdefdict['column']
@@ -159,8 +173,11 @@ def add_indexes(engine, table, indexdictlist):
                       "adding".format(table.name, index_name))
 
 
-def drop_indexes(engine, table, index_names):
-    existing_index_names = get_index_names(engine, table=table, to_lower=True)
+def drop_indexes(engine: sqlalchemy.engine.Engine,
+                 table: sqlalchemy.schema.Table,
+                 index_names: Iterable[str]) -> None:
+    existing_index_names = get_index_names(engine, tablename=table.name,
+                                           to_lower=True)
     for index_name in index_names:
         if index_name.lower() not in existing_index_names:
             log.debug("Table '{}': index '{}' does not exist; not "
@@ -178,7 +195,9 @@ def drop_indexes(engine, table, index_names):
             execute(engine, sql)
 
 
-def get_table_names(engine, to_lower=False, sort=False):
+def get_table_names(engine: sqlalchemy.engine.Engine,
+                    to_lower: bool = False,
+                    sort: bool = False) -> List[str]:
     inspector = inspect(engine)
     table_names = inspector.get_table_names()
     if to_lower:
@@ -188,7 +207,9 @@ def get_table_names(engine, to_lower=False, sort=False):
     return table_names
 
 
-def get_view_names(engine, to_lower=False, sort=False):
+def get_view_names(engine: sqlalchemy.engine.Engine,
+                   to_lower: bool = False,
+                   sort: bool = False) -> List[str]:
     inspector = inspect(engine)
     view_names = inspector.get_view_names()
     if to_lower:
@@ -198,14 +219,14 @@ def get_view_names(engine, to_lower=False, sort=False):
     return view_names
 
 
-def get_column_names(engine, tablename=None, table=None, to_lower=False,
-                     sort=False):
+def get_column_names(engine: sqlalchemy.engine.Engine,
+                     tablename: str,
+                     to_lower: bool = False,
+                     sort: bool = False) -> List[str]:
     """
     Reads columns names afresh from the database (in case metadata is out of
     date).
     """
-    assert (table is not None) != bool(tablename), "Need table XOR tablename"
-    tablename = tablename or table.name
     inspector = inspect(engine)
     columns = inspector.get_columns(tablename)
     column_names = [x['name'] for x in columns]
@@ -216,13 +237,13 @@ def get_column_names(engine, tablename=None, table=None, to_lower=False,
     return column_names
 
 
-def get_index_names(engine, tablename=None, table=None, to_lower=False):
+def get_index_names(engine: sqlalchemy.engine.Engine,
+                    tablename: str,
+                    to_lower: bool = False) -> List[str]:
     """
     Reads index names from the database.
     """
     # http://docs.sqlalchemy.org/en/latest/core/reflection.html
-    assert (table is not None) != bool(tablename), "Need table XOR tablename"
-    tablename = tablename or table.name
     inspector = inspect(engine)
     indexes = inspector.get_indexes(tablename)
     index_names = [x['name'] for x in indexes if x['name']]
@@ -233,20 +254,22 @@ def get_index_names(engine, tablename=None, table=None, to_lower=False):
     return index_names
 
 
-def ensure_columns_present(engine, table=None, tablename=None,
-                           column_names=None):
-    assert column_names, "Need column_names"
-    assert (table is not None) != bool(tablename), "Need table XOR tablename"
-    tablename = tablename or table.name
+def ensure_columns_present(engine: sqlalchemy.engine.Engine,
+                           tablename: str,
+                           column_names: Iterable[str]) -> None:
     existing_column_names = get_column_names(engine, tablename=tablename,
                                              to_lower=True)
+    if not column_names:
+        return
     for col in column_names:
         if col.lower() not in existing_column_names:
             raise ValueError(
                 "Column '{}' missing from table '{}'".format(col, tablename))
 
 
-def create_view(engine, viewname, select_sql):
+def create_view(engine: sqlalchemy.engine.Engine,
+                viewname: str,
+                select_sql: str) -> None:
     # MySQL has CREATE OR REPLACE VIEW.
     # SQL Server doesn't: http://stackoverflow.com/questions/18534919
     if engine.dialect.name == 'mysql':
@@ -264,7 +287,9 @@ def create_view(engine, viewname, select_sql):
     execute(engine, sql)
 
 
-def drop_view(engine, viewname, quiet=False):
+def drop_view(engine: sqlalchemy.engine.Engine,
+              viewname: str,
+              quiet: bool = False) -> None:
     # MySQL has DROP VIEW IF EXISTS, but SQL Server only has that from
     # SQL Server 2016 onwards.
     # - https://msdn.microsoft.com/en-us/library/ms173492.aspx
@@ -284,8 +309,12 @@ def drop_view(engine, viewname, quiet=False):
 # =============================================================================
 
 class ViewMaker(object):
-    def __init__(self, engine, basetable, existing_to_lower=False,
-                 rename=None, progargs=None):
+    def __init__(self,
+                 engine: sqlalchemy.engine.Engine,
+                 basetable: str,
+                 existing_to_lower: bool = False,
+                 rename: bool = None,
+                 progargs: argparse.Namespace = None) -> None:
         rename = rename or {}
         self.engine = engine
         self.basetable = basetable
@@ -308,16 +337,16 @@ class ViewMaker(object):
         self.where_elements = []
         self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
 
-    def add_select(self, clause):
+    def add_select(self, clause: str) -> None:
         self.select_elements.append(clause)
 
-    def add_from(self, clause):
+    def add_from(self, clause: str) -> None:
         self.from_elements.append(clause)
 
-    def add_where(self, clause):
+    def add_where(self, clause: str) -> None:
         self.where_elements.append(clause)
 
-    def get_sql(self):
+    def get_sql(self) -> str:
         if self.where_elements:
             where = "\n    WHERE {}".format(
                 "\n        AND ".join(self.where_elements))
@@ -330,16 +359,23 @@ class ViewMaker(object):
                 from_elements="\n        ".join(self.from_elements),
                 where=where))
 
-    def record_lookup_table_keyfield(self, table, keyfield):
+    def record_lookup_table_keyfield(
+            self,
+            table: str,
+            keyfield: Union[str, Iterable[str]]) -> None:
         self.lookup_table_keyfields.append((table, keyfield))
 
-    def record_lookup_table_keyfields(self, table_keyfield_tuples):
+    def record_lookup_table_keyfields(
+            self,
+            table_keyfield_tuples: Iterable[
+                Tuple[str, Union[str, Iterable[str]]]
+            ]) -> None:
         for t, k in table_keyfield_tuples:
             self.record_lookup_table_keyfield(t, k)
 
-    def get_lookup_tables(self):
+    def get_lookup_tables(self) -> List[str]:
         return list(set(table for table, keyfield
                         in self.lookup_table_keyfields))
 
-    def get_lookup_table_keyfields(self):
+    def get_lookup_table_keyfields(self) -> List[Tuple[str, str]]:
         return list(self.lookup_table_keyfields)

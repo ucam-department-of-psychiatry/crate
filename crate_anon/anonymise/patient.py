@@ -28,14 +28,12 @@ Copyright/licensing:
 """
 
 import logging
+from typing import AbstractSet, Any, Iterator, List
 
 from sqlalchemy.sql import column, select, table
 
 from crate_anon.anonymise.config_singleton import config
-from crate_anon.anonymise.constants import (
-    SCRUBSRC,
-    SRCFLAG,
-)
+from crate_anon.anonymise.constants import SCRUBSRC
 from crate_anon.anonymise.models import PatientInfo
 from crate_anon.anonymise.scrub import PersonalizedScrubber
 
@@ -46,7 +44,10 @@ log = logging.getLogger(__name__)
 # Generate identifiable values for a patient
 # =============================================================================
 
-def gen_all_values_for_patient(dbname, tablename, fields, pid):
+def gen_all_values_for_patient(dbname: str,
+                               tablename: str,
+                               fields: List[str],
+                               pid: int) -> Iterator[List[Any]]:
     """
     Generate all sensitive (scrub_src) values for a given patient, from a given
     source table. Used to build the scrubber.
@@ -89,7 +90,7 @@ class Patient(object):
     """Class representing a patient-specific information, such as PIDs, RIDs,
     and scrubbers."""
 
-    def __init__(self, pid, debug=False):
+    def __init__(self, pid: int, debug: bool = False) -> None:
         """
         Build the scrubber based on data dictionary information.
 
@@ -151,7 +152,7 @@ class Patient(object):
         # promptly. Otherwise, might get:
         #   Deadlock found when trying to get lock; try restarting transaction
 
-    def _build_scrubber(self, pid, depth, max_depth):
+    def _build_scrubber(self, pid: int, depth: int, max_depth: int) -> None:
         if depth > 0:
             log.debug("Building scrubber recursively: depth = {}".format(
                 depth))
@@ -159,28 +160,32 @@ class Patient(object):
             # Build a list of fields for this table.
             ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
             fields = [ddr.src_field for ddr in ddrows]
+            # Precalculate things; we might being going through a lot of values
+            scrub_method = [
+                PersonalizedScrubber.get_scrub_method(ddr.src_datatype,
+                                                      ddr.scrub_method)
+                for ddr in ddrows
+            ]
+            is_patient = [depth == 0 and ddr.scrub_src is SCRUBSRC.PATIENT
+                          for ddr in ddrows]
+            is_mpid = [depth == 0 and ddr.master_pid for ddr in ddrows]
+            recurse = [depth < max_depth and
+                       ddr.scrub_src is SCRUBSRC.THIRDPARTY_XREF_PID
+                       for ddr in ddrows]
+            required_scrubber = [ddr.required_scrubber for ddr in ddrows]
+            sigs = [ddr.get_signature() for ddr in ddrows]
             # Collect the actual patient-specific values for this table.
             for values in gen_all_values_for_patient(src_db, src_table,
                                                      fields, pid):
                 for i, val in enumerate(values):
-                    ddr = ddrows[i]
+                    self.scrubber.add_value(val, scrub_method[i],
+                                            patient=is_patient[i])
 
-                    scrub_method = PersonalizedScrubber.get_scrub_method(
-                        ddr.src_datatype, ddr.scrub_method)
-                    is_patient = (depth == 0 and
-                                  ddr.scrub_src == SCRUBSRC.PATIENT)
-                    self.scrubber.add_value(val, scrub_method,
-                                            patient=is_patient)
-
-                    is_mpid = (depth == 0 and
-                               SRCFLAG.MASTER_PID in ddr.src_flags)
-                    if is_mpid and self.get_mpid() is None:
+                    if is_mpid[i] and self.get_mpid() is None:
                         # We've come across the master ID.
                         self.set_mpid(val)
 
-                    recurse = (depth < max_depth and
-                               ddr.scrub_src == SCRUBSRC.THIRDPARTY_XREF_PID)
-                    if recurse:
+                    if recurse[i]:
                         # We've come across a patient ID of another patient,
                         # whose information should be trawled and treated
                         # as third-party information
@@ -192,44 +197,43 @@ class Patient(object):
                             continue
                         self._build_scrubber(related_pid, depth + 1, max_depth)
 
-                    if ddr.required_scrubber and val is not None:
-                        self._mandatory_scrubbers_unfulfilled.discard(
-                            ddr.get_signature())
+                    if val is not None and required_scrubber[i]:
+                        self._mandatory_scrubbers_unfulfilled.discard(sigs[i])
 
     @property
-    def mandatory_scrubbers_unfulfilled(self):
+    def mandatory_scrubbers_unfulfilled(self) -> AbstractSet[str]:
         return self._mandatory_scrubbers_unfulfilled
 
-    def get_pid(self):
+    def get_pid(self) -> int:
         """Return the patient ID (PID)."""
         return self.info.pid
 
-    def get_mpid(self):
+    def get_mpid(self) -> int:
         """Return the master patient ID (MPID)."""
         return self.info.mpid
 
-    def set_mpid(self, mpid):
+    def set_mpid(self, mpid: int) -> None:
         self.info.set_mpid(mpid)
 
-    def get_rid(self):
+    def get_rid(self) -> str:
         """Returns the RID (encrypted PID)."""
         return self.info.rid
 
-    def get_mrid(self):
+    def get_mrid(self) -> str:
         """Returns the master RID (encrypted MPID)."""
         return self.info.mrid
 
-    def get_trid(self):
+    def get_trid(self) -> int:
         """Returns the transient integer RID (TRID)."""
         return self.info.trid
 
-    def get_scrubber_hash(self):
+    def get_scrubber_hash(self) -> str:
         return self.scrubber.get_hash()
 
-    def scrub(self, text):
+    def scrub(self, text: str) -> str:
         return self.scrubber.scrub(text)
 
-    def unchanged(self):
+    def unchanged(self) -> bool:
         """
         Has the scrubber changed, compared to the previous hashed version in
         the admin database?

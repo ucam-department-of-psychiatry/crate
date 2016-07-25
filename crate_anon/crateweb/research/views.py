@@ -5,6 +5,7 @@
 from functools import lru_cache
 import json
 import logging
+from typing import Any, Dict, List, Union
 
 from django import forms
 from django.conf import settings
@@ -15,8 +16,9 @@ from django.core.exceptions import (
 )
 # from django.core.urlresolvers import reverse
 from django.db import DatabaseError
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.http import HttpResponse
+from django.http.request import HttpRequest
 # from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -75,7 +77,7 @@ log = logging.getLogger(__name__)
 # Helper functions
 # =============================================================================
 
-def validate_blank_form(request):
+def validate_blank_form(request: HttpRequest) -> None:
     """
     Checks that the request is (a) a POST request, and (b) passes CRSF
     validation.
@@ -87,7 +89,7 @@ def validate_blank_form(request):
         raise ValidationError("Form failed validation")
 
 
-def query_context(request):
+def query_context(request: HttpRequest) -> Dict[str, Any]:
     query_id = Query.get_active_query_id_or_none(request)
     return {
         'query_selected': query_id is not None,
@@ -104,7 +106,7 @@ def query_context(request):
 # =============================================================================
 
 @lru_cache(maxsize=None)
-def get_db_structure_json():
+def get_db_structure_json() -> str:
     colinfolist = research_database_info.get_colinfolist()
     info = []
     for schema in get_researchdb_schemas():  # preserve order
@@ -145,7 +147,7 @@ def get_db_structure_json():
     return json.dumps(info)
 
 
-def build_query(request):
+def build_query(request: HttpRequest) -> HttpResponse:
     """
     Assisted query builder, based on the data dictionary.
     """
@@ -207,7 +209,6 @@ def build_query(request):
                     else:
                         full_table = "{}.{}".format(schema, table)
                     column = form.cleaned_data['column']
-                    autojoin_field = get_schema_trid_field(schema)
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
@@ -216,7 +217,7 @@ def build_query(request):
                             select_table=table,
                             select_column=column,
                             # JOIN bits
-                            inner_join_to_first_on_keyfield=autojoin_field,
+                            magic_join=True,
                         )
                     elif 'submit_where' in request.POST:
                         datatype = form.cleaned_data['datatype']
@@ -251,7 +252,7 @@ def build_query(request):
                             where_db=schema,
                             where_table=table,
                             # JOIN bits
-                            inner_join_to_first_on_keyfield=autojoin_field,
+                            magic_join=True,
                         )
                     else:
                         raise ValueError("Bad form command!")
@@ -290,12 +291,14 @@ def build_query(request):
     return render(request, 'build_query.html', context)
 
 
-def get_all_queries(request):
+def get_all_queries(request: HttpRequest) -> QuerySet:
     return Query.objects.filter(user=request.user, deleted=False)\
                         .order_by('-active', '-created')
 
 
-def submit_query(request, sql, run=False):
+def submit_query(request: HttpRequest,
+                 sql: str,
+                 run: bool = False) -> HttpResponse:
     """
     Ancillary function to add a query, and redirect to the editing or
     run page.
@@ -317,7 +320,7 @@ def submit_query(request, sql, run=False):
         return redirect('query')
 
 
-def edit_select_query(request):
+def edit_select_query(request: HttpRequest) -> HttpResponse:
     """
     Edit or select SQL for current query.
     """
@@ -368,21 +371,21 @@ def edit_select_query(request):
     return render(request, 'edit_select_query.html', context)
 
 
-def activate_query(request, query_id):
+def activate_query(request: HttpRequest, query_id: int) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)
     query.activate()
     return redirect('query')
 
 
-def delete_query(request, query_id):
+def delete_query(request: HttpRequest, query_id: int) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)
     query.delete_if_permitted()
     return redirect('query')
 
 
-def edit_select_highlight(request):
+def edit_select_highlight(request: HttpRequest) -> HttpResponse:
     """
     Edit or select highlighting for current query.
     """
@@ -422,32 +425,35 @@ def edit_select_highlight(request):
     return render(request, 'edit_select_highlight.html', context)
 
 
-def activate_highlight(request, highlight_id):
+def activate_highlight(request: HttpRequest,
+                       highlight_id: int) -> HttpResponse:
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)
     highlight.activate()
     return redirect('highlight')
 
 
-def deactivate_highlight(request, highlight_id):
+def deactivate_highlight(request: HttpRequest,
+                         highlight_id: int) -> HttpResponse:
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)
     highlight.deactivate()
     return redirect('highlight')
 
 
-def delete_highlight(request, highlight_id):
+def delete_highlight(request: HttpRequest,
+                     highlight_id: int) -> HttpResponse:
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)
     highlight.delete()
     return redirect('highlight')
 
 
-def no_query_selected(request):
+def no_query_selected(request: HttpRequest) -> HttpResponse:
     return render(request, 'no_query_selected.html', query_context(request))
 
 
-def count(request, query_id):
+def count(request: HttpRequest, query_id: int) -> HttpResponse:
     """
     View COUNT(*) from specific query.
     """
@@ -467,7 +473,7 @@ def count(request, query_id):
     return render_resultcount(request, query)
 
 
-def count_current(request):
+def count_current(request: HttpRequest) -> HttpResponse:
     """
     View COUNT(*) from current query.
     """
@@ -477,7 +483,7 @@ def count_current(request):
     return render_resultcount(request, query)
 
 
-def results(request, query_id):
+def results(request: HttpRequest, query_id: int) -> HttpResponse:
     """
     View results of chosen query, in tabular format
     """
@@ -496,7 +502,7 @@ def results(request, query_id):
                             line_length=profile.line_length)
 
 
-def results_recordwise(request, query_id):
+def results_recordwise(request: HttpRequest, query_id: int) -> HttpResponse:
     """
     View results of chosen query, in tabular format
     """
@@ -516,7 +522,7 @@ def results_recordwise(request, query_id):
         line_length=profile.line_length)
 
 
-def tsv(request):
+def tsv(request: HttpRequest) -> HttpResponse:
     """
     Download TSV of current query.
     """
@@ -537,7 +543,7 @@ def tsv(request):
 #     return render(request, 'audit.html', context)
 
 
-def pidlookup(request):
+def pidlookup(request: HttpRequest) -> HttpResponse:
     """
     Look up PID information from RID information.
     """
@@ -577,7 +583,7 @@ def pidlookup(request):
 # ... but I think all are subclasses of django.db.utils.DatabaseError
 
 
-def render_resultcount(request, query):
+def render_resultcount(request: HttpRequest, query: Query) -> HttpResponse:
     """
     Displays the number of rows that a given query will fetch.
     """
@@ -601,7 +607,7 @@ def render_resultcount(request, query):
     return render(request, 'query_count.html', context)
 
 
-def get_highlight_descriptions(highlight_dict):
+def get_highlight_descriptions(highlight_dict: Dict[int, Highlight]) -> str:
     """
     Returns a list of length up to N_CSS_HIGHLIGHT_CLASSES of HTML
     elements illustrating the highlights.
@@ -615,9 +621,14 @@ def get_highlight_descriptions(highlight_dict):
     return desc
 
 
-def render_resultset(request, query, highlights,
-                     collapse_at_len=None, collapse_at_n_lines=None,
-                     line_length=None, ditto=True, ditto_html='″'):
+def render_resultset(request: HttpRequest,
+                     query: Query,
+                     highlights: Union[QuerySet, List[Highlight]],
+                     collapse_at_len: int = None,
+                     collapse_at_n_lines: int = None,
+                     line_length: int = None,
+                     ditto: bool = True,
+                     ditto_html: str = '″') -> HttpResponse:
     # Query
     if query is None:
         return render_missing_query(request)
@@ -691,9 +702,12 @@ def render_resultset(request, query, highlights,
     return render(request, 'query_result.html', context)
 
 
-def render_resultset_recordwise(request, query, highlights,
-                                collapse_at_len=None, collapse_at_n_lines=None,
-                                line_length=None):
+def render_resultset_recordwise(request: HttpRequest,
+                                query: Query,
+                                highlights: Union[QuerySet, List[Highlight]],
+                                collapse_at_len: int = None,
+                                collapse_at_n_lines: int = None,
+                                line_length: int = None) -> HttpResponse:
     # Query
     if query is None:
         return render_missing_query(request)
@@ -754,13 +768,13 @@ def render_resultset_recordwise(request, query, highlights,
     return render(request, 'query_result.html', context)
 
 
-def tsv_response(data, filename="download.tsv"):
+def tsv_response(data: str, filename: str = "download.tsv") -> HttpResponse:
     # http://stackoverflow.com/questions/264256/what-is-the-best-mime-type-and-extension-to-use-when-exporting-tab-delimited  # noqa
     # http://www.iana.org/assignments/media-types/text/tab-separated-values
     return file_response(data, content_type='text/csv', filename=filename)
 
 
-def render_tsv(request, query):
+def render_tsv(request: HttpRequest, query: Query) -> HttpResponse:
     if query is None:
         return render_missing_query(request)
     try:
@@ -770,11 +784,13 @@ def render_tsv(request, query):
     return tsv_response(tsv_result, filename="results.tsv")
 
 
-def render_missing_query(request):
+def render_missing_query(request: HttpRequest) -> HttpResponse:
     return render(request, 'query_missing.html', query_context(request))
 
 
-def render_bad_query(request, query, exception):
+def render_bad_query(request: HttpRequest,
+                     query: Query,
+                     exception: Exception) -> HttpResponse:
     (final_sql, args) = query.get_sql_args_for_mysql()
     context = {
         'original_sql': query.get_original_sql(),
@@ -786,7 +802,7 @@ def render_bad_query(request, query, exception):
     return render(request, 'query_bad.html', context)
 
 
-def render_bad_query_id(request, query_id):
+def render_bad_query_id(request: HttpRequest, query_id: int) -> HttpResponse:
     context = {'query_id': query_id}
     context.update(query_context(request))
     return render(request, 'bad_query_id.html', context)
@@ -799,9 +815,12 @@ def render_bad_query_id(request, query_id):
 
 
 @user_passes_test(is_superuser)
-def render_lookup(request,
-                  trids=None, rids=None, mrids=None,
-                  pids=None, mpids=None):
+def render_lookup(request: HttpRequest,
+                  trids: List[int] = None,
+                  rids: List[str] = None,
+                  mrids: List[str] = None,
+                  pids: List[int] = None,
+                  mpids: List[int] = None) -> HttpResponse:
     # if not request.user.superuser:
     #    return HttpResponse('Forbidden', status=403)
     #    # http://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa
@@ -828,7 +847,7 @@ def render_lookup(request,
 # Research database structure
 # =============================================================================
 
-def structure_table_long(request):
+def structure_table_long(request: HttpRequest) -> HttpResponse:
     infodictlist = research_database_info.get_infodictlist()
     rowcount = len(infodictlist)
     context = {
@@ -840,7 +859,7 @@ def structure_table_long(request):
     return render(request, 'database_structure.html', context)
 
 
-def structure_table_paginated(request):
+def structure_table_paginated(request: HttpRequest) -> HttpResponse:
     infodictlist = research_database_info.get_infodictlist()
     rowcount = len(infodictlist)
     infodictlist = paginate(request, infodictlist)
@@ -854,7 +873,7 @@ def structure_table_paginated(request):
 
 
 @lru_cache(maxsize=None)
-def get_structure_tree_html():
+def get_structure_tree_html() -> str:
     schema_table_idl = research_database_info.get_infodictlist_by_tables()
     content = ""
     for i, (schema, tablename, infodictlist) in enumerate(schema_table_idl):
@@ -875,7 +894,7 @@ def get_structure_tree_html():
     return content
 
 
-def structure_tree(request):
+def structure_tree(request: HttpRequest) -> HttpResponse:
     context = {
         'content': get_structure_tree_html(),
         'default_schema': get_default_schema(),
@@ -884,7 +903,7 @@ def structure_tree(request):
 
 
 # noinspection PyUnusedLocal
-def structure_tsv(request):
+def structure_tsv(request: HttpRequest) -> HttpResponse:
     infodictlist = research_database_info.get_infodictlist()
     tsv_result = dictlist_to_tsv(infodictlist)
     return tsv_response(tsv_result, filename="structure.tsv")
@@ -894,7 +913,10 @@ def structure_tsv(request):
 # SQL helpers
 # =============================================================================
 
-def textmatch(column_name, fragment, as_fulltext, dialect='mysql'):
+def textmatch(column_name: str,
+              fragment: str,
+              as_fulltext: bool,
+              dialect: str = 'mysql') -> str:
     if as_fulltext and dialect == 'mysql':
         return "MATCH({column}) AGAINST ('{fragment}')".format(
             column=column_name, fragment=fragment)
@@ -903,7 +925,7 @@ def textmatch(column_name, fragment, as_fulltext, dialect='mysql'):
             column=column_name, fragment=fragment)
 
 
-def sqlhelper_text_anywhere(request):
+def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
     # When you forget, go back to:
     # http://www.slideshare.net/pydanny/advanced-django-forms-usage
     default_values = {

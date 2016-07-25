@@ -4,9 +4,10 @@
 import pdb
 import sys
 import traceback
+from typing import Callable
 
 
-def pdb_run(main):
+def pdb_run(main: Callable[[], None]) -> None:
     # noinspection PyBroadException
     try:
         main()

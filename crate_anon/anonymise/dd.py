@@ -38,9 +38,11 @@ import ast
 import collections
 import csv
 import fnmatch
+from functools import lru_cache
 import logging
 import operator
-from functools import lru_cache
+from typing import (AbstractSet, Any, List, Dict, Iterable, Optional, Union,
+                    Tuple)
 
 import regex
 from cardinal_pythonlib.rnc_db import (
@@ -59,7 +61,6 @@ from cardinal_pythonlib.rnc_db import (
 from cardinal_pythonlib.rnc_lang import (
     convert_to_int,
     count_bool,
-    raise_if_attr_blank,
 )
 from sortedcontainers import SortedSet
 from sqlalchemy import (
@@ -96,14 +97,17 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class AlterMethod(object):
-    def __init__(self, text_value=None,
-                 scrub=False, truncate_date=False,
-                 extract_from_filename=False, extract_from_blob=False,
-                 skip_if_text_extract_fails=False,
-                 extract_ext_field="",
-                 # html_escape=False,
-                 html_unescape=False,
-                 html_untag=False):
+    def __init__(self,
+                 text_value: str = None,
+                 scrub: bool = False,
+                 truncate_date: bool = False,
+                 extract_from_filename: bool = False,
+                 extract_from_blob: bool = False,
+                 skip_if_text_extract_fails: bool = False,
+                 extract_ext_field: str = "",
+                 # html_escape: bool = False,
+                 html_unescape: bool = False,
+                 html_untag: bool = False) -> None:
         self.scrub = scrub
         self.truncate_date = truncate_date
         self.extract_text = (extract_from_filename or extract_from_blob)
@@ -117,7 +121,7 @@ class AlterMethod(object):
         if text_value is not None:
             self.set_from_text(text_value)
 
-    def set_from_text(self, value):
+    def set_from_text(self, value: str) -> None:
         """
         Convert the alter_method field (from the data dictionary) to a bunch of
         boolean/simple fields.
@@ -129,11 +133,11 @@ class AlterMethod(object):
         self.extract_from_filename = False
         self.skip_if_text_extract_fails = False
         self.extract_ext_field = ""
-        if value == ALTERMETHOD.TRUNCATEDATE:
+        if value == ALTERMETHOD.TRUNCATEDATE.value:
             self.truncate_date = True
-        elif value == ALTERMETHOD.SCRUBIN:
+        elif value == ALTERMETHOD.SCRUBIN.value:
             self.scrub = True
-        elif value.startswith(ALTERMETHOD.BIN2TEXT):
+        elif value.startswith(ALTERMETHOD.BIN2TEXT.value):
             if "=" not in value:
                 raise ValueError(
                     "Bad format for alter method: {}".format(value))
@@ -145,47 +149,51 @@ class AlterMethod(object):
             self.extract_text = True
             self.extract_from_blob = True
             self.extract_ext_field = secondhalf
-        elif value == ALTERMETHOD.FILENAME2TEXT:
+        elif value == ALTERMETHOD.FILENAME2TEXT.value:
             self.extract_text = True
             self.extract_from_filename = True
-        elif value == ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS:
+        elif value == ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS.value:
             self.skip_if_text_extract_fails = True
         # elif value == ALTERMETHOD.HTML_ESCAPE:
         #     self.html_escape = True
-        elif value == ALTERMETHOD.HTML_UNESCAPE:
+        elif value == ALTERMETHOD.HTML_UNESCAPE.value:
             self.html_unescape = True
-        elif value == ALTERMETHOD.HTML_UNTAG:
+        elif value == ALTERMETHOD.HTML_UNTAG.value:
             self.html_untag = True
         else:
             raise ValueError("Bad alter_method part: {}".format(value))
 
-    def get_text(self):
+    def get_text(self) -> str:
         """
         Return the alter_method fragment from the working fields.
         """
         if self.truncate_date:
-            return ALTERMETHOD.TRUNCATEDATE
+            return ALTERMETHOD.TRUNCATEDATE.value
         if self.scrub:
-            return ALTERMETHOD.SCRUBIN
+            return ALTERMETHOD.SCRUBIN.value
         if self.extract_text:
             if self.extract_from_blob:
-                return ALTERMETHOD.BIN2TEXT + "=" + self.extract_ext_field
+                return ALTERMETHOD.BIN2TEXT.value + "=" + self.extract_ext_field
             else:
-                return ALTERMETHOD.FILENAME2TEXT
+                return ALTERMETHOD.FILENAME2TEXT.value
         if self.skip_if_text_extract_fails:
-            return ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS
+            return ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS.value
         # if self.html_escape:
-        #     return ALTERMETHOD.HTML_ESCAPE
+        #     return ALTERMETHOD.HTML_ESCAPE.value
         if self.html_unescape:
-            return ALTERMETHOD.HTML_UNESCAPE
+            return ALTERMETHOD.HTML_UNESCAPE.value
         if self.html_untag:
-            return ALTERMETHOD.HTML_UNTAG
+            return ALTERMETHOD.HTML_UNTAG.value
         return ""
 
 
 # =============================================================================
 # DataDictionaryRow
 # =============================================================================
+
+DDR_FWD_REF = "DataDictionaryRow"
+CONFIG_FWD_REF = "Config"
+
 
 class DataDictionaryRow(object):
     """
@@ -214,7 +222,7 @@ class DataDictionaryRow(object):
         "comment",
     ]
 
-    def __init__(self, config):
+    def __init__(self, config: CONFIG_FWD_REF) -> None:
         """
         Set up basic defaults.
         """
@@ -233,7 +241,7 @@ class DataDictionaryRow(object):
         self.dest_table = None
         self.dest_field = None
         self.dest_datatype = None
-        self.index = False
+        self.index = None
         self.indexlen = None
         self.comment = ''
 
@@ -259,56 +267,56 @@ class DataDictionaryRow(object):
     # Comparisons and properties
     # -------------------------------------------------------------------------
 
-    def __lt__(self, other):
+    def __lt__(self, other: DDR_FWD_REF) -> bool:
         return self.get_signature() < other.get_signature()
 
     @property
-    def src_db_lowercase(self):
+    def src_db_lowercase(self) -> str:
         return self.src_db.lower()
 
     @property
-    def src_table_lowercase(self):
+    def src_table_lowercase(self) -> str:
         return self.src_table.lower()
 
     @property
-    def src_field_lowercase(self):
+    def src_field_lowercase(self) -> str:
         return self.src_field.lower()
 
     @property
-    def pk(self):
+    def pk(self) -> bool:
         return self._pk
 
     @property
-    def add_src_hash(self):
+    def add_src_hash(self) -> bool:
         return self._add_src_hash
 
     @property
-    def primary_pid(self):
+    def primary_pid(self) -> bool:
         return self._primary_pid
 
     @property
-    def defines_primary_pids(self):
+    def defines_primary_pids(self) -> bool:
         return self._defines_primary_pids
 
     @property
-    def master_pid(self):
+    def master_pid(self) -> bool:
         return self._master_pid
 
     @property
-    def constant(self):
+    def constant(self) -> bool:
         return self._constant
 
     @property
-    def addition_only(self):
+    def addition_only(self) -> bool:
         return self._addition_only
 
     @property
-    def opt_out_info(self):
+    def opt_out_info(self) -> bool:
         return self._opt_out_info
 
     @property
-    def src_flags(self):
-        return ''.join([
+    def src_flags(self) -> str:
+        return ''.join(str(x) for x in [
             SRCFLAG.PK if self._pk else '',
             SRCFLAG.ADD_SRC_HASH if self._add_src_hash else '',
             SRCFLAG.PRIMARY_PID if self._primary_pid else '',
@@ -322,53 +330,57 @@ class DataDictionaryRow(object):
         ])
 
     @src_flags.setter
-    def src_flags(self, value):
-        self._pk = SRCFLAG.PK in value
-        self._add_src_hash = SRCFLAG.ADD_SRC_HASH in value
-        self._primary_pid = SRCFLAG.PRIMARY_PID in value
-        self._defines_primary_pids = SRCFLAG.DEFINES_PRIMARY_PIDS in value
-        self._master_pid = SRCFLAG.MASTER_PID in value
-        self._constant = SRCFLAG.CONSTANT in value
-        self._addition_only = SRCFLAG.ADDITION_ONLY in value
-        self._opt_out_info = SRCFLAG.OPT_OUT in value
-        self._required_scrubber = SRCFLAG.REQUIRED_SCRUBBER in value
+    def src_flags(self, value: str) -> None:
+        self._pk = SRCFLAG.PK.value in value
+        self._add_src_hash = SRCFLAG.ADD_SRC_HASH.value in value
+        self._primary_pid = SRCFLAG.PRIMARY_PID.value in value
+        self._defines_primary_pids = SRCFLAG.DEFINES_PRIMARY_PIDS.value in value
+        self._master_pid = SRCFLAG.MASTER_PID.value in value
+        self._constant = SRCFLAG.CONSTANT.value in value
+        self._addition_only = SRCFLAG.ADDITION_ONLY.value in value
+        self._opt_out_info = SRCFLAG.OPT_OUT.value in value
+        self._required_scrubber = SRCFLAG.REQUIRED_SCRUBBER.value in value
 
     @property
-    def inclusion_values(self):
+    def inclusion_values(self) -> List[Any]:
         return self._inclusion_values or ''  # for TSV output
 
     @inclusion_values.setter
-    def inclusion_values(self, value):
+    def inclusion_values(self, value: str) -> None:
         if value:
             self._inclusion_values = ast.literal_eval(value) or []
         else:
             self._inclusion_values = []
 
     @property
-    def exclusion_values(self):
+    def exclusion_values(self) -> List[Any]:
         return self._exclusion_values or ''  # for TSV output
 
     @exclusion_values.setter
-    def exclusion_values(self, value):
+    def exclusion_values(self, value: str) -> None:
         if value:
             self._exclusion_values = ast.literal_eval(value) or []
         else:
             self._exclusion_values = []
 
     @property
-    def alter_method(self):
+    def alter_method(self) -> str:
         """
         Return the alter_method field from the working fields.
         """
         return ",".join(filter(
             None, (x.get_text() for x in self._alter_methods)))
+
+    def get_extracting_text_altermethods(self):
+        return [am.extract_text for am in self._alter_methods
+                if am.extract_text]
     
-    def remove_scrub_from_alter_methods(self):
+    def remove_scrub_from_alter_methods(self) -> None:
         for sm in self._alter_methods:
             sm.scrub = False
 
     @alter_method.setter
-    def alter_method(self, value):
+    def alter_method(self, value: str) -> None:
         """
         Convert the alter_method field (from the data dictionary) to a bunch of
         boolean/simple fields.
@@ -404,51 +416,50 @@ class DataDictionaryRow(object):
             if am.extract_text:
                 have_text_extraction = True
 
-    def get_alter_methods(self):
+    def get_alter_methods(self) -> List[AlterMethod]:
         return self._alter_methods
 
-    def skip_row_if_extract_text_fails(self):
+    def skip_row_if_extract_text_fails(self) -> bool:
         return any(x.skip_if_text_extract_fails for x in self._alter_methods)
 
     @property
-    def from_file(self):
+    def from_file(self) -> bool:
         return self._from_file
     
     @property
-    def decision(self):
-        return DECISION.OMIT if self.omit else DECISION.INCLUDE
+    def decision(self) -> str:
+        return DECISION.OMIT.value if self.omit else DECISION.INCLUDE.value
 
     @decision.setter
-    def decision(self, value):
-        if value == DECISION.OMIT:
-            self.omit = True
-        elif value == DECISION.INCLUDE:
-            self.omit = False
-        else:
+    def decision(self, value: str) -> None:
+        try:
+            e = DECISION.lookup(value)
+            self.omit = e is DECISION.OMIT
+        except ValueError:
             raise ValueError("decision was {}; must be one of {}".format(
-                value, [DECISION.OMIT, DECISION.INCLUDE]))
+                value, [DECISION.OMIT.value, DECISION.INCLUDE.value]))
 
     # -------------------------------------------------------------------------
     # Representations
     # -------------------------------------------------------------------------
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Return a string representation.
         """
         return ", ".join(["{}: {}".format(a, getattr(self, a))
                           for a in DataDictionaryRow.ROWNAMES])
 
-    def get_signature(self):
+    def get_signature(self) -> str:
         """
         Return a signature based on the source database/table/field.
         """
         return "{}.{}.{}".format(self.src_db, self.src_table, self.src_field)
 
-    def get_dest_signature(self):
+    def get_dest_signature(self) -> str:
         return "{}.{}".format(self.dest_table, self.dest_field)
 
-    def get_tsv(self):
+    def get_tsv(self) -> str:
         """
         Return a TSV row for writing.
         """
@@ -465,7 +476,7 @@ class DataDictionaryRow(object):
     # Setting
     # -------------------------------------------------------------------------
 
-    def set_from_dict(self, valuedict):
+    def set_from_dict(self, valuedict: Dict[str, Any]) -> None:
         """
         Set internal fields from a dict of elements representing a row from the
         TSV data dictionary file.
@@ -475,26 +486,26 @@ class DataDictionaryRow(object):
         self.src_field = valuedict['src_field']
         self.src_datatype = valuedict['src_datatype'].upper()
         self.src_flags = valuedict['src_flags']  # a property
-        self.scrub_src = valuedict['scrub_src']
-        self.scrub_method = valuedict['scrub_method']
-        self.decision = valuedict['decision']  # a property; actually, 'omit'
+        self.scrub_src = SCRUBSRC.lookup(valuedict['scrub_src'])
+        self.scrub_method = SCRUBMETHOD.lookup(valuedict['scrub_method'])
+        self.decision = valuedict['decision']  # a property; sets self.omit
         self.inclusion_values = valuedict['inclusion_values']  # a property
         self.exclusion_values = valuedict['exclusion_values']  # a property
         self.alter_method = valuedict['alter_method']  # a property
         self.dest_table = valuedict['dest_table']
         self.dest_field = valuedict['dest_field']
         self.dest_datatype = valuedict['dest_datatype'].upper()
-        self.index = valuedict['index']
+        self.index = INDEX.lookup(valuedict['index'])
         self.indexlen = convert_to_int(valuedict['indexlen'])
         self.comment = valuedict['comment']
         self._from_file = True
         self.check_valid()
     
-    def _matches_tabledef(self, tabledef):
+    def _matches_tabledef(self, tabledef: str) -> bool:
         tr = regex.compile(fnmatch.translate(tabledef), regex.IGNORECASE)
         return tr.match(self.src_table)
     
-    def matches_tabledef(self, tabledef):
+    def matches_tabledef(self, tabledef: Union[str, List[str]]) -> bool:
         if isinstance(tabledef, str):
             return self._matches_tabledef(tabledef)
         elif not tabledef:
@@ -502,7 +513,7 @@ class DataDictionaryRow(object):
         else:  # list
             return any(self._matches_tabledef(td) for td in tabledef)
 
-    def _matches_fielddef(self, fielddef):
+    def _matches_fielddef(self, fielddef: str) -> bool:
         t, c = split_db_table(fielddef)
         cr = regex.compile(fnmatch.translate(c), regex.IGNORECASE)
         if not t:
@@ -510,7 +521,7 @@ class DataDictionaryRow(object):
         tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
         return tr.match(self.src_table) and cr.match(self.src_field)
         
-    def matches_fielddef(self, fielddef):
+    def matches_fielddef(self, fielddef: Union[str, List[str]]) -> bool:
         if isinstance(fielddef, str):
             return self._matches_fielddef(fielddef)
         elif not fielddef:
@@ -518,9 +529,14 @@ class DataDictionaryRow(object):
         else:  # list
             return any(self._matches_fielddef(fd) for fd in fielddef)
 
-    def set_from_src_db_info(self, db, table, field,
-                             datatype_sqltext, sqla_coltype, cfg,
-                             comment=None):
+    def set_from_src_db_info(self,
+                             db: str,
+                             table: str,
+                             field: str,
+                             datatype_sqltext: str,
+                             sqla_coltype: Column,
+                             cfg: CONFIG_FWD_REF,
+                             comment=None) -> None:
         """
         Create a draft data dictionary row from a field in the source database.
         """
@@ -571,7 +587,7 @@ class DataDictionaryRow(object):
                 cfg.ddgen_scrubsrc_thirdparty_xref_pid_fields):
             self.scrub_src = SCRUBSRC.THIRDPARTY_XREF_PID
         else:
-            self.scrub_src = ""
+            self.scrub_src = None
 
         # Is it a mandatory scrubbing field?
         if self.matches_fielddef(cfg.ddgen_required_scrubsrc_fields):
@@ -580,7 +596,7 @@ class DataDictionaryRow(object):
         # What kind of sensitive data? Date, text, number, code?
         if not self.scrub_src:
             self.scrub_method = ""
-        elif (self.scrub_src == SCRUBSRC.THIRDPARTY_XREF_PID or
+        elif (self.scrub_src is SCRUBSRC.THIRDPARTY_XREF_PID or
                 is_sqltype_numeric(datatype_sqltext) or
                 self.matches_fielddef(cfg.ddgen_per_table_pid_field) or
                 self.matches_fielddef(cfg.ddgen_master_pid_fieldname) or
@@ -696,7 +712,7 @@ class DataDictionaryRow(object):
         self.indexlen = (
             DEFAULT_INDEX_LEN
             if (does_sqltype_require_index_len(self.dest_datatype) and
-                self.index != INDEX.FULLTEXT)
+                self.index is not INDEX.FULLTEXT)
             else None
         )
 
@@ -704,7 +720,7 @@ class DataDictionaryRow(object):
         self._from_file = False
         self.check_valid()
 
-    def get_offender_description(self):
+    def get_offender_description(self) -> str:
         offenderdest = "" if not self.omit else " -> {}".format(
             self.get_dest_signature())
         return "{}{}".format(self.get_signature(), offenderdest)
@@ -713,7 +729,7 @@ class DataDictionaryRow(object):
     # Validation
     # -------------------------------------------------------------------------
 
-    def check_valid(self):
+    def check_valid(self) -> None:
         """
         Check internal validity and complain if invalid, showing the source
         of the problem.
@@ -726,29 +742,24 @@ class DataDictionaryRow(object):
                     self.get_offender_description(), str(self)))
             raise
 
-    def check_prohibited_fieldnames(self, fieldnames):
+    def check_prohibited_fieldnames(self, fieldnames: Iterable[str]) -> None:
         if self.dest_field in fieldnames:
             log.exception(
                 "Offending DD row [{}]: {}".format(
                     self.get_offender_description(), str(self)))
             raise ValueError("Prohibited dest_field name")
 
-    def _check_valid(self):
+    def _check_valid(self) -> None:
         """
         Check internal validity and complain if invalid.
         """
-        raise_if_attr_blank(self, [
-            "src_db",
-            "src_table",
-            "src_field",
-            "src_datatype",
-        ])
+        assert self.src_db, "Need src_db"
+        assert self.src_table, "Need src_table"
+        assert self.src_field, "Need src_field"
+        assert self.src_datatype, "Need src_datatype"
         if not self.omit:
-            raise_if_attr_blank(self, [
-                "dest_table",
-                "dest_field",
-                # "dest_datatype",
-            ])
+            assert self.dest_table, "Need dest_table"
+            assert self.dest_field, "Need dest_field"
 
         if self.src_db not in self.config.get_source_db_names():
             raise ValueError(
@@ -801,21 +812,9 @@ class DataDictionaryRow(object):
                 "Field can be any ONE of: src_flags={}, src_flags={}, "
                 "alter_method".format(SRCFLAG.PRIMARY_PID, SRCFLAG.MASTER_PID))
 
-        valid_scrubsrc = list(SCRUBSRC.values()) + [""]
-        if self.scrub_src not in valid_scrubsrc:
-            raise ValueError(
-                "Invalid scrub_src - must be one of [{}]".format(
-                    ",".join(valid_scrubsrc)))
-
         if self._required_scrubber and not self.scrub_src:
             raise ValueError("If you specify src_flags={}, you must specify "
                              "scrub_src".format(SRCFLAG.REQUIRED_SCRUBBER))
-
-        if (self.scrub_src and self.scrub_method and
-                self.scrub_method not in SCRUBMETHOD.values()):
-            raise ValueError(
-                "Invalid scrub_method - must be blank or one of [{}]".format(
-                    ",".join(SCRUBMETHOD.values())))
 
         if not self.omit:
             ensure_valid_table_name(self.dest_table)
@@ -891,11 +890,6 @@ class DataDictionaryRow(object):
                         SRCFLAG.MASTER_PID,
                         self.config.sqltype_encrypted_pid_as_sql))
 
-            valid_index = [INDEX.NORMAL, INDEX.UNIQUE, INDEX.FULLTEXT, ""]
-            if self.index not in valid_index:
-                raise ValueError("Index must be one of: [{}]".format(
-                    ",".join(valid_index)))
-
             if (self.index in [INDEX.NORMAL, INDEX.UNIQUE] and
                     self.indexlen is None and
                     does_sqltype_require_index_len(
@@ -911,11 +905,7 @@ class DataDictionaryRow(object):
                     "src_flags={} fields".format(
                         SRCFLAG.ADD_SRC_HASH,
                         SRCFLAG.PK))
-            # if self.omit:
-            #     raise ValueError(
-            #         "Do not set omit on src_flags={} fields".format(
-            #             SRCFLAG.ADD_SRC_HASH))
-            if self.index != INDEX.UNIQUE:
+            if self.index is not INDEX.UNIQUE:
                 raise ValueError(
                     "src_flags={} fields require index=={}".format(
                         SRCFLAG.ADD_SRC_HASH,
@@ -933,11 +923,7 @@ class DataDictionaryRow(object):
                     "src_flags={} fields".format(
                         SRCFLAG.CONSTANT,
                         SRCFLAG.PK))
-            # if self.omit:
-            #     raise ValueError(
-            #         "Do not set omit on src_flags={} fields".format(
-            #             SRCFLAG.CONSTANT))
-            if self.index != INDEX.UNIQUE:
+            if self.index is not INDEX.UNIQUE:
                 raise ValueError(
                     "src_flags={} fields require index=={}".format(
                         SRCFLAG.CONSTANT,
@@ -947,20 +933,20 @@ class DataDictionaryRow(object):
     # Anonymisation decisions
     # -------------------------------------------------------------------------
 
-    def being_scrubbed(self):
+    def being_scrubbed(self) -> bool:
         return any(am.scrub for am in self._alter_methods)
 
-    def contains_patient_info(self):
+    def contains_patient_info(self) -> bool:
         return bool(self.scrub_src) or self._primary_pid or self._master_pid
 
-    def contains_vital_patient_info(self):
+    def contains_vital_patient_info(self) -> bool:
         return bool(self.scrub_src)
 
-    def required(self):
+    def required(self) -> bool:
         # return not self.omit or self.contains_patient_info()
         return not self.omit or self.contains_vital_patient_info()
 
-    def skip_row_by_value(self, value):
+    def skip_row_by_value(self, value: Any) -> bool:
         if self._inclusion_values and value not in self._inclusion_values:
             # log.debug("skipping row based on inclusion_values")
             return True
@@ -970,17 +956,17 @@ class DataDictionaryRow(object):
         return False
 
     @property
-    def required_scrubber(self):
+    def required_scrubber(self) -> bool:
         return self._required_scrubber
 
     # -------------------------------------------------------------------------
     # SQLAlchemy types
     # -------------------------------------------------------------------------
 
-    def set_src_sqla_coltype(self, sqla_coltype):
+    def set_src_sqla_coltype(self, sqla_coltype: Column) -> None:
         self._src_sqla_coltype = sqla_coltype
 
-    def get_sqla_dest_coltype(self, default_dialect=None):
+    def get_sqla_dest_coltype(self, default_dialect: Any = None) -> Column:
         dialect = (
             self.config.destdb.engine.dialect or
             default_dialect or
@@ -999,7 +985,7 @@ class DataDictionaryRow(object):
             return convert_sqla_type_for_dialect(self._src_sqla_coltype,
                                                  dialect)
             
-    def get_sqla_dest_column(self):
+    def get_sqla_dest_column(self) -> Column:
         name = self.dest_field
         coltype = self.get_sqla_dest_coltype()
         comment = self.comment or ''
@@ -1015,8 +1001,8 @@ class DataDictionaryRow(object):
     # Other
     # -------------------------------------------------------------------------
 
-    def using_fulltext_index(self):
-        return self.index == INDEX.FULLTEXT
+    def using_fulltext_index(self) -> bool:
+        return self.index is INDEX.FULLTEXT
 
 
 # =============================================================================
@@ -1028,7 +1014,7 @@ class DataDictionary(object):
     Class representing an entire data dictionary.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: CONFIG_FWD_REF) -> None:
         """
         Set defaults.
         """
@@ -1037,7 +1023,7 @@ class DataDictionary(object):
         self.cached_srcdb_table_pairs = SortedSet()
         self.n_definers = 0
 
-    def read_from_file(self, filename):
+    def read_from_file(self, filename: str) -> None:
         """
         Read DD from file.
         """
@@ -1070,7 +1056,7 @@ class DataDictionary(object):
             log.debug("... content loaded.")
         self.clear_caches()
 
-    def read_from_source_databases(self, report_every=100):
+    def read_from_source_databases(self, report_every: int = 100) -> None:
         """
         Create a draft DD from a source database.
         """
@@ -1145,7 +1131,7 @@ class DataDictionary(object):
         log.info("... done")
         self.sort()
 
-    def sort(self):
+    def sort(self) -> None:
         log.info("Sorting data dictionary")
         self.rows = sorted(
             self.rows,
@@ -1154,7 +1140,7 @@ class DataDictionary(object):
                                     "src_field_lowercase"))
         log.info("... done")
 
-    def check_against_source_db(self):
+    def check_against_source_db(self) -> None:
         """
         Check DD validity against the source database.
         Also caches SQLAlchemy source column type
@@ -1218,7 +1204,7 @@ class DataDictionary(object):
                                     " should contain an extension or filename,"
                                     " is not text of >1 character".format(
                                         am=r.alter_method,
-                                        f=r.extract_ext_field))
+                                        f=am.extract_ext_field))
 
                 n_pks = sum([1 if x.pk else 0 for x in rows])
                 if n_pks > 1:
@@ -1228,7 +1214,7 @@ class DataDictionary(object):
 
         log.debug("... source tables checked.")
         
-    def set_src_sql_coltypes(self, dialect=None):
+    def set_src_sql_coltypes(self, dialect: Any = None) -> None:
         dialect = (
             dialect or
             self.config.get_default_src_dialect()
@@ -1240,8 +1226,9 @@ class DataDictionary(object):
             # ("{} -> {}".format(str_coltype, sqla_coltype))
             r.set_src_sqla_coltype(sqla_coltype)
 
-    def check_valid(self, prohibited_fieldnames=None,
-                    check_against_source_db=True):
+    def check_valid(self,
+                    prohibited_fieldnames: List[str] = None,
+                    check_against_source_db: bool = True) -> None:
         """
         Check DD validity, internally +/- against the source database.
         """
@@ -1348,7 +1335,7 @@ class DataDictionary(object):
     # Whole-DD operations
     # =========================================================================
 
-    def get_tsv(self):
+    def get_tsv(self) -> str:
         """
         Return the DD in TSV format.
         """
@@ -1362,7 +1349,7 @@ class DataDictionary(object):
     # =========================================================================
 
     @lru_cache(maxsize=None)
-    def get_source_databases(self):
+    def get_source_databases(self) -> AbstractSet[str]:
         """Return a SortedSet of source database names."""
         return SortedSet([
              ddr.src_db
@@ -1371,7 +1358,7 @@ class DataDictionary(object):
          ])
 
     @lru_cache(maxsize=None)
-    def get_scrub_from_db_table_pairs(self):
+    def get_scrub_from_db_table_pairs(self) -> AbstractSet[Tuple[str, str]]:
         """Return a SortedSet of (source database name, source table) tuples
         where those fields contain scrub_src (scrub-from) information."""
         return SortedSet([
@@ -1382,7 +1369,7 @@ class DataDictionary(object):
         # even if omit flag set
 
     @lru_cache(maxsize=None)
-    def get_src_db_tablepairs(self):
+    def get_src_db_tablepairs(self) -> AbstractSet[Tuple[str, str]]:
         """Return a SortedSet of (source database name, source table) tuples.
         """
         return SortedSet([
@@ -1391,7 +1378,7 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_src_db_tablepairs_w_pt_info(self):
+    def get_src_db_tablepairs_w_pt_info(self) -> AbstractSet[Tuple[str, str]]:
         """Return a SortedSet of (source database name, source table) tuples.
         """
         return SortedSet([
@@ -1401,7 +1388,7 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_src_db_tablepairs_w_int_pk(self):
+    def get_src_db_tablepairs_w_int_pk(self) -> AbstractSet[Tuple[str, str]]:
         """Return a SortedSet of (source database name, source table) tuples.
         """
         return SortedSet([
@@ -1411,7 +1398,8 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_src_dbs_tables_with_no_pt_info_no_pk(self):
+    def get_src_dbs_tables_with_no_pt_info_no_pk(self) \
+            -> AbstractSet[Tuple[str, str]]:
         """Return a SortedSet of (source database name, source table) tuples
         where the table has no patient information and no integer PK."""
         return (
@@ -1421,7 +1409,8 @@ class DataDictionary(object):
         )
 
     @lru_cache(maxsize=None)
-    def get_src_dbs_tables_with_no_pt_info_int_pk(self):
+    def get_src_dbs_tables_with_no_pt_info_int_pk(self) \
+            -> AbstractSet[Tuple[str, str]]:
         """Return a SortedSet of (source database name, source table) tuples
         where the table has no patient information and has an integer PK."""
         return (
@@ -1431,7 +1420,7 @@ class DataDictionary(object):
         )
 
     @lru_cache(maxsize=None)
-    def get_dest_tables(self):
+    def get_dest_tables(self) -> AbstractSet[str]:
         """Return a SortedSet of all destination tables."""
         return SortedSet([
             ddr.dest_table
@@ -1440,7 +1429,7 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_dest_tables_with_patient_info(self):
+    def get_dest_tables_with_patient_info(self) -> AbstractSet[str]:
         """Return a SortedSet of destination table names that have patient
         information."""
         return SortedSet([
@@ -1450,9 +1439,10 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_optout_defining_fields(self):
-        """Return a SortedSet of (src_db, src_table, optout_definer, pidfield)
-        tuples."""
+    def get_optout_defining_fields(self) \
+            -> AbstractSet[Tuple[str, str, str, str, str]]:
+        """Return a SortedSet of (src_db, src_table, src_field, pidfield,
+        mpidfield) tuples."""
         return SortedSet([
             (ddr.src_db, ddr.src_table, ddr.src_field,
                 self.get_pid_name(ddr.src_db, ddr.src_table),
@@ -1462,16 +1452,16 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_mandatory_scrubber_sigs(self):
+    def get_mandatory_scrubber_sigs(self) -> AbstractSet[str]:
         return set([ddr.get_signature() for ddr in self.rows
-                    if ddr.required_scrubber()])
+                    if ddr.required_scrubber])
 
     # =========================================================================
     # Queries by source DB
     # =========================================================================
 
     @lru_cache(maxsize=None)
-    def get_src_tables(self, src_db):
+    def get_src_tables(self, src_db: str) -> AbstractSet[str]:
         """For a given source database name, return a SortedSet of source
         tables."""
         return SortedSet([
@@ -1481,7 +1471,7 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_src_tables_with_active_dest(self, src_db):
+    def get_src_tables_with_active_dest(self, src_db: str) -> AbstractSet[str]:
         """For a given source database name, return a SortedSet of source
         tables."""
         return SortedSet([
@@ -1491,7 +1481,7 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_src_tables_with_patient_info(self, src_db):
+    def get_src_tables_with_patient_info(self, src_db: str) -> AbstractSet[str]:
         """For a given source database name, return a SortedSet of source
         tables that have patient information."""
         return SortedSet([
@@ -1501,7 +1491,8 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_patient_src_tables_with_active_dest(self, src_db):
+    def get_patient_src_tables_with_active_dest(self, src_db: str) \
+            -> AbstractSet[str]:
         """For a given source database name, return a SortedSet of source
         tables that have an active destination table."""
         return (
@@ -1514,7 +1505,8 @@ class DataDictionary(object):
     # =========================================================================
 
     @lru_cache(maxsize=None)
-    def get_dest_tables_for_src_db_table(self, src_db, src_table):
+    def get_dest_tables_for_src_db_table(
+            self, src_db: str, src_table: str) -> AbstractSet[str]:
         """For a given source database/table, return a SortedSet of destination
         tables."""
         return SortedSet([
@@ -1526,13 +1518,16 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_dest_table_for_src_db_table(self, src_db, src_table):
+    def get_dest_table_for_src_db_table(
+            self, src_db: str, src_table: str) -> str:
         """For a given source database/table, return the single or the first
         destination table."""
-        return self.get_dest_tables_for_src_db_table(src_db, src_table)[0]
+        return list(
+            self.get_dest_tables_for_src_db_table(src_db, src_table))[0]
 
     @lru_cache(maxsize=None)
-    def get_rows_for_src_table(self, src_db, src_table):
+    def get_rows_for_src_table(self, src_db: str, src_table: str) \
+            -> AbstractSet[DataDictionaryRow]:
         """For a given source database name/table, return a SortedSet of DD
         rows."""
         return SortedSet([
@@ -1542,7 +1537,8 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_fieldnames_for_src_table(self, src_db, src_table):
+    def get_fieldnames_for_src_table(self, src_db: str, src_table: str) \
+            -> AbstractSet[DataDictionaryRow]:
         """For a given source database name/table, return a SortedSet of source
         fields."""
         return SortedSet([
@@ -1552,7 +1548,8 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_scrub_from_rows(self, src_db, src_table):
+    def get_scrub_from_rows(self, src_db: str, src_table: str) \
+            -> AbstractSet[DataDictionaryRow]:
         """Return a SortedSet of DD rows for all fields containing scrub_src
         (scrub-from) information."""
         return SortedSet([
@@ -1565,7 +1562,8 @@ class DataDictionary(object):
         # even if omit flag set
 
     @lru_cache(maxsize=None)
-    def get_pk_ddr(self, src_db, src_table):
+    def get_pk_ddr(self, src_db: str, src_table: str) \
+            -> Optional[DataDictionaryRow]:
         """For a given source database name and table, return the DD row
         for the integer PK for that table.
 
@@ -1580,7 +1578,7 @@ class DataDictionary(object):
         return None
 
     @lru_cache(maxsize=None)
-    def get_int_pk_name(self, src_db, src_table):
+    def get_int_pk_name(self, src_db: str, src_table: str) -> Optional[str]:
         """For a given source database name and table, return the field name
         of the integer PK for that table."""
         ddr = self.get_pk_ddr(src_db, src_table)
@@ -1589,7 +1587,7 @@ class DataDictionary(object):
         return ddr.src_field
 
     @lru_cache(maxsize=None)
-    def has_active_destination(self, src_db, src_table):
+    def has_active_destination(self, src_db: str, src_table: str) -> bool:
         """For a given source database name and table: does it have an active
         destination?"""
         for ddr in self.rows:
@@ -1600,7 +1598,7 @@ class DataDictionary(object):
         return False
 
     @lru_cache(maxsize=None)
-    def get_pid_name(self, src_db, src_table):
+    def get_pid_name(self, src_db: str, src_table: str) -> Optional[str]:
         for ddr in self.rows:
             if (ddr.src_db == src_db and
                     ddr.src_table == src_table and
@@ -1609,7 +1607,7 @@ class DataDictionary(object):
         return None
 
     @lru_cache(maxsize=None)
-    def get_mpid_name(self, src_db, src_table):
+    def get_mpid_name(self, src_db: str, src_table: str) -> Optional[str]:
         for ddr in self.rows:
             if (ddr.src_db == src_db and
                     ddr.src_table == src_table and
@@ -1622,7 +1620,8 @@ class DataDictionary(object):
     # =========================================================================
 
     @lru_cache(maxsize=None)
-    def get_src_dbs_tables_for_dest_table(self, dest_table):
+    def get_src_dbs_tables_for_dest_table(
+            self, dest_table: str) -> AbstractSet[Tuple[str, str]]:
         """For a given destination table, return a SortedSet of (dbname, table)
         tuples."""
         return SortedSet([
@@ -1632,7 +1631,8 @@ class DataDictionary(object):
         ])
 
     @lru_cache(maxsize=None)
-    def get_rows_for_dest_table(self, dest_table):
+    def get_rows_for_dest_table(
+            self, dest_table: str) -> AbstractSet[DataDictionaryRow]:
         """For a given destination table, return a SortedSet of DD rows."""
         return SortedSet([
             ddr
@@ -1645,7 +1645,7 @@ class DataDictionary(object):
     # =========================================================================
 
     @lru_cache(maxsize=None)
-    def get_dest_sqla_table(self, tablename):
+    def get_dest_sqla_table(self, tablename: str) -> Table:
         metadata = self.config.destdb.metadata
         columns = []
         for ddr in self.get_rows_for_dest_table(tablename):
@@ -1656,14 +1656,14 @@ class DataDictionary(object):
                 columns.append(self.get_trid_sqla_column())
         return Table(tablename, metadata, *columns, **MYSQL_TABLE_ARGS)
 
-    def get_srchash_sqla_column(self):
+    def get_srchash_sqla_column(self) -> Column:
         return Column(
             self.config.source_hash_fieldname,
             self.config.SqlTypeEncryptedPid,
             doc='Hashed amalgamation of all source fields'
         )
 
-    def get_trid_sqla_column(self):
+    def get_trid_sqla_column(self) -> Column:
         return Column(
             self.config.trid_fieldname,
             TridType,
@@ -1675,7 +1675,7 @@ class DataDictionary(object):
     # Clear caches
     # =========================================================================
 
-    def cached_funcs(self):
+    def cached_funcs(self) -> List[Any]:
         return [
             self.get_source_databases,
             self.get_scrub_from_db_table_pairs,
@@ -1711,10 +1711,10 @@ class DataDictionary(object):
             self.get_dest_sqla_table,
         ]
 
-    def clear_caches(self):
+    def clear_caches(self) -> None:
         for func in self.cached_funcs():
             func.cache_clear()
 
-    def debug_cache_hits(self):
+    def debug_cache_hits(self) -> None:
         for func in self.cached_funcs():
             log.debug("{}: {}".format(func.__name__, func.cache_info()))

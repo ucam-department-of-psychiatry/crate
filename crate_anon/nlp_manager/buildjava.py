@@ -10,12 +10,11 @@ License: http://www.apache.org/licenses/LICENSE-2.0
 """
 
 import argparse
-import glob
 import logging
 import os
-import shutil
 import subprocess
 
+from crate_anon.common.fileops import moveglob, rmglob
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
@@ -31,22 +30,7 @@ DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'
 
 
-def moveglob(src, dest, allow_nothing=False):
-    something = False
-    for filename in glob.glob(src):
-        shutil.move(filename, dest)
-        something = True
-    if something or allow_nothing:
-        return
-    raise ValueError("No files found matching: {}".format(src))
-
-
-def rmglob(pattern):
-    for f in glob.glob(pattern):
-        os.remove(f)
-
-
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Compile Java classes for CRATE's interface to GATE")
     parser.add_argument(

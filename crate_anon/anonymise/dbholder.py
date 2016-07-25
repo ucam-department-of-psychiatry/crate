@@ -16,9 +16,18 @@ log = logging.getLogger(__name__)
 # Convenience object
 # =============================================================================
 
+DB_SAFE_CONFIG_FWD_REF = "DatabaseSafeConfig"
+
+
 class DatabaseHolder(object):
-    def __init__(self, name, url, srccfg=None, with_session=False,
-                 with_conn=True, reflect=True, encoding='utf-8'):
+    def __init__(self,
+                 name: str,
+                 url: str,
+                 srccfg: DB_SAFE_CONFIG_FWD_REF = None,
+                 with_session: bool = False,
+                 with_conn: bool = True,
+                 reflect: bool = True,
+                 encoding: str = 'utf-8') -> None:
         self.name = name
         self.srccfg = srccfg
         self.engine = create_engine(url, encoding=encoding)

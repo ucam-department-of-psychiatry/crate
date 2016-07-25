@@ -45,6 +45,7 @@
           <option value="sqlalchemy.dialects.mssql.base.dialect" />
           <option value="super.get_queryset" />
           <option value="super.change_view" />
+          <option value="django.http.request.HttpRequest.user" />
         </list>
       </option>
     </inspection_tool>

@@ -7,24 +7,31 @@ Slightly extended ConfigParser.
 
 import ast
 import configparser
+from typing import Iterable, Iterator, Generic, List
+# http://mypy-lang.org/examples.html
+# https://www.python.org/dev/peps/pep-0484/
+# https://docs.python.org/3/library/typing.html
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 
 
-def gen_lines(multiline):
+def gen_lines(multiline: str) -> Iterator[str]:
     for line in multiline.splitlines():
         line = line.strip()
         if line:
             yield line
 
 
-def gen_words(lines):
+def gen_words(lines: Iterable[str]) -> Iterator[str]:
     for line in lines:
         for word in line.split():
             yield word
 
 
-def gen_ints(words, minimum=None, maximum=None, suppress_errors=False):
+def gen_ints(words: Iterable[str],
+             minimum: int = None,
+             maximum: int = None,
+             suppress_errors: bool = False) -> Iterator[int]:
     for word in words:
         try:
             value = int(word)
@@ -42,8 +49,11 @@ def gen_ints(words, minimum=None, maximum=None, suppress_errors=False):
                 raise
 
 
+DB_SAFE_CONFIG_FWD_REF = "DatabaseSafeConfig"
+
+
 class ExtendedConfigParser(configparser.ConfigParser):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         kwargs['interpolation'] = None
         kwargs['inline_comment_prefixes'] = ('#', ';')
         # 'converters': Python 3.5 and up
@@ -67,11 +77,16 @@ class ExtendedConfigParser(configparser.ConfigParser):
     #     return text[:commentpos].strip()
 
     @staticmethod
-    def raise_missing(section, option):
+    def raise_missing(section: str,
+                      option: str) -> None:
         raise ValueError("Config section {}: missing parameter: {}".format(
             section, option))
 
-    def get_str(self, section, option, required=False, default=None):
+    def get_str(self,
+                section: str,
+                option: str,
+                required: bool = False,
+                default: str = None):
         if required and default is not None:
             raise AssertionError("required and default are incompatible")
         s = self.get(section, option, fallback=default)
@@ -79,8 +94,12 @@ class ExtendedConfigParser(configparser.ConfigParser):
             self.raise_missing(section, option)
         return s
 
-    def get_str_list(self, section, option, as_words=True, lower=False,
-                     required=False):
+    def get_str_list(self,
+                     section: str,
+                     option: str,
+                     as_words: bool = True,
+                     lower: bool = False,
+                     required: bool = False) -> List[str]:
         multiline = self.get(section, option, fallback='')
         if lower:
             multiline = multiline.lower()
@@ -92,21 +111,31 @@ class ExtendedConfigParser(configparser.ConfigParser):
             self.raise_missing(section, option)
         return result
 
-    def get_int_default_if_failure(self, section, option, default=None):
+    def get_int_default_if_failure(self,
+                                   section: str,
+                                   option: str,
+                                   default: int = None) -> int:
         try:
             return self.getint(section, option, fallback=default)
         except ValueError:  # e.g. invalid literal for int() with base 10
             return default
 
-    def get_int_list(self, section, option, minimum=None, maximum=None,
-                     suppress_errors=True):
+    def get_int_list(self,
+                     section: str,
+                     option: str,
+                     minimum: int = None,
+                     maximum: int = None,
+                     suppress_errors: bool = True) -> List[int]:
         multiline = self.get(section, option, fallback='')
         return list(gen_ints(gen_words(gen_lines(multiline)),
                              minimum=minimum,
                              maximum=maximum,
                              suppress_errors=suppress_errors))
 
-    def get_pyvalue_list(self, section, option, default=None):
+    def get_pyvalue_list(self,
+                         section: str,
+                         option: str,
+                         default: Generic = None) -> List[Generic]:
         default = default or []
         strvalue = self.get(section, option, fallback=None)
         if not strvalue:
@@ -119,8 +148,13 @@ class ExtendedConfigParser(configparser.ConfigParser):
                              "using ast.literal_eval()".format(option))
         return pyvalue
 
-    def get_database(self, section, dbname=None, srccfg=None,
-                     with_session=False, with_conn=False, reflect=False):
+    def get_database(self,
+                     section: str,
+                     dbname: str = None,
+                     srccfg: DB_SAFE_CONFIG_FWD_REF = None,
+                     with_session: bool = False,
+                     with_conn: bool = False,
+                     reflect: bool = False) -> DatabaseHolder:
         dbname = dbname or section
         url = self.get_str(section, 'url', required=True)
         return DatabaseHolder(dbname, url, srccfg=srccfg,

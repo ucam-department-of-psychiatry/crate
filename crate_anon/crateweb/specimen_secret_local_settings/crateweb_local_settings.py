@@ -128,20 +128,39 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 
 # Schemas to provide database structure info for, and details on how to
 # join within/between them (for the query builder).
-# The first is the default selected in the query builder.
+# - The first schema is the default selected in the query builder.
+# - WITHIN a database, tables will be autojoined on the trid_field.
+# - ACROSS databases, tables will be autojoined on the rid_field if they are in
+#   the same rid_family (a non-False Python value, e.g. integers starting at
+#   1), and on mrid_table.mrid_field otherwise.
 RESEARCH_DB_INFO = [
     {
-        # Schema name:
         'schema': DATABASES['research']['NAME'],  # if it's not None!
-        # Query Builder autojoin field:
-        'autojoin_field': 'trid',
+        # ... 'anonymous_output'
+        'trid_field': 'trid',
+        'rid_field': 'brcid',
+        'rid_family': 1,
+        'mrid_table': 'patients',
+        'mrid_field': 'nhshash',
     },
     # {
-    #     'schema': 'my_nlp_database',
-    #     'autojoin_field': 'trid',
+    #     'schema': 'similar_database',
+    #     'trid_field': 'trid',
+    #     'rid_field': 'same_rid',
+    #     'rid_family': 1,
+    #     'mrid_table': None,
+    #     'mrid_field': None,
     # },
-    # ...
+    # {
+    #     'schema': 'different_database',
+    #     'trid_field': 'trid',
+    #     'rid_field': 'different_rid',
+    #     'rid_family': 2,
+    #     'mrid_table': 'hashed_nhs_numbers',
+    #     'mrid_field': 'nhshash',
+    # },
 ]
+
 
 # Configuration of the secret mapping database (as set during initial
 # anonymisation)

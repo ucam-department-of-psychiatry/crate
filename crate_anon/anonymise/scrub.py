@@ -28,7 +28,9 @@ Copyright/licensing:
 """
 
 from collections import OrderedDict
+import datetime
 import logging
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
 
 from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
@@ -38,6 +40,7 @@ from cardinal_pythonlib.rnc_db import (
     is_sqltype_text_over_one_char,
 )
 
+from crate_anon.common.hash import GenericHasher
 from crate_anon.anonymise.constants import SCRUBMETHOD
 from crate_anon.anonymise.anonregex import (
     get_anon_fragments_from_string,
@@ -65,17 +68,17 @@ log = logging.getLogger(__name__)
 class ScrubberBase(object):
     """Scrubber base class."""
 
-    def __init__(self, hasher):
+    def __init__(self, hasher: GenericHasher) -> None:
         """
         :param hasher: object implementing GenericHasher interface
         """
         self.hasher = hasher
 
-    def scrub(self, text):
+    def scrub(self, text: str) -> str:
         """Returns a scrubbed version of the text."""
         raise NotImplementedError()
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         """Returns a hash of the scrubber itself."""
         raise NotImplementedError()
 
@@ -85,16 +88,21 @@ class ScrubberBase(object):
 # list?) and a blacklist (scrub text using the wordlist).
 # =============================================================================
 
-def lower_case_words_from_file(fileobj):
+def lower_case_words_from_file(fileobj: Iterable[str]) -> Iterator[str]:
     for line in fileobj:
         for word in line.split():
             yield word.lower()
 
 
 class WordList(ScrubberBase):
-    def __init__(self, filenames=None, words=None,
-                 replacement_text='[---]', hasher=None,
-                 suffixes=None, at_word_boundaries_only=True, max_errors=0):
+    def __init__(self,
+                 filenames: Iterable[str] = None,
+                 words: Iterable[str] = None,
+                 replacement_text: str = '[---]',
+                 hasher: GenericHasher = None,
+                 suffixes: List[str] = None,
+                 at_word_boundaries_only: bool = True,
+                 max_errors: int = 0) -> None:
         filenames = filenames or []
         words = words or []
 
@@ -110,24 +118,26 @@ class WordList(ScrubberBase):
         self.words = set()
         # Sets are faster than lists for "is x in s" operations:
         # http://stackoverflow.com/questions/2831212/python-sets-vs-lists
+        # noinspection PyTypeChecker
         for f in filenames:
             self.add_file(f, clear_cache=False)
+        # noinspection PyTypeChecker
         for w in words:
             self.add_word(w, clear_cache=False)
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clear cached information."""
         self._regex = None
         self._cached_hash = None
 
-    def add_word(self, word, clear_cache=True):
+    def add_word(self, word: str, clear_cache: bool = True) -> None:
         if not word:
             return
         self.words.add(word.lower())
         if clear_cache:
             self.clear_cache()
 
-    def add_file(self, filename, clear_cache=True):
+    def add_file(self, filename: str, clear_cache: bool = True) -> None:
         with open(filename) as f:
             wordgen = lower_case_words_from_file(f)
             for w in wordgen:
@@ -135,10 +145,10 @@ class WordList(ScrubberBase):
         if clear_cache:
             self.clear_cache()
 
-    def contains(self, word):
+    def contains(self, word: str) -> bool:
         return word.lower() in self.words
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         # A set is unordered.
         # We want the hash to be the same if we have the same words, even if
         # they were entered in a different order, so we need to sort:
@@ -146,14 +156,14 @@ class WordList(ScrubberBase):
             self._cached_hash = self.hasher.hash(sorted(self.words))
         return self._cached_hash
 
-    def scrub(self, text):
+    def scrub(self, text: str) -> str:
         if not self._regex_built:
             self.build_regex()
         if not self._regex:
             return text
         return self._regex.sub(self.replacement_text, text)
 
-    def build_regex(self):
+    def build_regex(self) -> None:
         elements = []
         for w in self.words:
             elements.extend(get_string_regex_elements(
@@ -172,14 +182,15 @@ class WordList(ScrubberBase):
 # such as removing all UK postcodes, or numbers of a certain length.
 # =============================================================================
 
-
 class NonspecificScrubber(ScrubberBase):
-    def __init__(self, replacement_text, hasher,
-                 anonymise_codes_at_word_boundaries_only=True,
-                 anonymise_numbers_at_word_boundaries_only=True,
-                 blacklist=None,
-                 scrub_all_numbers_of_n_digits=None,
-                 scrub_all_uk_postcodes=False):
+    def __init__(self,
+                 replacement_text: str,
+                 hasher: GenericHasher,
+                 anonymise_codes_at_word_boundaries_only: bool = True,
+                 anonymise_numbers_at_word_boundaries_only: bool = True,
+                 blacklist: WordList = None,
+                 scrub_all_numbers_of_n_digits: List[int] = None,
+                 scrub_all_uk_postcodes: bool = False) -> None:
         """
         scrub_all_numbers_of_n_digits: list of values of n
         """
@@ -200,7 +211,7 @@ class NonspecificScrubber(ScrubberBase):
         self._regex_built = False
         self.build_regex()
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         if not self._cached_hash:
             self._cached_hash = self.hasher.hash([
                 # signature, used for hashing:
@@ -212,7 +223,7 @@ class NonspecificScrubber(ScrubberBase):
             ])
         return self._cached_hash
 
-    def scrub(self, text):
+    def scrub(self, text: str) -> str:
         if not self._regex_built:
             self.build_regex()
         if self.blacklist:
@@ -221,13 +232,14 @@ class NonspecificScrubber(ScrubberBase):
             return text
         return self._regex.sub(self.replacement_text, text)
 
-    def build_regex(self):
+    def build_regex(self) -> None:
         elements = []
         if self.scrub_all_uk_postcodes:
             elements.extend(
                 get_uk_postcode_regex_elements(
                     at_word_boundaries_only=
                     self.anonymise_codes_at_word_boundaries_only))
+        # noinspection PyTypeChecker
         for n in self.scrub_all_numbers_of_n_digits:
             elements.extend(get_number_of_length_n_regex_elements(
                 n,
@@ -245,20 +257,21 @@ class NonspecificScrubber(ScrubberBase):
 class PersonalizedScrubber(ScrubberBase):
     """Accepts patient-specific (patient and third-party) information, and
     uses that to scrub text."""
-    def __init__(self, replacement_text_patient,
-                 replacement_text_third_party,
-                 hasher,
-                 anonymise_codes_at_word_boundaries_only=True,
-                 anonymise_dates_at_word_boundaries_only=True,
-                 anonymise_numbers_at_word_boundaries_only=True,
-                 anonymise_strings_at_word_boundaries_only=True,
-                 min_string_length_for_errors=4,
-                 min_string_length_to_scrub_with=3,
-                 scrub_string_suffixes=None,
-                 string_max_regex_errors=0,
-                 whitelist=None,
-                 nonspecific_scrubber=None,
-                 debug=False):
+    def __init__(self,
+                 replacement_text_patient: str,
+                 replacement_text_third_party: str,
+                 hasher: GenericHasher,
+                 anonymise_codes_at_word_boundaries_only: bool = True,
+                 anonymise_dates_at_word_boundaries_only: bool = True,
+                 anonymise_numbers_at_word_boundaries_only: bool = True,
+                 anonymise_strings_at_word_boundaries_only: bool = True,
+                 min_string_length_for_errors: int = 4,
+                 min_string_length_to_scrub_with: int = 3,
+                 scrub_string_suffixes: List[str] = None,
+                 string_max_regex_errors: int = 0,
+                 whitelist: WordList = None,
+                 nonspecific_scrubber: NonspecificScrubber = None,
+                 debug: bool = False) -> None:
         scrub_string_suffixes = scrub_string_suffixes or []
 
         super().__init__(hasher)
@@ -289,16 +302,17 @@ class PersonalizedScrubber(ScrubberBase):
         self.elements_tupleset = set()  # patient?, type, value
         self.clear_cache()
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         self.regexes_built = False
 
     @staticmethod
-    def get_scrub_method(datatype_long, scrub_method):
+    def get_scrub_method(datatype_long: str,
+                         scrub_method: Optional[SCRUBMETHOD]) -> str:
         """
         Return the default scrub method for a given SQL datatype,
         unless overridden.
         """
-        if scrub_method:
+        if scrub_method is not None:
             return scrub_method
         elif is_sqltype_date(datatype_long):
             return SCRUBMETHOD.DATE
@@ -307,7 +321,11 @@ class PersonalizedScrubber(ScrubberBase):
         else:
             return SCRUBMETHOD.NUMERIC
 
-    def add_value(self, value, scrub_method, patient=True, clear_cache=True):
+    def add_value(self,
+                  value: Any,
+                  scrub_method: str,
+                  patient: bool = True,
+                  clear_cache: bool = True) -> None:
         """
         Add a specific value via a specific scrub_method.
 
@@ -320,23 +338,25 @@ class PersonalizedScrubber(ScrubberBase):
         # Note: object reference
         r = self.re_patient_elements if patient else self.re_tp_elements
 
-        if scrub_method == SCRUBMETHOD.DATE:
+        if scrub_method is SCRUBMETHOD.DATE:
             elements = self.get_elements_date(value)
-        elif scrub_method == SCRUBMETHOD.WORDS:
+        elif scrub_method is SCRUBMETHOD.WORDS:
             elements = self.get_elements_words(value)
-        elif scrub_method == SCRUBMETHOD.PHRASE:
+        elif scrub_method is SCRUBMETHOD.PHRASE:
             elements = self.get_elements_phrase(value)
-        elif scrub_method == SCRUBMETHOD.NUMERIC:
+        elif scrub_method is SCRUBMETHOD.NUMERIC:
             elements = self.get_elements_numeric(value)
-        elif scrub_method == SCRUBMETHOD.CODE:
+        elif scrub_method is SCRUBMETHOD.CODE:
             elements = self.get_elements_code(value)
         else:
-            raise ValueError("Bug: unknown scrub_method to add_value")
+            raise ValueError("Bug: unknown scrub_method to add_value: "
+                             "{}".format(scrub_method))
         r.update(set(elements))  # remembering r is a set, not a list
         if clear_cache:
             self.clear_cache()
 
-    def get_elements_date(self, value):
+    def get_elements_date(self, value: Union[datetime.datetime,
+                                             datetime.date]) -> List[str]:
         # Source is a date.
         try:
             value = coerce_to_date(value)
@@ -352,7 +372,7 @@ class PersonalizedScrubber(ScrubberBase):
                 self.anonymise_dates_at_word_boundaries_only)
         )
 
-    def get_elements_words(self, value):
+    def get_elements_words(self, value: str) -> List[str]:
         # Source is a string containing textual words.
         elements = []
         for s in get_anon_fragments_from_string(str(value)):
@@ -381,7 +401,7 @@ class PersonalizedScrubber(ScrubberBase):
             ))
         return elements
 
-    def get_elements_phrase(self, value):
+    def get_elements_phrase(self, value: Any) -> List[str]:
         # value = unicode(value)  # Python 2
         value = str(value)
         if not value:
@@ -402,7 +422,7 @@ class PersonalizedScrubber(ScrubberBase):
                 self.anonymise_strings_at_word_boundaries_only)
         )
 
-    def get_elements_numeric(self, value):
+    def get_elements_numeric(self, value: Any) -> List[str]:
         # Source is a text field containing a number, or an actual number.
         # Remove everything but the digits
         # Particular examples: phone numbers, e.g. "(01223) 123456".
@@ -412,7 +432,7 @@ class PersonalizedScrubber(ScrubberBase):
                 self.anonymise_numbers_at_word_boundaries_only)
         )
 
-    def get_elements_code(self, value):
+    def get_elements_code(self, value: Any) -> List[str]:
         # Source is a text field containing an alphanumeric code.
         # Remove whitespace.
         # Particular examples: postcodes, e.g. "PE12 3AB".
@@ -422,15 +442,15 @@ class PersonalizedScrubber(ScrubberBase):
                 self.anonymise_codes_at_word_boundaries_only)
         )
 
-    def get_patient_regex_string(self):
+    def get_patient_regex_string(self) -> str:
         """Return the string version of the patient regex, sorted."""
         return get_regex_string_from_elements(sorted(self.re_patient_elements))
 
-    def get_tp_regex_string(self):
+    def get_tp_regex_string(self) -> str:
         """Return the string version of the third-party regex, sorted."""
         return get_regex_string_from_elements(sorted(self.re_tp_elements))
 
-    def build_regexes(self):
+    def build_regexes(self) -> None:
         self.re_patient = get_regex_from_elements(
             list(self.re_patient_elements))
         self.re_tp = get_regex_from_elements(
@@ -444,7 +464,7 @@ class PersonalizedScrubber(ScrubberBase):
             log.debug("Third party scrubber: {}".format(
                 self.get_tp_regex_string()))
 
-    def scrub(self, text):
+    def scrub(self, text: str) -> str:
         """Scrub some text and return the scrubbed result."""
         if text is None:
             return None
@@ -459,10 +479,10 @@ class PersonalizedScrubber(ScrubberBase):
             text = self.re_tp.sub(self.replacement_text_third_party, text)
         return text
 
-    def get_hash(self):
+    def get_hash(self) -> str:
         return self.hasher.hash(self.get_raw_info())
 
-    def get_raw_info(self):
+    def get_raw_info(self) -> Dict[str, Any]:
         # This is both a summary for debugging and the basis for our
         # change-detection hash (and for the latter reason we need order etc.
         # to be consistent). For anything we put in here, changes will cause

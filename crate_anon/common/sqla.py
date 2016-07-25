@@ -5,11 +5,16 @@ import ast
 import copy
 import logging
 import re
+from typing import Any, Dict, List, Tuple, Type
 
 from sqlalchemy.dialects import mssql, mysql
+from sqlalchemy.engine import Engine
+# from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.schema import DDL, Index
+from sqlalchemy.ext.declarative.api import DeclarativeMeta
+from sqlalchemy.schema import Column, DDL, Index
+from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import exists, func, select, sqltypes, table
 from sqlalchemy.sql.expression import (
     ClauseElement,
@@ -26,7 +31,10 @@ log = logging.getLogger(__name__)
 # http://stackoverflow.com/questions/2546207
 # ... composite of several suggestions
 
-def get_or_create(session, model, defaults=None, **kwargs):
+def get_or_create(session: Session,
+                  model: DeclarativeMeta,
+                  defaults: Dict[str, Any] = None,
+                  **kwargs: Any) -> Tuple[Any, bool]:
     instance = session.query(model).filter_by(**kwargs).first()
     if instance:
         return instance, False
@@ -44,7 +52,7 @@ def get_or_create(session, model, defaults=None, **kwargs):
 # =============================================================================
 # http://stackoverflow.com/questions/12941416
 
-def count_star(session, tablename):
+def count_star(session: Session, tablename: str) -> int:
     # works if you pass a connection or a session
     query = select([func.count()]).select_from(table(tablename))
     return session.execute(query).scalar()
@@ -56,7 +64,7 @@ def count_star(session, tablename):
 # http://stackoverflow.com/questions/15381604
 # http://docs.sqlalchemy.org/en/latest/orm/query.html
 
-def exists_plain(session, tablename, *criteria):
+def exists_plain(session: Session, tablename: str, *criteria: Any) -> bool:
     # works if you pass a connection or a session
     exists_clause = exists().select_from(table(tablename))
     for criterion in criteria:
@@ -65,7 +73,9 @@ def exists_plain(session, tablename, *criteria):
     return session.execute(query).scalar()
 
 
-def exists_orm(session, ormclass, *criteria):
+def exists_orm(session: Session,
+               ormclass: DeclarativeMeta,
+               *criteria: Any) -> bool:
     # http://docs.sqlalchemy.org/en/latest/orm/query.html
     q = session.query(ormclass)
     for criterion in criteria:
@@ -77,17 +87,17 @@ def exists_orm(session, ormclass, *criteria):
 # Inspect tables (SQLAlchemy Core)
 # =============================================================================
 
-def get_table_names(engine):
+def get_table_names(engine: Engine) -> List[str]:
     insp = Inspector.from_engine(engine)
     return insp.get_table_names()
 
 
-def get_columns(engine, tablename):
+def get_columns(engine: Engine, tablename: str) -> List[Column]:
     insp = Inspector.from_engine(engine)
     return insp.get_columns(tablename)
 
 
-def get_column_names(engine, tablename):
+def get_column_names(engine: Engine, tablename: str) -> List[str]:
     return [x['name'] for x in get_columns(engine, tablename)]
 
 
@@ -95,12 +105,16 @@ def get_column_names(engine, tablename):
 # Indexes
 # =============================================================================
 
-def index_exists(engine, tablename, indexname):
+def index_exists(engine: Engine, tablename: str, indexname: str) -> bool:
     insp = Inspector.from_engine(engine)
     return any(i['name'] == indexname for i in insp.get_indexes(tablename))
 
 
-def add_index(engine, sqla_column, unique=False, fulltext=False, length=None):
+def add_index(engine: Engine,
+              sqla_column: Column,
+              unique: bool = False,
+              fulltext: bool = False,
+              length: int = None) -> None:
     # We used to process a table as a unit; this makes index creation faster
     # (using ALTER TABLE).
     # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
@@ -154,7 +168,8 @@ RE_COLTYPE_WITH_TWO_PARAMS = re.compile(
 # http://www.w3schools.com/sql/sql_create_table.asp
 
 
-def _get_sqla_coltype_class_from_str(coltype, dialect):
+def _get_sqla_coltype_class_from_str(coltype: str,
+                                     dialect: Any) -> Type[Column]:
     """
     As-is/lower-case search.
     For example, the SQLite dialect uses upper case, and the
@@ -167,7 +182,8 @@ def _get_sqla_coltype_class_from_str(coltype, dialect):
         return ischema_names[coltype.lower()]
 
 
-def get_sqla_coltype_from_dialect_str(coltype, dialect):
+def get_sqla_coltype_from_dialect_str(coltype: str,
+                                      dialect: Any) -> Column:
     """
     Args:
         dialect: a SQLAlchemy dialect class
@@ -333,7 +349,7 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
 # Do special dialect conversions on SQLAlchemy SQL types (of class type)
 # =============================================================================
 
-def remove_collation(coltype):
+def remove_collation(coltype: Column) -> Column:
     if not hasattr(coltype, 'collation') or not coltype.collation:
         return coltype
     coltype = copy.copy(coltype)
@@ -341,7 +357,9 @@ def remove_collation(coltype):
     return coltype
 
 
-def convert_sqla_type_for_dialect(coltype, dialect, strip_collation=True):
+def convert_sqla_type_for_dialect(coltype: Column,
+                                  dialect: Any,
+                                  strip_collation: bool = True) -> Column:
     # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
     #                                                     vars(coltype)))
     to_mysql = dialect.name == 'mysql'

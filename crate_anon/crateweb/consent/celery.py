@@ -27,7 +27,7 @@ app.autodiscover_tasks(['crate_anon.crateweb.consent'])  # simpler!
 
 
 @app.task(bind=True)
-def debug_task(self):
+def debug_task(self) -> None:
     print('Request: {0!r}'.format(self.request))
     print('Backend: {}'.format(current_task.backend))
 

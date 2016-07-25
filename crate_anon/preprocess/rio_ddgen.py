@@ -2,6 +2,10 @@
 # crate_anon/preprocess/rio_ddgen.py
 
 import logging
+from typing import Iterable, List, Tuple, Union
+
+from sqlalchemy import MetaData
+from sqlalchemy.engine import Engine
 
 from crate_anon.common.lang import (
     get_case_insensitive_dict_key,
@@ -23,21 +27,23 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class DDHint(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self._suppressed_tables = set()
         self._index_requests = {}  # dict of dicts
 
-    def suppress_table(self, table):
+    def suppress_table(self, table: str) -> None:
         self._suppressed_tables.add(table)
 
-    def suppress_tables(self, tables):
+    def suppress_tables(self, tables: Iterable[str]) -> None:
         for t in tables:
             self.suppress_table(t)
 
-    def get_suppressed_tables(self):
+    def get_suppressed_tables(self) -> List[str]:
         return sorted(self._suppressed_tables)
 
-    def add_source_index_request(self, table, columns):
+    def add_source_index_request(self,
+                                 table: str,
+                                 columns: Union[str, Iterable[str]]) -> None:
         if isinstance(columns, str):
             columns = [columns]
         assert table, "Bad table: {}".format(repr(table))
@@ -52,7 +58,9 @@ class DDHint(object):
                     'unique': False,
                 }
 
-    def add_bulk_source_index_request(self, table_columns_list):
+    def add_bulk_source_index_request(
+            self,
+            table_columns_list: Iterable[Tuple[str, Iterable[str]]]) -> None:
         for table, columns in table_columns_list:
             assert table, ("Bad table; table={}, table_columns_list={}".format(
                 repr(table), repr(table_columns_list)))
@@ -61,7 +69,7 @@ class DDHint(object):
                     repr(columns), repr(table_columns_list)))
             self.add_source_index_request(table, columns)
 
-    def add_indexes(self, engine, metadata):
+    def add_indexes(self, engine: Engine, metadata: MetaData) -> None:
         for tablename, tabledict in self._index_requests.items():
             indexdictlist = []
             for indexname, indexdict in tabledict.items():
@@ -75,7 +83,7 @@ class DDHint(object):
             table = metadata.tables[tablename_casematch]
             add_indexes(engine, table, indexdictlist)
 
-    def drop_indexes(self, engine, metadata):
+    def drop_indexes(self, engine: Engine, metadata: MetaData) -> None:
         for tablename, tabledict in self._index_requests.items():
             index_names = list(tabledict.keys())
             tablename_casematch = get_case_insensitive_dict_key(
@@ -92,7 +100,7 @@ class DDHint(object):
 # Default settings for CRATE anonymiser "ddgen_*" fields, for RiO
 # =============================================================================
 
-def get_rio_dd_settings(ddhint):
+def get_rio_dd_settings(ddhint: DDHint) -> str:
     return """
 ddgen_omit_by_default = True
 

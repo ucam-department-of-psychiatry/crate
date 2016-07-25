@@ -5,6 +5,7 @@ import logging
 import os
 import shlex
 import sys
+from typing import List
 
 import django
 from django.core.management import execute_from_command_line
@@ -32,20 +33,20 @@ django.setup()
 #     CRATEWEB_CONFIG_ENV_VAR, os.environ[CRATEWEB_CONFIG_ENV_VAR]))
 
 
-def main(argv=None):
+def main(argv: List[str] = None) -> None:
     if argv is None:
         argv = sys.argv
     # print(argv)
     execute_from_command_line(argv)
 
 
-def runserver():
+def runserver() -> None:
     argv = sys.argv[:]  # copy
     argv.insert(1, 'runserver')
     main(argv)
 
 
-def runcpserver():
+def runcpserver() -> None:
     argv = sys.argv[:]  # copy
     argv.insert(1, 'runcpserver')
     extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ''))

@@ -4,9 +4,11 @@
 import io
 import logging
 import os
+import tempfile
+from typing import Any, Dict, Iterable, Tuple, Union
+
 import pdfkit  # sudo apt-get install wkhtmltopdf; sudo pip install pdfkit
 from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
-import tempfile
 from django.conf import settings
 from django.http import HttpResponse
 from crate_anon.crateweb.extra.serve import serve_buffer
@@ -40,7 +42,9 @@ log = logging.getLogger(__name__)
 #             writer.addPage(reader.getPage(page_num))
 
 
-def append_memory_pdf_to_writer(input_pdf, writer, start_recto=True):
+def append_memory_pdf_to_writer(input_pdf: bytes,
+                                writer: PdfFileWriter,
+                                start_recto: bool = True) -> None:
     """Appends a PDF (as bytes in memory) to a PyPDF2 writer."""
     if not input_pdf:
         return
@@ -53,7 +57,7 @@ def append_memory_pdf_to_writer(input_pdf, writer, start_recto=True):
         writer.addPage(reader.getPage(page_num))
 
 
-def pdf_from_writer(writer):
+def pdf_from_writer(writer: Union[PdfFileWriter, PdfFileMerger]) -> bytes:
     """
     Extracts a PDF (as binary data) from a PyPDF2 writer or merger object.
     """
@@ -63,7 +67,8 @@ def pdf_from_writer(writer):
     return memfile.read()
 
 
-def get_concatenated_pdf_from_disk(filenames, start_recto=True):
+def get_concatenated_pdf_from_disk(filenames: Iterable[str],
+                                   start_recto: bool = True) -> bytes:
     """
     Concatenates PDFs from disk and returns them as an in-memory binary PDF.
     """
@@ -86,9 +91,10 @@ def get_concatenated_pdf_from_disk(filenames, start_recto=True):
         return pdf_from_writer(merger)
 
 
-def serve_concatenated_pdf_from_disk(filenames,
-                                     offered_filename="crate_download.pdf",
-                                     **kwargs):
+def serve_concatenated_pdf_from_disk(
+        filenames: Iterable[str],
+        offered_filename: str = "crate_download.pdf",
+        **kwargs) -> HttpResponse:
     """
     Concatenates PDFs from disk and serves them.
     """
@@ -101,9 +107,12 @@ def serve_concatenated_pdf_from_disk(filenames,
 
 
 # noinspection PyUnusedLocal
-def get_concatenated_pdf_in_memory(html_or_filename_tuple_list,
-                                   start_recto=True,
-                                   **kwargs):
+def get_concatenated_pdf_in_memory(
+        html_or_filename_tuple_list: Iterable[
+            Tuple[str, Union[str, Dict[str, Any]]]
+        ],
+        start_recto: bool = True,
+        **kwargs) -> bytes:
     """
     Concatenates PDFs and returns them as an in-memory binary PDF.
     html_or_filename_tuple_list: e.g. [
@@ -129,9 +138,12 @@ def get_concatenated_pdf_in_memory(html_or_filename_tuple_list,
     return pdf_from_writer(writer)
 
 
-def serve_concatenated_pdf_from_memory(html_or_filename_tuple_list,
-                                       offered_filename="crate_download.pdf",
-                                       **kwargs):
+def serve_concatenated_pdf_from_memory(
+        html_or_filename_tuple_list: Iterable[
+            Tuple[str, Union[str, Dict[str, Any]]]
+        ],
+        offered_filename: str = "crate_download.pdf",
+        **kwargs) -> HttpResponse:
     """
     Concatenates PDFs into memory and serves it.
     """
@@ -151,9 +163,12 @@ def serve_concatenated_pdf_from_memory(html_or_filename_tuple_list,
 FIX_PDFKIT_ENCODING_BUG = True  # needs to be True for pdfkit==0.5.0
 
 
-def pdf_from_html(html, header_html=None, footer_html=None,
-                  wkhtmltopdf_filename=None, wkhtmltopdf_options=None,
-                  output_path=None):
+def pdf_from_html(html: str,
+                  header_html: str = None,
+                  footer_html: str = None,
+                  wkhtmltopdf_filename: str = None,
+                  wkhtmltopdf_options: Dict[str, Any] = None,
+                  output_path: str = None) -> Union[bytes, bool]:
     """
     Takes HTML and either:
         - returns a PDF (as a binary object in memory), if output_path is None
@@ -195,12 +210,12 @@ def pdf_from_html(html, header_html=None, footer_html=None,
     try:
         if header_html:
             h_fd, h_filename = tempfile.mkstemp(suffix='.html')
-            os.write(h_fd, header_html)
+            os.write(h_fd, header_html.encode('utf8'))
             os.close(h_fd)
             wkhtmltopdf_options["header-html"] = h_filename
         if footer_html:
             f_fd, f_filename = tempfile.mkstemp(suffix='.html')
-            os.write(f_fd, footer_html)
+            os.write(f_fd, footer_html.encode('utf8'))
             os.close(f_fd)
             wkhtmltopdf_options["footer-html"] = f_filename
         kit = pdfkit.pdfkit.PDFKit(html, 'string', configuration=config,
@@ -216,7 +231,9 @@ def pdf_from_html(html, header_html=None, footer_html=None,
             os.remove(f_filename)
 
 
-def serve_pdf_from_html(html, offered_filename="test.pdf", **kwargs):
+def serve_pdf_from_html(html: str,
+                        offered_filename: str = "test.pdf",
+                        **kwargs) -> HttpResponse:
     """Same args as pdf_from_html."""
     pdf = pdf_from_html(html, **kwargs)
     return serve_buffer(pdf,
@@ -226,7 +243,7 @@ def serve_pdf_from_html(html, offered_filename="test.pdf", **kwargs):
                         as_inline=True)
 
 
-def serve_html_or_pdf(html, viewtype):
+def serve_html_or_pdf(html: str, viewtype: str) -> HttpResponse:
     """
     For development.
 

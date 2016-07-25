@@ -72,6 +72,7 @@ import fnmatch
 import logging
 import os
 import sys
+from typing import Any, List, Optional
 
 import regex
 from cardinal_pythonlib.rnc_db import (
@@ -92,6 +93,7 @@ from crate_anon.anonymise.constants import (
     MAX_PID_STR,
     SEP,
 )
+from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
@@ -116,7 +118,7 @@ monkeypatch_TableClause()
 # Ancillary functions
 # =============================================================================
 
-def sizeof_fmt(num, suffix='B'):
+def sizeof_fmt(num: float, suffix: str = 'B') -> str:
     # http://stackoverflow.com/questions/1094841
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
@@ -133,21 +135,21 @@ class DatabaseSafeConfig(object):
     """Class representing non-sensitive configuration information about a
     source database."""
 
-    def __init__(self, parser, section):
+    def __init__(self, parser: ExtendedConfigParser, section: str) -> None:
         """Read from a configparser section."""
         if not parser.has_section(section):
             raise ValueError("config missing section: " + section)
 
-        def opt_str(option):
+        def opt_str(option: str) -> str:
             return parser.get(section, option, fallback=None)
 
-        def opt_multiline(option):
+        def opt_multiline(option: str) -> List[str]:
             return parser.get_str_list(section, option)
 
-        def opt_bool(option, default):
+        def opt_bool(option: str, default: bool) -> bool:
             return parser.getboolean(section, option, fallback=default)
 
-        def opt_int(option, default):
+        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
             return parser.get_int_default_if_failure(section, option, default)
 
         self.ddgen_omit_by_default = opt_bool(
@@ -229,7 +231,7 @@ class DatabaseSafeConfig(object):
         self.debug_row_limit = opt_int('debug_row_limit', 0)
         self.debug_limited_tables = opt_multiline('debug_limited_tables')
 
-    def is_table_blacklisted(self, table):
+    def is_table_blacklisted(self, table: str) -> bool:
         for white in self.ddgen_table_whitelist:
             r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
             if r.match(table):
@@ -240,7 +242,7 @@ class DatabaseSafeConfig(object):
                 return True
         return False
 
-    def is_field_blacklisted(self, field):
+    def is_field_blacklisted(self, field: str) -> bool:
         for white in self.ddgen_field_whitelist:
             r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
             if r.match(field):
@@ -259,7 +261,7 @@ class DatabaseSafeConfig(object):
 class Config(object):
     """Class representing the main configuration."""
 
-    def __init__(self, open_databases=True):
+    def __init__(self, open_databases: bool = True) -> None:
         """
         Read config from file
         """
@@ -280,27 +282,33 @@ class Config(object):
         parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
         section = "main"
 
-        def opt_str(option):
+        def opt_str(option: str) -> str:
             return parser.get(section, option, fallback=None)
 
-        def opt_multiline(option):
+        def opt_multiline(option: str) -> List[str]:
             return parser.get_str_list(section, option)
 
-        def opt_multiline_int(option, minimum=None, maximum=None):
+        def opt_multiline_int(option: str,
+                              minimum: int = None,
+                              maximum: int = None) -> List[int]:
             return parser.get_int_list(section, option, minimum=minimum,
                                        maximum=maximum, suppress_errors=False)
 
-        def opt_bool(option, default):
+        def opt_bool(option: str, default: bool) -> bool:
             return parser.getboolean(section, option, fallback=default)
 
-        def opt_int(option, default):
+        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
             return parser.get_int_default_if_failure(section, option, default)
 
-        def opt_pyvalue_list(option, default=None):
+        def opt_pyvalue_list(option: str, default: Any = None) -> Any:
             return parser.get_pyvalue_list(section, option, default=default)
 
-        def get_database(section_, name, srccfg_=None, with_session=False,
-                         with_conn=True, reflect=True):
+        def get_database(section_: str,
+                         name: str,
+                         srccfg_: DatabaseSafeConfig = None,
+                         with_session: bool = False,
+                         with_conn: bool = True,
+                         reflect: bool = True) -> DatabaseHolder:
             return parser.get_database(section_,
                                        dbname=name,
                                        srccfg=srccfg_,
@@ -495,12 +503,12 @@ class Config(object):
         self.default_src_dialect = mssql_dialect
         self.default_dest_dialect = mysql_dialect
         
-    def overall_progress(self):
+    def overall_progress(self) -> str:
         return "{} read, {} written".format(
             sizeof_fmt(self.src_bytes_read),
             sizeof_fmt(self.dest_bytes_written))
 
-    def load_dd(self, check_against_source_db=True):
+    def load_dd(self, check_against_source_db: bool = True) -> None:
         log.info(SEP + "Loading data dictionary: {}".format(
             self.data_dictionary_filename))
         self.dd.read_from_file(self.data_dictionary_filename)
@@ -510,14 +518,14 @@ class Config(object):
             check_against_source_db=check_against_source_db)
         self.init_row_counts()
 
-    def init_row_counts(self):
+    def init_row_counts(self) -> None:
         """Initialize row counts for all source tables."""
         self.rows_inserted_per_table = {}
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self.rows_inserted_per_table[db_table_tuple] = 0
             self.warned_re_limits[db_table_tuple] = False
 
-    def check_valid(self):
+    def check_valid(self) -> None:
         """Raise exception if config is invalid."""
 
         # Destination databases
@@ -599,17 +607,17 @@ class Config(object):
         # OK!
         log.debug("Config validated.")
 
-    def encrypt_primary_pid(self, pid):
+    def encrypt_primary_pid(self, pid: int) -> str:
         """Encrypt a primary PID, producing a RID."""
         return self.primary_pid_hasher.hash(pid)
 
-    def encrypt_master_pid(self, mpid):
+    def encrypt_master_pid(self, mpid: int) -> Optional[str]:
         """Encrypt a master PID, producing a master RID."""
         if mpid is None:
             return None  # or risk of revealing the hash?
         return self.master_pid_hasher.hash(mpid)
 
-    def hash_object(self, l):
+    def hash_object(self, l: Any) -> str:
         """
         Hashes a list with Python's built-in hash function.
 
@@ -621,10 +629,10 @@ class Config(object):
         """
         return self.change_detection_hasher.hash(repr(l))
 
-    def get_source_db_names(self):
+    def get_source_db_names(self) -> List[str]:
         return self.source_db_names
 
-    def set_echo(self, echo):
+    def set_echo(self, echo: bool) -> None:
         self.admindb.engine.echo = echo
         self.destdb.engine.echo = echo
         for db in self.sources.values():
@@ -637,14 +645,14 @@ class Config(object):
             # log.critical(logger.__dict__)
             remove_all_logger_handlers(logger)
 
-    def get_default_src_dialect(self):
+    def get_default_src_dialect(self) -> Any:
         return self.default_src_dialect
 
-    def set_default_src_dialect(self, dialect):
+    def set_default_src_dialect(self, dialect: Any) -> None:
         self.default_src_dialect = dialect
 
-    def get_default_dest_dialect(self):
+    def get_default_dest_dialect(self) -> Any:
         return self.default_dest_dialect
 
-    def set_default_dest_dialect(self, dialect):
+    def set_default_dest_dialect(self, dialect: Any) -> None:
         self.default_dest_dialect = dialect

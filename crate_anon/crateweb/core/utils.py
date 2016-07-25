@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
 # crate_anon/crateweb/core/utils.py
 
+import datetime
 import logging
 import urllib.parse
+from typing import Any, Dict, List, Union
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.core.paginator import Paginator, EmptyPage, Page, PageNotAnInteger
+from django.db.models import QuerySet
 from django.http import QueryDict
+from django.http.request import HttpRequest
 from django.utils import timezone
 from crate_anon.crateweb.userprofile.models import get_per_page
 
@@ -17,7 +22,7 @@ log = logging.getLogger(__name__)
 # User tests/user profile
 # =============================================================================
 
-def is_superuser(user):
+def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
     """
     Function for user with decorator, e.g.
         @user_passes_test(is_superuser)
@@ -26,7 +31,7 @@ def is_superuser(user):
     return user.is_superuser
 
 
-def is_developer(user):
+def is_developer(user: settings.AUTH_USER_MODEL) -> bool:
     if not user.is_authenticated():
         return False  # won't have a profile
     return user.profile.is_developer
@@ -36,7 +41,9 @@ def is_developer(user):
 # Forms
 # =============================================================================
 
-def paginate(request, all_items, per_page=None):
+def paginate(request: HttpRequest,
+             all_items: Union[QuerySet, List[Any]],
+             per_page: int = None) -> Page:
     if per_page is None:
         per_page = get_per_page(request)
     paginator = Paginator(all_items, per_page)
@@ -54,7 +61,9 @@ def paginate(request, all_items, per_page=None):
 # URL creation
 # =============================================================================
 
-def url_with_querystring(path, querydict=None, **kwargs):
+def url_with_querystring(path: str,
+                         querydict: Dict[str, Any] = None,
+                         **kwargs) -> str:
     """Add GET arguments to a URL from named arguments or a QueryDict."""
     if querydict is not None and not isinstance(querydict, QueryDict):
         raise ValueError("Bad querydict value")
@@ -67,7 +76,7 @@ def url_with_querystring(path, querydict=None, **kwargs):
     return path + '?' + querystring
 
 
-def site_absolute_url(path):
+def site_absolute_url(path: str) -> str:
     """
     Returns an absolute URL for the site, given a relative part.
     Use like:
@@ -114,7 +123,7 @@ def site_absolute_url(path):
 # Formatting
 # =============================================================================
 
-def get_friendly_date(date):
+def get_friendly_date(date: datetime.datetime) -> str:
     if date is None:
         return ""
     try:
@@ -123,7 +132,7 @@ def get_friendly_date(date):
         raise type(e)(str(e) + ' [value was {}]'.format(repr(date)))
 
 
-def modelrepr(instance):
+def modelrepr(instance) -> str:
     """Default repr version of a Django model object, for debugging."""
     elements = []
     # noinspection PyProtectedMember
@@ -144,6 +153,6 @@ def modelrepr(instance):
 # Date/time
 # =============================================================================
 
-def string_time_now():
+def string_time_now() -> str:
     """Returns current time in short-form ISO-8601 UTC, for filenames."""
     return timezone.now().strftime("%Y%m%dT%H%M%SZ")

@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 
 
 class CustomFileSystemStorage(FileSystemStorage):
-    def url(self, name):
+    def url(self, name: str) -> str:
         if self.base_url is None:
             raise ValueError("This file is not accessible via a URL.")
         # log.debug("get_script_prefix(): %s" % get_script_prefix())

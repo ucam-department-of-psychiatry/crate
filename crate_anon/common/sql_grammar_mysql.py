@@ -62,12 +62,14 @@ from pyparsing import (
     Optional,
     # Or,
     ParseException,
-    # ParserElement,
+    ParserElement,
+    ParseResults,
     QuotedString,
     Regex,
     # sglQuotedString,
     # srange,
     Suppress,
+    Token,
     restOfLine,
     Word,
     ZeroOrMore,
@@ -83,9 +85,11 @@ log = logging.getLogger(__name__)
 # pyparsing helpers
 # =============================================================================
 
-def delim_list(expr_, delim=",", combine=False,
-               combine_adjacent=False,
-               suppress_delim=False):
+def delim_list(expr_: Token,
+               delim: str = ",",
+               combine: bool = False,
+               combine_adjacent: bool = False,
+               suppress_delim: bool = False):
     # A better version of delimitedList
     # BUT SEE ALSO ALTERNATIVE: http://stackoverflow.com/questions/37926516
     name = str(expr_) + " [" + str(delim) + " " + str(expr_) + "]..."
@@ -104,16 +108,18 @@ WORD_BOUNDARY = r"\b"
 # http://stackoverflow.com/questions/4213800/is-there-something-like-a-counter-variable-in-regular-expression-replace/4214173#4214173  # noqa
 
 
-def word_regex_element(word):
+def word_regex_element(word: str) -> str:
     return WORD_BOUNDARY + word + WORD_BOUNDARY
 
 
-def multiple_words_regex_element(words_as_string):
+def multiple_words_regex_element(words_as_string: str) -> str:
     wordlist = words_as_string.split()
     return WORD_BOUNDARY + "(" + "|".join(wordlist) + ")" + WORD_BOUNDARY
 
 
-def make_pyparsing_regex(regex_str, caseless=False, name=None):
+def make_pyparsing_regex(regex_str: str,
+                         caseless: bool = False,
+                         name: str = None) -> Regex:
     flags = re.IGNORECASE if caseless else 0
     result = Regex(regex_str, flags=flags)
     if name:
@@ -121,15 +127,21 @@ def make_pyparsing_regex(regex_str, caseless=False, name=None):
     return result
 
 
-def make_words_regex(words_as_string, caseless=False, name=None, debug=False):
+def make_words_regex(words_as_string: str,
+                     caseless: bool = False,
+                     name: str = None,
+                     debug: bool = False) -> Regex:
     regex_str = multiple_words_regex_element(words_as_string)
     if debug:
         log.debug(regex_str)
     return make_pyparsing_regex(regex_str, caseless=caseless, name=name)
 
 
-def make_regex_except_words(word_pattern, negative_words_str, caseless=False,
-                            name=None, debug=False):
+def make_regex_except_words(word_pattern: str,
+                            negative_words_str: str,
+                            caseless: bool = False,
+                            name: str = None,
+                            debug: bool = False) -> Regex:
     # http://regexr.com/
     regex_str = r"(?!{negative}){positive}".format(
         negative=multiple_words_regex_element(negative_words_str),
@@ -140,16 +152,16 @@ def make_regex_except_words(word_pattern, negative_words_str, caseless=False,
     return make_pyparsing_regex(regex_str, caseless=caseless, name=name)
 
 
-def sql_keyword(word):
+def sql_keyword(word: str) -> Regex:
     regex_str = word_regex_element(word)
     return make_pyparsing_regex(regex_str, caseless=True, name=word)
 
 
-def bracket(fragment):
+def bracket(fragment: str) -> str:
     return "(" + fragment + ")"
 
 
-def single_quote(fragment):
+def single_quote(fragment: str) -> str:
     return "'" + fragment + "'"
 
 
@@ -719,12 +731,16 @@ sql_grammar = select_statement
 
 # See also: parser.runTests()
 
-def standardize_whitespace(text):
+def standardize_whitespace(text: str) -> str:
     return " ".join(text.split())
 
 
-def test_succeed(parser, text, target=None, skip_target=True, show_raw=False,
-                 verbose=True):
+def test_succeed(parser: ParserElement,
+                 text: str,
+                 target: str = None,
+                 skip_target: bool = True,
+                 show_raw: bool = False,
+                 verbose: bool = True) -> None:
     if target is None:
         target = text
     try:
@@ -748,7 +764,7 @@ def test_succeed(parser, text, target=None, skip_target=True, show_raw=False,
                     text, actual, intended, parser, repr(p.asList())))
 
 
-def test_fail(parser, text):
+def test_fail(parser: ParserElement, text: str) -> None:
     try:
         p = parser.parseString(text)
         raise ValueError(
@@ -758,11 +774,11 @@ def test_fail(parser, text):
         log.debug("Correctly failed: {}".format(text))
 
 
-def test_select(text):
+def test_select(text: str) -> None:
     test_succeed(select_statement, text, verbose=True)
 
 
-def test(parser, text):
+def test(parser: ParserElement, text: str) -> None:
     print("STATEMENT:\n{}".format(text))
 
     # scanned = parser.scanString(text)
@@ -795,7 +811,9 @@ def flatten(*args):
             yield x
 
 
-def text_from_parsed(parsetree, formatted=True, indent_width=4):
+def text_from_parsed(parsetree: ParseResults,
+                     formatted: bool = True,
+                     indent_width: int = 4) -> str:
     nested_list = parsetree.asList()
     flattened_list = flatten(nested_list)
     plain_str = " ".join(flattened_list)
@@ -843,7 +861,8 @@ def text_from_parsed(parsetree, formatted=True, indent_width=4):
     # return result
 
 
-def statement_and_failure_marker(text, parse_exception):
+def statement_and_failure_marker(text: str,
+                                 parse_exception: ParseException) -> str:
     output_lines = []
     for line_index, line in enumerate(text.split("\n")):
         output_lines.append(line)
@@ -857,7 +876,7 @@ def statement_and_failure_marker(text, parse_exception):
 # =============================================================================
 
 # noinspection PyUnboundLocalVariable
-def pyparsing_bugtest_delimited_list_combine(fix_problem=True):
+def pyparsing_bugtest_delimited_list_combine(fix_problem: bool = True) -> None:
     if fix_problem:
         # noinspection PyPep8Naming,PyShadowingNames
         delimitedList = delim_list
@@ -870,7 +889,7 @@ def pyparsing_bugtest_delimited_list_combine(fix_problem=True):
     print(word_list_combine.parseString('one,two'))  # ['one,two']
 
 
-def unit_tests(test_expr=False):
+def unit_tests(test_expr: bool = False) -> None:
     # -------------------------------------------------------------------------
     # pyparsing tests
     # -------------------------------------------------------------------------
@@ -1079,7 +1098,7 @@ def unit_tests(test_expr=False):
 # main
 # =============================================================================
 
-def main():
+def main() -> None:
     # blank = ''
     # p_blank = parsed_from_text(blank)
     # p_sql1 = parsed_from_text(sql1)

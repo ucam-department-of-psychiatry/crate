@@ -22,6 +22,7 @@ from sqlalchemy import (
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.session import Session
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
@@ -30,6 +31,7 @@ from crate_anon.anonymise.constants import (
     PidType,
     TridType,
 )
+from crate_anon.anonymise.scrub import PersonalizedScrubber
 from crate_anon.common.sqla import exists_orm
 
 log = logging.getLogger(__name__)
@@ -69,23 +71,23 @@ class PatientInfo(AdminBase):
         "_raw_scrubber_tp", Text,
         doc="Raw third-party scrubber (for debugging only)")
 
-    def ensure_rid(self):
+    def ensure_rid(self) -> None:
         assert self.pid is not None
         if self.rid:
             return
         self.rid = config.encrypt_primary_pid(self.pid)
 
-    def ensure_trid(self, session):
+    def ensure_trid(self, session: Session) -> None:
         assert self.pid is not None
         if self.trid is not None:
             return
         self.trid = TridRecord.get_trid(session, self.pid)
 
-    def set_mpid(self, mpid):
+    def set_mpid(self, mpid: int) -> None:
         self.mpid = mpid
         self.mrid = config.encrypt_master_pid(self.mpid)
 
-    def set_scrubber_info(self, scrubber):
+    def set_scrubber_info(self, scrubber: PersonalizedScrubber) -> None:
         self.scrubber_hash = scrubber.get_hash()
         if config.save_scrubbers:
             self.patient_scrubber_text = scrubber.get_patient_regex_string()
@@ -109,7 +111,7 @@ class TridRecord(AdminBase):
         doc="Transient integer research ID (TRID)")
 
     @classmethod
-    def get_trid(cls, session, pid):
+    def get_trid(cls, session: Session, pid: int) -> int:
         try:
             obj = session.query(cls).filter(cls.pid == pid).one()
             return obj.trid
@@ -117,7 +119,7 @@ class TridRecord(AdminBase):
             return cls.new_trid(session, pid)
 
     @classmethod
-    def new_trid(cls, session, pid):
+    def new_trid(cls, session: Session, pid: int) -> int:
         """
         We check for existence by inserting and asking the database if it's
         happy, not by asking the database if it exists (since other processes
@@ -146,11 +148,11 @@ class OptOutPid(AdminBase):
         doc="Patient ID")
 
     @classmethod
-    def opting_out(cls, session, pid):
+    def opting_out(cls, session: Session, pid: int) -> bool:
         return exists_orm(session, cls, cls.pid == pid)
 
     @classmethod
-    def add(cls, session, pid):
+    def add(cls, session: Session, pid: int) -> None:
         log.debug("Adding opt-out for PID {}".format(pid))
         newthing = cls(pid=pid)
         session.merge(newthing)
@@ -167,11 +169,11 @@ class OptOutMpid(AdminBase):
         doc="Patient ID")
 
     @classmethod
-    def opting_out(cls, session, mpid):
+    def opting_out(cls, session: Session, mpid: int) -> bool:
         return exists_orm(session, cls, cls.mpid == mpid)
 
     @classmethod
-    def add(cls, session, mpid):
+    def add(cls, session: Session, mpid: int) -> None:
         log.debug("Adding opt-out for MPID {}".format(mpid))
         newthing = cls(mpid=mpid)
         session.merge(newthing)

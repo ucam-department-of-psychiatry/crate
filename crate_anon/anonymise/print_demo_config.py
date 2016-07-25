@@ -4,7 +4,7 @@
 from crate_anon.anonymise.constants import DEMO_CONFIG
 
 
-def main():
+def main() -> None:
     print(DEMO_CONFIG)
 
 

@@ -27,12 +27,14 @@ Copyright/licensing:
 
 """
 
+from enum import unique
+
 from sqlalchemy import (
     BigInteger,
     Integer,
 )
-from cardinal_pythonlib.rnc_lang import AttrDict
 
+from crate_anon.common.lang import StrEnum
 
 # =============================================================================
 # Logging
@@ -73,27 +75,10 @@ CONFIG_ENV_VAR = 'CRATE_ANON_CONFIG'
 # Data dictionary
 # =============================================================================
 
-ALTERMETHOD = AttrDict(
-    TRUNCATEDATE="truncate_date",
-    SCRUBIN="scrub",
-    BIN2TEXT="binary_to_text",
-    FILENAME2TEXT="filename_to_text",
-    SKIP_IF_TEXT_EXTRACT_FAILS="skip_if_extract_fails",
-    # HTML_ESCAPE="html_escape",
-    HTML_UNESCAPE="html_unescape",
-    HTML_UNTAG="html_untag",
-)
-
 DATEFORMAT_ISO8601 = "%Y-%m-%dT%H:%M:%S%z"  # e.g. 2013-07-24T20:04:07+0100
 DEFAULT_INDEX_LEN = 20  # for data types where it's mandatory
 DEFAULT_MAX_ROWS_BEFORE_COMMIT = 1000
 DEFAULT_MAX_BYTES_BEFORE_COMMIT = 80 * 1024 * 1024
-
-INDEX = AttrDict(
-    NORMAL="I",
-    UNIQUE="U",
-    FULLTEXT="F"
-)
 
 LONGTEXT = "LONGTEXT"
 
@@ -109,37 +94,6 @@ for i in range(127, 256):
     ODD_CHARS_TRANSLATE[i] = '_'
 ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 
-DECISION = AttrDict(
-    OMIT="OMIT",
-    INCLUDE="include"
-)
-
-SCRUBMETHOD = AttrDict(
-    WORDS="words",
-    PHRASE="phrase",
-    NUMERIC="number",
-    DATE="date",
-    CODE="code"
-)
-
-SCRUBSRC = AttrDict(
-    PATIENT="patient",
-    THIRDPARTY="thirdparty",
-    THIRDPARTY_XREF_PID="thirdparty_xref_pid"
-)
-
-SRCFLAG = AttrDict(
-    PK="K",
-    ADD_SRC_HASH="H",
-    PRIMARY_PID="P",
-    DEFINES_PRIMARY_PIDS="*",
-    MASTER_PID="M",
-    CONSTANT="C",
-    ADDITION_ONLY="A",
-    OPT_OUT="!",
-    REQUIRED_SCRUBBER="R"
-)
-
 PidType = BigInteger
 TridType = Integer
 MAX_TRID = 2 ** 31 - 1
@@ -151,6 +105,60 @@ MAX_TRID = 2 ** 31 - 1
 # Maximum BIGINT UNSIGNED is 18446744073709551615 == 2 ** 64 - 1.
 # BIGINT range is            -9223372036854775808 == -(2 ** 63) to
 #                            +9223372036854775807 == 2 ** 64 - 1
+
+
+@unique
+class ALTERMETHOD(StrEnum):
+    TRUNCATEDATE = "truncate_date"
+    SCRUBIN = "scrub"
+    BIN2TEXT = "binary_to_text"
+    FILENAME2TEXT = "filename_to_text"
+    SKIP_IF_TEXT_EXTRACT_FAILS = "skip_if_extract_fails"
+    # HTML_ESCAPE = "html_escape"
+    HTML_UNESCAPE = "html_unescape"
+    HTML_UNTAG = "html_untag"
+
+
+@unique
+class DECISION(StrEnum):
+    OMIT = "OMIT"
+    INCLUDE = "include"
+
+
+@unique
+class INDEX(StrEnum):
+    NORMAL = "I"
+    UNIQUE = "U"
+    FULLTEXT = "F"
+
+
+@unique
+class SCRUBMETHOD(StrEnum):
+    WORDS = "words"
+    PHRASE = "phrase"
+    NUMERIC = "number"
+    DATE = "date"
+    CODE = "code"
+
+
+@unique
+class SCRUBSRC(StrEnum):
+    PATIENT = "patient"
+    THIRDPARTY = "thirdparty"
+    THIRDPARTY_XREF_PID = "thirdparty_xref_pid"
+
+
+@unique
+class SRCFLAG(StrEnum):
+    PK = "K"
+    ADD_SRC_HASH = "H"
+    PRIMARY_PID = "P"
+    DEFINES_PRIMARY_PIDS = "*"
+    MASTER_PID = "M"
+    CONSTANT = "C"
+    ADDITION_ONLY = "A"
+    OPT_OUT = "!"
+    REQUIRED_SCRUBBER = "R"
 
 
 # =============================================================================

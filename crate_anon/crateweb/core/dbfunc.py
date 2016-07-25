@@ -5,12 +5,14 @@ from collections import OrderedDict
 # import logging
 # log = logging.getLogger(__name__)
 import re
+from typing import Any, Dict, Iterator, List
+
 
 COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
 # ... start, group(alphabetical), literal (, group(digit), literal ), end
 
 
-def escape_quote_in_literal(s):
+def escape_quote_in_literal(s: str) -> str:
     """
     Escape '. We could use '' or \'.
     Let's use \. for consistency with percent escaping.
@@ -18,7 +20,7 @@ def escape_quote_in_literal(s):
     return s.replace("'", r"\'")
 
 
-def escape_percent_in_literal(sql):
+def escape_percent_in_literal(sql: str) -> str:
     """
     Escapes % by converting it to \%.
     Use this for LIKE clauses.
@@ -27,7 +29,7 @@ def escape_percent_in_literal(sql):
     return sql.replace('%', r'\%')
 
 
-def escape_percent_for_python_dbapi(sql):
+def escape_percent_for_python_dbapi(sql: str) -> str:
     """
     Escapes % by converting it to %%.
     Use this for SQL within Python where % characters are used for argument
@@ -36,7 +38,7 @@ def escape_percent_for_python_dbapi(sql):
     return sql.replace('%', '%%')
 
 
-def escape_sql_string_literal(s):
+def escape_sql_string_literal(s: str) -> str:
     """
     Escapes SQL string literal fragments against quotes and parameter
     substitution.
@@ -44,7 +46,7 @@ def escape_sql_string_literal(s):
     return escape_percent_in_literal(escape_quote_in_literal(s))
 
 
-def translate_sql_qmark_to_percent(sql):
+def translate_sql_qmark_to_percent(sql: str) -> str:
     """
     Translate SQL using ? placeholders to SQL using %s placeholders,
     for engines like MySQL.
@@ -73,14 +75,14 @@ if False:
     _SQLTEST3 = translate_sql_qmark_to_percent(_SQLTEST1)
 
 
-def get_fieldnames_from_cursor(cursor):
+def get_fieldnames_from_cursor(cursor) -> List[str]:
     """
     Get fieldnames from an executed cursor.
     """
     return [i[0] for i in cursor.description]
 
 
-def tsv_escape(x):
+def tsv_escape(x: str) -> str:
     """
     Escape data for tab-separated value format.
     """
@@ -90,7 +92,7 @@ def tsv_escape(x):
     return x.replace("\t", "\\t").replace("\n", "\\n")
 
 
-def genrows(cursor, arraysize=1000):
+def genrows(cursor, arraysize: int = 1000) -> Iterator[List[Any]]:
     """Generate all rows from a cursor."""
     # http://code.activestate.com/recipes/137270-use-generators-for-fetching-large-db-record-sets/  # noqa
     while True:
@@ -101,17 +103,17 @@ def genrows(cursor, arraysize=1000):
             yield result
 
 
-def genfirstvalues(cursor, arraysize=1000):
+def genfirstvalues(cursor, arraysize: int = 1000) -> Iterator[Any]:
     """Generate the first value in each row."""
     return (row[0] for row in genrows(cursor, arraysize))
 
 
-def fetchallfirstvalues(cursor):
+def fetchallfirstvalues(cursor) -> List[Any]:
     """Return a list of the first value in each row."""
     return [row[0] for row in cursor.fetchall()]
 
 
-def gendicts(cursor, arraysize=1000):
+def gendicts(cursor, arraysize: int = 1000) -> Iterator[Dict[str, Any]]:
     """Generate all rows from a cursor as a list of OrderedDicts."""
     columns = get_fieldnames_from_cursor(cursor)
     return (
@@ -120,7 +122,7 @@ def gendicts(cursor, arraysize=1000):
     )
 
 
-def dictfetchall(cursor):
+def dictfetchall(cursor) -> List[Dict[str, Any]]:
     """Return all rows from a cursor as a list of OrderedDicts."""
     columns = get_fieldnames_from_cursor(cursor)
     return [
@@ -129,7 +131,7 @@ def dictfetchall(cursor):
     ]
 
 
-def dictfetchone(cursor):
+def dictfetchone(cursor) -> Dict[str, Any]:
     """
     Return the next row from a cursor as an OrderedDict, or None
     """
@@ -140,7 +142,7 @@ def dictfetchone(cursor):
     return OrderedDict(zip(columns, row))
 
 
-def dictlist_to_tsv(dictlist):
+def dictlist_to_tsv(dictlist: List[Dict[str, Any]]) -> str:
     if not dictlist:
         return ""
     fieldnames = dictlist[0].keys()
@@ -150,7 +152,8 @@ def dictlist_to_tsv(dictlist):
     return tsv
 
 
-def is_mysql_column_type_textual(column_type, min_length=1):
+def is_mysql_column_type_textual(column_type: str,
+                                 min_length: int = 1) -> bool:
     column_type = column_type.upper()
     if column_type == 'TEXT':
         return True

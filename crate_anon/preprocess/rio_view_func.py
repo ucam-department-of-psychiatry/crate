@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # crate_anon/preprocess/rio_view_func.py
 
+from typing import Dict, Iterable
+
 from crate_anon.common.sql import (
     sql_string_literal,
+    ViewMaker,
 )
 from crate_anon.preprocess.rio_constants import (
     CRATE_COL_LAST_DOC,
@@ -16,9 +19,12 @@ from crate_anon.preprocess.rio_constants import (
 # RiO view creators: generic
 # =============================================================================
 
-def simple_lookup_join(viewmaker, basecolumn,
-                       lookup_table, lookup_pk, lookup_fields_aliases,
-                       internal_alias_prefix):
+def simple_lookup_join(viewmaker: ViewMaker,
+                       basecolumn: str,
+                       lookup_table: str,
+                       lookup_pk: str,
+                       lookup_fields_aliases: Dict[str, str],
+                       internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert lookup_table, "Missing lookup_table"
     assert lookup_pk, "Missing lookup_pk"
@@ -40,8 +46,11 @@ def simple_lookup_join(viewmaker, basecolumn,
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
-def standard_rio_code_lookup(viewmaker, basecolumn, lookup_table,
-                             column_prefix, internal_alias_prefix):
+def standard_rio_code_lookup(viewmaker: ViewMaker,
+                             basecolumn: str,
+                             lookup_table: str,
+                             column_prefix: str,
+                             internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert lookup_table, "Missing lookup_table"
     assert column_prefix, "Missing column_prefix"
@@ -70,8 +79,11 @@ def standard_rio_code_lookup(viewmaker, basecolumn, lookup_table,
 
 
 def standard_rio_code_lookup_with_national_code(
-        viewmaker, basecolumn, lookup_table,
-        column_prefix, internal_alias_prefix):
+        viewmaker: ViewMaker,
+        basecolumn: str,
+        lookup_table: str,
+        column_prefix: str,
+        internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert lookup_table, "Missing lookup_table"
     assert column_prefix, "Missing column_prefix"
@@ -100,13 +112,15 @@ def standard_rio_code_lookup_with_national_code(
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
-def view_formatting_dict(viewmaker):
+def view_formatting_dict(viewmaker: ViewMaker) -> Dict[str, str]:
     return {
         'basetable': viewmaker.basetable,
     }
 
 
-def simple_view_expr(viewmaker, expr, alias):
+def simple_view_expr(viewmaker: ViewMaker,
+                     expr: str,
+                     alias: str) -> None:
     assert expr, "Missing expr"
     assert alias, "Missing alias"
     vd = view_formatting_dict(viewmaker)
@@ -114,10 +128,13 @@ def simple_view_expr(viewmaker, expr, alias):
     viewmaker.add_select(formatted_expr + " AS {}".format(alias))
 
 
-def simple_view_where(viewmaker, where_clause, index_cols=None):
+def simple_view_where(viewmaker: ViewMaker,
+                      where_clause: str,
+                      index_cols: Iterable[str] = None) -> None:
     assert where_clause, "Missing where_clause"
     index_cols = index_cols or []
     viewmaker.add_where(where_clause)
+    # noinspection PyTypeChecker
     for col in index_cols:
         viewmaker.record_lookup_table_keyfield(viewmaker.basetable, col)
 
@@ -126,8 +143,10 @@ def simple_view_where(viewmaker, where_clause, index_cols=None):
 # RiO view creators: specific
 # =============================================================================
 
-def rio_add_user_lookup(viewmaker, basecolumn,
-                        column_prefix=None, internal_alias_prefix=None):
+def rio_add_user_lookup(viewmaker: ViewMaker,
+                        basecolumn: str,
+                        column_prefix: str = None,
+                        internal_alias_prefix: str = None) -> None:
     # NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for
     # each table (2016-07-12).
     assert basecolumn, "Missing basecolumn"
@@ -217,8 +236,10 @@ def rio_add_user_lookup(viewmaker, basecolumn,
     ])
 
 
-def rio_add_consultant_lookup(viewmaker, basecolumn,
-                              column_prefix=None, internal_alias_prefix=None):
+def rio_add_consultant_lookup(viewmaker: ViewMaker,
+                              basecolumn: str,
+                              column_prefix: str = None,
+                              internal_alias_prefix: str = None) -> None:
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -251,8 +272,10 @@ def rio_add_consultant_lookup(viewmaker, basecolumn,
     ])
 
 
-def rio_add_team_lookup(viewmaker, basecolumn,
-                        column_prefix=None, internal_alias_prefix=None):
+def rio_add_team_lookup(viewmaker: ViewMaker,
+                        basecolumn: str,
+                        column_prefix: str = None,
+                        internal_alias_prefix: str = None) -> None:
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -284,8 +307,10 @@ def rio_add_team_lookup(viewmaker, basecolumn,
     ])
 
 
-def rio_add_carespell_lookup(viewmaker, basecolumn,
-                             column_prefix=None, internal_alias_prefix=None):
+def rio_add_carespell_lookup(viewmaker: ViewMaker,
+                             basecolumn: str,
+                             column_prefix: str = None,
+                             internal_alias_prefix: str = None) -> None:
     assert basecolumn, "Missing basecolumn"
     column_prefix = column_prefix or basecolumn
     internal_alias_prefix = internal_alias_prefix or "t_" + column_prefix
@@ -320,10 +345,13 @@ def rio_add_carespell_lookup(viewmaker, basecolumn,
     ])
 
 
-def rio_add_diagnosis_lookup(viewmaker,
-                             basecolumn_scheme, basecolumn_code,
-                             alias_scheme, alias_code, alias_description,
-                             internal_alias_prefix=None):
+def rio_add_diagnosis_lookup(viewmaker: ViewMaker,
+                             basecolumn_scheme: str,
+                             basecolumn_code: str,
+                             alias_scheme: str,
+                             alias_code: str,
+                             alias_description: str,
+                             internal_alias_prefix: str = None) -> None:
     # Can't use simple_lookup_join as we have to join on two fields,
     # diagnostic scheme and diagnostic code.
     assert basecolumn_scheme, "Missing basecolumn_scheme"
@@ -367,8 +395,10 @@ def rio_add_diagnosis_lookup(viewmaker,
                                                              'Code'])
 
 
-def rio_add_ims_event_lookup(viewmaker, basecolumn_event_num,
-                             column_prefix, internal_alias_prefix):
+def rio_add_ims_event_lookup(viewmaker: ViewMaker,
+                             basecolumn_event_num: str,
+                             column_prefix: str,
+                             internal_alias_prefix: str) -> None:
     # There is a twin key: ClientID and EventNumber
     # However, we have made crate_rio_number, so we'll use that instead.
     # Key to the TABLE, not the VIEW.
@@ -399,8 +429,10 @@ def rio_add_ims_event_lookup(viewmaker, basecolumn_event_num,
                                                         'EventNumber'])
 
 
-def rio_add_gp_lookup(viewmaker, basecolumn,
-                      column_prefix, internal_alias_prefix):
+def rio_add_gp_lookup(viewmaker: ViewMaker,
+                      basecolumn: str,
+                      column_prefix: str,
+                      internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -428,8 +460,10 @@ def rio_add_gp_lookup(viewmaker, basecolumn,
     viewmaker.record_lookup_table_keyfield('GenGP', 'Code')
 
 
-def rio_add_gp_practice_lookup(viewmaker, basecolumn,
-                               column_prefix, internal_alias_prefix):
+def rio_add_gp_practice_lookup(viewmaker: ViewMaker,
+                               basecolumn: str,
+                               column_prefix: str,
+                               internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -460,8 +494,10 @@ def rio_add_gp_practice_lookup(viewmaker, basecolumn,
     viewmaker.record_lookup_table_keyfield('GenGPPractice', 'Code')
 
 
-def rio_add_gp_lookup_with_practice(viewmaker, basecolumn,
-                                    column_prefix, internal_alias_prefix):
+def rio_add_gp_lookup_with_practice(viewmaker: ViewMaker,
+                                    basecolumn: str,
+                                    column_prefix: str,
+                                    internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
     if column_prefix:
@@ -508,7 +544,7 @@ def rio_add_gp_lookup_with_practice(viewmaker, basecolumn,
     ])
 
 
-def where_prognotes_current(viewmaker):
+def where_prognotes_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.prognotes_current_only:
         return
     viewmaker.add_where(
@@ -519,7 +555,7 @@ def where_prognotes_current(viewmaker):
     # CRATE_COL_LAST_NOTE already indexed
 
 
-def where_clindocs_current(viewmaker):
+def where_clindocs_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.clindocs_current_only:
         return
     viewmaker.add_where("{last_doc_col} = 1 AND DeletedDate IS NULL".format(
@@ -528,14 +564,14 @@ def where_clindocs_current(viewmaker):
     # CRATE_COL_LAST_DOC already indexed
 
 
-def where_allergies_current(viewmaker):
+def where_allergies_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.allergies_current_only:
         return
     viewmaker.add_where("Deleted = 0 OR Deleted IS NULL")
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'Deleted')
 
 
-def where_not_deleted_flag(viewmaker, basecolumn):
+def where_not_deleted_flag(viewmaker: ViewMaker, basecolumn: str) -> None:
     assert basecolumn, "Missing basecolumn"
     viewmaker.add_where(
         "({table}.{col} IS NULL OR {table}.{col} = 0)".format(
@@ -543,8 +579,11 @@ def where_not_deleted_flag(viewmaker, basecolumn):
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable, basecolumn)
 
 
-def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
-                       column_prefix, internal_alias_prefix):
+def rio_add_bay_lookup(viewmaker: ViewMaker,
+                       basecolumn_ward: str,
+                       basecolumn_bay: str,
+                       column_prefix: str,
+                       internal_alias_prefix: str) -> None:
     assert basecolumn_ward, "Missing basecolumn_ward"
     assert basecolumn_bay, "Missing basecolumn_bay"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -579,8 +618,10 @@ def rio_add_bay_lookup(viewmaker, basecolumn_ward, basecolumn_bay,
     viewmaker.record_lookup_table_keyfield('ImsWard', ['WardCode'])
 
 
-def rio_add_location_lookup(viewmaker, basecolumn,
-                            column_prefix, internal_alias_prefix):
+def rio_add_location_lookup(viewmaker: ViewMaker,
+                            basecolumn: str,
+                            column_prefix: str,
+                            internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
@@ -618,8 +659,10 @@ def rio_add_location_lookup(viewmaker, basecolumn,
     viewmaker.record_lookup_table_keyfield('GenLocationType', ['Code'])
 
 
-def rio_add_org_contact_lookup(viewmaker, basecolumn,
-                               column_prefix, internal_alias_prefix):
+def rio_add_org_contact_lookup(viewmaker: ViewMaker,
+                               basecolumn: str,
+                               column_prefix: str,
+                               internal_alias_prefix: str) -> None:
     assert basecolumn, "Missing basecolumn"
     assert column_prefix, "Missing column_prefix"
     viewmaker.add_select("""
@@ -682,7 +725,7 @@ def rio_add_org_contact_lookup(viewmaker, basecolumn,
     ])
 
 
-def rio_amend_standard_noncore(viewmaker):
+def rio_amend_standard_noncore(viewmaker: ViewMaker) -> None:
     # Add user:
     rio_add_user_lookup(viewmaker, "type12_UpdatedBy",
                         column_prefix="Updated_By", internal_alias_prefix="ub")
@@ -692,7 +735,9 @@ def rio_amend_standard_noncore(viewmaker):
                                            'type12_DeletedDate')
 
 
-def rio_noncore_yn(viewmaker, basecolumn, result_alias):
+def rio_noncore_yn(viewmaker: ViewMaker,
+                   basecolumn: str,
+                   result_alias: str) -> None:
     # 1 = yes, 2 = no
     # ... clue: "pregnant?" for males, in UserAssesstfkcsa.expectQ
     assert basecolumn, "Missing basecolumn"
@@ -711,7 +756,7 @@ def rio_noncore_yn(viewmaker, basecolumn, result_alias):
     )
 
 
-def rio_add_audit_info(viewmaker):
+def rio_add_audit_info(viewmaker: ViewMaker) -> None:
     # - In RCEP: lots of tables have Created_Date, Updated_Date with no source
     #   column; likely from audit table.
     # - Here: Audit_Created_Date, Audit_Updated_Date
