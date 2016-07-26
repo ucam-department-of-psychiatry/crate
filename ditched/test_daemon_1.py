@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 A threading "daemon" thread IS NOT A PROPER DAEMON.

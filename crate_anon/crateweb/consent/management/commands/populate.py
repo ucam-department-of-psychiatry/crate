@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # crate_anon/crateweb/consent/management/commands/populate.py
 
 from django.core.management.base import BaseCommand

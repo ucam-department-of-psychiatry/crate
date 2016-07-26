@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # crate_anon/crateweb/consent/__init__.py
 
 # This will make sure the app is always imported when

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # crate_anon/crateweb/extra/request_cache.py
 
 # http://stackoverflow.com/questions/3151469/per-request-cache-in-django

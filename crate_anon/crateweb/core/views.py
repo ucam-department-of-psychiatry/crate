@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # crate_anon/crateweb/core/views.py
 
 import logging

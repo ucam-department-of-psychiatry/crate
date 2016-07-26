@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # crate_anon/crateweb/core/middleware.py
 
 from django.core.exceptions import ImproperlyConfigured

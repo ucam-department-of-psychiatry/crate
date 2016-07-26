@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 Once installed from a Debian package, wkhtmltopdf will show up in "dpkg --list"

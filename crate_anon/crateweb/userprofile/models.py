@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # crate_anon/crateweb/userprofile/models.py
 
 from typing import Any, List, Optional, Type
