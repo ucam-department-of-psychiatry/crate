@@ -37,7 +37,7 @@ from typing import Any, Callable
 # =============================================================================
 
 class GenericHasher(object):
-    def hash(self, raw):
+    def hash(self, raw: Any) -> str:
         """The public interface to a hasher."""
         raise NotImplementedError()
 
@@ -54,12 +54,11 @@ class GenericHasher(object):
 class GenericSaltedHasher(GenericHasher):
     def __init__(self, hashfunc: Callable[[bytes], Any], salt: str) -> None:
         self.hashfunc = hashfunc
-        self.salt_bytes = str(salt).encode('utf-8')
+        self.salt_bytes = salt.encode('utf-8')
 
     def hash(self, raw: Any) -> str:
         raw_bytes = str(raw).encode('utf-8')
-        hasher = self.hashfunc(self.salt_bytes + raw_bytes)
-        return hasher(raw_bytes).hexdigest()
+        return self.hashfunc(self.salt_bytes + raw_bytes).hexdigest()
 
 
 class MD5Hasher(GenericSaltedHasher):

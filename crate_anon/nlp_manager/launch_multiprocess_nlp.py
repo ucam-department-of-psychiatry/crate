@@ -85,7 +85,7 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, loglevel)
 
-    common_options = ["-v"] * args.verbose
+    common_options = ['--nlpname', args.nlpname] + ["-v"] * args.verbose
     if args.config:
         common_options.extend(['--config', args.config])
     if args.incremental:
@@ -116,7 +116,6 @@ def main() -> None:
     # imports).
     procargs = [
         sys.executable, '-m', NLP_MANAGER,
-        args.nlpname,
         '--dropremake',
         '--processcluster', 'STRUCTURE'
     ] + common_options
@@ -130,7 +129,6 @@ def main() -> None:
     for procnum in range(nprocesses_main):
         procargs = [
             sys.executable, '-m', NLP_MANAGER,
-            args.nlpname,
             '--nlp',
             '--processcluster', 'NLP',
             '--nprocesses={}'.format(nprocesses_main),
@@ -148,7 +146,6 @@ def main() -> None:
     args_list = [
         [
             sys.executable, '-m', NLP_MANAGER,
-            args.nlpname,
             '--index',
             '--processcluster=INDEX',
             '--nprocesses={}'.format(nprocesses_index),

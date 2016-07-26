@@ -1308,7 +1308,7 @@ NLP manager. {version}. By Rudolf Cardinal.""".format(version=version)
                              "variable {})".format(NLP_CONFIG_ENV_VAR))
     parser.add_argument('--verbose', '-v', action='count', default=0,
                         help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument("nlpname", nargs="?", default=None,
+    parser.add_argument("--nlpname", nargs="?", default=None,
                         help="NLP definition name (from config file)")
     parser.add_argument("--process", nargs="?", type=int, default=0,
                         help="For multiprocess patient-table mode: specify "
