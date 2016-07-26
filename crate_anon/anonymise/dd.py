@@ -325,8 +325,7 @@ class DataDictionaryRow(object):
             SRCFLAG.CONSTANT if self._constant else '',
             SRCFLAG.ADDITION_ONLY if self._addition_only else '',
             SRCFLAG.OPT_OUT if self._opt_out_info else '',
-            (SRCFLAG.SRCFLAG.REQUIRED_SCRUBBER if self._required_scrubber
-             else ''),
+            SRCFLAG.REQUIRED_SCRUBBER if self._required_scrubber else '',
         ])
 
     @src_flags.setter
