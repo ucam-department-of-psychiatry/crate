@@ -59,6 +59,7 @@ from crate_anon.crateweb.extra.fields import (
 from crate_anon.crateweb.extra.pdf import (
     get_concatenated_pdf_in_memory,
     pdf_from_html,
+    PdfPlan,
 )
 from crate_anon.crateweb.extra.salutation import (
     forename_surname,
@@ -2531,31 +2532,35 @@ class ContactRequest(models.Model):
         # Order should match letter...
 
         # Letter to patient from clinician
-        html_or_filename_tuple_list = [('html', {
-            'html': self.get_letter_clinician_to_pt_re_study()
-        })]
+        pdf_plans = [PdfPlan(
+            is_html=True,
+            html=self.get_letter_clinician_to_pt_re_study()
+        )]
         # Study details
         if self.study.study_details_pdf:
-            html_or_filename_tuple_list.append(
-                ('filename', self.study.study_details_pdf.path)
-            )
+            pdf_plans.append(PdfPlan(
+                is_filename=True,
+                filename=self.study.study_details_pdf.path
+            ))
         # Decision form about this study
-        html_or_filename_tuple_list.append(('html', {
-            'html': self.get_decision_form_to_pt_re_study()
-        }))
+        pdf_plans.append(PdfPlan(
+            is_html=True,
+            html=self.get_decision_form_to_pt_re_study()
+        ))
         # Additional form for this study
         if self.is_extra_form():
             if self.study.subject_form_template_pdf:
-                html_or_filename_tuple_list.append(
-                    ('filename', self.study.subject_form_template_pdf.path)
-                )
+                pdf_plans.append(PdfPlan(
+                    is_filename=True,
+                    filename=self.study.subject_form_template_pdf.path
+                ))
         # Traffic-light decision form, if consent mode unknown
         if self.is_consent_mode_unknown():
             try:
                 leaflet = Leaflet.objects.get(
                     name=Leaflet.CPFT_TRAFFICLIGHT_CHOICE)
-                html_or_filename_tuple_list.append(
-                    ('filename', leaflet.pdf.path))
+                pdf_plans.append(PdfPlan(is_filename=True,
+                                         filename=leaflet.pdf.path))
             except ObjectDoesNotExist:
                 log.warn("Missing traffic-light leaflet!")
                 email_rdbm_task.delay(
@@ -2569,7 +2574,8 @@ class ContactRequest(models.Model):
         # General info leaflet
         try:
             leaflet = Leaflet.objects.get(name=Leaflet.CPFT_TPIR)
-            html_or_filename_tuple_list.append(('filename', leaflet.pdf.path))
+            pdf_plans.append(PdfPlan(is_filename=True,
+                                     filename=leaflet.pdf.path))
         except ObjectDoesNotExist:
             log.warn("Missing taking-part-in-research leaflet!")
             email_rdbm_task.delay(
@@ -2580,8 +2586,7 @@ class ContactRequest(models.Model):
                         self.id)
                 )
             )
-        return get_concatenated_pdf_in_memory(html_or_filename_tuple_list,
-                                              start_recto=True)
+        return get_concatenated_pdf_in_memory(pdf_plans, start_recto=True)
 
     def get_mgr_admin_url(self) -> str:
         from crate_anon.crateweb.core.admin import mgr_admin_site  # delayed import  # noqa

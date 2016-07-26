@@ -5,7 +5,7 @@ import io
 import logging
 import os
 import tempfile
-from typing import Any, Dict, Iterable, Tuple, Union
+from typing import Any, Dict, Iterable, Union
 
 import pdfkit  # sudo apt-get install wkhtmltopdf; sudo pip install pdfkit
 from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
@@ -106,49 +106,68 @@ def serve_concatenated_pdf_from_disk(
                         as_inline=True)
 
 
-# noinspection PyUnusedLocal
-def get_concatenated_pdf_in_memory(
-        html_or_filename_tuple_list: Iterable[
-            Tuple[str, Union[str, Dict[str, Any]]]
-        ],
-        start_recto: bool = True,
-        **kwargs) -> bytes:
-    """
-    Concatenates PDFs and returns them as an in-memory binary PDF.
-    html_or_filename_tuple_list: e.g. [
-        ('html': {... dictionary to be passed to pdf_to_html ...}),
-        ('filename': some_filename),
-        # ...
-    ]
-    """
-    writer = PdfFileWriter()
-    for x in html_or_filename_tuple_list:
-        if x[0] == 'html':
-            optiondict = x[1]
-            optiondict['output_path'] = None
-            pdf = pdf_from_html(**optiondict)
+class PdfPlan(object):
+    def __init__(self,
+                 # HTML mode
+                 is_html: bool = False,
+                 html: str = None,
+                 header_html: str = None,
+                 footer_html: str = None,
+                 wkhtmltopdf_filename: str = None,
+                 wkhtmltopdf_options: Dict[str, Any] = None,
+                 # Filename mode
+                 is_filename: bool = False,
+                 filename: str = None):
+        assert is_html != is_filename, "Specify is_html XOR is_filename"
+        self.is_html = is_html
+        self.html = html
+        self.header_html = header_html
+        self.footer_html = footer_html
+        self.wkhtmltopdf_filename = wkhtmltopdf_filename
+        self.wkhtmltopdf_options = wkhtmltopdf_options
+        self.is_filename = is_filename
+        self.filename = filename
+
+    def add_to_writer(self,
+                      writer: PdfFileWriter,
+                      start_recto: bool = True) -> None:
+        if self.is_html:
+            pdf = pdf_from_html(html=self.html,
+                                header_html=self.header_html,
+                                footer_html=self.footer_html,
+                                wkhtmltopdf_filename=self.wkhtmltopdf_filename,
+                                wkhtmltopdf_options=self.wkhtmltopdf_options,
+                                output_path=None)
             append_memory_pdf_to_writer(pdf, writer, start_recto=start_recto)
-        elif x[0] == 'filename':
-            filename = x[1]
+        elif self.is_filename:
             if start_recto and writer.getNumPages() % 2 != 0:
                 writer.addBlankPage()
-            writer.appendPagesFromReader(PdfFileReader(open(filename, 'rb')))
+            writer.appendPagesFromReader(PdfFileReader(
+                open(self.filename, 'rb')))
         else:
-            raise ValueError("Bad html_or_filename_tuple_list")
+            raise AssertionError("PdfPlan: shouldn't get here!")
+
+
+def get_concatenated_pdf_in_memory(
+        pdf_plans: Iterable[PdfPlan],
+        start_recto: bool = True) -> bytes:
+    """
+    Concatenates PDFs and returns them as an in-memory binary PDF.
+    """
+    writer = PdfFileWriter()
+    for pdfplan in pdf_plans:
+        pdfplan.add_to_writer(writer, start_recto=start_recto)
     return pdf_from_writer(writer)
 
 
 def serve_concatenated_pdf_from_memory(
-        html_or_filename_tuple_list: Iterable[
-            Tuple[str, Union[str, Dict[str, Any]]]
-        ],
-        offered_filename: str = "crate_download.pdf",
-        **kwargs) -> HttpResponse:
+        pdf_plans: Iterable[PdfPlan],
+        start_recto: bool = True,
+        offered_filename: str = "crate_download.pdf") -> HttpResponse:
     """
     Concatenates PDFs into memory and serves it.
     """
-    pdf = get_concatenated_pdf_in_memory(html_or_filename_tuple_list,
-                                         **kwargs)
+    pdf = get_concatenated_pdf_in_memory(pdf_plans, start_recto=start_recto)
     return serve_buffer(pdf,
                         offered_filename=offered_filename,
                         content_type="application/pdf",
