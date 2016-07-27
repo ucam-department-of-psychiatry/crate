@@ -26,8 +26,12 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Get or create (SQLAlchemy ORM)
+# SQL - SQLAlchemy ORM
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Get or create (SQLAlchemy ORM)
+# -----------------------------------------------------------------------------
 # http://stackoverflow.com/questions/2546207
 # ... composite of several suggestions
 
@@ -48,8 +52,12 @@ def get_or_create(session: Session,
 
 
 # =============================================================================
-# SELECT COUNT(*) (SQLAlchemy Core)
+# SQL - SQLAlchemy Core
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# SELECT COUNT(*) (SQLAlchemy Core)
+# -----------------------------------------------------------------------------
 # http://stackoverflow.com/questions/12941416
 
 def count_star(session: Session, tablename: str) -> int:
@@ -58,9 +66,9 @@ def count_star(session: Session, tablename: str) -> int:
     return session.execute(query).scalar()
 
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # SELECT EXISTS (SQLAlchemy Core)
-# =============================================================================
+# -----------------------------------------------------------------------------
 # http://stackoverflow.com/questions/15381604
 # http://docs.sqlalchemy.org/en/latest/orm/query.html
 
@@ -81,6 +89,74 @@ def exists_orm(session: Session,
     for criterion in criteria:
         q = q.filter(criterion)
     return session.query(q.exists()).scalar()
+
+
+# =============================================================================
+# INSERT ... ON DUPLICATE KEY UPDATE support, for MySQL
+# =============================================================================
+# https://www.reddit.com/r/Python/comments/p5grh/sqlalchemy_whats_the_idiomatic_way_of_writing/  # noqa
+# https://github.com/bedwards/sqlalchemy_mysql_ext/blob/master/duplicate.py
+# ... modified
+# http://docs.sqlalchemy.org/en/rel_1_0/core/compiler.html
+# http://stackoverflow.com/questions/6611563/sqlalchemy-on-duplicate-key-update
+# http://dev.mysql.com/doc/refman/5.7/en/insert-on-duplicate.html
+
+# noinspection PyAbstractClass
+class InsertOnDuplicate(Insert):
+    pass
+
+
+def insert_on_duplicate(tablename, values=None, inline=False, **kwargs):
+    return InsertOnDuplicate(tablename, values, inline=inline, **kwargs)
+
+
+# noinspection PyPep8Naming
+def monkeypatch_TableClause():
+    TableClause.insert_on_duplicate = insert_on_duplicate
+
+
+# noinspection PyPep8Naming
+def unmonkeypatch_TableClause():
+    del TableClause.insert_on_duplicate
+
+
+STARTSEPS = '`'
+ENDSEPS = '`'
+INSERT_FIELDNAMES_REGEX = (
+    r'^INSERT\sINTO\s[{startseps}]?(?P<table>\w+)[{endseps}]?\s+'
+    r'\((?P<columns>[, {startseps}{endseps}\w]+)\)\s+VALUES'.format(
+        startseps=STARTSEPS, endseps=ENDSEPS)
+)
+# http://pythex.org/ !
+RE_INSERT_FIELDNAMES = re.compile(INSERT_FIELDNAMES_REGEX)
+
+
+@compiles(InsertOnDuplicate, 'mysql')
+def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
+    """
+    We can't get the fieldnames directly from 'insert' or 'compiler'.
+    We could rewrite the innards of the visit_insert statement, like
+        https://github.com/bedwards/sqlalchemy_mysql_ext/blob/master/duplicate.py  # noqa
+    ... but, like that, it will get outdated.
+    We could use a hack-in-by-hand method, like
+        http://stackoverflow.com/questions/6611563/sqlalchemy-on-duplicate-key-update
+    ... but a little automation would be nice.
+    So, regex to the rescue:
+    """
+    # log.critical(compiler.__dict__)
+    # log.critical(compiler.dialect.__dict__)
+    # log.critical(insert.__dict__)
+    s = compiler.visit_insert(insert, **kw)
+    # log.critical(s)
+    m = RE_INSERT_FIELDNAMES.match(s)
+    if m is None:
+        raise ValueError("compile_insert_on_duplicate_key_update: no match")
+    columns = [c.strip() for c in m.group('columns').split(",")]
+    # log.critical(columns)
+    updates = ", ".join(["{c} = VALUES({c})".format(c=c) for c in columns])
+    s += ' ON DUPLICATE KEY UPDATE {}'.format(updates)
+    # log.critical(s)
+    return s
 
 
 # =============================================================================
@@ -148,9 +224,8 @@ def add_index(engine: Engine,
             # DDL(sql, bind=engine).execute_if(dialect='mysql')
             DDL(sql, bind=engine).execute()
         else:
-            log.error(
-                "Don't know how to make full text index on dialect {}".format(
-                    engine.dialect.name))
+            log.error("Don't know how to make full text index on dialect "
+                      "{}".format(engine.dialect.name))
     else:
         index = Index(idxname, sqla_column, unique=unique, mysql_length=length)
         index.create(engine)
@@ -158,8 +233,12 @@ def add_index(engine: Engine,
 
 
 # =============================================================================
-# Reverse a textual SQL column type to an SQLAlchemy column type
+# SQLAlchemy column types
 # =============================================================================
+
+# -----------------------------------------------------------------------------
+# Reverse a textual SQL column type to an SQLAlchemy column type
+# -----------------------------------------------------------------------------
 
 RE_COLTYPE_WITH_COLLATE = re.compile(r'(?P<maintype>.+) COLLATE .+')
 RE_COLTYPE_WITH_ONE_PARAM = re.compile(r'(?P<type>\w+)\((?P<size>\w+)\)')
@@ -278,83 +357,15 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
 
 
 # =============================================================================
-# INSERT ... ON DUPLICATE KEY UPDATE
-# =============================================================================
-# https://www.reddit.com/r/Python/comments/p5grh/sqlalchemy_whats_the_idiomatic_way_of_writing/  # noqa
-# https://github.com/bedwards/sqlalchemy_mysql_ext/blob/master/duplicate.py
-# ... modified
-# http://docs.sqlalchemy.org/en/rel_1_0/core/compiler.html
-# http://stackoverflow.com/questions/6611563/sqlalchemy-on-duplicate-key-update
-# http://dev.mysql.com/doc/refman/5.7/en/insert-on-duplicate.html
-
-# noinspection PyAbstractClass
-class InsertOnDuplicate(Insert):
-    pass
-
-
-def insert_on_duplicate(tablename, values=None, inline=False, **kwargs):
-    return InsertOnDuplicate(tablename, values, inline=inline, **kwargs)
-
-
-# noinspection PyPep8Naming
-def monkeypatch_TableClause():
-    TableClause.insert_on_duplicate = insert_on_duplicate
-
-
-# noinspection PyPep8Naming
-def unmonkeypatch_TableClause():
-    del TableClause.insert_on_duplicate
-
-
-STARTSEPS = '`'
-ENDSEPS = '`'
-INSERT_FIELDNAMES_REGEX = (
-    r'^INSERT\sINTO\s[{startseps}]?(?P<table>\w+)[{endseps}]?\s+'
-    r'\((?P<columns>[, {startseps}{endseps}\w]+)\)\s+VALUES'.format(
-        startseps=STARTSEPS, endseps=ENDSEPS)
-)
-# http://pythex.org/ !
-RE_INSERT_FIELDNAMES = re.compile(INSERT_FIELDNAMES_REGEX)
-
-
-@compiles(InsertOnDuplicate, 'mysql')
-def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
-    """
-    We can't get the fieldnames directly from 'insert' or 'compiler'.
-    We could rewrite the innards of the visit_insert statement, like
-        https://github.com/bedwards/sqlalchemy_mysql_ext/blob/master/duplicate.py  # noqa
-    ... but, like that, it will get outdated.
-    We could use a hack-in-by-hand method, like
-        http://stackoverflow.com/questions/6611563/sqlalchemy-on-duplicate-key-update
-    ... but a little automation would be nice.
-    So, regex to the rescue:
-    """
-    # log.critical(compiler.__dict__)
-    # log.critical(compiler.dialect.__dict__)
-    # log.critical(insert.__dict__)
-    s = compiler.visit_insert(insert, **kw)
-    # log.critical(s)
-    m = RE_INSERT_FIELDNAMES.match(s)
-    if m is None:
-        raise ValueError("compile_insert_on_duplicate_key_update: no match")
-    columns = [c.strip() for c in m.group('columns').split(",")]
-    # log.critical(columns)
-    updates = ", ".join(["{c} = VALUES({c})".format(c=c) for c in columns])
-    s += ' ON DUPLICATE KEY UPDATE {}'.format(updates)
-    # log.critical(s)
-    return s
-
-
-# =============================================================================
 # Do special dialect conversions on SQLAlchemy SQL types (of class type)
 # =============================================================================
 
 def remove_collation(coltype: Column) -> Column:
     if not hasattr(coltype, 'collation') or not coltype.collation:
         return coltype
-    coltype = copy.copy(coltype)
-    coltype.collation = None
-    return coltype
+    newcoltype = copy.copy(coltype)
+    newcoltype.collation = None
+    return newcoltype
 
 
 def convert_sqla_type_for_dialect(coltype: Column,
@@ -368,22 +379,31 @@ def convert_sqla_type_for_dialect(coltype: Column,
     # -------------------------------------------------------------------------
     # Text
     # -------------------------------------------------------------------------
-    if typeclass in [sqltypes.TEXT, mssql.base.NTEXT]:
-        # Intrinsically unlimited text.
+    if isinstance(coltype, sqltypes.UnicodeText):
+        # Unbounded Unicode text.
+        # Includes derived classes such as mssql.base.NTEXT.
+        return sqltypes.UnicodeText()
+    if isinstance(coltype, sqltypes.Text):
+        # Unbounded text, more generally. (UnicodeText inherits from Text.)
+        # Includes sqltypes.TEXT.
         return sqltypes.Text()
-    if typeclass in [sqltypes.CHAR, sqltypes.VARCHAR, sqltypes.NVARCHAR]:
-        # Potentially unlimited text: SQL Server VARCHAR(MAX), NVARCHAR(MAX).
+    # Everything inheriting from String has a length property, but can be None.
+    # There are types that can be unlimited in SQL Server, e.g. VARCHAR(MAX)
+    # and NVARCHAR(MAX), that MySQL needs a length for. (Failure to convert
+    # gives e.g.: 'NVARCHAR requires a length on dialect mysql'.)
+    if isinstance(coltype, sqltypes.Unicode):
+        # Includes NVARCHAR(MAX) in SQL -> NVARCHAR() in SQLAlchemy.
         if coltype.length is None and to_mysql:
-            # SQL Server can have NVARCHAR() and VARCHAR(), with no length.
-            # (This is VARCHAR(MAX) and NVARCHAR(MAX) in DDL.)
-            # MySQL can't. Failure to convert gives:
-            # 'NVARCHAR requires a length on dialect mysql'
+            return sqltypes.UnicodeText()
+    # The most general case; will pick up any other string types.
+    if isinstance(coltype, sqltypes.String):
+        # Includes VARCHAR(MAX) in SQL -> VARCHAR() in SQLAlchemy
+        if coltype.length is None and to_mysql:
             return sqltypes.Text()
-        # Text with a length.
         if strip_collation:
+            # noinspection PyTypeChecker
             return remove_collation(coltype)
-        else:
-            return coltype
+        return coltype
 
     # -------------------------------------------------------------------------
     # BIT
@@ -394,3 +414,60 @@ def convert_sqla_type_for_dialect(coltype: Column,
 
     # Some other type
     return coltype
+
+
+# =============================================================================
+# Questions about SQLAlchemy column types
+# =============================================================================
+
+def is_sqlatype_binary(coltype: Column) -> bool:
+    # Several binary types inherit internally from _Binary, making that the
+    # easiest to check.
+
+    # noinspection PyProtectedMember
+    return isinstance(coltype, sqltypes._Binary)
+
+
+def is_sqlatype_date(coltype: Column) -> bool:
+    # isinstance also cheerfully handles multiple inheritance, i.e. if you have
+    # class A(object), class B(object), and class C(A, B), followed by x = C(),
+    # then all of isinstance(x, A), isinstance(x, B), isinstance(x, C) are True
+
+    # noinspection PyProtectedMember
+    return isinstance(coltype, sqltypes._DateAffinity)
+
+
+def is_sqlatype_integer(coltype: Column) -> bool:
+    return isinstance(coltype, sqltypes.Integer)
+
+
+def is_sqlatype_numeric(coltype: Column) -> bool:
+    return isinstance(coltype, sqltypes.Numeric)  # includes Float, Decimal
+
+
+def is_sqlatype_text_of_length_at_least(coltype: Column,
+                                        min_length: int = 1000) -> bool:
+    if not isinstance(coltype, sqltypes.String):
+        return False  # not a string/text type at all
+    if coltype.length is None:
+        return True  # string of unlimited length
+    return coltype.length >= min_length
+
+
+def is_sqlatype_text_over_one_char(coltype: Column) -> bool:
+    return is_sqlatype_text_of_length_at_least(coltype, 2)
+
+
+def does_sqlatype_merit_fulltext_index(coltype: Column,
+                                       min_length: int = 1000) -> bool:
+    return is_sqlatype_text_of_length_at_least(coltype, min_length)
+
+
+def does_sqlatype_require_index_len(coltype: Column) -> bool:
+    # MySQL, at least, requires index length to be specified for BLOB and TEXT
+    # columns: http://dev.mysql.com/doc/refman/5.7/en/create-index.html
+    if isinstance(coltype, sqltypes.Text):
+        return True
+    if isinstance(coltype, sqltypes.LargeBinary):
+        return True
+    return False

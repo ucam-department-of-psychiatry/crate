@@ -79,7 +79,8 @@ from crate_anon.anonymise.models import (
     TridRecord,
 )
 from crate_anon.anonymise.patient import Patient
-from crate_anon.anonymise.dd import AlterMethod, DataDictionaryRow
+from crate_anon.anonymise.altermethod import AlterMethod
+from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.common.sqla import (
     count_star,
     get_column_names,

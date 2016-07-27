@@ -392,6 +392,7 @@ class Config(object):
         if admin_database_cfg_section in source_database_cfg_sections:
             raise ValueError("Admin database mustn't be listed as a "
                              "source database")
+
         self.destdb = get_database(destination_database_cfg_section,
                                    name=destination_database_cfg_section,
                                    with_session=open_databases,
@@ -399,6 +400,11 @@ class Config(object):
                                    reflect=False)
         if not self.destdb:
             raise ValueError("Destination database misconfigured")
+        if open_databases:
+            self.default_dest_dialect = self.destdb.engine.dialect
+        else:  # in context of web framework
+            self.default_dest_dialect = mysql_dialect
+
         self.admindb = get_database(admin_database_cfg_section,
                                     name=admin_database_cfg_section,
                                     with_session=open_databases,
@@ -406,7 +412,12 @@ class Config(object):
                                     reflect=open_databases)
         if not self.admindb:
             raise ValueError("Admin database misconfigured")
+
         self.sources = {}
+        if open_databases:
+            self.default_src_dialect = None  # set below
+        else:  # in context of web framework
+            self.default_src_dialect = mssql_dialect
         for sourcedb_name in source_database_cfg_sections:
             log.info("Adding source database: {}".format(sourcedb_name))
             srccfg = DatabaseSafeConfig(parser, sourcedb_name)
@@ -420,6 +431,8 @@ class Config(object):
                 raise ValueError("Source database {} misconfigured".format(
                     sourcedb_name))
             self.sources[sourcedb_name] = srcdb
+            if self.default_src_dialect is None:
+                self.default_src_dialect = srcdb.engine.dialect
 
         # Load encryption keys and create hashers
         assert self.hash_method not in ["MD5", "SHA256", "SHA512"], (
@@ -499,10 +512,6 @@ class Config(object):
         self.src_bytes_read = 0
         self.dest_bytes_written = 0
 
-        # Not yet set by config file, except via web site framework:
-        self.default_src_dialect = mssql_dialect
-        self.default_dest_dialect = mysql_dialect
-        
     def overall_progress(self) -> str:
         return "{} read, {} written".format(
             sizeof_fmt(self.src_bytes_read),
@@ -648,11 +657,11 @@ class Config(object):
     def get_default_src_dialect(self) -> Any:
         return self.default_src_dialect
 
-    def set_default_src_dialect(self, dialect: Any) -> None:
-        self.default_src_dialect = dialect
+    # def set_default_src_dialect(self, dialect: Any) -> None:
+    #     self.default_src_dialect = dialect
 
     def get_default_dest_dialect(self) -> Any:
         return self.default_dest_dialect
 
-    def set_default_dest_dialect(self, dialect: Any) -> None:
-        self.default_dest_dialect = dialect
+    # def set_default_dest_dialect(self, dialect: Any) -> None:
+    #     self.default_dest_dialect = dialect
