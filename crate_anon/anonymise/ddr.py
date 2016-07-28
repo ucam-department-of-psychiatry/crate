@@ -298,7 +298,7 @@ class DataDictionaryRow(object):
     def __lt__(self, other: DDR_FWD_REF) -> bool:
         return self.get_signature() < other.get_signature()
 
-    @lru_cache(max_size=None)
+    @lru_cache(maxsize=None)
     def _matches_tabledef(self, tabledef: str) -> bool:
         tr = regex.compile(fnmatch.translate(tabledef), regex.IGNORECASE)
         return tr.match(self.src_table)
@@ -311,7 +311,7 @@ class DataDictionaryRow(object):
         else:  # list
             return any(self._matches_tabledef(td) for td in tabledef)
 
-    @lru_cache(max_size=None)
+    @lru_cache(maxsize=None)
     def _matches_fielddef(self, fielddef: str) -> bool:
         t, c = split_db_table(fielddef)
         cr = regex.compile(fnmatch.translate(c), regex.IGNORECASE)
