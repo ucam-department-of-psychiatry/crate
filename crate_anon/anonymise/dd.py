@@ -117,7 +117,7 @@ class DataDictionary(object):
         Create a draft DD from a source database.
         """
         log.info("Reading information for draft data dictionary")
-        existing_signatures = [ddr.get_signature() for ddr in self.rows]
+        existing_signatures = set(ddr.get_signature() for ddr in self.rows)
         for pretty_dbname, db in self.config.sources.items():
             log.info("... database nice name = {}".format(pretty_dbname))
             cfg = db.srccfg
@@ -165,7 +165,7 @@ class DataDictionary(object):
                     sig = ddr.get_signature()
                     if sig in existing_signatures:
                         continue
-                    existing_signatures.append(sig)
+                    existing_signatures.add(sig)
 
                     # Checking validity slows us down, and we are after all
                     # creating these programmatically!

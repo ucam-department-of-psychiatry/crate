@@ -3,6 +3,7 @@
 
 import ast
 import copy
+from functools import lru_cache
 import logging
 import re
 from typing import Any, Dict, List, Tuple, Type
@@ -261,6 +262,7 @@ def _get_sqla_coltype_class_from_str(coltype: str,
         return ischema_names[coltype.lower()]
 
 
+@lru_cache(maxsize=None)
 def get_sqla_coltype_from_dialect_str(coltype: str,
                                       dialect: Any) -> Column:
     """
@@ -368,6 +370,7 @@ def remove_collation(coltype: Column) -> Column:
     return newcoltype
 
 
+@lru_cache(maxsize=None)
 def convert_sqla_type_for_dialect(coltype: Column,
                                   dialect: Any,
                                   strip_collation: bool = True) -> Column:
