@@ -55,6 +55,15 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Cache for spec matching
+# =============================================================================
+
+@lru_cache(maxsize=None)
+def get_spec_match_regex(spec):
+    return regex.compile(fnmatch.translate(spec), regex.IGNORECASE)
+
+
+# =============================================================================
 # DataDictionaryRow
 # =============================================================================
 
@@ -298,9 +307,8 @@ class DataDictionaryRow(object):
     def __lt__(self, other: DDR_FWD_REF) -> bool:
         return self.get_signature() < other.get_signature()
 
-    @lru_cache(maxsize=None)
     def _matches_tabledef(self, tabledef: str) -> bool:
-        tr = regex.compile(fnmatch.translate(tabledef), regex.IGNORECASE)
+        tr = get_spec_match_regex(tabledef)
         return tr.match(self.src_table)
 
     def matches_tabledef(self, tabledef: Union[str, List[str]]) -> bool:
@@ -311,13 +319,12 @@ class DataDictionaryRow(object):
         else:  # list
             return any(self._matches_tabledef(td) for td in tabledef)
 
-    @lru_cache(maxsize=None)
     def _matches_fielddef(self, fielddef: str) -> bool:
         t, c = split_db_table(fielddef)
-        cr = regex.compile(fnmatch.translate(c), regex.IGNORECASE)
+        cr = get_spec_match_regex(c)
         if not t:
             return cr.match(self.src_field)
-        tr = regex.compile(fnmatch.translate(t), regex.IGNORECASE)
+        tr = get_spec_match_regex(t)
         return tr.match(self.src_table) and cr.match(self.src_field)
 
     def matches_fielddef(self, fielddef: Union[str, List[str]]) -> bool:
