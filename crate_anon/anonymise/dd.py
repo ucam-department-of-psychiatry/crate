@@ -130,7 +130,8 @@ class DataDictionary(object):
                 for c in t.columns:
                     i += 1
                     if report_every and i % report_every == 0:
-                        log.debug("... reading source field {}".format(i))
+                        log.debug("... reading source field number "
+                                  "{}".format(i))
                     columnname = c.name
                     # import pdb; pdb.set_trace()
                     # log.critical("str(coltype) == {}".format(str(c.type)))
@@ -166,7 +167,9 @@ class DataDictionary(object):
                         continue
                     existing_signatures.append(sig)
 
-                    ddr.check_valid(self.config)
+                    # Checking validity slows us down, and we are after all
+                    # creating these programmatically!
+                    # ddr.check_valid(self.config)
                     new_rows.append(ddr)
 
                 # Now, table-wide checks across all columns:
