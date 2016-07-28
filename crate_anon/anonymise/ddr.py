@@ -742,11 +742,11 @@ class DataDictionaryRow(object):
             self._defines_primary_pids = True
 
         # Does the field contain sensitive data?
-        if (self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields) or
+        if (self._master_pid or
+                self._defines_primary_pids or
                 (self._primary_pid and
                  dbconf.ddgen_add_per_table_pids_to_scrubber) or
-                self._master_pid or
-                self._defines_primary_pids):
+                self.matches_fielddef(dbconf.ddgen_scrubsrc_patient_fields)):
             self.scrub_src = SCRUBSRC.PATIENT
         elif self.matches_fielddef(dbconf.ddgen_scrubsrc_thirdparty_fields):
             self.scrub_src = SCRUBSRC.THIRDPARTY
@@ -780,16 +780,17 @@ class DataDictionaryRow(object):
             self.scrub_method = SCRUBMETHOD.WORDS
 
         # Should we omit it (at least until a human has looked at the DD)?
-        # In order:
-        self.omit = dbconf.ddgen_omit_by_default
-        if self.matches_fielddef(dbconf.ddgen_include_fields):
-            self.omit = False
-        if self.matches_fielddef(dbconf.ddgen_omit_fields):
-            self.omit = True
-        if bool(self.scrub_src):
-            self.omit = True
+        # In descending order of priority:
         if self._pk or self._primary_pid or self._master_pid:
             self.omit = False
+        elif bool(self.scrub_src):
+            self.omit = True
+        elif self.matches_fielddef(dbconf.ddgen_omit_fields):
+            self.omit = True
+        elif self.matches_fielddef(dbconf.ddgen_include_fields):
+            self.omit = False
+        else:
+            self.omit = dbconf.ddgen_omit_by_default
 
         # Do we want to change the destination fieldname?
         if self._primary_pid:
@@ -831,12 +832,12 @@ class DataDictionaryRow(object):
                         extract_ext_field=extfield))
             self.dest_datatype = LONGTEXT
             extracting_text = True
-        elif (is_sqlatype_text_of_length_at_least(
-                sqla_coltype, dbconf.ddgen_min_length_for_scrubbing) and
-                not self._primary_pid and
-                not self._master_pid and
-                not self.matches_fielddef(
-                    dbconf.ddgen_safe_fields_exempt_from_scrubbing)):
+        elif (not self._primary_pid and
+              not self._master_pid and
+              is_sqlatype_text_of_length_at_least(
+                  sqla_coltype, dbconf.ddgen_min_length_for_scrubbing) and
+              not self.matches_fielddef(
+                  dbconf.ddgen_safe_fields_exempt_from_scrubbing)):
             # Text field meeting the criteria to scrub
             self._alter_methods.append(AlterMethod(scrub=True))
         if extracting_text:
@@ -864,13 +865,13 @@ class DataDictionaryRow(object):
         dest_sqla_type = self.get_dest_sqla_coltype(config)
         if self._pk:
             self.index = INDEX.UNIQUE
-        elif (self.dest_field == config.research_id_fieldname or
-                self._primary_pid or
-                self._master_pid or
-                self._defines_primary_pids):
+        elif (self._primary_pid or
+              self._master_pid or
+              self._defines_primary_pids or
+              self.dest_field == config.research_id_fieldname):
             self.index = INDEX.NORMAL
-        elif (does_sqlatype_merit_fulltext_index(dest_sqla_type) and
-                dbconf.ddgen_allow_fulltext_indexing):
+        elif (dbconf.ddgen_allow_fulltext_indexing and
+              does_sqlatype_merit_fulltext_index(dest_sqla_type)):
             self.index = INDEX.FULLTEXT
         elif self.matches_fielddef(dbconf.ddgen_index_fields):
             self.index = INDEX.NORMAL
@@ -879,8 +880,8 @@ class DataDictionaryRow(object):
 
         self.indexlen = (
             DEFAULT_INDEX_LEN
-            if (does_sqlatype_require_index_len(dest_sqla_type) and
-                self.index is not INDEX.FULLTEXT)
+            if (self.index is not INDEX.FULLTEXT and
+                does_sqlatype_require_index_len(dest_sqla_type))
             else None
         )
 

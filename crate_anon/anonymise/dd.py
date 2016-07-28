@@ -127,6 +127,7 @@ class DataDictionary(object):
                 tablename = t.name
                 log.info("... ... table: {}".format(tablename))
                 new_rows = []
+                is_patient_table = False
                 for c in t.columns:
                     i += 1
                     if report_every and i % report_every == 0:
@@ -167,14 +168,16 @@ class DataDictionary(object):
                         continue
                     existing_signatures.add(sig)
 
+                    if ddr.contains_patient_info():
+                        is_patient_table = True
+
                     # Checking validity slows us down, and we are after all
                     # creating these programmatically!
                     # ddr.check_valid(self.config)
+
                     new_rows.append(ddr)
 
                 # Now, table-wide checks across all columns:
-                is_patient_table = any(ddr.contains_patient_info()
-                                       for ddr in new_rows)
                 if not is_patient_table:
                     for ddr in new_rows:
                         ddr.remove_scrub_from_alter_methods()
