@@ -205,7 +205,7 @@ def delete_dest_rows_with_no_src_row(
     temptable = Table(
         config.temporary_tablename,
         metadata,
-        Column(pkfield, pkddr.get_sqla_dest_coltype(), primary_key=True),
+        Column(pkfield, pkddr.get_dest_sqla_coltype(config), primary_key=True),
         **MYSQL_TABLE_ARGS
     )
     # THIS (ABOVE) IS WHAT CONSTRAINS A USER-DEFINED PK TO BE UNIQUE WITHIN ITS

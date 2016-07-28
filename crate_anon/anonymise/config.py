@@ -401,9 +401,9 @@ class Config(object):
         if not self.destdb:
             raise ValueError("Destination database misconfigured")
         if open_databases:
-            self.default_dest_dialect = self.destdb.engine.dialect
-        else:  # in context of web framework
-            self.default_dest_dialect = mysql_dialect
+            self.dest_dialect = self.destdb.engine.dialect
+        else:  # in context of web framework, some sort of default
+            self.dest_dialect = mysql_dialect
 
         self.admindb = get_database(admin_database_cfg_section,
                                     name=admin_database_cfg_section,
@@ -414,10 +414,7 @@ class Config(object):
             raise ValueError("Admin database misconfigured")
 
         self.sources = {}
-        if open_databases:
-            self.default_src_dialect = None  # set below
-        else:  # in context of web framework
-            self.default_src_dialect = mssql_dialect
+        self.src_dialects = {}
         for sourcedb_name in source_database_cfg_sections:
             log.info("Adding source database: {}".format(sourcedb_name))
             srccfg = DatabaseSafeConfig(parser, sourcedb_name)
@@ -431,8 +428,10 @@ class Config(object):
                 raise ValueError("Source database {} misconfigured".format(
                     sourcedb_name))
             self.sources[sourcedb_name] = srcdb
-            if self.default_src_dialect is None:
-                self.default_src_dialect = srcdb.engine.dialect
+            if open_databases:
+                self.src_dialects[sourcedb_name] = srcdb.engine.dialect
+            else:  # in context of web framework
+                self.src_dialects[sourcedb_name] = mssql_dialect
 
         # Load encryption keys and create hashers
         assert self.hash_method not in ["MD5", "SHA256", "SHA512"], (
@@ -654,14 +653,8 @@ class Config(object):
             # log.critical(logger.__dict__)
             remove_all_logger_handlers(logger)
 
-    def get_default_src_dialect(self) -> Any:
-        return self.default_src_dialect
+    def get_src_dialect(self, src_db) -> Any:
+        return self.src_dialects[src_db]
 
-    # def set_default_src_dialect(self, dialect: Any) -> None:
-    #     self.default_src_dialect = dialect
-
-    def get_default_dest_dialect(self) -> Any:
-        return self.default_dest_dialect
-
-    # def set_default_dest_dialect(self, dialect: Any) -> None:
-    #     self.default_dest_dialect = dialect
+    def get_dest_dialect(self) -> Any:
+        return self.dest_dialect

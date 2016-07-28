@@ -14,8 +14,6 @@ from django.http.request import HttpRequest
 # from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 
-# from crate_anon.anonymise.config import Config
-# from crate_anon.anonymise.constants import CONFIG_ENV_VAR
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
@@ -736,9 +734,7 @@ ORDER BY
     @lru_cache(maxsize=None)
     def get_infodictlist_by_tables(self) \
             -> List[Tuple[str, str, List[Dict[str, Any]]]]:
-        log.debug("... STARTING")
         idl = self.get_infodictlist()
-        log.debug("... MIDWAY")
         schema_table_idl = []
         for schema, table in sorted(set((x['table_schema'], x['table_name'])
                                         for x in idl)):
@@ -747,7 +743,6 @@ ORDER BY
                         i['table_name'] == table]
             schema_table_idl.append((schema, table, dictlist))
         # log.debug(repr(schema_table_idl))
-        log.debug("... FINISHING")
         return schema_table_idl
 
     @lru_cache(maxsize=1000)

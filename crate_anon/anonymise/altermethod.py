@@ -90,7 +90,8 @@ class AlterMethod(object):
             return ALTERMETHOD.SCRUBIN.value
         if self.extract_text:
             if self.extract_from_blob:
-                return ALTERMETHOD.BIN2TEXT.value + "=" + self.extract_ext_field
+                return (ALTERMETHOD.BIN2TEXT.value + "=" +
+                        self.extract_ext_field)
             else:
                 return ALTERMETHOD.FILENAME2TEXT.value
         if self.skip_if_text_extract_fails:

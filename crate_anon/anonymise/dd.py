@@ -101,9 +101,10 @@ class DataDictionary(object):
             log.debug("Data dictionary has correct header. Loading content...")
             for values in tsv:
                 valuedict = dict(zip(headers, values))
-                ddr = DataDictionaryRow(self.config)
+                ddr = DataDictionaryRow()
                 try:
                     ddr.set_from_dict(valuedict)
+                    ddr.check_valid(self.config)
                 except ValueError:
                     log.critical("Offending input: {}".format(valuedict))
                     raise
@@ -116,7 +117,7 @@ class DataDictionary(object):
         Create a draft DD from a source database.
         """
         log.info("Reading information for draft data dictionary")
-        signatures = [ddr.get_signature() for ddr in self.rows]
+        existing_signatures = [ddr.get_signature() for ddr in self.rows]
         for pretty_dbname, db in self.config.sources.items():
             log.info("... database nice name = {}".format(pretty_dbname))
             cfg = db.srccfg
@@ -150,13 +151,22 @@ class DataDictionary(object):
                             t=tablename,
                             f=columnname,
                         )
-                    ddr = DataDictionaryRow(self.config)
+                    ddr = DataDictionaryRow()
                     ddr.set_from_src_db_info(
                         pretty_dbname, tablename, columnname,
                         datatype_sqltext,
                         sqla_coltype,
-                        cfg=cfg,
+                        dbconf=cfg,
+                        config=self.config,
                         comment=comment)
+
+                    # If we have this one already, skip ASAP
+                    sig = ddr.get_signature()
+                    if sig in existing_signatures:
+                        continue
+                    existing_signatures.append(sig)
+
+                    ddr.check_valid(self.config)
                     new_rows.append(ddr)
 
                 # Now, table-wide checks across all columns:
@@ -167,12 +177,8 @@ class DataDictionary(object):
                         ddr.remove_scrub_from_alter_methods()
                         # Pointless to scrub in a non-patient table
 
-                # Now, filter out any rows that exist already:
-                for ddr in new_rows:
-                    sig = ddr.get_signature()
-                    if sig not in signatures:
-                        self.rows.append(ddr)
-                        signatures.append(sig)
+                self.rows.extend(new_rows)
+
         log.info("... done")
         self.clear_caches()
         log.info("Revising draft data dictionary")
@@ -258,7 +264,7 @@ class DataDictionary(object):
                                         am=r.alter_method,
                                         f=am.extract_ext_field))
                             if not is_sqlatype_text_over_one_char(
-                                    extrow.get_src_sqla_coltype()):
+                                    extrow.get_src_sqla_coltype(self.config)):
                                 raise ValueError(
                                     "alter_method = {am}, but field {f}, which"
                                     " should contain an extension or filename,"
@@ -274,10 +280,6 @@ class DataDictionary(object):
 
         log.debug("... source tables checked.")
         
-    # def set_src_sql_coltypes_from_text(self, dialect: Any = None) -> None:
-    #     for ddr in self.rows:
-    #         ddr.set_src_sqla_coltype_from_text(dialect)
-
     def check_valid(self,
                     prohibited_fieldnames: List[str] = None,
                     check_against_source_db: bool = True) -> None:
@@ -701,21 +703,21 @@ class DataDictionary(object):
         metadata = self.config.destdb.metadata
         columns = []
         for ddr in self.get_rows_for_dest_table(tablename):
-            columns.append(ddr.get_sqla_dest_column())
+            columns.append(ddr.get_dest_sqla_column(self.config))
             if ddr.add_src_hash:
-                columns.append(self.get_srchash_sqla_column())
+                columns.append(self._get_srchash_sqla_column())
             if ddr.primary_pid:
-                columns.append(self.get_trid_sqla_column())
+                columns.append(self._get_trid_sqla_column())
         return Table(tablename, metadata, *columns, **MYSQL_TABLE_ARGS)
 
-    def get_srchash_sqla_column(self) -> Column:
+    def _get_srchash_sqla_column(self) -> Column:
         return Column(
             self.config.source_hash_fieldname,
             self.config.SqlTypeEncryptedPid,
             doc='Hashed amalgamation of all source fields'
         )
 
-    def get_trid_sqla_column(self) -> Column:
+    def _get_trid_sqla_column(self) -> Column:
         return Column(
             self.config.trid_fieldname,
             TridType,
