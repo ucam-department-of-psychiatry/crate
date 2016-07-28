@@ -224,15 +224,6 @@ class DataDictionary(object):
                 rows = self.get_rows_for_src_table(d, t)
                 fieldnames = self.get_fieldnames_for_src_table(d, t)
 
-                if any([r.being_scrubbed() or r.master_pid
-                        for r in rows if not r.omit]):
-                    pidfield = db.srccfg.ddgen_per_table_pid_field
-                    if pidfield not in fieldnames:
-                        raise ValueError(
-                            "Source table {d}.{t} has a scrub_in or "
-                            "src_flags={f} field but no {p} field".format(
-                                d=d, t=t, f=SRCFLAG.MASTER_PID, p=pidfield))
-
                 if t not in db.table_names:
                     log.debug(
                         "Source database {d} has tables: {tables}".format(
@@ -244,16 +235,32 @@ class DataDictionary(object):
                 # We may need to cross-reference rows, so all rows need to know
                 # their type.
                 for r in rows:
-                    sqla_coltype = (
-                        db.metadata.tables[t].columns[r.src_field].type)
-                    r.set_src_sqla_coltype(sqla_coltype)
-
-                for r in rows:
                     if r.src_field not in db.metadata.tables[t].columns:
                         raise ValueError(
                             "Column {c} missing from table {t} in source "
                             "database {d}".format(c=r.src_field, t=t, d=d))
+                    sqla_coltype = (
+                        db.metadata.tables[t].columns[r.src_field].type)
+                    r.set_src_sqla_coltype(sqla_coltype)
 
+                # We have to iterate twice, but shouldn't iterate more than
+                # that, for speed.
+                n_pks = 0
+                needs_pidfield = False
+                for r in rows:
+                    # Needs PID field in table?
+                    if not r.omit and (r.being_scrubbed() or r.master_pid):
+                        needs_pidfield = True
+
+                    # Too many PKs?
+                    if r.pk:
+                        n_pks += 1
+                        if n_pks > 1:
+                            raise ValueError(
+                                "Table {d}.{t} has >1 source PK set".format(
+                                    d=d, t=t))
+
+                    # Duff alter method?
                     for am in r.get_alter_methods():
                         if am.extract_from_blob:
                             extrow = next(
@@ -275,11 +282,13 @@ class DataDictionary(object):
                                         am=r.alter_method,
                                         f=am.extract_ext_field))
 
-                n_pks = sum([1 if x.pk else 0 for x in rows])
-                if n_pks > 1:
-                    raise ValueError(
-                        "Table {d}.{t} has >1 source PK set".format(
-                            d=d, t=t))
+                if needs_pidfield:
+                    pidfield = db.srccfg.ddgen_per_table_pid_field
+                    if pidfield not in fieldnames:
+                        raise ValueError(
+                            "Source table {d}.{t} has a scrub_in or "
+                            "src_flags={f} field but no {p} field".format(
+                                d=d, t=t, f=SRCFLAG.MASTER_PID, p=pidfield))
 
         log.debug("... source tables checked.")
         
