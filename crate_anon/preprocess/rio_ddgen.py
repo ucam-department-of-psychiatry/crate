@@ -56,7 +56,7 @@ ddgen_include_fields = #
     # -------------------------------------------------------------------------
     # Non-core:
     # -------------------------------------------------------------------------
-    Core_Assessment_PPH_PMH_Allergies_Frailty.*
+    CPFT_*.*  # all fields in "CPFT_*" views
 
 ddgen_allow_no_patient_info = False
 
