@@ -409,7 +409,7 @@ class DataDictionaryRow(object):
         return any(am.scrub for am in self._alter_methods)
 
     def contains_patient_info(self) -> bool:
-        return bool(self.scrub_src) or self._primary_pid or self._master_pid
+        return self._primary_pid or self._master_pid or bool(self.scrub_src)
 
     def contains_vital_patient_info(self) -> bool:
         return bool(self.scrub_src)
