@@ -3,9 +3,8 @@
 
 from collections import OrderedDict
 
-from crate_anon.common.lang import (
-    merge_two_dicts,
-)
+from cardinal_pythonlib.rnc_lang import merge_dicts
+
 from crate_anon.common.sql import sql_fragment_cast_to_int
 from crate_anon.preprocess.rio_constants import (
     VIEW_ADDRESS_WITH_GEOGRAPHY,
@@ -2793,7 +2792,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_Presenting_Problem', {
         'basetable': 'UserAssesscoreasspresprob',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'ReasonRef': 'Reasons_For_Referral',
             'HistProb': 'History_Of_Presenting_Problem',
             'CurrInt': 'Current_Interventions_Medication',
@@ -2805,7 +2804,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_PPH_PMH_Allergies_Frailty', {
         'basetable': 'UserAssesscoreassesspastpsy',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'PastPsyHist': 'Past_Psychiatric_History',
             'PhyHealth': 'Physical_Health_Medical_History',
             'Allergies': 'Allergies',
@@ -2830,7 +2829,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_Background_History', {
         'basetable': 'UserAssesscoreassessbackhist',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'FamPersHist': 'Family_Personal_History',
             'ScoHist': 'Social_History',  # sic (Sco not Soc)
             'DruAlc': 'Drugs_Alcohol',
@@ -2843,7 +2842,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_Mental_State', {
         'basetable': 'UserAssesscoreassesmentstate',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'MentState': 'Mental_State_Examination',
         }),
         'add': [
@@ -2853,7 +2852,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_Capacity_Safeguarding_Risk', {
         'basetable': 'UserAssesscoreassescapsafrisk',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'CapIssCon': 'Capacity_Issues_Consent',
             'Safeguard': 'Safeguarding',
             # "Please indicate whether any issues were identified..."
@@ -2874,7 +2873,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_Summary_Initial_Plan', {
         'basetable': 'UserAssesscoreasssumminitplan',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'ServStre': 'Service_User_Strengths_Needs_Expectations',
             'CareView': 'Carer_Views_Needs',
             'SummForm': 'Summary_Formulation',
@@ -2891,7 +2890,7 @@ RIO_VIEWS = OrderedDict([
         'basetable': 'UserAssesscoresocial1',
         # no free text
         # bad field names!
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'Social06': None,  # lookup below
             'Social07': None,  # lookup below
             'Social16': None,  # lookup below
@@ -2954,7 +2953,7 @@ RIO_VIEWS = OrderedDict([
         # - UserAssesstfkcsa_childprev
         #       ... this is the list of children from prev. relationships
         'basetable': 'UserAssesstfkcsa',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             # - Does SU live in household where there are children?
             # - Please specify relationship?
             # - Is SU expecting a baby?
@@ -3126,7 +3125,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_KCSA_Children_In_Household', {
         'basetable': 'UserAssesstfkcsa_childs',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'type12_NoteID': 'KCSA_Note_ID',
             'NOC': 'Child_Name',
             'DOB': 'Child_Date_Of_Birth',
@@ -3147,7 +3146,7 @@ RIO_VIEWS = OrderedDict([
 
     ('CPFT_Core_Assessment_v2_KCSA_Children_Previous_Relationships', {
         'basetable': 'UserAssesstfkcsa_childprev',
-        'rename': merge_two_dicts(DEFAULT_NONCORE_RENAMES, {
+        'rename': merge_dicts(DEFAULT_NONCORE_RENAMES, {
             'type12_NoteID': 'KCSA_Note_ID',
             'chname': 'Child_Name',
             'chdob': 'Child_Date_Of_Birth',

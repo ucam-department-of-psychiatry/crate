@@ -36,7 +36,8 @@ import calendar
 import datetime
 import dateutil.parser  # for unit tests
 import logging
-from typing import Any, List, Union
+import typing
+from typing import List, Optional, Union
 import unittest
 
 import regex  # sudo apt-get install python-regex
@@ -343,7 +344,8 @@ def get_regex_string_from_elements(elementlist: List[str]) -> str:
     # non-capturing group, (?:...)
 
 
-def get_regex_from_elements(elementlist: List[str]) -> Any:
+def get_regex_from_elements(elementlist: List[str]) \
+        -> Optional[typing.re.Pattern]:
     """
     Convert a list of regex elements into a compiled regex, which will operate
     in case-insensitive fashion on Unicode strings.

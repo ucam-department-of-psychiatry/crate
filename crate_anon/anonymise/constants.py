@@ -33,8 +33,7 @@ from sqlalchemy import (
     BigInteger,
     Integer,
 )
-
-from crate_anon.common.lang import StrEnum
+from cardinal_pythonlib.rnc_lang import StrEnum
 
 # =============================================================================
 # Logging

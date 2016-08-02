@@ -4,7 +4,8 @@
 import logging
 import re
 import textwrap
-from typing import Any, Dict, Iterable, Optional
+import typing
+from typing import Dict, Iterable, Optional
 
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
@@ -126,7 +127,8 @@ def escape_literal_string_for_regex(s: str) -> str:
 
 
 def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
-                              at_word_boundaries_only: bool = False) -> Any:
+                              at_word_boundaries_only: bool = False) \
+        -> typing.re.Pattern:
     elements = []
     wb = r"\b"  # word boundary; escape the slash if not using a raw string
     for highlight in highlight_list:

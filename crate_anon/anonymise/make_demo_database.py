@@ -57,12 +57,12 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Integer,
-    # LargeBinary,
+    LargeBinary,
     MetaData,
     String,
     Text,
 )
-from sqlalchemy.dialects.mysql import LONGBLOB
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import text
@@ -77,6 +77,9 @@ log = logging.getLogger(__name__)
 metadata = MetaData()
 Base = declarative_base(metadata=metadata)
 
+# =============================================================================
+# Constants
+# =============================================================================
 
 CONSOLE_ENCODING = 'utf8'
 REPORT_EVERY = 50
@@ -113,6 +116,51 @@ DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, 'doctest.pdf')
 
 MAX_EXT_LENGTH_WITH_DOT = 10
 
+# =============================================================================
+# BLOB type
+# =============================================================================
+
+"""
+MySQL: http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html
+    TINYBLOB: up to 2^8 bytes
+    BLOB: up to 2^16 bytes = 64 KiB
+    MEDIUMBLOB: up to 2^24 bytes = 16 MiB  <-- minimum for docs
+    LONGBLOB: up to 2^32 bytes = 4 GiB
+
+    VARBINARY: up to 65535 = 64 KiB
+
+SQL Server: https://msdn.microsoft.com/en-us/library/ms188362.aspx
+    BINARY: up to 8000 bytes = 8 KB
+    VARBINARY(MAX): up to 2^31 - 1 bytes = 2 GiB <-- minimum for docs
+    IMAGE: deprecated; up to 2^31 - 1 bytes = 2 GiB
+        https://msdn.microsoft.com/en-us/library/ms187993.aspx
+
+SQL Alchemy:
+    _Binary: base class
+    LargeBinary: translates to BLOB in MySQL
+    VARBINARY, as an SQL base data type
+    dialects.mysql.base.LONGBLOB
+    dialects.mssql.base.VARBINARY
+
+Therefore, we can take the LargeBinary type and modify it:
+"""
+
+
+# http://docs.sqlalchemy.org/en/latest/core/custom_types.html
+@compiles(LargeBinary, 'mysql')
+def compile_blob_mysql(type_, compiler, **kw):
+    return "LONGBLOB"  # would have been "BLOB"
+
+
+# If this goes wrong for future versions of SQL Server, write another
+# specializer to produce "VARBINARY(MAX)" instead of "IMAGE". I haven't done
+# that because it may be that SQL Alchemy is reading the SQL Server version
+# (it definitely executes "select @@version") and specializing accordingly.
+
+
+# =============================================================================
+# Tables
+# =============================================================================
 
 class Patient(Base):
     __tablename__ = 'patient'
@@ -147,7 +195,7 @@ class BlobDoc(Base):
 
     blob_doc_id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
-    blob = Column(LONGBLOB)  # LargeBinary is too small
+    blob = Column(LargeBinary)  # modified as above!
     extension = Column(String(MAX_EXT_LENGTH_WITH_DOT))
 
     patient = relationship("Patient")

@@ -387,8 +387,10 @@ class DataDictionaryRow(object):
         self.src_field = valuedict['src_field']
         self.src_datatype = valuedict['src_datatype'].upper()
         self.src_flags = valuedict['src_flags']  # a property
-        self.scrub_src = SCRUBSRC.lookup(valuedict['scrub_src'])
-        self.scrub_method = SCRUBMETHOD.lookup(valuedict['scrub_method'])
+        self.scrub_src = SCRUBSRC.lookup(valuedict['scrub_src'],
+                                         allow_none=True)
+        self.scrub_method = SCRUBMETHOD.lookup(valuedict['scrub_method'],
+                                               allow_none=True)
         self.decision = valuedict['decision']  # a property; sets self.omit
         self.inclusion_values = valuedict['inclusion_values']  # a property
         self.exclusion_values = valuedict['exclusion_values']  # a property
@@ -396,7 +398,7 @@ class DataDictionaryRow(object):
         self.dest_table = valuedict['dest_table']
         self.dest_field = valuedict['dest_field']
         self.dest_datatype = valuedict['dest_datatype'].upper()
-        self.index = INDEX.lookup(valuedict['index'])
+        self.index = INDEX.lookup(valuedict['index'], allow_none=True)
         self.indexlen = convert_to_int(valuedict['indexlen'])
         self.comment = valuedict['comment']
         self._from_file = True
