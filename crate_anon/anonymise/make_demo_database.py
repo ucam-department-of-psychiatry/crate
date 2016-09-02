@@ -147,6 +147,7 @@ Therefore, we can take the LargeBinary type and modify it:
 
 
 # http://docs.sqlalchemy.org/en/latest/core/custom_types.html
+# noinspection PyUnusedLocal
 @compiles(LargeBinary, 'mysql')
 def compile_blob_mysql(type_, compiler, **kw):
     return "LONGBLOB"  # would have been "BLOB"

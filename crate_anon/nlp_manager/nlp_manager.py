@@ -928,7 +928,7 @@ def get_dest_sqla_table(engine: Engine, otconfig: OutputTypeConfig) -> Table:
 
 def get_progress_record(ifconfig: InputFieldConfig,
                         srcpkval: int,
-                        srchash: str = None) -> NlpRecord:
+                        srchash: str = None) -> Optional[NlpRecord]:
     session = config.progdb.session
     query = (
         session.query(NlpRecord).

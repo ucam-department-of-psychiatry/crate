@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # crate_anon/common/lang.py
 
-from enum import Enum
+# from enum import Enum
 from typing import Any, Dict, Optional
 
 
