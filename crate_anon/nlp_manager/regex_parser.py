@@ -1,11 +1,21 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/regex_elements.py
+# crate_anon/nlp_manager/regex_parser.py
 
 # Shared elements for regex-based NLP work.
 
 import regex
 import typing
-from typing import List, Dict
+from typing import Any, Dict, Iterator, List, Tuple
+
+from sqlalchemy import Column, Integer, Float, String, Text
+
+from crate_anon.nlp_manager.constants import (
+    MAX_SQL_FIELD_LEN,
+    SqlTypeDbIdentifier,
+)
+from crate_anon.nlp_manager.base_parser import NlpParser
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+
 
 # =============================================================================
 #  Generic entities
@@ -31,16 +41,19 @@ OPTIONAL_WHITESPACE = r"\s?"
 # -----------------------------------------------------------------------------
 
 OPTIONAL_RESULTS_IGNORABLES = r"""
-    [
-        \s \| \( \) H L \*
-    ]*
+    (?:
+        \s          # whitespace
+        | \|        # bar
+        | \(        # bracket
+        | \)        # bracket
+        | \bHH?\b   # H or HH at a word boundary
+        | \bLL?\b   # L or LL at a word boundary
+        | \*        # asterisk
+    )*
 """
-# - whitespace
 # - you often get | characters when people copy/paste tables
-# - brackets, H/L, and *, for things like
+# - blood test abnormality markers can look like e.g.
 #       17 (H), 17 (*), 17 HH
-#   i.e. blood test abnormality markers
-
 
 # -----------------------------------------------------------------------------
 # Tense indicators
@@ -200,6 +213,12 @@ def per(numerator: str, denominator: str) -> str:
     """.format(numerator=numerator, denominator=denominator)
 
 
+def out_of(n: int) -> str:
+    return r"""
+        (?: \/ \s* n )
+    """.format(n=n)
+
+
 MM = r"(?:mm|millimet(?:re:er)[s]?)"  # mm, millimetre(s), millimeter(s)
 MG = r"(?:mg|milligram[s]?)"  # mg, milligram, milligrams
 L = r"(?:L|lit(?:re|er)[s]?)"  # L, litre(s), liter(s)
@@ -214,14 +233,26 @@ CUBIC_MM = r"""
 CELLS = r"(?: cell[s]? )"
 OPTIONAL_CELLS = CELLS + "?"
 
-UNITS_MM_H = per(MM, HOUR)
-UNITS_MG_DL = per(MG, DL)
-UNITS_MG_L = per(MG, L)
+MILLIMOLES = r"(?:mmol(?:es?))"
+MILLIEQ = r"(?:mEq)"
+MILLIMOLAR = r"(?:mM)"
 
-UNITS_BILLION_PER_L = per(BILLION, L)
-UNITS_PER_CUBIC_MM = per("", CUBIC_MM)
-UNITS_CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
+MM_PER_H = per(MM, HOUR)
+MG_PER_DL = per(MG, DL)
+MG_PER_L = per(MG, L)
+MILLIMOLES_PER_L = per(MILLIMOLES, L)
+MILLIEQ_PER_L = per(MILLIEQ, L)
 
+BILLION_PER_L = per(BILLION, L)
+PER_CUBIC_MM = per("", CUBIC_MM)
+CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
+
+PERCENT = r"""
+    (?:
+        %
+        | pe?r?\s?ce?n?t    # must have pct, other characters optional
+    )
+"""
 
 # =============================================================================
 # Regexes based on some of the fragments above
@@ -229,14 +260,6 @@ UNITS_CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
 
 RE_IS = regex.compile(IS, REGEX_COMPILE_FLAGS)
 RE_WAS = regex.compile(WAS, REGEX_COMPILE_FLAGS)
-RE_UNITS_MG_DL = regex.compile(UNITS_MG_DL, REGEX_COMPILE_FLAGS)
-RE_UNITS_MG_L = regex.compile(UNITS_MG_L, REGEX_COMPILE_FLAGS)
-RE_UNITS_MM_H = regex.compile(UNITS_MM_H, REGEX_COMPILE_FLAGS)
-RE_UNITS_BILLION_PER_L = regex.compile(UNITS_BILLION_PER_L,
-                                       REGEX_COMPILE_FLAGS)
-RE_UNITS_PER_CUBIC_MM = regex.compile(UNITS_PER_CUBIC_MM, REGEX_COMPILE_FLAGS)
-RE_UNITS_CELLS_PER_CUBIC_MM = regex.compile(UNITS_CELLS_PER_CUBIC_MM,
-                                            REGEX_COMPILE_FLAGS)
 
 
 # =============================================================================
@@ -248,7 +271,7 @@ PRESENT = "present"
 
 
 # =============================================================================
-#  Generic processor
+#  Generic processors
 # =============================================================================
 
 def to_float(s: str) -> float:
@@ -257,78 +280,153 @@ def to_float(s: str) -> float:
     return float(s)
 
 
-def numerical_result_finder(text: str,
-                            compiled_regex: typing.re.Pattern,
-                            variable: str,
-                            target_unit: str,
-                            unitregex_to_multiple_dict: Dict,
-                            assume_preferred_unit: bool = False) -> List[Dict]:
-    # This function operates with compiled regexes having this format:
-    #   - variable
-    #   - tense_indicator
-    #   - relation
-    #   - value
-    #   - units
-    # For performance reasons, we do not take the regex and assemble or
-    results = []
-    for m in compiled_regex.finditer(text):
-        startpos = m.start()
-        endpos = m.end()
-        # groups = repr(m.groups())  # all matching groups
-        matching_text = m.group(0)  # the whole thing
-        # matching_text = text[startpos:endpos]  # same thing
+class NumericalResultParser(NlpParser):
+    FN_VARIABLE_NAME = 'variable_name'
+    FN_CONTENT = '_content'
+    FN_START = '_start'
+    FN_END = '_end'
+    FN_VARIABLE_TEXT = 'variable_text'
+    FN_RELATION = 'relation'
+    FN_VALUE_TEXT = 'value_text'
+    FN_UNITS = 'units'
+    FN_TENSE = 'tense'
 
-        variable_text = m.group(1)
-        tense_indicator = m.group(2)
-        relation = m.group(3)
-        value = m.group(4)
-        units = m.group(5)
+    MAX_RELATION_LENGTH = 3
+    MAX_VALUE_TEXT_LENGTH = 255
+    MAX_UNITS_LENGTH = 255
+    MAX_TENSE_LENGTH = len(PRESENT)
 
-        # If units are known (or we're choosing to assume preferred units if
-        # none are specified), calculate an absolute value
-        value_in_target_units = None
-        if units:
-            for unit_regex, multiple in unitregex_to_multiple_dict.items():
-                if unit_regex.match(units):
-                    value_in_target_units = to_float(value) * multiple
-                    break
-        elif assume_preferred_unit:  # unit is None or empty
-            value_in_target_units = to_float(value)
+    def __init__(self,
+                 nlpdef: NlpDefinition,
+                 cfgsection: str,
+                 regex_str: str,
+                 variable: str,
+                 target_unit: str,
+                 units_to_factor: Dict[typing.re.Pattern, float],
+                 commit: bool = False) -> None:
+        """
+        This class operates with compiled regexes having this group format:
+          - variable
+          - tense_indicator
+          - relation
+          - value
+          - units
 
-        # Sort out tense, if known, and impute that "CRP was 72" means that
-        # relation was EQ in the PAST, etc.
-        tense = None
-        if tense_indicator:
-            if RE_IS.match(tense_indicator):
-                tense = PRESENT
-            elif RE_WAS.match(tense_indicator):
-                tense = PAST
-        elif relation:
-            if RE_IS.match(relation):
-                tense = PRESENT
-            elif RE_IS.match(relation):
-                tense = PAST
+        units_to_factor: dictionary, mapping
+            (compiled regex for units)
+            -> (factor [multiple] to multiple those units by, to get preferred
+                unit)
+        """
+        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        self.compiled_regex = regex.compile(regex_str, REGEX_COMPILE_FLAGS)
+        self.variable = variable
+        self.target_unit = target_unit
+        self.units_to_factor = {
+            regex.compile(k, REGEX_COMPILE_FLAGS): v
+            for k, v in units_to_factor.items()
+        }
 
-        if not relation:
-            relation = EQ
+        if nlpdef is None:  # only None for debugging!
+            self.tablename = ''
+            self.assume_preferred_unit = True
+        else:
+            self.tablename = nlpdef.opt_str(
+                cfgsection, 'desttable', required=True)
+            self.assume_preferred_unit = nlpdef.opt_bool(
+                cfgsection, 'assume_preferred_unit', default=True)
 
-        results.append({
-            'variable': variable,
+        # Sanity checks
+        assert len(self.variable) <= MAX_SQL_FIELD_LEN, (
+            "Variable name too long (max {} characters)".format(
+                MAX_SQL_FIELD_LEN))
 
-            'matching_text': matching_text,
-            'startpos': startpos,
-            'endpos': endpos,
+    # noinspection PyMethodMayBeStatic
+    def set_tablename(self, tablename: str) -> None:
+        """Used occasionally by friend classes to override """
+        pass
 
-            # 'groups': groups,
+    def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        return {self.tablename: [
+            Column(self.FN_VARIABLE_NAME, SqlTypeDbIdentifier,
+                   doc="Variable name"),
+            Column(self.FN_CONTENT, Text,
+                   doc="Matching text contents"),
+            Column(self.FN_START, Integer,
+                   doc="Start position (of matching string within whole "
+                       "text)"),
+            Column(self.FN_END, Integer,
+                   doc="End position (of matching string within whole text)"),
+            Column(self.FN_VARIABLE_TEXT, Text,
+                   doc="Text that matched the variable name"),
+            Column(self.FN_RELATION, String(self.MAX_RELATION_LENGTH),
+                   doc="Text that matched the mathematical relationship "
+                       "between variable and value (e.g. '=', '<='"),
+            Column(self.FN_VALUE_TEXT, String(self.MAX_VALUE_TEXT_LENGTH),
+                   doc="Matched numerical value, as text"),
+            Column(self.FN_UNITS, String(self.MAX_UNITS_LENGTH),
+                   doc="Matched units, as text"),
+            Column(self.target_unit, Float,
+                   doc="Numerical value in preferred units, if known"),
+            Column(self.FN_TENSE, String(self.MAX_TENSE_LENGTH),
+                   doc="Tense indicator, if known (e.g. '{}', '{}')".format(
+                       PAST, PRESENT)),
+        ]}
 
-            'variable_text': variable_text,
-            'relation': relation,
-            'value': value,
-            'units': units,
-            target_unit: value_in_target_units,
-            'tense': tense,
-        })
-    return results
+    def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        for m in self.compiled_regex.finditer(text):
+            startpos = m.start()
+            endpos = m.end()
+            # groups = repr(m.groups())  # all matching groups
+            matching_text = m.group(0)  # the whole thing
+            # matching_text = text[startpos:endpos]  # same thing
+
+            variable_text = m.group(1)
+            tense_indicator = m.group(2)
+            relation = m.group(3)
+            value_text = m.group(4)
+            units = m.group(5)
+
+            # If units are known (or we're choosing to assume preferred units if
+            # none are specified), calculate an absolute value
+            value_in_target_units = None
+            if units:
+                for unit_regex, multiple in self.units_to_factor.items():
+                    if unit_regex.match(units):
+                        value_in_target_units = to_float(value_text) * multiple
+                        break
+            elif self.assume_preferred_unit:  # unit is None or empty
+                value_in_target_units = to_float(value_text)
+
+            # Sort out tense, if known, and impute that "CRP was 72" means that
+            # relation was EQ in the PAST, etc.
+            tense = None
+            if tense_indicator:
+                if RE_IS.match(tense_indicator):
+                    tense = PRESENT
+                elif RE_WAS.match(tense_indicator):
+                    tense = PAST
+            elif relation:
+                if RE_IS.match(relation):
+                    tense = PRESENT
+                elif RE_IS.match(relation):
+                    tense = PAST
+
+            if not relation:
+                relation = EQ
+
+            yield self.tablename, {
+                self.FN_VARIABLE_NAME: self.variable,
+                self.FN_CONTENT: matching_text,
+                self.FN_START: startpos,
+                self.FN_END: endpos,
+                # 'groups': groups,
+                self.FN_VARIABLE_TEXT: variable_text,
+                self.FN_RELATION: relation,
+                self.FN_VALUE_TEXT: value_text,
+                self.FN_UNITS: units,
+                self.target_unit: value_in_target_units,
+                self.FN_TENSE: tense,
+            }
 
 
 # =============================================================================
@@ -374,9 +472,9 @@ def test_base_regexes() -> None:
     for s in numbers:
         test_text_regex(LIBERAL_NUMBER, s)
 
-    print("RE_UNITS_CELLS_PER_CUBIC_MM:")
-    test_compiled_regex(RE_UNITS_CELLS_PER_CUBIC_MM, "cells/mm3")
-    test_compiled_regex(RE_UNITS_CELLS_PER_CUBIC_MM, "blibble")
+    print("UNITS_CELLS_PER_CUBIC_MM:")
+    test_text_regex(CELLS_PER_CUBIC_MM, "cells/mm3")
+    test_text_regex(CELLS_PER_CUBIC_MM, "blibble")
 
 
 # =============================================================================

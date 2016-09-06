@@ -57,7 +57,7 @@ def main() -> None:
                         help="Config file (overriding environment "
                              "variable {})".format(NLP_CONFIG_ENV_VAR))
     parser.add_argument(
-        "--nlpname", "-a", required=True,
+        "--nlpdef", "-a", required=True,
         help="NLP processing name, from the config file")
 
     mode_group = parser.add_mutually_exclusive_group()
@@ -85,7 +85,7 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, loglevel)
 
-    common_options = ['--nlpname', args.nlpname] + ["-v"] * args.verbose
+    common_options = ['--nlpdef', args.nlpdef] + ["-v"] * args.verbose
     if args.config:
         common_options.extend(['--config', args.config])
     if args.incremental:

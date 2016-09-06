@@ -29,10 +29,7 @@ Copyright/licensing:
 
 from enum import unique
 
-from sqlalchemy import (
-    BigInteger,
-    Integer,
-)
+from sqlalchemy import BigInteger, Integer
 from cardinal_pythonlib.rnc_lang import StrEnum
 
 # =============================================================================
@@ -165,7 +162,7 @@ class SRCFLAG(StrEnum):
 # =============================================================================
 
 MYSQL_CHARSET = 'utf8'
-MYSQL_TABLE_ARGS = {
+MYSQL_TABLE_KWARGS = {
     'mysql_charset': MYSQL_CHARSET,
     'mysql_engine': 'InnoDB',
 }

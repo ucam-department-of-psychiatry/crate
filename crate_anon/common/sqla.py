@@ -169,6 +169,10 @@ def get_table_names(engine: Engine) -> List[str]:
     return insp.get_table_names()
 
 
+def table_exists(engine: Engine, tablename: str) -> bool:
+    return tablename in get_table_names(engine)
+
+
 def get_columns(engine: Engine, tablename: str) -> List[Column]:
     insp = Inspector.from_engine(engine)
     return insp.get_columns(tablename)

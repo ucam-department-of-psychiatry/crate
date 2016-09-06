@@ -47,7 +47,7 @@ from sqlalchemy import Column, Table
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
-    MYSQL_TABLE_ARGS,
+    MYSQL_TABLE_KWARGS,
     SRCFLAG,
     TridType,
 )
@@ -723,7 +723,7 @@ class DataDictionary(object):
                 columns.append(self._get_srchash_sqla_column())
             if ddr.primary_pid:
                 columns.append(self._get_trid_sqla_column())
-        return Table(tablename, metadata, *columns, **MYSQL_TABLE_ARGS)
+        return Table(tablename, metadata, *columns, **MYSQL_TABLE_KWARGS)
 
     def _get_srchash_sqla_column(self) -> Column:
         return Column(
