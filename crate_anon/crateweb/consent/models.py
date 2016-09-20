@@ -23,7 +23,7 @@ from django.core.validators import validate_email
 from django.db import connections, models, transaction
 from django.db.models import Q, QuerySet
 from django.dispatch import receiver
-from django.http import QueryDict
+from django.http import QueryDict, Http404
 from django.http.request import HttpRequest
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -819,7 +819,8 @@ def lookup_patient(nhs_number: int,
         try:
             lookup = PatientLookup.objects.filter(nhs_number=nhs_number)\
                                           .latest('lookup_at')
-            return lookup
+            if lookup:
+                return lookup
         except PatientLookup.DoesNotExist:
             # No existing lookup, so proceed to do it properly (below).
             pass
@@ -2468,6 +2469,9 @@ class ContactRequest(models.Model):
         decision form.
         """
         patient_lookup = self.patient_lookup
+        if not patient_lookup:
+            raise Http404("No patient_lookup: is the back-end message queue "
+                          "(e.g. Celery + RabbitMQ) running?")
         yellow = (self.clinician_involvement ==
                   ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW)
         context = {

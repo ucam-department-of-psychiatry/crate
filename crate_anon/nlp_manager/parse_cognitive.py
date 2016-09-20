@@ -28,7 +28,7 @@ class Mmse(NumericalResultParser):
             {WORD_BOUNDARY}
             (?:
                 MMSE
-                | Sodium
+                | mini[-\s]*mental (?: \s+ state)? (?: \s+ exam(?:ination)? )?
             )
             {WORD_BOUNDARY}
         )
@@ -78,7 +78,9 @@ class Mmse(NumericalResultParser):
             "MMSE 30/30",
             "MMSE 25 / 30",
             "mini-mental state exam 30",
+            "minimental 25",
             "MMSE 30",
+            "ACE 79",
         ])
 
 

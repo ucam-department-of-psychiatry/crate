@@ -214,9 +214,7 @@ def per(numerator: str, denominator: str) -> str:
 
 
 def out_of(n: int) -> str:
-    return r"""
-        (?: \/ \s* n )
-    """.format(n=n)
+    return r"(?: (?: \/ | \b out \s+ of \b ) \s* n \b )".format(n=n)
 
 
 MM = r"(?:mm|millimet(?:re:er)[s]?)"  # mm, millimetre(s), millimeter(s)
