@@ -197,7 +197,7 @@ setup(
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==0.2.3',
+        'cardinal_pythonlib==0.2.4',
 
         'beautifulsoup4==4.4.1',
         'prettytable==0.7.2',
