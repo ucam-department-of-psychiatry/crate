@@ -133,7 +133,8 @@ class InputFieldConfig(object):
         for c in t.columns:
             if c.name.lower() in self._copyfields:
                 copied = c.copy()
-                copied.name = copied.name.lower()  # force lower case
+                # copied.name = copied.name.lower()  # force lower case
+                copied.name = quoted_name(copied.name.lower(), None)
                 copy_columns.append(copied)
         log.critical(copy_columns)
         return copy_columns
@@ -148,7 +149,11 @@ class InputFieldConfig(object):
                 copied = c.copy()
                 # Force lower case:
                 # copied.name = copied.name.lower()
-                copied.name = quoted_name(copied.name.lower(), None)
+                # copied.name = quoted_name(copied.name.lower(), None)
+                # ... this is not working properly. Keep getting an
+                # "Unconsumed column names" error with e.g. a source field of
+                # "Text".
+                # Try making copyfields case-sensitive instead.
                 copy_indexes.append(Index(copied))
         return copy_indexes
 
