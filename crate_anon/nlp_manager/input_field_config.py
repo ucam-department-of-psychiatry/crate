@@ -134,6 +134,7 @@ class InputFieldConfig(object):
                 copied = c.copy()
                 copied.name = copied.name.lower()  # force lower case
                 copy_columns.append(copied)
+        log.critical(copy_columns)
         return copy_columns
 
     def get_copy_indexes(self) -> List[Index]:

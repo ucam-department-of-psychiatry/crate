@@ -182,6 +182,7 @@ def process_nlp(config: NlpDefinition,
                     pkv=pkval,
                     maximum=maximum,
                     count=count))
+            log.critical("other_values={}".format(repr(other_values)))
             srchash = config.hash(text)
             if incremental:
                 if ifconfig.get_progress_record(pkval, srchash) is not None:
