@@ -54,17 +54,21 @@ class InputFieldConfig(object):
         self._srctable = opt_str('srctable')
         self._srcpkfield = opt_str('srcpkfield')
         self._srcfield = opt_str('srcfield')
-        self._copyfields = opt_strlist('copyfields')  # fieldnames
-        self._indexed_copyfields = opt_strlist('indexed_copyfields')
+        # Make these case-sensitive to avoid our failure in renaming SQLA
+        # Column objects to be lower-case:
+        self._copyfields = opt_strlist('copyfields', lower=False)  # fieldnames
+        self._indexed_copyfields = opt_strlist('indexed_copyfields',
+                                               lower=False)
 
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
         ensure_valid_field_name(self._srcfield)
-        allfields = [self._srcpkfield, self._srcfield] + self._copyfields
+        # allfields = [self._srcpkfield, self._srcfield] + self._copyfields
         # if len(allfields) != len(set(allfields)):
         #     raise ValueError(
         #         "Field overlap in InputFieldConfig: {}".format(section))
-        # RETHOUGHT: OK to copy source text fields etc. if desired.
+        # RE-THOUGHT: OK to copy source text fields etc. if desired.
+        # It's fine in SQL to say SELECT a, a FROM mytable;
 
         self._db = nlpdef.get_database(self._srcdb)
 
@@ -131,10 +135,16 @@ class InputFieldConfig(object):
         t = Table(self._srctable, meta, autoload=True)
         copy_columns = []
         for c in t.columns:
-            if c.name.lower() in self._copyfields:
+            # if c.name.lower() in self._copyfields:
+            if c.name in self._copyfields:
                 copied = c.copy()
-                # copied.name = copied.name.lower()  # force lower case
-                copied.name = quoted_name(copied.name.lower(), None)
+                # Force lower case:
+                # copied.name = copied.name.lower()
+                # copied.name = quoted_name(copied.name.lower(), None)
+                # ... this is not working properly. Keep getting an
+                # "Unconsumed column names" error with e.g. a source field of
+                # "Text".
+                # Try making copyfields case-sensitive instead.
                 copy_columns.append(copied)
         log.critical(copy_columns)
         return copy_columns
@@ -145,15 +155,10 @@ class InputFieldConfig(object):
         t = Table(self._srctable, meta, autoload=True)
         copy_indexes = []
         for c in t.columns:
-            if c.name.lower() in self._indexed_copyfields:
+            # if c.name.lower() in self._indexed_copyfields:
+            if c.name in self._indexed_copyfields:
                 copied = c.copy()
-                # Force lower case:
-                # copied.name = copied.name.lower()
-                # copied.name = quoted_name(copied.name.lower(), None)
-                # ... this is not working properly. Keep getting an
-                # "Unconsumed column names" error with e.g. a source field of
-                # "Text".
-                # Try making copyfields case-sensitive instead.
+                # See above re case.
                 copy_indexes.append(Index(copied))
         return copy_indexes
 
@@ -193,8 +198,6 @@ class InputFieldConfig(object):
         selectcols = [pkcol, column(self._srcfield)]
         for extracol in self._copyfields:
             selectcols.append(column(extracol))
-            # ... will SELECT copy fields using a LOWER CASE version of the
-            # column name
         query = (
             select(selectcols).
             select_from(table(self._srctable)).
@@ -206,8 +209,6 @@ class InputFieldConfig(object):
             pkval = row[0]
             text = row[1]
             other_values = dict(zip(self._copyfields, row[2:]))
-            # ... will create the dictionary using the LOWER CASE version of
-            # the copy fields
             other_values[FN_SRCPKVAL] = pkval
             other_values.update(base_dict)
             yield text, other_values
