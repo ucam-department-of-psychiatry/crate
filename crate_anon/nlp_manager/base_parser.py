@@ -142,7 +142,7 @@ class NlpParser(object):
 
             column_like_things = (
                 copy_of_cols + source_indexes + dest_indexes + copy_indexes)
-            log.critical(repr(column_like_things))
+            # log.critical(repr(column_like_things))
             tables[tablename] = Table(tablename, meta, *column_like_things)
             # You can put indexes in the column list:
             # http://docs.sqlalchemy.org/en/latest/core/constraints.html
@@ -202,7 +202,7 @@ class NlpParser(object):
             column_names = [c.name for c in sqla_table.columns]
             final_values = {k: v for k, v in nlp_values.items()
                             if k in column_names}
-            log.critical(repr(sqla_table))
+            # log.critical(repr(sqla_table))
             insertquery = sqla_table.insert().values(final_values)
             session.execute(insertquery)
             if self._commit:
