@@ -383,7 +383,9 @@ indexdefs =
 # =============================================================================
 # Input field definitions, referred to within the NLP definition, and cross-
 # referencing database definitions.
-# The 'copyfields' are optional.
+# - The 'copyfields' are optional.
+# - The 'indexed_copyfields' are an optional subset of 'copyfields'; they'll be
+#   indexed.
 # =============================================================================
 
 [INPUT_FIELD_CLINICAL_DOCUMENTS]
@@ -394,6 +396,8 @@ srcpkfield = DOCUMENT_PK
 srcfield = DOCUMENT_TEXT
 copyfields = RID_FIELD
     TRID_FIELD
+indexed_copyfields = RID_FIELD
+    TRID_FIELD
 
 [INPUT_FIELD_PROGRESS_NOTES]
 
@@ -402,6 +406,8 @@ srctable = PROGRESS_NOTES
 srcpkfield = PN_PK
 srcfield = PN_TEXT
 copyfields = RID_FIELD
+    TRID_FIELD
+indexed_copyfields = RID_FIELD
     TRID_FIELD
 
 # =============================================================================

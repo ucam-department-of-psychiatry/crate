@@ -168,7 +168,8 @@ class InputFieldConfig(object):
         if missing:
             raise ValueError(
                 "The following fields were requested to be copied but are "
-                "absent from the source: {}".format(missing))
+                "absent from the source (NB case-sensitive): {}".format(
+                    missing))
         # log.critical(copy_columns)
         return copy_columns
 
@@ -189,8 +190,9 @@ class InputFieldConfig(object):
             processed_copy_index_col_names)
         if missing:
             raise ValueError(
-                "The following fields were requested to be copied but are "
-                "absent from the source: {}".format(missing))
+                "The following fields were requested to be copied/indexed but "
+                "are absent from the source (NB case-sensitive): {}".format(
+                    missing))
         return copy_indexes
 
     def gen_src_pks(self) -> Iterator(int):
