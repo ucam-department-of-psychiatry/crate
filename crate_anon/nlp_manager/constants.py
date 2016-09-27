@@ -90,7 +90,7 @@ DEMO_CONFIG = ("""
 # - referred to by the nlp_manager.py's command-line arguments
 # =============================================================================
 
-[NLPDEF_MY_NAME_LOCATION_NLP]
+[NLPDEF_NAME_LOCATION_NLP]
 
     # Input is from one or more source databases/tables/fields.
     # This list refers to config sections that define those fields in more
@@ -101,14 +101,31 @@ inputfielddefs =
     INPUT_FIELD_PROGRESS_NOTES
 
     # Which NLP processors shall we use?
-    # These are given as (processor, definition_section) pairs.
-    # For possible processor names, see "crate_nlp --listprocessors".
+    # Specify these as a list of (processor_type, config_section) pairs.
+    # For possible processor types, see "crate_nlp --listprocessors".
 
 processors =
     # -------------------------------------------------------------------------
     # GATE
     # -------------------------------------------------------------------------
     GATE procdef_gate_name_location
+
+    # To allow incremental updates, information is stored in a progress table.
+    # The database name is a cross-reference to another section in this config
+    # file. The table name is hard-coded to 'crate_nlp_progress'.
+
+progressdb = MY_DESTINATION_DATABASE
+hashphrase = doesnotmatter
+
+
+
+[NLPDEF_BIOMARKERS]
+
+inputfielddefs =
+    INPUT_FIELD_CLINICAL_DOCUMENTS
+    INPUT_FIELD_PROGRESS_NOTES
+
+processors =
     # -------------------------------------------------------------------------
     # Biochemistry
     # -------------------------------------------------------------------------
@@ -139,12 +156,9 @@ processors =
     Neutrophils procdef_neutrophils
     NeutrophilsValidator procdef_validate_neutrophils
 
-    # To allow incremental updates, information is stored in a progress table.
-    # The database name is a cross-reference to another section in this config
-    # file. The table name is hard-coded to 'crate_nlp_progress'.
-
 progressdb = MY_DESTINATION_DATABASE
 hashphrase = doesnotmatter
+
 
 # =============================================================================
 # NLP processor definitions

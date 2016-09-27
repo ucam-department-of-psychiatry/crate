@@ -53,9 +53,8 @@ class InputFieldConfig(object):
         self._srctable = opt_str('srctable')
         self._srcpkfield = opt_str('srcpkfield')
         self._srcfield = opt_str('srcfield')
-        self._copyfields = opt_strlist('copyfields', lower=False)  # fieldnames
-        self._indexed_copyfields = opt_strlist('indexed_copyfields',
-                                               lower=False)
+        self._copyfields = opt_strlist('copyfields')  # fieldnames, lower case
+        self._indexed_copyfields = opt_strlist('indexed_copyfields')
 
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
@@ -175,6 +174,8 @@ class InputFieldConfig(object):
         selectcols = [pkcol, column(self._srcfield)]
         for extracol in self._copyfields:
             selectcols.append(column(extracol))
+            # ... will SELECT copy fields using a LOWER CASE version of the
+            # column name
         query = (
             select(selectcols).
             select_from(table(self._srctable)).
@@ -186,6 +187,8 @@ class InputFieldConfig(object):
             pkval = row[0]
             text = row[1]
             other_values = dict(zip(self._copyfields, row[2:]))
+            # ... will create the dictionary using the LOWER CASE version of
+            # the copy fields
             other_values[FN_SRCPKVAL] = pkval
             other_values.update(base_dict)
             yield text, other_values

@@ -193,9 +193,12 @@ class NlpParser(object):
             sqla_table = self.get_table(tablename)
             # If we have superfluous keys in our dictionary, SQLAlchemy will
             # choke ("Unconsumed column names")
-            column_names = [c.name for c in sqla_table.columns]
-            final_values = {k: v for k, v in nlp_values.items()
-                            if k in column_names}
+            # HOWEVER, note that SQLA column names may be mixed case (e.g.
+            # 'Text') while our copy-column names are lower case (e.g. 'text'),
+            # so we convert to lower case throughout:
+            column_names = [c.name.lower() for c in sqla_table.columns]
+            final_values = {k.lower(): v for k, v in nlp_values.items()
+                            if k.lower() in column_names}
             insertquery = sqla_table.insert().values(final_values)
             session.execute(insertquery)
             if self._commit:
