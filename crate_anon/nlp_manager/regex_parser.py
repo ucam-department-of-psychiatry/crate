@@ -390,14 +390,20 @@ class NumericalResultParser(NlpParser):
             value_text = m.group(4)
             units = m.group(5)
 
-            # If units are known (or we're choosing to assume preferred units if
-            # none are specified), calculate an absolute value
+            # If units are known (or we're choosing to assume preferred units
+            # if none are specified), calculate an absolute value
             value_in_target_units = None
             if units:
+                matched_unit = False
                 for unit_regex, multiple in self.units_to_factor.items():
                     if unit_regex.match(units):
                         value_in_target_units = to_float(value_text) * multiple
+                        matched_unit = True
                         break
+                if not matched_unit:
+                    # None of our units match. But there is a unit, and the
+                    # regex matched. So this is a BAD unit. Skip the value
+                    continue
             elif self.assume_preferred_unit:  # unit is None or empty
                 value_in_target_units = to_float(value_text)
 
