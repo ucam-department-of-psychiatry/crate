@@ -279,6 +279,7 @@ def to_float(s: str) -> float:
 
 
 class NumericalResultParser(NlpParser):
+    """DO NOT USE DIRECTLY. Base class for generic numerical results."""
     FN_VARIABLE_NAME = 'variable_name'
     FN_CONTENT = '_content'
     FN_START = '_start'
@@ -338,10 +339,9 @@ class NumericalResultParser(NlpParser):
             "Variable name too long (max {} characters)".format(
                 MAX_SQL_FIELD_LEN))
 
-    # noinspection PyMethodMayBeStatic
     def set_tablename(self, tablename: str) -> None:
-        """Used occasionally by friend classes to override """
-        pass
+        """In case a friend class wants to override."""
+        self.tablename = tablename
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         return {self.tablename: [
@@ -424,6 +424,145 @@ class NumericalResultParser(NlpParser):
                 self.FN_UNITS: units,
                 self.target_unit: value_in_target_units,
                 self.FN_TENSE: tense,
+            }
+
+
+# =============================================================================
+#  More general testing
+# =============================================================================
+
+class ValidatorBase(NlpParser):
+    """DO NOT USE DIRECTLY. Base class for validating regex parser sensitivity.
+    The validator will find fields that refer to the variable, whether or not
+    they meet the other criteria of the actual NLP processors (i.e. whether or
+    not they contain a valid value). More explanation below.
+
+    Suppose we're validating C-reactive protein (CRP). Key concepts:
+        - source (true state of the world): Pr present, Ab absent
+        - software decision: Y yes, N no
+        - signal detection theory classification:
+            hit = Pr & Y = true positive
+            miss = Pr & N = false negative
+            false alarm = Ab & Y = false positive
+            correct rejection = Ab & N = true negative
+        - common SDT metrics:
+            positive predictive value, PPV = P(Pr | Y) = precision (*)
+            negative predictive value, NPV = P(Ab | N)
+            sensitivity = P(Y | Pr) = recall (*) = true positive rate
+            specificity = P(N | Ab) = true negative rate
+        (*) common names used in the NLP context.
+
+    Working from source to NLP, we can see there are a few types of "absent":
+        - X. unselected database field containing text
+            - Q. field contains "CRP", "C-reactive protein", etc.; something
+                that a human (or as a proxy: a machine) would judge as
+                containing a textual reference to CRP.
+                - Pr. Present: a human would judge that a CRP value is present,
+                    e.g. "today her CRP is 7, which I am not concerned about."
+                    - H.  Hit: software reports the value.
+                    - M.  Miss: software misses the value.
+                        (maybe: "his CRP was twenty-one".)
+                - Ab1. Absent: reference to CRP, but no numerical information,
+                    e.g. "her CRP was normal".
+                    - FA1. False alarm: software reports a numerical value.
+                        (maybe: "my CRP was 7 hours behind my boss's deadline")
+                    - CR1. Correct rejection: software doesn't report a value.
+            - Ab2. field contains no reference to CRP at all.
+                    - FA2. False alarm: software reports a numerical value.
+                        (a bit hard to think of examples...)
+                    - CR2. Correct rejection: software doesn't report a value.
+
+    From NLP backwards to source:
+        - Y. Software says value present.
+            - H. Hit: value is present.
+            - FA. False alarm: value is absent.
+        - N. Software says value absent.
+            - CR. Correct rejection: value is absent.
+            - M. Miss: value is present.
+
+    The key metrics are:
+        - precision = positive predictive value = P(Pr | Y)
+            ... relatively easy to check; find all the "Y" records and check
+            manually that they're correct.
+        - sensitivity = recall = P(Y | Pr)
+            ... Here, we want a sample that is enriched for "symptom actually
+            present", for human reasons. For example, if 0.1% of text entries
+            refer to CRP, then to assess 100 "Pr" samples we would have to
+            review 100,000 text records, 99,900 of which are completely
+            irrelevant. So we want an automated way of finding "Pr" records.
+            That's what the validator classes do.
+
+    You can enrich for "Pr" records with SQL, e.g.
+        SELECT textfield FROM sometable WHERE (
+            textfield LIKE '%CRP%'
+            OR textfield LIKE '%C-reactive protein%');
+    or similar, but really we want the best "CRP detector" possible. That is
+    probably to use a regex, either in SQL (... "WHERE textfield REGEX
+    'myregex'") or using these validator classes. (The main NLP regexes don't
+    distinguish between "CRP present, no valid value" and "CRP absent",
+    because regexes either match or don't.)
+
+    Each validator class implements the core variable-finding part of its
+    corresponding NLP regex class, but without the value or units. For example,
+    the CRP class looks for things like "CRP is 6" or "CRP 20 mg/L", whereas
+    the CRP validator looks for things like "CRP".
+    """
+    FN_VARIABLE_NAME = 'variable_name'
+    FN_CONTENT = '_content'
+    FN_START = '_start'
+    FN_END = '_end'
+
+    def __init__(self,
+                 nlpdef: NlpDefinition,
+                 cfgsection: str,
+                 regex_str: str,
+                 validated_variable: str,
+                 commit: bool = False) -> None:
+        """
+        This class operates with compiled regexes having this group format:
+          - variable
+        """
+        super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        self.compiled_regex = regex.compile(regex_str, REGEX_COMPILE_FLAGS)
+        self.variable = "{}_validator".format(validated_variable)
+        self.NAME = self.variable
+
+        if nlpdef is None:  # only None for debugging!
+            self.tablename = ''
+        else:
+            self.tablename = nlpdef.opt_str(
+                cfgsection, 'desttable', required=True)
+
+    def set_tablename(self, tablename: str) -> None:
+        """In case a friend class wants to override."""
+        self.tablename = tablename
+
+    def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        return {self.tablename: [
+            Column(self.FN_VARIABLE_NAME, SqlTypeDbIdentifier,
+                   doc="Variable name"),
+            Column(self.FN_CONTENT, Text,
+                   doc="Matching text contents"),
+            Column(self.FN_START, Integer,
+                   doc="Start position (of matching string within whole "
+                       "text)"),
+            Column(self.FN_END, Integer,
+                   doc="End position (of matching string within whole text)"),
+        ]}
+
+    def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        for m in self.compiled_regex.finditer(text):
+            startpos = m.start()
+            endpos = m.end()
+            # groups = repr(m.groups())  # all matching groups
+            matching_text = m.group(0)  # the whole thing
+            # matching_text = text[startpos:endpos]  # same thing
+
+            yield self.tablename, {
+                self.FN_VARIABLE_NAME: self.variable,
+                self.FN_CONTENT: matching_text,
+                self.FN_START: startpos,
+                self.FN_END: endpos,
             }
 
 

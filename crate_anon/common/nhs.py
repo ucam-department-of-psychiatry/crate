@@ -3,7 +3,7 @@
 
 import logging
 import random
-from typing import List, Union
+from typing import List, Optional, Union
 
 log = logging.getLogger(__name__)
 
@@ -82,3 +82,31 @@ def generate_random_nhs_number() -> int:
     # noinspection PyUnboundLocalVariable
     digits.append(check_digit)
     return int("".join([str(d) for d in digits]))
+
+
+def generate_nhs_number_from_first_9_digits(first9digits: str) -> Optional[int]:
+    """
+    Returns a valid NHS number, as an int, given the first 9 digits.
+    The particular purpose is to make NHS numbers that *look* fake.
+    Specifically:
+        123456789_ : no; checksum 10
+        987654321_ : yes, for 9876543210
+        999999999_ : yes, for 9999999999
+    """
+    if len(first9digits) != 9:
+        log.warning("Not 9 digits")
+        return None
+    try:
+        first9int = int(first9digits)
+    except (TypeError, ValueError):
+        log.warning("Not an integer")
+        return None  # not an int
+    if len(str(first9int)) != len(first9digits):
+        # e.g. leading zeros, or some such
+        log.warning("Leading zeros?")
+        return None
+    check_digit = nhs_check_digit(first9digits)
+    if check_digit == 10:  # NHS numbers with this check digit are all invalid
+        log.warning("Can't have check digit of 10")
+        return None
+    return int(first9digits + str(check_digit))

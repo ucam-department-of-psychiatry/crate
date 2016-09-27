@@ -35,8 +35,12 @@
 
     <p><em>This may be a study that you could take part in. The
     researchers don’t know who you are, and we won’t tell them without
-    your permission. <b>Would you like more information about this
-    study?</b></em></p>
+    your permission.</em>
+    Receiving this invitation doesn’t mean that you have a particular problem
+    or symptom — our researchers study people with symptoms now, but
+    also people who’ve had a particular symptom in the past, and people who’ve
+    never had a particular symptom (for comparison to other people who have).
+    <em><b>Would you like more information about this study?</b></em></p>
 
     <p>Here’s what I’ve enclosed:</p>
 
@@ -109,12 +113,19 @@
         to a member of staff at CPFT.
     </em></p>
 
-    {% if yellow %}
-        <p>I’ve written to you because you previously chose the “YELLOW”
-        option in CPFT’s Research Database. If you’d like to be
-        reminded what this means, to choose a different option, or to
-        set other limits on how you’re contacted about research, please
-        tell us. You can also do so via the CPFT Research Database
+    {% if yellow or unknown_consent_mode %}
+        <p>
+        {% if yellow %}
+            I’ve written to you because you previously chose the “YELLOW”
+            option in CPFT’s Research Database. If you’d like to be
+            reminded what this means, to choose a different option, have any
+            concerns, or want to discuss things further before deciding, then
+            please contact us.
+        {% elif unknown_consent_mode %}
+            If you have any concerns, or want to discuss things further before
+            deciding, then please contact us.
+        {% endif %}
+        You can also do so via the CPFT Research Database
         Administrator, whose contact details are on the decision form
         and at {{ settings.PUBLIC_RESEARCH_URL_SHORT }}.</p>
     {% endif %}

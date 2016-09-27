@@ -7,6 +7,7 @@ from typing import Optional
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
     NumericalResultParser,
+    ValidatorBase,
     OPTIONAL_RESULTS_IGNORABLES,
     RELATION,
     SIGNED_FLOAT,
@@ -27,7 +28,8 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class Crp(NumericalResultParser):
-    """
+    """C-reactive protein.
+
     CRP units:
     - mg/L is commonest in the UK (or at least standard at Addenbrooke's,
       Hinchingbrooke, and Dundee)
@@ -113,12 +115,26 @@ class Crp(NumericalResultParser):
         ])
 
 
+class CrpValidator(ValidatorBase):
+    """Validator for CRP (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Crp.CRP,
+                         validated_variable=Crp.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 #  Sodium (Na)
 # =============================================================================
 # ... handy to check approximately expected distribution of results!
 
 class Sodium(NumericalResultParser):
+    """Sodium (Na)."""
     SODIUM = r"""
         (?:
             {WORD_BOUNDARY}
@@ -183,6 +199,19 @@ class Sodium(NumericalResultParser):
             "Na 135 mEq/L",
             "Na 139 mM",
         ])
+
+
+class SodiumValidator(ValidatorBase):
+    """Validator for Sodium (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Sodium.SODIUM,
+                         validated_variable=Sodium.NAME,
+                         commit=commit)
 
 
 # =============================================================================

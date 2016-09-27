@@ -8,6 +8,7 @@ from typing import Optional
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
     NumericalResultParser,
+    ValidatorBase,
     OPTIONAL_RESULTS_IGNORABLES,
     RELATION,
     SIGNED_FLOAT,
@@ -27,6 +28,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class Esr(NumericalResultParser):
+    """Erythrocyte sedimentation rate (ESR)."""
     ESR = r"""
         (?:
             {WORD_BOUNDARY}
@@ -96,6 +98,19 @@ class Esr(NumericalResultParser):
         ])
 
 
+class EsrValidator(ValidatorBase):
+    """Validator for Esr (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Esr.ESR,
+                         validated_variable=Esr.NAME,
+                         commit=commit)
+
+
 # =============================================================================
 #  White blood cell count and differential
 # =============================================================================
@@ -110,6 +125,7 @@ class Esr(NumericalResultParser):
 # of "T2 N0 M0 ..." cancer staging?
 
 class WbcBase(NumericalResultParser):
+    """DO NOT USE DIRECTLY. White cell count base class."""
     PREFERRED_UNIT_COLUMN = "value_billion_per_l"
     UNIT_MAPPING = {
         BILLION_PER_L: 1,     # preferred unit: 10^9 / L
@@ -167,6 +183,7 @@ class WbcBase(NumericalResultParser):
 # -----------------------------------------------------------------------------
 
 class Wbc(WbcBase):
+    """White cell count (WBC, WCC)."""
     WBC = r"""
         (?:
             \b
@@ -193,6 +210,7 @@ class Wbc(WbcBase):
             \b
         )
     """
+    NAME = "WBC"
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -202,7 +220,7 @@ class Wbc(WbcBase):
                          cfgsection=cfgsection,
                          commit=commit,
                          cell_type_regex_text=self.WBC,
-                         variable="WBC")
+                         variable=self.NAME)
 
     def test(self) -> None:
         self.test_parser([
@@ -222,11 +240,25 @@ class Wbc(WbcBase):
         ])
 
 
+class WbcValidator(ValidatorBase):
+    """Validator for Wbc (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Wbc.WBC,
+                         validated_variable=Wbc.NAME,
+                         commit=commit)
+
+
 # -----------------------------------------------------------------------------
 #  Neutrophils
 # -----------------------------------------------------------------------------
 
 class Neutrophils(WbcBase):
+    """Neutrophil count (absolute)."""
     NEUTROPHILS = r"""
         (?:
             (?: \b absolute \s* )?
@@ -240,6 +272,7 @@ class Neutrophils(WbcBase):
             (?: \s* count \b )?
         )
     """
+    NAME = "neutrophils"
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -249,7 +282,7 @@ class Neutrophils(WbcBase):
                          cfgsection=cfgsection,
                          commit=commit,
                          cell_type_regex_text=self.NEUTROPHILS,
-                         variable="neutrophils")
+                         variable=self.NAME)
 
     def test(self) -> None:
         self.test_parser([
@@ -269,11 +302,25 @@ class Neutrophils(WbcBase):
         ])
 
 
+class NeutrophilsValidator(ValidatorBase):
+    """Validator for Neutrophils (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Neutrophils.NEUTROPHILS,
+                         validated_variable=Neutrophils.NAME,
+                         commit=commit)
+
+
 # -----------------------------------------------------------------------------
 #  Lymphocytes
 # -----------------------------------------------------------------------------
 
 class Lymphocytes(WbcBase):
+    """Lymphocyte count (absolute)."""
     LYMPHOCYTES = r"""
         (?:
             (?: \b absolute \s* )?
@@ -283,6 +330,7 @@ class Lymphocytes(WbcBase):
             (?: \s* count \b )?
         )
     """
+    NAME = "lymphocytes"
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -292,7 +340,7 @@ class Lymphocytes(WbcBase):
                          cfgsection=cfgsection,
                          commit=commit,
                          cell_type_regex_text=self.LYMPHOCYTES,
-                         variable="lymphocytes")
+                         variable=self.NAME)
 
     def test(self) -> None:
         self.test_parser([
@@ -312,11 +360,25 @@ class Lymphocytes(WbcBase):
         ])
 
 
+class LymphocytesValidator(ValidatorBase):
+    """Validator for Lymphocytes (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Lymphocytes.LYMPHOCYTES,
+                         validated_variable=Lymphocytes.NAME,
+                         commit=commit)
+
+
 # -----------------------------------------------------------------------------
 #  Monocytes
 # -----------------------------------------------------------------------------
 
 class Monocytes(WbcBase):
+    """Monocyte count (absolute)."""
     MONOCYTES = r"""
         (?:
             (?: \b absolute \s* )?
@@ -326,6 +388,7 @@ class Monocytes(WbcBase):
             (?: \s* count \b )?
         )
     """
+    NAME = "monocytes"
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -335,7 +398,7 @@ class Monocytes(WbcBase):
                          cfgsection=cfgsection,
                          commit=commit,
                          cell_type_regex_text=self.MONOCYTES,
-                         variable="monocytes")
+                         variable=self.NAME)
 
     def test(self) -> None:
         self.test_parser([
@@ -354,11 +417,25 @@ class Monocytes(WbcBase):
         ])
 
 
+class MonocytesValidator(ValidatorBase):
+    """Validator for Monocytes (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Monocytes.MONOCYTES,
+                         validated_variable=Monocytes.NAME,
+                         commit=commit)
+
+
 # -----------------------------------------------------------------------------
 #  Basophils
 # -----------------------------------------------------------------------------
 
 class Basophils(WbcBase):
+    """Basophil count (absolute)."""
     BASOPHILS = r"""
         (?:
             (?: \b absolute \s* )?
@@ -368,6 +445,7 @@ class Basophils(WbcBase):
             (?: \s* count \b )?
         )
     """
+    NAME = "basophils"
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -377,7 +455,7 @@ class Basophils(WbcBase):
                          cfgsection=cfgsection,
                          commit=commit,
                          cell_type_regex_text=self.BASOPHILS,
-                         variable="basophils")
+                         variable=self.NAME)
 
     def test(self) -> None:
         self.test_parser([
@@ -396,11 +474,25 @@ class Basophils(WbcBase):
         ])
 
 
+class BasophilsValidator(ValidatorBase):
+    """Validator for Basophils (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Basophils.BASOPHILS,
+                         validated_variable=Basophils.NAME,
+                         commit=commit)
+
+
 # -----------------------------------------------------------------------------
 #  Eosinophils
 # -----------------------------------------------------------------------------
 
 class Eosinophils(WbcBase):
+    """Eosinophil count (absolute)."""
     EOSINOPHILS = r"""
         (?:
             (?: \b absolute \s* )?
@@ -410,6 +502,7 @@ class Eosinophils(WbcBase):
             (?: \s* count \b )?
         )
     """
+    NAME = "eosinophils"
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -419,7 +512,7 @@ class Eosinophils(WbcBase):
                          cfgsection=cfgsection,
                          commit=commit,
                          cell_type_regex_text=self.EOSINOPHILS,
-                         variable="eosinophils")
+                         variable=self.NAME)
 
     def test(self) -> None:
         self.test_parser([
@@ -436,6 +529,19 @@ class Eosinophils(WbcBase):
             "e0 9800 per cubic mm (should fail)",
             "e0 17,600/mm3 (should fail)",
         ])
+
+
+class EosinophilsValidator(ValidatorBase):
+    """Validator for Eosinophils (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Eosinophils.EOSINOPHILS,
+                         validated_variable=Eosinophils.NAME,
+                         commit=commit)
 
 
 # =============================================================================

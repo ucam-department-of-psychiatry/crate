@@ -7,6 +7,7 @@ from typing import Optional
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
     NumericalResultParser,
+    ValidatorBase,
     OPTIONAL_RESULTS_IGNORABLES,
     out_of,
     RELATION,
@@ -23,6 +24,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class Mmse(NumericalResultParser):
+    """Mini-mental state examination (MMSE)."""
     MMSE = r"""
         (?:
             {WORD_BOUNDARY}
@@ -82,6 +84,19 @@ class Mmse(NumericalResultParser):
             "MMSE 30",
             "ACE 79",
         ])
+
+
+class MmseValidator(ValidatorBase):
+    """Validator for Mmse (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str=Mmse.MMSE,
+                         validated_variable=Mmse.NAME,
+                         commit=commit)
 
 
 # =============================================================================

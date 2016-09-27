@@ -71,7 +71,7 @@ from cardinal_pythonlib.rnc_datetime import get_now_utc
 
 from crate_anon.anonymise.constants import SEP
 from crate_anon.common.logsupport import configure_logger_for_colour
-from crate_anon.nlp_manager.all_processors import possible_processor_names
+from crate_anon.nlp_manager.all_processors import possible_processor_table
 from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
     NLP_CONFIG_ENV_VAR,
@@ -293,7 +293,7 @@ def main() -> None:
         return
     # List processors?
     if args.listprocessors:
-        print(possible_processor_names())
+        print(possible_processor_table())
         return
     if args.nlpdef is None:
         raise ValueError(

@@ -64,10 +64,13 @@ class NlpParser(object):
     def _get_engine(self):
         return self._destdb.engine
 
-    def get_name(self) -> str:
+    def get_nlpdef_name(self) -> str:
         if self._nlpdef is None:
             return None
         return self._nlpdef.get_name()
+
+    def get_parser_name(self) -> str:
+        return getattr(self, 'NAME', None)
 
     @staticmethod
     def _assert_no_overlap(description1: str, cols1: List[Column],
@@ -182,6 +185,7 @@ class NlpParser(object):
                 starting_fields_values: Dict[str, Any]) -> None:
         starting_fields_values[self.FN_NLPDEF] = self._nlpdef.get_name()
         session = self._get_session()
+        n_values = 0
         for tablename, nlp_values in self.parse(text):
             # Merge dictionaries so EXISTING FIELDS/VALUES
             # (starting_fields_values) HAVE PRIORITY.
@@ -196,6 +200,9 @@ class NlpParser(object):
             session.execute(insertquery)
             if self._commit:
                 session.commit()  # or we get deadlocks in multiprocess mode
+            n_values += 1
+        log.debug("NLP processor {}/{}: found {} values".format(
+            self.get_nlpdef_name(), self.get_parser_name(), n_values))
 
     def test(self):
         pass
@@ -245,7 +252,7 @@ class NlpParser(object):
         destsession = self._get_session()
         srcdb = ifconfig.get_srcdb()
         srctable = ifconfig.get_srctable()
-        for desttable_name, desttable in self.tables().values():
+        for desttable_name, desttable in self.tables().items():
             log.debug(
                 "delete_where_srcpk_not... {}.{} -> {}.{}".format(
                     srcdb, srctable, self._destdb_name, desttable_name))

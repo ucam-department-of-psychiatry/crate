@@ -34,14 +34,15 @@ log = logging.getLogger(__name__)
 # OK, first one works; that's easier.
 
 class Gate(NlpParser):
-    """
-    Class controlling an external process, typically our Java interface to
+    """Class controlling an external process, typically our Java interface to
     GATE programs, CrateGatePipeline.java (but it could be any external
     program).
 
     We send text to it, it parses the text, and it sends us back results, which
-    we return as dictionaries.
+    we return as dictionaries. The specific text sought depends on the
+    configuration file and the specific GATE program used.
     """
+    NAME = "GATE"
 
     def __init__(self,
                  nlpdef: NlpDefinition,
