@@ -184,7 +184,8 @@ class InputFieldConfig(object):
             if c.name in self._indexed_copyfields:
                 copied = c.copy()
                 # See above re case.
-                copy_indexes.append(Index(copied))
+                idx_name = "idx_{}".format(c.name)
+                copy_indexes.append(Index(idx_name, copied))
                 processed_copy_index_col_names.append(c.name)
         missing = set(self._indexed_copyfields) - set(
             processed_copy_index_col_names)
