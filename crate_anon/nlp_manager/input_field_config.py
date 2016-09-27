@@ -63,6 +63,21 @@ class InputFieldConfig(object):
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
         ensure_valid_field_name(self._srcfield)
+
+        if len(set(self._indexed_copyfields)) != len(self._indexed_copyfields):
+            raise ValueError("Redundant indexed_copyfields: {}".format(
+                self._indexed_copyfields))
+
+        if len(set(self._copyfields)) != len(self._copyfields):
+            raise ValueError("Redundant copyfields: {}".format(
+                self._copyfields))
+
+        indexed_not_copied = set(self._indexed_copyfields) - set(
+            self._copyfields)
+        if indexed_not_copied:
+            raise ValueError("Fields in index_copyfields but not in "
+                             "copyfields: {}".format(indexed_not_copied))
+
         # allfields = [self._srcpkfield, self._srcfield] + self._copyfields
         # if len(allfields) != len(set(allfields)):
         #     raise ValueError(
@@ -134,6 +149,7 @@ class InputFieldConfig(object):
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
         copy_columns = []
+        processed_copy_column_names = []
         for c in t.columns:
             # if c.name.lower() in self._copyfields:
             if c.name in self._copyfields:
@@ -146,7 +162,14 @@ class InputFieldConfig(object):
                 # "Text".
                 # Try making copyfields case-sensitive instead.
                 copy_columns.append(copied)
-        log.critical(copy_columns)
+                processed_copy_column_names.append(c.name)
+        # Check all requested fields are present:
+        missing = set(self._copyfields) - set(processed_copy_column_names)
+        if missing:
+            raise ValueError(
+                "The following fields were requested to be copied but are "
+                "absent from the source: {}".format(missing))
+        # log.critical(copy_columns)
         return copy_columns
 
     def get_copy_indexes(self) -> List[Index]:
@@ -154,12 +177,20 @@ class InputFieldConfig(object):
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
         copy_indexes = []
+        processed_copy_index_col_names = []
         for c in t.columns:
             # if c.name.lower() in self._indexed_copyfields:
             if c.name in self._indexed_copyfields:
                 copied = c.copy()
                 # See above re case.
                 copy_indexes.append(Index(copied))
+                processed_copy_index_col_names.append(c.name)
+        missing = set(self._indexed_copyfields) - set(
+            processed_copy_index_col_names)
+        if missing:
+            raise ValueError(
+                "The following fields were requested to be copied but are "
+                "absent from the source: {}".format(missing))
         return copy_indexes
 
     def gen_src_pks(self) -> Iterator(int):
