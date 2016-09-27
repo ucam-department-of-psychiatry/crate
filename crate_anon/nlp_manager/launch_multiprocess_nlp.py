@@ -88,6 +88,8 @@ def main() -> None:
     common_options = ['--nlpdef', args.nlpdef] + ["-v"] * args.verbose
     if args.config:
         common_options.extend(['--config', args.config])
+    if args.echo:
+        common_options.append('--echo')
     if args.incremental:
         common_options.append('--incremental')
     else:
@@ -96,7 +98,7 @@ def main() -> None:
     log.debug("common_options: {}".format(common_options))
 
     nprocesses_main = args.nproc
-    nprocesses_index = args.nproc
+    # nprocesses_index = args.nproc
 
     # -------------------------------------------------------------------------
     # Setup
@@ -137,32 +139,37 @@ def main() -> None:
         args_list.append(procargs)
     run_multiple_processes(args_list)  # Wait for them all to finish
 
-    time_middle = time.time()
+    # time_middle = time.time()
 
     # -------------------------------------------------------------------------
-    # Now do the indexing, if nothing else failed.
+    # We used to index at the end.
     # (Always fastest to index last.)
+    # But now we combine index definitions with column definitions in SQLA.
     # -------------------------------------------------------------------------
-    args_list = [
-        [
-            sys.executable, '-m', NLP_MANAGER,
-            '--index',
-            '--processcluster=INDEX',
-            '--nprocesses={}'.format(nprocesses_index),
-            '--process={}'.format(procnum)
-        ] + common_options for procnum in range(nprocesses_index)
-    ]
-    run_multiple_processes(args_list)  # Wait for them all to finish
+    # args_list = [
+    #     [
+    #         sys.executable, '-m', NLP_MANAGER,
+    #         '--index',
+    #         '--processcluster=INDEX',
+    #         '--nprocesses={}'.format(nprocesses_index),
+    #         '--process={}'.format(procnum)
+    #     ] + common_options for procnum in range(nprocesses_index)
+    # ]
+    # run_multiple_processes(args_list)  # Wait for them all to finish
 
     # -------------------------------------------------------------------------
     # Finished.
     # -------------------------------------------------------------------------
     time_end = time.time()
-    main_dur = time_middle - time_start
-    index_dur = time_end - time_middle
+
+    # main_dur = time_middle - time_start
+    # index_dur = time_end - time_middle
+    # total_dur = time_end - time_start
+    # print("Time taken: main {} s, indexing {} s, total {} s".format(
+    #     main_dur, index_dur, total_dur))
+
     total_dur = time_end - time_start
-    print("Time taken: main {} s, indexing {} s, total {} s".format(
-        main_dur, index_dur, total_dur))
+    print("Time taken: {} s".format(total_dur))
 
 
 if __name__ == '__main__':
