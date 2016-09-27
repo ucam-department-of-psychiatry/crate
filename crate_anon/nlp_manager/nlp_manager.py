@@ -332,7 +332,7 @@ def main() -> None:
 
     # -------------------------------------------------------------------------
 
-    log.info("Starting")
+    log.info("Starting: incremental={}".format(args.incremental))
     start = get_now_utc()
 
     # 1. Drop/remake tables. Single-tasking only.
