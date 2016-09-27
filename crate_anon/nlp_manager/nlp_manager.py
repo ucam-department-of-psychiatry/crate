@@ -177,8 +177,8 @@ def process_nlp(config: NlpDefinition,
                 "(max={maximum}, n={count})".format(
                     db=other_values[FN_SRCDB],
                     t=other_values[FN_SRCTABLE],
-                    c=other_values[FN_SRCPKFIELD],
-                    pkf=other_values[FN_SRCFIELD],
+                    c=other_values[FN_SRCFIELD],
+                    pkf=other_values[FN_SRCPKFIELD],
                     pkv=pkval,
                     maximum=maximum,
                     count=count))

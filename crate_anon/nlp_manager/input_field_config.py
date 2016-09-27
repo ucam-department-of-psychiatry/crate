@@ -60,9 +60,10 @@ class InputFieldConfig(object):
         ensure_valid_field_name(self._srcpkfield)
         ensure_valid_field_name(self._srcfield)
         allfields = [self._srcpkfield, self._srcfield] + self._copyfields
-        if len(allfields) != len(set(allfields)):
-            raise ValueError(
-                "Field overlap in InputFieldConfig: {}".format(section))
+        # if len(allfields) != len(set(allfields)):
+        #     raise ValueError(
+        #         "Field overlap in InputFieldConfig: {}".format(section))
+        # RETHOUGHT: OK to copy source text fields etc. if desired.
 
         self._db = nlpdef.get_database(self._srcdb)
 
