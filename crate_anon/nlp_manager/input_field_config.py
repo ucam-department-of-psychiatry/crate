@@ -128,15 +128,25 @@ class InputFieldConfig(object):
         self._require_table_exists()
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
-        return [c.copy() for c in t.columns
-                if c.name.lower() in self._copyfields]
+        copy_columns = []
+        for c in t.columns:
+            if c.name.lower() in self._copyfields:
+                copied = c.copy()
+                copied.name = copied.name.lower()  # force lower case
+                copy_columns.append(copied)
+        return copy_columns
 
     def get_copy_indexes(self) -> List[Index]:
         self._require_table_exists()
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
-        return [Index(c.copy()) for c in t.columns
-                if c.name.lower() in self._indexed_copyfields]
+        copy_indexes = []
+        for c in t.columns:
+            if c.name.lower() in self._indexed_copyfields:
+                copied = c.copy()
+                copied.name = copied.name.lower()  # force lower case
+                copy_indexes.append(Index(copied))
+        return copy_indexes
 
     def gen_src_pks(self) -> Iterator(int):
         """

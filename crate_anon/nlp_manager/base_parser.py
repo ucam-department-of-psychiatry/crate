@@ -195,10 +195,12 @@ class NlpParser(object):
             # choke ("Unconsumed column names")
             # HOWEVER, note that SQLA column names may be mixed case (e.g.
             # 'Text') while our copy-column names are lower case (e.g. 'text'),
-            # so we convert to lower case throughout:
-            column_names = [c.name.lower() for c in sqla_table.columns]
-            final_values = {k.lower(): v for k, v in nlp_values.items()
-                            if k.lower() in column_names}
+            # so we must have pre-converted the SQLA column names to lower
+            # case. That happens in InputFieldConfig.get_copy_columns and
+            # InputFieldConfig.get_copy_indexes
+            column_names = [c.name for c in sqla_table.columns]
+            final_values = {k: v for k, v in nlp_values.items()
+                            if k in column_names}
             insertquery = sqla_table.insert().values(final_values)
             session.execute(insertquery)
             if self._commit:
