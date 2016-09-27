@@ -142,7 +142,7 @@ class NlpParser(object):
 
             column_like_things = (
                 copy_of_cols + source_indexes + dest_indexes + copy_indexes)
-            log.critical(repr(column_like_things))
+            # log.critical(repr(column_like_things))
             tables[tablename] = Table(tablename, meta, *column_like_things)
             # You can put indexes in the column list:
             # http://docs.sqlalchemy.org/en/latest/core/constraints.html
@@ -227,7 +227,7 @@ class NlpParser(object):
         srcpkfield = ifconfig.get_srcpkfield()
         destdb_name = self._destdb.name
         nlpdef_name = self._nlpdef.get_name()
-        for tablename, desttable in self.tables():
+        for tablename, desttable in self.tables().items():
             log.debug(
                 "delete_from_dest_dbs... {}.{} -> {}.{}".format(
                     srcdb, srctable, destdb_name, tablename))

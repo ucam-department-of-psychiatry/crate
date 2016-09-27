@@ -45,10 +45,19 @@ def get_all_subclasses(cls: Generic) -> List[Generic]:
     #   http://stackoverflow.com/questions/35655257
     # Getting derived subclasses: http://stackoverflow.com/questions/3862310
     all_subclasses = []
+    lower_case_names = set()
     for subclass in cls.__subclasses__():
         all_subclasses.append(subclass)
         all_subclasses.extend(get_all_subclasses(subclass))
     all_subclasses.sort(key=attrgetter('__name__'))
+    lower_case_names = set()
+    for cls in all_subclasses:
+        lc_name = cls.__name__.lower()
+        if lc_name in lower_case_names:
+            raise ValueError(
+                "Trying to add NLP processor {} but a processor with the same "
+                "lower-case name already exists".format(cls.__name__))
+        lower_case_names.add(lc_name)
     return all_subclasses
 
 

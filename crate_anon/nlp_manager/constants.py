@@ -100,11 +100,44 @@ inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
     INPUT_FIELD_PROGRESS_NOTES
 
-
     # Which NLP processors shall we use?
+    # These are given as (processor, definition_section) pairs.
+    # For possible processor names, see "crate_nlp --listprocessors".
 
-processors = PROCESSORDEF_GATE_SPECIMEN
-    PROCDEF_CRP_SPECIMEN
+processors =
+    # -------------------------------------------------------------------------
+    # GATE
+    # -------------------------------------------------------------------------
+    GATE procdef_gate_name_location
+    # -------------------------------------------------------------------------
+    # Biochemistry
+    # -------------------------------------------------------------------------
+    CRP procdef_crp
+    CRPValidator procdef_validate_crp
+    Sodium procdef_sodium
+    SodiumValidator procdef_validate_sodium
+    # -------------------------------------------------------------------------
+    # Cognitive
+    # -------------------------------------------------------------------------
+    MMSE procdef_mmse
+    MMSEValidator procdef_validate_mmse
+    # -------------------------------------------------------------------------
+    # Haematology
+    # -------------------------------------------------------------------------
+    ESR procdef_esr
+    ESRValidator procdef_validate_esr
+    WBC procdef_wbc
+    WBCValidator procdef_validate_wbc
+    Basophils procdef_basophils
+    BasophilsValidator procdef_validate_basophils
+    Eosinophils procdef_eosinophils
+    EosinophilsValidator procdef_validate_eosinophils
+    Lymphocytes procdef_lymphocytes
+    LymphocytesValidator procdef_validate_lymphocytes
+    Monocytes procdef_monocytes
+    MonocytesValidator procdef_validate_monocytes
+    Neutrophils procdef_neutrophils
+    NeutrophilsValidator procdef_validate_neutrophils
 
     # To allow incremental updates, information is stored in a progress table.
     # The database name is a cross-reference to another section in this config
@@ -125,17 +158,87 @@ hashphrase = doesnotmatter
     # (as a cross-reference to a database section within this file) and a
     # destination table.
 
-[PROCDEF_CRP_SPECIMEN]
+    # Biochemistry
 
+[procdef_crp]
 destdb = anonymous_output
 desttable = crp
+[procdef_validate_crp]
+destdb = anonymous_output
+desttable = validate_crp
 
+[procdef_sodium]
+destdb = anonymous_output
+desttable = sodium
+[procdef_validate_sodium]
+destdb = anonymous_output
+desttable = validate_sodium
+
+    # Cognitive
+
+[procdef_mmse]
+destdb = anonymous_output
+desttable = mmse
+[procdef_validate_mmse]
+destdb = anonymous_output
+desttable = validate_mmse
+
+    # Haematology
+
+[procdef_esr]
+destdb = anonymous_output
+desttable = esr
+[procdef_validate_esr]
+destdb = anonymous_output
+desttable = validate_esr
+
+[procdef_wbc]
+destdb = anonymous_output
+desttable = wbc
+[procdef_validate_wbc]
+destdb = anonymous_output
+desttable = validate_wbc
+
+[procdef_basophils]
+destdb = anonymous_output
+desttable = basophils
+[procdef_validate_basophils]
+destdb = anonymous_output
+desttable = validate_basophils
+
+[procdef_eosinophils]
+destdb = anonymous_output
+desttable = eosinophils
+[procdef_validate_eosinophils]
+destdb = anonymous_output
+desttable = validate_eosinophils
+
+[procdef_lymphocytes]
+destdb = anonymous_output
+desttable = lymphocytes
+[procdef_validate_lymphocytes]
+destdb = anonymous_output
+desttable = validate_lymphocytes
+
+[procdef_monocytes]
+destdb = anonymous_output
+desttable = monocytes
+[procdef_validate_monocytes]
+destdb = anonymous_output
+desttable = validate_monocytes
+
+[procdef_neutrophils]
+destdb = anonymous_output
+desttable = neutrophils
+[procdef_validate_neutrophils]
+destdb = anonymous_output
+desttable = validate_neutrophils
 
 # -----------------------------------------------------------------------------
 # Specimen GATE processor definition
 # -----------------------------------------------------------------------------
 
-[PROCESSORDEF_GATE_SPECIMEN]
+[procdef_gate_name_location]
 
     # Which database will this processor write to?
 
@@ -235,7 +338,7 @@ NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
     # The tables and SPECIFIC output fields for a given GATE processor are
     # defined here.
 
-desttable = PERSON
+desttable = person
 destfields =
     rule        VARCHAR(100)
     firstname   VARCHAR(100)
@@ -254,12 +357,10 @@ indexdefs =
 [output_location]
 
 destdb = MY_DESTINATION_DATABASE
-desttable = LOCATION
+desttable = location
 destfields =
     rule        VARCHAR(100)
     loctype     VARCHAR(100)
-    RID_FIELD   VARCHAR(64)
-    TRID_FIELD  INT
 
 indexdefs =
     rule    100
