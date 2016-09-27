@@ -12,6 +12,7 @@ from crate_anon.nlp_manager.regex_parser import (
     RELATION,
     SIGNED_FLOAT,
     TENSE_INDICATOR,
+    MG,
     MG_PER_DL,
     MG_PER_L,
     WORD_BOUNDARY,
@@ -155,9 +156,10 @@ class Sodium(NumericalResultParser):
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
         (                                  # optional group for units
-            {MILLIMOLAR}
-            | {UNITS_MILLIMOLES_L}
-            | {UNITS_MILLIEQ_L}
+            {MILLIMOLAR}                        # good
+            | {UNITS_MILLIMOLES_L}              # good
+            | {UNITS_MILLIEQ_L}                 # good
+            | {MG}                              # bad
         )?
     """.format(
         SODIUM=SODIUM,
@@ -168,6 +170,7 @@ class Sodium(NumericalResultParser):
         MILLIMOLAR=MILLIMOLAR,
         UNITS_MILLIMOLES_L=MILLIMOLES_PER_L,
         UNITS_MILLIEQ_L=MILLIEQ_PER_L,
+        MG=MG,
     )
     NAME = "Sodium"
     PREFERRED_UNIT_COLUMN = "value_mmol_L"
@@ -175,6 +178,7 @@ class Sodium(NumericalResultParser):
         MILLIMOLAR: 1,       # preferred unit
         MILLIMOLES_PER_L: 1,
         MILLIEQ_PER_L: 1,
+        # but not MG
     }
 
     def __init__(self,
@@ -198,6 +202,7 @@ class Sodium(NumericalResultParser):
             "sodium 153",
             "Na 135 mEq/L",
             "Na 139 mM",
+            "docusate sodium 100mg",  # should fail ***
         ])
 
 

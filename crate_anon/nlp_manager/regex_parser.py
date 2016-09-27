@@ -315,6 +315,12 @@ class NumericalResultParser(NlpParser):
             (compiled regex for units)
             -> (factor [multiple] to multiple those units by, to get preferred
                 unit)
+
+            - any units present in the regex but absent from units_to_factor
+              will lead the result to be ignored -- for example, allowing you
+              to ignore a relative neutrophil count ("neutrophils 2.2%") while
+              detecting absolute neutrophil counts ("neutrophils 2.2"), or
+              ignoring "docusate sodium 100mg" but detecting "sodium 140 mM".
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
         self.compiled_regex = regex.compile(regex_str, REGEX_COMPILE_FLAGS)
