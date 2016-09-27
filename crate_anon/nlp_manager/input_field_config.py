@@ -53,8 +53,9 @@ class InputFieldConfig(object):
         self._srctable = opt_str('srctable')
         self._srcpkfield = opt_str('srcpkfield')
         self._srcfield = opt_str('srcfield')
-        self._copyfields = opt_strlist('copyfields')  # fieldnames
-        self._indexed_copyfields = opt_strlist('indexed_copyfields')
+        self._copyfields = opt_strlist('copyfields', lower=False)  # fieldnames
+        self._indexed_copyfields = opt_strlist('indexed_copyfields',
+                                               lower=False)
 
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
