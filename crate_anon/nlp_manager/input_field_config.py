@@ -10,6 +10,7 @@ from cardinal_pythonlib.rnc_db import (
 )
 from sqlalchemy import BigInteger, Column, Index, Table
 from sqlalchemy.sql import column, func, select, table
+from sqlalchemy.sql.elements import quoted_name
 
 from crate_anon.common.sqla import table_exists
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
@@ -53,7 +54,7 @@ class InputFieldConfig(object):
         self._srctable = opt_str('srctable')
         self._srcpkfield = opt_str('srcpkfield')
         self._srcfield = opt_str('srcfield')
-        self._copyfields = opt_strlist('copyfields')  # fieldnames, lower case
+        self._copyfields = opt_strlist('copyfields')  # fieldnames
         self._indexed_copyfields = opt_strlist('indexed_copyfields')
 
         ensure_valid_table_name(self._srctable)
@@ -145,7 +146,9 @@ class InputFieldConfig(object):
         for c in t.columns:
             if c.name.lower() in self._indexed_copyfields:
                 copied = c.copy()
-                copied.name = copied.name.lower()  # force lower case
+                # Force lower case:
+                # copied.name = copied.name.lower()
+                copied.name = quoted_name(copied.name.lower(), None)
                 copy_indexes.append(Index(copied))
         return copy_indexes
 
