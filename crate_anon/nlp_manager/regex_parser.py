@@ -5,7 +5,7 @@
 
 import regex
 import typing
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -44,8 +44,8 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
     (?:
         \s          # whitespace
         | \|        # bar
-        | \(        # bracket
-        | \)        # bracket
+        | \(        # left parenthesis
+        | \)        # right parenthesis
         | \bHH?\b   # H or HH at a word boundary
         | \bLL?\b   # L or LL at a word boundary
         | \*        # asterisk
@@ -54,6 +54,11 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 # - you often get | characters when people copy/paste tables
 # - blood test abnormality markers can look like e.g.
 #       17 (H), 17 (*), 17 HH
+# - you can also see things like "CRP (5)"
+# - However, if there's a right parenthesis only, that's less good, e.g.
+#   "Present: Nicola Adams (NA). 1.0. Minutes of the last meeting."
+#   ... which we don't want to be interpreted as "sodium 1.0".
+#   HOW BEST TO DO THIS?
 
 # -----------------------------------------------------------------------------
 # Tense indicators
@@ -208,49 +213,66 @@ def per(numerator: str, denominator: str) -> str:
         (?:
             (?: {numerator} \s* \/ \s* {denominator} )      # n/d, n / d
             | (?: {numerator} \s* \b per \s+ {denominator} )   # n per d
-            | (?: {numerator} \s* \b {denominator} \s? -1 )    # n d -1
+            | (?: {numerator} \s* \b {denominator} \s* -1 )    # n d -1; n d-1
         )
     """.format(numerator=numerator, denominator=denominator)
 
 
 def out_of(n: int) -> str:
+    # / n
+    # out of n
     return r"(?: (?: \/ | \b out \s+ of \b ) \s* n \b )".format(n=n)
 
 
+# Distance
 MM = r"(?:mm|millimet(?:re:er)[s]?)"  # mm, millimetre(s), millimeter(s)
-MG = r"(?:mg|milligram[s]?)"  # mg, milligram, milligrams
+
+# Mass
+G = r"(?:g|gram(?:me)[s]?)"  # g, gram, grams, gramme, grammes
+MG = r"(?:mg|milligram(?:me)[s]?)"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
+MCG = r"(?:mcg|microgram(?:me)[s]?)"
+
+# Volume
 L = r"(?:L|lit(?:re|er)[s]?)"  # L, litre(s), liter(s)
 DL = r"(?:d(?:eci)?{L})".format(L=L)
-HOUR = r"(?:h(?:r|our)?)"   # h, hr, hour
 CUBIC_MM = r"""
     (?:
         (?: cubic [\s]+ {MM} )      # cubic mm, etc
         | (?: {MM} [\s]* [\^]? [\s]*3 )        # mm^3, mm3, mm 3, etc.
     )
 """.format(MM=MM)
-CELLS = r"(?: cell[s]? )"
-OPTIONAL_CELLS = CELLS + "?"
 
-MILLIMOLES = r"(?:mmol(?:es?))"
-MILLIEQ = r"(?:mEq)"
-MILLIMOLAR = r"(?:mM)"
-
-MM_PER_H = per(MM, HOUR)
-MG_PER_DL = per(MG, DL)
-MG_PER_L = per(MG, L)
-MILLIMOLES_PER_L = per(MILLIMOLES, L)
-MILLIEQ_PER_L = per(MILLIEQ, L)
-
-BILLION_PER_L = per(BILLION, L)
+# Inverse volume
 PER_CUBIC_MM = per("", CUBIC_MM)
-CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
 
+# Time
+HOUR = r"(?:h(?:r|our)?)"   # h, hr, hour
+
+# Counts, proportions
 PERCENT = r"""
     (?:
         %
         | pe?r?\s?ce?n?t    # must have pct, other characters optional
     )
 """
+
+# Arbitrary count things
+CELLS = r"(?: cell[s]? )"
+OPTIONAL_CELLS = CELLS + "?"
+MILLIMOLES = r"(?:mmol(?:es?))"
+MILLIEQ = r"(?:mEq)"
+
+# Concentration
+MILLIMOLAR = r"(?:mM)"
+MG_PER_DL = per(MG, DL)
+MG_PER_L = per(MG, L)
+MILLIMOLES_PER_L = per(MILLIMOLES, L)
+MILLIEQ_PER_L = per(MILLIEQ, L)
+BILLION_PER_L = per(BILLION, L)
+CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
+
+# Speed
+MM_PER_H = per(MM, HOUR)
 
 # =============================================================================
 # Regexes based on some of the fragments above
@@ -437,6 +459,30 @@ class NumericalResultParser(NlpParser):
                 self.target_unit: value_in_target_units,
                 self.FN_TENSE: tense,
             }
+
+    def test_numerical_parser(
+            self,
+            test_expected_list: List[Tuple[str, List[float]]]) -> None:
+        """
+        :param test_expected_list: list of tuples of (a) test string and
+         (b) list of expected numerical (float) results, which can be an
+         empty list
+        :return: none; will assert on failure
+        """
+        print("Testing parser: {}".format(type(self).__name__))
+        for test_string, expected_values in test_expected_list:
+            actual_values = list(
+                x[self.target_unit] for t, x in self.parse(test_string)
+            )
+            assert actual_values == expected_values, (
+                """Parser {}: Expected {}, got {}, when parsing {}""".format(
+                    type(self).__name__,
+                    expected_values,
+                    actual_values,
+                    repr(test_string)
+                )
+            )
+        print("... OK")
 
 
 # =============================================================================
