@@ -62,15 +62,18 @@ class Crp(NumericalResultParser):
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
-        ( {UNITS_MG_DL} | {UNITS_MG_L} )?  # optional group for units
+        (                                  # optional group for units
+            {MG_PER_DL}
+            | {MG_PER_L}
+        )?
     """.format(
         CRP=CRP,
         OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
         TENSE_INDICATOR=TENSE_INDICATOR,
         RELATION=RELATION,
         SIGNED_FLOAT=SIGNED_FLOAT,
-        UNITS_MG_DL=MG_PER_DL,
-        UNITS_MG_L=MG_PER_L,
+        MG_PER_DL=MG_PER_DL,
+        MG_PER_L=MG_PER_L,
     )
     NAME = "CRP"
     PREFERRED_UNIT_COLUMN = "value_mg_l"
@@ -94,25 +97,25 @@ class Crp(NumericalResultParser):
         )
 
     def test(self):
-        self.test_parser([
-            "CRP",  # should fail; no values
-            "CRP 6",
-            "CRP = 6",
-            "CRP 6 mg/dl",
-            "CRP <1",
-            "CRP <1 mg/dl",
-            "CRP >250",
-            "CRP >250 mg/dl",
-            "CRP was 62",
-            "CRP was 62 mg/l",
-            "CRP was <1",
-            "CRP is 19",
-            "CRP is >250",
-            "CRP is 19 mg dl-1",
-            "CRP is 19 mg dl -1",
-            "CRP 1.9 mg/L",
-            "CRP 1.9 mg L-1",
-            "CRP        |       1.9 (H)      | mg/L",
+        self.test_numerical_parser([
+            ("CRP", []),  # should fail; no values
+            ("CRP 6", [6]),
+            ("CRP = 6", [6]),
+            ("CRP 6 mg/dl", [60]),
+            ("CRP <1", [1]),
+            ("CRP <1 mg/dl", [10]),
+            ("CRP >250", [250]),
+            ("CRP >250 mg/dl", [2500]),
+            ("CRP was 62", [62]),
+            ("CRP was 62 mg/l", [62]),
+            ("CRP was <1", [1]),
+            ("CRP is 19.2", [19.2]),
+            ("CRP is >250", [250]),
+            ("CRP is 19 mg dl-1", [190]),
+            ("CRP is 19 mg dl -1", [190]),
+            ("CRP 1.9 mg/L", [1.9]),
+            ("CRP 1.9 mg L-1", [1.9]),
+            ("CRP        |       1.9 (H)      | mg/L", [1.9]),
         ])
 
 
@@ -157,8 +160,8 @@ class Sodium(NumericalResultParser):
         {OPTIONAL_RESULTS_IGNORABLES}
         (                                  # optional group for units
             {MILLIMOLAR}                        # good
-            | {UNITS_MILLIMOLES_L}              # good
-            | {UNITS_MILLIEQ_L}                 # good
+            | {MILLIMOLES_PER_L}                # good
+            | {MILLIEQ_PER_L}                   # good
             | {MG}                              # bad
         )?
     """.format(
@@ -168,8 +171,8 @@ class Sodium(NumericalResultParser):
         RELATION=RELATION,
         SIGNED_FLOAT=SIGNED_FLOAT,
         MILLIMOLAR=MILLIMOLAR,
-        UNITS_MILLIMOLES_L=MILLIMOLES_PER_L,
-        UNITS_MILLIEQ_L=MILLIEQ_PER_L,
+        MILLIMOLES_PER_L=MILLIMOLES_PER_L,
+        MILLIEQ_PER_L=MILLIEQ_PER_L,
         MG=MG,
     )
     NAME = "Sodium"
@@ -196,13 +199,13 @@ class Sodium(NumericalResultParser):
         )
 
     def test(self):
-        self.test_parser([
-            "Na",  # should fail; no values
-            "Na 120",
-            "sodium 153",
-            "Na 135 mEq/L",
-            "Na 139 mM",
-            "docusate sodium 100mg",  # should fail ***
+        self.test_numerical_parser([
+            ("Na", []),  # should fail; no values
+            ("Na 120", [120]),
+            ("sodium 153", [153]),
+            ("Na 135 mEq/L", [135]),
+            ("Na 139 mM", [139]),
+            ("docusate sodium 100mg", []),
         ])
 
 

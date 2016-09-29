@@ -45,7 +45,9 @@ class Mmse(NumericalResultParser):
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {SIGNED_FLOAT} )                 # group for value
         {OPTIONAL_RESULTS_IGNORABLES}
-        ( {OUT_OF_30} )?                   # group for units
+        (                                  # group for units
+            {OUT_OF_30}
+        )?
     """.format(
         MMSE=MMSE,
         OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
@@ -75,14 +77,14 @@ class Mmse(NumericalResultParser):
         )
 
     def test(self):
-        self.test_parser([
-            "MMSE",  # should fail; no values
-            "MMSE 30/30",
-            "MMSE 25 / 30",
-            "mini-mental state exam 30",
-            "minimental 25",
-            "MMSE 30",
-            "ACE 79",
+        self.test_numerical_parser([
+            ("MMSE", []),  # should fail; no values
+            ("MMSE 30/30", [30]),
+            ("MMSE 25 / 30", [25]),
+            ("mini-mental state exam 30", [30]),
+            ("minimental 25", [25]),
+            ("MMSE 30", [30]),
+            ("ACE 79", []),
         ])
 
 
