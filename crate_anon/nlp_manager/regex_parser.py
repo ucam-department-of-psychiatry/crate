@@ -402,7 +402,7 @@ class NumericalResultParser(NlpParser):
                         break
                 if not matched_unit:
                     # None of our units match. But there is a unit, and the
-                    # regex matched. So this is a BAD unit. Skip the value
+                    # regex matched. So this is a BAD unit. Skip the value.e
                     continue
             elif self.assume_preferred_unit:  # unit is None or empty
                 value_in_target_units = to_float(value_text)
