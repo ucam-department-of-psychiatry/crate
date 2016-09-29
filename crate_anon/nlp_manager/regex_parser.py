@@ -628,48 +628,111 @@ class ValidatorBase(NlpParser):
 #  More general testing
 # =============================================================================
 
-def test_compiled_regex(compiled_regex: typing.re.Pattern, text: str,
-                        prefix_spaces: int = 4) -> None:
+def get_compiled_regex_results(compiled_regex: typing.re.Pattern,
+                               text: str) -> List[str]:
     results = []
     for m in compiled_regex.finditer(text):
         results.append(m.group(0))
+    return results
+
+
+def print_compiled_regex_results(compiled_regex: typing.re.Pattern, text: str,
+                                 prefix_spaces: int = 4) -> None:
+    results = get_compiled_regex_results(compiled_regex, text)
     print("{}{} -> {}".format(' ' * prefix_spaces,
                               repr(text), repr(results)))
 
 
-def test_text_regex(regex_text: str, text: str,
-                    prefix_spaces: int = 4) -> None:
+def test_text_regex(name: str,
+                    regex_text: str,
+                    test_expected_list: List[Tuple[str, List[str]]]) -> None:
     compiled_regex = regex.compile(regex_text, REGEX_COMPILE_FLAGS)
-    test_compiled_regex(compiled_regex, text, prefix_spaces=prefix_spaces)
+    print("Testing regex named {}".format(name))
+    for test_string, expected_values in test_expected_list:
+        actual_values = get_compiled_regex_results(compiled_regex, test_string)
+        assert actual_values == expected_values, (
+            """Regex {}: Expected {}, got {}, when parsing {}""".format(
+                name,
+                expected_values,
+                actual_values,
+                repr(test_string)
+            )
+        )
+    print("... OK")
+    # print_compiled_regex_results(compiled_regex, text,
+    #                              prefix_spaces=prefix_spaces)
 
 
 def test_base_regexes() -> None:
-    numbers = ["1", "12345", "-1", "1.2", "-3.4", "+3.4",
-               "-3.4e27.3", "3.4e-27", "9,800", "17,600.34", "-17,300.6588"]
-
-    print("UNSIGNED_INTEGER:")
-    for s in numbers:
-        test_text_regex(UNSIGNED_INTEGER, s)
-
-    print("SIGNED_INTEGER:")
-    for s in numbers:
-        test_text_regex(SIGNED_INTEGER, s)
-
-    print("UNSIGNED_FLOAT:")
-    for s in numbers:
-        test_text_regex(UNSIGNED_FLOAT, s)
-
-    print("SIGNED_FLOAT:")
-    for s in numbers:
-        test_text_regex(SIGNED_FLOAT, s)
-
-    print("LIBERAL_NUMBER:")
-    for s in numbers:
-        test_text_regex(LIBERAL_NUMBER, s)
-
-    print("UNITS_CELLS_PER_CUBIC_MM:")
-    test_text_regex(CELLS_PER_CUBIC_MM, "cells/mm3")
-    test_text_regex(CELLS_PER_CUBIC_MM, "blibble")
+    test_text_regex("UNSIGNED_INTEGER", UNSIGNED_INTEGER, [
+        ("1", ["1"]),
+        ("12345", ["12345"]),
+        ("-1", ["1"]),  # will drop sign
+        ("1.2", ["1", "2"]),
+        ("-3.4", ["3", "4"]),
+        ("+3.4", ["3", "4"]),
+        ("-3.4e27.3", ["3", "4", "27", "3"]),
+        ("3.4e-27", ["3", "4", "27"]),
+        ("9,800", ["9,800"]),
+        ("17,600.34", ["17,600", "34"]),
+        ("-17,300.6588", ["17,300", "6588"]),
+    ])
+    test_text_regex("SIGNED_INTEGER", SIGNED_INTEGER, [
+        ("1", ["1"]),
+        ("12345", ["12345"]),
+        ("-1", ["-1"]),
+        ("1.2", ["1", "2"]),
+        ("-3.4", ["-3", "4"]),
+        ("+3.4", ["+3", "4"]),
+        ("-3.4e27.3", ["-3", "4", "27", "3"]),
+        ("3.4e-27", ["3", "4", "-27"]),
+        ("9,800", ["9,800"]),
+        ("17,600.34", ["17,600", "34"]),
+        ("-17,300.6588", ["-17,300", "6588"]),
+    ])
+    test_text_regex("UNSIGNED_FLOAT", UNSIGNED_FLOAT, [
+        ("1", ["1"]),
+        ("12345", ["12345"]),
+        ("-1", ["1"]),
+        ("1.2", ["1.2"]),
+        ("-3.4", ["3.4"]),
+        ("+3.4", ["3.4"]),
+        ("-3.4e27.3", ["3.4", "27.3"]),
+        ("3.4e-27", ["3.4", "27"]),
+        ("9,800", ["9,800"]),
+        ("17,600.34", ["17,600.34"]),
+        ("-17,300.6588", ["17,300.6588"]),
+    ])
+    test_text_regex("SIGNED_FLOAT", SIGNED_FLOAT, [
+        ("1", ["1"]),
+        ("12345", ["12345"]),
+        ("-1", ["-1"]),
+        ("1.2", ["1.2"]),
+        ("-3.4", ["-3.4"]),
+        ("+3.4", ["+3.4"]),
+        ("-3.4e27.3", ["-3.4", "27.3"]),
+        ("3.4e-27", ["3.4", "-27"]),
+        ("9,800", ["9,800"]),
+        ("17,600.34", ["17,600.34"]),
+        ("-17,300.6588", ["-17,300.6588"]),
+    ])
+    test_text_regex("LIBERAL_NUMBER", LIBERAL_NUMBER, [
+        ("1", ["1"]),
+        ("12345", ["12345"]),
+        ("-1", ["-1"]),
+        ("1.2", ["1.2"]),
+        ("-3.4", ["-3.4"]),
+        ("+3.4", ["+3.4"]),
+        ("-3.4e27.3", ["-3.4e27", "3"]),  # not valid scientific notation
+        ("3.4e-27", ["3.4e-27"]),
+        ("9,800", ["9,800"]),
+        ("17,600.34", ["17,600.34"]),
+        ("-17,300.6588", ["-17,300.6588"]),
+    ])
+    test_text_regex("CELLS_PER_CUBIC_MM", CELLS_PER_CUBIC_MM, [
+        ("cells/mm3", ["cells/mm3"]),
+        ("blibble", []),
+    ])
 
 
 # =============================================================================
