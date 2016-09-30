@@ -236,7 +236,8 @@ setup(
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
             'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
             'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
-            'crate_nlp_buildjava=crate_anon.nlp_manager.buildjava:main',
+            'crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main',  # noqa
+            'crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main',  # noqa
 
             'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_django_secret_key:main',  # noqa
             'crate_estimate_mysql_memory_usage=crate_anon.tools.estimate_mysql_memory_usage:main',  # noqa

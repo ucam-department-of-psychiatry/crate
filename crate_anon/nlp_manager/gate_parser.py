@@ -10,7 +10,7 @@ from typing import Any, Dict, Iterator, List, Tuple
 from cardinal_pythonlib.rnc_lang import chunks
 from sqlalchemy import Column, Index, Integer, Text
 
-from crate_anon.nlp_manager.base_parser import NlpParser
+from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     SqlTypeDbIdentifier,
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 #   http://www.tutorialspoint.com/java/java_networking.htm
 # OK, first one works; that's easier.
 
-class Gate(NlpParser):
+class Gate(BaseNlpParser):
     """Class controlling an external process, typically our Java interface to
     GATE programs, CrateGatePipeline.java (but it could be any external
     program).

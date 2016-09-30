@@ -13,7 +13,7 @@ from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
     SqlTypeDbIdentifier,
 )
-from crate_anon.nlp_manager.base_parser import NlpParser
+from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 
@@ -40,17 +40,27 @@ OPTIONAL_WHITESPACE = r"\s?"
 # Blood results
 # -----------------------------------------------------------------------------
 
-OPTIONAL_RESULTS_IGNORABLES = r"""
+OPTIONAL_RESULTS_IGNORABLES_SUB = r"""
     (?:
         \s          # whitespace
         | \|        # bar
-        | \(        # left parenthesis
-        | \)        # right parenthesis
         | \bHH?\b   # H or HH at a word boundary
         | \bLL?\b   # L or LL at a word boundary
         | \*        # asterisk
     )*
 """
+OPTIONAL_RESULTS_IGNORABLES = r"""
+    (?:
+        {OPTIONAL_RESULTS_IGNORABLES_SUB}
+        | (?:
+            {OPTIONAL_RESULTS_IGNORABLES_SUB}
+            \(        # left parenthesis
+            {OPTIONAL_RESULTS_IGNORABLES_SUB}
+            [)]*      # right parenthesis (optional)
+            {OPTIONAL_RESULTS_IGNORABLES_SUB}
+        )
+    )*
+""".format(OPTIONAL_RESULTS_IGNORABLES_SUB=OPTIONAL_RESULTS_IGNORABLES_SUB)
 # - you often get | characters when people copy/paste tables
 # - blood test abnormality markers can look like e.g.
 #       17 (H), 17 (*), 17 HH
@@ -59,6 +69,9 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 #   "Present: Nicola Adams (NA). 1.0. Minutes of the last meeting."
 #   ... which we don't want to be interpreted as "sodium 1.0".
 #   HOW BEST TO DO THIS?
+# - http://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets  # noqa
+#   http://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa
+# - ... simplest is perhaps: base ignorables, or those with brackets, as above
 
 # -----------------------------------------------------------------------------
 # Tense indicators
@@ -230,7 +243,7 @@ MM = r"(?:mm|millimet(?:re:er)[s]?)"  # mm, millimetre(s), millimeter(s)
 # Mass
 G = r"(?:g|gram(?:me)[s]?)"  # g, gram, grams, gramme, grammes
 MG = r"(?:mg|milligram(?:me)[s]?)"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
-MCG = r"(?:mcg|microgram(?:me)[s]?)"
+MCG = r"(?:mcg|microgram(?:me)[s]|ug?)"  # you won't stop people using ug...
 
 # Volume
 L = r"(?:L|lit(?:re|er)[s]?)"  # L, litre(s), liter(s)
@@ -300,7 +313,7 @@ def to_float(s: str) -> float:
     return float(s)
 
 
-class NumericalResultParser(NlpParser):
+class NumericalResultParser(BaseNlpParser):
     """DO NOT USE DIRECTLY. Base class for generic numerical results."""
     FN_VARIABLE_NAME = 'variable_name'
     FN_CONTENT = '_content'
@@ -324,7 +337,8 @@ class NumericalResultParser(NlpParser):
                  variable: str,
                  target_unit: str,
                  units_to_factor: Dict[typing.re.Pattern, float],
-                 commit: bool = False) -> None:
+                 commit: bool = False,
+                 debug_regex: bool = False) -> None:
         """
         This class operates with compiled regexes having this group format:
           - variable
@@ -345,6 +359,8 @@ class NumericalResultParser(NlpParser):
               ignoring "docusate sodium 100mg" but detecting "sodium 140 mM".
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        if debug_regex:
+            print("Regex for {}: {}".format(type(self).__name__, regex_str))
         self.compiled_regex = regex.compile(regex_str, REGEX_COMPILE_FLAGS)
         self.variable = variable
         self.target_unit = target_unit
@@ -489,7 +505,7 @@ class NumericalResultParser(NlpParser):
 #  More general testing
 # =============================================================================
 
-class ValidatorBase(NlpParser):
+class ValidatorBase(BaseNlpParser):
     """DO NOT USE DIRECTLY. Base class for validating regex parser sensitivity.
     The validator will find fields that refer to the variable, whether or not
     they meet the other criteria of the actual NLP processors (i.e. whether or

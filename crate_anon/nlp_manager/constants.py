@@ -6,6 +6,10 @@ from crate_anon.common.hash import HmacMD5Hasher
 
 
 GATE_PIPELINE_CLASSNAME = 'CrateGatePipeline'
+MEDEX_PIPELINE_CLASSNAME = 'CrateMedexPipeline'
+
+MEDEX_DATA_READY_SIGNAL = "data_ready"
+MEDEX_RESULTS_READY_SIGNAL = "results_ready"
 
 NLP_CONFIG_ENV_VAR = 'CRATE_NLP_CONFIG'
 

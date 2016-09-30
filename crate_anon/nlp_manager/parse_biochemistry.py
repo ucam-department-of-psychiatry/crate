@@ -206,6 +206,14 @@ class Sodium(NumericalResultParser):
             ("Na 135 mEq/L", [135]),
             ("Na 139 mM", [139]),
             ("docusate sodium 100mg", []),
+            ("Present: Nicola Adams (NA). 1.0 Minutes of last meeting", []),
+            ("Present: Nicola Adams (NA) 1.0 Minutes of last meeting", []),
+            ("Na (H) 145 mM", [145]),
+            ("Na (*) 145 mM", [145]),
+            ("Na (X) 145 mM", []),
+            ("blah (Na) 145 mM", []),
+            ("Na (145) something", [145]),
+            ("Na (145 mM), others", [145]),
         ])
 
 

@@ -7,10 +7,11 @@ from typing import Generic, List
 
 import prettytable
 
-from crate_anon.nlp_manager.base_parser import NlpParser
+from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.regex_parser import ValidatorBase
 
 from crate_anon.nlp_manager.gate_parser import Gate
+from crate_anon.nlp_manager.medex_parser import Medex
 from crate_anon.nlp_manager.parse_biochemistry import *
 from crate_anon.nlp_manager.parse_cognitive import *
 from crate_anon.nlp_manager.parse_haematology import *
@@ -64,8 +65,8 @@ def get_all_subclasses(cls: Generic) -> List[Generic]:
 # noinspection PyTypeChecker,PyCallingNonCallable
 def make_processor(processor_type: str,
                    nlpdef: NlpDefinition,
-                   section: str) -> NlpParser:
-    possible_processors = get_all_subclasses(NlpParser)
+                   section: str) -> BaseNlpParser:
+    possible_processors = get_all_subclasses(BaseNlpParser)
     for cls in possible_processors:
         if processor_type.lower() == cls.__name__.lower():
             return cls(nlpdef, section)
@@ -77,13 +78,13 @@ def make_processor(processor_type: str,
 
 # noinspection PyTypeChecker
 def possible_processor_names() -> List[str]:
-    possible_processors = get_all_subclasses(NlpParser)
+    possible_processors = get_all_subclasses(BaseNlpParser)
     return [cls.__name__ for cls in possible_processors]
 
 
 # noinspection PyTypeChecker
 def possible_processor_table() -> str:
-    possible_processors = get_all_subclasses(NlpParser)
+    possible_processors = get_all_subclasses(BaseNlpParser)
     pt = prettytable.PrettyTable(
         ["NLP name", "Description"],
         header=True,

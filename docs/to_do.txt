@@ -9,7 +9,7 @@ Consider
 
 - pulling research consent info from RiO at point of lookup
 
-- consider function to anonymise against a dictionary of names (for data
+- consider function to anonymise against a dictionary of human names (for data
   without linkage to primary records/demographics)
 
 ===============================================================================

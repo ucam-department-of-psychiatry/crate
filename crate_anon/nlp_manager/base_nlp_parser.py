@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/base_parser.py
+# crate_anon/nlp_manager/base_nlp_parser.py
 
 # Simple base class for all our NLP parsers (GATE, regex, ...)
 
@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 # Base class for all parser types
 # =============================================================================
 
-class NlpParser(object):
+class BaseNlpParser(object):
     FN_PK = '_pk'
     FN_NLPDEF = '_nlpdef'
 
