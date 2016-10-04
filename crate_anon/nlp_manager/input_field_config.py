@@ -10,7 +10,7 @@ from cardinal_pythonlib.rnc_db import (
 )
 from sqlalchemy import BigInteger, Column, Index, Table
 from sqlalchemy.sql import column, func, select, table
-from sqlalchemy.sql.elements import quoted_name
+# from sqlalchemy.sql.elements import quoted_name
 
 from crate_anon.common.sqla import table_exists
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier

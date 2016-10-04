@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/gate_parser.py
+# crate_anon/nlp_manager/parse_gate.py
 
 import logging
 import os

@@ -4,8 +4,9 @@
 # Shared elements for regex-based NLP work.
 
 import regex
+from regex import _regex_core
 import typing
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -15,6 +16,19 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.regex_numbers import (
+    LIBERAL_NUMBER,
+    SIGNED_FLOAT,
+    SIGNED_INTEGER,
+    UNSIGNED_FLOAT,
+    UNSIGNED_INTEGER,
+)
+from crate_anon.nlp_manager.regex_units import (
+    CELLS,
+    CELLS_PER_CUBIC_MM,
+    CUBIC_MM,
+    PER_CUBIC_MM,
+)
 
 
 # =============================================================================
@@ -23,7 +37,7 @@ from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 # - All will use VERBOSE mode for legibility. (No impact on speed: compiled.)
 # - Don't forget to use raw strings for all regex definitions!
 # - Beware comments inside regexes. The comment parser isn't quite as benign
-#   as you might think.
+#   as you might think. Use very plain text only.
 # - (?: XXX ) makes XXX into an unnamed group.
 
 
@@ -36,31 +50,47 @@ WORD_BOUNDARY = r"\b"
 OPTIONAL_WHITESPACE = r"\s?"
 
 
+def at_wb_start_end(regex_str: str) -> str:
+    """
+    Caution using this. Digits do not end a word, so "mm3" will not match if
+    your "mm" group ends in a word boundary.
+    """
+    return "\b(?: {} )\b".format(regex_str)
+
+
+def at_start_wb(regex_str: str) -> str:
+    """
+    With word boundary at start. Beware, though; e.g. "3kg" is reasonable, and
+    this does NOT have a word boundary in.
+    """
+    return "(?: \b (?: {} ) )".format(regex_str)
+
+
+def compile_regex(regex_str: str) -> typing.re.Pattern:
+    try:
+        return regex.compile(regex_str, REGEX_COMPILE_FLAGS)
+    except _regex_core.error:
+        print("FAILING REGEX:\n{}".format(regex_str))
+        raise
+
+
 # -----------------------------------------------------------------------------
 # Blood results
 # -----------------------------------------------------------------------------
 
-OPTIONAL_RESULTS_IGNORABLES_SUB = r"""
-    (?:
+OPTIONAL_RESULTS_IGNORABLES = r"""
+    (?:  # OPTIONAL_RESULTS_IGNORABLES
         \s          # whitespace
         | \|        # bar
         | \bHH?\b   # H or HH at a word boundary
+        | \(HH?\)   # (H) or (HH)
         | \bLL?\b   # L or LL at a word boundary
-        | \*        # asterisk
+        | \(LL?\)   # (L) or (LL)
+        | \*        # *
+        | \(\*\)    # (*)
+        | \(        # isolated left parenthesis
     )*
 """
-OPTIONAL_RESULTS_IGNORABLES = r"""
-    (?:
-        {OPTIONAL_RESULTS_IGNORABLES_SUB}
-        | (?:
-            {OPTIONAL_RESULTS_IGNORABLES_SUB}
-            \(        # left parenthesis
-            {OPTIONAL_RESULTS_IGNORABLES_SUB}
-            [)]*      # right parenthesis (optional)
-            {OPTIONAL_RESULTS_IGNORABLES_SUB}
-        )
-    )*
-""".format(OPTIONAL_RESULTS_IGNORABLES_SUB=OPTIONAL_RESULTS_IGNORABLES_SUB)
 # - you often get | characters when people copy/paste tables
 # - blood test abnormality markers can look like e.g.
 #       17 (H), 17 (*), 17 HH
@@ -72,6 +102,7 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 # - http://stackoverflow.com/questions/546433/regular-expression-to-match-outer-brackets  # noqa
 #   http://stackoverflow.com/questions/7898310/using-regex-to-balance-match-parenthesis  # noqa
 # - ... simplest is perhaps: base ignorables, or those with brackets, as above
+# - ... even better than a nested thing is just a list of alternatives
 
 # -----------------------------------------------------------------------------
 # Tense indicators
@@ -80,8 +111,9 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 IS = "is"
 WAS = "was"
 TENSE_INDICATOR = r"""
-    (?:
-        {IS} | {WAS}
+    (?:  # TENSE_INDICATOR
+        \b {IS} \b
+        | \b {WAS} \b
     )
 """.format(IS=IS, WAS=WAS)
 
@@ -96,203 +128,21 @@ LE = "<="
 EQ = "="
 GE = ">="
 GT = ">"
+# OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
 
 RELATION = r"""
-    (?:
+    (?:  # RELATION
         {LT} | {LE} | {EQ} | {GE} | {GT}
     )
-""".format(LT=LT, LE=LE, EQ=EQ, GE=GE, GT=GT,
-           IS=IS, WAS=WAS)
+""".format(LT=LT, LE=LE, EQ=EQ, GE=GE, GT=GT)
 
-
-# -----------------------------------------------------------------------------
-# Mathematical operations and quantities
-# -----------------------------------------------------------------------------
-
-def times_ten_to_power(n):
-    return r"(?:{MULTIPLY}?\s*10\s*{POWER}\s*{n})".format(
-        MULTIPLY=MULTIPLY, POWER=POWER, n=n)
-
-MULTIPLY = r"[x*×⋅]"
-POWER = r"(?: e | \^ | \*\* )"  # e, ^, **
-BILLION = times_ten_to_power(9)
-
-
-# -----------------------------------------------------------------------------
-# Number components
-# -----------------------------------------------------------------------------
-
-OPTIONAL_SIGN = r"[+-]?"
-OPTIONAL_POSITIVE_NO_NEGATIVE_SIGN = r"""
-    (?:  # optional + but no -
-        (?!-)  # negative lookahead assertion
-        +?
-    )
-"""
-# OPTIONAL_POSITIVE_NO_NEGATIVE_SIGN = OPTIONAL_SIGN
-PLAIN_INTEGER = r"(?:\d+)"
-# Numbers with commas: http://stackoverflow.com/questions/5917082
-# ... then modified a little, because that fails with Python's regex module;
-# (a) the "\d+" grabs things like "12,000" and thinks "aha, 12", so we have to
-#     fix that by putting the "thousands" bit first; then
-# (b) that has to be modified to contain at least one comma/thousands grouping
-#     (or it will treat "9800" as "980").
-PLAIN_INTEGER_W_THOUSAND_COMMAS = r"""
-    (?:  # plain integer allowing commas as a thousands separator
-        (?:                 # a number with thousands separators
-            \d{1,3} (?:,\d{3})+
-        )
-        |                   # or
-        \d+                 # plain number
-        # NOTE: PUT THE ONE THAT NEEDS TO BE GREEDIER FIRST, i.e. the
-        # one with thousands separators
-    )
-"""
-FLOATING_POINT_GROUP = r"""
-    (?: \. \d+ )?           # optional decimal point and further digits
-"""
-SCIENTIFIC_NOTATION_EXPONENT = r"""
-    (?:  # integer exponent
-        E                   # E
-        {OPTIONAL_SIGN}
-        \d+                 # number
-    )?
-""".format(
-    OPTIONAL_SIGN=OPTIONAL_SIGN,
-)
-# Scientific notation does NOT offer non-integer exponents.
-# Specifically, float("-3.4e-27") is fine, but float("-3.4e-27.1") isn't.
-
-
-# -----------------------------------------------------------------------------
-# Number types
-# -----------------------------------------------------------------------------
-# Beware of unsigned types. You may not want a sign, but if you use an
-# unsigned type, "-3" will be read as "3".
-
-UNSIGNED_INTEGER = PLAIN_INTEGER_W_THOUSAND_COMMAS
-SIGNED_INTEGER = r"""
-    (?:  # signed integer
-        {OPTIONAL_SIGN}
-        {PLAIN_INTEGER_W_THOUSAND_COMMAS}
-    )
-""".format(
-    OPTIONAL_SIGN=OPTIONAL_SIGN,
-    PLAIN_INTEGER_W_THOUSAND_COMMAS=PLAIN_INTEGER_W_THOUSAND_COMMAS,
-)
-UNSIGNED_FLOAT = r"""
-    (?:  # unsigned float
-        {PLAIN_INTEGER_W_THOUSAND_COMMAS}
-        {FLOATING_POINT_GROUP}
-    )
-""".format(
-    OPTIONAL_POSITIVE_NO_NEGATIVE_SIGN=OPTIONAL_POSITIVE_NO_NEGATIVE_SIGN,
-    PLAIN_INTEGER_W_THOUSAND_COMMAS=PLAIN_INTEGER_W_THOUSAND_COMMAS,
-    FLOATING_POINT_GROUP=FLOATING_POINT_GROUP,
-)
-SIGNED_FLOAT = r"""
-    (?:  # signed float
-        {OPTIONAL_SIGN}
-        {PLAIN_INTEGER_W_THOUSAND_COMMAS}
-        {FLOATING_POINT_GROUP}
-    )
-""".format(
-    OPTIONAL_SIGN=OPTIONAL_SIGN,
-    PLAIN_INTEGER_W_THOUSAND_COMMAS=PLAIN_INTEGER_W_THOUSAND_COMMAS,
-    FLOATING_POINT_GROUP=FLOATING_POINT_GROUP,
-)
-LIBERAL_NUMBER = r"""
-    (?:  # liberal number
-        {OPTIONAL_SIGN}
-        {PLAIN_INTEGER_W_THOUSAND_COMMAS}
-        {FLOATING_POINT_GROUP}
-        {SCIENTIFIC_NOTATION_EXPONENT}
-    )
-""".format(
-    OPTIONAL_SIGN=OPTIONAL_SIGN,
-    PLAIN_INTEGER_W_THOUSAND_COMMAS=PLAIN_INTEGER_W_THOUSAND_COMMAS,
-    FLOATING_POINT_GROUP=FLOATING_POINT_GROUP,
-    SCIENTIFIC_NOTATION_EXPONENT=SCIENTIFIC_NOTATION_EXPONENT,
-)
-
-
-# -----------------------------------------------------------------------------
-# Units
-# -----------------------------------------------------------------------------
-
-def per(numerator: str, denominator: str) -> str:
-    # Copes with blank/optional numerators, too.
-    return r"""
-        (?:
-            (?: {numerator} \s* \/ \s* {denominator} )      # n/d, n / d
-            | (?: {numerator} \s* \b per \s+ {denominator} )   # n per d
-            | (?: {numerator} \s* \b {denominator} \s* -1 )    # n d -1; n d-1
-        )
-    """.format(numerator=numerator, denominator=denominator)
-
-
-def out_of(n: int) -> str:
-    # / n
-    # out of n
-    return r"(?: (?: \/ | \b out \s+ of \b ) \s* n \b )".format(n=n)
-
-
-# Distance
-MM = r"(?:mm|millimet(?:re:er)[s]?)"  # mm, millimetre(s), millimeter(s)
-
-# Mass
-G = r"(?:g|gram(?:me)[s]?)"  # g, gram, grams, gramme, grammes
-MG = r"(?:mg|milligram(?:me)[s]?)"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
-MCG = r"(?:mcg|microgram(?:me)[s]|ug?)"  # you won't stop people using ug...
-
-# Volume
-L = r"(?:L|lit(?:re|er)[s]?)"  # L, litre(s), liter(s)
-DL = r"(?:d(?:eci)?{L})".format(L=L)
-CUBIC_MM = r"""
-    (?:
-        (?: cubic [\s]+ {MM} )      # cubic mm, etc
-        | (?: {MM} [\s]* [\^]? [\s]*3 )        # mm^3, mm3, mm 3, etc.
-    )
-""".format(MM=MM)
-
-# Inverse volume
-PER_CUBIC_MM = per("", CUBIC_MM)
-
-# Time
-HOUR = r"(?:h(?:r|our)?)"   # h, hr, hour
-
-# Counts, proportions
-PERCENT = r"""
-    (?:
-        %
-        | pe?r?\s?ce?n?t    # must have pct, other characters optional
-    )
-"""
-
-# Arbitrary count things
-CELLS = r"(?: cell[s]? )"
-OPTIONAL_CELLS = CELLS + "?"
-MILLIMOLES = r"(?:mmol(?:es?))"
-MILLIEQ = r"(?:mEq)"
-
-# Concentration
-MILLIMOLAR = r"(?:mM)"
-MG_PER_DL = per(MG, DL)
-MG_PER_L = per(MG, L)
-MILLIMOLES_PER_L = per(MILLIMOLES, L)
-MILLIEQ_PER_L = per(MILLIEQ, L)
-BILLION_PER_L = per(BILLION, L)
-CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
-
-# Speed
-MM_PER_H = per(MM, HOUR)
 
 # =============================================================================
 # Regexes based on some of the fragments above
 # =============================================================================
 
-RE_IS = regex.compile(IS, REGEX_COMPILE_FLAGS)
-RE_WAS = regex.compile(WAS, REGEX_COMPILE_FLAGS)
+RE_IS = compile_regex(IS)
+RE_WAS = compile_regex(WAS)
 
 
 # =============================================================================
@@ -308,13 +158,14 @@ PRESENT = "present"
 # =============================================================================
 
 def to_float(s: str) -> float:
-    if ',' in s:
+    if ',' in s:  # comma as thousands separator
         s = s.replace(',', '')
     return float(s)
 
 
 class NumericalResultParser(BaseNlpParser):
-    """DO NOT USE DIRECTLY. Base class for generic numerical results."""
+    """DO NOT USE DIRECTLY. Base class for generic numerical results, where
+    a SINGLE variable is produced."""
     FN_VARIABLE_NAME = 'variable_name'
     FN_CONTENT = '_content'
     FN_START = '_start'
@@ -333,24 +184,18 @@ class NumericalResultParser(BaseNlpParser):
     def __init__(self,
                  nlpdef: NlpDefinition,
                  cfgsection: str,
-                 regex_str: str,
                  variable: str,
                  target_unit: str,
                  units_to_factor: Dict[typing.re.Pattern, float],
-                 commit: bool = False,
-                 debug_regex: bool = False) -> None:
+                 commit: bool = False) -> None:
         """
-        This class operates with compiled regexes having this group format:
-          - variable
-          - tense_indicator
-          - relation
-          - value
-          - units
-
         units_to_factor: dictionary, mapping
-            (compiled regex for units)
-            -> (factor [multiple] to multiple those units by, to get preferred
-                unit)
+            FROM (compiled regex for units)
+            TO EITHER
+                - float [multiple] to multiple those units by, to get preferred
+                   unit
+            OR  - function taking text parameter and returning float value
+                  in preferred unit
 
             - any units present in the regex but absent from units_to_factor
               will lead the result to be ignored -- for example, allowing you
@@ -359,13 +204,10 @@ class NumericalResultParser(BaseNlpParser):
               ignoring "docusate sodium 100mg" but detecting "sodium 140 mM".
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
-        if debug_regex:
-            print("Regex for {}: {}".format(type(self).__name__, regex_str))
-        self.compiled_regex = regex.compile(regex_str, REGEX_COMPILE_FLAGS)
         self.variable = variable
         self.target_unit = target_unit
         self.units_to_factor = {
-            regex.compile(k, REGEX_COMPILE_FLAGS): v
+            compile_regex(k): v
             for k, v in units_to_factor.items()
         }
 
@@ -415,7 +257,71 @@ class NumericalResultParser(BaseNlpParser):
         ]}
 
     def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        """Default parser."""
+        raise NotImplementedError
+
+    def test_numerical_parser(
+            self,
+            test_expected_list: List[Tuple[str, List[float]]]) -> None:
+        """
+        :param test_expected_list: list of tuples of (a) test string and
+         (b) list of expected numerical (float) results, which can be an
+         empty list
+        :return: none; will assert on failure
+        """
+        print("Testing parser: {}".format(type(self).__name__))
+        for test_string, expected_values in test_expected_list:
+            actual_values = list(
+                x[self.target_unit] for t, x in self.parse(test_string)
+            )
+            assert actual_values == expected_values, (
+                """Parser {}: Expected {}, got {}, when parsing {}""".format(
+                    type(self).__name__,
+                    expected_values,
+                    actual_values,
+                    repr(test_string)
+                )
+            )
+        print("... OK")
+
+
+class SimpleNumericalResultParser(NumericalResultParser):
+    """Base class for simple single-format numerical results. Use this when
+    not only do you have a single variable to produce, but you have a single
+    regex (in a standard format) that can produce it."""
+    def __init__(self,
+                 nlpdef: NlpDefinition,
+                 cfgsection: str,
+                 regex_str: str,
+                 variable: str,
+                 target_unit: str,
+                 units_to_factor: Dict[typing.re.Pattern, float],
+                 commit: bool = False,
+                 debug: bool = False) -> None:
+        """
+        This class operates with compiled regexes having this group format:
+          - variable
+          - tense_indicator
+          - relation
+          - value
+          - units
+        """
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         variable=variable,
+                         target_unit=target_unit,
+                         units_to_factor=units_to_factor,
+                         commit=commit)
+        if debug:
+            print("Regex for {}: {}".format(type(self).__name__, regex_str))
+        self.compiled_regex = compile_regex(regex_str)
+
+    def parse(self, text: str,
+              debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        """Default parser."""
         for m in self.compiled_regex.finditer(text):
+            if debug:
+                print("Match {} for {}".format(m, repr(text)))
             startpos = m.start()
             endpos = m.end()
             # groups = repr(m.groups())  # all matching groups
@@ -433,9 +339,13 @@ class NumericalResultParser(BaseNlpParser):
             value_in_target_units = None
             if units:
                 matched_unit = False
-                for unit_regex, multiple in self.units_to_factor.items():
+                for unit_regex, multiple_or_fn in self.units_to_factor.items():
                     if unit_regex.match(units):
-                        value_in_target_units = to_float(value_text) * multiple
+                        if callable(multiple_or_fn):
+                            value_in_target_units = multiple_or_fn(value_text)
+                        else:
+                            value_in_target_units = (to_float(value_text) *
+                                                     multiple_or_fn)
                         matched_unit = True
                         break
                 if not matched_unit:
@@ -475,30 +385,6 @@ class NumericalResultParser(BaseNlpParser):
                 self.target_unit: value_in_target_units,
                 self.FN_TENSE: tense,
             }
-
-    def test_numerical_parser(
-            self,
-            test_expected_list: List[Tuple[str, List[float]]]) -> None:
-        """
-        :param test_expected_list: list of tuples of (a) test string and
-         (b) list of expected numerical (float) results, which can be an
-         empty list
-        :return: none; will assert on failure
-        """
-        print("Testing parser: {}".format(type(self).__name__))
-        for test_string, expected_values in test_expected_list:
-            actual_values = list(
-                x[self.target_unit] for t, x in self.parse(test_string)
-            )
-            assert actual_values == expected_values, (
-                """Parser {}: Expected {}, got {}, when parsing {}""".format(
-                    type(self).__name__,
-                    expected_values,
-                    actual_values,
-                    repr(test_string)
-                )
-            )
-        print("... OK")
 
 
 # =============================================================================
@@ -589,7 +475,7 @@ class ValidatorBase(BaseNlpParser):
     def __init__(self,
                  nlpdef: NlpDefinition,
                  cfgsection: str,
-                 regex_str: str,
+                 regex_str_list: List[str],
                  validated_variable: str,
                  commit: bool = False) -> None:
         """
@@ -597,7 +483,7 @@ class ValidatorBase(BaseNlpParser):
           - variable
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
-        self.compiled_regex = regex.compile(regex_str, REGEX_COMPILE_FLAGS)
+        self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
         self.variable = "{}_validator".format(validated_variable)
         self.NAME = self.variable
 
@@ -625,19 +511,20 @@ class ValidatorBase(BaseNlpParser):
         ]}
 
     def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
-        for m in self.compiled_regex.finditer(text):
-            startpos = m.start()
-            endpos = m.end()
-            # groups = repr(m.groups())  # all matching groups
-            matching_text = m.group(0)  # the whole thing
-            # matching_text = text[startpos:endpos]  # same thing
+        for compiled_regex in self.compiled_regex_list:
+            for m in compiled_regex.finditer(text):
+                startpos = m.start()
+                endpos = m.end()
+                # groups = repr(m.groups())  # all matching groups
+                matching_text = m.group(0)  # the whole thing
+                # matching_text = text[startpos:endpos]  # same thing
 
-            yield self.tablename, {
-                self.FN_VARIABLE_NAME: self.variable,
-                self.FN_CONTENT: matching_text,
-                self.FN_START: startpos,
-                self.FN_END: endpos,
-            }
+                yield self.tablename, {
+                    self.FN_VARIABLE_NAME: self.variable,
+                    self.FN_CONTENT: matching_text,
+                    self.FN_START: startpos,
+                    self.FN_END: endpos,
+                }
 
 
 # =============================================================================
@@ -662,7 +549,7 @@ def print_compiled_regex_results(compiled_regex: typing.re.Pattern, text: str,
 def test_text_regex(name: str,
                     regex_text: str,
                     test_expected_list: List[Tuple[str, List[str]]]) -> None:
-    compiled_regex = regex.compile(regex_text, REGEX_COMPILE_FLAGS)
+    compiled_regex = compile_regex(regex_text)
     print("Testing regex named {}".format(name))
     for test_string, expected_values in test_expected_list:
         actual_values = get_compiled_regex_results(compiled_regex, test_string)
@@ -745,10 +632,34 @@ def test_base_regexes() -> None:
         ("17,600.34", ["17,600.34"]),
         ("-17,300.6588", ["-17,300.6588"]),
     ])
+    test_text_regex("CELLS", CELLS, [
+        ("cells", ["cells"]),
+        ("blibble", []),
+    ])
+    test_text_regex("CUBIC_MM", CUBIC_MM, [
+        ("mm3", ["mm3"]),
+        ("blibble", []),
+    ])
+    test_text_regex("PER_CUBIC_MM", PER_CUBIC_MM, [
+        ("per cubic mm", ["per cubic mm"]),
+    ])
     test_text_regex("CELLS_PER_CUBIC_MM", CELLS_PER_CUBIC_MM, [
         ("cells/mm3", ["cells/mm3"]),
         ("blibble", []),
     ])
+    test_text_regex(
+        "OPTIONAL_RESULTS_IGNORABLES",
+        OPTIONAL_RESULTS_IGNORABLES, [
+            ("(H)", ['(H)', '']),
+            (" (H) ", [' (H) ', '']),
+            (" (H) mg/L", [' (H) ', '', '', '', 'L', '']),
+            ("(HH)", ['(HH)', '']),
+            ("(L)", ['(L)', '']),
+            ("(LL)", ['(LL)', '']),
+            ("(*)", ['(*)', '']),
+            ("  |  (H)  |  ", ['  |  (H)  |  ', '']),
+        ]
+    )
 
 
 # =============================================================================

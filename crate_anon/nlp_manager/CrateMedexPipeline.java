@@ -70,7 +70,7 @@ public class CrateMedexPipeline {
 	private String m_abbr_file = resource("abbr.txt");
 	private String m_grammar_file = resource("grammar.txt");
 	private String m_if_detect_sents = "y";  // -b [yn]: use built-in sentence boundary detector?
-	private String m_if_freq_norm = "n";  // -f [yn]: normalize frequency to TIMEX3 format? (e.g. "b.i.d." -> "R1P12H")
+	private String m_if_freq_norm = "y";  // -f [yn]: normalize frequency to TIMEX3 format? (e.g. "b.i.d." -> "R1P12H")
 	private String m_if_drool_engine = "n";  // -d [yn]: "use drool engine? ... The default setting is to use the built-in rules for disambiguation (faster)"
 	private String m_if_offset_showed = "y";  // -p [yn]: show offset information?
 	private String m_if_output_tag = "n";  // -t [yn]: show tagging information?

@@ -337,6 +337,9 @@ His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
 
 Some HTML encoding is &amp; and &lt;.
 An HTML tag is <a href="http://somewhere">this link</a>.
+Start aspirin 75mg od. Remains on Lipitor 40mg nocte.
+For haloperidol 2mg po prn max qds.
+Start amoxicillin 500 mg b.i.d. for 7 days.
         """
     )
     session.add(n1)
@@ -367,6 +370,7 @@ or 01223 123 456, or 01223 123456.
 His NHS number was 123.456 or possibly 12 34 56 or 123456, perhaps.
 His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
 Bob Hope visited Seattle.
+Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
         """
     )
     session.add(n2)

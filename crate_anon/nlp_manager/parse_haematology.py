@@ -7,19 +7,21 @@ from typing import Optional
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
-    NumericalResultParser,
-    ValidatorBase,
     OPTIONAL_RESULTS_IGNORABLES,
     RELATION,
-    SIGNED_FLOAT,
+    SimpleNumericalResultParser,
     TENSE_INDICATOR,
+    ValidatorBase,
+    WORD_BOUNDARY,
+)
+from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
+from crate_anon.nlp_manager.regex_units import (
     BILLION_PER_L,
     CELLS_PER_CUBIC_MM,
     MG_PER_DL,
     MG_PER_L,
     MM_PER_H,
     PERCENT,
-    WORD_BOUNDARY,
 )
 
 log = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ log = logging.getLogger(__name__)
 #  Erythrocyte sedimentation rate (ESR)
 # =============================================================================
 
-class Esr(NumericalResultParser):
+class Esr(SimpleNumericalResultParser):
     """Erythrocyte sedimentation rate (ESR)."""
     ESR = r"""
         (?:
@@ -98,10 +100,13 @@ class Esr(NumericalResultParser):
             ("ESR >100 mm/hour", [100]),
             ("ESR was 62", [62]),
             ("ESR was 62 mm/h", [62]),
+            ("ESR was 62 (H) mm/h", [62]),
             ("ESR was 62 mg/dl (should fail, wrong units)", []),
             ("Erythrocyte sed. rate was 19", [19]),
             ("his erythrocyte sedimentation rate was 19", [19]),
             ("erythrocyte sedimentation rate was 19", [19]),
+            ("ESR 1.9 mg/L", []),  # wrong units
+            ("ESR 1.9 (H) mg/L", []),  # wrong units
             ("ESR        |       1.9 (H)      | mg/L", []),
             ("my ESR was 15, but his ESR was 89!", [15, 89]),
         ])
@@ -115,7 +120,7 @@ class EsrValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Esr.ESR,
+                         regex_str_list=[Esr.ESR],
                          validated_variable=Esr.NAME,
                          commit=commit)
 
@@ -133,7 +138,7 @@ class EsrValidator(ValidatorBase):
 # if we are not allowing units, like "M0 3": macrophages 3 x 10^9/L, or part
 # of "T2 N0 M0 ..." cancer staging?
 
-class WbcBase(NumericalResultParser):
+class WbcBase(SimpleNumericalResultParser):
     """DO NOT USE DIRECTLY. White cell count base class."""
     PREFERRED_UNIT_COLUMN = "value_billion_per_l"
     UNIT_MAPPING = {
@@ -257,7 +262,7 @@ class WbcValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Wbc.WBC,
+                         regex_str_list=[Wbc.WBC],
                          validated_variable=Wbc.NAME,
                          commit=commit)
 
@@ -319,7 +324,7 @@ class NeutrophilsValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Neutrophils.NEUTROPHILS,
+                         regex_str_list=[Neutrophils.NEUTROPHILS],
                          validated_variable=Neutrophils.NAME,
                          commit=commit)
 
@@ -377,7 +382,7 @@ class LymphocytesValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Lymphocytes.LYMPHOCYTES,
+                         regex_str_list=[Lymphocytes.LYMPHOCYTES],
                          validated_variable=Lymphocytes.NAME,
                          commit=commit)
 
@@ -434,7 +439,7 @@ class MonocytesValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Monocytes.MONOCYTES,
+                         regex_str_list=[Monocytes.MONOCYTES],
                          validated_variable=Monocytes.NAME,
                          commit=commit)
 
@@ -491,7 +496,7 @@ class BasophilsValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Basophils.BASOPHILS,
+                         regex_str_list=[Basophils.BASOPHILS],
                          validated_variable=Basophils.NAME,
                          commit=commit)
 
@@ -548,7 +553,7 @@ class EosinophilsValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Eosinophils.EOSINOPHILS,
+                         regex_str_list=[Eosinophils.EOSINOPHILS],
                          validated_variable=Eosinophils.NAME,
                          commit=commit)
 

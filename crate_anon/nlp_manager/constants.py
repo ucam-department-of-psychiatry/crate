@@ -335,6 +335,20 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
 
 # max_external_prog_uses = 1000
 
+# -----------------------------------------------------------------------------
+# Specimen MedEx processor definition
+# -----------------------------------------------------------------------------
+
+[procdef_medex_drugs]
+destdb = anonymous_output
+desttable = drugs
+progargs = java
+    -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
+    CrateMedexPipeline
+    -lt {{NLPLOGTAG}}
+    -v -v
+# ... other arguments are added by the code
+progenvsection = MY_ENV_SECTION
 
 # =============================================================================
 # Environment variable definitions (for external program, and progargs).
@@ -344,8 +358,9 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
 
 [MY_ENV_SECTION]
 
-GATEDIR = /home/myuser/GATE_Developer_8.0
+GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
 NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
+MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
 
 # =============================================================================
 # Output types for GATE

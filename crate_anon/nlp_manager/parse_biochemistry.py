@@ -6,16 +6,18 @@ from typing import Optional
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
-    NumericalResultParser,
-    ValidatorBase,
     OPTIONAL_RESULTS_IGNORABLES,
     RELATION,
-    SIGNED_FLOAT,
+    SimpleNumericalResultParser,
     TENSE_INDICATOR,
+    ValidatorBase,
+    WORD_BOUNDARY,
+)
+from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
+from crate_anon.nlp_manager.regex_units import (
     MG,
     MG_PER_DL,
     MG_PER_L,
-    WORD_BOUNDARY,
     MILLIMOLAR,
     MILLIMOLES_PER_L,
     MILLIEQ_PER_L,
@@ -28,7 +30,7 @@ log = logging.getLogger(__name__)
 #  C-reactive protein (CRP)
 # =============================================================================
 
-class Crp(NumericalResultParser):
+class Crp(SimpleNumericalResultParser):
     """C-reactive protein.
 
     CRP units:
@@ -127,7 +129,7 @@ class CrpValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Crp.CRP,
+                         regex_str_list=[Crp.CRP],
                          validated_variable=Crp.NAME,
                          commit=commit)
 
@@ -137,7 +139,7 @@ class CrpValidator(ValidatorBase):
 # =============================================================================
 # ... handy to check approximately expected distribution of results!
 
-class Sodium(NumericalResultParser):
+class Sodium(SimpleNumericalResultParser):
     """Sodium (Na)."""
     SODIUM = r"""
         (?:
@@ -225,7 +227,7 @@ class SodiumValidator(ValidatorBase):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
-                         regex_str=Sodium.SODIUM,
+                         regex_str_list=[Sodium.SODIUM],
                          validated_variable=Sodium.NAME,
                          commit=commit)
 
