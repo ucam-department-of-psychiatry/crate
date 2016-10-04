@@ -11,8 +11,8 @@ from typing import List
 log = logging.getLogger(__name__)
 
 
-def mkdirp(path: str) -> None:
-    print("mkdir_p: " + path)
+def mkdir_p(path: str) -> None:
+    log.debug("mkdir_p: " + path)
     os.makedirs(path, exist_ok=True)
 
 
@@ -65,6 +65,12 @@ def moveglob(src: str, dest: str, allow_nothing: bool = False) -> None:
 
 def rmglob(pattern: str) -> None:
     for f in glob.glob(pattern):
+        os.remove(f)
+
+
+def purge(path: str, pattern: str) -> None:
+    for f in find(pattern, path):
+        log.info("Deleting {}".format(f))
         os.remove(f)
 
 

@@ -138,6 +138,13 @@ processors =
     Sodium procdef_sodium
     SodiumValidator procdef_validate_sodium
     # -------------------------------------------------------------------------
+    # Clinical
+    # -------------------------------------------------------------------------
+    Height procdef_height
+    Weight procdef_weight
+    Bmi procdef_bmi
+    Bp procdef_bp
+    # -------------------------------------------------------------------------
     # Cognitive
     # -------------------------------------------------------------------------
     MMSE procdef_mmse
@@ -191,6 +198,36 @@ desttable = sodium
 [procdef_validate_sodium]
 destdb = anonymous_output
 desttable = validate_sodium
+
+    # Clinical
+
+[procdef_height]
+destdb = anonymous_output
+desttable = height
+[procdef_validate_height]
+destdb = anonymous_output
+desttable = validate_height
+
+[procdef_weight]
+destdb = anonymous_output
+desttable = weight
+[procdef_validate_weight]
+destdb = anonymous_output
+desttable = validate_weight
+
+[procdef_bmi]
+destdb = anonymous_output
+desttable = bmi
+[procdef_validate_bmi]
+destdb = anonymous_output
+desttable = validate_bmi
+
+[procdef_bp]
+destdb = anonymous_output
+desttable = bp
+[procdef_validate_bp]
+destdb = anonymous_output
+desttable = validate_bp
 
     # Cognitive
 

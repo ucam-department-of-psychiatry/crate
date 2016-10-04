@@ -34,17 +34,31 @@ def out_of(n: int) -> str:
 # Distance
 # -----------------------------------------------------------------------------
 
-MM = r"(?: mm | millimet(?:re:er)s? )"   # mm, millimetre(s), millimeter(s)  # noqa
 M = r"(?: m | met(?:re:er)s? )"  # m, metre(s), meter(s)
+CM = r"(?: cm | centimet(?:re:er)s? )"   # cm, centimetre(s), centimeter(s)
+MM = r"(?: mm | millimet(?:re:er)s? )"   # mm, millimetre(s), millimeter(s)
+
+FEET = r'''
+    (?:
+        f(?: ee | oo)?t     # feet, foot, ft
+        | \'                # '
+    )
+'''
+INCHES = r'''
+    (?:
+        in(?:ch(?:e)?)?s?   # in, ins, inch, inches, [inchs = typo but clear]
+        | \"                # "
+    )
+'''
 
 # -----------------------------------------------------------------------------
 # Mass
 # -----------------------------------------------------------------------------
 
-MCG = r"(?: mcg | microgram(?:me)s? | ug )"  # you won't stop people using ug...  # noqa
-MG = r"(?: mg | milligram(?:me)s? )"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
-G = r"(?: g | gram(?:me)s? )"  # g, gram, grams, gramme, grammes  # noqa
-KG = r"(?: kgs? | kilo(?:gram(?:me))s? )"  # kg, kgs, kilos ... kilogrammes etc.  # noqa
+MCG = r"(?: mcg | microgram(?:me)?s? | ug )"  # you won't stop people using ug...  # noqa
+MG = r"(?: mg | milligram(?:me)?s? )"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
+G = r"(?: g | gram(?:me)?s? )"  # g, gram, grams, gramme, grammes  # noqa
+KG = r"(?: kgs? | kilo(?:gram(?:me)?)?s? )"  # kg, kgs, kilos ... kilogrammes etc.  # noqa
 LB = r"(?: pounds? | lbs? )"  # pound(s), lb(s)
 STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 
@@ -149,19 +163,28 @@ def kg_from_st_lb_oz(stones: float = 0,
                      ounces: float = 0) -> float:
     # 16 ounces in a pound
     # 14 pounds in a stone
-    total_pounds = (stones * 14) + pounds + (ounces / 16)
     # 1 avoirdupois pound = 0.45359237 kg
     # https://en.wikipedia.org/wiki/Pound_(mass)
     # Have you the peas? "Goods of weight"; aveir de peis (OFr.; see OED).
-    return 0.45359237 * total_pounds
+    try:
+        total_pounds = (stones * 14) + pounds + (ounces / 16)
+        return 0.45359237 * total_pounds
+    except (TypeError, ValueError):
+        return None
 
 
 def m_from_ft_in(feet: float = 0, inches: float = 0) -> float:
     # 12 inches in a foot
-    total_inches = (feet * 12) + inches
     # 1 inch = 25.4 mm
-    return total_inches * 25.4 / 1000
+    try:
+        total_inches = (feet * 12) + inches
+        return total_inches * 25.4 / 1000
+    except (TypeError, ValueError):
+        return None
 
 
 def m_from_m_cm(metres: float = 0, centimetres: float = 0) -> float:
-    return metres + (centimetres / 100)
+    try:
+        return metres + (centimetres / 100)
+    except (TypeError, ValueError):
+        return None

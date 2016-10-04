@@ -95,7 +95,7 @@ PROBLEMS:
     org.apache.medex.MedTagger.run_batch_medtag
     ... creeates an org.apache.NLPTools.Document
         ... not obviously doing frequency stuff, or drug recognition
-    ... then runs org.apache.medex.MedTagget.medtagging(doc)
+    ... then runs org.apache.medex.MedTagger.medtagging(doc)
         ... this does most of the heavy lifting, I think
         ... uses ProcessingEngine freq_norm_engine
             ... org.apache.TIMEX.ProcessingEngine
@@ -117,6 +117,8 @@ PROBLEMS:
 
     # ... will also compile dependencies
 
+    See build_medex_itself.py
+
 -   YES. If you add to org.apache.medex.SemanticRuleEngine, with extra entries
     in the "regexlist.put(...)" sequence, new frequencies appear in the output.
 
@@ -125,29 +127,20 @@ PROBLEMS:
     Specifics:
     (a) SemanticRuleEngine.java
 
-// EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
-// NB case-sensitive regexes in Rule.java, so offer upper- and lower-case alternatives here
-// qqh, quarta quaque hora (RNC)
-expression="[Qq]\.?[Qq]\.?[Hh]\.?",val="R1P4H"
-// qds, quater die sumendum (RNC); MUST BE BEFORE COMPETING "qd" (= per day) expression: expression="[Qq]\.?[ ]?[Dd]\.?",val="R1P24H"
-expression="[Qq]\.?[Dd]\.?[Ss]\.?",val="R1P6H"
-// tds, ter die sumendum (RNC)
-expression="[Tt]\.?[Dd]\.?[Ss]\.?",val="R1P8H"
-// bd, bis die (RNC)
-expression="[Bb]\.?[Dd]\.?",val="R1P12H"
-// od, omni die (RNC)
-expression="[Oo]\.?[Dd]\.?",val="R1P24H"
-// mane (RNC)
-expression="[Mm][Aa][Nn][Ee]",val="R1P24H"
-// om, omni mane (RNC)
-expression="[Oo]\.?[Mm]\.?",val="R1P24H"
-// nocte (RNC)
-expression="[Nn][Oo][Cc][Tt][Ee]",val="R1P24H"
-// on, omni nocte (RNC)
-expression="[Oo]\.?[Nn]\.?",val="R1P24H"
-// ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
-// NECESSITY, NOT FREQUENCY: prn (pro re nata)
-// TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
+        // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
+        // NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case here
+        regexlist.put("^(q\\.?q\\.?h\\.?)( |$)","FREQ");  // qqh, quarta quaque hora (RNC)
+        regexlist.put("^(q\\.?d\\.?s\\.?)( |$)","FREQ");  // qds, quater die sumendum (RNC); must go before existing competing expression: regexlist.put("^q(\\.|)\\d+( |$)","FREQ");
+        regexlist.put("^(t\\.?d\\.?s\\.?)( |$)","FREQ");  // tds, ter die sumendum (RNC)
+        regexlist.put("^(b\\.?d\\.?)( |$)","FREQ");  // bd, bis die (RNC)
+        regexlist.put("^(o\\.?d\\.?)( |$)","FREQ");  // od, omni die (RNC)
+        regexlist.put("^(mane)( |$)","FREQ");  // mane (RNC)
+        regexlist.put("^(o\\.?m\\.?)( |$)","FREQ");  // om, omni mane (RNC)
+        regexlist.put("^(nocte)( |$)","FREQ");  // nocte (RNC)
+        regexlist.put("^(o\\.?n\\.?)( |$)","FREQ");  // on, omni nocte (RNC)
+        // ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
+        // NECESSITY, NOT FREQUENCY: prn (pro re nata)
+        // TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
 
     (b) frequency_rules
 
@@ -179,6 +172,112 @@ expression="[Oo]\.?[Nn]\.?[ ]",val="R1P24H"
 
         http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations
 
+-   How about routes of administration?
+
+        MedTagger.printResult()
+            route is in FStr_list[5]
+        ... called from MedTagger.medtagging()
+            route is in FStr_list_final[5]
+            before that, is in FStr (separated by \n)
+                ... from formatDruglist
+                ...
+                ... from logs, appears first next to "input for tagger" at
+                    which point it's in
+                        sent_token_array[j] (e.g. "po")
+                        sent_tag_array[j] (e.g. "RUT" = route)
+                ... from tag_dict
+                ... from filter_tags
+                ... from (Document) doc.filtered_drug_tag()
+                ...
+                ... ?from MedTagger.medtagging() calling doc.add_drug_tag()
+                ... no, not really; is in this bit:
+                    SuffixArray sa = new SuffixArray(...);
+                    Vector<SuffixArrayResult> result = sa.search();
+                ... and then each element of result has a "semantic_type"
+                    member that can be "RUT"
+        ... SuffixArray.search()
+            semantic_type=this.lex.sem_list().get(i);
+
+            ... where lex comes from MedTagger:
+                this.lex = new Lexicon(this.lex_fname);
+        ... Lexicon.sem_list() returns Lexicon.semantic_list
+            ... Lexicon.Lexicon() constructs using MedTagger's this.lex_fname
+            ... which is lexicon.cfg
+
+        ... aha! There it is. If a line in lexicon.cfg has a RUT tag, it'll
+            appear as a route. So:
+                grep "RUT$" lexicon.cfg | sort
+
+            bedside	RUT
+            by mouth	RUT
+            drip	RUT
+            gt	RUT
+            g tube	RUT
+            g-tube	RUT
+            gtube	RUT
+            im injection	RUT
+            im	RUT
+            inhalation	RUT
+            inhalatn	RUT
+            inhaled	RUT
+            intramuscular	RUT
+            intravenously	RUT
+            intravenous	RUT
+            iv	RUT
+            j tube	RUT
+            j-tube	RUT
+            jtube	RUT
+            nare	RUT
+            nares	RUT
+            naris	RUT
+            neb	RUT
+            nostril	RUT
+            orally	RUT
+            oral	RUT
+            ou	RUT
+            patch	DDF-DOSEUNIT-RUT
+            per gt	RUT
+            per mouth	RUT
+            per os	RUT
+            per rectum	RUT
+            per tube	RUT
+            p. g	RUT
+            pgt	RUT
+            png	RUT
+            pnj	RUT
+            p.o	RUT
+            po	RUT
+            sc	RUT
+            sl	RUT
+            sq	RUT
+            subc	RUT
+            subcu	RUT
+            subcutaneously	RUT
+            subcutaneous	RUT
+            subcut	RUT
+            subling	RUT
+            sublingual	RUT
+            sub q	RUT
+            subq	RUT
+            swallow	RUT
+            swish and spit	RUT
+            sw&spit	RUT
+            sw&swall	RUT
+            topically	RUT
+            topical	RUT
+            topical tp	RUT
+            trans	RUT
+            with spacer	RUT
+
+    Looks like these are not using synonyms. Note also format is route\tRUT
+    Note also that the first element is always forced to lower case (in
+        Lexicon.Lexicon()), so presumably it's case-insensitive.
+    There's no specific comment format (though any line that doesn't resolve
+        to two items when split on a tab looks like it's ignored).
+    So we might want to add more; use
+
+        build_medex_itself.py --extraroutes >> lexicon.cfg
+
 -   USEFUL BIT FOR CHECKING RESULTS:
 
     SELECT
@@ -199,14 +298,13 @@ import tempfile
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from cardinal_pythonlib.rnc_lang import AttrDict
-from cardinal_pythonlib.rnc_ui import mkdir_p
 from sqlalchemy import Column, Index, Integer, String, Text
 
+from crate_anon.common.fileops import mkdir_p
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     MEDEX_DATA_READY_SIGNAL,
     MEDEX_RESULTS_READY_SIGNAL,
-    SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 

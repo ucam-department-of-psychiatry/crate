@@ -58,10 +58,9 @@ import logging
 import os
 from typing import Any, Dict, List, Tuple
 
-from cardinal_pythonlib.rnc_ui import mkdir_p
-
 from crate_anon.anonymise.anonymise import config, extract_text
 from crate_anon.anonymise.patient import Patient
+from crate_anon.common.fileops import mkdir_p
 from crate_anon.common.logsupport import configure_logger_for_colour
 
 log = logging.getLogger(__name__)

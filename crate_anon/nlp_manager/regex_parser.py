@@ -158,9 +158,37 @@ PRESENT = "present"
 # =============================================================================
 
 def to_float(s: str) -> float:
-    if ',' in s:  # comma as thousands separator
-        s = s.replace(',', '')
-    return float(s)
+    try:
+        if ',' in s:  # comma as thousands separator
+            s = s.replace(',', '')
+        return float(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def common_tense(tense_indicator: str, relation: str) -> Tuple[str, str]:
+    """
+    Sort out tense, if known, and impute that "CRP was 72" means that
+    relation was EQ in the PAST, etc.
+
+    Returns (tense, relation).
+    """
+    tense = None
+    if tense_indicator:
+        if RE_IS.match(tense_indicator):
+            tense = PRESENT
+        elif RE_WAS.match(tense_indicator):
+            tense = PAST
+    elif relation:
+        if RE_IS.match(relation):
+            tense = PRESENT
+        elif RE_IS.match(relation):
+            tense = PAST
+
+    if not relation:
+        relation = EQ
+
+    return tense, relation
 
 
 class NumericalResultParser(BaseNlpParser):
@@ -186,30 +214,10 @@ class NumericalResultParser(BaseNlpParser):
                  cfgsection: str,
                  variable: str,
                  target_unit: str,
-                 units_to_factor: Dict[typing.re.Pattern, float],
                  commit: bool = False) -> None:
-        """
-        units_to_factor: dictionary, mapping
-            FROM (compiled regex for units)
-            TO EITHER
-                - float [multiple] to multiple those units by, to get preferred
-                   unit
-            OR  - function taking text parameter and returning float value
-                  in preferred unit
-
-            - any units present in the regex but absent from units_to_factor
-              will lead the result to be ignored -- for example, allowing you
-              to ignore a relative neutrophil count ("neutrophils 2.2%") while
-              detecting absolute neutrophil counts ("neutrophils 2.2"), or
-              ignoring "docusate sodium 100mg" but detecting "sodium 140 mM".
-        """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
         self.variable = variable
         self.target_unit = target_unit
-        self.units_to_factor = {
-            compile_regex(k): v
-            for k, v in units_to_factor.items()
-        }
 
         if nlpdef is None:  # only None for debugging!
             self.tablename = ''
@@ -305,16 +313,33 @@ class SimpleNumericalResultParser(NumericalResultParser):
           - relation
           - value
           - units
+
+        units_to_factor: dictionary, mapping
+            FROM (compiled regex for units)
+            TO EITHER
+                - float [multiple] to multiple those units by, to get preferred
+                   unit
+            OR  - function taking text parameter and returning float value
+                  in preferred unit
+
+            - any units present in the regex but absent from units_to_factor
+              will lead the result to be ignored -- for example, allowing you
+              to ignore a relative neutrophil count ("neutrophils 2.2%") while
+              detecting absolute neutrophil counts ("neutrophils 2.2"), or
+              ignoring "docusate sodium 100mg" but detecting "sodium 140 mM".
         """
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
                          variable=variable,
                          target_unit=target_unit,
-                         units_to_factor=units_to_factor,
                          commit=commit)
         if debug:
             print("Regex for {}: {}".format(type(self).__name__, regex_str))
         self.compiled_regex = compile_regex(regex_str)
+        self.units_to_factor = {
+            compile_regex(k): v
+            for k, v in units_to_factor.items()
+        }
 
     def parse(self, text: str,
               debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
@@ -355,22 +380,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
             elif self.assume_preferred_unit:  # unit is None or empty
                 value_in_target_units = to_float(value_text)
 
-            # Sort out tense, if known, and impute that "CRP was 72" means that
-            # relation was EQ in the PAST, etc.
-            tense = None
-            if tense_indicator:
-                if RE_IS.match(tense_indicator):
-                    tense = PRESENT
-                elif RE_WAS.match(tense_indicator):
-                    tense = PAST
-            elif relation:
-                if RE_IS.match(relation):
-                    tense = PRESENT
-                elif RE_IS.match(relation):
-                    tense = PAST
-
-            if not relation:
-                relation = EQ
+            tense, relation = common_tense(tense_indicator, relation)
 
             yield self.tablename, {
                 self.FN_VARIABLE_NAME: self.variable,
@@ -410,7 +420,13 @@ class ValidatorBase(BaseNlpParser):
             negative predictive value, NPV = P(Ab | N)
             sensitivity = P(Y | Pr) = recall (*) = true positive rate
             specificity = P(N | Ab) = true negative rate
-        (*) common names used in the NLP context.
+            (*) common names used in the NLP context.
+        - other common classifier metric:
+            F_beta score = (1 + beta^2) * precision * recall /
+                           ((beta^2 * precision) + recall)
+            ... which measures performance when you value recall beta times as
+            much as precision; e.g. the F1 score when beta = 1. See
+            https://en.wikipedia.org/wiki/F1_score
 
     Working from source to NLP, we can see there are a few types of "absent":
         - X. unselected database field containing text
@@ -530,6 +546,37 @@ class ValidatorBase(BaseNlpParser):
 # =============================================================================
 #  More general testing
 # =============================================================================
+
+def f_score(precision: float, recall: float, beta: float = 1) -> float:
+    # https://en.wikipedia.org/wiki/F1_score
+    beta_sq = beta ** 2
+    return (
+        (1 + beta_sq) * precision * recall / ((beta_sq * precision) + recall)
+    )
+
+
+def learning_alternative_regex_groups():
+    regex_str = r"""
+        (
+            (?:
+                \s*
+                (?: (a) | (b) | (c) | (d) )
+                \s*
+            )*
+            ( fish )?
+        )
+    """
+    compiled_regex = compile_regex(regex_str)
+    for test_str in ["a", "b", "a c", "d", "e", "a fish", "c c c"]:
+        m = compiled_regex.match(test_str)
+        print("Match: {}; groups: {}".format(m, m.groups()))
+    """
+    So:
+        - groups can overlap
+        - groups are ordered by their opening bracket
+        - matches are filled in neatly
+    """
+
 
 def get_compiled_regex_results(compiled_regex: typing.re.Pattern,
                                text: str) -> List[str]:
@@ -668,3 +715,4 @@ def test_base_regexes() -> None:
 
 if __name__ == '__main__':
     test_base_regexes()
+    learning_alternative_regex_groups()
