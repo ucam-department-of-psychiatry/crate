@@ -78,9 +78,6 @@ def main() -> None:
         help="Root directory of MedEx installation (default: {})".format(
             DEFAULT_MEDEX_DIR))
     parser.add_argument(
-        '--java', default=DEFAULT_JAVA,
-        help="Java executable (default: {})".format(DEFAULT_JAVA))
-    parser.add_argument(
         '--javac', default=DEFAULT_JAVAC,
         help="Java compiler (default: {})".format(DEFAULT_JAVAC))
     parser.add_argument(

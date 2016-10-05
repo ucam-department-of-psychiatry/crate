@@ -61,7 +61,7 @@ def main() -> None:
 
     gatejar = os.path.join(args.gatedir, 'bin', 'gate.jar')
     gatelibjars = os.path.join(args.gatedir, 'lib', '*')
-    classpath = os.pathsep.join([args.builddir, gatejar, gatelibjars])
+    classpath = os.pathsep.join([gatejar, gatelibjars])
     classpath_options = ['-classpath', classpath]
 
     if args.launch:
@@ -92,8 +92,9 @@ def main() -> None:
         log.info("Executing command: {}".format(cmdargs))
         subprocess.check_call(cmdargs)
         os.makedirs(args.builddir, exist_ok=True)
-        rmglob(os.path.join(args.builddir, '*.class'))
-        moveglob(os.path.join(THIS_DIR, '*.class'), args.builddir)
+        rmglob(os.path.join(args.builddir, GATE_PIPELINE_CLASSNAME + '.class'))
+        moveglob(os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.class'),
+                 args.builddir)
         log.info("Output *.class files are in {}".format(args.builddir))
 
     # JAR build and run
