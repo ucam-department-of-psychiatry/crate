@@ -6,7 +6,7 @@
 import regex
 from regex import _regex_core
 import typing
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -157,12 +157,19 @@ PRESENT = "present"
 #  Generic processors
 # =============================================================================
 
-def to_float(s: str) -> float:
+def to_float(s: str) -> Optional[float]:
     try:
         if ',' in s:  # comma as thousands separator
             s = s.replace(',', '')
         return float(s)
     except (TypeError, ValueError):
+        return None
+
+
+def to_pos_float(s: str) -> Optional[float]:
+    try:
+        return abs(to_float(s))
+    except TypeError:  # to_float() returned None
         return None
 
 

@@ -89,19 +89,16 @@ def main() -> None:
         log.info("Executing command: {}".format(cmdargs))
         subprocess.check_call(cmdargs)
     else:
+        os.makedirs(args.builddir, exist_ok=True)
         cmdargs = (
             [args.javac, '-Xlint:unchecked'] +
             (['-verbose'] if args.verbose > 0 else []) +
             classpath_options +
+            ['-d', args.builddir] +
             [SOURCE_FILE]
         )
         log.info("Executing command: {}".format(cmdargs))
         subprocess.check_call(cmdargs)
-        os.makedirs(args.builddir, exist_ok=True)
-        rmglob(os.path.join(args.builddir,
-                            MEDEX_PIPELINE_CLASSNAME + '.class'))
-        moveglob(os.path.join(THIS_DIR, MEDEX_PIPELINE_CLASSNAME + '.class'),
-                 args.builddir)
         log.info("Output *.class files are in {}".format(args.builddir))
 
 

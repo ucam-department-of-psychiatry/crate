@@ -19,6 +19,7 @@ from crate_anon.nlp_manager.regex_parser import (
     SimpleNumericalResultParser,
     TENSE_INDICATOR,
     to_float,
+    to_pos_float,
     ValidatorBase,
     WORD_BOUNDARY,
 )
@@ -176,25 +177,25 @@ class Height(NumericalResultParser):
             if metric_expression:
                 expression = metric_expression
                 if metric_m_and_cm_m and metric_m_and_cm_cm:
-                    metres = to_float(metric_m_and_cm_m)  # beware: 'm' above
-                    cm = to_float(metric_m_and_cm_cm)
+                    metres = to_pos_float(metric_m_and_cm_m)  # beware: 'm' above
+                    cm = to_pos_float(metric_m_and_cm_cm)
                     value_m = m_from_m_cm(metres=metres, centimetres=cm)
                 elif metric_m_only_m:
-                    value_m = to_float(metric_m_only_m)
+                    value_m = to_pos_float(metric_m_only_m)
                 elif metric_cm_only_cm:
-                    cm = to_float(metric_cm_only_cm)
+                    cm = to_pos_float(metric_cm_only_cm)
                     value_m = m_from_m_cm(centimetres=cm)
             elif imperial_expression:
                 expression = imperial_expression
                 if imperial_ft_and_in_ft and imperial_ft_and_in_in:
-                    ft = to_float(imperial_ft_and_in_ft)
-                    inches = to_float(imperial_ft_and_in_in)
+                    ft = to_pos_float(imperial_ft_and_in_ft)
+                    inches = to_pos_float(imperial_ft_and_in_in)
                     value_m = m_from_ft_in(feet=ft, inches=inches)
                 elif imperial_ft_only_ft:
-                    ft = to_float(imperial_ft_only_ft)
+                    ft = to_pos_float(imperial_ft_only_ft)
                     value_m = m_from_ft_in(feet=ft)
                 elif imperial_in_only_in:
-                    inches = to_float(imperial_in_only_in)
+                    inches = to_pos_float(imperial_in_only_in)
                     value_m = m_from_ft_in(inches=inches)
 
             tense, relation = common_tense(tense_indicator, relation)
@@ -361,6 +362,9 @@ class Weight(NumericalResultParser):
                 elif imperial_lb_only_lb:
                     lb = to_float(imperial_lb_only_lb)
                     value_kg = kg_from_st_lb_oz(pounds=lb)
+
+            # All left as signed float, as you definitely see things like
+            # "weight -0.3 kg" for weight changes.
 
             tense, relation = common_tense(tense_indicator, relation)
 
@@ -636,15 +640,15 @@ class Bp(BaseNlpParser):
             dbp = None
             if self.COMPILED_SBP.match(variable_text):
                 if self.COMPILED_ONE_NUMBER_BP.match(value_text):
-                    sbp = to_float(value_text)
+                    sbp = to_pos_float(value_text)
             elif self.COMPILED_DBP.match(variable_text):
                 if self.COMPILED_ONE_NUMBER_BP.match(value_text):
-                    dbp = to_float(value_text)
+                    dbp = to_pos_float(value_text)
             elif self.COMPILED_BP.match(variable_text):
                 bpmatch = self.COMPILED_TWO_NUMBER_BP.match(value_text)
                 if bpmatch:
-                    sbp = to_float(bpmatch.group(1))
-                    dbp = to_float(bpmatch.group(2))
+                    sbp = to_pos_float(bpmatch.group(1))
+                    dbp = to_pos_float(bpmatch.group(2))
             if sbp is None and dbp is None:
                 log.warning("Failed interpretation: {}".format(matching_text))
                 continue
@@ -691,6 +695,11 @@ class Bp(BaseNlpParser):
             ("BP 120/80 mmhg", [(120, 80)]),
             ("systolic BP 120", [(120, None)]),
             ("diastolic BP 80", [(None, 80)]),
+            ("BP-130/70", [(130, 70)]),
+            # Unsure if best to take abs value.
+            # One reason not to might be if people express changes, e.g.
+            # "BP change -40/-10", but I very much doubt it.
+            # Went with abs value using to_pos_float().
         ])
 
 

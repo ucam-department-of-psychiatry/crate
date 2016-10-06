@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # crate_anon/nlp_manager/parse_medex.py
 
-"""
+r"""
 - MedEx-UIMA
   ... can't find Python version of MedEx (which preceded MedEx-UIMA)
   ... paper on Python version is https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2995636/
@@ -129,15 +129,18 @@ PROBLEMS:
 
         // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
         // NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case here
-        regexlist.put("^(q\\.?q\\.?h\\.?)( |$)","FREQ");  // qqh, quarta quaque hora (RNC)
-        regexlist.put("^(q\\.?d\\.?s\\.?)( |$)","FREQ");  // qds, quater die sumendum (RNC); must go before existing competing expression: regexlist.put("^q(\\.|)\\d+( |$)","FREQ");
-        regexlist.put("^(t\\.?d\\.?s\\.?)( |$)","FREQ");  // tds, ter die sumendum (RNC)
-        regexlist.put("^(b\\.?d\\.?)( |$)","FREQ");  // bd, bis die (RNC)
-        regexlist.put("^(o\\.?d\\.?)( |$)","FREQ");  // od, omni die (RNC)
-        regexlist.put("^(mane)( |$)","FREQ");  // mane (RNC)
-        regexlist.put("^(o\\.?m\\.?)( |$)","FREQ");  // om, omni mane (RNC)
-        regexlist.put("^(nocte)( |$)","FREQ");  // nocte (RNC)
-        regexlist.put("^(o\\.?n\\.?)( |$)","FREQ");  // on, omni nocte (RNC)
+        regexlist.put("^(q\\.?q\\.?h\\.?)( |$)", "FREQ");  // qqh, quarta quaque hora (RNC)
+        regexlist.put("^(q\\.?d\\.?s\\.?)( |$)", "FREQ");  // qds, quater die sumendum (RNC); must go before existing competing expression: regexlist.put("^q(\\.|)\\d+( |$)","FREQ");
+        regexlist.put("^(t\\.?d\\.?s\\.?)( |$)", "FREQ");  // tds, ter die sumendum (RNC)
+        regexlist.put("^(b\\.?d\\.?)( |$)", "FREQ");  // bd, bis die (RNC)
+        regexlist.put("^(o\\.?d\\.?)( |$)", "FREQ");  // od, omni die (RNC)
+        regexlist.put("^(mane)( |$)", "FREQ");  // mane (RNC)
+        regexlist.put("^(o\\.?m\\.?)( |$)", "FREQ");  // om, omni mane (RNC)
+        regexlist.put("^(nocte)( |$)", "FREQ");  // nocte (RNC)
+        regexlist.put("^(o\\.?n\\.?)( |$)", "FREQ");  // on, omni nocte (RNC)
+        regexlist.put("^(fortnightly)( |$)", "FREQ");  // fortnightly (RNC)
+        regexlist.put("^((?:2|two)\s+weekly)\b", "FREQ");  // fortnightly (RNC)
+        regexlist.put("argh", "FREQ");  // fortnightly (RNC)
         // ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
         // NECESSITY, NOT FREQUENCY: prn (pro re nata)
         // TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
@@ -147,23 +150,29 @@ PROBLEMS:
 // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
 // NB case-sensitive regexes in Rule.java, so offer upper- and lower-case alternatives here
 // qqh, quarta quaque hora (RNC)
-expression="[Qq]\.?[Qq]\.?[Hh]\.?",val="R1P4H"
+expression="\b[Qq]\.?[Qq]\.?[Hh]\.?\b",val="R1P4H"
 // qds, quater die sumendum (RNC); MUST BE BEFORE COMPETING "qd" (= per day) expression: expression="[Qq]\.?[ ]?[Dd]\.?",val="R1P24H"
-expression="[Qq]\.?[Dd]\.?[Ss]\.?",val="R1P6H"
+expression="\b[Qq]\.?[Dd]\.?[Ss]\.?\b",val="R1P6H"
 // tds, ter die sumendum (RNC)
-expression="[Tt]\.?[Dd]\.?[Ss]\.?",val="R1P8H"
+expression="\b[Tt]\.?[Dd]\.?[Ss]\.?\b",val="R1P8H"
 // bd, bis die (RNC)
-expression="[Bb]\.?[Dd]\.?[ ]",val="R1P12H"
+expression="\b[Bb]\.?[Dd]\.?\b",val="R1P12H"
 // od, omni die (RNC)
-expression="[Oo]\.?[Dd]\.?[ ]",val="R1P24H"
+expression="\b[Oo]\.?[Dd]\.?\b",val="R1P24H"
 // mane (RNC)
-expression="[Mm][Aa][Nn][Ee]",val="R1P24H"
+expression="\b[Mm][Aa][Nn][Ee]\b",val="R1P24H"
 // om, omni mane (RNC)
-expression="[Oo]\.?[Mm]\.?[ ]",val="R1P24H"
+expression="\b[Oo]\.?[Mm]\.?\b",val="R1P24H"
 // nocte (RNC)
-expression="[Nn][Oo][Cc][Tt][Ee]",val="R1P24H"
+expression="\b[Nn][Oo][Cc][Tt][Ee]\b",val="R1P24H"
 // on, omni nocte (RNC)
-expression="[Oo]\.?[Nn]\.?[ ]",val="R1P24H"
+expression="\b[Oo]\.?[Nn]\.?\b",val="R1P24H"
+// fortnightly and variants (RNC); unsure if TIMEX3 format is right
+expression="\b[Ff][Oo][Rr][Tt][Nn][Ii][Gg][Hh][Tt][Ll][Yy]\b",val="R1P2WEEK"
+expression="\b(?:2|[Tt][Ww][Oo])\s+[Ww][Ee][Ee][Kk][Ll][Yy]\b",val="R1P2WEEK"
+// monthly (RNC)
+expression="\b[Mm][Oo][Nn][Tt][Hh][Ll][Yy]\b",val="R1P1MONTH"
+//
 // ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
 // NECESSITY, NOT FREQUENCY: prn (pro re nata)
 // TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
@@ -277,6 +286,10 @@ expression="[Oo]\.?[Nn]\.?[ ]",val="R1P24H"
     So we might want to add more; use
 
         build_medex_itself.py --extraroutes >> lexicon.cfg
+
+-   Note that all frequencies and routes must be in the lexicon.
+    And all frequencies must be in SemanticRuleEngine.java (and, to be
+    normalized, frequency_rules).
 
 -   USEFUL BIT FOR CHECKING RESULTS:
 
@@ -495,6 +508,7 @@ class Medex(BaseNlpParser):
           eventually by the output_terminator, at which point this set is
           complete.
         """
+        text = "Start fluphenazine decanoate 50mg 2 weekly. Something haloperidol 5mg on." + text
         self._n_uses += 1
         self._start()  # ensure started
         if USE_TEMP_DIRS:
@@ -694,7 +708,9 @@ class Medex(BaseNlpParser):
         # RxNorm: https://www.nlm.nih.gov/research/umls/rxnorm/overview.html
         # UMLS: https://www.nlm.nih.gov/research/umls/new_users/glossary.html
         # UMLS CUI max length: https://www.nlm.nih.gov/research/umls/knowledge_sources/metathesaurus/release/columns_data_elements.html  # noqa
-        # TIMEX3: http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf  # noqa
+        # TIMEX3:
+        # http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf  # noqa
+        # http://www.timeml.org/publications/timeMLdocs/timeml_1.2.1.html#timex3  # noqa
         drug_length = 50  # guess
         form_length = 25  # guess
         strength_length = 25  # guess
