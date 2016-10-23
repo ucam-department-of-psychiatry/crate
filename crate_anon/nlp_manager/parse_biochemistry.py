@@ -18,9 +18,11 @@ from crate_anon.nlp_manager.regex_units import (
     MG,
     MG_PER_DL,
     MG_PER_L,
+    MICROUNITS_PER_ML,
     MILLIMOLAR,
     MILLIMOLES_PER_L,
     MILLIEQ_PER_L,
+    MILLIUNITS_PER_L,
 )
 
 log = logging.getLogger(__name__)
@@ -102,11 +104,19 @@ class Crp(SimpleNumericalResultParser):
         self.test_numerical_parser([
             ("CRP", []),  # should fail; no values
             ("CRP 6", [6]),
+            ("C-reactive protein 6", [6]),
+            ("C reactive protein 6", [6]),
             ("CRP = 6", [6]),
             ("CRP 6 mg/dl", [60]),
+            ("CRP: 6", [6]),
+            ("CRP equals 6", [6]),
+            ("CRP is equal to 6", [6]),
             ("CRP <1", [1]),
+            ("CRP less than 1", [1]),
             ("CRP <1 mg/dl", [10]),
             ("CRP >250", [250]),
+            ("CRP more than 1", [1]),
+            ("CRP greater than 1", [1]),
             ("CRP >250 mg/dl", [2500]),
             ("CRP was 62", [62]),
             ("CRP was 62 mg/l", [62]),
@@ -233,6 +243,92 @@ class SodiumValidator(ValidatorBase):
 
 
 # =============================================================================
+#  Thyroid-stimulating hormone (TSH)
+# =============================================================================
+
+class Tsh(SimpleNumericalResultParser):
+    """Thyroid-stimulating hormone (TSH)."""
+    TSH = r"""
+        (?:
+            {WORD_BOUNDARY}
+            (?:
+                TSH
+                | thyroid [-\s]+ stimulating [-\s]+ hormone
+            )
+            {WORD_BOUNDARY}
+        )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+    REGEX = r"""
+        ( {TSH} )                          # group for "TSH" or equivalent
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {RELATION} )?                    # optional group for relation
+        {OPTIONAL_RESULTS_IGNORABLES}
+        ( {SIGNED_FLOAT} )                 # group for value
+        {OPTIONAL_RESULTS_IGNORABLES}
+        (                                  # optional group for units
+            {MILLIUNITS_PER_L}                 # good
+            | {MICROUNITS_PER_ML}              # good
+        )?
+    """.format(
+        TSH=TSH,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        TENSE_INDICATOR=TENSE_INDICATOR,
+        RELATION=RELATION,
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        MILLIUNITS_PER_L=MILLIUNITS_PER_L,
+        MICROUNITS_PER_ML=MICROUNITS_PER_ML,
+    )
+    NAME = "TSH"
+    PREFERRED_UNIT_COLUMN = "value_mU_L"
+    UNIT_MAPPING = {
+        MILLIUNITS_PER_L: 1,       # preferred unit
+        MICROUNITS_PER_ML: 1,
+    }
+
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(
+            nlpdef=nlpdef,
+            cfgsection=cfgsection,
+            regex_str=self.REGEX,
+            variable=self.NAME,
+            target_unit=self.PREFERRED_UNIT_COLUMN,
+            units_to_factor=self.UNIT_MAPPING,
+            commit=commit
+        )
+
+    def test(self):
+        self.test_numerical_parser([
+            ("TSH", []),  # should fail; no values
+            ("TSH 1.5", [1.5]),
+            ("thyroid-stimulating hormone 1.5", [1.5]),
+            ("TSH 1.5 mU/L", [1.5]),
+            ("TSH 1.5 mIU/L", [1.5]),
+            ("TSH 1.5 μU/mL", [1.5]),
+            ("TSH 1.5 μIU/mL", [1.5]),
+            ("TSH 1.5 uU/mL", [1.5]),
+            ("TSH 1.5 uIU/mL", [1.5]),
+        ])
+
+
+class TshValidator(ValidatorBase):
+    """Validator for TSH (see ValidatorBase for explanation)."""
+    def __init__(self,
+                 nlpdef: Optional[NlpDefinition],
+                 cfgsection: Optional[str],
+                 commit: bool = False) -> None:
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         regex_str_list=[Tsh.TSH],
+                         validated_variable=Tsh.NAME,
+                         commit=commit)
+
+
+# =============================================================================
 #  Command-line entry point
 # =============================================================================
 
@@ -241,3 +337,5 @@ if __name__ == '__main__':
     crp.test()
     na = Sodium(None, None)
     na.test()
+    tsh = Tsh(None, None)
+    tsh.test()

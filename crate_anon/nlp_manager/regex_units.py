@@ -55,7 +55,7 @@ INCHES = r'''
 # Mass
 # -----------------------------------------------------------------------------
 
-MCG = r"(?: mcg | microgram(?:me)?s? | ug )"  # you won't stop people using ug...  # noqa
+MCG = r"(?: mcg | microgram(?:me)?s? | [μu]g )"  # you won't stop people using ug...  # noqa
 MG = r"(?: mg | milligram(?:me)?s? )"  # mg, milligram, milligrams, milligramme, milligrammes  # noqa
 G = r"(?: g | gram(?:me)?s? )"  # g, gram, grams, gramme, grammes  # noqa
 KG = r"(?: kgs? | kilo(?:gram(?:me)?)?s? )"  # kg, kgs, kilos ... kilogrammes etc.  # noqa
@@ -68,6 +68,7 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 
 L = r"(?: L | lit(?:re|er)s? )"  # L, litre(s), liter(s)
 DL = r"(?: d(?:eci)?{L} )".format(L=L)
+ML = r"(?: m(?:illi)?{L} )".format(L=L)
 CUBIC_MM = r"""
     (?:  # cubic mm
         (?: \b cubic \s+ {MM} )      # cubic mm, etc
@@ -107,6 +108,10 @@ OPTIONAL_CELLS = CELLS + "?"
 MILLIMOLES = r"(?: mmol(?:es?) )"
 MILLIEQ = r"(?: mEq )"
 
+UNITS = r"(?: [I]?U )"  # U units, IU international units
+MILLIUNITS = r"(?: m[I]?U )"
+MICROUNITS = r"(?: [μu][I]?U )"
+
 # -----------------------------------------------------------------------------
 # Concentration
 # -----------------------------------------------------------------------------
@@ -118,6 +123,9 @@ MILLIMOLES_PER_L = per(MILLIMOLES, L)
 MILLIEQ_PER_L = per(MILLIEQ, L)
 BILLION_PER_L = per(BILLION, L)
 CELLS_PER_CUBIC_MM = per(OPTIONAL_CELLS, CUBIC_MM)
+
+MILLIUNITS_PER_L = per(MILLIUNITS, L)
+MICROUNITS_PER_ML = per(MICROUNITS, ML)
 
 # -----------------------------------------------------------------------------
 # Speed

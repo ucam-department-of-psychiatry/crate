@@ -82,6 +82,7 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
     (?:  # OPTIONAL_RESULTS_IGNORABLES
         \s          # whitespace
         | \|        # bar
+        | \:        # colon
         | \bHH?\b   # H or HH at a word boundary
         | \(HH?\)   # (H) or (HH)
         | \bLL?\b   # L or LL at a word boundary
@@ -123,11 +124,11 @@ TENSE_INDICATOR = r"""
 # -----------------------------------------------------------------------------
 # ... don't use unnamed groups here; EQ is also used as a return value
 
-LT = "<"
+LT = "(?: < | less\s+than )"
 LE = "<="
-EQ = "="
+EQ = "(?: = | equals | equal\s+to )"
 GE = ">="
-GT = ">"
+GT = "(?: > | (?:more|greater)\s+than )"
 # OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
 
 RELATION = r"""
