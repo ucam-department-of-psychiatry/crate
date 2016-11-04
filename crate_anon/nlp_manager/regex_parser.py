@@ -228,12 +228,12 @@ class NumericalResultParser(BaseNlpParser):
     FN_TENSE_TEXT = 'tense_text'
     FN_TENSE = 'tense'
 
-    MAX_RELATION_TEXT_LENGTH = 3
-    MAX_RELATION_LENGTH = 3
-    MAX_VALUE_TEXT_LENGTH = 255
-    MAX_UNITS_LENGTH = 255
-    MAX_TENSE_TEXT_LENGTH = len(PRESENT)
-    MAX_TENSE_LENGTH = len(PRESENT)
+    MAX_RELATION_TEXT_LENGTH = 50
+    MAX_RELATION_LENGTH = max(len(x) for x in RELATION_LOOKUP.items())
+    MAX_VALUE_TEXT_LENGTH = 50
+    MAX_UNITS_LENGTH = 50
+    MAX_TENSE_TEXT_LENGTH = 50
+    MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.items())
 
     def __init__(self,
                  nlpdef: NlpDefinition,
