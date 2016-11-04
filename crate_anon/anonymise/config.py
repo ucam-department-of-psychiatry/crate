@@ -344,6 +344,8 @@ class Config(object):
             'anonymise_dates_at_word_boundaries_only', True)
         self.anonymise_numbers_at_word_boundaries_only = opt_bool(
             'anonymise_numbers_at_word_boundaries_only', False)
+        self.anonymise_numbers_at_numeric_boundaries_only = opt_bool(
+            'anonymise_numbers_at_numeric_boundaries_only', True)
         self.anonymise_strings_at_word_boundaries_only = opt_bool(
             'anonymise_strings_at_word_boundaries_only', True)
         self.mapping_patient_id_fieldname = opt_str(

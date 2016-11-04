@@ -120,6 +120,8 @@ class Patient(object):
                 config.anonymise_dates_at_word_boundaries_only),
             anonymise_numbers_at_word_boundaries_only=(
                 config.anonymise_numbers_at_word_boundaries_only),
+            anonymise_numbers_at_numeric_boundaries_only=(
+                config.anonymise_numbers_at_numeric_boundaries_only),
             anonymise_strings_at_word_boundaries_only=(
                 config.anonymise_strings_at_word_boundaries_only),
             debug=debug,

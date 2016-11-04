@@ -61,6 +61,11 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 
 WB = r"\b"  # word boundary; escape the slash if not using a raw string
 
+# http://www.regular-expressions.info/lookaround.html
+# Not all engines support lookbehind; e.g. regexr.com doesn't; but Python does
+NOT_DIGIT_LOOKBEHIND = r"(?<!\d)"
+NOT_DIGIT_LOOKAHEAD = r"(?!\d)"
+
 # The Kleene star has highest precedence.
 # So, for example, ab*c matches abbbc, but not (all of) ababc. See regexr.com
 OPTIONAL_NONWORD = r"\W*"  # zero or more non-alphanumeric characters...
@@ -184,7 +189,8 @@ def get_code_regex_elements(
         s: str,
         liberal: bool = True,
         very_liberal: bool = True,
-        at_word_boundaries_only: bool = True) -> List[str]:
+        at_word_boundaries_only: bool = True,
+        at_numeric_boundaries_only: bool = False) -> List[str]:
     """
     Takes a STRING representation of a number or an alphanumeric code, which
     may include leading zeros (as for phone numbers), and produces a list of
@@ -215,7 +221,19 @@ def get_code_regex_elements(
     if at_word_boundaries_only:
         return [WB + s + WB]
     else:
-        return [s]
+        if at_numeric_boundaries_only:
+            # Even though we're not restricting to word boundaries, because
+            # (for example) we want 123456 to match "M123456", it can be
+            # undesirable match numbers that are bordered only by numbers; that
+            # is, with this setting, "23" should never match "234" or "1234"
+            # or "123".
+            # - http://www.regular-expressions.info/lookaround.html
+            # - http://stackoverflow.com/questions/15099150/regex-find-one-digit-number  # noqa
+            return [NOT_DIGIT_LOOKBEHIND + s + NOT_DIGIT_LOOKAHEAD]
+        else:
+            # But if you want to anonymise "123456" out of a phone number
+            # written like "01223123456", you might have to turn that off...
+            return [s]
 
 
 def get_number_of_length_n_regex_elements(
@@ -239,7 +257,8 @@ def get_number_of_length_n_regex_elements(
     if at_word_boundaries_only:
         return [WB + s + WB]
     else:
-        return [s]
+        return [NOT_DIGIT_LOOKBEHIND + s + NOT_DIGIT_LOOKAHEAD]
+        # ... if there was a digit before/after, it's not an n-digit number
 
 
 def get_uk_postcode_regex_elements(

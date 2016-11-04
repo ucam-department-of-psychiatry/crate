@@ -74,6 +74,26 @@ def compile_regex(regex_str: str) -> typing.re.Pattern:
         raise
 
 
+def compile_regex_dict(regexstr_to_value_dict: Dict[str, Any]) \
+        -> Dict[typing.re.Pattern, Any]:
+    return {
+        compile_regex(k): v
+        for k, v in regexstr_to_value_dict.items()
+    }
+
+
+def get_regex_dict_match(text: Optional[str],
+                         regex_to_value_dict: Dict[typing.re.Pattern, Any],
+                         default: Any = None) \
+        -> Tuple[bool, Any]:
+    """Returns (matched, result)."""
+    if text:
+        for r, value in regex_to_value_dict.items():
+            if r.match(text):
+                return True, value
+    return False, default
+
+
 # -----------------------------------------------------------------------------
 # Blood results
 # -----------------------------------------------------------------------------
@@ -118,6 +138,13 @@ TENSE_INDICATOR = r"""
     )
 """.format(IS=IS, WAS=WAS)
 
+# Standardized result values
+PAST = "past"
+PRESENT = "present"
+TENSE_LOOKUP = compile_regex_dict({
+    IS: PRESENT,
+    WAS: PAST,
+})
 
 # -----------------------------------------------------------------------------
 # Mathematical relations
@@ -137,21 +164,15 @@ RELATION = r"""
     )
 """.format(LT=LT, LE=LE, EQ=EQ, GE=GE, GT=GT)
 
-
-# =============================================================================
-# Regexes based on some of the fragments above
-# =============================================================================
-
-RE_IS = compile_regex(IS)
-RE_WAS = compile_regex(WAS)
-
-
-# =============================================================================
-# Standardized result values
-# =============================================================================
-
-PAST = "past"
-PRESENT = "present"
+RELATION_LOOKUP = compile_regex_dict({
+    # To standardize the output, so (for example) "=" and "equals" can both
+    # map to "=".
+    LT: "<",
+    LE: "<=",
+    EQ: "=",
+    GE: ">=",
+    GT: ">",
+})
 
 
 # =============================================================================
@@ -174,7 +195,7 @@ def to_pos_float(s: str) -> Optional[float]:
         return None
 
 
-def common_tense(tense_indicator: str, relation: str) -> Tuple[str, str]:
+def common_tense(tense_text: str, relation_text: str) -> Tuple[str, str]:
     """
     Sort out tense, if known, and impute that "CRP was 72" means that
     relation was EQ in the PAST, etc.
@@ -182,19 +203,12 @@ def common_tense(tense_indicator: str, relation: str) -> Tuple[str, str]:
     Returns (tense, relation).
     """
     tense = None
-    if tense_indicator:
-        if RE_IS.match(tense_indicator):
-            tense = PRESENT
-        elif RE_WAS.match(tense_indicator):
-            tense = PAST
-    elif relation:
-        if RE_IS.match(relation):
-            tense = PRESENT
-        elif RE_IS.match(relation):
-            tense = PAST
+    if tense_text:
+        _, tense = get_regex_dict_match(tense_text, TENSE_LOOKUP)
+    elif relation_text:
+        _, tense = get_regex_dict_match(relation_text, TENSE_LOOKUP)
 
-    if not relation:
-        relation = EQ
+    _, relation = get_regex_dict_match(relation_text, RELATION_LOOKUP, "=")
 
     return tense, relation
 
@@ -207,14 +221,18 @@ class NumericalResultParser(BaseNlpParser):
     FN_START = '_start'
     FN_END = '_end'
     FN_VARIABLE_TEXT = 'variable_text'
+    FN_RELATION_TEXT = 'relation_text'
     FN_RELATION = 'relation'
     FN_VALUE_TEXT = 'value_text'
     FN_UNITS = 'units'
+    FN_TENSE_TEXT = 'tense_text'
     FN_TENSE = 'tense'
 
+    MAX_RELATION_TEXT_LENGTH = 3
     MAX_RELATION_LENGTH = 3
     MAX_VALUE_TEXT_LENGTH = 255
     MAX_UNITS_LENGTH = 255
+    MAX_TENSE_TEXT_LENGTH = len(PRESENT)
     MAX_TENSE_LENGTH = len(PRESENT)
 
     def __init__(self,
@@ -258,17 +276,24 @@ class NumericalResultParser(BaseNlpParser):
                    doc="End position (of matching string within whole text)"),
             Column(self.FN_VARIABLE_TEXT, Text,
                    doc="Text that matched the variable name"),
-            Column(self.FN_RELATION, String(self.MAX_RELATION_LENGTH),
+            Column(self.FN_RELATION_TEXT, String(self.MAX_RELATION_TEXT_LENGTH),
                    doc="Text that matched the mathematical relationship "
-                       "between variable and value (e.g. '=', '<='"),
+                       "between variable and value (e.g. '=', '<=', "
+                       "'less than')"),
+            Column(self.FN_RELATION, String(self.MAX_RELATION_LENGTH),
+                   doc="Standardized mathematical relationship "
+                       "between variable and value (e.g. '=', '<=')"),
             Column(self.FN_VALUE_TEXT, String(self.MAX_VALUE_TEXT_LENGTH),
                    doc="Matched numerical value, as text"),
             Column(self.FN_UNITS, String(self.MAX_UNITS_LENGTH),
                    doc="Matched units, as text"),
             Column(self.target_unit, Float,
                    doc="Numerical value in preferred units, if known"),
+            Column(self.FN_TENSE_TEXT, String(self.MAX_TENSE_TEXT_LENGTH),
+                   doc="Tense text, if known (e.g. '{}', '{}')".format(
+                       PAST, PRESENT)),
             Column(self.FN_TENSE, String(self.MAX_TENSE_LENGTH),
-                   doc="Tense indicator, if known (e.g. '{}', '{}')".format(
+                   doc="Calculated tense, if known (e.g. '{}', '{}')".format(
                        PAST, PRESENT)),
         ]}
 
@@ -344,10 +369,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
         if debug:
             print("Regex for {}: {}".format(type(self).__name__, regex_str))
         self.compiled_regex = compile_regex(regex_str)
-        self.units_to_factor = {
-            compile_regex(k): v
-            for k, v in units_to_factor.items()
-        }
+        self.units_to_factor = compile_regex_dict(units_to_factor)
 
     def parse(self, text: str,
               debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
@@ -362,8 +384,8 @@ class SimpleNumericalResultParser(NumericalResultParser):
             # matching_text = text[startpos:endpos]  # same thing
 
             variable_text = m.group(1)
-            tense_indicator = m.group(2)
-            relation = m.group(3)
+            tense_text = m.group(2)
+            relation_text = m.group(3)
             value_text = m.group(4)
             units = m.group(5)
 
@@ -371,24 +393,22 @@ class SimpleNumericalResultParser(NumericalResultParser):
             # if none are specified), calculate an absolute value
             value_in_target_units = None
             if units:
-                matched_unit = False
-                for unit_regex, multiple_or_fn in self.units_to_factor.items():
-                    if unit_regex.match(units):
-                        if callable(multiple_or_fn):
-                            value_in_target_units = multiple_or_fn(value_text)
-                        else:
-                            value_in_target_units = (to_float(value_text) *
-                                                     multiple_or_fn)
-                        matched_unit = True
-                        break
+                matched_unit, multiple_or_fn = get_regex_dict_match(
+                    units, self.units_to_factor)
                 if not matched_unit:
                     # None of our units match. But there is a unit, and the
-                    # regex matched. So this is a BAD unit. Skip the value.e
+                    # regex matched. So this is a BAD unit. Skip the value.
                     continue
+                # Otherwise: we did match a unit.
+                if callable(multiple_or_fn):
+                    value_in_target_units = multiple_or_fn(value_text)
+                else:
+                    value_in_target_units = (to_float(value_text) *
+                                             multiple_or_fn)
             elif self.assume_preferred_unit:  # unit is None or empty
                 value_in_target_units = to_float(value_text)
 
-            tense, relation = common_tense(tense_indicator, relation)
+            tense, relation = common_tense(tense_text, relation_text)
 
             yield self.tablename, {
                 self.FN_VARIABLE_NAME: self.variable,
@@ -397,10 +417,12 @@ class SimpleNumericalResultParser(NumericalResultParser):
                 self.FN_END: endpos,
                 # 'groups': groups,
                 self.FN_VARIABLE_TEXT: variable_text,
+                self.FN_RELATION_TEXT: relation_text,
                 self.FN_RELATION: relation,
                 self.FN_VALUE_TEXT: value_text,
                 self.FN_UNITS: units,
                 self.target_unit: value_in_target_units,
+                self.FN_TENSE_TEXT: tense_text,
                 self.FN_TENSE: tense,
             }
 

@@ -612,6 +612,10 @@ anonymise_dates_at_word_boundaries_only = True
     # ... applies to {SCRUBMETHOD.DATE}
 anonymise_numbers_at_word_boundaries_only = False
     # ... applies to {SCRUBMETHOD.NUMERIC}
+anonymise_numbers_at_numeric_boundaries_only = True
+    # ... applies to {SCRUBMETHOD.NUMERIC}
+    # ... if True, will not scrub "234" from "123456"
+    # ... setting this to False is extremely conservative
 anonymise_strings_at_word_boundaries_only = True
     # ... applies to {SCRUBMETHOD.WORDS} and {SCRUBMETHOD.PHRASE}
 

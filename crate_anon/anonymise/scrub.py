@@ -264,6 +264,7 @@ class PersonalizedScrubber(ScrubberBase):
                  anonymise_codes_at_word_boundaries_only: bool = True,
                  anonymise_dates_at_word_boundaries_only: bool = True,
                  anonymise_numbers_at_word_boundaries_only: bool = True,
+                 anonymise_numbers_at_numeric_boundaries_only: bool = True,
                  anonymise_strings_at_word_boundaries_only: bool = True,
                  min_string_length_for_errors: int = 4,
                  min_string_length_to_scrub_with: int = 3,
@@ -283,6 +284,8 @@ class PersonalizedScrubber(ScrubberBase):
             anonymise_dates_at_word_boundaries_only)
         self.anonymise_numbers_at_word_boundaries_only = (
             anonymise_numbers_at_word_boundaries_only)
+        self.anonymise_numbers_at_numeric_boundaries_only = (
+            anonymise_numbers_at_numeric_boundaries_only)
         self.anonymise_strings_at_word_boundaries_only = (
             anonymise_strings_at_word_boundaries_only)
         self.min_string_length_for_errors = min_string_length_for_errors
@@ -429,7 +432,9 @@ class PersonalizedScrubber(ScrubberBase):
         return get_code_regex_elements(
             get_digit_string_from_vaguely_numeric_string(str(value)),
             at_word_boundaries_only=(
-                self.anonymise_numbers_at_word_boundaries_only)
+                self.anonymise_numbers_at_word_boundaries_only),
+            at_numeric_boundaries_only=(
+                self.anonymise_numbers_at_numeric_boundaries_only)
         )
 
     def get_elements_code(self, value: Any) -> List[str]:

@@ -340,6 +340,16 @@ An HTML tag is <a href="http://somewhere">this link</a>.
 Start aspirin 75mg od. Remains on Lipitor 40mg nocte.
 For haloperidol 2mg po prn max qds.
 Start amoxicillin 500 mg b.i.d. for 7 days.
+
+Some numerical results:
+His CRP is 10. His previous CRP was <13 mg/dl.
+Sodium 140.
+TSH 3.5; urea normal.
+Height 1.82m, weight 75kg, BMI 22.6. BP 135/82.
+MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73.
+ESR 16 (H) mm/h.
+WBC 9.2; neutrophils 4.3; lymphocytes 2.6; eosinophils 0.4; monocytes 1.2;
+basophils 0.6.
         """
     )
     session.add(n1)
