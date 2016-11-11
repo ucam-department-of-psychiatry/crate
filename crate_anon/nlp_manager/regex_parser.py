@@ -291,7 +291,7 @@ class NumericalResultParser(BaseNlpParser):
                    doc="Numerical value in preferred units, if known"),
             Column(self.FN_TENSE_TEXT, String(self.MAX_TENSE_TEXT_LENGTH),
                    doc="Tense text, if known (e.g. '{}', '{}')".format(
-                       PAST, PRESENT)),
+                       IS, WAS)),
             Column(self.FN_TENSE, String(self.MAX_TENSE_LENGTH),
                    doc="Calculated tense, if known (e.g. '{}', '{}')".format(
                        PAST, PRESENT)),

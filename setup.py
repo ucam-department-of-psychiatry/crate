@@ -162,7 +162,7 @@ setup(
         'distro==0.6.0',  # replaces platform.linux_distribution
         'psutil==4.1.0',  # process management
         'semver==2.4.1',  # comparing semantic versions
-        'SQLAlchemy>=1.0.12',  # database access
+        'SQLAlchemy>=1.1.3',  # database access
         'typing==3.5.2.2',  # part of stdlib in Python 3.5, but not 3.4
 
         # Web app:
