@@ -10,7 +10,7 @@ import sys
 import tempfile
 
 from crate_anon.common.fileops import (
-    mkdirp,
+    mkdir_p,
     copytree,
     get_lines_without_comments,
 )
@@ -235,13 +235,13 @@ PYTHON_WITH_VER = "python3.4"
 # =============================================================================
 
 print("Making directories")
-mkdirp(WORK_DIR)
-mkdirp(workpath(DEST_ROOT))
-mkdirp(workpath(DEST_PACKAGE_CONF_DIR))
-mkdirp(workpath(DEST_SUPERVISOR_CONF_DIR))
-mkdirp(workpath(DEST_DOC_DIR))
-mkdirp(DEB_DIR)
-mkdirp(DEB_OVERRIDE_DIR)
+mkdir_p(WORK_DIR)
+mkdir_p(workpath(DEST_ROOT))
+mkdir_p(workpath(DEST_PACKAGE_CONF_DIR))
+mkdir_p(workpath(DEST_SUPERVISOR_CONF_DIR))
+mkdir_p(workpath(DEST_DOC_DIR))
+mkdir_p(DEB_DIR)
+mkdir_p(DEB_OVERRIDE_DIR)
 
 # =============================================================================
 # Make Debian files

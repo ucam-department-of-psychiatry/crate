@@ -554,11 +554,14 @@ class DataDictionaryRow(object):
         #         "Field has invalid source data type: {}".format(
         #             self.src_datatype))
 
+        # 2016-11-11: error message clarified
         if (self._primary_pid and
                 not is_sqltype_integer(self.src_datatype)):
             raise ValueError(
-                "All fields with src_field = {} should be integer, for work "
-                "distribution purposes".format(self.src_field))
+                "All fields with src_field = {} should be integer, (a) for "
+                "work distribution purposes, and (b) so we know the structure "
+                "of our secret mapping table in advance.".format(
+                    self.src_field))
 
         if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(

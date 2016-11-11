@@ -13,6 +13,8 @@ MEDEX_RESULTS_READY_SIGNAL = "results_ready"
 
 NLP_CONFIG_ENV_VAR = 'CRATE_NLP_CONFIG'
 
+MAX_STRING_PK_LENGTH = 50  # trade-off; space versus capability
+
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
 SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)  # text field used for database
@@ -118,7 +120,7 @@ processors =
     # The database name is a cross-reference to another section in this config
     # file. The table name is hard-coded to 'crate_nlp_progress'.
 
-progressdb = MY_DESTINATION_DATABASE
+progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
 
 
@@ -137,6 +139,8 @@ processors =
     CRPValidator procdef_validate_crp
     Sodium procdef_sodium
     SodiumValidator procdef_validate_sodium
+    TSH procdef_tsh
+    TSHValidator procdef_validate_tsh
     # -------------------------------------------------------------------------
     # Clinical
     # -------------------------------------------------------------------------
@@ -167,7 +171,7 @@ processors =
     Neutrophils procdef_neutrophils
     NeutrophilsValidator procdef_validate_neutrophils
 
-progressdb = MY_DESTINATION_DATABASE
+progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
 
 
@@ -186,107 +190,114 @@ hashphrase = doesnotmatter
     # Biochemistry
 
 [procdef_crp]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = crp
 [procdef_validate_crp]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_crp
 
 [procdef_sodium]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = sodium
 [procdef_validate_sodium]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_sodium
+
+[procdef_tsh]
+destdb = DESTINATION_DATABASE
+desttable = tsh
+[procdef_validate_tsh]
+destdb = DESTINATION_DATABASE
+desttable = validate_tsh
 
     # Clinical
 
 [procdef_height]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = height
 [procdef_validate_height]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_height
 
 [procdef_weight]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = weight
 [procdef_validate_weight]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_weight
 
 [procdef_bmi]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = bmi
 [procdef_validate_bmi]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_bmi
 
 [procdef_bp]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = bp
 [procdef_validate_bp]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_bp
 
     # Cognitive
 
 [procdef_mmse]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = mmse
 [procdef_validate_mmse]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_mmse
 
     # Haematology
 
 [procdef_esr]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = esr
 [procdef_validate_esr]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_esr
 
 [procdef_wbc]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = wbc
 [procdef_validate_wbc]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_wbc
 
 [procdef_basophils]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = basophils
 [procdef_validate_basophils]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_basophils
 
 [procdef_eosinophils]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = eosinophils
 [procdef_validate_eosinophils]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_eosinophils
 
 [procdef_lymphocytes]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = lymphocytes
 [procdef_validate_lymphocytes]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_lymphocytes
 
 [procdef_monocytes]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = monocytes
 [procdef_validate_monocytes]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_monocytes
 
 [procdef_neutrophils]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = neutrophils
 [procdef_validate_neutrophils]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = validate_neutrophils
 
 # -----------------------------------------------------------------------------
@@ -297,7 +308,7 @@ desttable = validate_neutrophils
 
     # Which database will this processor write to?
 
-destdb = MY_DESTINATION_DATABASE
+destdb = DESTINATION_DATABASE
 
     # Map GATE '_type' parameters to possible destination tables (in
     # case-insensitive fashion). What follows is a list of pairs: the first
@@ -377,7 +388,7 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
 # -----------------------------------------------------------------------------
 
 [procdef_medex_drugs]
-destdb = anonymous_output
+destdb = DESTINATION_DATABASE
 desttable = drugs
 progargs = java
     -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
@@ -426,7 +437,7 @@ indexdefs =
 
 [output_location]
 
-destdb = MY_DESTINATION_DATABASE
+destdb = DESTINATION_DATABASE
 desttable = location
 destfields =
     rule        VARCHAR(100)
@@ -446,7 +457,7 @@ indexdefs =
 
 [INPUT_FIELD_CLINICAL_DOCUMENTS]
 
-srcdb = MY_SOURCE_DATABASE
+srcdb = SOURCE_DATABASE
 srctable = EXTRACTED_CLINICAL_DOCUMENTS
 srcpkfield = DOCUMENT_PK
 srcfield = DOCUMENT_TEXT
@@ -457,7 +468,7 @@ indexed_copyfields = RID_FIELD
 
 [INPUT_FIELD_PROGRESS_NOTES]
 
-srcdb = MY_SOURCE_DATABASE
+srcdb = SOURCE_DATABASE
 srctable = PROGRESS_NOTES
 srcpkfield = PN_PK
 srcfield = PN_TEXT
@@ -471,11 +482,11 @@ indexed_copyfields = RID_FIELD
 # =============================================================================
 # Use SQLAlchemy URLs: http://docs.sqlalchemy.org/en/latest/core/engines.html
 
-[MY_SOURCE_DATABASE]
+[SOURCE_DATABASE]
 
 url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 
-[MY_DESTINATION_DATABASE]
+[DESTINATION_DATABASE]
 
 url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 

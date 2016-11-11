@@ -71,7 +71,10 @@ from cardinal_pythonlib.rnc_datetime import get_now_utc
 
 from crate_anon.anonymise.constants import SEP
 from crate_anon.common.logsupport import configure_logger_for_colour
-from crate_anon.nlp_manager.all_processors import possible_processor_table
+from crate_anon.nlp_manager.all_processors import (
+    possible_processor_names,
+    possible_processor_table,
+)
 from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
     NLP_CONFIG_ENV_VAR,
@@ -82,6 +85,7 @@ from crate_anon.nlp_manager.input_field_config import (
     FN_SRCTABLE,
     FN_SRCPKFIELD,
     FN_SRCPKVAL,
+    FN_SRCPKSTR,
     FN_SRCFIELD,
 )
 from crate_anon.nlp_manager.models import NlpRecord
@@ -99,18 +103,21 @@ def insert_into_progress_db(config: NlpDefinition,
                             ifconfig: InputFieldConfig,
                             srcpkval: int,
                             srchash: str,
+                            srcpkstr: str = None,
                             commit: bool = False) -> None:
     """
     Make a note in the progress database that we've processed a source record.
     """
     session = config.get_progdb_session()
-    progrec = ifconfig.get_progress_record(srcpkval, srchash=None)
+    progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
+                                           srcpkstr=srcpkstr)
     if progrec is None:
         progrec = NlpRecord(
             srcdb=ifconfig.get_srcdb(),
             srctable=ifconfig.get_srctable(),
             srcpkfield=ifconfig.get_srcpkfield(),
             srcpkval=srcpkval,
+            srcpkstr=srcpkstr,
             srcfield=ifconfig.get_srcfield(),
             nlpdef=config.get_name(),
             whenprocessedutc=config.get_now(),
@@ -140,6 +147,19 @@ def delete_where_no_source(config: NlpDefinition,
       keep them in memory, and do a DELETE WHERE NOT IN based on those
       specified values (or, if there are no PKs in the source, delete
       everything from the destination).
+
+    Problems:
+    - With massive tables, we might run out of memory or (much more likely)
+      SQL parameter slots.
+    - This is IMPERFECT if we have string source PKs and there are hash
+      collisions (e.g. PKs for records X and Y both hash to the same thing;
+      record X is deleted; then its processed version might not be).
+
+    A better way might be:
+    - for each table, make a temporary table in the same database
+    - populate that table with (source PK integer/hash, source PK string) pairs
+    - delete where pairs don't match -- is that portable SQL?
+      http://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa
     """
 
     src_pks = list(ifconfig.gen_src_pks())
@@ -172,6 +192,7 @@ def process_nlp(config: NlpDefinition,
         for text, other_values in ifconfig.gen_text(tasknum=tasknum,
                                                     ntasks=ntasks):
             pkval = other_values[FN_SRCPKVAL]
+            pkstr = other_values[FN_SRCPKSTR]
             log.info(
                 "Processing {db}.{t}.{c}, {pkf}={pkv} "
                 "(max={maximum}, n={count})".format(
@@ -179,21 +200,22 @@ def process_nlp(config: NlpDefinition,
                     t=other_values[FN_SRCTABLE],
                     c=other_values[FN_SRCFIELD],
                     pkf=other_values[FN_SRCPKFIELD],
-                    pkv=pkval,
+                    pkv=pkstr if pkstr else pkval,
                     maximum=maximum,
                     count=count))
             # log.critical("other_values={}".format(repr(other_values)))
             srchash = config.hash(text)
             if incremental:
-                if ifconfig.get_progress_record(pkval, srchash) is not None:
+                if ifconfig.get_progress_record(pkval, srchash,
+                                                pkstr) is not None:
                     log.debug("Record previously processed; skipping")
                     continue
             for processor in config.get_processors():
                 if incremental:
-                    processor.delete_dest_record(ifconfig, pkval,
+                    processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
                 processor.process(text, other_values)
-            insert_into_progress_db(config, ifconfig, pkval, srchash,
+            insert_into_progress_db(config, ifconfig, pkval, srchash, pkstr,
                                     commit=incremental)
     config.commit_all()
 
@@ -268,7 +290,9 @@ def main() -> None:
     parser.add_argument("--democonfig", action="store_true",
                         help="Print a demo config file")
     parser.add_argument("--listprocessors", action="store_true",
-                        help="Show possible NLP processor names")
+                        help="Show possible built-in NLP processor names")
+    parser.add_argument("--describeprocessors", action="store_true",
+                        help="Show details of built-in NLP processors")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
@@ -292,10 +316,15 @@ def main() -> None:
     if args.democonfig:
         print(DEMO_CONFIG)
         return
-    # List processors?
+
+    # List or describe processors?
     if args.listprocessors:
+        print("\n".join(possible_processor_names()))
+        return
+    if args.describeprocessors:
         print(possible_processor_table())
         return
+
     if args.nlpdef is None:
         raise ValueError(
             "Must specify nlpdef parameter (unless --democonfig used)")

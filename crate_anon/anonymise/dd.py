@@ -286,12 +286,18 @@ class DataDictionary(object):
                                         f=am.extract_ext_field))
 
                 if needs_pidfield:
-                    pidfield = db.srccfg.ddgen_per_table_pid_field
-                    if pidfield not in fieldnames:
-                        raise ValueError(
+                    # Test changed from an error to a warning 2016-11-11.
+                    # We don't really care about validating against the ddgen
+                    # options; if a user has done their data dictionary
+                    # manually, it may not be relevant.
+                    expected_pidfield = db.srccfg.ddgen_per_table_pid_field
+                    if expected_pidfield not in fieldnames:
+                        log.warning(
                             "Source table {d}.{t} has a scrub_in or "
-                            "src_flags={f} field but no {p} field".format(
-                                d=d, t=t, f=SRCFLAG.MASTER_PID, p=pidfield))
+                            "src_flags={f} field but no master patient ID "
+                            "field (expected to be: {p})".format(
+                                d=d, t=t, f=SRCFLAG.MASTER_PID,
+                                p=expected_pidfield))
 
         log.debug("... source tables checked.")
         
@@ -463,7 +469,7 @@ class DataDictionary(object):
         return SortedSet([
             (ddr.src_db, ddr.src_table)
             for ddr in self.rows
-            if self.get_pk_ddr(ddr.src_db, ddr.src_table) is not None
+            if self.get_int_pk_ddr(ddr.src_db, ddr.src_table) is not None
         ])
 
     @lru_cache(maxsize=None)
@@ -634,6 +640,21 @@ class DataDictionary(object):
     def get_pk_ddr(self, src_db: str, src_table: str) \
             -> Optional[DataDictionaryRow]:
         """For a given source database name and table, return the DD row
+        for the PK for that table, whether integer or not.
+
+        Will return None if no such data dictionary row.
+        """
+        for ddr in self.rows:
+            if (ddr.src_db == src_db and
+                    ddr.src_table == src_table and
+                    ddr.pk):
+                return ddr
+        return None
+
+    @lru_cache(maxsize=None)
+    def get_int_pk_ddr(self, src_db: str, src_table: str) \
+            -> Optional[DataDictionaryRow]:
+        """For a given source database name and table, return the DD row
         for the integer PK for that table.
 
         Will return None if no such data dictionary row.
@@ -650,7 +671,7 @@ class DataDictionary(object):
     def get_int_pk_name(self, src_db: str, src_table: str) -> Optional[str]:
         """For a given source database name and table, return the field name
         of the integer PK for that table."""
-        ddr = self.get_pk_ddr(src_db, src_table)
+        ddr = self.get_int_pk_ddr(src_db, src_table)
         if ddr is None:
             return None
         return ddr.src_field
@@ -769,6 +790,7 @@ class DataDictionary(object):
             self.get_fieldnames_for_src_table,
             self.get_scrub_from_rows,
             self.get_pk_ddr,
+            self.get_int_pk_ddr,
             self.get_int_pk_name,
             self.has_active_destination,
             self.get_pid_name,

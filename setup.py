@@ -160,7 +160,9 @@ setup(
         'colorlog==2.6.1',  # colour in logs
         # 'configobj==5.0.6',  # better config files
         'distro==0.6.0',  # replaces platform.linux_distribution
+        # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
         'psutil==4.1.0',  # process management
+        'pyhashxx==0.1.3',  # fast non-cryptographic hashing
         'semver==2.4.1',  # comparing semantic versions
         'SQLAlchemy>=1.1.3',  # database access
         'typing==3.5.2.2',  # part of stdlib in Python 3.5, but not 3.4

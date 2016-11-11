@@ -6,7 +6,7 @@ import copy
 from functools import lru_cache
 import logging
 import re
-from typing import Any, Dict, List, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 from sqlalchemy.dialects import mssql, mysql
 from sqlalchemy.engine import Engine
@@ -173,13 +173,35 @@ def table_exists(engine: Engine, tablename: str) -> bool:
     return tablename in get_table_names(engine)
 
 
-def get_columns(engine: Engine, tablename: str) -> List[Column]:
+def get_columns_info(engine: Engine, tablename: str) -> List[Dict]:
     insp = Inspector.from_engine(engine)
     return insp.get_columns(tablename)
 
 
+def get_column_info(engine: Engine, tablename: str,
+                    columnname: str) -> Optional[Dict]:
+    # Dictionary structure: see
+    # http://docs.sqlalchemy.org/en/latest/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_columns  # noqa
+    columns = get_columns_info(engine, tablename)
+    for x in columns:
+        if x['name'] == columnname:
+            return x
+    return None
+
+
+def get_column_type(engine: Engine, tablename: str,
+                    columnname: str) -> Optional[Column]:
+    # Dictionary structure: see
+    # http://docs.sqlalchemy.org/en/latest/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_columns  # noqa
+    columns = get_columns_info(engine, tablename)
+    for x in columns:
+        if x['name'] == columnname:
+            return x['type']
+    return None
+
+
 def get_column_names(engine: Engine, tablename: str) -> List[str]:
-    return [x['name'] for x in get_columns(engine, tablename)]
+    return [x['name'] for x in get_columns_info(engine, tablename)]
 
 
 # =============================================================================

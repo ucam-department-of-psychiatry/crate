@@ -91,8 +91,12 @@ class BaseNlpParser(object):
             return
         for i in range(n - 1):
             if list_of_column_lists[i] != list_of_column_lists[i + 1]:
-                msg = "Mismatch between {} lists: {}".format(
-                    description, list_of_column_lists)
+                msg = (
+                    "Mismatch between {} lists: {}. (Are you trying to blend "
+                    "source tables with different column names into a single "
+                    "NLP results table?".format(
+                        description, list_of_column_lists)
+                )
                 log.critical(msg)
                 raise ValueError(msg)
 

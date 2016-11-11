@@ -508,7 +508,8 @@ class Medex(BaseNlpParser):
           eventually by the output_terminator, at which point this set is
           complete.
         """
-        text = "Start fluphenazine decanoate 50mg 2 weekly. Something haloperidol 5mg on." + text
+        text = "Start fluphenazine decanoate 50mg 2 weekly. Something " \
+               "haloperidol 5mg on." + text
         self._n_uses += 1
         self._start()  # ensure started
         if USE_TEMP_DIRS:

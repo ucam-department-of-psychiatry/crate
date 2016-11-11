@@ -5,9 +5,13 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import Column, Index, MetaData
 from sqlalchemy.types import BigInteger, DateTime, String
 
-from crate_anon.anonymise.constants import MAX_PID_STR, MYSQL_TABLE_KWARGS
+from crate_anon.anonymise.constants import (
+    MAX_PID_STR,
+    MYSQL_TABLE_KWARGS,
+)
 from crate_anon.nlp_manager.constants import (
     HashClass,
+    MAX_STRING_PK_LENGTH,
     SqlTypeDbIdentifier,
 )
 
@@ -58,7 +62,12 @@ class NlpRecord(ProgressBase):
         doc="Primary key column name in source table")
     srcpkval = Column(
         'srcpkval', BigInteger,
-        doc="Primary key value in source table")
+        doc="Primary key value in source table (or hash if PK is a string)")
+    srcpkstr = Column(
+        'srcpkval', String(MAX_STRING_PK_LENGTH),
+        doc="Original string PK, used when the table has a string PK, to deal "
+            "with hash collisions. Max length: {}".format(
+            MAX_STRING_PK_LENGTH))
     srcfield = Column(
         'srcfield', SqlTypeDbIdentifier,
         doc="Name of column in source field containing actual data")

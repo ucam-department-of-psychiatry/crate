@@ -15,7 +15,7 @@ import os
 import subprocess
 import tempfile
 
-from crate_anon.common.fileops import moveglob, rmglob
+# from crate_anon.common.fileops import moveglob, rmglob
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.nlp_manager.constants import (
     MEDEX_PIPELINE_CLASSNAME,

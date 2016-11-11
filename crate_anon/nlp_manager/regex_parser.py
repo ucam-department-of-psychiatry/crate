@@ -4,6 +4,7 @@
 # Shared elements for regex-based NLP work.
 
 import regex
+# noinspection PyProtectedMember
 from regex import _regex_core
 import typing
 from typing import Any, Dict, Iterator, List, Optional, Tuple
@@ -229,11 +230,11 @@ class NumericalResultParser(BaseNlpParser):
     FN_TENSE = 'tense'
 
     MAX_RELATION_TEXT_LENGTH = 50
-    MAX_RELATION_LENGTH = max(len(x) for x in RELATION_LOOKUP.items())
+    MAX_RELATION_LENGTH = max(len(x) for x in RELATION_LOOKUP.values())
     MAX_VALUE_TEXT_LENGTH = 50
     MAX_UNITS_LENGTH = 50
     MAX_TENSE_TEXT_LENGTH = 50
-    MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.items())
+    MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.values())
 
     def __init__(self,
                  nlpdef: NlpDefinition,

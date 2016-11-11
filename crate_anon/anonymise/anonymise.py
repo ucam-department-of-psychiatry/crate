@@ -82,10 +82,10 @@ from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.common.sqla import (
-    count_star,
-    get_column_names,
     add_index,
+    count_star,
     exists_plain,
+    get_column_names,
 )
 
 log = logging.getLogger(__name__)
@@ -345,7 +345,7 @@ def gen_patient_ids(tasknum: int = 0,
 
     # Debug option?
     if config.debug_pid_list:
-        log.warning("USING MANUALLY SPECIFIED PATIENT ID LIST")
+        log.warning("USING MANUALLY SPECIFIED INTEGER PATIENT ID LIST")
         for pid in config.debug_pid_list:
             if ntasks == 1 or pid % ntasks == tasknum:
                 yield pid
@@ -375,16 +375,19 @@ def gen_patient_ids(tasknum: int = 0,
         for row in result:
             # Extract ID
             patient_id = row[0]
+
             # Duplicate?
             if keeping_track:
                 if patient_id in processed_ids:
                     # we've done this one already; skip it this time
                     continue
                 processed_ids.add(patient_id)
+
             # Valid one
             log.debug("Found patient id: {}".format(patient_id))
             n_found += 1
             yield patient_id
+
             # Too many?
             if 0 < debuglimit <= n_found:
                 log.warning(
@@ -399,7 +402,7 @@ def gen_rows(dbname: str,
              sourcetable: str,
              sourcefields: Iterable[str],
              pid: int = None,
-             pkname: str = None,
+             intpkname: str = None,
              tasknum: int = None,
              ntasks: int = None,
              debuglimit: int = 0) -> Iterator(List[Any]):
@@ -422,8 +425,9 @@ def gen_rows(dbname: str,
         q = q.where(column(pidcol_name) == pid)
     else:
         # For non-patient tables: divide up rows across tasks?
-        if pkname is not None and tasknum is not None and ntasks is not None:
-            q = q.where(column(pkname) % ntasks == tasknum)
+        if intpkname is not None and tasknum is not None and \
+                        ntasks is not None:
+            q = q.where(column(intpkname) % ntasks == tasknum)
             # This does not require a user-defined PK to be unique. But other
             # constraints do: see delete_dest_rows_with_no_src_row().
 
@@ -520,7 +524,7 @@ def process_table(sourcedbname: str,
                   sourcetable: str,
                   patient: Patient = None,
                   incremental: bool = False,
-                  pkname: str = None,
+                  intpkname: str = None,
                   tasknum: int = None,
                   ntasks: int = None) -> None:
     """
@@ -577,7 +581,7 @@ def process_table(sourcedbname: str,
 
     for row in gen_rows(sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
-                        pkname=pkname, tasknum=tasknum, ntasks=ntasks):
+                        intpkname=intpkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
             log.info(start + "processing row {} of task set ({})".format(
@@ -1044,6 +1048,7 @@ def process_nonpatient_tables(tasknum: int = 0,
     """
     Copies all non-patient tables.
     If they have an integer PK, the work may be parallelized.
+    If not, whole tables are assigned to different processes in parallel mode.
     """
     log.info(SEP + "Non-patient tables: (a) with integer PK")
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
@@ -1052,7 +1057,7 @@ def process_nonpatient_tables(tasknum: int = 0,
         # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
-                      pkname=pkname, tasknum=tasknum, ntasks=ntasks)
+                      intpkname=pkname, tasknum=tasknum, ntasks=ntasks)
         commit_destdb()
     log.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
@@ -1062,7 +1067,7 @@ def process_nonpatient_tables(tasknum: int = 0,
         # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
-                      pkname=None, tasknum=None, ntasks=None)
+                      intpkname=None, tasknum=None, ntasks=None)
         commit_destdb()
 
 
@@ -1189,7 +1194,6 @@ def anonymise(args: Any) -> None:
     #    information to scrub across the entirety of that patient's record.
     if args.patienttables or everything:
         process_patient_tables(process=args.process,
-                               # nthreads=args.threads,
                                nprocesses=args.nprocesses,
                                incremental=args.incremental)
 

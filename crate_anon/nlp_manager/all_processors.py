@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # crate_anon/nlp_manager/nlp_definition.py
 
-import logging
+# import logging
 from operator import attrgetter
+# noinspection PyUnresolvedReferences
 from typing import Generic, List
 
 import prettytable
 
+# noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.regex_parser import test_base_regexes
 
@@ -17,7 +19,7 @@ from crate_anon.nlp_manager.parse_clinical import *
 from crate_anon.nlp_manager.parse_cognitive import *
 from crate_anon.nlp_manager.parse_haematology import *
 
-log = logging.getLogger(__name__)
+# log = logging.getLogger(__name__)
 
 
 # noinspection PyUnusedLocal

@@ -13,7 +13,6 @@ import argparse
 import logging
 import os
 import subprocess
-import sys
 from typing import List
 
 from crate_anon.common.fileops import purge
@@ -203,11 +202,13 @@ def add_lines_after_trigger(filename: str, trigger: str,
         existing = f.readlines()
     log.info("Read {} lines from {}".format(len(existing), filename))
     with open(filename, 'w') as f:
-        for index, line in enumerate(existing):
+        index = 0
+        for line in existing:
             f.write(line)
+            index += 1
             if line.strip() == trigger:
                 break
-        index += 1  # line after trigger line
+        # ... index now pointing to one after the trigger line
         # Excise an existing block of ours?
         if (index < len(existing) and
                 existing[index] == terminate(start_marker)):

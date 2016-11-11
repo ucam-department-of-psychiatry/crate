@@ -177,7 +177,8 @@ class Height(NumericalResultParser):
             if metric_expression:
                 expression = metric_expression
                 if metric_m_and_cm_m and metric_m_and_cm_cm:
-                    metres = to_pos_float(metric_m_and_cm_m)  # beware: 'm' above
+                    metres = to_pos_float(metric_m_and_cm_m)
+                    # ... beware: 'm' above
                     cm = to_pos_float(metric_m_and_cm_cm)
                     value_m = m_from_m_cm(metres=metres, centimetres=cm)
                 elif metric_m_only_m:

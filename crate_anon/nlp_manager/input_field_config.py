@@ -8,11 +8,17 @@ from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
-from sqlalchemy import BigInteger, Column, Index, Table
+from sqlalchemy import BigInteger, Column, Index, String, Table
 from sqlalchemy.sql import column, func, select, table
 # from sqlalchemy.sql.elements import quoted_name
 
-from crate_anon.common.sqla import table_exists
+from crate_anon.nlp_manager.constants import MAX_STRING_PK_LENGTH
+from crate_anon.common.hash import hash64
+from crate_anon.common.sqla import (
+    is_sqlatype_integer,
+    get_column_type,
+    table_exists,
+)
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
@@ -23,6 +29,7 @@ FN_SRCDB = '_srcdb'
 FN_SRCTABLE = '_srctable'
 FN_SRCPKFIELD = '_srcpkfield'
 FN_SRCPKVAL = '_srcpkval'
+FN_SRCPKSTR = '_srcpkstr'
 FN_SRCFIELD = '_srcfield'
 
 
@@ -122,7 +129,12 @@ class InputFieldConfig(object):
             Column(FN_SRCPKFIELD, SqlTypeDbIdentifier,
                    doc="PK field (column) in source table"),
             Column(FN_SRCPKVAL, BigInteger,
-                   doc="PK of source record"),
+                   doc="PK of source record (or hash of PK if the PK is a "
+                       "string"),
+            Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH),
+                   doc="NULL if the table has an integer PK, but the PK if "
+                       "the PK was a string, to deal with hash collisions. "
+                       "Max length: {}".format(MAX_STRING_PK_LENGTH)),
             Column(FN_SRCFIELD, SqlTypeDbIdentifier,
                    doc="Field (column) name of source text"),
         ]
@@ -133,7 +145,8 @@ class InputFieldConfig(object):
         # http://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes  # noqa
         return [
             Index('_idx_srcref',
-                  FN_SRCDB, FN_SRCTABLE, FN_SRCPKFIELD, FN_SRCPKVAL),
+                  FN_SRCDB, FN_SRCTABLE, FN_SRCPKFIELD, FN_SRCPKVAL,
+                  FN_SRCPKSTR),
         ]
 
     def _require_table_exists(self) -> None:
@@ -212,7 +225,7 @@ class InputFieldConfig(object):
 
     def gen_text(self,
                  tasknum: int = 0,
-                 ntasks: int = 1) -> Iterator(Tuple[str, Dict[str, Any]]):
+                 ntasks: int = 1) -> Iterator(Tuple[str, Dict[str, Any], bool]):
         """
         Generate text strings from the input database.
         Yields tuple of (text, dict), where the dict is a column-to-value
@@ -229,6 +242,17 @@ class InputFieldConfig(object):
         }
         session = self._get_source_session()
         pkcol = column(self._srcpkfield)
+        # ... don't use is_sqlatype_integer with this; it's a column clause,
+        # not a full column definition.
+        pkcoltype = get_column_type(self._get_source_engine(), self._srctable,
+                                    self._srcpkfield)
+        if not pkcoltype:
+            raise ValueError("Unable to get column type for column "
+                             "{}.{}".format(self._srctable, self._srcpkfield))
+        pk_is_integer = is_sqlatype_integer(pkcoltype)
+        # log.debug("pk_is_integer: {} -> {}".format(repr(pkcoltype),
+        #                                            pk_is_integer))
+
         selectcols = [pkcol, column(self._srcfield)]
         for extracol in self._copyfields:
             selectcols.append(column(extracol))
@@ -237,17 +261,38 @@ class InputFieldConfig(object):
             select_from(table(self._srctable)).
             order_by(pkcol)
         )
+        distribute_by_hash = False
         if ntasks > 1:
-            query = query.where(pkcol % ntasks == tasknum)
+            if pk_is_integer:
+                # Integer PK, so we can be efficient and bake the parallel
+                # processing work division into the SQL:
+                query = query.where(pkcol % ntasks == tasknum)
+            else:
+                distribute_by_hash = True
+        hashed_pk = None
         for row in session.execute(query):  # ... a generator itself
             pkval = row[0]
             text = row[1]
             other_values = dict(zip(self._copyfields, row[2:]))
-            other_values[FN_SRCPKVAL] = pkval
+            if pk_is_integer:
+                other_values[FN_SRCPKVAL] = pkval
+                other_values[FN_SRCPKSTR] = None
+            else:
+                hashed_pk = hash64(pkval)
+                other_values[FN_SRCPKVAL] = hashed_pk
+                other_values[FN_SRCPKSTR] = pkval
             other_values.update(base_dict)
+            if distribute_by_hash and hashed_pk % ntasks != tasknum:
+                # We convert some non-integer thing into a deterministic but
+                # roughly randomly distributed integer using hash64.
+                # That produces a signed integer, but that doesn't
+                # matter, because % works nonetheless.
+                # This is obviously less efficient than dividing the work up
+                # via SQL, because we have to fetch and hash something.
+                continue
             yield text, other_values
 
-    def get_count_max(self) -> int:
+    def get_count_max(self) -> Tuple[int, Optional[int]]:
         """
         Counts records in the input table for the given InputFieldConfig.
         Used for progress monitoring.
@@ -256,15 +301,15 @@ class InputFieldConfig(object):
         pkcol = column(self._srcpkfield)
         query = (
             select([func.count(), func.max(pkcol)]).
-            select_from(table(self._srctable)).
-            order_by(pkcol)
+            select_from(table(self._srctable))
         )
         result = session.execute(query)
         return result.fetchone()  # count, maximum
 
     def get_progress_record(self,
                             srcpkval: int,
-                            srchash: str = None) -> Optional[NlpRecord]:
+                            srchash: str = None,
+                            srcpkstr: str = None) -> Optional[NlpRecord]:
         """
         Fetch a progress record (NlpRecord) for the given source record, if one
         exists.
@@ -280,6 +325,8 @@ class InputFieldConfig(object):
         )
         if srchash is not None:
             query = query.filter(NlpRecord.srchash == srchash)
+        if srcpkstr is not None:
+            query = query.filter(NlpRecord.srcpkstr == srcpkstr)
         return query.one_or_none()
 
     def delete_progress_records_where_srcpk_not(self,
