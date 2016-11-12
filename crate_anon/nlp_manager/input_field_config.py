@@ -9,10 +9,18 @@ from cardinal_pythonlib.rnc_db import (
     ensure_valid_table_name,
 )
 from sqlalchemy import BigInteger, Column, Index, String, Table
-from sqlalchemy.sql import column, func, select, table
-# from sqlalchemy.sql.elements import quoted_name
+from sqlalchemy.sql import and_, column, exists, func, or_, select, table
 
-from crate_anon.nlp_manager.constants import MAX_STRING_PK_LENGTH
+from crate_anon.nlp_manager import nlp_definition  # see PEP0484 / forward references  # noqa
+from crate_anon.nlp_manager.constants import (
+    FN_SRCDB,
+    FN_SRCTABLE,
+    FN_SRCPKFIELD,
+    FN_SRCPKVAL,
+    FN_SRCPKSTR,
+    FN_SRCFIELD,
+    MAX_STRING_PK_LENGTH,
+)
 from crate_anon.common.hash import hash64
 from crate_anon.common.sqla import (
     is_sqlatype_integer,
@@ -21,16 +29,8 @@ from crate_anon.common.sqla import (
 )
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 log = logging.getLogger(__name__)
-
-FN_SRCDB = '_srcdb'
-FN_SRCTABLE = '_srctable'
-FN_SRCPKFIELD = '_srcpkfield'
-FN_SRCPKVAL = '_srcpkval'
-FN_SRCPKSTR = '_srcpkstr'
-FN_SRCFIELD = '_srcfield'
 
 
 # =============================================================================
@@ -42,7 +42,8 @@ class InputFieldConfig(object):
     Class defining configuration for an input field (containing text).
     """
 
-    def __init__(self, nlpdef: NlpDefinition, section: str) -> None:
+    def __init__(self, nlpdef: "nlp_definition.NlpDefinition",
+                 section: str) -> None:
         """
         Read config from a configparser section.
         """
@@ -106,7 +107,7 @@ class InputFieldConfig(object):
     def get_srcfield(self) -> str:
         return self._srcfield
 
-    def _get_source_session(self):
+    def get_source_session(self):
         return self._db.session
 
     def _get_source_metadata(self):
@@ -209,19 +210,16 @@ class InputFieldConfig(object):
                     missing))
         return copy_indexes
 
-    def gen_src_pks(self) -> Iterator(int):
-        """
-        Generate integer PKs from the source table specified for the
-        InputFieldConfig.
-        """
-        session = self._get_source_session()
-        query = (
-            select([column(self._srcpkfield)]).
-            select_from(table(self._srctable))
-        )
-        result = session.execute(query)
-        for row in result:
-            yield row[0]
+    def is_pk_integer(self):
+        pkcoltype = get_column_type(self._get_source_engine(), self._srctable,
+                                    self._srcpkfield)
+        if not pkcoltype:
+            raise ValueError("Unable to get column type for column "
+                             "{}.{}".format(self._srctable, self._srcpkfield))
+        pk_is_integer = is_sqlatype_integer(pkcoltype)
+        # log.debug("pk_is_integer: {} -> {}".format(repr(pkcoltype),
+        #                                            pk_is_integer))
+        return pk_is_integer
 
     def gen_text(self,
                  tasknum: int = 0,
@@ -240,18 +238,11 @@ class InputFieldConfig(object):
             FN_SRCPKFIELD: self._srcpkfield,
             FN_SRCFIELD: self._srcfield,
         }
-        session = self._get_source_session()
+        session = self.get_source_session()
         pkcol = column(self._srcpkfield)
         # ... don't use is_sqlatype_integer with this; it's a column clause,
         # not a full column definition.
-        pkcoltype = get_column_type(self._get_source_engine(), self._srctable,
-                                    self._srcpkfield)
-        if not pkcoltype:
-            raise ValueError("Unable to get column type for column "
-                             "{}.{}".format(self._srctable, self._srcpkfield))
-        pk_is_integer = is_sqlatype_integer(pkcoltype)
-        # log.debug("pk_is_integer: {} -> {}".format(repr(pkcoltype),
-        #                                            pk_is_integer))
+        pk_is_integer = self.is_pk_integer()
 
         selectcols = [pkcol, column(self._srcfield)]
         for extracol in self._copyfields:
@@ -297,7 +288,7 @@ class InputFieldConfig(object):
         Counts records in the input table for the given InputFieldConfig.
         Used for progress monitoring.
         """
-        session = self._get_source_session()
+        session = self.get_source_session()
         pkcol = column(self._srcpkfield)
         query = (
             select([func.count(), func.max(pkcol)]).
@@ -329,8 +320,28 @@ class InputFieldConfig(object):
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
         return query.one_or_none()
 
-    def delete_progress_records_where_srcpk_not(self,
-                                                src_pks: List[int]) -> None:
+    def gen_src_pks(self) -> Iterator(Tuple[int, Optional[str]]):
+        """
+        Generate integer PKs from the source table specified for the
+        InputFieldConfig.
+        """
+        session = self.get_source_session()
+        query = (
+            select([column(self._srcpkfield)]).
+            select_from(table(self._srctable))
+        )
+        result = session.execute(query)
+        if self.is_pk_integer():
+            for row in result:
+                yield row[0], None
+        else:
+            for row in result:
+                pkval = row[0]
+                yield hash64(pkval), pkval
+
+    def delete_progress_records_where_srcpk_not(
+            self,
+            temptable: Optional[Table]) -> None:
         progsession = self._get_progress_session()
         log.debug("delete_progress_records_where_srcpk_not... {}.{} -> "
                   "progressdb".format(self._srcdb, self._srctable))
@@ -341,13 +352,26 @@ class InputFieldConfig(object):
             filter(NlpRecord.srcpkfield == self._srcpkfield).
             filter(NlpRecord.nlpdef == self._nlpdef.get_name())
         )
-        if src_pks:
+        if temptable is not None:
             log.debug("... deleting selectively")
+            temptable_pkvalcol = temptable.columns[FN_SRCPKVAL]
+            temptable_pkstrcol = temptable.columns[FN_SRCPKSTR]
             prog_deletion_query = prog_deletion_query.filter(
-                ~NlpRecord.srcpkval.in_(src_pks)
+                ~exists().where(
+                    and_(
+                        NlpRecord.srcpkval == temptable_pkvalcol,
+                        or_(
+                            NlpRecord.srcpkstr == temptable_pkstrcol,
+                            and_(
+                                NlpRecord.srcpkstr.is_(None),
+                                temptable_pkstrcol.is_(None)
+                            )
+                        )
+                    )
+                )
             )
         else:
             log.debug("... deleting all")
-        progsession.execute(prog_deletion_query)
+        prog_deletion_query.delete(synchronize_session=False)
+        # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
         progsession.commit()
-

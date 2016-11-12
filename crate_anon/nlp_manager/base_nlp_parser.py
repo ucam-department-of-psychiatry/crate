@@ -7,11 +7,17 @@ from functools import lru_cache
 import logging
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-from sqlalchemy import BigInteger, Column, Index, Table
+from sqlalchemy.schema import Column, Index, Table
+from sqlalchemy.sql import and_, exists, or_
+from sqlalchemy.types import BigInteger
 
-from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
+from crate_anon.nlp_manager import nlp_definition  # see PEP0484 / forward references  # noqa
+from crate_anon.nlp_manager.constants import (
+    FN_SRCPKVAL,
+    FN_SRCPKSTR,
+    SqlTypeDbIdentifier,
+)
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
-from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +31,7 @@ class BaseNlpParser(object):
     FN_NLPDEF = '_nlpdef'
 
     def __init__(self,
-                 nlpdef: Optional[NlpDefinition],
+                 nlpdef: Optional['nlp_definition.NlpDefinition'],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
         self._nlpdef = nlpdef
@@ -55,13 +61,13 @@ class BaseNlpParser(object):
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
         return {}
 
-    def _get_metadata(self):
+    def get_metadata(self):
         return self._destdb.metadata
 
-    def _get_session(self):
+    def get_session(self):
         return self._destdb.session
 
-    def _get_engine(self):
+    def get_engine(self):
         return self._destdb.engine
 
     def get_nlpdef_name(self) -> str:
@@ -84,8 +90,9 @@ class BaseNlpParser(object):
         )
 
     @staticmethod
-    def _assert_column_lists_identical(list_of_column_lists: List[Column],
-                                       description: str) -> None:
+    def _assert_column_lists_identical(
+            list_of_column_lists: List[List[Any]],
+            description: str) -> None:
         n = len(list_of_column_lists)
         if n <= 1:
             return
@@ -119,7 +126,7 @@ class BaseNlpParser(object):
                                 "source", source_columns)
 
         # Create one or more tables
-        meta = self._get_metadata()
+        meta = self.get_metadata()
         tables = {}
         t_columns = self.dest_tables_columns()
         for tablename, destcols in t_columns.items():
@@ -165,7 +172,7 @@ class BaseNlpParser(object):
 
     def make_tables(self, drop_first: bool = False) -> None:
         assert self._destdb, "Cannot use tables() call without a database"
-        engine = self._get_engine()
+        engine = self.get_engine()
         tables = self.tables()
         for t in tables.values():
             pretty_name = "{}.{}".format(self._destdb.name, t.name)
@@ -188,7 +195,7 @@ class BaseNlpParser(object):
     def process(self, text: str,
                 starting_fields_values: Dict[str, Any]) -> None:
         starting_fields_values[self.FN_NLPDEF] = self._nlpdef.get_name()
-        session = self._get_session()
+        session = self.get_session()
         n_values = 0
         for tablename, nlp_values in self.parse(text):
             # Merge dictionaries so EXISTING FIELDS/VALUES
@@ -226,13 +233,14 @@ class BaseNlpParser(object):
     def delete_dest_record(self,
                            ifconfig: InputFieldConfig,
                            srcpkval: int,
+                           srcpkstr: Optional[str],
                            commit: bool = False) -> None:
         """
         Used during incremental updates.
         For when a record (specified by srcpkval) has been updated in the
         source; wipe older entries for it in the destination database(s).
         """
-        session = self._get_session()
+        session = self.get_session()
         srcdb = ifconfig.get_srcdb()
         srctable = ifconfig.get_srctable()
         srcpkfield = ifconfig.get_srcpkfield()
@@ -251,6 +259,9 @@ class BaseNlpParser(object):
                 where(desttable.c._srcpkval == srcpkval).
                 where(desttable.c._nlpdef == nlpdef_name)
             )
+            if srcpkstr is not None:
+                # noinspection PyProtectedMember
+                delquery = delquery.where(desttable.c._srcpkstr == srcpkstr)
             session.execute(delquery)
             if commit:
                 session.commit()
@@ -259,8 +270,8 @@ class BaseNlpParser(object):
 
     def delete_where_srcpk_not(self,
                                ifconfig: InputFieldConfig,
-                               src_pks: List[int]) -> None:
-        destsession = self._get_session()
+                               temptable: Optional[Table]) -> None:
+        destsession = self.get_session()
         srcdb = ifconfig.get_srcdb()
         srctable = ifconfig.get_srctable()
         for desttable_name, desttable in self.tables().items():
@@ -275,11 +286,32 @@ class BaseNlpParser(object):
                 where(desttable.c._srcpkfield == ifconfig.get_srcpkfield()).
                 where(desttable.c._nlpdef == self._nlpdef.get_name())
             )
-            if src_pks:
+            if temptable is not None:
                 log.debug("... deleting selectively")
+                #   DELETE FROM a WHERE NOT EXISTS (
+                #       SELECT 1 FROM b
+                #       WHERE a.a1 = b.b1
+                #       AND (
+                #           a.a2 = b.b2
+                #           OR (a.a2 IS NULL AND b.b2 IS NULL)
+                #       )
+                #   )
+                temptable_pkvalcol = temptable.columns[FN_SRCPKVAL]
+                temptable_pkstrcol = temptable.columns[FN_SRCPKSTR]
                 # noinspection PyProtectedMember
                 dest_deletion_query = dest_deletion_query.where(
-                    ~desttable.c._srcpkval.in_(src_pks)
+                    ~exists().where(
+                        and_(
+                            desttable.c._srcpkval == temptable_pkvalcol,
+                            or_(
+                                desttable.c._srcpkstr == temptable_pkstrcol,
+                                and_(
+                                    desttable.c._srcpkstr.is_(None),
+                                    temptable_pkstrcol.is_(None)
+                                )
+                            )
+                        )
+                    )
                 )
             else:
                 log.debug("... deleting all")

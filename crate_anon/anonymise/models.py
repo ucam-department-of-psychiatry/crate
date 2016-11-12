@@ -73,7 +73,7 @@ class PatientInfo(AdminBase):
 
     def ensure_rid(self) -> None:
         assert self.pid is not None
-        if self.rid:
+        if self.rid is not None:
             return
         self.rid = config.encrypt_primary_pid(self.pid)
 
@@ -81,6 +81,7 @@ class PatientInfo(AdminBase):
         assert self.pid is not None
         if self.trid is not None:
             return
+        # noinspection PyTypeChecker
         self.trid = TridRecord.get_trid(session, self.pid)
 
     def set_mpid(self, mpid: int) -> None:

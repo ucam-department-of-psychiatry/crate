@@ -64,7 +64,7 @@ class NlpRecord(ProgressBase):
         'srcpkval', BigInteger,
         doc="Primary key value in source table (or hash if PK is a string)")
     srcpkstr = Column(
-        'srcpkval', String(MAX_STRING_PK_LENGTH),
+        'srcpkstr', String(MAX_STRING_PK_LENGTH),
         doc="Original string PK, used when the table has a string PK, to deal "
             "with hash collisions. Max length: {}".format(
             MAX_STRING_PK_LENGTH))

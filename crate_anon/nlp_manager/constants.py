@@ -4,6 +4,14 @@
 from sqlalchemy.types import String
 from crate_anon.common.hash import HmacMD5Hasher
 
+DEFAULT_TEMPORARY_TABLENAME = '_crate_nlp_temptable'
+
+FN_SRCDB = '_srcdb'
+FN_SRCTABLE = '_srctable'
+FN_SRCPKFIELD = '_srcpkfield'
+FN_SRCPKVAL = '_srcpkval'
+FN_SRCPKSTR = '_srcpkstr'
+FN_SRCFIELD = '_srcfield'
 
 GATE_PIPELINE_CLASSNAME = 'CrateGatePipeline'
 MEDEX_PIPELINE_CLASSNAME = 'CrateMedexPipeline'
@@ -123,6 +131,9 @@ processors =
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
 
+    # Temporary tablename to use (in progress and destination databases).
+    # Default is {DEFAULT_TEMPORARY_TABLENAME}
+# temporary_tablename = {DEFAULT_TEMPORARY_TABLENAME}
 
 
 [NLPDEF_BIOMARKERS]
@@ -493,4 +504,5 @@ url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
 """.format(  # noqa
     IdentType=SqlTypeDbIdentifier,
     CLASSNAME=GATE_PIPELINE_CLASSNAME,
+    DEFAULT_TEMPORARY_TABLENAME=DEFAULT_TEMPORARY_TABLENAME,
 ))

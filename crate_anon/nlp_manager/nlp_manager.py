@@ -68,15 +68,23 @@ import logging
 import os
 
 from cardinal_pythonlib.rnc_datetime import get_now_utc
-
-from crate_anon.anonymise.constants import SEP
+from sqlalchemy.schema import Column, Index, Table
+from sqlalchemy.types import BigInteger, String
+from crate_anon.anonymise.constants import (
+    DEFAULT_CHUNKSIZE,
+    DEFAULT_REPORT_EVERY,
+    MYSQL_TABLE_KWARGS,
+    SEP,
+)
 from crate_anon.common.logsupport import configure_logger_for_colour
+from crate_anon.common.sqla import count_star
 from crate_anon.nlp_manager.all_processors import (
     possible_processor_names,
     possible_processor_table,
 )
 from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
+    MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
 )
 from crate_anon.nlp_manager.input_field_config import (
@@ -133,7 +141,9 @@ def insert_into_progress_db(config: NlpDefinition,
 
 
 def delete_where_no_source(config: NlpDefinition,
-                           ifconfig: InputFieldConfig) -> None:
+                           ifconfig: InputFieldConfig,
+                           report_every: int = DEFAULT_REPORT_EVERY,
+                           chunksize: int = DEFAULT_CHUNKSIZE) -> None:
     """
     Delete destination records where source records no longer exist.
 
@@ -149,29 +159,152 @@ def delete_where_no_source(config: NlpDefinition,
       everything from the destination).
 
     Problems:
-    - With massive tables, we might run out of memory or (much more likely)
-      SQL parameter slots.
     - This is IMPERFECT if we have string source PKs and there are hash
       collisions (e.g. PKs for records X and Y both hash to the same thing;
       record X is deleted; then its processed version might not be).
+    - With massive tables, we might run out of memory or (much more likely)
+      SQL parameter slots. -- This is now happening; error looks like:
+      pyodbc.ProgrammingError: ('The SQL contains 30807 parameter parkers, but
+      2717783 parameters were supplied', 'HY000')
 
     A better way might be:
     - for each table, make a temporary table in the same database
     - populate that table with (source PK integer/hash, source PK string) pairs
     - delete where pairs don't match -- is that portable SQL?
       http://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns  # noqa
+    - More efficient would be to make one table per destination database.
+
+    On the "delete where multiple fields don't match":
+    - Single field syntax is
+        DELETE FROM a WHERE a1 NOT IN (SELECT b1 FROM b)
+    - Multiple field syntax is
+        DELETE FROM a WHERE NOT EXISTS (
+            SELECT 1 FROM b
+            WHERE a.a1 = b.b1
+            AND a.a2 = b.b2
+        )
+    - In SQLAlchemy, exists():
+        http://stackoverflow.com/questions/14600619
+        http://docs.sqlalchemy.org/en/latest/core/selectable.html
+    - Furthermore, in SQL NULL = NULL is false, and NULL <> NULL is also false,
+      so we have to do an explicit null check.
+      You do that with "field == None" (disable
+      See http://stackoverflow.com/questions/21668606
+      We're aiming, therefore, for:
+        DELETE FROM a WHERE NOT EXISTS (
+            SELECT 1 FROM b
+            WHERE a.a1 = b.b1
+            AND (
+                a.a2 = b.b2
+                OR (a.a2 IS NULL AND b.b2 IS NULL)
+            )
+        )
     """
 
-    src_pks = list(ifconfig.gen_src_pks())
+    # -------------------------------------------------------------------------
+    # Sub-functions
+    # -------------------------------------------------------------------------
+
+    def insert(records_):
+        log.debug("... inserting {} records".format(len(records_)))
+        for db in databases:
+            db['session'].execute(db['temptable'].insert(), records_)
+
+    def commit():
+        for db in databases:
+            db['session'].commit()
+
+    # -------------------------------------------------------------------------
+    # Main code
+    # -------------------------------------------------------------------------
+
     log.debug("delete_where_no_source: from {}.{}".format(
         ifconfig.get_srcdb(), ifconfig.get_srctable()))
 
-    # 1. Progress database
-    ifconfig.delete_progress_records_where_srcpk_not(src_pks)
+    # Start our list with the progress database
+    databases = [{
+        'session': config.get_progdb_session(),
+        'engine': config.get_progdb_engine(),
+        'metadata': config.get_progdb_metadata(),
+    }]
 
-    # 2. Others. Combine in the same function as we re-use the source PKs.
+    # Add the processors' destination databases
+    for processor in config.get_processors():  # of type BaseNlpParser
+        session = processor.get_session()
+        if any(x['session'] == session for x in databases):
+            continue  # already exists
+        databases.append({
+            'session': session,
+            'engine': processor.get_engine(),
+            'metadata': processor.get_metadata(),
+        })
+
+    # Make a temporary table in each database (note: the Table objects become
+    # affiliated to their engine, I think, so make separate ones for each).
+    log.debug("... using {n} destination database(s)".format(n=len(databases)))
+    log.debug("... dropping (if exists) and creating temporary table(s)")
+    for database in databases:
+        engine = database['engine']
+        temptable = Table(
+            config.get_temporary_tablename(),
+            database['metadata'],
+            Column(FN_SRCPKVAL, BigInteger),  # not PK, as may be a hash
+            Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH)),
+            **MYSQL_TABLE_KWARGS
+        )
+        temptable.drop(engine, checkfirst=True)
+        temptable.create(engine, checkfirst=True)
+        database['temptable'] = temptable
+
+    # Insert PKs into temporary tables
+
+    n = count_star(ifconfig.get_source_session(), ifconfig.get_srctable())
+    log.debug("... populating temporary table(s): {} records to go".format(n))
+    i = 0
+    records = []
+    for pkval, pkstr in ifconfig.gen_src_pks():
+        i += 1
+        if report_every and i % report_every == 0:
+            log.debug("... src row# {} / {}".format(i, n))
+        records.append({FN_SRCPKVAL: pkval, FN_SRCPKSTR: pkstr})
+        if i % chunksize == 0:
+            insert(records)
+            records = []
+    if records:  # remainder
+        insert(records)
+
+    # Commit
+    commit()
+
+    # Index, for speed
+    log.debug("... creating index(es) on temporary table(s)")
+    for database in databases:
+        temptable = database['temptable']
+        index = Index('_temptable_idx', temptable.columns[FN_SRCPKVAL])
+        index.create(database['engine'])
+
+    # DELETE FROM desttable WHERE destpk NOT IN (SELECT srcpk FROM temptable)
+    log.debug("... deleting from progress/destination DBs where appropriate")
+
+    # Delete from progress database
+    prog_db = databases[0]
+    prog_temptable = prog_db['temptable']
+    ifconfig.delete_progress_records_where_srcpk_not(prog_temptable)
+
+    # Delete from others
     for processor in config.get_processors():
-        processor.delete_where_srcpk_not(ifconfig, src_pks)
+        database = [x for x in databases
+                    if x['session'] == processor.get_session()][0]
+        temptable = database['temptable']
+        processor.delete_where_srcpk_not(ifconfig, temptable)
+
+    # Drop temporary tables
+    log.debug("... dropping temporary table(s)")
+    for database in databases:
+        database['temptable'].drop(database['engine'], checkfirst=True)
+
+    # Commit
+    commit()
 
 
 # =============================================================================

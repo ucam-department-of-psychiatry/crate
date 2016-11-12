@@ -38,23 +38,10 @@ import sys
 from typing import Any, Iterable, Iterator, List, Tuple
 
 import regex
-# import xml.etree
 
 from sortedcontainers import SortedSet
-from sqlalchemy.schema import (
-    Column,
-    Index,
-    MetaData,
-    Table,
-)
-from sqlalchemy.sql import (
-    column,
-    # func,
-    or_,
-    select,
-    table,
-)
-
+from sqlalchemy.schema import Column, Index, MetaData, Table
+from sqlalchemy.sql import column, or_, select, table
 from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
     get_now_utc,
@@ -241,10 +228,11 @@ def delete_dest_rows_with_no_src_row(
         insert(records)
     commit_destdb()
 
-    # 4. Index
-    log.debug("... creating index on temporary table")
-    index = Index('_temptable_idx', temptable.columns[pkfield])
-    index.create(destengine)
+    # 4. Index -- no, hang on, it's a primary key already
+    #
+    # log.debug("... creating index on temporary table")
+    # index = Index('_temptable_idx', temptable.columns[pkfield])
+    # index.create(destengine)
 
     # 5. DELETE FROM desttable
     #    WHERE destpk NOT IN (SELECT srcpk FROM temptable)
@@ -920,16 +908,12 @@ def wipe_opt_out_patients(report_every: int = 1000,
     commit_destdb()
 
     log.debug(start + ": 7. deleting opt-out patients from mapping table")
-    (
-        adminsession.query(PatientInfo).
-        filter(
-            or_(
-                PatientInfo.pid.in_(adminsession.query(OptOutPid.pid)),
-                PatientInfo.mpid.in_(adminsession.query(OptOutMpid.mpid))
-            )
-        ).
-        delete(synchronize_session=False)
-    )
+    adminsession.query(PatientInfo).filter(
+        or_(
+            PatientInfo.pid.in_(adminsession.query(OptOutPid.pid)),
+            PatientInfo.mpid.in_(adminsession.query(OptOutMpid.mpid))
+        )
+    ).delete(synchronize_session=False)
     commit_admindb()
 
 

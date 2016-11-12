@@ -236,7 +236,7 @@ class Gate(BaseNlpParser):
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = (
                 self._standard_columns() +
-                otconfig.get_columns(self._get_engine())
+                otconfig.get_columns(self.get_engine())
             )
         return tables
 

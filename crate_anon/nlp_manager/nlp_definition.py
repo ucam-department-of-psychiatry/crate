@@ -17,11 +17,14 @@ from cardinal_pythonlib.rnc_lang import chunks
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.nlp_manager import base_nlp_parser  # see PEP0484 / forward references  # noqa
 from crate_anon.nlp_manager.constants import (
+    DEFAULT_TEMPORARY_TABLENAME,
     HashClass,
     MAX_SQL_FIELD_LEN,
     NLP_CONFIG_ENV_VAR,
 )
+from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
 log = logging.getLogger(__name__)
 
@@ -45,7 +48,6 @@ class NlpDefinition(object):
         # NlpParser and using NlpDefinition -- they can now do it directly,
         # not just via forward reference).
         from crate_anon.nlp_manager.all_processors import make_processor
-        from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
         self._nlpname = nlpname
         self._logtag = logtag
@@ -78,6 +80,9 @@ class NlpDefinition(object):
         self._progressdb_name = self.opt_str(nlpname, 'progressdb',
                                              required=True)
         self._progdb = self.get_database(self._progressdb_name)
+        self._temporary_tablename = self.opt_str(
+            nlpname, 'temporary_tablename',
+            default=DEFAULT_TEMPORARY_TABLENAME)
 
         self._hashphrase = self.opt_str(nlpname, 'hashphrase', required=True)
         self._hasher = HashClass(self._hashphrase)
@@ -122,6 +127,9 @@ class NlpDefinition(object):
     def hash(self, text: str) -> str:
         return self._hasher.hash(text)
 
+    def get_temporary_tablename(self) -> str:
+        return self._temporary_tablename
+
     def set_echo(self, echo: bool) -> None:
         self._progdb.engine.echo = echo
         for db in self._databases.values():
@@ -140,7 +148,7 @@ class NlpDefinition(object):
             raise ValueError(msg)
 
     def opt_str(self, section: str, option: str, required: bool = False,
-                default: bool = None) -> str:
+                default: str = None) -> str:
         return self._parser.get_str(section, option, default=default,
                                     required=required)
 
@@ -180,6 +188,9 @@ class NlpDefinition(object):
     def get_progdb_engine(self):
         return self._progdb.engine
 
+    def get_progdb_metadata(self):
+        return self._progdb.metadata
+
     def commit_all(self) -> None:
         """
         Execute a COMMIT on all databases (destination + progress).
@@ -188,11 +199,12 @@ class NlpDefinition(object):
         for db in self._databases.values():
             db.session.commit()
 
-    def get_processors(self):
+    def get_processors(self) -> List['base_nlp_parser.BaseNlpParser']:
         return self._processors
 
-    def get_ifconfigs(self):
+    def get_ifconfigs(self) -> List[InputFieldConfig]:
         return self._inputfieldmap.values()
 
     def get_now(self) -> datetime.datetime:
         return self._now
+

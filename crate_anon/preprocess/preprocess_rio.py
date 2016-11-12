@@ -244,7 +244,7 @@ def process_nonpatient_table(table: Table,
                                  'unique': True}])
 
 
-def drop_for_nonpatient_table(table: str, engine: Engine) -> None:
+def drop_for_nonpatient_table(table: Table, engine: Engine) -> None:
     drop_indexes(engine, table, [CRATE_IDX_PK])
     drop_columns(engine, table, [CRATE_COL_PK])
 
@@ -443,7 +443,7 @@ def process_clindocs_table(table: Table, engine: Engine, progargs: Any) -> None:
     ))
 
 
-def drop_for_clindocs_table(table: str, engine: Engine) -> None:
+def drop_for_clindocs_table(table: Table, engine: Engine) -> None:
     drop_indexes(engine, table, [CRATE_IDX_RIONUM_SERIALNUM,
                                  CRATE_IDX_MAX_DOCVER,
                                  CRATE_IDX_LAST_DOC])
