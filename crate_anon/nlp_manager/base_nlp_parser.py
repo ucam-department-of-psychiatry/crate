@@ -5,19 +5,22 @@
 
 from functools import lru_cache
 import logging
+import sys
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 from sqlalchemy.types import BigInteger
 
-from crate_anon.nlp_manager import nlp_definition  # see PEP0484 / forward references  # noqa
 from crate_anon.nlp_manager.constants import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
     SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
+
+if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
+    from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 
 log = logging.getLogger(__name__)
 

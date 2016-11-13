@@ -17,14 +17,20 @@ from cardinal_pythonlib.rnc_lang import chunks
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
-from crate_anon.nlp_manager import base_nlp_parser  # see PEP0484 / forward references  # noqa
 from crate_anon.nlp_manager.constants import (
     DEFAULT_TEMPORARY_TABLENAME,
     HashClass,
     MAX_SQL_FIELD_LEN,
     NLP_CONFIG_ENV_VAR,
 )
-from crate_anon.nlp_manager.input_field_config import InputFieldConfig
+
+if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
+    from crate_anon.nlp_manager import input_field_config
+    from crate_anon.nlp_manager import base_nlp_parser  # SEE NEXT LINES
+# - see PEP0484 / forward references
+# - some circular imports work under Python 3.5 but not 3.4:
+#   https://docs.python.org/3/whatsnew/3.5.html#other-language-changes
+#   https://bugs.python.org/issue17636
 
 log = logging.getLogger(__name__)
 
@@ -48,6 +54,7 @@ class NlpDefinition(object):
         # NlpParser and using NlpDefinition -- they can now do it directly,
         # not just via forward reference).
         from crate_anon.nlp_manager.all_processors import make_processor
+        from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
         self._nlpname = nlpname
         self._logtag = logtag
@@ -202,7 +209,7 @@ class NlpDefinition(object):
     def get_processors(self) -> List['base_nlp_parser.BaseNlpParser']:
         return self._processors
 
-    def get_ifconfigs(self) -> List[InputFieldConfig]:
+    def get_ifconfigs(self) -> List['input_field_config.InputFieldConfig']:
         return self._inputfieldmap.values()
 
     def get_now(self) -> datetime.datetime:

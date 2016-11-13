@@ -2,6 +2,7 @@
 # crate_anon/nlp_manager/input_field_config.py
 
 import logging
+import sys
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from cardinal_pythonlib.rnc_db import (
@@ -11,7 +12,6 @@ from cardinal_pythonlib.rnc_db import (
 from sqlalchemy import BigInteger, Column, Index, String, Table
 from sqlalchemy.sql import and_, column, exists, func, or_, select, table
 
-from crate_anon.nlp_manager import nlp_definition  # see PEP0484 / forward references  # noqa
 from crate_anon.nlp_manager.constants import (
     FN_SRCDB,
     FN_SRCTABLE,
@@ -29,6 +29,9 @@ from crate_anon.common.sqla import (
 )
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
+
+if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
+    from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 
 log = logging.getLogger(__name__)
 
