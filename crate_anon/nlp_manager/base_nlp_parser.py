@@ -40,6 +40,8 @@ class BaseNlpParser(object):
         self._nlpdef = nlpdef
         self._cfgsection = cfgsection
         self._commit = commit
+        self._destdb_name = None
+        self._destdb = None
         if nlpdef is not None:
             self._destdb_name = nlpdef.opt_str(cfgsection, 'destdb',
                                                required=True)
@@ -80,6 +82,9 @@ class BaseNlpParser(object):
 
     def get_parser_name(self) -> str:
         return getattr(self, 'NAME', None)
+
+    def get_dbname(self) -> str:
+        return self._destdb_name
 
     @staticmethod
     def _assert_no_overlap(description1: str, cols1: List[Column],
@@ -168,15 +173,19 @@ class BaseNlpParser(object):
             # You can copy a Column, but not an Index.
         return tables
 
+    def get_tablenames(self) -> List[str]:
+        return self.dest_tables_columns().keys()
+
     def get_table(self, tablename: str) -> Table:
         tables = self.tables()
         assert tablename in tables
         return tables[tablename]
 
-    def make_tables(self, drop_first: bool = False) -> None:
+    def make_tables(self, drop_first: bool = False) -> List[str]:
         assert self._destdb, "Cannot use tables() call without a database"
         engine = self.get_engine()
         tables = self.tables()
+        pretty_names = []
         for t in tables.values():
             pretty_name = "{}.{}".format(self._destdb.name, t.name)
             if drop_first:
@@ -184,6 +193,8 @@ class BaseNlpParser(object):
                 t.drop(engine, checkfirst=True)
             log.info("Creating table {} (with indexes)".format(pretty_name))
             t.create(engine, checkfirst=True)
+            pretty_names.append(pretty_name)
+        return pretty_names
 
     def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
         """

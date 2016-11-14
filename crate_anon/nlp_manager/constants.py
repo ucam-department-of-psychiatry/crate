@@ -4,6 +4,8 @@
 from sqlalchemy.types import String
 from crate_anon.common.hash import HmacMD5Hasher
 
+DEFAULT_REPORT_EVERY_NLP = 1
+
 DEFAULT_TEMPORARY_TABLENAME = '_crate_nlp_temptable'
 
 FN_SRCDB = '_srcdb'
@@ -35,8 +37,7 @@ HashClass = HmacMD5Hasher
 # Demo config
 # =============================================================================
 
-DEMO_CONFIG = ("""
-# Configuration file for CRATE NLP manager (crate_nlp).
+DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 #
 # PLEASE SEE THE MANUAL FOR AN OVERVIEW.
 #
@@ -476,6 +477,10 @@ copyfields = RID_FIELD
     TRID_FIELD
 indexed_copyfields = RID_FIELD
     TRID_FIELD
+
+    # Optional: specify 0 (the default) for no limit, or a number of rows (e.g.
+    # 1000) to limit fetching, for debugging purposes.
+# debug_row_limit = 0
 
 [INPUT_FIELD_PROGRESS_NOTES]
 

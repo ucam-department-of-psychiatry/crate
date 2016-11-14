@@ -16,7 +16,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.schema import Column, DDL, Index
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import exists, func, select, sqltypes, table
+from sqlalchemy.sql import column, exists, func, select, sqltypes, table
 from sqlalchemy.sql.expression import (
     ClauseElement,
     Insert,
@@ -65,6 +65,20 @@ def count_star(session: Session, tablename: str) -> int:
     # works if you pass a connection or a session
     query = select([func.count()]).select_from(table(tablename))
     return session.execute(query).scalar()
+
+
+# -----------------------------------------------------------------------------
+# SELECT COUNT(*), MAX(field) (SQLAlchemy Core)
+# -----------------------------------------------------------------------------
+
+def count_star_and_max(session: Session, tablename: str,
+                       maxfield: str) -> Tuple[int, Optional[int]]:
+    query = select([
+        func.count(),
+        func.max(column(maxfield))
+    ]).select_from(table(tablename))
+    result = session.execute(query)
+    return result.fetchone()  # count, maximum
 
 
 # -----------------------------------------------------------------------------

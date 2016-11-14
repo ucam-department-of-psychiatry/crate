@@ -83,6 +83,7 @@ from crate_anon.nlp_manager.all_processors import (
     possible_processor_table,
 )
 from crate_anon.nlp_manager.constants import (
+    DEFAULT_REPORT_EVERY_NLP,
     DEMO_CONFIG,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
@@ -107,7 +108,7 @@ log = logging.getLogger(__name__)
 # Database operations
 # =============================================================================
 
-def insert_into_progress_db(config: NlpDefinition,
+def insert_into_progress_db(nlpdef: NlpDefinition,
                             ifconfig: InputFieldConfig,
                             srcpkval: int,
                             srchash: str,
@@ -116,7 +117,7 @@ def insert_into_progress_db(config: NlpDefinition,
     """
     Make a note in the progress database that we've processed a source record.
     """
-    session = config.get_progdb_session()
+    session = nlpdef.get_progdb_session()
     progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
                                            srcpkstr=srcpkstr)
     if progrec is None:
@@ -127,20 +128,20 @@ def insert_into_progress_db(config: NlpDefinition,
             srcpkval=srcpkval,
             srcpkstr=srcpkstr,
             srcfield=ifconfig.get_srcfield(),
-            nlpdef=config.get_name(),
-            whenprocessedutc=config.get_now(),
+            nlpdef=nlpdef.get_name(),
+            whenprocessedutc=nlpdef.get_now(),
             srchash=srchash,
         )
         session.add(progrec)
     else:
-        progrec.whenprocessedutc = config.get_now()
+        progrec.whenprocessedutc = nlpdef.get_now()
         progrec.srchash = srchash
     if commit:
         session.commit()
     # Commit immediately, because other processes may need this table promptly.
 
 
-def delete_where_no_source(config: NlpDefinition,
+def delete_where_no_source(nlpdef: NlpDefinition,
                            ifconfig: InputFieldConfig,
                            report_every: int = DEFAULT_REPORT_EVERY,
                            chunksize: int = DEFAULT_CHUNKSIZE) -> None:
@@ -223,13 +224,13 @@ def delete_where_no_source(config: NlpDefinition,
 
     # Start our list with the progress database
     databases = [{
-        'session': config.get_progdb_session(),
-        'engine': config.get_progdb_engine(),
-        'metadata': config.get_progdb_metadata(),
+        'session': nlpdef.get_progdb_session(),
+        'engine': nlpdef.get_progdb_engine(),
+        'metadata': nlpdef.get_progdb_metadata(),
     }]
 
     # Add the processors' destination databases
-    for processor in config.get_processors():  # of type BaseNlpParser
+    for processor in nlpdef.get_processors():  # of type BaseNlpParser
         session = processor.get_session()
         if any(x['session'] == session for x in databases):
             continue  # already exists
@@ -246,7 +247,7 @@ def delete_where_no_source(config: NlpDefinition,
     for database in databases:
         engine = database['engine']
         temptable = Table(
-            config.get_temporary_tablename(),
+            nlpdef.get_temporary_tablename(),
             database['metadata'],
             Column(FN_SRCPKVAL, BigInteger),  # not PK, as may be a hash
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH)),
@@ -292,7 +293,7 @@ def delete_where_no_source(config: NlpDefinition,
     ifconfig.delete_progress_records_where_srcpk_not(prog_temptable)
 
     # Delete from others
-    for processor in config.get_processors():
+    for processor in nlpdef.get_processors():
         database = [x for x in databases
                     if x['session'] == processor.get_session()][0]
         temptable = database['temptable']
@@ -311,8 +312,9 @@ def delete_where_no_source(config: NlpDefinition,
 # Core functions
 # =============================================================================
 
-def process_nlp(config: NlpDefinition,
+def process_nlp(nlpdef: NlpDefinition,
                 incremental: bool = False,
+                report_every: int = DEFAULT_REPORT_EVERY_NLP,
                 tasknum: int = 0,
                 ntasks: int = 1) -> None:
     """
@@ -320,40 +322,49 @@ def process_nlp(config: NlpDefinition,
     (storing the results), and make a note in the progress database.
     """
     log.info(SEP + "NLP")
-    for ifconfig in config.get_ifconfigs():
-        count, maximum = ifconfig.get_count_max()
+    for ifconfig in nlpdef.get_ifconfigs():
+        i = 0
+        recnum = tasknum
+        count = ifconfig.get_count()
         for text, other_values in ifconfig.gen_text(tasknum=tasknum,
                                                     ntasks=ntasks):
+            i += 1
             pkval = other_values[FN_SRCPKVAL]
             pkstr = other_values[FN_SRCPKSTR]
-            log.info(
-                "Processing {db}.{t}.{c}, {pkf}={pkv} "
-                "(max={maximum}, n={count})".format(
-                    db=other_values[FN_SRCDB],
-                    t=other_values[FN_SRCTABLE],
-                    c=other_values[FN_SRCFIELD],
-                    pkf=other_values[FN_SRCPKFIELD],
-                    pkv=pkstr if pkstr else pkval,
-                    maximum=maximum,
-                    count=count))
+            if report_every and i % report_every == 0:
+                log.info(
+                    "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
+                    "(record {approx}{recnum}/{count})".format(
+                        db=other_values[FN_SRCDB],
+                        t=other_values[FN_SRCTABLE],
+                        c=other_values[FN_SRCFIELD],
+                        pkf=other_values[FN_SRCPKFIELD],
+                        pkv=pkstr if pkstr else pkval,
+                        approx="~" if pkstr and ntasks > 1 else "",
+                        # ... string hashing means approx. distribution
+                        recnum=recnum + 1,
+                        i=i,
+                        count=count))
+            recnum += ntasks
             # log.critical("other_values={}".format(repr(other_values)))
-            srchash = config.hash(text)
+            srchash = nlpdef.hash(text)
             if incremental:
                 if ifconfig.get_progress_record(pkval, srchash,
                                                 pkstr) is not None:
                     log.debug("Record previously processed; skipping")
                     continue
-            for processor in config.get_processors():
+            for processor in nlpdef.get_processors():
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
                 processor.process(text, other_values)
-            insert_into_progress_db(config, ifconfig, pkval, srchash, pkstr,
+            insert_into_progress_db(nlpdef, ifconfig, pkval, srchash, pkstr,
                                     commit=incremental)
-    config.commit_all()
+    nlpdef.commit_all()
 
 
-def drop_remake(config: NlpDefinition,
+def drop_remake(progargs,
+                nlpdef: NlpDefinition,
                 incremental: bool = False) -> None:
     """
     Drop output tables and recreate them.
@@ -362,7 +373,7 @@ def drop_remake(config: NlpDefinition,
     # -------------------------------------------------------------------------
     # 1. Progress database
     # -------------------------------------------------------------------------
-    progengine = config.get_progdb_engine()
+    progengine = nlpdef.get_progdb_engine()
     if not incremental:
         log.debug("Dropping progress tables")
         NlpRecord.__table__.drop(progengine, checkfirst=True)
@@ -372,20 +383,56 @@ def drop_remake(config: NlpDefinition,
     # -------------------------------------------------------------------------
     # 2. Output database(s)
     # -------------------------------------------------------------------------
-    for processor in config.get_processors():
-        processor.make_tables(drop_first=not incremental)
+    pretty_names = []
+    for processor in nlpdef.get_processors():
+        new_pretty_names = processor.make_tables(drop_first=not incremental)
+        for npn in new_pretty_names:
+            if npn in pretty_names:
+                log.warning("An NLP processor has tried to re-make a table "
+                            "made by one of its colleagues: {}".format(npn))
+        pretty_names.extend(new_pretty_names)
 
     # -------------------------------------------------------------------------
     # 3. Delete WHERE NOT IN for incremental
     # -------------------------------------------------------------------------
     if incremental:
-        for ifconfig in config.get_ifconfigs():
-            delete_where_no_source(config, ifconfig)
+        for ifconfig in nlpdef.get_ifconfigs():
+            delete_where_no_source(
+                nlpdef, ifconfig,
+                report_every=progargs.report_every_fast,
+                chunksize=progargs.chunksize)
 
     # -------------------------------------------------------------------------
     # 4. Overall commit (superfluous)
     # -------------------------------------------------------------------------
-    config.commit_all()
+    nlpdef.commit_all()
+
+
+def show_source_counts(nlpdef: NlpDefinition) -> None:
+    """
+    Show the number of records in all source tables.
+    """
+    log.info("SOURCE TABLE RECORD COUNTS:")
+    for ifconfig in nlpdef.get_ifconfigs():
+        session = ifconfig.get_source_session()
+        dbname = ifconfig.get_srcdb()
+        tablename = ifconfig.get_srctable()
+        n = count_star(session, tablename)
+        log.info("{}.{}: {} records".format(dbname, tablename, n))
+
+
+def show_dest_counts(nlpdef: NlpDefinition) -> None:
+    """
+    Show the number of records in all destination tables.
+    """
+    log.info("DESTINATION TABLE RECORD COUNTS:")
+    for processor in nlpdef.get_processors():
+        session = processor.get_session()
+        dbname = processor.get_dbname()
+        for tablename in processor.get_tablenames():
+            n = count_star(session, tablename)
+            log.info("DESTINATION: {}.{}: {} records".format(
+                dbname, tablename, n))
 
 
 # =============================================================================
@@ -403,19 +450,33 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-n", "--version", action="version", version=version)
+    parser.add_argument("--version", action="version", version=version)
     parser.add_argument("--config",
                         help="Config file (overriding environment "
                              "variable {})".format(NLP_CONFIG_ENV_VAR))
-    parser.add_argument('--verbose', '-v', action='count', default=0,
+    parser.add_argument('--verbose', '-v', action='store_true',
                         help="Be verbose (use twice for extra verbosity)")
     parser.add_argument("--nlpdef", nargs="?", default=None,
                         help="NLP definition name (from config file)")
+    parser.add_argument('--report_every_fast', nargs="?", type=int,
+                        default=DEFAULT_REPORT_EVERY,
+                        help="Report insert progress (for fast operations) "
+                             "every n rows in verbose "
+                             "mode (default {})".format(DEFAULT_REPORT_EVERY))
+    parser.add_argument('--report_every_nlp', nargs="?", type=int,
+                        default=DEFAULT_REPORT_EVERY_NLP,
+                        help="Report progress for NLP every n rows in verbose "
+                             "mode (default "
+                             "{})".format(DEFAULT_REPORT_EVERY_NLP))
+    parser.add_argument('--chunksize', nargs="?", type=int,
+                        default=DEFAULT_CHUNKSIZE,
+                        help="Number of records copied in a chunk when copying"
+                             " PKs from one database to another"
+                             " (default {})".format(DEFAULT_CHUNKSIZE))
     parser.add_argument("--process", nargs="?", type=int, default=0,
-                        help="For multiprocess patient-table mode: specify "
-                             "process number")
+                        help="For multiprocess mode: specify process number")
     parser.add_argument("--nprocesses", nargs="?", type=int, default=1,
-                        help="For multiprocess patient-table mode: specify "
+                        help="For multiprocess mode: specify "
                              "total number of processes (launched somehow, of "
                              "which this is to be one)")
     parser.add_argument("--processcluster", default="",
@@ -426,6 +487,9 @@ def main() -> None:
                         help="Show possible built-in NLP processor names")
     parser.add_argument("--describeprocessors", action="store_true",
                         help="Show details of built-in NLP processors")
+    parser.add_argument("--count", action="store_true",
+                        help="Count records in source/destination databases, "
+                             "then stop")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
@@ -445,6 +509,27 @@ def main() -> None:
                         help="Echo SQL")
     args = parser.parse_args()
 
+    # Validate args
+    if args.nprocesses < 1:
+        raise ValueError("--nprocesses must be >=1")
+    if args.process < 0 or args.process >= args.nprocesses:
+        raise ValueError(
+            "--process argument must be from 0 to (nprocesses - 1) inclusive")
+    if args.config:
+        os.environ[NLP_CONFIG_ENV_VAR] = args.config
+
+    # Verbosity and logging
+    mynames = []
+    if args.processcluster:
+        mynames.append(args.processcluster)
+    if args.nprocesses > 1:
+        mynames.append("proc{}".format(args.process))
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
+    rootlogger = logging.getLogger()
+    configure_logger_for_colour(rootlogger, level=loglevel, extranames=mynames)
+
+    # -------------------------------------------------------------------------
+
     # Demo config?
     if args.democonfig:
         print(DEMO_CONFIG)
@@ -458,32 +543,13 @@ def main() -> None:
         print(possible_processor_table())
         return
 
+    # Otherwise, we need a valid NLP definition.
     if args.nlpdef is None:
         raise ValueError(
-            "Must specify nlpdef parameter (unless --democonfig used)")
-    if args.config:
-        os.environ[NLP_CONFIG_ENV_VAR] = args.config
-
-    # Validate args
-    if args.nprocesses < 1:
-        raise ValueError("--nprocesses must be >=1")
-    if args.process < 0 or args.process >= args.nprocesses:
-        raise ValueError(
-            "--process argument must be from 0 to (nprocesses - 1) inclusive")
+            "Must specify nlpdef parameter (unless --democonfig, "
+            "--listprocessors, or --describeprocessors used)")
 
     everything = not any([args.dropremake, args.nlp])
-
-    # -------------------------------------------------------------------------
-
-    # Verbosity
-    mynames = []
-    if args.processcluster:
-        mynames.append(args.processcluster)
-    if args.nprocesses > 1:
-        mynames.append("proc{}".format(args.process))
-    loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
-    rootlogger = logging.getLogger()
-    configure_logger_for_colour(rootlogger, level=loglevel, extranames=mynames)
 
     # Report args
     log.debug("arguments: {}".format(args))
@@ -493,6 +559,12 @@ def main() -> None:
                            logtag="_".join(mynames).replace(" ", "_"))
     config.set_echo(args.echo)
 
+    # Count only?
+    if args.count:
+        show_source_counts(config)
+        show_dest_counts(config)
+        return
+
     # -------------------------------------------------------------------------
 
     log.info("Starting: incremental={}".format(args.incremental))
@@ -500,13 +572,15 @@ def main() -> None:
 
     # 1. Drop/remake tables. Single-tasking only.
     if args.dropremake or everything:
-        drop_remake(config, incremental=args.incremental)
+        drop_remake(args, config, incremental=args.incremental)
 
     # 2. NLP
     if args.nlp or everything:
         process_nlp(config,
                     incremental=args.incremental,
-                    tasknum=args.process, ntasks=args.nprocesses)
+                    report_every=args.report_every_nlp,
+                    tasknum=args.process,
+                    ntasks=args.nprocesses)
 
     log.info("Finished")
     end = get_now_utc()
@@ -520,5 +594,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
-# *** deal with two processors trying to make the same table

@@ -356,8 +356,8 @@ def main() -> None:
                         help='Results output CSV file name')
     parser.add_argument('--scrubfile', default='testanon_scrubber.txt',
                         help='Scrubbing information text file name')
-    parser.add_argument('--verbose', '-v', action='count', default=0,
-                        help="Be verbose (use twice for extra verbosity)")
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help="Be verbose")
 
     pkgroup = parser.add_mutually_exclusive_group(required=False)
     pkgroup.add_argument('--pkfromsrc', dest='from_src', action='store_true',
@@ -377,7 +377,7 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, loglevel)
 

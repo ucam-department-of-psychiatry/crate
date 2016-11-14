@@ -41,7 +41,7 @@ import regex
 
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import Column, Index, MetaData, Table
-from sqlalchemy.sql import column, or_, select, table
+from sqlalchemy.sql import column, func, or_, select, table
 from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
     get_now_utc,
@@ -342,7 +342,12 @@ def gen_patient_ids(tasknum: int = 0,
     # Otherwise do it properly:
     keeping_track = config.dd.n_definers > 1
     if keeping_track:
-        processed_ids = set()
+        processed_ids = set()  # POTENTIAL FOR MEMORY PROBLEM WITH V. BIG DB
+        # ... if we ever get near that limit (for a huge number of *patients*,
+        # which is much less likely than a huge number of other records), we'd
+        # need to generate the IDs and stash them in a temporary table, then
+        # work through that. However, a few million patients should be fine
+        # for a Python set on realistic computers.
     n_found = 0
     debuglimit = config.debug_max_n_patients
     for ddr in config.dd.rows:
@@ -354,8 +359,8 @@ def gen_patient_ids(tasknum: int = 0,
             select([pidcol]).
             select_from(table(ddr.src_table)).
             where(pidcol is not None).
-            distinct().
-            order_by(pidcol)
+            distinct()
+            # order_by(pidcol)  # no need to order by
         )
         if ntasks > 1:
             query = query.where(pidcol % ntasks == tasknum)
@@ -386,13 +391,31 @@ def gen_patient_ids(tasknum: int = 0,
                 return
 
 
+def estimate_count_patients() -> int:
+    """
+    We can't easily and quickly get the total number of patients, because they
+    may be defined in multiple tables across multiple databases. We shouldn't
+    fetch them all into Python in case there are billions, and it's a waste of
+    effort to stash them in a temporary table and count unique rows, because
+    this is all only for a progress indicator. So we approximate:
+    """
+    count = 0
+    for ddr in config.dd.rows:
+        if not ddr.defines_primary_pids:
+            continue
+        session = config.sources[ddr.src_db].session
+        tablename = ddr.src_table
+        count += count_star(session, tablename)
+    return count
+
+
 def gen_rows(dbname: str,
              sourcetable: str,
              sourcefields: Iterable[str],
              pid: int = None,
              intpkname: str = None,
-             tasknum: int = None,
-             ntasks: int = None,
+             tasknum: int = 0,
+             ntasks: int = 1,
              debuglimit: int = 0) -> Iterator(List[Any]):
     """
     Generates rows from a source table
@@ -406,6 +429,7 @@ def gen_rows(dbname: str,
     """
     t = config.sources[dbname].metadata.tables[sourcetable]
     q = select([column(c) for c in sourcefields]).select_from(t)
+    # not ordered
 
     # Restrict to one patient?
     if pid is not None:
@@ -413,8 +437,7 @@ def gen_rows(dbname: str,
         q = q.where(column(pidcol_name) == pid)
     else:
         # For non-patient tables: divide up rows across tasks?
-        if intpkname is not None and tasknum is not None and \
-                        ntasks is not None:
+        if intpkname is not None and ntasks > 1:
             q = q.where(column(intpkname) % ntasks == tasknum)
             # This does not require a user-defined PK to be unique. But other
             # constraints do: see delete_dest_rows_with_no_src_row().
@@ -431,12 +454,21 @@ def gen_rows(dbname: str,
                 config.warned_re_limits[db_table_tuple] = True
             result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
             return
-        src_bytes = sys.getsizeof(row)  # ... approximate!
-        config.src_bytes_read += src_bytes
+        config.src_bytes_read += sys.getsizeof(row)  # ... approximate!
         yield list(row)
         # yield dict(zip(row.keys(), row))
         # see also http://stackoverflow.com/questions/19406859
         config.rows_inserted_per_table[db_table_tuple] += 1
+
+
+def count_rows(dbname: str, sourcetable: str, pid: int = None) -> int:
+    # Count function to match gen_rows()
+    session = config.sources[dbname].session
+    query = select([func.count()]).select_from(table(sourcetable))
+    if pid is not None:
+        pidcol_name = config.dd.get_pid_name(dbname, sourcetable)
+        query = query.where(column(pidcol_name) == pid)
+    return session.execute(query).scalar()
 
 
 def gen_index_row_sets_by_table(
@@ -513,8 +545,8 @@ def process_table(sourcedbname: str,
                   patient: Patient = None,
                   incremental: bool = False,
                   intpkname: str = None,
-                  tasknum: int = None,
-                  ntasks: int = None) -> None:
+                  tasknum: int = 0,
+                  ntasks: int = 1) -> None:
     """
     Process a table. This can either be a patient table (in which case the
     patient's scrubber is applied and only rows for that patient are processed)
@@ -562,18 +594,31 @@ def process_table(sourcedbname: str,
             src_pk_name = ddr.src_field
             dest_pk_name = ddr.dest_field
         sourcefields.append(ddr.src_field)
-    n = 0
     srchash = None
     sqla_table = config.dd.get_dest_sqla_table(dest_table)
     session = config.destdb.session
 
+    # Count what we'll do, so we can give a better indication of progress
+    count = count_rows(sourcedbname, sourcetable, pid)
+    n = 0
+    recnum = tasknum or 0
+
+    # Process the rows
     for row in gen_rows(sourcedbname, sourcetable, sourcefields,
                         pid, debuglimit=debuglimit,
                         intpkname=intpkname, tasknum=tasknum, ntasks=ntasks):
         n += 1
         if n % config.report_every_n_rows == 0:
-            log.info(start + "processing row {} of task set ({})".format(
-                n, config.overall_progress()))
+            log.info(
+                start +
+                "processing record {recnum}/{count}{for_pt} "
+                "({progress})".format(
+                    n=n,
+                    recnum=recnum+1,
+                    count=count,
+                    for_pt=" for this patient" if pid is not None else "",
+                    progress=config.overall_progress()))
+        recnum += ntasks or 1
         if addhash:
             srchash = config.hash_object(row)
             if incremental and identical_record_exists_by_hash(
@@ -587,9 +632,7 @@ def process_table(sourcedbname: str,
                         spkf=src_pk_name,
                         dt=dest_table,
                         dpkf=dest_pk_name,
-                        pkv=row[pkfield_index],
-                    )
-                )
+                        pkv=row[pkfield_index]))
                 continue
         if constant:
             if incremental and identical_record_exists_by_pk(
@@ -603,9 +646,7 @@ def process_table(sourcedbname: str,
                         spkf=src_pk_name,
                         dt=dest_table,
                         dpkf=dest_pk_name,
-                        pkv=row[pkfield_index],
-                    )
-                )
+                        pkv=row[pkfield_index]))
                 continue
         destvalues = {}
         skip_row = False
@@ -784,11 +825,17 @@ def patient_processing_fn(tasknum: int = 0,
         process source data for that patient, scrubbing it;
         insert the patient into the mapping table in the admin database.
     """
+    n_patients = estimate_count_patients()
+    i = 0
     for pid in gen_patient_ids(tasknum, ntasks):
         # gen_patient_ids() assigns the work to the appropriate thread/process
         # Check for an abort signal once per patient processed
-        log.info("Processing patient ID: {} (incremental={}) ({})".format(
-            pid, incremental, config.overall_progress()))
+        i += 1
+        log.info(
+            "Processing patient ID: {pid} (incremental={incremental}; "
+            "patient {i}/~{n_patients}; {progress})".format(
+                pid=pid, incremental=incremental, i=i, n_patients=n_patients,
+                progress=config.overall_progress()))
 
         # Opt out based on PID?
         if opting_out_pid(pid):
@@ -989,9 +1036,9 @@ def gen_opt_out_pids_from_database(mpid: bool = False) -> Iterator(int):
             select([idcol]).
             select_from(sqla_table).
             where(optout_defining_col.in_(config.optout_col_values)).
-            distinct().
-            order_by(idcol)
+            distinct()
         )
+        # no need for an order_by clause
         result = session.execute(query)
         for row in result:
             pid = row[0]
@@ -1048,32 +1095,34 @@ def process_nonpatient_tables(tasknum: int = 0,
                                                        ntasks=ntasks):
         log.info("Processing non-patient table {}.{} ({})...".format(
             d, t, config.overall_progress()))
+        # Force this into single-task mode, i.e. we have already parallelized
+        # by assigning different tables to different processes; don't split
+        # the work within a single table.
         # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
-                      intpkname=None, tasknum=None, ntasks=None)
+                      intpkname=None, tasknum=0, ntasks=1)
         commit_destdb()
 
 
-def process_patient_tables(process: int = 0,
-                           nprocesses: int = 1,
+def process_patient_tables(tasknum: int = 0,
+                           ntasks: int = 1,
                            incremental: bool = False) -> None:
     """
     Process all patient tables, optionally in a parallel-processing fashion.
     """
     # We'll use multiple destination tables, so commit right at the end.
     log.info(SEP + "Patient tables")
-    if nprocesses == 1:
+    if ntasks == 1:
         log.info("Single-threaded, single-process mode")
-        patient_processing_fn(tasknum=0, ntasks=1, incremental=incremental)
     else:
         log.info("PROCESS {} (numbered from zero) OF {} PROCESSES".format(
-            process, nprocesses))
-        patient_processing_fn(tasknum=process, ntasks=nprocesses,
-                              incremental=incremental)
+            tasknum, ntasks))
+    patient_processing_fn(tasknum=tasknum, ntasks=ntasks,
+                          incremental=incremental)
 
-    if nprocesses > 1:
-        log.info("Process {}: FINISHED ANONYMISATION".format(process))
+    if ntasks > 1:
+        log.info("Process {}: FINISHED ANONYMISATION".format(tasknum))
     else:
         log.info("FINISHED ANONYMISATION")
 
@@ -1127,7 +1176,7 @@ def anonymise(args: Any) -> None:
                           args.patienttables, args.index])
 
     # Load/validate config
-    config.report_every_n_rows = args.report
+    config.report_every_n_rows = args.reportevery
     config.chunksize = args.chunksize
     config.debug_scrubbers = args.debugscrubbers
     config.save_scrubbers = args.savescrubbers
@@ -1177,8 +1226,8 @@ def anonymise(args: Any) -> None:
     #    Process PER PATIENT, across all tables, because we have to synthesize
     #    information to scrub across the entirety of that patient's record.
     if args.patienttables or everything:
-        process_patient_tables(process=args.process,
-                               nprocesses=args.nprocesses,
+        process_patient_tables(tasknum=args.process,
+                               ntasks=args.nprocesses,
                                incremental=args.incremental)
 
     # 5. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.

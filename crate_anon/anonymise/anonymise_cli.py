@@ -35,13 +35,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("-n", "--version", action="version", version=version)
+    parser.add_argument("--version", action="version", version=version)
     parser.add_argument("--config",
                         help="Config file (overriding environment "
                              "variable {})".format(CONFIG_ENV_VAR))
-    parser.add_argument('--verbose', '-v', action='count', default=0,
-                        help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument('-r', '--report', nargs="?", type=int,
+    parser.add_argument('--verbose', '-v', action="store_true",
+                        help="Be verbose")
+    parser.add_argument('--reportevery', nargs="?", type=int,
                         default=DEFAULT_REPORT_EVERY,
                         help="Report insert progress every n rows in verbose "
                              "mode (default {})".format(DEFAULT_REPORT_EVERY))
@@ -51,10 +51,9 @@ def main() -> None:
                              " PKs from one database to another"
                              " (default {})".format(DEFAULT_CHUNKSIZE))
     parser.add_argument("--process", nargs="?", type=int, default=0,
-                        help="For multiprocess patient-table mode: specify "
-                             "process number")
+                        help="For multiprocess mode: specify process number")
     parser.add_argument("--nprocesses", nargs="?", type=int, default=1,
-                        help="For multiprocess patient-table mode: specify "
+                        help="For multiprocess mode: specify "
                              "total number of processes (launched somehow, of "
                              "which this is to be one)")
     parser.add_argument("--processcluster", default="",
@@ -118,7 +117,7 @@ def main() -> None:
         mynames.append(args.processcluster)
     if args.nprocesses > 1:
         mynames.append("proc{}".format(args.process))
-    loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, loglevel, extranames=mynames)
 

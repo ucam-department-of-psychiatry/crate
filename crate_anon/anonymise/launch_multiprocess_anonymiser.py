@@ -30,7 +30,6 @@ import multiprocessing
 import sys
 import time
 
-from crate_anon.anonymise.constants import CONFIG_ENV_VAR
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.subproc import (
     check_call_process,
@@ -51,46 +50,26 @@ CPUCOUNT = multiprocessing.cpu_count()
 
 def main() -> None:
     version = "Version {} ({})".format(VERSION, VERSION_DATE)
-    description = "Runs the CRATE anonymiser in parallel. {}.".format(version)
+    description = (
+        "Runs the CRATE anonymiser in parallel. {}. Note that all arguments "
+        "not specified here are passed to the underlying script "
+        "(see crate_anonymise --help).".format(version))
     parser = argparse.ArgumentParser(description=description)
-
-    parser.add_argument("--config",
-                        help="Config file (overriding environment "
-                             "variable {})".format(CONFIG_ENV_VAR))
-
-    mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument(
-        "-i", "--incremental", dest="incremental", action="store_true",
-        help="Process only new/changed information, where possible "
-             "(* default)")
-    mode_group.add_argument(
-        "-f", "--full", dest="incremental", action="store_false",
-        help="Drop and remake everything")
-    parser.set_defaults(incremental=True)
 
     parser.add_argument(
         "--nproc", "-n", nargs="?", type=int, default=CPUCOUNT,
-        help="Number of processes (default: {})".format(CPUCOUNT))
+        help="Number of processes (default on this "
+             "machine: {})".format(CPUCOUNT))
     parser.add_argument(
-        '--verbose', '-v', action='count', default=0,
-        help="Be verbose (use twice for extra verbosity)")
-    parser.add_argument("--echo", action="store_true",
-                        help="Echo SQL")
-    args = parser.parse_args()
+        '--verbose', '-v', action='store_true',
+        help="Be verbose")
+    args, unknownargs = parser.parse_known_args()
 
-    loglevel = logging.DEBUG if args.verbose > 0 else logging.INFO
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
-    common_options = ["-v"] * args.verbose
-    if args.config:
-        common_options.extend(['--config', args.config])
-    if args.incremental:
-        common_options.append('--incremental')
-    else:
-        common_options.append('--full')
-    if args.echo:
-        common_options.append('--echo')
+    common_options = ["-v"] * (1 if args.verbose else 0) + unknownargs
 
     log.debug("common_options: {}".format(common_options))
 

@@ -243,14 +243,14 @@ def main() -> None:
     parser.add_argument(
         '--deletefirst', action='store_true',
         help="Delete existing .class files first (optional)")
-    parser.add_argument('--verbose', '-v', action='count', default=0,
+    parser.add_argument('--verbose', '-v', action='store_true',
                         help="Be verbose")
     args = parser.parse_args()
 
     # -------------------------------------------------------------------------
     # Logging
     # -------------------------------------------------------------------------
-    loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 

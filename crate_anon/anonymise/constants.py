@@ -175,8 +175,7 @@ MYSQL_MAX_IDENTIFIER_LENGTH = 64
 # =============================================================================
 
 # noinspection PyPep8
-DEMO_CONFIG = """
-# Configuration file for CRATE anonymiser (crate_anonymise).
+DEMO_CONFIG = """# Configuration file for CRATE anonymiser (crate_anonymise).
 #
 # Boolean values can be 0/1, Y/N, T/F, True/False.
 

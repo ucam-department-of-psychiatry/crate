@@ -10,7 +10,7 @@ from cardinal_pythonlib.rnc_db import (
     ensure_valid_table_name,
 )
 from sqlalchemy import BigInteger, Column, Index, String, Table
-from sqlalchemy.sql import and_, column, exists, func, or_, select, table
+from sqlalchemy.sql import and_, column, exists, or_, select, table
 
 from crate_anon.nlp_manager.constants import (
     FN_SRCDB,
@@ -23,6 +23,7 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.common.hash import hash64
 from crate_anon.common.sqla import (
+    count_star,
     is_sqlatype_integer,
     get_column_type,
     table_exists,
@@ -59,6 +60,12 @@ class InputFieldConfig(object):
             return nlpdef.opt_strlist(section, option, as_words=False,
                                       lower=lower, required=required)
 
+        def opt_int(option: str, default: Optional[int]) -> Optional[int]:
+            return nlpdef.opt_int(section, option, default=default)
+
+        # def opt_bool(option: str, default: bool) -> bool:
+        #     return nlpdef.opt_bool(section, option, default=default)
+
         self._nlpdef = nlpdef
 
         self._srcdb = opt_str('srcdb')
@@ -70,6 +77,8 @@ class InputFieldConfig(object):
         self._copyfields = opt_strlist('copyfields', lower=False)  # fieldnames
         self._indexed_copyfields = opt_strlist('indexed_copyfields',
                                                lower=False)
+        self._debug_row_limit = opt_int('debug_row_limit', default=0)
+        # self._fetch_sorted = opt_bool('fetch_sorted', default=True)
 
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
@@ -224,9 +233,8 @@ class InputFieldConfig(object):
         #                                            pk_is_integer))
         return pk_is_integer
 
-    def gen_text(self,
-                 tasknum: int = 0,
-                 ntasks: int = 1) -> Iterator(Tuple[str, Dict[str, Any], bool]):
+    def gen_text(self, tasknum: int = 0,
+                 ntasks: int = 1) -> Iterator(Tuple[str, Dict[str, Any]]):
         """
         Generate text strings from the input database.
         Yields tuple of (text, dict), where the dict is a column-to-value
@@ -250,11 +258,10 @@ class InputFieldConfig(object):
         selectcols = [pkcol, column(self._srcfield)]
         for extracol in self._copyfields:
             selectcols.append(column(extracol))
-        query = (
-            select(selectcols).
-            select_from(table(self._srctable)).
-            order_by(pkcol)
-        )
+        query = select(selectcols).select_from(table(self._srctable))
+        # not ordered...
+        # if self._fetch_sorted:
+        #     query = query.order_by(pkcol)
         distribute_by_hash = False
         if ntasks > 1:
             if pk_is_integer:
@@ -264,7 +271,16 @@ class InputFieldConfig(object):
             else:
                 distribute_by_hash = True
         hashed_pk = None
-        for row in session.execute(query):  # ... a generator itself
+        nrows_returned = 0
+        result = session.execute(query)
+        for row in result:  # ... a generator itself
+            if 0 < self._debug_row_limit <= nrows_returned:
+                log.warning(
+                    "Table {}.{}: not fetching more than {} rows (in total "
+                    "for this process) due to debugging limits".format(
+                        self._srcdb, self._srctable, self._debug_row_limit))
+                result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+                return
             pkval = row[0]
             text = row[1]
             other_values = dict(zip(self._copyfields, row[2:]))
@@ -285,20 +301,15 @@ class InputFieldConfig(object):
                 # via SQL, because we have to fetch and hash something.
                 continue
             yield text, other_values
+            nrows_returned += 1
 
-    def get_count_max(self) -> Tuple[int, Optional[int]]:
+    def get_count(self) -> Tuple[int, Optional[int]]:
         """
         Counts records in the input table for the given InputFieldConfig.
         Used for progress monitoring.
         """
-        session = self.get_source_session()
-        pkcol = column(self._srcpkfield)
-        query = (
-            select([func.count(), func.max(pkcol)]).
-            select_from(table(self._srctable))
-        )
-        result = session.execute(query)
-        return result.fetchone()  # count, maximum
+        return count_star(session=self.get_source_session(),
+                          tablename=self._srctable)
 
     def get_progress_record(self,
                             srcpkval: int,

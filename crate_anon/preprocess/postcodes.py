@@ -1207,7 +1207,7 @@ def populate_postcode_table(filename: str,
 # https://docs.python.org/3/library/typing.html
 
 
-def populate_generic_lookup_table(sa_class: Any,  # Type[Base}, Type[BASETYPE] fail on methods  # noqa
+def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] fail on methods  # noqa
                                   datadir: str,
                                   session: Session,
                                   args: Any,

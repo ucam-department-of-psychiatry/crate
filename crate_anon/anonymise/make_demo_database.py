@@ -234,8 +234,8 @@ def main() -> None:
         "--size", type=int, default=default_size, choices=[0, 1, 2, 3],
         help="Make tiny (0), small (1), medium (2), or large (3) database "
              "(default={})".format(default_size))
-    parser.add_argument('--verbose', '-v', action='count', default=0,
-                        help="Be verbose (use twice for extra verbosity)")
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help="Be verbose")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--doctest-doc", default=DOCTEST_DOC,
@@ -271,7 +271,7 @@ def main() -> None:
         words_per_note = 1000
     else:
         assert False, "Bad size parameter"
-    loglevel = logging.DEBUG if args.verbose >= 1 else logging.INFO
+    loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel)
 
