@@ -257,9 +257,7 @@ def commit_destdb() -> None:
     """
     Execute a COMMIT on the destination database, and reset row counts.
     """
-    config.destdb.session.commit()
-    config.rows_in_transaction = 0
-    config.bytes_in_transaction = 0
+    config.commit_dest_db()
 
 
 def commit_admindb() -> None:
@@ -454,7 +452,7 @@ def gen_rows(dbname: str,
                 config.warned_re_limits[db_table_tuple] = True
             result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
             return
-        config.src_bytes_read += sys.getsizeof(row)  # ... approximate!
+        config.notify_src_bytes_read(sys.getsizeof(row))  # ... approximate!
         yield list(row)
         # yield dict(zip(row.keys(), row))
         # see also http://stackoverflow.com/questions/19406859
@@ -714,21 +712,9 @@ def process_table(sourcedbname: str,
         session.execute(q)
 
         # Trigger an early commit?
-        early_commit = False
-        if config.max_rows_before_commit is not None:
-            config.rows_in_transaction += 1
-            if config.rows_in_transaction >= config.max_rows_before_commit:
-                early_commit = True
-        if config.max_bytes_before_commit is not None:
-            dest_bytes = sys.getsizeof(destvalues)  # ... approximate!
-            config.bytes_in_transaction += dest_bytes
-            config.dest_bytes_written += dest_bytes
-            # Quicker than e.g. len(repr(...)), as judged by a timeit() call.
-            if config.bytes_in_transaction >= config.max_bytes_before_commit:
-                early_commit = True
-        if early_commit:
-            log.info(start + "Triggering early commit based on row/byte count")
-            commit_destdb()
+        config.notify_dest_db_transaction(
+            n_rows=1, n_bytes=sys.getsizeof(destvalues))  # ... approximate!
+        # ... quicker than e.g. len(repr(...)), as judged by a timeit() call.
 
     log.debug(start + "finished: pid={}".format(pid))
     commit_destdb()

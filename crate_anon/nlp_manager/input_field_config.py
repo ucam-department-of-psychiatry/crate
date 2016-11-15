@@ -2,7 +2,7 @@
 # crate_anon/nlp_manager/input_field_config.py
 
 import logging
-import sys
+# import sys
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from cardinal_pythonlib.rnc_db import (
@@ -21,6 +21,7 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
     MAX_STRING_PK_LENGTH,
 )
+from crate_anon.common.timing import timer
 from crate_anon.common.hash import hash64
 from crate_anon.common.sqla import (
     count_star,
@@ -31,10 +32,13 @@ from crate_anon.common.sqla import (
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
 
-if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-    from crate_anon.nlp_manager import nlp_definition  # see PEP0484
+# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
+#     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 log = logging.getLogger(__name__)
+
+TIMING_GEN_TEXT_SQL_SELECT = "gen_text_sql_select"
 
 
 # =============================================================================
@@ -46,8 +50,7 @@ class InputFieldConfig(object):
     Class defining configuration for an input field (containing text).
     """
 
-    def __init__(self, nlpdef: "nlp_definition.NlpDefinition",
-                 section: str) -> None:
+    def __init__(self, nlpdef: NlpDefinition, section: str) -> None:
         """
         Read config from a configparser section.
         """
@@ -272,8 +275,10 @@ class InputFieldConfig(object):
                 distribute_by_hash = True
         hashed_pk = None
         nrows_returned = 0
+        timer.start(TIMING_GEN_TEXT_SQL_SELECT)
         result = session.execute(query)
         for row in result:  # ... a generator itself
+            timer.stop(TIMING_GEN_TEXT_SQL_SELECT)
             if 0 < self._debug_row_limit <= nrows_returned:
                 log.warning(
                     "Table {}.{}: not fetching more than {} rows (in total "
@@ -302,6 +307,8 @@ class InputFieldConfig(object):
                 continue
             yield text, other_values
             nrows_returned += 1
+            timer.start(TIMING_GEN_TEXT_SQL_SELECT)
+        timer.stop(TIMING_GEN_TEXT_SQL_SELECT)
 
     def get_count(self) -> Tuple[int, Optional[int]]:
         """
@@ -388,4 +395,4 @@ class InputFieldConfig(object):
             log.debug("... deleting all")
         prog_deletion_query.delete(synchronize_session=False)
         # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
-        progsession.commit()
+        self._nlpdef.commit(progsession)

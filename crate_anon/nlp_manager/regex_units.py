@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # crate_anon/nlp_manager/regex_units.py
 
-from crate_anon.nlp_manager.regex_numbers import BILLION, POWER
+from crate_anon.nlp_manager.regex_numbers import BILLION, PLAIN_INTEGER, POWER
 
 
 # =============================================================================
@@ -20,14 +20,23 @@ def per(numerator: str, denominator: str) -> str:
     # Use of "\s* \b" rather than "\s+" is so we can have a BLANK numerator.
 
 
-def out_of(n: int) -> str:
+def _out_of_str(n_as_regex: str):
     # / n
     # out of n
     return r"""
         (?:  # 'out of' denominator
-            (?: \/ | \b out \s+ of \b ) \s* n \b
+            (?: \/ | \b out \s+ of \b ) \s* {n} \b
         )
-    """.format(n=n)
+    """.format(n=n_as_regex)
+
+
+def out_of(n: int) -> str:
+    return _out_of_str(str(n))
+
+
+def out_of_anything() -> str:
+    # out_of(n) where n is any number
+    return _out_of_str(PLAIN_INTEGER)
 
 
 # -----------------------------------------------------------------------------
@@ -38,18 +47,9 @@ M = r"(?: m | met(?:re:er)s? )"  # m, metre(s), meter(s)
 CM = r"(?: cm | centimet(?:re:er)s? )"   # cm, centimetre(s), centimeter(s)
 MM = r"(?: mm | millimet(?:re:er)s? )"   # mm, millimetre(s), millimeter(s)
 
-FEET = r'''
-    (?:
-        f(?: ee | oo)?t     # feet, foot, ft
-        | \'                # '
-    )
-'''
-INCHES = r'''
-    (?:
-        in(?:ch(?:e)?)?s?   # in, ins, inch, inches, [inchs = typo but clear]
-        | \"                # "
-    )
-'''
+FEET = r"""(?: f(?:ee|oo)?t | \' )"""  # feet, foot, ft | '
+INCHES = r'''(?: in(?:ch(?:e)?)?s? | \" )'''
+# ... in, ins, inch, inches, [inchs = typo but clear] | "
 
 # -----------------------------------------------------------------------------
 # Mass
@@ -69,12 +69,9 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 L = r"(?: L | lit(?:re|er)s? )"  # L, litre(s), liter(s)
 DL = r"(?: d(?:eci)?{L} )".format(L=L)
 ML = r"(?: m(?:illi)?{L} )".format(L=L)
-CUBIC_MM = r"""
-    (?:  # cubic mm
-        (?: \b cubic \s+ {MM} )      # cubic mm, etc
-        | (?: {MM} \s* \^? \s* 3 )        # mm^3, mm3, mm 3, etc.
-    )
-""".format(MM=MM)
+CUBIC_MM = r"""(?: (?:\b cubic \s+ {MM}) | (?:{MM} \s* \^? \s* 3) )""".format(
+    MM=MM)
+# cubic mm, etc. | mm^3, mm3, mm 3, etc.
 
 # -----------------------------------------------------------------------------
 # Inverse volume
@@ -86,37 +83,35 @@ PER_CUBIC_MM = per("", CUBIC_MM)
 # Time
 # -----------------------------------------------------------------------------
 
-HOUR = r"(?: h(?:r|our)? )"   # h, hr, hour
+HOUR = r"(?:h(?:r|our)?)"   # h, hr, hour
 
 # -----------------------------------------------------------------------------
 # Counts, proportions
 # -----------------------------------------------------------------------------
 
-PERCENT = r"""
-    (?:
-        %
-        | pe?r?\s?ce?n?t    # must have pct, other characters optional
-    )
-"""
+PERCENT = r"""(?:%|pe?r?\s?ce?n?t)"""
+# must have pct, other characters optional
 
 # -----------------------------------------------------------------------------
 # Arbitrary count things
 # -----------------------------------------------------------------------------
 
-CELLS = r"(?: \b cells? \b )"
+CELLS = r"(?:\b cells? \b)"
 OPTIONAL_CELLS = CELLS + "?"
 MILLIMOLES = r"(?: mmol(?:es?) )"
-MILLIEQ = r"(?: mEq )"
+MILLIEQ = r"(?:mEq)"
 
-UNITS = r"(?: [I]?U )"  # U units, IU international units
-MILLIUNITS = r"(?: m[I]?U )"
-MICROUNITS = r"(?: [μu][I]?U )"
+UNITS = r"(?:[I]?U)"  # U units, IU international units
+MILLIUNITS = r"(?:m[I]?U)"
+MICROUNITS = r"(?:[μu][I]?U)"
+
+SCORE = r"(?:scored?)"  # score(d)
 
 # -----------------------------------------------------------------------------
 # Concentration
 # -----------------------------------------------------------------------------
 
-MILLIMOLAR = r"(?: mM )"  # NB case-insensitive... confusable with millimetres  # noqa
+MILLIMOLAR = r"(?:mM)"  # NB case-insensitive... confusable with millimetres
 MG_PER_DL = per(MG, DL)
 MG_PER_L = per(MG, L)
 MILLIMOLES_PER_L = per(MILLIMOLES, L)

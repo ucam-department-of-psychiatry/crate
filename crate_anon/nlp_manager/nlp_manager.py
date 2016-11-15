@@ -66,6 +66,7 @@ TO DO:
 import argparse
 import logging
 import os
+import sys
 
 from cardinal_pythonlib.rnc_datetime import get_now_utc
 from sqlalchemy.schema import Column, Index, Table
@@ -78,6 +79,7 @@ from crate_anon.anonymise.constants import (
 )
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sqla import count_star
+from crate_anon.common.timing import timer
 from crate_anon.nlp_manager.all_processors import (
     possible_processor_names,
     possible_processor_table,
@@ -116,6 +118,8 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
                             commit: bool = False) -> None:
     """
     Make a note in the progress database that we've processed a source record.
+    If the 'commit' flag is set, commit immediately, because other processes
+    may need this table promptly.
     """
     session = nlpdef.get_progdb_session()
     progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
@@ -136,9 +140,9 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
     else:
         progrec.whenprocessedutc = nlpdef.get_now()
         progrec.srchash = srchash
-    if commit:
-        session.commit()
-    # Commit immediately, because other processes may need this table promptly.
+    nlpdef.notify_transaction(session=session, n_rows=1,
+                              n_bytes=sys.getsizeof(progrec),  # ... approx!
+                              force_commit=commit)
 
 
 def delete_where_no_source(nlpdef: NlpDefinition,
@@ -213,7 +217,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     def commit():
         for db in databases:
-            db['session'].commit()
+            nlpdef.commit(db['session'])
 
     # -------------------------------------------------------------------------
     # Main code
@@ -507,6 +511,8 @@ def main() -> None:
                         help="Perform NLP processing only")
     parser.add_argument("--echo", action="store_true",
                         help="Echo SQL")
+    parser.add_argument("--timing", action="store_true",
+                        help="Show detailed timing breakdown")
     args = parser.parse_args()
 
     # Validate args
@@ -527,6 +533,7 @@ def main() -> None:
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel, extranames=mynames)
+    timer.set_timing(args.timing)
 
     # -------------------------------------------------------------------------
 
@@ -586,6 +593,9 @@ def main() -> None:
     end = get_now_utc()
     time_taken = end - start
     log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
+
+    if args.timing:
+        timer.report()
 
 
 # =============================================================================

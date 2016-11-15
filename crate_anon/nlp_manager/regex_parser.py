@@ -376,8 +376,6 @@ class SimpleNumericalResultParser(NumericalResultParser):
               debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
         """Default parser."""
         for m in self.compiled_regex.finditer(text):
-            if debug:
-                print("Match {} for {}".format(m, repr(text)))
             startpos = m.start()
             endpos = m.end()
             # groups = repr(m.groups())  # all matching groups
@@ -411,7 +409,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
 
             tense, relation = common_tense(tense_text, relation_text)
 
-            yield self.tablename, {
+            result = self.tablename, {
                 self.FN_VARIABLE_NAME: self.variable,
                 self.FN_CONTENT: matching_text,
                 self.FN_START: startpos,
@@ -426,6 +424,9 @@ class SimpleNumericalResultParser(NumericalResultParser):
                 self.FN_TENSE_TEXT: tense_text,
                 self.FN_TENSE: tense,
             }
+            if debug:
+                print("Match {} for {} -> {}".format(m, repr(text), result))
+            yield result
 
 
 # =============================================================================

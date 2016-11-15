@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/sqla.py
+# crate_anon/common/sqla.py
 
 import ast
 import copy

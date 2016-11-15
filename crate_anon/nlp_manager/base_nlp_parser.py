@@ -12,6 +12,7 @@ from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 from sqlalchemy.types import BigInteger
 
+from crate_anon.common.timing import timer
 from crate_anon.nlp_manager.constants import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
@@ -19,10 +20,14 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
-if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-    from crate_anon.nlp_manager import nlp_definition  # see PEP0484
+# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
+#     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
+from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 log = logging.getLogger(__name__)
+
+TIMING_INSERT = "BaseNlpParser_process_sql_insert"
+TIMING_PARSE = "parse"
 
 
 # =============================================================================
@@ -34,7 +39,7 @@ class BaseNlpParser(object):
     FN_NLPDEF = '_nlpdef'
 
     def __init__(self,
-                 nlpdef: Optional['nlp_definition.NlpDefinition'],
+                 nlpdef: Optional[NlpDefinition],
                  cfgsection: Optional[str],
                  commit: bool = False) -> None:
         self._nlpdef = nlpdef
@@ -211,7 +216,9 @@ class BaseNlpParser(object):
         starting_fields_values[self.FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()
         n_values = 0
+        timer.start(TIMING_PARSE)
         for tablename, nlp_values in self.parse(text):
+            timer.stop(TIMING_PARSE)
             # Merge dictionaries so EXISTING FIELDS/VALUES
             # (starting_fields_values) HAVE PRIORITY.
             nlp_values.update(starting_fields_values)
@@ -229,10 +236,15 @@ class BaseNlpParser(object):
                             if k in column_names}
             # log.critical(repr(sqla_table))
             insertquery = sqla_table.insert().values(final_values)
+            timer.start(TIMING_INSERT)
             session.execute(insertquery)
-            if self._commit:
-                session.commit()  # or we get deadlocks in multiprocess mode
+            timer.stop(TIMING_INSERT)
+            self._nlpdef.notify_transaction(
+                session, n_rows=1, n_bytes=sys.getsizeof(final_values),
+                force_commit=self._commit)  # or we get deadlocks in multiprocess mode  # noqa
             n_values += 1
+            timer.start(TIMING_PARSE)
+        timer.stop(TIMING_PARSE)
         log.debug("NLP processor {}/{}: found {} values".format(
             self.get_nlpdef_name(), self.get_parser_name(), n_values))
 
@@ -278,7 +290,7 @@ class BaseNlpParser(object):
                 delquery = delquery.where(desttable.c._srcpkstr == srcpkstr)
             session.execute(delquery)
             if commit:
-                session.commit()
+                self._nlpdef.commit(session)
                 # ... or we get deadlocks in incremental updates
                 # http://dev.mysql.com/doc/refman/5.5/en/innodb-deadlocks.html
 
@@ -330,4 +342,4 @@ class BaseNlpParser(object):
             else:
                 log.debug("... deleting all")
             destsession.execute(dest_deletion_query)
-            destsession.commit()
+            self._nlpdef.commit(destsession)

@@ -2,7 +2,12 @@
 # crate_anon/nlp_manager/constants.py
 
 from sqlalchemy.types import String
+from crate_anon.anonymise.constants import (
+    DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+    DEFAULT_MAX_ROWS_BEFORE_COMMIT,
+)
 from crate_anon.common.hash import HmacMD5Hasher
+from crate_anon.version import VERSION, VERSION_DATE
 
 DEFAULT_REPORT_EVERY_NLP = 1
 
@@ -38,6 +43,7 @@ HashClass = HmacMD5Hasher
 # =============================================================================
 
 DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
+# Version {VERSION} ({VERSION_DATE}).
 #
 # PLEASE SEE THE MANUAL FOR AN OVERVIEW.
 #
@@ -157,14 +163,24 @@ processors =
     # Clinical
     # -------------------------------------------------------------------------
     Height procdef_height
+    HeightValidator procdef_validate_height
     Weight procdef_weight
+    WeightValidator procdef_validate_weight
     Bmi procdef_bmi
+    BmiValidator procdef_validate_bmi
     Bp procdef_bp
+    BpValidator procdef_validate_bp
     # -------------------------------------------------------------------------
     # Cognitive
     # -------------------------------------------------------------------------
     MMSE procdef_mmse
     MMSEValidator procdef_validate_mmse
+    ACE procdef_ace
+    ACEValidator procdef_validate_ace
+    MiniACE procdef_mace
+    MiniACEValidator procdef_validate_mace
+    MOCA procdef_moca
+    MOCAValidator procdef_validate_moca
     # -------------------------------------------------------------------------
     # Haematology
     # -------------------------------------------------------------------------
@@ -185,6 +201,21 @@ processors =
 
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
+
+    # Specify the maximum number of rows to be processed before a COMMIT is
+    # issued on the database transaction(s). This prevents the transaction(s)
+    # growing too large.
+    # Default is {DEFAULT_MAX_ROWS_BEFORE_COMMIT}.
+max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
+
+    # Specify the maximum number of source-record bytes (approximately!) that
+    # are processed before a COMMIT is issued on the database transaction(s).
+    # This prevents the transaction(s) growing too large. The COMMIT will be
+    # issued *after* this limit has been met/exceeded, so it may be exceeded if
+    # the transaction just before the limit takes the cumulative total over the
+    # limit.
+    # Default is {DEFAULT_MAX_BYTES_BEFORE_COMMIT}.
+max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
 
 # =============================================================================
@@ -260,6 +291,27 @@ desttable = mmse
 [procdef_validate_mmse]
 destdb = DESTINATION_DATABASE
 desttable = validate_mmse
+
+[procdef_ace]
+destdb = DESTINATION_DATABASE
+desttable = ace
+[procdef_validate_ace]
+destdb = DESTINATION_DATABASE
+desttable = validate_ace
+
+[procdef_mace]
+destdb = DESTINATION_DATABASE
+desttable = mace
+[procdef_validate_mace]
+destdb = DESTINATION_DATABASE
+desttable = validate_mace
+
+[procdef_moca]
+destdb = DESTINATION_DATABASE
+desttable = moca
+[procdef_validate_moca]
+destdb = DESTINATION_DATABASE
+desttable = validate_moca
 
     # Haematology
 
@@ -510,4 +562,8 @@ url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
     IdentType=SqlTypeDbIdentifier,
     CLASSNAME=GATE_PIPELINE_CLASSNAME,
     DEFAULT_TEMPORARY_TABLENAME=DEFAULT_TEMPORARY_TABLENAME,
+    DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
+    DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+    VERSION=VERSION,
+    VERSION_DATE=VERSION_DATE,
 ))

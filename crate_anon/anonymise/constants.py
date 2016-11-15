@@ -32,6 +32,8 @@ from enum import unique
 from sqlalchemy import BigInteger, Integer
 from cardinal_pythonlib.rnc_lang import StrEnum
 
+from crate_anon.version import VERSION, VERSION_DATE
+
 # =============================================================================
 # Logging
 # =============================================================================
@@ -176,6 +178,7 @@ MYSQL_MAX_IDENTIFIER_LENGTH = 64
 
 # noinspection PyPep8
 DEMO_CONFIG = """# Configuration file for CRATE anonymiser (crate_anonymise).
+# Version {VERSION} ({VERSION_DATE}).
 #
 # Boolean values can be 0/1, Y/N, T/F, True/False.
 
@@ -662,7 +665,7 @@ append_source_info_to_comment = True
     # Specify the maximum number of rows to be processed before a COMMIT is
     # issued on the database transaction. This prevents the transaction growing
     # too large.
-    # Default is None (no limit).
+    # Default is {DEFAULT_MAX_ROWS_BEFORE_COMMIT}.
 max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
 
     # Specify the maximum number of source-record bytes (approximately!) that
@@ -671,7 +674,7 @@ max_rows_before_commit = {DEFAULT_MAX_ROWS_BEFORE_COMMIT}
     # *after* this limit has been met/exceeded, so it may be exceeded if the
     # transaction just before the limit takes the cumulative total over the
     # limit.
-    # Default is None (no limit).
+    # Default is {DEFAULT_MAX_BYTES_BEFORE_COMMIT}.
 max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
     # We need a temporary table name for incremental updates. This can't be the
@@ -1107,6 +1110,8 @@ ddgen_binary_to_text_field_pairs =
     DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
     DECISION=DECISION,
+    VERSION=VERSION,
+    VERSION_DATE=VERSION_DATE,
 )
 
 # For the style:

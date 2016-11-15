@@ -108,6 +108,7 @@ from crate_anon.common.hash import (
     HmacSHA256Hasher,
     HmacSHA512Hasher,
 )
+from crate_anon.common.sql import TransactionSizeLimiter
 from crate_anon.common.sqla import monkeypatch_TableClause
 
 log = logging.getLogger(__name__)
@@ -406,6 +407,11 @@ class Config(object):
             self.dest_dialect = self.destdb.engine.dialect
         else:  # in context of web framework, some sort of default
             self.dest_dialect = mysql_dialect
+        self._destdb_transaction_limiter = TransactionSizeLimiter(
+            session=self.destdb.session,
+            max_bytes_before_commit=self.max_bytes_before_commit,
+            max_rows_before_commit=self.max_rows_before_commit
+        )
 
         self.admindb = get_database(admin_database_cfg_section,
                                     name=admin_database_cfg_section,
@@ -510,13 +516,13 @@ class Config(object):
         self.debug_scrubbers = False
         self.save_scrubbers = False
         
-        self.src_bytes_read = 0
-        self.dest_bytes_written = 0
+        self._src_bytes_read = 0
+        self._dest_bytes_written = 0
 
     def overall_progress(self) -> str:
         return "{} read, {} written".format(
-            sizeof_fmt(self.src_bytes_read),
-            sizeof_fmt(self.dest_bytes_written))
+            sizeof_fmt(self._src_bytes_read),
+            sizeof_fmt(self._dest_bytes_written))
 
     def load_dd(self, check_against_source_db: bool = True) -> None:
         log.info(SEP + "Loading data dictionary: {}".format(
@@ -660,3 +666,14 @@ class Config(object):
 
     def get_dest_dialect(self) -> Any:
         return self.dest_dialect
+
+    def commit_dest_db(self) -> None:
+        self._destdb_transaction_limiter.commit()
+
+    def notify_src_bytes_read(self, n_bytes: int) -> None:
+        self._src_bytes_read += n_bytes
+
+    def notify_dest_db_transaction(self, n_rows: int, n_bytes: int) -> None:
+        self._destdb_transaction_limiter.notify(n_rows=n_rows, n_bytes=n_bytes)
+        # ... may trigger a commit
+        self._dest_bytes_written += n_bytes

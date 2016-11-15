@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from sqlalchemy import inspect
 import sqlalchemy.engine
+import sqlalchemy.orm.session
 import sqlalchemy.schema
 
 log = logging.getLogger(__name__)
@@ -379,3 +380,42 @@ class ViewMaker(object):
 
     def get_lookup_table_keyfields(self) -> List[Tuple[str, str]]:
         return list(self.lookup_table_keyfields)
+
+
+# =============================================================================
+# Transaction size-limiting class
+# =============================================================================
+
+class TransactionSizeLimiter(object):
+    def __init__(self, session: sqlalchemy.orm.session.Session,
+                 max_rows_before_commit: int = None,
+                 max_bytes_before_commit: int = None) -> None:
+        self._session = session
+        self._max_rows_before_commit = max_rows_before_commit
+        self._max_bytes_before_commit = max_bytes_before_commit
+        self._bytes_in_transaction = 0
+        self._rows_in_transaction = 0
+
+    def commit(self) -> None:
+        self._session.commit()
+        self._bytes_in_transaction = 0
+        self._rows_in_transaction = 0
+
+    def notify(self, n_rows: int, n_bytes: int,
+               force_commit: bool=False) -> None:
+        if force_commit:
+            self.commit()
+            return
+        self._bytes_in_transaction += n_bytes
+        self._rows_in_transaction += n_rows
+        # log.critical(
+        #     "adding {} rows, {} bytes, "
+        #     "to make {} rows, {} bytes so far".format(
+        #         n_rows, n_bytes,
+        #         self._rows_in_transaction, self._bytes_in_transaction))
+        if ((self._max_bytes_before_commit is not None and
+                self._bytes_in_transaction >= self._max_bytes_before_commit) or
+                (self._max_rows_before_commit is not None and
+                 self._rows_in_transaction >= self._max_rows_before_commit)):
+            log.info("Triggering early commit based on row/byte count")
+            self.commit()

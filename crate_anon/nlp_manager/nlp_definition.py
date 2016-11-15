@@ -14,23 +14,42 @@ from typing import Dict, List, Optional
 
 from cardinal_pythonlib.rnc_datetime import get_now_utc_notz
 from cardinal_pythonlib.rnc_lang import chunks
+from sqlalchemy.engine import Engine
+from sqlalchemy.orm.session import Session
+from sqlalchemy.schema import MetaData
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.common.sql import TransactionSizeLimiter
 from crate_anon.nlp_manager.constants import (
+    DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+    DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_TEMPORARY_TABLENAME,
     HashClass,
     MAX_SQL_FIELD_LEN,
     NLP_CONFIG_ENV_VAR,
 )
 
-if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
-    from crate_anon.nlp_manager import input_field_config
-    from crate_anon.nlp_manager import base_nlp_parser  # SEE NEXT LINES
+# if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
+#     from crate_anon.nlp_manager import input_field_config
+#     from crate_anon.nlp_manager import base_nlp_parser  # SEE NEXT LINES
+
 # - see PEP0484 / forward references
 # - some circular imports work under Python 3.5 but not 3.4:
 #   https://docs.python.org/3/whatsnew/3.5.html#other-language-changes
 #   https://bugs.python.org/issue17636
+# - see also:
+#   http://stackoverflow.com/questions/6351805/cyclic-module-dependencies-and-relative-imports-in-python  # noqa
+#   http://stackoverflow.com/questions/35776791/type-hinting-union-with-forward-references  # noqa
+# - OK, still problems.
+#   Let's strip this back to something sensible.
+#   Does BaseNlpParser really need to know about NlpDefinition?
+#   - Not directly.
+#   - For typing, if it stores a reference (optional).
+#   - It could also be given subcomponents instead.
+#   Does NlpDefinition really need to know about BaseNlpParser?
+#   - Yes, but only for delayed imports.
+# - For now, solved by weakening type hints for NlpDefinition.
 
 log = logging.getLogger(__name__)
 
@@ -90,10 +109,13 @@ class NlpDefinition(object):
         self._temporary_tablename = self.opt_str(
             nlpname, 'temporary_tablename',
             default=DEFAULT_TEMPORARY_TABLENAME)
-
         self._hashphrase = self.opt_str(nlpname, 'hashphrase', required=True)
         self._hasher = HashClass(self._hashphrase)
-
+        self._max_rows_before_commit = self.opt_int(
+            nlpname, 'max_rows_before_commit', DEFAULT_MAX_ROWS_BEFORE_COMMIT)
+        self._max_bytes_before_commit = self.opt_int(
+            nlpname, 'max_bytes_before_commit',
+            DEFAULT_MAX_BYTES_BEFORE_COMMIT)
         self._now = get_now_utc_notz()
 
         # ---------------------------------------------------------------------
@@ -121,6 +143,12 @@ class NlpDefinition(object):
         except:
             log.critical("Bad 'processors' specification")
             raise
+
+        # ---------------------------------------------------------------------
+        # Transaction sizes, for early commit
+        # ---------------------------------------------------------------------
+        self._transaction_limiters = {}
+        # dictionary of session -> TransactionSizeLimiter
 
     def get_name(self) -> str:
         return self._nlpname
@@ -189,29 +217,47 @@ class NlpDefinition(object):
                      parent_env: Optional[Dict]=None) -> Dict:
         return self._parser.get_env_dict(section, parent_env=parent_env)
 
-    def get_progdb_session(self):
+    def get_progdb_session(self) -> Session:
         return self._progdb.session
 
-    def get_progdb_engine(self):
+    def get_progdb_engine(self) -> Engine:
         return self._progdb.engine
 
-    def get_progdb_metadata(self):
+    def get_progdb_metadata(self) -> MetaData:
         return self._progdb.metadata
 
     def commit_all(self) -> None:
         """
         Execute a COMMIT on all databases (destination + progress).
         """
-        self.get_progdb_session().commit()
+        self.commit(self.get_progdb_session())
         for db in self._databases.values():
-            db.session.commit()
+            self.commit(db.session)
 
-    def get_processors(self) -> List['base_nlp_parser.BaseNlpParser']:
+    def get_transation_limiter(self,
+                               session: Session) -> TransactionSizeLimiter:
+        if session not in self._transaction_limiters:
+            self._transaction_limiters[session] = TransactionSizeLimiter(
+                session,
+                max_rows_before_commit=self._max_rows_before_commit,
+                max_bytes_before_commit=self._max_bytes_before_commit)
+        return self._transaction_limiters[session]
+
+    def notify_transaction(self, session: Session,
+                           n_rows: int, n_bytes: int,
+                           force_commit: bool=False) -> None:
+        tl = self.get_transation_limiter(session)
+        tl.notify(n_rows=n_rows, n_bytes=n_bytes, force_commit=force_commit)
+
+    def commit(self, session: Session) -> None:
+        tl = self.get_transation_limiter(session)
+        tl.commit()
+
+    def get_processors(self) -> List['base_nlp_parser.BaseNlpParser']:  # typing / circular reference problem  # noqa
         return self._processors
 
-    def get_ifconfigs(self) -> List['input_field_config.InputFieldConfig']:
+    def get_ifconfigs(self) -> List['input_field_config.InputFieldConfig']:  # typing / circular reference problem  # noqa
         return self._inputfieldmap.values()
 
     def get_now(self) -> datetime.datetime:
         return self._now
-
