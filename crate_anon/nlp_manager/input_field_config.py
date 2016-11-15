@@ -404,3 +404,15 @@ class InputFieldConfig(object):
             prog_deletion_query.delete(synchronize_session=False)
             # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
         self._nlpdef.commit(progsession)
+
+    def delete_all_progress_records(self) -> None:
+        progsession = self._get_progress_session()
+        prog_deletion_query = (
+            progsession.query(NlpRecord).
+            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+        )
+        log.debug("delete_all_progress_records for NLP definition: {}".format(
+            self._nlpdef.get_name()))
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
+            prog_deletion_query.delete(synchronize_session=False)
+        self._nlpdef.commit(progsession)

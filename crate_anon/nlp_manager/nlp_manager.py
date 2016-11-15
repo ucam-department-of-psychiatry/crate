@@ -119,6 +119,7 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
                             srcpkval: int,
                             srchash: str,
                             srcpkstr: str = None,
+                            guaranteed_not_to_exist: bool = False,
                             commit: bool = False) -> None:
     """
     Make a note in the progress database that we've processed a source record.
@@ -126,7 +127,8 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
     may need this table promptly.
     """
     session = nlpdef.get_progdb_session()
-    # SLOW:
+
+    # SLOW: integer PK on NlpRecord, and manual check for existence:
     #
     # progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
     #                                        srcpkstr=srcpkstr)
@@ -147,19 +149,48 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
     # else:
     #     progrec.whenprocessedutc = nlpdef.get_now()
     #     progrec.srchash = srchash
-    progrec = NlpRecord(
-        srcdb=ifconfig.get_srcdb(),
-        srctable=ifconfig.get_srctable(),
-        srcpkfield=ifconfig.get_srcpkfield(),
-        srcpkval=srcpkval,
-        srcpkstr=srcpkstr or '',  # can't have NULL in a composite PK
-        srcfield=ifconfig.get_srcfield(),
-        nlpdef=nlpdef.get_name(),
-        whenprocessedutc=nlpdef.get_now(),
-        srchash=srchash,
-    )
-    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-        session.merge(progrec)
+
+    # SLOW: composite PK defined on NlpRecord, and merge()
+    #
+    # progrec = NlpRecord(
+    #     srcdb=ifconfig.get_srcdb(),
+    #     srctable=ifconfig.get_srctable(),
+    #     srcpkfield=ifconfig.get_srcpkfield(),
+    #     srcpkval=srcpkval,
+    #     srcpkstr=srcpkstr or '',  # can't have NULL in a composite PK
+    #     srcfield=ifconfig.get_srcfield(),
+    #     nlpdef=nlpdef.get_name(),
+    #     whenprocessedutc=nlpdef.get_now(),
+    #     srchash=srchash,
+    # )
+    # with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+    #     session.merge(progrec)
+
+    # FAST: integer PK on NlpRecord, and OPTIONAL check for existence:
+
+    if guaranteed_not_to_exist:
+        progrec = None
+    else:
+        progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
+                                               srcpkstr=srcpkstr)
+    if progrec is None:
+        progrec = NlpRecord(
+            srcdb=ifconfig.get_srcdb(),
+            srctable=ifconfig.get_srctable(),
+            srcpkfield=ifconfig.get_srcpkfield(),
+            srcpkval=srcpkval,
+            srcpkstr=srcpkstr,
+            srcfield=ifconfig.get_srcfield(),
+            nlpdef=nlpdef.get_name(),
+            whenprocessedutc=nlpdef.get_now(),
+            srchash=srchash,
+        )
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+            session.add(progrec)
+    else:
+        progrec.whenprocessedutc = nlpdef.get_now()
+        progrec.srchash = srchash
+
     nlpdef.notify_transaction(session=session, n_rows=1,
                               n_bytes=sys.getsizeof(progrec),  # ... approx!
                               force_commit=commit)
@@ -383,6 +414,7 @@ def process_nlp(nlpdef: NlpDefinition,
                                                  commit=incremental)
                 processor.process(text, other_values)
             insert_into_progress_db(nlpdef, ifconfig, pkval, srchash, pkstr,
+                                    guaranteed_not_to_exist=not incremental,
                                     commit=incremental)
     nlpdef.commit_all()
 
@@ -419,13 +451,15 @@ def drop_remake(progargs,
     # -------------------------------------------------------------------------
     # 3. Delete WHERE NOT IN for incremental
     # -------------------------------------------------------------------------
-    with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
-        if incremental:
-            for ifconfig in nlpdef.get_ifconfigs():
+    for ifconfig in nlpdef.get_ifconfigs():
+        with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
+            if incremental:
                 delete_where_no_source(
                     nlpdef, ifconfig,
                     report_every=progargs.report_every_fast,
                     chunksize=progargs.chunksize)
+            else:
+                ifconfig.delete_all_progress_records()
 
     # -------------------------------------------------------------------------
     # 4. Overall commit (superfluous)
