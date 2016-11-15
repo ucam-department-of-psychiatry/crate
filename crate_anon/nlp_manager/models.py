@@ -40,8 +40,17 @@ class NlpRecord(ProgressBase):
     __table_args__ = (
         Index('_idx1',  # index name
               # index fields:
-              'srcdb', 'srctable', 'srcpkfield', 'srcpkval', 'srcfield',
+              'srcpkval',
               'nlpdef',
+              'srctable',
+              'srcfield',
+              'srcdb',
+              # - performance is critical here
+              # - put them in descending order of specificity
+              #   http://stackoverflow.com/questions/2292662/how-important-is-the-order-of-columns-in-indexes  # noqa
+              # - start with srcpkval, as it's (a) specific and (b) integer
+              # - srcpkfield: don't need to index, because the source table can
+              #   only have one PK
               unique=True),
         MYSQL_TABLE_KWARGS
     )
@@ -59,7 +68,7 @@ class NlpRecord(ProgressBase):
         doc="Source table name")
     srcpkfield = Column(
         'srcpkfield', SqlTypeDbIdentifier,
-        doc="Primary key column name in source table")
+        doc="Primary key column name in source table (for info only)")
     srcpkval = Column(
         'srcpkval', BigInteger,
         doc="Primary key value in source table (or hash if PK is a string)")

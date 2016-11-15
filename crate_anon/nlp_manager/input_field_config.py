@@ -333,7 +333,7 @@ class InputFieldConfig(object):
             session.query(NlpRecord).
             filter(NlpRecord.srcdb == self._srcdb).
             filter(NlpRecord.srctable == self._srctable).
-            filter(NlpRecord.srcpkfield == self._srcpkfield).
+            # unnecessary # filter(NlpRecord.srcpkfield == self._srcpkfield).
             filter(NlpRecord.srcpkval == srcpkval).
             filter(NlpRecord.srcfield == self._srcfield)
         )
@@ -341,6 +341,7 @@ class InputFieldConfig(object):
             query = query.filter(NlpRecord.srchash == srchash)
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
+        log.critical(query)
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_SELECT):
             return query.one_or_none()
 
@@ -374,7 +375,7 @@ class InputFieldConfig(object):
             progsession.query(NlpRecord).
             filter(NlpRecord.srcdb == self._srcdb).
             filter(NlpRecord.srctable == self._srctable).
-            filter(NlpRecord.srcpkfield == self._srcpkfield).
+            # unnecessary # filter(NlpRecord.srcpkfield == self._srcpkfield).
             filter(NlpRecord.nlpdef == self._nlpdef.get_name())
         )
         if temptable is not None:

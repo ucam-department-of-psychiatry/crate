@@ -18,13 +18,15 @@ class MultiTimer(object):
         self._timing = False
         self._overallstart = get_now_utc()
         self._starttimes = OrderedDict()  # name: start time
-        self._totaldurations = OrderedDict()  # dict of name: duration
+        self._totaldurations = OrderedDict()  # name: duration
+        self._count = OrderedDict()  # name: count
         self._stack = []  # list of names
 
     def reset(self) -> None:
         self._overallstart = get_now_utc()
         self._starttimes.clear()
         self._totaldurations.clear()
+        self._count.clear()
         self._stack.clear()
 
     def set_timing(self, timing: bool, reset: bool = False) -> None:
@@ -32,7 +34,7 @@ class MultiTimer(object):
         if reset:
             self.reset()
 
-    def start(self, name: str) -> None:
+    def start(self, name: str, increment_count: bool = True) -> None:
         if not self._timing:
             return
         now = get_now_utc()
@@ -45,7 +47,10 @@ class MultiTimer(object):
         # Start timing our new thing
         if name not in self._starttimes:
             self._totaldurations[name] = datetime.timedelta()
+            self._count[name] = 0
         self._starttimes[name] = now
+        if increment_count:
+            self._count[name] += 1
         self._stack.append(name)
 
     def stop(self, name: str) -> None:
@@ -72,13 +77,28 @@ class MultiTimer(object):
         overall_duration = now - self._overallstart
         summaries = []
         for name, duration in self._totaldurations.items():
-            summaries.append("{}: {} s".format(name, duration.total_seconds()))
             grand_total += duration
+        for name, duration in self._totaldurations.items():
+            n = self._count[name]
+            mean = duration.total_seconds() / n if n > 0 else None
+            summaries.append(
+                "{}: {:.3f} s ({:.2f}%, n={}, mean={:.3f}s)".format(
+                    name,
+                    duration.total_seconds(),
+                    (100 * duration.total_seconds() /
+                     grand_total.total_seconds()),
+                    n,
+                    mean
+                )
+            )
         unmetered = overall_duration - grand_total
         if not self._totaldurations:
             summaries.append("<no timings recorded>")
         log.info("Timing summary: " + ", ".join(summaries))
-        log.info("Unmetered time: {} s".format(unmetered.total_seconds()))
+        log.info("Unmetered time: {:.3f} s ({:.2f}%)".format(
+            unmetered.total_seconds(),
+            100 * unmetered.total_seconds() / overall_duration.total_seconds()
+        ))
 
 
 class MultiTimerContext(object):
