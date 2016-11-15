@@ -429,7 +429,8 @@ def process_nlp(nlpdef: NlpDefinition,
 
 def drop_remake(progargs,
                 nlpdef: NlpDefinition,
-                incremental: bool = False) -> None:
+                incremental: bool = False,
+                skipdelete: bool = False) -> None:
     """
     Drop output tables and recreate them.
     """
@@ -461,7 +462,7 @@ def drop_remake(progargs,
     # -------------------------------------------------------------------------
     for ifconfig in nlpdef.get_ifconfigs():
         with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
-            if incremental:
+            if incremental and not skipdelete:
                 delete_where_no_source(
                     nlpdef, ifconfig,
                     report_every=progargs.report_every_fast,
@@ -559,17 +560,20 @@ def main() -> None:
                              "then stop")
 
     mode_group = parser.add_mutually_exclusive_group()
-    mode_group.add_argument(
-        "-i", "--incremental", dest="incremental", action="store_true",
-        help="Process only new/changed information, where possible "
-             "(* default)")
-    mode_group.add_argument(
-        "-f", "--full", dest="incremental", action="store_false",
-        help="Drop and remake everything")
+    mode_group.add_argument("-i", "--incremental", dest="incremental",
+                            action="store_true",
+                            help="Process only new/changed information, where "
+                                 "possible (* default)")
+    mode_group.add_argument("-f", "--full", dest="incremental",
+                            action="store_false",
+                            help="Drop and remake everything")
     parser.set_defaults(incremental=True)
 
     parser.add_argument("--dropremake", action="store_true",
                         help="Drop/remake destination tables only")
+    parser.add_argument("--skipdelete", dest="skipdelete", action="store_true",
+                        help="For incremental updates, skip deletion of rows "
+                             "present in the destination but not the source")
     parser.add_argument("--nlp", action="store_true",
                         help="Perform NLP processing only")
     parser.add_argument("--echo", action="store_true",
@@ -643,7 +647,8 @@ def main() -> None:
     # 1. Drop/remake tables. Single-tasking only.
     with MultiTimerContext(timer, TIMING_DROP_REMAKE):
         if args.dropremake or everything:
-            drop_remake(args, config, incremental=args.incremental)
+            drop_remake(args, config, incremental=args.incremental,
+                        skipdelete=args.skipdelete)
 
     # 2. NLP
     if args.nlp or everything:

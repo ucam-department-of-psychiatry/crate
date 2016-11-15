@@ -94,7 +94,7 @@ def main() -> None:
 
     parser.add_argument(
         "--skipdelete", dest="skipdelete", action="store_true",
-        help="For incremental updates, Skip deletion of rows present in the "
+        help="For incremental updates, skip deletion of rows present in the "
              "destination but not the source")
     parser.add_argument(
         "--seed",
