@@ -145,10 +145,10 @@ class InputFieldConfig(object):
             Column(FN_SRCTABLE, SqlTypeDbIdentifier,
                    doc="Source table name"),
             Column(FN_SRCPKFIELD, SqlTypeDbIdentifier,
-                   doc="PK field (column) in source table"),
+                   doc="PK field (column) name in source table"),
             Column(FN_SRCPKVAL, BigInteger,
-                   doc="PK of source record (or hash of PK if the PK is a "
-                       "string"),
+                   doc="PK of source record (or integer hash of PK if the PK "
+                       "is a string)"),
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH),
                    doc="NULL if the table has an integer PK, but the PK if "
                        "the PK was a string, to deal with hash collisions. "

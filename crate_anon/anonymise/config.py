@@ -100,6 +100,7 @@ from crate_anon.anonymise.scrub import (
     WordList,
 )
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
+from crate_anon.common.formatting import sizeof_fmt
 from crate_anon.common.hash import (
     # MD5Hasher,
     # SHA256Hasher,
@@ -113,19 +114,6 @@ from crate_anon.common.sqla import monkeypatch_TableClause
 
 log = logging.getLogger(__name__)
 monkeypatch_TableClause()
-
-
-# =============================================================================
-# Ancillary functions
-# =============================================================================
-
-def sizeof_fmt(num: float, suffix: str = 'B') -> str:
-    # http://stackoverflow.com/questions/1094841
-    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
-        if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
-        num /= 1024.0
-    return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
 # =============================================================================

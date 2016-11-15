@@ -28,7 +28,7 @@ MEDEX_RESULTS_READY_SIGNAL = "results_ready"
 
 NLP_CONFIG_ENV_VAR = 'CRATE_NLP_CONFIG'
 
-MAX_STRING_PK_LENGTH = 50  # trade-off; space versus capability
+MAX_STRING_PK_LENGTH = 64  # trade-off; space versus capability
 
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html

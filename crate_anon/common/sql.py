@@ -11,6 +11,7 @@ import sqlalchemy.engine
 import sqlalchemy.orm.session
 import sqlalchemy.schema
 
+from crate_anon.common.formatting import sizeof_fmt
 from crate_anon.common.timing import MultiTimerContext, timer
 
 log = logging.getLogger(__name__)
@@ -420,9 +421,16 @@ class TransactionSizeLimiter(object):
         #         self._rows_in_transaction, self._bytes_in_transaction))
         if (self._max_bytes_before_commit is not None and
                 self._bytes_in_transaction >= self._max_bytes_before_commit):
-            log.info("Triggering early commit based on byte count")
+            log.info(
+                "Triggering early commit based on byte count (reached {}, "
+                "limit is {})".format(
+                    sizeof_fmt(self._bytes_in_transaction),
+                    sizeof_fmt(self._max_bytes_before_commit)))
             self.commit()
         elif (self._max_rows_before_commit is not None and
                 self._rows_in_transaction >= self._max_rows_before_commit):
-            log.info("Triggering early commit based on row count")
+            log.info(
+                "Triggering early commit based on row count (reached {} rows, "
+                "limit is {})".format(self._rows_in_transaction,
+                                      self._max_rows_before_commit))
             self.commit()
