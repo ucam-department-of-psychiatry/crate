@@ -273,8 +273,10 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
     # Main code
     # -------------------------------------------------------------------------
+    # Use info log level, otherwise it looks like our code hangs with very
+    # large databases.
 
-    log.debug("delete_where_no_source: from {}.{}".format(
+    log.info("delete_where_no_source: from {}.{}; MAY BE SLOW".format(
         ifconfig.get_srcdb(), ifconfig.get_srctable()))
 
     # Start our list with the progress database
@@ -297,8 +299,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
 
     # Make a temporary table in each database (note: the Table objects become
     # affiliated to their engine, I think, so make separate ones for each).
-    log.debug("... using {n} destination database(s)".format(n=len(databases)))
-    log.debug("... dropping (if exists) and creating temporary table(s)")
+    log.info("... using {n} destination database(s)".format(n=len(databases)))
+    log.info("... dropping (if exists) and creating temporary table(s)")
     for database in databases:
         engine = database['engine']
         temptable = Table(
@@ -315,13 +317,13 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # Insert PKs into temporary tables
 
     n = count_star(ifconfig.get_source_session(), ifconfig.get_srctable())
-    log.debug("... populating temporary table(s): {} records to go".format(n))
+    log.info("... populating temporary table(s): {} records to go".format(n))
     i = 0
     records = []
     for pkval, pkstr in ifconfig.gen_src_pks():
         i += 1
         if report_every and i % report_every == 0:
-            log.debug("... src row# {} / {}".format(i, n))
+            log.info("... src row# {} / {}".format(i, n))
         records.append({FN_SRCPKVAL: pkval, FN_SRCPKSTR: pkstr})
         if i % chunksize == 0:
             insert(records)
@@ -333,14 +335,14 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     commit()
 
     # Index, for speed
-    log.debug("... creating index(es) on temporary table(s)")
+    log.info("... creating index(es) on temporary table(s)")
     for database in databases:
         temptable = database['temptable']
         index = Index('_temptable_idx', temptable.columns[FN_SRCPKVAL])
         index.create(database['engine'])
 
     # DELETE FROM desttable WHERE destpk NOT IN (SELECT srcpk FROM temptable)
-    log.debug("... deleting from progress/destination DBs where appropriate")
+    log.info("... deleting from progress/destination DBs where appropriate")
 
     # Delete from progress database
     prog_db = databases[0]
@@ -355,7 +357,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         processor.delete_where_srcpk_not(ifconfig, temptable)
 
     # Drop temporary tables
-    log.debug("... dropping temporary table(s)")
+    log.info("... dropping temporary table(s)")
     for database in databases:
         database['temptable'].drop(database['engine'], checkfirst=True)
 
