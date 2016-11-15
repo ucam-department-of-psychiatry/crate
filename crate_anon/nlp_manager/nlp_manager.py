@@ -114,88 +114,6 @@ TIMING_PROGRESS_DB_ADD = "progress_db_add"
 # Database operations
 # =============================================================================
 
-def insert_into_progress_db(nlpdef: NlpDefinition,
-                            ifconfig: InputFieldConfig,
-                            srcpkval: int,
-                            srchash: str,
-                            srcpkstr: str = None,
-                            guaranteed_not_to_exist: bool = False,
-                            commit: bool = False) -> None:
-    """
-    Make a note in the progress database that we've processed a source record.
-    If the 'commit' flag is set, commit immediately, because other processes
-    may need this table promptly.
-    """
-    session = nlpdef.get_progdb_session()
-
-    # SLOW: integer PK on NlpRecord, and manual check for existence:
-    #
-    # progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
-    #                                        srcpkstr=srcpkstr)
-    # if progrec is None:
-    #     progrec = NlpRecord(
-    #         srcdb=ifconfig.get_srcdb(),
-    #         srctable=ifconfig.get_srctable(),
-    #         srcpkfield=ifconfig.get_srcpkfield(),
-    #         srcpkval=srcpkval,
-    #         srcpkstr=srcpkstr,
-    #         srcfield=ifconfig.get_srcfield(),
-    #         nlpdef=nlpdef.get_name(),
-    #         whenprocessedutc=nlpdef.get_now(),
-    #         srchash=srchash,
-    #     )
-    #     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-    #         session.add(progrec)
-    # else:
-    #     progrec.whenprocessedutc = nlpdef.get_now()
-    #     progrec.srchash = srchash
-
-    # SLOW: composite PK defined on NlpRecord, and merge()
-    #
-    # progrec = NlpRecord(
-    #     srcdb=ifconfig.get_srcdb(),
-    #     srctable=ifconfig.get_srctable(),
-    #     srcpkfield=ifconfig.get_srcpkfield(),
-    #     srcpkval=srcpkval,
-    #     srcpkstr=srcpkstr or '',  # can't have NULL in a composite PK
-    #     srcfield=ifconfig.get_srcfield(),
-    #     nlpdef=nlpdef.get_name(),
-    #     whenprocessedutc=nlpdef.get_now(),
-    #     srchash=srchash,
-    # )
-    # with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-    #     session.merge(progrec)
-
-    # FAST: integer PK on NlpRecord, and OPTIONAL check for existence:
-
-    if guaranteed_not_to_exist:
-        progrec = None
-    else:
-        progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
-                                               srcpkstr=srcpkstr)
-    if progrec is None:
-        progrec = NlpRecord(
-            srcdb=ifconfig.get_srcdb(),
-            srctable=ifconfig.get_srctable(),
-            srcpkfield=ifconfig.get_srcpkfield(),
-            srcpkval=srcpkval,
-            srcpkstr=srcpkstr,
-            srcfield=ifconfig.get_srcfield(),
-            nlpdef=nlpdef.get_name(),
-            whenprocessedutc=nlpdef.get_now(),
-            srchash=srchash,
-        )
-        with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-            session.add(progrec)
-    else:
-        progrec.whenprocessedutc = nlpdef.get_now()
-        progrec.srchash = srchash
-
-    nlpdef.notify_transaction(session=session, n_rows=1,
-                              n_bytes=sys.getsizeof(progrec),  # ... approx!
-                              force_commit=commit)
-
-
 def delete_where_no_source(nlpdef: NlpDefinition,
                            ifconfig: InputFieldConfig,
                            report_every: int = DEFAULT_REPORT_EVERY,
@@ -385,6 +303,7 @@ def process_nlp(nlpdef: NlpDefinition,
     (storing the results), and make a note in the progress database.
     """
     log.info(SEP + "NLP")
+    session = nlpdef.get_progdb_session()
     for ifconfig in nlpdef.get_ifconfigs():
         i = 0
         recnum = tasknum
@@ -411,19 +330,59 @@ def process_nlp(nlpdef: NlpDefinition,
             recnum += ntasks
             # log.critical("other_values={}".format(repr(other_values)))
             srchash = nlpdef.hash(text)
+
+            progrec = None
             if incremental:
-                if ifconfig.get_progress_record(pkval, srchash,
-                                                pkstr) is not None:
+                progrec = ifconfig.get_progress_record(pkval, pkstr)
+                if progrec is not None and progrec.srchash == srchash:
                     log.debug("Record previously processed; skipping")
                     continue
+
             for processor in nlpdef.get_processors():
                 if incremental:
                     processor.delete_dest_record(ifconfig, pkval, pkstr,
                                                  commit=incremental)
                 processor.process(text, other_values)
-            insert_into_progress_db(nlpdef, ifconfig, pkval, srchash, pkstr,
-                                    guaranteed_not_to_exist=not incremental,
-                                    commit=incremental)
+
+            # Make a note in the progress database that we've processed a
+            # source record.
+            if progrec:  # modifying an existing record
+                progrec.whenprocessedutc = nlpdef.get_now()
+                progrec.srchash = srchash
+            else:  # creating a new record
+                progrec = NlpRecord(
+                    # Quasi-key fields:
+                    srcdb=ifconfig.get_srcdb(),
+                    srctable=ifconfig.get_srctable(),
+                    srcpkval=pkval,
+                    srcpkstr=pkstr,
+                    srcfield=ifconfig.get_srcfield(),
+                    nlpdef=nlpdef.get_name(),
+                    # Other fields:
+                    srcpkfield=ifconfig.get_srcpkfield(),
+                    whenprocessedutc=nlpdef.get_now(),
+                    srchash=srchash,
+                )
+                with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+                    session.add(progrec)
+
+            # In incremental mode, do we commit immediately, because other
+            # processes may need this table promptly... ?
+            force_commit = False  # incremental
+            # - A single source record should not be processed by >1 CRATE
+            #   process. So in theory there should be no conflicts.
+            # - However, databases can lock in various ways. Can we guarantee
+            #   it'll do something sensible?
+            # - See also
+            #   https://en.wikipedia.org/wiki/Isolation_(database_systems)
+            #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa
+            #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa
+
+            nlpdef.notify_transaction(session=session, n_rows=1,
+                                      n_bytes=sys.getsizeof(progrec), # approx!
+                                      force_commit=force_commit)
+            # *** CHECK THIS ASSUMPTION
+
     nlpdef.commit_all()
 
 

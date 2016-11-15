@@ -26,6 +26,7 @@ from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 log = logging.getLogger(__name__)
 
+TIMING_DELETE_DEST_RECORD = "BaseNlpParser_delete_dest_record"
 TIMING_INSERT = "BaseNlpParser_sql_insert"
 TIMING_PARSE = "parse"
 TIMING_HANDLE_PARSED = "handled_parsed"
@@ -287,7 +288,8 @@ class BaseNlpParser(object):
             if srcpkstr is not None:
                 # noinspection PyProtectedMember
                 delquery = delquery.where(desttable.c._srcpkstr == srcpkstr)
-            session.execute(delquery)
+            with MultiTimerContext(timer, TIMING_DELETE_DEST_RECORD):
+                session.execute(delquery)
             if commit:
                 self._nlpdef.commit(session)
                 # ... or we get deadlocks in incremental updates

@@ -322,7 +322,6 @@ class InputFieldConfig(object):
 
     def get_progress_record(self,
                             srcpkval: int,
-                            srchash: str = None,
                             srcpkstr: str = None) -> Optional[NlpRecord]:
         """
         Fetch a progress record (NlpRecord) for the given source record, if one
@@ -338,8 +337,6 @@ class InputFieldConfig(object):
             filter(NlpRecord.srcfield == self._srcfield).
             filter(NlpRecord.nlpdef == self._nlpdef.get_name())
         )
-        if srchash is not None:
-            query = query.filter(NlpRecord.srchash == srchash)
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
         # log.critical(query)
