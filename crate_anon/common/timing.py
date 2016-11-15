@@ -58,6 +58,14 @@ class MultiTimer(object):
             return
         now = get_now_utc()
 
+        # Validity check
+        if not self._stack:
+            raise AssertionError("MultiTimer.stop() when nothing running")
+        if self._stack[-1] != name:
+            raise AssertionError(
+                "MultiTimer.stop({}) when {} is running".format(
+                    repr(name), repr(self._stack[-1])))
+
         # Finish what we were asked to
         self._totaldurations[name] += now - self._starttimes[name]
         self._stack.pop()
