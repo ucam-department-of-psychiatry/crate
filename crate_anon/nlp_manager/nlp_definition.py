@@ -50,6 +50,9 @@ from crate_anon.nlp_manager.constants import (
 #   Does NlpDefinition really need to know about BaseNlpParser?
 #   - Yes, but only for delayed imports.
 # - For now, solved by weakening type hints for NlpDefinition.
+# - # noinspection PyUnresolvedReferences
+#   ... see http://codeoptimism.com/blog/pycharm-suppress-inspections-list/
+#   for a full list.
 
 log = logging.getLogger(__name__)
 
@@ -253,9 +256,11 @@ class NlpDefinition(object):
         tl = self.get_transation_limiter(session)
         tl.commit()
 
+    # noinspection PyUnresolvedReferences
     def get_processors(self) -> List['base_nlp_parser.BaseNlpParser']:  # typing / circular reference problem  # noqa
         return self._processors
 
+    # noinspection PyUnresolvedReferences
     def get_ifconfigs(self) -> List['input_field_config.InputFieldConfig']:  # typing / circular reference problem  # noqa
         return self._inputfieldmap.values()
 

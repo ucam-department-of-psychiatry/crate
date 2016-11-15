@@ -97,7 +97,8 @@ class MultiTimer(object):
             })
         summaries.sort(key=lambda x: x['total'], reverse=True)
         for s in summaries:
-            log.info(s['description'])
+            # noinspection PyTypeChecker
+            log.info(s["description"])
         if not self._totaldurations:
             log.info("<no timings recorded>")
 

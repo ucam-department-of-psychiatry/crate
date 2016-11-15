@@ -276,8 +276,9 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # Use info log level, otherwise it looks like our code hangs with very
     # large databases.
 
-    log.info("delete_where_no_source: from {}.{}; MAY BE SLOW".format(
-        ifconfig.get_srcdb(), ifconfig.get_srctable()))
+    log.info("delete_where_no_source: examining source table {}.{}; "
+             "MAY BE SLOW".format(ifconfig.get_srcdb(),
+                                  ifconfig.get_srctable()))
 
     # Start our list with the progress database
     databases = [{
