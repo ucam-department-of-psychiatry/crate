@@ -322,7 +322,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # Insert PKs into temporary tables
 
     n = count_star(ifconfig.get_source_session(), ifconfig.get_srctable())
-    log.info("... populating temporary table(s): {} records to go".format(n))
+    log.info("... populating temporary table(s): {} records to go; working in "
+             "chunks of {}".format(n, chunksize))
     i = 0
     records = []
     for pkval, pkstr in ifconfig.gen_src_pks():

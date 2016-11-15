@@ -60,8 +60,8 @@ SEP = "-" * 20 + " "
 # Defaults for command-line options
 # =============================================================================
 
-DEFAULT_REPORT_EVERY = 100000
-DEFAULT_CHUNKSIZE = 1000000
+DEFAULT_REPORT_EVERY = 100000  # 100k
+DEFAULT_CHUNKSIZE = 100000  # 100k
 
 # =============================================================================
 # Environment
