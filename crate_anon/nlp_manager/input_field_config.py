@@ -306,6 +306,7 @@ class InputFieldConfig(object):
                 # matter, because % works nonetheless.
                 # This is obviously less efficient than dividing the work up
                 # via SQL, because we have to fetch and hash something.
+                timer.start(TIMING_GEN_TEXT_SQL_SELECT)
                 continue
             yield text, other_values
             nrows_returned += 1
