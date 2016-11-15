@@ -262,9 +262,13 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # -------------------------------------------------------------------------
 
     def insert(records_):
-        log.debug("... inserting {} records".format(len(records_)))
+        n_rows = len(records_)
+        log.debug("... inserting {} records".format(n_rows))
         for db in databases:
-            db['session'].execute(db['temptable'].insert(), records_)
+            session_ = db['session']
+            session_.execute(db['temptable'].insert(), records_)
+            nlpdef.notify_transaction(session_, n_rows=n_rows,
+                                      n_bytes=sys.getsizeof(records_))
 
     def commit():
         for db in databases:
