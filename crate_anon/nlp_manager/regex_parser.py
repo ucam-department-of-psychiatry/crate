@@ -3,6 +3,7 @@
 
 # Shared elements for regex-based NLP work.
 
+import logging
 import regex
 # noinspection PyProtectedMember
 from regex import _regex_core
@@ -30,6 +31,8 @@ from crate_anon.nlp_manager.regex_units import (
     CUBIC_MM,
     PER_CUBIC_MM,
 )
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -299,7 +302,7 @@ class NumericalResultParser(BaseNlpParser):
         ]}
 
     def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
-        """Default parser."""
+        """Default parser for NumericalResultParser."""
         raise NotImplementedError
 
     def test_numerical_parser(
@@ -325,6 +328,30 @@ class NumericalResultParser(BaseNlpParser):
                 )
             )
         print("... OK")
+
+    def detailed_test(self, text: str, expected: List[Dict[str, Any]]) -> None:
+        i = 0
+        for _, values in self.parse(text):
+            if i >= len(expected):
+                raise ValueError("Too few expected values. Extra result is: "
+                                 "{}".format(repr(values)))
+            expected_values = expected[i]
+            for key, exp_val in expected_values.items():
+                if key not in values:
+                    raise ValueError(
+                        "Test built wrong: expected key {} missing; result "
+                        "was {}".format(repr(key), repr(values)))
+                if values[key] != exp_val:
+                    raise ValueError(
+                        "For key {key}, expected {exp_val}, got {actual_val}; "
+                        "full result is {values}; test text is {text}".format(
+                            key=repr(key),
+                            exp_val=repr(exp_val),
+                            actual_val=repr(values[key]),
+                            values=repr(values),
+                            text=repr(text)))
+            i += 1
+        print("... detailed_test: pass")
 
 
 class SimpleNumericalResultParser(NumericalResultParser):
@@ -374,7 +401,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
 
     def parse(self, text: str,
               debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
-        """Default parser."""
+        """Default parser for SimpleNumericalResultParser."""
         for m in self.compiled_regex.finditer(text):
             startpos = m.start()
             endpos = m.end()
@@ -409,12 +436,12 @@ class SimpleNumericalResultParser(NumericalResultParser):
 
             tense, relation = common_tense(tense_text, relation_text)
 
-            result = self.tablename, {
+            result = {
                 self.FN_VARIABLE_NAME: self.variable,
                 self.FN_CONTENT: matching_text,
                 self.FN_START: startpos,
                 self.FN_END: endpos,
-                # 'groups': groups,
+
                 self.FN_VARIABLE_TEXT: variable_text,
                 self.FN_RELATION_TEXT: relation_text,
                 self.FN_RELATION: relation,
@@ -424,9 +451,10 @@ class SimpleNumericalResultParser(NumericalResultParser):
                 self.FN_TENSE_TEXT: tense_text,
                 self.FN_TENSE: tense,
             }
+            # log.critical(result)
             if debug:
                 print("Match {} for {} -> {}".format(m, repr(text), result))
-            yield result
+            yield self.tablename, result
 
 
 # =============================================================================
@@ -559,6 +587,7 @@ class ValidatorBase(BaseNlpParser):
         ]}
 
     def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        """Parser for ValidatorBase."""
         for compiled_regex in self.compiled_regex_list:
             for m in compiled_regex.finditer(text):
                 startpos = m.start()

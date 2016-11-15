@@ -110,7 +110,7 @@ class Height(NumericalResultParser):
         )
     """
     REGEX = r"""
-        ( {HEIGHT} )                       # group for "BMI" or equivalent
+        ( {HEIGHT} )                       # group for "height" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {TENSE_INDICATOR} )?             # optional group for tense indicator
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -152,6 +152,7 @@ class Height(NumericalResultParser):
 
     def parse(self, text: str,
               debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        """Parser for Height. Specialized for complex unit conversion."""
         for m in self.COMPILED_REGEX.finditer(text):  # watch out: 'm'/metres
             if debug:
                 print("Match {} for {}".format(m, repr(text)))
@@ -159,8 +160,8 @@ class Height(NumericalResultParser):
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
             variable_text = m.group(1)
-            tense_indicator = m.group(2)
-            relation = m.group(3)
+            tense_text = m.group(2)
+            relation_text = m.group(3)
             metric_expression = m.group(4)
             metric_m_and_cm_m = m.group(5)
             metric_m_and_cm_cm = m.group(6)
@@ -199,19 +200,27 @@ class Height(NumericalResultParser):
                     inches = to_pos_float(imperial_in_only_in)
                     value_m = m_from_ft_in(inches=inches)
 
-            tense, relation = common_tense(tense_indicator, relation)
+            tense, relation = common_tense(tense_text, relation_text)
 
-            yield self.tablename, {
+            units = metric_expression or imperial_expression or None
+
+            result = {
                 self.FN_VARIABLE_NAME: self.variable,
                 self.FN_CONTENT: matching_text,
                 self.FN_START: startpos,
                 self.FN_END: endpos,
+
                 self.FN_VARIABLE_TEXT: variable_text,
+                self.FN_RELATION_TEXT: relation_text,
                 self.FN_RELATION: relation,
                 self.FN_VALUE_TEXT: expression,
+                self.FN_UNITS: units,
                 self.target_unit: value_m,
+                self.FN_TENSE_TEXT: tense_text,
                 self.FN_TENSE: tense,
             }
+            # log.critical(result)
+            yield self.tablename, result
 
     def test(self):
         self.test_numerical_parser([
@@ -247,34 +256,34 @@ class HeightValidator(ValidatorBase):
 class Weight(NumericalResultParser):
     """Weight. Handles metric and imperial."""
     METRIC_WEIGHT = r"""
-        (                           # capture group
-            ( {SIGNED_FLOAT} )          # capture group
+        (                           # capture group 4
+            ( {SIGNED_FLOAT} )          # capture group 5
             {OPTIONAL_RESULTS_IGNORABLES}
-            {KG}
+            ( {KG} )                    # capture group 6
         )
     """.format(SIGNED_FLOAT=SIGNED_FLOAT,
                OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
                KG=KG)
     IMPERIAL_WEIGHT = r"""
-        (                           # capture group
+        (                           # capture group 7
             (?:
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 8
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {STONES}
+                ( {STONES} )            # capture group 9
                 {OPTIONAL_RESULTS_IGNORABLES}
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 10
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {LB}
+                ( {LB} )                # capture group 11
             )
             | (?:
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 12
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {STONES}
+                ( {STONES} )            # capture group 13
             )
             | (?:
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 14
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {LB}
+                ( {LB} )                # capture group 15
             )
         )
     """.format(SIGNED_FLOAT=SIGNED_FLOAT,
@@ -287,11 +296,11 @@ class Weight(NumericalResultParser):
         )
     """
     REGEX = r"""
-        ( {WEIGHT} )                       # group for "BMI" or equivalent
+        ( {WEIGHT} )                       # group 1 for "weight" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        ( {TENSE_INDICATOR} )?             # optional group 2 for tense
         {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
+        ( {RELATION} )?                    # optional group 3 for relation
         {OPTIONAL_RESULTS_IGNORABLES}
         (?:
             {METRIC_WEIGHT}
@@ -329,6 +338,7 @@ class Weight(NumericalResultParser):
 
     def parse(self, text: str,
               debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        """Parser for Weight. Specialized for complex unit conversion."""
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
                 print("Match {} for {}".format(m, repr(text)))
@@ -336,56 +346,73 @@ class Weight(NumericalResultParser):
             endpos = m.end()
             matching_text = m.group(0)  # the whole thing
             variable_text = m.group(1)
-            tense_indicator = m.group(2)
-            relation = m.group(3)
+            tense_text = m.group(2)
+            relation_text = m.group(3)
             metric_expression = m.group(4)
             metric_value = m.group(5)
-            imperial_expression = m.group(6)
-            imperial_st_and_lb_st = m.group(7)
-            imperial_st_and_lb_lb = m.group(8)
-            imperial_st_only_st = m.group(9)
-            imperial_lb_only_lb = m.group(10)
+            metric_units = m.group(6)
+            imperial_expression = m.group(7)
+            imperial_st_and_lb_st = m.group(8)
+            imperial_st_and_lb_st_units = m.group(9)
+            imperial_st_and_lb_lb = m.group(10)
+            imperial_st_and_lb_lb_units = m.group(11)
+            imperial_st_only_st = m.group(12)
+            imperial_st_only_st_units = m.group(13)
+            imperial_lb_only_lb = m.group(14)
+            imperial_lb_only_lb_units = m.group(15)
 
             expression = None
             value_kg = None
             if metric_expression:
                 expression = metric_expression
                 value_kg = to_float(metric_value)
+                units = metric_units
             elif imperial_expression:
                 expression = imperial_expression
                 if imperial_st_and_lb_st and imperial_st_and_lb_lb:
                     st = to_float(imperial_st_and_lb_st)
                     lb = to_float(imperial_st_and_lb_lb)
                     value_kg = kg_from_st_lb_oz(stones=st, pounds=lb)
+                    units = " ".join([imperial_st_and_lb_st_units or "",
+                                      imperial_st_and_lb_lb_units or ""])
                 elif imperial_st_only_st:
                     st = to_float(imperial_st_only_st)
                     value_kg = kg_from_st_lb_oz(stones=st)
+                    units = imperial_st_only_st_units
                 elif imperial_lb_only_lb:
                     lb = to_float(imperial_lb_only_lb)
                     value_kg = kg_from_st_lb_oz(pounds=lb)
+                    units = imperial_lb_only_lb_units
 
             # All left as signed float, as you definitely see things like
             # "weight -0.3 kg" for weight changes.
 
-            tense, relation = common_tense(tense_indicator, relation)
+            tense, relation = common_tense(tense_text, relation_text)
 
-            yield self.tablename, {
+            result = {
                 self.FN_VARIABLE_NAME: self.variable,
                 self.FN_CONTENT: matching_text,
                 self.FN_START: startpos,
                 self.FN_END: endpos,
+
                 self.FN_VARIABLE_TEXT: variable_text,
+                self.FN_RELATION_TEXT: relation_text,
                 self.FN_RELATION: relation,
                 self.FN_VALUE_TEXT: expression,
+                self.FN_UNITS: units,
                 self.target_unit: value_kg,
+                self.FN_TENSE_TEXT: tense_text,
                 self.FN_TENSE: tense,
             }
+            log.critical(result)
+            yield self.tablename, result
 
     def test(self):
         self.test_numerical_parser([
             ("Weight", []),  # should fail; no values
             ("her weight was 60.2kg", [60.2]),
             ("Weight = 52.3kg", [52.3]),
+            ("Weight: 80.8kgs", [80.8]),
             ("she weighs 61kg", [61]),
             ("she weighs 61 kg", [61]),
             ("she weighs 61 kgs", [61]),
@@ -396,6 +423,10 @@ class Weight(NumericalResultParser):
             ("she weighs 200 pounds", [kg_from_st_lb_oz(pounds=200)]),
             ("she weighs 6 st 12 lb", [kg_from_st_lb_oz(stones=6, pounds=12)]),
         ])
+        self.detailed_test("Weight: 80.8kgs", [{
+            self.target_unit: 80.8,
+            self.FN_UNITS: "kgs",
+        }])
 
 
 class WeightValidator(ValidatorBase):
@@ -625,6 +656,7 @@ class Bp(BaseNlpParser):
 
     def parse(self, text: str,
               debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+        """Parser for BP. Specialized because we're fetching two numbers."""
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
                 print("Match {} for {}".format(m, repr(text)))
