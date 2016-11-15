@@ -39,6 +39,7 @@ from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 log = logging.getLogger(__name__)
 
 TIMING_GEN_TEXT_SQL_SELECT = "gen_text_sql_select"
+TIMING_PROCESS_GEN_TEXT = "process_generated_text"
 TIMING_PROGRESS_DB_SELECT = "progress_db_select"
 TIMING_PROGRESS_DB_DELETE = "progress_db_delete"
 
@@ -277,41 +278,39 @@ class InputFieldConfig(object):
                 distribute_by_hash = True
         hashed_pk = None
         nrows_returned = 0
-        timer.start(TIMING_GEN_TEXT_SQL_SELECT)
-        result = session.execute(query)
-        for row in result:  # ... a generator itself
-            timer.stop(TIMING_GEN_TEXT_SQL_SELECT)
-            if 0 < self._debug_row_limit <= nrows_returned:
-                log.warning(
-                    "Table {}.{}: not fetching more than {} rows (in total "
-                    "for this process) due to debugging limits".format(
-                        self._srcdb, self._srctable, self._debug_row_limit))
-                result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
-                return
-            pkval = row[0]
-            text = row[1]
-            other_values = dict(zip(self._copyfields, row[2:]))
-            if pk_is_integer:
-                other_values[FN_SRCPKVAL] = pkval
-                other_values[FN_SRCPKSTR] = None
-            else:
-                hashed_pk = hash64(pkval)
-                other_values[FN_SRCPKVAL] = hashed_pk
-                other_values[FN_SRCPKSTR] = pkval
-            other_values.update(base_dict)
-            if distribute_by_hash and hashed_pk % ntasks != tasknum:
-                # We convert some non-integer thing into a deterministic but
-                # roughly randomly distributed integer using hash64.
-                # That produces a signed integer, but that doesn't
-                # matter, because % works nonetheless.
-                # This is obviously less efficient than dividing the work up
-                # via SQL, because we have to fetch and hash something.
-                timer.start(TIMING_GEN_TEXT_SQL_SELECT)
-                continue
-            yield text, other_values
-            nrows_returned += 1
-            timer.start(TIMING_GEN_TEXT_SQL_SELECT)
-        timer.stop(TIMING_GEN_TEXT_SQL_SELECT)
+        with MultiTimerContext(timer, TIMING_GEN_TEXT_SQL_SELECT):
+            result = session.execute(query)
+            for row in result:  # ... a generator itself
+                with MultiTimerContext(timer, TIMING_PROCESS_GEN_TEXT):
+                    if 0 < self._debug_row_limit <= nrows_returned:
+                        log.warning(
+                            "Table {}.{}: not fetching more than {} rows (in "
+                            "total for this process) due to debugging "
+                            "limits".format(self._srcdb, self._srctable,
+                                            self._debug_row_limit))
+                        result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
+                        return
+                    pkval = row[0]
+                    text = row[1]
+                    other_values = dict(zip(self._copyfields, row[2:]))
+                    if pk_is_integer:
+                        other_values[FN_SRCPKVAL] = pkval
+                        other_values[FN_SRCPKSTR] = None
+                    else:
+                        hashed_pk = hash64(pkval)
+                        other_values[FN_SRCPKVAL] = hashed_pk
+                        other_values[FN_SRCPKSTR] = pkval
+                    other_values.update(base_dict)
+                    if distribute_by_hash and hashed_pk % ntasks != tasknum:
+                        # We convert some non-integer thing into a deterministic
+                        # but roughly randomly distributed integer using hash64.
+                        # That produces a signed integer, but that doesn't
+                        # matter, because % works nonetheless. This is
+                        # obviously less efficient than dividing the work up
+                        # via SQL, because we have to fetch and hash something.
+                        continue
+                    yield text, other_values
+                    nrows_returned += 1
 
     def get_count(self) -> Tuple[int, Optional[int]]:
         """

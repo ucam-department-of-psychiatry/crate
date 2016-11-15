@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 
 TIMING_INSERT = "BaseNlpParser_sql_insert"
 TIMING_PARSE = "parse"
+TIMING_HANDLE_PARSED = "handled_parsed"
 
 
 # =============================================================================
@@ -216,34 +217,33 @@ class BaseNlpParser(object):
         starting_fields_values[self.FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()
         n_values = 0
-        timer.start(TIMING_PARSE)
-        for tablename, nlp_values in self.parse(text):
-            timer.stop(TIMING_PARSE)
-            # Merge dictionaries so EXISTING FIELDS/VALUES
-            # (starting_fields_values) HAVE PRIORITY.
-            nlp_values.update(starting_fields_values)
-            sqla_table = self.get_table(tablename)
-            # If we have superfluous keys in our dictionary, SQLAlchemy will
-            # choke ("Unconsumed column names", reporting the thing that's
-            # in our dictionary that it doesn't know about).
-            # HOWEVER, note that SQLA column names may be mixed case (e.g.
-            # 'Text') while our copy-column names are lower case (e.g. 'text'),
-            # so we must have pre-converted the SQLA column names to lower
-            # case. That happens in InputFieldConfig.get_copy_columns and
-            # InputFieldConfig.get_copy_indexes
-            column_names = [c.name for c in sqla_table.columns]
-            final_values = {k: v for k, v in nlp_values.items()
-                            if k in column_names}
-            # log.critical(repr(sqla_table))
-            insertquery = sqla_table.insert().values(final_values)
-            with MultiTimerContext(timer, TIMING_INSERT):
-                session.execute(insertquery)
-            self._nlpdef.notify_transaction(
-                session, n_rows=1, n_bytes=sys.getsizeof(final_values),
-                force_commit=self._commit)  # or we get deadlocks in multiprocess mode  # noqa
-            n_values += 1
-            timer.start(TIMING_PARSE)
-        timer.stop(TIMING_PARSE)
+        with MultiTimerContext(timer, TIMING_PARSE):
+            for tablename, nlp_values in self.parse(text):
+                with MultiTimerContext(timer, TIMING_HANDLE_PARSED):
+                    # Merge dictionaries so EXISTING FIELDS/VALUES
+                    # (starting_fields_values) HAVE PRIORITY.
+                    nlp_values.update(starting_fields_values)
+                    sqla_table = self.get_table(tablename)
+                    # If we have superfluous keys in our dictionary, SQLAlchemy
+                    # will choke ("Unconsumed column names", reporting the
+                    # thing that's in our dictionary that it doesn't know
+                    # about). HOWEVER, note that SQLA column names may be mixed
+                    # case (e.g. 'Text') while our copy-column names are lower
+                    # case (e.g. 'text'), so we must have pre-converted
+                    # the SQLA column names to lower case. That happens in
+                    # InputFieldConfig.get_copy_columns and
+                    # InputFieldConfig.get_copy_indexes
+                    column_names = [c.name for c in sqla_table.columns]
+                    final_values = {k: v for k, v in nlp_values.items()
+                                    if k in column_names}
+                    # log.critical(repr(sqla_table))
+                    insertquery = sqla_table.insert().values(final_values)
+                    with MultiTimerContext(timer, TIMING_INSERT):
+                        session.execute(insertquery)
+                    self._nlpdef.notify_transaction(
+                        session, n_rows=1, n_bytes=sys.getsizeof(final_values),
+                        force_commit=self._commit)  # or we get deadlocks in multiprocess mode  # noqa
+                    n_values += 1
         log.debug("NLP processor {}/{}: found {} values".format(
             self.get_nlpdef_name(), self.get_parser_name(), n_values))
 
