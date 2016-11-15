@@ -11,7 +11,11 @@ import sqlalchemy.engine
 import sqlalchemy.orm.session
 import sqlalchemy.schema
 
+from crate_anon.common.timing import MultiTimerContext, timer
+
 log = logging.getLogger(__name__)
+
+TIMING_COMMIT = "commit"
 
 
 # =============================================================================
@@ -397,7 +401,8 @@ class TransactionSizeLimiter(object):
         self._rows_in_transaction = 0
 
     def commit(self) -> None:
-        self._session.commit()
+        with MultiTimerContext(timer, TIMING_COMMIT):
+            self._session.commit()
         self._bytes_in_transaction = 0
         self._rows_in_transaction = 0
 

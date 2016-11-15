@@ -79,7 +79,7 @@ from crate_anon.anonymise.constants import (
 )
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sqla import count_star
-from crate_anon.common.timing import timer
+from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.nlp_manager.all_processors import (
     possible_processor_names,
     possible_processor_table,
@@ -89,6 +89,7 @@ from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
+    TIMING_PROGRESS_DB_OPS,
 )
 from crate_anon.nlp_manager.input_field_config import (
     InputFieldConfig,
@@ -104,6 +105,9 @@ from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
+
+TIMING_DROP_REMAKE = "drop_remake"
+TIMING_DELETE_WHERE_NO_SOURCE = "delete_where_no_source"
 
 
 # =============================================================================
@@ -136,7 +140,8 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
             whenprocessedutc=nlpdef.get_now(),
             srchash=srchash,
         )
-        session.add(progrec)
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_OPS):
+            session.add(progrec)
     else:
         progrec.whenprocessedutc = nlpdef.get_now()
         progrec.srchash = srchash
@@ -399,12 +404,13 @@ def drop_remake(progargs,
     # -------------------------------------------------------------------------
     # 3. Delete WHERE NOT IN for incremental
     # -------------------------------------------------------------------------
-    if incremental:
-        for ifconfig in nlpdef.get_ifconfigs():
-            delete_where_no_source(
-                nlpdef, ifconfig,
-                report_every=progargs.report_every_fast,
-                chunksize=progargs.chunksize)
+    with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
+        if incremental:
+            for ifconfig in nlpdef.get_ifconfigs():
+                delete_where_no_source(
+                    nlpdef, ifconfig,
+                    report_every=progargs.report_every_fast,
+                    chunksize=progargs.chunksize)
 
     # -------------------------------------------------------------------------
     # 4. Overall commit (superfluous)
@@ -533,7 +539,6 @@ def main() -> None:
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=loglevel, extranames=mynames)
-    timer.set_timing(args.timing)
 
     # -------------------------------------------------------------------------
 
@@ -576,10 +581,12 @@ def main() -> None:
 
     log.info("Starting: incremental={}".format(args.incremental))
     start = get_now_utc()
+    timer.set_timing(args.timing, reset=True)
 
     # 1. Drop/remake tables. Single-tasking only.
-    if args.dropremake or everything:
-        drop_remake(args, config, incremental=args.incremental)
+    with MultiTimerContext(timer, TIMING_DROP_REMAKE):
+        if args.dropremake or everything:
+            drop_remake(args, config, incremental=args.incremental)
 
     # 2. NLP
     if args.nlp or everything:

@@ -20,8 +20,9 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCPKSTR,
     FN_SRCFIELD,
     MAX_STRING_PK_LENGTH,
+    TIMING_PROGRESS_DB_OPS,
 )
-from crate_anon.common.timing import timer
+from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.hash import hash64
 from crate_anon.common.sqla import (
     count_star,
@@ -339,12 +340,14 @@ class InputFieldConfig(object):
             query = query.filter(NlpRecord.srchash == srchash)
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
-        return query.one_or_none()
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_OPS):
+            return query.one_or_none()
 
     def gen_src_pks(self) -> Iterator(Tuple[int, Optional[str]]):
         """
         Generate integer PKs from the source table specified for the
         InputFieldConfig.
+        Timing is subsumed under TIMING_DELETE_WHERE_NO_SOURCE.
         """
         session = self.get_source_session()
         query = (
@@ -393,6 +396,7 @@ class InputFieldConfig(object):
             )
         else:
             log.debug("... deleting all")
-        prog_deletion_query.delete(synchronize_session=False)
-        # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_OPS):
+            prog_deletion_query.delete(synchronize_session=False)
+            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
         self._nlpdef.commit(progsession)

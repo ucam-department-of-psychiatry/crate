@@ -12,7 +12,7 @@ from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 from sqlalchemy.types import BigInteger
 
-from crate_anon.common.timing import timer
+from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.nlp_manager.constants import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
@@ -26,7 +26,7 @@ from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 
 log = logging.getLogger(__name__)
 
-TIMING_INSERT = "BaseNlpParser_process_sql_insert"
+TIMING_INSERT = "BaseNlpParser_sql_insert"
 TIMING_PARSE = "parse"
 
 
@@ -236,9 +236,8 @@ class BaseNlpParser(object):
                             if k in column_names}
             # log.critical(repr(sqla_table))
             insertquery = sqla_table.insert().values(final_values)
-            timer.start(TIMING_INSERT)
-            session.execute(insertquery)
-            timer.stop(TIMING_INSERT)
+            with MultiTimerContext(timer, TIMING_INSERT):
+                session.execute(insertquery)
             self._nlpdef.notify_transaction(
                 session, n_rows=1, n_bytes=sys.getsizeof(final_values),
                 force_commit=self._commit)  # or we get deadlocks in multiprocess mode  # noqa

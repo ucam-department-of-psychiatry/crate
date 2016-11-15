@@ -35,6 +35,8 @@ MAX_SQL_FIELD_LEN = 64
 SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)  # text field used for database
 # names, table names, and field names
 
+TIMING_PROGRESS_DB_OPS = "progress_db_ops"
+
 HashClass = HmacMD5Hasher
 
 

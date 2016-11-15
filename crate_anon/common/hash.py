@@ -31,6 +31,7 @@ import hashlib
 import hmac
 import sys
 from typing import Any, Callable, Tuple
+from crate_anon.common.timing import MultiTimerContext, timer
 
 try:
     import mmh3
@@ -47,6 +48,7 @@ except ImportError:
 
 # https://docs.python.org/3/library/platform.html#platform.architecture
 IS_64_BIT = sys.maxsize > 2 ** 32
+TIMING_HASH = "hash"
 
 
 # =============================================================================
@@ -74,8 +76,9 @@ class GenericSaltedHasher(GenericHasher):
         self.salt_bytes = salt.encode('utf-8')
 
     def hash(self, raw: Any) -> str:
-        raw_bytes = str(raw).encode('utf-8')
-        return self.hashfunc(self.salt_bytes + raw_bytes).hexdigest()
+        with MultiTimerContext(timer, TIMING_HASH):
+            raw_bytes = str(raw).encode('utf-8')
+            return self.hashfunc(self.salt_bytes + raw_bytes).hexdigest()
 
 
 class MD5Hasher(GenericSaltedHasher):
@@ -104,10 +107,11 @@ class GenericHmacHasher(GenericHasher):
         self.digestmod = digestmod
 
     def hash(self, raw: Any) -> str:
-        raw_bytes = str(raw).encode('utf-8')
-        hmac_obj = hmac.new(key=self.key_bytes, msg=raw_bytes,
-                            digestmod=self.digestmod)
-        return hmac_obj.hexdigest()
+        with MultiTimerContext(timer, TIMING_HASH):
+            raw_bytes = str(raw).encode('utf-8')
+            hmac_obj = hmac.new(key=self.key_bytes, msg=raw_bytes,
+                                digestmod=self.digestmod)
+            return hmac_obj.hexdigest()
 
 
 class HmacMD5Hasher(GenericHmacHasher):
@@ -674,12 +678,13 @@ def compare_python_to_reference_murmur3_64(data: Any, seed=0) -> None:
 
 def hash32(data: Any, seed=0) -> int:
     """Returns a signed 32-bit integer."""
-    c_data = to_str(data)
-    if mmh3:
-        return mmh3.hash(c_data, seed=seed)
-    py_data = to_bytes(c_data)
-    py_unsigned = murmur3_x86_32(py_data, seed=seed)
-    return twos_comp_to_signed(py_unsigned, n_bits=32)
+    with MultiTimerContext(timer, TIMING_HASH):
+        c_data = to_str(data)
+        if mmh3:
+            return mmh3.hash(c_data, seed=seed)
+        py_data = to_bytes(c_data)
+        py_unsigned = murmur3_x86_32(py_data, seed=seed)
+        return twos_comp_to_signed(py_unsigned, n_bits=32)
 
 
 def hash64(data: Any, seed: int = 0) -> int:
