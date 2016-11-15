@@ -126,25 +126,40 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
     may need this table promptly.
     """
     session = nlpdef.get_progdb_session()
-    progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
-                                           srcpkstr=srcpkstr)
-    if progrec is None:
-        progrec = NlpRecord(
-            srcdb=ifconfig.get_srcdb(),
-            srctable=ifconfig.get_srctable(),
-            srcpkfield=ifconfig.get_srcpkfield(),
-            srcpkval=srcpkval,
-            srcpkstr=srcpkstr,
-            srcfield=ifconfig.get_srcfield(),
-            nlpdef=nlpdef.get_name(),
-            whenprocessedutc=nlpdef.get_now(),
-            srchash=srchash,
-        )
-        with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
-            session.add(progrec)
-    else:
-        progrec.whenprocessedutc = nlpdef.get_now()
-        progrec.srchash = srchash
+    # SLOW:
+    #
+    # progrec = ifconfig.get_progress_record(srcpkval, srchash=None,
+    #                                        srcpkstr=srcpkstr)
+    # if progrec is None:
+    #     progrec = NlpRecord(
+    #         srcdb=ifconfig.get_srcdb(),
+    #         srctable=ifconfig.get_srctable(),
+    #         srcpkfield=ifconfig.get_srcpkfield(),
+    #         srcpkval=srcpkval,
+    #         srcpkstr=srcpkstr,
+    #         srcfield=ifconfig.get_srcfield(),
+    #         nlpdef=nlpdef.get_name(),
+    #         whenprocessedutc=nlpdef.get_now(),
+    #         srchash=srchash,
+    #     )
+    #     with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+    #         session.add(progrec)
+    # else:
+    #     progrec.whenprocessedutc = nlpdef.get_now()
+    #     progrec.srchash = srchash
+    progrec = NlpRecord(
+        srcdb=ifconfig.get_srcdb(),
+        srctable=ifconfig.get_srctable(),
+        srcpkfield=ifconfig.get_srcpkfield(),
+        srcpkval=srcpkval,
+        srcpkstr=srcpkstr or '',  # can't have NULL in a composite PK
+        srcfield=ifconfig.get_srcfield(),
+        nlpdef=nlpdef.get_name(),
+        whenprocessedutc=nlpdef.get_now(),
+        srchash=srchash,
+    )
+    with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
+        session.merge(progrec)
     nlpdef.notify_transaction(session=session, n_rows=1,
                               n_bytes=sys.getsizeof(progrec),  # ... approx!
                               force_commit=commit)
@@ -599,7 +614,7 @@ def main() -> None:
     log.info("Finished")
     end = get_now_utc()
     time_taken = end - start
-    log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
+    log.info("Time taken: {:.3f} seconds".format(time_taken.total_seconds()))
 
     if args.timing:
         timer.report()

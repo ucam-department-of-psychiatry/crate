@@ -342,8 +342,9 @@ class InputFieldConfig(object):
             query = query.filter(NlpRecord.srchash == srchash)
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
-        log.critical(query)
+        # log.critical(query)
         with MultiTimerContext(timer, TIMING_PROGRESS_DB_SELECT):
+            # This was surprisingly slow under SQL Server testing.
             return query.one_or_none()
 
     def gen_src_pks(self) -> Iterator(Tuple[int, Optional[str]]):

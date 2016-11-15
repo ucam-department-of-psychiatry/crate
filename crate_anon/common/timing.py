@@ -75,26 +75,33 @@ class MultiTimer(object):
         now = get_now_utc()
         grand_total = datetime.timedelta()
         overall_duration = now - self._overallstart
-        summaries = []
         for name, duration in self._totaldurations.items():
             grand_total += duration
+
+        log.info("Timing summary:")
+        summaries = []
         for name, duration in self._totaldurations.items():
             n = self._count[name]
-            mean = duration.total_seconds() / n if n > 0 else None
-            summaries.append(
-                "{}: {:.3f} s ({:.2f}%, n={}, mean={:.3f}s)".format(
-                    name,
-                    duration.total_seconds(),
-                    (100 * duration.total_seconds() /
-                     grand_total.total_seconds()),
-                    n,
-                    mean
-                )
-            )
-        unmetered = overall_duration - grand_total
+            total_sec = duration.total_seconds()
+            mean = total_sec / n if n > 0 else None
+
+            summaries.append({
+                'total': total_sec,
+                'description': (
+                    "- {}: {:.3f} s ({:.2f}%, n={}, mean={:.3f}s)".format(
+                        name,
+                        total_sec,
+                        (100 * total_sec / grand_total.total_seconds()),
+                        n,
+                        mean)),
+            })
+        summaries.sort(key=lambda x: x['total'], reverse=True)
+        for s in summaries:
+            log.info(s['description'])
         if not self._totaldurations:
-            summaries.append("<no timings recorded>")
-        log.info("Timing summary: " + ", ".join(summaries))
+            log.info("<no timings recorded>")
+
+        unmetered = overall_duration - grand_total
         log.info("Unmetered time: {:.3f} s ({:.2f}%)".format(
             unmetered.total_seconds(),
             100 * unmetered.total_seconds() / overall_duration.total_seconds()
