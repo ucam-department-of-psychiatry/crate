@@ -418,9 +418,11 @@ class TransactionSizeLimiter(object):
         #     "to make {} rows, {} bytes so far".format(
         #         n_rows, n_bytes,
         #         self._rows_in_transaction, self._bytes_in_transaction))
-        if ((self._max_bytes_before_commit is not None and
-                self._bytes_in_transaction >= self._max_bytes_before_commit) or
-                (self._max_rows_before_commit is not None and
-                 self._rows_in_transaction >= self._max_rows_before_commit)):
-            log.info("Triggering early commit based on row/byte count")
+        if (self._max_bytes_before_commit is not None and
+                self._bytes_in_transaction >= self._max_bytes_before_commit):
+            log.info("Triggering early commit based on byte count")
+            self.commit()
+        elif (self._max_rows_before_commit is not None and
+                self._rows_in_transaction >= self._max_rows_before_commit):
+            log.info("Triggering early commit based on row count")
             self.commit()
