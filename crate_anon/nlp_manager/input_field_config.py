@@ -20,7 +20,6 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCPKSTR,
     FN_SRCFIELD,
     MAX_STRING_PK_LENGTH,
-    TIMING_PROGRESS_DB_OPS,
 )
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.hash import hash64
@@ -40,6 +39,8 @@ from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 log = logging.getLogger(__name__)
 
 TIMING_GEN_TEXT_SQL_SELECT = "gen_text_sql_select"
+TIMING_PROGRESS_DB_SELECT = "progress_db_select"
+TIMING_PROGRESS_DB_DELETE = "progress_db_delete"
 
 
 # =============================================================================
@@ -340,7 +341,7 @@ class InputFieldConfig(object):
             query = query.filter(NlpRecord.srchash == srchash)
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
-        with MultiTimerContext(timer, TIMING_PROGRESS_DB_OPS):
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_SELECT):
             return query.one_or_none()
 
     def gen_src_pks(self) -> Iterator(Tuple[int, Optional[str]]):
@@ -396,7 +397,7 @@ class InputFieldConfig(object):
             )
         else:
             log.debug("... deleting all")
-        with MultiTimerContext(timer, TIMING_PROGRESS_DB_OPS):
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_DELETE):
             prog_deletion_query.delete(synchronize_session=False)
             # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete  # noqa
         self._nlpdef.commit(progsession)

@@ -25,6 +25,7 @@ from crate_anon.nlp_manager.regex_parser import (
 )
 from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
 from crate_anon.nlp_manager.regex_units import (
+    assemble_units,
     CM,
     FEET,
     INCHES,
@@ -53,25 +54,25 @@ log = logging.getLogger(__name__)
 class Height(NumericalResultParser):
     """Height. Handles metric and imperial."""
     METRIC_HEIGHT = r"""
-        (                           # capture group
+        (                           # capture group 4
             (?:
-                ( {SIGNED_FLOAT} )          # capture group
+                ( {SIGNED_FLOAT} )          # capture group 5
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {M}
+                ( {M} )                     # capture group 6
                 {OPTIONAL_RESULTS_IGNORABLES}
-                ( {SIGNED_FLOAT} )          # capture group
+                ( {SIGNED_FLOAT} )          # capture group 7
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {CM}
+                ( {CM} )                    # capture group 8
             )
             | (?:
-                ( {SIGNED_FLOAT} )          # capture group
+                ( {SIGNED_FLOAT} )          # capture group 9
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {M}
+                ( {M} )                     # capture group 10
             )
             | (?:
-                ( {SIGNED_FLOAT} )          # capture group
+                ( {SIGNED_FLOAT} )          # capture group 11
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {CM}
+                ( {CM} )                    # capture group 12
             )
         )
     """.format(SIGNED_FLOAT=SIGNED_FLOAT,
@@ -79,25 +80,25 @@ class Height(NumericalResultParser):
                M=M,
                CM=CM)
     IMPERIAL_HEIGHT = r"""
-        (                           # capture group
+        (                           # capture group 13
             (?:
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 14
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {FEET}
+                ( {FEET} )              # capture group 15
                 {OPTIONAL_RESULTS_IGNORABLES}
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 16
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {INCHES}
+                ( {INCHES} )            # capture group 17
             )
             | (?:
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 18
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {FEET}
+                ( {FEET} )              # capture group 19
             )
             | (?:
-                ( {SIGNED_FLOAT} )      # capture group
+                ( {SIGNED_FLOAT} )      # capture group 20
                 {OPTIONAL_RESULTS_IGNORABLES}
-                {INCHES}
+                ( {INCHES} )            # capture group 21
             )
         )
     """.format(SIGNED_FLOAT=SIGNED_FLOAT,
@@ -110,11 +111,11 @@ class Height(NumericalResultParser):
         )
     """
     REGEX = r"""
-        ( {HEIGHT} )                       # group for "height" or equivalent
+        ( {HEIGHT} )                       # group 1 for "height" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
+        ( {TENSE_INDICATOR} )?             # optional group 2 for tense
         {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
+        ( {RELATION} )?                    # optional group 3 for relation
         {OPTIONAL_RESULTS_IGNORABLES}
         (?:
             {METRIC_HEIGHT}
@@ -164,17 +165,26 @@ class Height(NumericalResultParser):
             relation_text = m.group(3)
             metric_expression = m.group(4)
             metric_m_and_cm_m = m.group(5)
-            metric_m_and_cm_cm = m.group(6)
-            metric_m_only_m = m.group(7)
-            metric_cm_only_cm = m.group(8)
-            imperial_expression = m.group(9)
-            imperial_ft_and_in_ft = m.group(10)
-            imperial_ft_and_in_in = m.group(11)
-            imperial_ft_only_ft = m.group(12)
-            imperial_in_only_in = m.group(13)
+            metric_m_and_cm_m_units = m.group(6)
+            metric_m_and_cm_cm = m.group(7)
+            metric_m_and_cm_cm_units = m.group(8)
+            metric_m_only_m = m.group(9)
+            metric_m_only_m_units = m.group(10)
+            metric_cm_only_cm = m.group(11)
+            metric_cm_only_cm_units = m.group(12)
+            imperial_expression = m.group(13)
+            imperial_ft_and_in_ft = m.group(14)
+            imperial_ft_and_in_ft_units = m.group(15)
+            imperial_ft_and_in_in = m.group(16)
+            imperial_ft_and_in_in_units = m.group(17)
+            imperial_ft_only_ft = m.group(18)
+            imperial_ft_only_ft_units = m.group(19)
+            imperial_in_only_in = m.group(20)
+            imperial_in_only_in_units = m.group(21)
 
             expression = None
             value_m = None
+            units = None
             if metric_expression:
                 expression = metric_expression
                 if metric_m_and_cm_m and metric_m_and_cm_cm:
@@ -182,27 +192,33 @@ class Height(NumericalResultParser):
                     # ... beware: 'm' above
                     cm = to_pos_float(metric_m_and_cm_cm)
                     value_m = m_from_m_cm(metres=metres, centimetres=cm)
+                    units = assemble_units([metric_m_and_cm_m_units,
+                                            metric_m_and_cm_cm_units])
                 elif metric_m_only_m:
                     value_m = to_pos_float(metric_m_only_m)
+                    units = metric_m_only_m_units
                 elif metric_cm_only_cm:
                     cm = to_pos_float(metric_cm_only_cm)
                     value_m = m_from_m_cm(centimetres=cm)
+                    units = metric_cm_only_cm_units
             elif imperial_expression:
                 expression = imperial_expression
                 if imperial_ft_and_in_ft and imperial_ft_and_in_in:
                     ft = to_pos_float(imperial_ft_and_in_ft)
                     inches = to_pos_float(imperial_ft_and_in_in)
                     value_m = m_from_ft_in(feet=ft, inches=inches)
+                    units = assemble_units([imperial_ft_and_in_ft_units,
+                                            imperial_ft_and_in_in_units])
                 elif imperial_ft_only_ft:
                     ft = to_pos_float(imperial_ft_only_ft)
                     value_m = m_from_ft_in(feet=ft)
+                    units = imperial_ft_only_ft_units
                 elif imperial_in_only_in:
                     inches = to_pos_float(imperial_in_only_in)
                     value_m = m_from_ft_in(inches=inches)
+                    units = imperial_in_only_in_units
 
             tense, relation = common_tense(tense_text, relation_text)
-
-            units = metric_expression or imperial_expression or None
 
             result = {
                 self.FN_VARIABLE_NAME: self.variable,
@@ -232,6 +248,10 @@ class Height(NumericalResultParser):
             ("Height 5 ft 8 in", [m_from_ft_in(feet=5, inches=8)]),
             ("Height 5 feet 8 inches", [m_from_ft_in(feet=5, inches=8)]),
         ])
+        self.detailed_test("Height 5 ft 11 in", [{
+            self.target_unit: m_from_ft_in(feet=5, inches=11),
+            self.FN_UNITS: "ft in",
+        }])
         # *** deal with "tall" and plain "is", e.g.
         # she is 6'2"; she is 1.5m tall
 
@@ -363,6 +383,7 @@ class Weight(NumericalResultParser):
 
             expression = None
             value_kg = None
+            units = None
             if metric_expression:
                 expression = metric_expression
                 value_kg = to_float(metric_value)
@@ -373,8 +394,8 @@ class Weight(NumericalResultParser):
                     st = to_float(imperial_st_and_lb_st)
                     lb = to_float(imperial_st_and_lb_lb)
                     value_kg = kg_from_st_lb_oz(stones=st, pounds=lb)
-                    units = " ".join([imperial_st_and_lb_st_units or "",
-                                      imperial_st_and_lb_lb_units or ""])
+                    units = assemble_units([imperial_st_and_lb_st_units,
+                                            imperial_st_and_lb_lb_units])
                 elif imperial_st_only_st:
                     st = to_float(imperial_st_only_st)
                     value_kg = kg_from_st_lb_oz(stones=st)
@@ -404,7 +425,7 @@ class Weight(NumericalResultParser):
                 self.FN_TENSE_TEXT: tense_text,
                 self.FN_TENSE: tense,
             }
-            log.critical(result)
+            # log.critical(result)
             yield self.tablename, result
 
     def test(self):

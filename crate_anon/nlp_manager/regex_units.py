@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # crate_anon/nlp_manager/regex_units.py
 
+from typing import List, Optional
 from crate_anon.nlp_manager.regex_numbers import BILLION, PLAIN_INTEGER, POWER
 
 
@@ -191,3 +192,9 @@ def m_from_m_cm(metres: float = 0, centimetres: float = 0) -> float:
         return metres + (centimetres / 100)
     except (TypeError, ValueError):
         return None
+
+
+def assemble_units(components: List[Optional[str]]) -> str:
+    """Takes e.g. ["ft", "in"] and makes "ft in"."""
+    active_components = [c for c in components if c]
+    return " ".join(active_components)

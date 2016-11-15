@@ -89,7 +89,6 @@ from crate_anon.nlp_manager.constants import (
     DEMO_CONFIG,
     MAX_STRING_PK_LENGTH,
     NLP_CONFIG_ENV_VAR,
-    TIMING_PROGRESS_DB_OPS,
 )
 from crate_anon.nlp_manager.input_field_config import (
     InputFieldConfig,
@@ -108,6 +107,7 @@ log = logging.getLogger(__name__)
 
 TIMING_DROP_REMAKE = "drop_remake"
 TIMING_DELETE_WHERE_NO_SOURCE = "delete_where_no_source"
+TIMING_PROGRESS_DB_ADD = "progress_db_add"
 
 
 # =============================================================================
@@ -140,7 +140,7 @@ def insert_into_progress_db(nlpdef: NlpDefinition,
             whenprocessedutc=nlpdef.get_now(),
             srchash=srchash,
         )
-        with MultiTimerContext(timer, TIMING_PROGRESS_DB_OPS):
+        with MultiTimerContext(timer, TIMING_PROGRESS_DB_ADD):
             session.add(progrec)
     else:
         progrec.whenprocessedutc = nlpdef.get_now()

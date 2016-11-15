@@ -35,8 +35,6 @@ MAX_SQL_FIELD_LEN = 64
 SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)  # text field used for database
 # names, table names, and field names
 
-TIMING_PROGRESS_DB_OPS = "progress_db_ops"
-
 HashClass = HmacMD5Hasher
 
 
@@ -179,8 +177,8 @@ processors =
     MMSEValidator procdef_validate_mmse
     ACE procdef_ace
     ACEValidator procdef_validate_ace
-    MiniACE procdef_mace
-    MiniACEValidator procdef_validate_mace
+    MiniACE procdef_mini_ace
+    MiniACEValidator procdef_validate_mini_ace
     MOCA procdef_moca
     MOCAValidator procdef_validate_moca
     # -------------------------------------------------------------------------
@@ -301,12 +299,12 @@ desttable = ace
 destdb = DESTINATION_DATABASE
 desttable = validate_ace
 
-[procdef_mace]
+[procdef_mini_ace]
 destdb = DESTINATION_DATABASE
-desttable = mace
-[procdef_validate_mace]
+desttable = mini_ace
+[procdef_validate_mini_ace]
 destdb = DESTINATION_DATABASE
-desttable = validate_mace
+desttable = validate_mini_ace
 
 [procdef_moca]
 destdb = DESTINATION_DATABASE
