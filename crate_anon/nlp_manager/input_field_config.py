@@ -335,7 +335,8 @@ class InputFieldConfig(object):
             filter(NlpRecord.srctable == self._srctable).
             # unnecessary # filter(NlpRecord.srcpkfield == self._srcpkfield).
             filter(NlpRecord.srcpkval == srcpkval).
-            filter(NlpRecord.srcfield == self._srcfield)
+            filter(NlpRecord.srcfield == self._srcfield).
+            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
         )
         if srchash is not None:
             query = query.filter(NlpRecord.srchash == srchash)

@@ -45,12 +45,15 @@ class NlpRecord(ProgressBase):
               'srctable',
               'srcfield',
               'srcdb',
+              'srcpkstr',
               # - performance is critical here
               # - put them in descending order of specificity
               #   http://stackoverflow.com/questions/2292662/how-important-is-the-order-of-columns-in-indexes  # noqa
               # - start with srcpkval, as it's (a) specific and (b) integer
               # - srcpkfield: don't need to index, because the source table can
               #   only have one PK
+              # - srcpkstr: must include, since srcpkval can be non-unique, due
+              #   to hash collisions, if we're using a string
               unique=True),
         MYSQL_TABLE_KWARGS
     )
