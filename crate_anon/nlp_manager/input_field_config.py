@@ -354,11 +354,11 @@ class InputFieldConfig(object):
         session = self._get_progress_session()
         query = (
             session.query(NlpRecord).
-            filter(NlpRecord.srcdb == self._srcdb).
-            filter(NlpRecord.srctable == self._srctable).
+            # *** # filter(NlpRecord.srcdb == self._srcdb).
+            # *** # filter(NlpRecord.srctable == self._srctable).
             filter(NlpRecord.srcpkval == srcpkval).
-            filter(NlpRecord.srcfield == self._srcfield).
-            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            # *** # filter(NlpRecord.srcfield == self._srcfield).
+            # *** # filter(NlpRecord.nlpdef == self._nlpdef.get_name())
         )
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)

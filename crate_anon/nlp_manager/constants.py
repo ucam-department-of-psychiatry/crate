@@ -9,7 +9,7 @@ from crate_anon.anonymise.constants import (
 from crate_anon.common.hash import HmacMD5Hasher
 from crate_anon.version import VERSION, VERSION_DATE
 
-DEFAULT_REPORT_EVERY_NLP = 1
+DEFAULT_REPORT_EVERY_NLP = 500  # low values slow down processing
 
 DEFAULT_TEMPORARY_TABLENAME = '_crate_nlp_temptable'
 
