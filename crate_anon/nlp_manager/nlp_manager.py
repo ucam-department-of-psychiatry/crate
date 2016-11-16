@@ -368,7 +368,11 @@ def process_nlp(nlpdef: NlpDefinition,
 
             # In incremental mode, do we commit immediately, because other
             # processes may need this table promptly... ?
-            force_commit = False  # incremental
+
+            # force_commit = False  # definitely wrong; crashes as below
+            # force_commit = incremental
+            force_commit = ntasks > 1
+
             # - A single source record should not be processed by >1 CRATE
             #   process. So in theory there should be no conflicts.
             # - However, databases can lock in various ways. Can we guarantee
@@ -377,11 +381,16 @@ def process_nlp(nlpdef: NlpDefinition,
             #   https://en.wikipedia.org/wiki/Isolation_(database_systems)
             #   http://skien.cc/blog/2014/02/06/sqlalchemy-and-race-conditions-follow-up/  # noqa
             #   http://docs.sqlalchemy.org/en/latest/core/connections.html?highlight=execution_options#sqlalchemy.engine.Connection.execution_options  # noqa
+            # - However, empirically, setting this to False gives
+            #   "Transaction (Process ID xx) was deadlocked on lock resources
+            #   with another process and has been chosen as the deadlock
+            #   victim. Rerun the transaction." -- with a SELECT query.
+            # - SQL Server uses READ COMMITTED as the default isolation level.
+            # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa
 
             nlpdef.notify_transaction(session=session, n_rows=1,
                                       n_bytes=sys.getsizeof(progrec), # approx!
                                       force_commit=force_commit)
-            # *** CHECK THIS ASSUMPTION
 
     nlpdef.commit_all()
 
