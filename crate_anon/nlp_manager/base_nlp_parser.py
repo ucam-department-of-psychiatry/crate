@@ -291,6 +291,7 @@ class BaseNlpParser(object):
         destsession = self.get_session()
         srcdb = ifconfig.get_srcdb()
         srctable = ifconfig.get_srctable()
+        srcfield = ifconfig.get_srcfield()
         for desttable_name, desttable in self.tables().items():
             log.debug(
                 "delete_where_srcpk_not... {}.{} -> {}.{}".format(
@@ -301,7 +302,7 @@ class BaseNlpParser(object):
                 desttable.delete().
                 where(desttable.c._srcdb == srcdb).
                 where(desttable.c._srctable == srctable).
-                where(desttable.c._srcfield == ifconfig.get_srcfield()).
+                where(desttable.c._srcfield == srcfield).
                 where(desttable.c._nlpdef == self._nlpdef.get_name())
             )
             if temptable is not None:
