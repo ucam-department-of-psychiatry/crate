@@ -13,6 +13,8 @@ from sqlalchemy import BigInteger, Column, Index, String, Table
 from sqlalchemy.sql import and_, column, exists, or_, select, table
 
 from crate_anon.nlp_manager.constants import (
+    FN_NLPDEF,
+    FN_PK,
     FN_SRCDB,
     FN_SRCTABLE,
     FN_SRCPKFIELD,
@@ -138,9 +140,15 @@ class InputFieldConfig(object):
         return self._nlpdef.get_progdb_session()
 
     @staticmethod
-    def get_srcref_columns_for_dest() -> List[Column]:
-        """Columns referring to the source."""
+    def get_core_columns_for_dest() -> List[Column]:
+        """Core columns in destination tables, primarily referring to the
+        source."""
         return [
+            Column(FN_PK, BigInteger, primary_key=True,
+                   autoincrement=True,
+                   doc="Arbitrary PK of output record"),
+            Column(FN_NLPDEF, SqlTypeDbIdentifier,
+                   doc="Name of the NLP definition producing this row"),
             Column(FN_SRCDB, SqlTypeDbIdentifier,
                    doc="Source database name (from CRATE NLP config)"),
             Column(FN_SRCTABLE, SqlTypeDbIdentifier,
@@ -159,13 +167,26 @@ class InputFieldConfig(object):
         ]
 
     @staticmethod
-    def get_srcref_indexes_for_dest() -> List[Index]:
-        """Indexes for columns referring to the source."""
+    def get_core_indexes_for_dest() -> List[Index]:
+        """Indexes for columns, primarily referring to the source."""
         # http://stackoverflow.com/questions/179085/multiple-indexes-vs-multi-column-indexes  # noqa
         return [
             Index('_idx_srcref',
-                  FN_SRCDB, FN_SRCTABLE, FN_SRCPKFIELD, FN_SRCPKVAL,
+                  # Remember, order matters; more to less specific
+                  # See also BaseNlpParser.delete_dest_record
+                  FN_SRCPKVAL,
+                  FN_NLPDEF,
+                  FN_SRCFIELD,
+                  FN_SRCTABLE,
+                  FN_SRCDB,
                   FN_SRCPKSTR),
+            Index('_idx_deletion',
+                  # We sometimes delete just using the following; see
+                  # BaseNlpParser.delete_where_srcpk_not
+                  FN_NLPDEF,
+                  FN_SRCFIELD,
+                  FN_SRCTABLE,
+                  FN_SRCDB),
         ]
 
     def _require_table_exists(self) -> None:
@@ -332,7 +353,6 @@ class InputFieldConfig(object):
             session.query(NlpRecord).
             filter(NlpRecord.srcdb == self._srcdb).
             filter(NlpRecord.srctable == self._srctable).
-            # unnecessary # filter(NlpRecord.srcpkfield == self._srcpkfield).
             filter(NlpRecord.srcpkval == srcpkval).
             filter(NlpRecord.srcfield == self._srcfield).
             filter(NlpRecord.nlpdef == self._nlpdef.get_name())

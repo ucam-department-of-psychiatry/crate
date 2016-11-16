@@ -10,13 +10,12 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
-from sqlalchemy.types import BigInteger
 
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.nlp_manager.constants import (
+    FN_NLPDEF,
     FN_SRCPKVAL,
     FN_SRCPKSTR,
-    SqlTypeDbIdentifier,
 )
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
@@ -37,8 +36,6 @@ TIMING_HANDLE_PARSED = "handled_parsed"
 # =============================================================================
 
 class BaseNlpParser(object):
-    FN_PK = '_pk'
-    FN_NLPDEF = '_nlpdef'
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -53,16 +50,6 @@ class BaseNlpParser(object):
             self._destdb_name = nlpdef.opt_str(cfgsection, 'destdb',
                                                required=True)
             self._destdb = nlpdef.get_database(self._destdb_name)
-
-    @classmethod
-    def _core_dest_columns(cls) -> List[Column]:
-        return [
-            Column(cls.FN_PK, BigInteger, primary_key=True,
-                   autoincrement=True,
-                   doc="Arbitrary PK of output record"),
-            Column(cls.FN_NLPDEF, SqlTypeDbIdentifier,
-                   doc="Name of the NLP definition producing this row"),
-        ]
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         """
@@ -136,38 +123,41 @@ class BaseNlpParser(object):
         self._assert_column_lists_identical(copycolumns_list, "column")
         copy_columns = copycolumns_list[0]
 
-        source_columns = InputFieldConfig.get_srcref_columns_for_dest()
+        core_columns = InputFieldConfig.get_core_columns_for_dest()
         self._assert_no_overlap("copy", copy_columns,
-                                "source", source_columns)
+                                "source", core_columns)
 
         # Create one or more tables
         meta = self.get_metadata()
         tables = {}
         t_columns = self.dest_tables_columns()
-        for tablename, destcols in t_columns.items():
+        for tablename, extra_dest_cols in t_columns.items():
             self._assert_no_overlap("copy", copy_columns,
-                                    "destination", destcols)
+                                    "destination", extra_dest_cols)
             # And to check we haven't introduced any bugs internally:
-            self._assert_no_overlap("source", source_columns,
-                                    "destination", destcols)
+            self._assert_no_overlap("source", core_columns,
+                                    "destination", extra_dest_cols)
 
-            columns = (self._core_dest_columns() +
-                       source_columns +
-                       destcols +
+            columns = (core_columns +
+                       extra_dest_cols +
                        copy_columns)
             copy_of_cols = [c.copy() for c in columns]
 
             t_indexes = self.dest_tables_indexes()
-            dest_indexes = []
+            extra_dest_indexes = []
             if tablename in t_indexes:
-                dest_indexes = t_indexes[tablename]
+                extra_dest_indexes = t_indexes[tablename]
             copyindexes_list = [i.get_copy_indexes() for i in ifconfigs]
             self._assert_column_lists_identical(copyindexes_list, "index")
             copy_indexes = copyindexes_list[0]
-            source_indexes = InputFieldConfig.get_srcref_indexes_for_dest()
+            core_indexes = InputFieldConfig.get_core_indexes_for_dest()
 
             column_like_things = (
-                copy_of_cols + source_indexes + dest_indexes + copy_indexes)
+                copy_of_cols +
+                core_indexes +
+                extra_dest_indexes +
+                copy_indexes
+            )
             # log.critical(repr(column_like_things))
             tables[tablename] = Table(tablename, meta, *column_like_things)
             # You can put indexes in the column list:
@@ -215,7 +205,7 @@ class BaseNlpParser(object):
 
     def process(self, text: str,
                 starting_fields_values: Dict[str, Any]) -> None:
-        starting_fields_values[self.FN_NLPDEF] = self._nlpdef.get_name()
+        starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()
         n_values = 0
         with MultiTimerContext(timer, TIMING_PARSE):
@@ -269,7 +259,7 @@ class BaseNlpParser(object):
         session = self.get_session()
         srcdb = ifconfig.get_srcdb()
         srctable = ifconfig.get_srctable()
-        srcpkfield = ifconfig.get_srcpkfield()
+        srcfield = ifconfig.get_srcfield()
         destdb_name = self._destdb.name
         nlpdef_name = self._nlpdef.get_name()
         for tablename, desttable in self.tables().items():
@@ -281,7 +271,7 @@ class BaseNlpParser(object):
                 desttable.delete().
                 where(desttable.c._srcdb == srcdb).
                 where(desttable.c._srctable == srctable).
-                where(desttable.c._srcpkfield == srcpkfield).
+                where(desttable.c._srcfield == srcfield).
                 where(desttable.c._srcpkval == srcpkval).
                 where(desttable.c._nlpdef == nlpdef_name)
             )
@@ -307,10 +297,11 @@ class BaseNlpParser(object):
                     srcdb, srctable, self._destdb_name, desttable_name))
             # noinspection PyProtectedMember
             dest_deletion_query = (
+                # see get_core_indexes_for_dest
                 desttable.delete().
                 where(desttable.c._srcdb == srcdb).
                 where(desttable.c._srctable == srctable).
-                where(desttable.c._srcpkfield == ifconfig.get_srcpkfield()).
+                where(desttable.c._srcfield == ifconfig.get_srcfield()).
                 where(desttable.c._nlpdef == self._nlpdef.get_name())
             )
             if temptable is not None:

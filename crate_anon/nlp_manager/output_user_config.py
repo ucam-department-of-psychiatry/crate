@@ -61,7 +61,7 @@ class OutputUserConfig(object):
             self._dest_datatypes.append(datatype)
 
         src_fields = [c.name for c in
-                      InputFieldConfig.get_srcref_columns_for_dest()]
+                      InputFieldConfig.get_core_columns_for_dest()]
         for sf in src_fields:
             if sf in self._destfields:
                 raise Exception(

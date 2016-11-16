@@ -13,6 +13,8 @@ DEFAULT_REPORT_EVERY_NLP = 1
 
 DEFAULT_TEMPORARY_TABLENAME = '_crate_nlp_temptable'
 
+FN_NLPDEF = '_nlpdef'
+FN_PK = '_pk'
 FN_SRCDB = '_srcdb'
 FN_SRCTABLE = '_srctable'
 FN_SRCPKFIELD = '_srcpkfield'

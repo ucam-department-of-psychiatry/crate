@@ -435,12 +435,13 @@ def drop_remake(progargs,
     # -------------------------------------------------------------------------
     for ifconfig in nlpdef.get_ifconfigs():
         with MultiTimerContext(timer, TIMING_DELETE_WHERE_NO_SOURCE):
-            if incremental and not skipdelete:
-                delete_where_no_source(
-                    nlpdef, ifconfig,
-                    report_every=progargs.report_every_fast,
-                    chunksize=progargs.chunksize)
-            else:
+            if incremental:
+                if not skipdelete:
+                    delete_where_no_source(
+                        nlpdef, ifconfig,
+                        report_every=progargs.report_every_fast,
+                        chunksize=progargs.chunksize)
+            else:  # full
                 ifconfig.delete_all_progress_records()
 
     # -------------------------------------------------------------------------
