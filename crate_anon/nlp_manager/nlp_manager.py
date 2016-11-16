@@ -336,12 +336,12 @@ def process_nlp(nlpdef: NlpDefinition,
                 progrec = ifconfig.get_progress_record(pkval, pkstr)
                 if progrec is not None:
                     if progrec.srchash == srchash:
-                        log.debug("Record previously processed; skipping")
+                        log.critical("Record previously processed; skipping")
                         continue
                     else:
-                        log.debug("Record has changed")
+                        log.critical("Record has changed")
                 else:
-                    log.debug("Record is new")
+                    log.critical("Record is new")
 
             for processor in nlpdef.get_processors():
                 if incremental:
