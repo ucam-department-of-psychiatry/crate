@@ -336,12 +336,12 @@ def process_nlp(nlpdef: NlpDefinition,
                 progrec = ifconfig.get_progress_record(pkval, pkstr)
                 if progrec is not None:
                     if progrec.srchash == srchash:
-                        log.critical("Record previously processed; skipping")
+                        log.debug("Record previously processed; skipping")
                         continue
                     else:
-                        log.critical("Record has changed")
+                        log.debug("Record has changed")
                 else:
-                    log.critical("Record is new")
+                    log.debug("Record is new")
 
             for processor in nlpdef.get_processors():
                 if incremental:
@@ -394,7 +394,7 @@ def process_nlp(nlpdef: NlpDefinition,
             # - https://technet.microsoft.com/en-us/library/jj856598(v=sql.110).aspx  # noqa
 
             nlpdef.notify_transaction(session=session, n_rows=1,
-                                      n_bytes=sys.getsizeof(progrec), # approx!
+                                      n_bytes=sys.getsizeof(progrec),  # approx
                                       force_commit=force_commit)
 
     nlpdef.commit_all()
