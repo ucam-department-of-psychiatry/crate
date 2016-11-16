@@ -354,11 +354,14 @@ class InputFieldConfig(object):
         session = self._get_progress_session()
         query = (
             session.query(NlpRecord).
-            # *** # filter(NlpRecord.srcdb == self._srcdb).
-            # *** # filter(NlpRecord.srctable == self._srctable).
-            filter(NlpRecord.srcpkval == srcpkval) # *** # .
-            # *** # filter(NlpRecord.srcfield == self._srcfield).
-            # *** # filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            filter(NlpRecord.srcdb == self._srcdb).
+            filter(NlpRecord.srctable == self._srctable).
+            filter(NlpRecord.srcpkval == srcpkval).
+            filter(NlpRecord.srcfield == self._srcfield).
+            filter(NlpRecord.nlpdef == self._nlpdef.get_name())
+            # Order not important (though the order of the index certainly
+            # is; see NlpRecord.__table_args__).
+            # http://stackoverflow.com/questions/11436469/does-order-of-where-clauses-matter-in-sql  # noqa
         )
         if srcpkstr is not None:
             query = query.filter(NlpRecord.srcpkstr == srcpkstr)
