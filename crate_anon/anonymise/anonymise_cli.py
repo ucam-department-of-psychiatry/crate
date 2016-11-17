@@ -13,6 +13,7 @@ from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
+    DEMO_CONFIG,
 )
 from crate_anon.common.debugfunc import pdb_run
 from crate_anon.common.logsupport import configure_logger_for_colour
@@ -36,6 +37,8 @@ def main() -> None:
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version", version=version)
+    parser.add_argument("--democonfig", action="store_true",
+                        help="Print a demo config file")
     parser.add_argument("--config",
                         help="Config file (overriding environment "
                              "variable {})".format(CONFIG_ENV_VAR))
@@ -133,6 +136,11 @@ def main() -> None:
     
     if args.config:
         os.environ[CONFIG_ENV_VAR] = args.config
+
+    # Demo config?
+    if args.democonfig:
+        print(DEMO_CONFIG)
+        return
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import

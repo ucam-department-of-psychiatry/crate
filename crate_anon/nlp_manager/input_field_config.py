@@ -298,21 +298,22 @@ class InputFieldConfig(object):
             else:
                 distribute_by_hash = True
         nrows_returned = 0
+        hashed_pk = None  # remove warning about reference before assignment
         with MultiTimerContext(timer, TIMING_GEN_TEXT_SQL_SELECT):
             result = session.execute(query)
             for row in result:  # ... a generator itself
                 with MultiTimerContext(timer, TIMING_PROCESS_GEN_TEXT):
                     pkval = row[0]
-                    if distribute_by_hash:
-                        # We convert some non-integer thing into a deterministic
-                        # but roughly randomly distributed integer using hash64.
-                        # That produces a signed integer, but that doesn't
-                        # matter, because % works nonetheless. This is
-                        # obviously less efficient than dividing the work up
-                        # via SQL, because we have to fetch and hash something.
-                        # Do this first for speed.
+                    if not pk_is_integer:
                         hashed_pk = hash64(pkval)
-                        if hashed_pk % ntasks != tasknum:
+                        if distribute_by_hash and hashed_pk % ntasks != tasknum:
+                            # We convert some non-integer thing into a
+                            # deterministic but roughly randomly distributed
+                            # integer using hash64. That produces a signed
+                            # integer, which is OK because % works nonetheless.
+                            # This is less efficient than dividing the work up
+                            # via SQL, because we have to fetch/hash something.
+                            # Do this ASAP in this loop, for speed.
                             continue
 
                     if 0 < self._debug_row_limit <= nrows_returned:
@@ -329,7 +330,7 @@ class InputFieldConfig(object):
                     if pk_is_integer:
                         other_values[FN_SRCPKVAL] = pkval
                         other_values[FN_SRCPKSTR] = None
-                    else:  # distribute_by_hash will be true, and hashed_pk set
+                    else:  # hashed_pk will have been set above
                         other_values[FN_SRCPKVAL] = hashed_pk
                         other_values[FN_SRCPKSTR] = pkval
                     other_values.update(base_dict)
