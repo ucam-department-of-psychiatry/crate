@@ -62,7 +62,6 @@ log = logging.getLogger(__name__)
 REGEX_COMPILE_FLAGS = (regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE |
                        regex.UNICODE)
 WORD_BOUNDARY = r"\b"
-OPTIONAL_WHITESPACE = r"\s?"
 
 
 def at_wb_start_end(regex_str: str) -> str:
@@ -151,12 +150,7 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
 
 IS = "is"
 WAS = "was"
-TENSE_INDICATOR = r"""
-    (?:  # TENSE_INDICATOR
-        \b {IS} \b
-        | \b {WAS} \b
-    )
-""".format(IS=IS, WAS=WAS)
+TENSE_INDICATOR = r"(?: \b {IS} \b | \b {WAS} \b )".format(IS=IS, WAS=WAS)
 
 # Standardized result values
 PAST = "past"
@@ -171,18 +165,23 @@ TENSE_LOOKUP = compile_regex_dict({
 # -----------------------------------------------------------------------------
 # ... don't use unnamed groups here; EQ is also used as a return value
 
-LT = "(?: < | less\s+than )"
+LT = "(?: < | less \s+ than )"
 LE = "<="
-EQ = "(?: = | equals | equal\s+to )"
+EQ = "(?: = | equals | equal \s+ to )"
 GE = ">="
-GT = "(?: > | (?:more|greater)\s+than )"
+GT = "(?: > | (?:more|greater) \s+ than )"
 # OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
 
-RELATION = r"""
-    (?:  # RELATION
-        {LT} | {LE} | {EQ} | {GE} | {GT}
-    )
-""".format(LT=LT, LE=LE, EQ=EQ, GE=GE, GT=GT)
+RELATION = r"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )".format(
+    LT=LT,
+    LE=LE,
+    EQ=EQ,
+    GE=GE,
+    GT=GT,
+)
+# ... ORDER MATTERS: greedier things first, i.e.
+# - LE before LT
+# - GE before GT
 
 RELATION_LOOKUP = compile_regex_dict({
     # To standardize the output, so (for example) "=" and "equals" can both
@@ -693,9 +692,12 @@ def print_compiled_regex_results(compiled_regex: typing.re.Pattern, text: str,
 
 def test_text_regex(name: str,
                     regex_text: str,
-                    test_expected_list: List[Tuple[str, List[str]]]) -> None:
+                    test_expected_list: List[Tuple[str, List[str]]],
+                    verbose: bool = False) -> None:
     compiled_regex = compile_regex(regex_text)
     print("Testing regex named {}".format(name))
+    if verbose:
+        print("... regex text:\n{}".format(regex_text))
     for test_string, expected_values in test_expected_list:
         actual_values = get_compiled_regex_results(compiled_regex, test_string)
         assert actual_values == expected_values, (
@@ -713,7 +715,7 @@ def test_text_regex(name: str,
     #                              prefix_spaces=prefix_spaces)
 
 
-def test_base_regexes() -> None:
+def test_base_regexes(verbose: bool = False) -> None:
     # -------------------------------------------------------------------------
     # Operators, etc.
     # -------------------------------------------------------------------------
@@ -723,28 +725,28 @@ def test_base_regexes() -> None:
         ("a × b", ["×"]),
         ("a ⋅ b", ["⋅"]),
         ("a blah b", []),
-    ])
+    ], verbose=verbose)
     test_text_regex("POWER", POWER, [
         ("a ^ b", ["^"]),
         ("a ** b", ["**"]),
         ("10e5", []),
         ("10E5", []),
         ("a blah b", []),
-    ])
-    test_text_regex("POWER", POWER_INC_E, [
+    ], verbose=verbose)
+    test_text_regex("POWER_INC_E", POWER_INC_E, [
         ("a ^ b", ["^"]),
         ("a ** b", ["**"]),
         ("10e5", ["e"]),
         ("10E5", ["E"]),
         ("a blah b", []),
-    ])
+    ], verbose=verbose)
     test_text_regex("BILLION", BILLION, [
         ("10 x 10^9/l", ["x 10^9"]),
-    ])
+    ], verbose=verbose)
     test_text_regex("PLUS_SIGN", PLUS_SIGN, [
         ("a + b", ["+"]),
         ("a blah b", []),
-    ])
+    ], verbose=verbose)
     test_text_regex("MINUS_SIGN", MINUS_SIGN, [
         # good:
         ("a - b", ["-"]),  # ASCII hyphen-minus
@@ -754,7 +756,7 @@ def test_base_regexes() -> None:
         ("a — b", []),  # em dash
         ("a ‐ b", []),  # Unicode formal hyphen
         ("a blah b", []),
-    ])
+    ], verbose=verbose)
     # Can't test optional regexes very easily! They match nothing.
     test_text_regex("SIGN", SIGN, [
         # good:
@@ -766,7 +768,7 @@ def test_base_regexes() -> None:
         ("a — b", []),  # em dash
         ("a ‐ b", []),  # Unicode formal hyphen
         ("a blah b", []),
-    ])
+    ], verbose=verbose)
 
     # -------------------------------------------------------------------------
     # Number elements
@@ -775,7 +777,7 @@ def test_base_regexes() -> None:
         ("a 1234 b", ["1234"]),
         ("a 1234.5 b", ["1234", "5"]),
         ("a 12,000 b", ["12", "000"]),
-    ])
+    ], verbose=verbose)
     test_text_regex(
         "PLAIN_INTEGER_W_THOUSAND_COMMAS",
         PLAIN_INTEGER_W_THOUSAND_COMMAS,
@@ -783,7 +785,8 @@ def test_base_regexes() -> None:
             ("a 1234 b", ["1234"]),
             ("a 1234.5 b", ["1234", "5"]),
             ("a 12,000 b", ["12,000"]),
-        ]
+        ],
+        verbose=verbose
     )
     test_text_regex(
         "SCIENTIFIC_NOTATION_EXPONENT",
@@ -793,12 +796,14 @@ def test_base_regexes() -> None:
             ("E-4", ["E-4"]),
             ("e15", ["e15"]),
             ("e15.3", ["e15"]),
-        ]
+        ],
+        verbose=verbose
     )
 
     # -------------------------------------------------------------------------
     # Number types
     # -------------------------------------------------------------------------
+
     test_text_regex("UNSIGNED_INTEGER", UNSIGNED_INTEGER, [
         ("1", ["1"]),
         ("12345", ["12345"]),
@@ -811,7 +816,7 @@ def test_base_regexes() -> None:
         ("9,800", ["9,800"]),
         ("17,600.34", ["17,600", "34"]),
         ("-17,300.6588", ["17,300", "6588"]),
-    ])
+    ], verbose=verbose)
     test_text_regex("SIGNED_INTEGER", SIGNED_INTEGER, [
         ("1", ["1"]),
         ("12345", ["12345"]),
@@ -824,7 +829,7 @@ def test_base_regexes() -> None:
         ("9,800", ["9,800"]),
         ("17,600.34", ["17,600", "34"]),
         ("-17,300.6588", ["-17,300", "6588"]),
-    ])
+    ], verbose=verbose)
     test_text_regex("UNSIGNED_FLOAT", UNSIGNED_FLOAT, [
         ("1", ["1"]),
         ("12345", ["12345"]),
@@ -837,7 +842,7 @@ def test_base_regexes() -> None:
         ("9,800", ["9,800"]),
         ("17,600.34", ["17,600.34"]),
         ("-17,300.6588", ["17,300.6588"]),
-    ])
+    ], verbose=verbose)
     test_text_regex("SIGNED_FLOAT", SIGNED_FLOAT, [
         ("1", ["1"]),
         ("12345", ["12345"]),
@@ -850,7 +855,7 @@ def test_base_regexes() -> None:
         ("9,800", ["9,800"]),
         ("17,600.34", ["17,600.34"]),
         ("-17,300.6588", ["-17,300.6588"]),
-    ])
+    ], verbose=verbose)
     test_text_regex("LIBERAL_NUMBER", LIBERAL_NUMBER, [
         ("1", ["1"]),
         ("12345", ["12345"]),
@@ -863,22 +868,32 @@ def test_base_regexes() -> None:
         ("9,800", ["9,800"]),
         ("17,600.34", ["17,600.34"]),
         ("-17,300.6588", ["-17,300.6588"]),
-    ])
+    ], verbose=verbose)
+
+    # -------------------------------------------------------------------------
+    # Units
+    # -------------------------------------------------------------------------
+
     test_text_regex("CELLS", CELLS, [
         ("cells", ["cells"]),
         ("blibble", []),
-    ])
+    ], verbose=verbose)
     test_text_regex("CUBIC_MM", CUBIC_MM, [
         ("mm3", ["mm3"]),
         ("blibble", []),
-    ])
+    ], verbose=verbose)
     test_text_regex("PER_CUBIC_MM", PER_CUBIC_MM, [
         ("per cubic mm", ["per cubic mm"]),
-    ])
+    ], verbose=verbose)
     test_text_regex("CELLS_PER_CUBIC_MM", CELLS_PER_CUBIC_MM, [
         ("cells/mm3", ["cells/mm3"]),
         ("blibble", []),
-    ])
+    ], verbose=verbose)
+
+    # -------------------------------------------------------------------------
+    # Things to ignore
+    # -------------------------------------------------------------------------
+
     test_text_regex(
         "OPTIONAL_RESULTS_IGNORABLES",
         OPTIONAL_RESULTS_IGNORABLES, [
@@ -890,16 +905,46 @@ def test_base_regexes() -> None:
             ("(LL)", ['(LL)', '']),
             ("(*)", ['(*)', '']),
             ("  |  (H)  |  ", ['  |  (H)  |  ', '']),
-        ]
+        ],
+        verbose=verbose
     )
+
+    # -------------------------------------------------------------------------
+    # Tense indicators
+    # -------------------------------------------------------------------------
+
+    test_text_regex("TENSE_INDICATOR", TENSE_INDICATOR, [
+        ("a is b", ["is"]),
+        ("a was b", ["was"]),
+        ("a blah b", []),
+    ])
+
+    # -------------------------------------------------------------------------
+    # Mathematical relations
+    # -------------------------------------------------------------------------
+
+    test_text_regex("RELATION", RELATION, [
+        ("a < b", ["<"]),
+        ("a less than b", ["less than"]),
+        ("a <= b", ["<="]),
+        ("a = b", ["="]),
+        ("a equals b", ["equals"]),
+        ("a equal to b", ["equal to"]),
+        ("a >= b", [">="]),
+        ("a > b", [">"]),
+        ("a more than b", ["more than"]),
+        ("a greater than b", ["greater than"]),
+        ("a blah b", []),
+    ])
+
 
 
 # =============================================================================
 #  Command-line entry point
 # =============================================================================
 
-def test_all() -> None:
-    test_base_regexes()
+def test_all(verbose: bool = False) -> None:
+    test_base_regexes(verbose=verbose)
     # learning_alternative_regex_groups()
 
 

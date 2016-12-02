@@ -11,7 +11,7 @@
 # -----------------------------------------------------------------------------
 
 def times_ten_to_power(n):
-    return r"(?:{MULTIPLY}?\s*10\s*{POWER_INC_E}\s*{n})".format(
+    return r"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E} \s* {n})".format(
         MULTIPLY=MULTIPLY, POWER_INC_E=POWER_INC_E, n=n)
 
 MULTIPLY = r"[x\*×⋅]"  # x, *, ×, ⋅
