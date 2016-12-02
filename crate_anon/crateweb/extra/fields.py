@@ -147,7 +147,8 @@ def choice_explanation(value: str, choices: Iterable[Tuple[str, str]]) -> str:
 # Conversions: Python
 # -----------------------------------------------------------------------------
 
-def iso_string_to_python_datetime(isostring: str) -> datetime.datetime:
+def iso_string_to_python_datetime(
+        isostring: str) -> Optional[datetime.datetime]:
     """Takes an ISO-8601 string and returns a datetime."""
     if not isostring:
         return None  # if you parse() an empty string, you get today's date
@@ -419,7 +420,8 @@ def iso_string_to_sql_date_sqlite(x: str) -> str:
 # Lookups
 # -----------------------------------------------------------------------------
 
-def isodt_lookup_mysql(lookup, compiler, connection, operator) -> str:
+def isodt_lookup_mysql(lookup, compiler, connection,
+                       operator) -> Tuple[str, Any]:
     lhs, lhs_params = compiler.compile(lookup.lhs)
     rhs, rhs_params = lookup.process_rhs(compiler, connection)
     params = lhs_params + rhs_params
@@ -430,7 +432,8 @@ def isodt_lookup_mysql(lookup, compiler, connection, operator) -> str:
     ), params
 
 
-def isodt_lookup_sqlite(lookup, compiler, connection, operator) -> str:
+def isodt_lookup_sqlite(lookup, compiler, connection,
+                        operator) -> Tuple[str, Any]:
     lhs, lhs_params = compiler.compile(lookup.lhs)
     rhs, rhs_params = lookup.process_rhs(compiler, connection)
     params = lhs_params + rhs_params
@@ -448,10 +451,10 @@ def isodt_lookup_sqlite(lookup, compiler, connection, operator) -> str:
 class IsoDateTimeLessThan(models.Lookup):
     lookup_name = 'lt'
 
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_mysql(self, compiler, connection, "<")
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_sqlite(self, compiler, connection, "<")
 
 
@@ -460,10 +463,10 @@ class IsoDateTimeLessThan(models.Lookup):
 class IsoDateTimeLessThanEqual(models.Lookup):
     lookup_name = 'lte'
 
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_mysql(self, compiler, connection, "<=")
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_sqlite(self, compiler, connection, "<=")
 
 
@@ -472,10 +475,10 @@ class IsoDateTimeLessThanEqual(models.Lookup):
 class IsoDateTimeExact(models.Lookup):
     lookup_name = 'exact'
 
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_mysql(self, compiler, connection, "=")
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_sqlite(self, compiler, connection, "=")
 
 
@@ -484,10 +487,10 @@ class IsoDateTimeExact(models.Lookup):
 class IsoDateTimeGreaterThan(models.Lookup):
     lookup_name = 'gt'
 
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_mysql(self, compiler, connection, ">")
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_sqlite(self, compiler, connection, ">")
 
 
@@ -496,10 +499,10 @@ class IsoDateTimeGreaterThan(models.Lookup):
 class IsoDateTimeGreaterThanEqual(models.Lookup):
     lookup_name = 'gte'
 
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_mysql(self, compiler, connection, ">=")
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         return isodt_lookup_sqlite(self, compiler, connection, ">=")
 
 
@@ -523,12 +526,12 @@ class IsoStringToUtcDateTime(models.Transform):
         return DateTimeField()
 
     # noinspection PyUnusedLocal
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         log.debug("IsoStringToUtcDateTime.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdatetime_mysql(lhs), params
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         log.debug("IsoStringToUtcDateTime.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdatetime_pythonformat_sqlite(lhs), params
@@ -547,12 +550,12 @@ class IsoStringToUtcDate(models.Transform):
         return DateField()
 
     # noinspection PyUnusedLocal
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         log.debug("IsoStringToUtcDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdate_mysql(lhs), params
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         log.debug("IsoStringToUtcDate.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_utcdate_sqlite(lhs), params
@@ -572,12 +575,12 @@ class IsoStringToSourceDate(models.Transform):
         return DateField()
 
     # noinspection PyUnusedLocal
-    def as_mysql(self, compiler, connection) -> str:
+    def as_mysql(self, compiler, connection) -> Tuple[str, Any]:
         log.debug("IsoStringToSourceDate.as_mysql")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_date_mysql(lhs), params
 
-    def as_sqlite(self, compiler, connection) -> str:
+    def as_sqlite(self, compiler, connection) -> Tuple[str, Any]:
         log.debug("IsoStringToSourceDate.as_sqlite")
         lhs, params = compiler.compile(self.lhs)
         return iso_string_to_sql_date_sqlite(lhs), params

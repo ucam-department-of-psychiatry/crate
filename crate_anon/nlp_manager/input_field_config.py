@@ -3,7 +3,7 @@
 
 import logging
 # import sys
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
@@ -261,7 +261,8 @@ class InputFieldConfig(object):
         return pk_is_integer
 
     def gen_text(self, tasknum: int = 0,
-                 ntasks: int = 1) -> Iterator(Tuple[str, Dict[str, Any]]):
+                 ntasks: int = 1) -> Generator[Tuple[str, Dict[str, Any]],
+                                               None, None]:
         """
         Generate text strings from the input database.
         Yields tuple of (text, dict), where the dict is a column-to-value
@@ -337,7 +338,7 @@ class InputFieldConfig(object):
                     yield text, other_values
                     nrows_returned += 1
 
-    def get_count(self) -> Tuple[int, Optional[int]]:
+    def get_count(self) -> int:
         """
         Counts records in the input table for the given InputFieldConfig.
         Used for progress monitoring.
@@ -371,7 +372,7 @@ class InputFieldConfig(object):
             # This was surprisingly slow under SQL Server testing.
             return query.one_or_none()
 
-    def gen_src_pks(self) -> Iterator(Tuple[int, Optional[str]]):
+    def gen_src_pks(self) -> Generator[Tuple[int, Optional[str]], None, None]:
         """
         Generate integer PKs from the source table specified for the
         InputFieldConfig.

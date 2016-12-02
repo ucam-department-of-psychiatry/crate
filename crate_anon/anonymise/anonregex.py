@@ -327,13 +327,13 @@ def get_string_regex_elements(
 def get_phrase_regex_elements(
         phrase: str,
         at_word_boundaries_only: bool = True,
-        max_errors: int = 0) -> List[str]:
+        max_errors: int = 0) -> Optional[List[str]]:
     """
     phrase: e.g. '4 Privet Drive'
     """
     strings = get_anon_fragments_from_string(phrase)
     if not strings:
-        return
+        return None
     strings = [escape_literal_string_for_regex(x) for x in strings]
     s = AT_LEAST_ONE_NONWORD.join(strings)
     if max_errors > 0:

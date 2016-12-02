@@ -10,7 +10,6 @@ import prettytable
 
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-from crate_anon.nlp_manager.regex_parser import test_base_regexes
 
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex
@@ -119,7 +118,6 @@ def possible_processor_table() -> str:
 
 
 def test_all_processors() -> None:
-    test_base_regexes()
     for cls in all_parser_classes():
         if cls.__name__ in ['Gate',
                             'Medex',
@@ -133,6 +131,7 @@ def test_all_processors() -> None:
         print("Testing parser class: {}".format(cls.__name__))
         # noinspection PyCallingNonCallable
         instance = cls(None, None)
+        print("... instantiated OK")
         instance.test()
 
 

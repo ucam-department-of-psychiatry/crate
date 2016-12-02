@@ -5,7 +5,7 @@ from collections import OrderedDict
 # import logging
 # log = logging.getLogger(__name__)
 import re
-from typing import Any, Dict, Iterator, List
+from typing import Any, Dict, Generator, List, Optional
 
 
 COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
@@ -92,7 +92,7 @@ def tsv_escape(x: str) -> str:
     return x.replace("\t", "\\t").replace("\n", "\\n")
 
 
-def genrows(cursor, arraysize: int = 1000) -> Iterator[List[Any]]:
+def genrows(cursor, arraysize: int = 1000) -> Generator[List[Any], None, None]:
     """Generate all rows from a cursor."""
     # http://code.activestate.com/recipes/137270-use-generators-for-fetching-large-db-record-sets/  # noqa
     while True:
@@ -103,7 +103,7 @@ def genrows(cursor, arraysize: int = 1000) -> Iterator[List[Any]]:
             yield result
 
 
-def genfirstvalues(cursor, arraysize: int = 1000) -> Iterator[Any]:
+def genfirstvalues(cursor, arraysize: int = 1000) -> Generator[Any, None, None]:
     """Generate the first value in each row."""
     return (row[0] for row in genrows(cursor, arraysize))
 
@@ -113,7 +113,8 @@ def fetchallfirstvalues(cursor) -> List[Any]:
     return [row[0] for row in cursor.fetchall()]
 
 
-def gendicts(cursor, arraysize: int = 1000) -> Iterator[Dict[str, Any]]:
+def gendicts(cursor, arraysize: int = 1000) -> Generator[Dict[str, Any],
+                                                         None, None]:
     """Generate all rows from a cursor as a list of OrderedDicts."""
     columns = get_fieldnames_from_cursor(cursor)
     return (
@@ -131,7 +132,7 @@ def dictfetchall(cursor) -> List[Dict[str, Any]]:
     ]
 
 
-def dictfetchone(cursor) -> Dict[str, Any]:
+def dictfetchone(cursor) -> Optional[Dict[str, Any]]:
     """
     Return the next row from a cursor as an OrderedDict, or None
     """

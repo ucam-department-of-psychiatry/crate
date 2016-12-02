@@ -30,7 +30,7 @@ Copyright/licensing:
 import hashlib
 import hmac
 import sys
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, Tuple, Union
 from crate_anon.common.timing import MultiTimerContext, timer
 
 try:
@@ -133,7 +133,7 @@ class HmacSHA512Hasher(GenericHmacHasher):
 # Support functions
 # =============================================================================
 
-def to_bytes(data: Any) -> bytes:
+def to_bytes(data: Any) -> bytearray:
     if isinstance(data, int):
         return bytearray([data])
     return bytearray(data, encoding='latin-1')
@@ -173,7 +173,7 @@ def bytes_to_long(bytesdata: bytes) -> int:
 # SO ones
 # -----------------------------------------------------------------------------
 
-def murmur3_x86_32(data: bytes, seed: int = 0) -> int:
+def murmur3_x86_32(data: Union[bytes, bytearray], seed: int = 0) -> int:
     # http://stackoverflow.com/questions/13305290/is-there-a-pure-python-implementation-of-murmurhash  # noqa
     c1 = 0xcc9e2d51
     c2 = 0x1b873593
@@ -224,7 +224,7 @@ def murmur3_x86_32(data: bytes, seed: int = 0) -> int:
     return h1 & 0xffffffff
 
 
-def murmur3_64(data: bytes, seed: int = 19820125) -> int:
+def murmur3_64(data: Union[bytes, bytearray], seed: int = 19820125) -> int:
     # http://stackoverflow.com/questions/13305290/is-there-a-pure-python-implementation-of-murmurhash  # noqa
     # ... plus RNC bugfixes
     m = 0xc6a4a7935bd1e995
@@ -281,7 +281,7 @@ def murmur3_64(data: bytes, seed: int = 19820125) -> int:
 # pymmh3 ones, renamed, with some bugfixes
 # -----------------------------------------------------------------------------
 
-def pymmh3_hash128_x64(key: bytes, seed: int) -> int:
+def pymmh3_hash128_x64(key: Union[bytes, bytearray], seed: int) -> int:
     """Implements 128bit murmur3 hash for x64."""
 
     def fmix(k):
@@ -410,7 +410,7 @@ def pymmh3_hash128_x64(key: bytes, seed: int) -> int:
     return h2 << 64 | h1
 
 
-def pymmh3_hash128_x86(key: bytes, seed: int) -> int:
+def pymmh3_hash128_x86(key: Union[bytes, bytearray], seed: int) -> int:
     """Implements 128bit murmur3 hash for x86."""
 
     def fmix(h):
@@ -591,7 +591,9 @@ def pymmh3_hash128_x86(key: bytes, seed: int) -> int:
     return h4 << 96 | h3 << 64 | h2 << 32 | h1
 
 
-def pymmh3_hash128(key: bytes, seed: int = 0, x64arch: bool = True) -> int:
+def pymmh3_hash128(key: Union[bytes, bytearray],
+                   seed: int = 0,
+                   x64arch: bool = True) -> int:
     """Implements 128bit murmur3 hash."""
     if x64arch:
         return pymmh3_hash128_x64(key, seed)
@@ -599,7 +601,8 @@ def pymmh3_hash128(key: bytes, seed: int = 0, x64arch: bool = True) -> int:
         return pymmh3_hash128_x86(key, seed)
 
 
-def pymmh3_hash64(key: bytes, seed: int = 0,
+def pymmh3_hash64(key: Union[bytes, bytearray],
+                  seed: int = 0,
                   x64arch: bool = True) -> Tuple[int, int]:
     """Implements 64bit murmur3 hash. Returns a tuple."""
 

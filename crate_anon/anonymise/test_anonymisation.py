@@ -56,7 +56,7 @@ import csv
 import json
 import logging
 import os
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from crate_anon.anonymise.anonymise import config, extract_text
 from crate_anon.anonymise.patient import Patient
@@ -102,7 +102,8 @@ class FieldInfo(object):
 
 
 def get_patientnum_rawtext(docid: int,
-                           fieldinfo: FieldInfo) -> Tuple[int, str]:
+                           fieldinfo: FieldInfo) -> Tuple[Optional[int],
+                                                          Optional[str]]:
     """
     Fetches the original text for a given document PK, plus the associated
     patient ID.
@@ -150,7 +151,8 @@ def get_patientnum_rawtext(docid: int,
 
 
 def get_patientnum_anontext(docid: int,
-                            fieldinfo: FieldInfo) -> Tuple[int, str]:
+                            fieldinfo: FieldInfo) -> Tuple[Optional[int],
+                                                           Optional[str]]:
     """
     Fetches the anonymised text for a given document PK, plus the associated
     patient ID.

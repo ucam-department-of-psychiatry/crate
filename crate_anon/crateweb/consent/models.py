@@ -1779,7 +1779,7 @@ class TeamInfo(object):
             return []
 
     @cached_property
-    def team_choices(self) -> Tuple[str, str]:
+    def team_choices(self) -> List[Tuple[str, str]]:
         teams = self.teams
         return [(team, team) for team in teams]
 
@@ -2280,7 +2280,7 @@ class ContactRequest(models.Model):
         self.decide("Stopping: " + msg)
         self.decided_no_action = True
 
-    def calc_approaches_in_past_year(self) -> int:
+    def calc_approaches_in_past_year(self) -> None:
         # How best to count this?
         # Not by e.g. calendar year, with a flag that gets reset to zero
         # annually, because you might have a limit of 5, and get 4 requests in
@@ -2323,6 +2323,7 @@ class ContactRequest(models.Model):
             return None
         if self.decided_send_to_researcher:
             # Green route
+            # noinspection PyTypeChecker
             return self.created_at
         if self.decided_send_to_clinician:
             # Yellow route -> patient -> said yes
@@ -2566,7 +2567,7 @@ class ContactRequest(models.Model):
                 pdf_plans.append(PdfPlan(is_filename=True,
                                          filename=leaflet.pdf.path))
             except ObjectDoesNotExist:
-                log.warn("Missing traffic-light leaflet!")
+                log.warning("Missing traffic-light leaflet!")
                 email_rdbm_task.delay(
                     subject="ERROR FROM RESEARCH DATABASE COMPUTER",
                     text=(
@@ -2581,7 +2582,7 @@ class ContactRequest(models.Model):
             pdf_plans.append(PdfPlan(is_filename=True,
                                      filename=leaflet.pdf.path))
         except ObjectDoesNotExist:
-            log.warn("Missing taking-part-in-research leaflet!")
+            log.warning("Missing taking-part-in-research leaflet!")
             email_rdbm_task.delay(
                 subject="ERROR FROM RESEARCH DATABASE COMPUTER",
                 text=(

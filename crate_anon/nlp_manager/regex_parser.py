@@ -8,7 +8,7 @@ import regex
 # noinspection PyProtectedMember
 from regex import _regex_core
 import typing
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -19,7 +19,17 @@ from crate_anon.nlp_manager.constants import (
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_numbers import (
+    BILLION,
     LIBERAL_NUMBER,
+    MINUS_SIGN,
+    MULTIPLY,
+    PLAIN_INTEGER,
+    PLAIN_INTEGER_W_THOUSAND_COMMAS,
+    PLUS_SIGN,
+    POWER,
+    POWER_INC_E,
+    SCIENTIFIC_NOTATION_EXPONENT,
+    SIGN,
     SIGNED_FLOAT,
     SIGNED_INTEGER,
     UNSIGNED_FLOAT,
@@ -49,7 +59,8 @@ log = logging.getLogger(__name__)
 # Regex basics
 # -----------------------------------------------------------------------------
 
-REGEX_COMPILE_FLAGS = regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE
+REGEX_COMPILE_FLAGS = (regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE |
+                       regex.UNICODE)
 WORD_BOUNDARY = r"\b"
 OPTIONAL_WHITESPACE = r"\s?"
 
@@ -114,6 +125,11 @@ OPTIONAL_RESULTS_IGNORABLES = r"""
         | \*        # *
         | \(\*\)    # (*)
         | \(        # isolated left parenthesis
+        | —         # em dash
+        | --        # double hyphen used as dash
+        | –\s+      # en dash followed by whitespace
+        | -\s+      # ASCII hyphen followed by whitespace
+        | ‐\s+      # Unicode hyphen followed by whitespace
     )*
 """
 # - you often get | characters when people copy/paste tables
@@ -185,8 +201,9 @@ RELATION_LOOKUP = compile_regex_dict({
 
 def to_float(s: str) -> Optional[float]:
     try:
-        if ',' in s:  # comma as thousands separator
-            s = s.replace(',', '')
+        s = s.replace(',', '')  # comma as thousands separator
+        s = s.replace('−', '-')  # Unicode minus
+        s = s.replace('–', '-')  # en dash
         return float(s)
     except (TypeError, ValueError):
         return None
@@ -301,7 +318,8 @@ class NumericalResultParser(BaseNlpParser):
                        PAST, PRESENT)),
         ]}
 
-    def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]], None,
+                                            None]:
         """Default parser for NumericalResultParser."""
         raise NotImplementedError
 
@@ -365,6 +383,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
                  variable: str,
                  target_unit: str,
                  units_to_factor: Dict[typing.re.Pattern, float],
+                 take_absolute: bool = False,
                  commit: bool = False,
                  debug: bool = False) -> None:
         """
@@ -388,6 +407,18 @@ class SimpleNumericalResultParser(NumericalResultParser):
               to ignore a relative neutrophil count ("neutrophils 2.2%") while
               detecting absolute neutrophil counts ("neutrophils 2.2"), or
               ignoring "docusate sodium 100mg" but detecting "sodium 140 mM".
+
+        take_absolute: converts negative values to positive ones.
+            Typical text requiring this might look like:
+                CRP-4
+                CRP-106
+                CRP -97
+                Blood results for today as follows: Na- 142, K-4.1, ...
+            ... occurring in 23 / 8054 for CRP of one test set in our data.
+            For many quantities, we know that they cannot be negative,
+            so this is just a notation rather than a minus sign.
+            We have to account for it, or it'll distort our values.
+            Preferable to account for it here rather than later; see manual.
         """
         super().__init__(nlpdef=nlpdef,
                          cfgsection=cfgsection,
@@ -398,9 +429,11 @@ class SimpleNumericalResultParser(NumericalResultParser):
             print("Regex for {}: {}".format(type(self).__name__, regex_str))
         self.compiled_regex = compile_regex(regex_str)
         self.units_to_factor = compile_regex_dict(units_to_factor)
+        self.take_absolute = take_absolute
 
     def parse(self, text: str,
-              debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
+                                                None, None]:
         """Default parser for SimpleNumericalResultParser."""
         for m in self.compiled_regex.finditer(text):
             startpos = m.start()
@@ -433,6 +466,9 @@ class SimpleNumericalResultParser(NumericalResultParser):
                                              multiple_or_fn)
             elif self.assume_preferred_unit:  # unit is None or empty
                 value_in_target_units = to_float(value_text)
+
+            if value_in_target_units is not None and self.take_absolute:
+                value_in_target_units = abs(value_in_target_units)
 
             tense, relation = common_tense(tense_text, relation_text)
 
@@ -586,7 +622,8 @@ class ValidatorBase(BaseNlpParser):
                    doc="End position (of matching string within whole text)"),
         ]}
 
-    def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
+                                            None, None]:
         """Parser for ValidatorBase."""
         for compiled_regex in self.compiled_regex_list:
             for m in compiled_regex.finditer(text):
@@ -662,11 +699,13 @@ def test_text_regex(name: str,
     for test_string, expected_values in test_expected_list:
         actual_values = get_compiled_regex_results(compiled_regex, test_string)
         assert actual_values == expected_values, (
-            """Regex {}: Expected {}, got {}, when parsing {}""".format(
-                name,
-                expected_values,
-                actual_values,
-                repr(test_string)
+            "Regex {name}: Expected {expected_values}, got {actual_values}, "
+            "when parsing {test_string}. Regex text:\n{regex_text}]".format(
+                name=name,
+                expected_values=expected_values,
+                actual_values=actual_values,
+                test_string=repr(test_string),
+                regex_text=regex_text,
             )
         )
     print("... OK")
@@ -675,6 +714,91 @@ def test_text_regex(name: str,
 
 
 def test_base_regexes() -> None:
+    # -------------------------------------------------------------------------
+    # Operators, etc.
+    # -------------------------------------------------------------------------
+    test_text_regex("MULTIPLY", MULTIPLY, [
+        ("a * b", ["*"]),
+        ("a x b", ["x"]),
+        ("a × b", ["×"]),
+        ("a ⋅ b", ["⋅"]),
+        ("a blah b", []),
+    ])
+    test_text_regex("POWER", POWER, [
+        ("a ^ b", ["^"]),
+        ("a ** b", ["**"]),
+        ("10e5", []),
+        ("10E5", []),
+        ("a blah b", []),
+    ])
+    test_text_regex("POWER", POWER_INC_E, [
+        ("a ^ b", ["^"]),
+        ("a ** b", ["**"]),
+        ("10e5", ["e"]),
+        ("10E5", ["E"]),
+        ("a blah b", []),
+    ])
+    test_text_regex("BILLION", BILLION, [
+        ("10 x 10^9/l", ["x 10^9"]),
+    ])
+    test_text_regex("PLUS_SIGN", PLUS_SIGN, [
+        ("a + b", ["+"]),
+        ("a blah b", []),
+    ])
+    test_text_regex("MINUS_SIGN", MINUS_SIGN, [
+        # good:
+        ("a - b", ["-"]),  # ASCII hyphen-minus
+        ("a − b", ["−"]),  # Unicode minus
+        ("a – b", ["–"]),  # en dash
+        # bad:
+        ("a — b", []),  # em dash
+        ("a ‐ b", []),  # Unicode formal hyphen
+        ("a blah b", []),
+    ])
+    # Can't test optional regexes very easily! They match nothing.
+    test_text_regex("SIGN", SIGN, [
+        # good:
+        ("a + b", ["+"]),
+        ("a - b", ["-"]),  # ASCII hyphen-minus
+        ("a − b", ["−"]),  # Unicode minus
+        ("a – b", ["–"]),  # en dash
+        # bad:
+        ("a — b", []),  # em dash
+        ("a ‐ b", []),  # Unicode formal hyphen
+        ("a blah b", []),
+    ])
+
+    # -------------------------------------------------------------------------
+    # Number elements
+    # -------------------------------------------------------------------------
+    test_text_regex("PLAIN_INTEGER", PLAIN_INTEGER, [
+        ("a 1234 b", ["1234"]),
+        ("a 1234.5 b", ["1234", "5"]),
+        ("a 12,000 b", ["12", "000"]),
+    ])
+    test_text_regex(
+        "PLAIN_INTEGER_W_THOUSAND_COMMAS",
+        PLAIN_INTEGER_W_THOUSAND_COMMAS,
+        [
+            ("a 1234 b", ["1234"]),
+            ("a 1234.5 b", ["1234", "5"]),
+            ("a 12,000 b", ["12,000"]),
+        ]
+    )
+    test_text_regex(
+        "SCIENTIFIC_NOTATION_EXPONENT",
+        SCIENTIFIC_NOTATION_EXPONENT,
+        [
+            ("a 1234 b", []),
+            ("E-4", ["E-4"]),
+            ("e15", ["e15"]),
+            ("e15.3", ["e15"]),
+        ]
+    )
+
+    # -------------------------------------------------------------------------
+    # Number types
+    # -------------------------------------------------------------------------
     test_text_regex("UNSIGNED_INTEGER", UNSIGNED_INTEGER, [
         ("1", ["1"]),
         ("12345", ["12345"]),
@@ -707,7 +831,7 @@ def test_base_regexes() -> None:
         ("-1", ["1"]),
         ("1.2", ["1.2"]),
         ("-3.4", ["3.4"]),
-        ("+3.4", ["3.4"]),
+        ("+3.4", ["+3.4"]),
         ("-3.4e27.3", ["3.4", "27.3"]),
         ("3.4e-27", ["3.4", "27"]),
         ("9,800", ["9,800"]),
@@ -774,6 +898,10 @@ def test_base_regexes() -> None:
 #  Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+def test_all() -> None:
     test_base_regexes()
-    learning_alternative_regex_groups()
+    # learning_alternative_regex_groups()
+
+
+if __name__ == '__main__':
+    test_all()

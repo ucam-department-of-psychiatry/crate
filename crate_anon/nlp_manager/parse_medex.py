@@ -308,7 +308,7 @@ import os
 import shlex
 import subprocess
 import tempfile
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from cardinal_pythonlib.rnc_lang import AttrDict
 from sqlalchemy import Column, Index, Integer, String, Text
@@ -496,7 +496,8 @@ class Medex(BaseNlpParser):
     # Input processing
     # -------------------------------------------------------------------------
 
-    def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
+                                            None, None]:
         """
         - Send text to the external process, and receive the result.
         - Note that associated data is not passed into this function, and is

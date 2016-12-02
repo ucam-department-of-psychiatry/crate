@@ -5,7 +5,7 @@ import logging
 import os
 import shlex
 import subprocess
-from typing import Any, Dict, Iterator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from cardinal_pythonlib.rnc_lang import chunks
 from sqlalchemy import Column, Index, Integer, Text
@@ -153,7 +153,8 @@ class Gate(BaseNlpParser):
     # Input processing
     # -------------------------------------------------------------------------
 
-    def parse(self, text: str) -> Iterator[Tuple[str, Dict[str, Any]]]:
+    def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
+                                            None, None]:
         """
         - Send text to the external process, and receive the result.
         - Note that associated data is not passed into this function, and is

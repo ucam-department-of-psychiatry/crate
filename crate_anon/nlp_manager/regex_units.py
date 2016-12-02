@@ -164,7 +164,7 @@ KG_PER_SQ_M = r"""
 
 def kg_from_st_lb_oz(stones: float = 0,
                      pounds: float = 0,
-                     ounces: float = 0) -> float:
+                     ounces: float = 0) -> Optional[float]:
     # 16 ounces in a pound
     # 14 pounds in a stone
     # 1 avoirdupois pound = 0.45359237 kg
@@ -177,7 +177,7 @@ def kg_from_st_lb_oz(stones: float = 0,
         return None
 
 
-def m_from_ft_in(feet: float = 0, inches: float = 0) -> float:
+def m_from_ft_in(feet: float = 0, inches: float = 0) -> Optional[float]:
     # 12 inches in a foot
     # 1 inch = 25.4 mm
     try:
@@ -187,7 +187,7 @@ def m_from_ft_in(feet: float = 0, inches: float = 0) -> float:
         return None
 
 
-def m_from_m_cm(metres: float = 0, centimetres: float = 0) -> float:
+def m_from_m_cm(metres: float = 0, centimetres: float = 0) -> Optional[float]:
     try:
         return metres + (centimetres / 100)
     except (TypeError, ValueError):

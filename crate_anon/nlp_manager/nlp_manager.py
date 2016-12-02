@@ -207,6 +207,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         'session': nlpdef.get_progdb_session(),
         'engine': nlpdef.get_progdb_engine(),
         'metadata': nlpdef.get_progdb_metadata(),
+        'temptable': None,  # type: Table
     }]
 
     # Add the processors' destination databases

@@ -22,6 +22,7 @@ from sqlalchemy.sql.expression import (
     Insert,
     TableClause,
 )
+from sqlalchemy.sql.sqltypes import TypeEngine
 
 log = logging.getLogger(__name__)
 
@@ -411,9 +412,9 @@ def remove_collation(coltype: Column) -> Column:
 
 
 @lru_cache(maxsize=None)
-def convert_sqla_type_for_dialect(coltype: Column,
+def convert_sqla_type_for_dialect(coltype: TypeEngine,
                                   dialect: Any,
-                                  strip_collation: bool = True) -> Column:
+                                  strip_collation: bool = True) -> TypeEngine:
     # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
     #                                                     vars(coltype)))
     to_mysql = dialect.name == 'mysql'

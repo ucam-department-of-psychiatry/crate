@@ -97,7 +97,8 @@ class Crp(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -126,6 +127,7 @@ class Crp(SimpleNumericalResultParser):
             ("CRP is 19 mg dl-1", [190]),
             ("CRP is 19 mg dl -1", [190]),
             ("CRP 1.9 mg/L", [1.9]),
+            ("CRP-97", [97]),
             ("CRP 1.9 mg L-1", [1.9]),
             ("CRP        |       1.9 (H)      | mg/L", [1.9]),
         ])
@@ -207,7 +209,8 @@ class Sodium(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -226,6 +229,7 @@ class Sodium(SimpleNumericalResultParser):
             ("blah (Na) 145 mM", []),
             ("Na (145) something", [145]),
             ("Na (145 mM), others", [145]),
+            ("Na-145", [145])
         ])
 
 
@@ -298,7 +302,8 @@ class Tsh(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -312,6 +317,7 @@ class Tsh(SimpleNumericalResultParser):
             ("TSH 1.5 μIU/mL", [1.5]),
             ("TSH 1.5 uU/mL", [1.5]),
             ("TSH 1.5 uIU/mL", [1.5]),
+            ("TSH-2.3", [2.3])
         ])
 
 
@@ -332,10 +338,14 @@ class TshValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+def test_all() -> None:
     crp = Crp(None, None)
     crp.test()
     na = Sodium(None, None)
     na.test()
     tsh = Tsh(None, None)
     tsh.test()
+
+
+if __name__ == '__main__':
+    test_all()

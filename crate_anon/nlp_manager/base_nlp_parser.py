@@ -6,7 +6,7 @@
 from functools import lru_cache
 import logging
 import sys
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
@@ -69,7 +69,7 @@ class BaseNlpParser(object):
     def get_engine(self):
         return self._destdb.engine
 
-    def get_nlpdef_name(self) -> str:
+    def get_nlpdef_name(self) -> Optional[str]:
         if self._nlpdef is None:
             return None
         return self._nlpdef.get_name()
@@ -170,7 +170,7 @@ class BaseNlpParser(object):
             # You can copy a Column, but not an Index.
         return tables
 
-    def get_tablenames(self) -> List[str]:
+    def get_tablenames(self) -> Iterable[str]:
         return self.dest_tables_columns().keys()
 
     def get_table(self, tablename: str) -> Table:

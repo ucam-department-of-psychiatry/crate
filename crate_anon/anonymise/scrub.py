@@ -30,7 +30,7 @@ Copyright/licensing:
 from collections import OrderedDict
 import datetime
 import logging
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterable, Generator, List, Optional, Union
 
 from cardinal_pythonlib.rnc_datetime import (
     coerce_to_date,
@@ -88,7 +88,8 @@ class ScrubberBase(object):
 # list?) and a blacklist (scrub text using the wordlist).
 # =============================================================================
 
-def lower_case_words_from_file(fileobj: Iterable[str]) -> Iterator[str]:
+def lower_case_words_from_file(fileobj: Iterable[str]) -> Generator[str, None,
+                                                                    None]:
     for line in fileobj:
         for word in line.split():
             yield word.lower()
@@ -310,7 +311,7 @@ class PersonalizedScrubber(ScrubberBase):
 
     @staticmethod
     def get_scrub_method(datatype_long: str,
-                         scrub_method: Optional[SCRUBMETHOD]) -> str:
+                         scrub_method: Optional[SCRUBMETHOD]) -> SCRUBMETHOD:
         """
         Return the default scrub method for a given SQL datatype,
         unless overridden.
@@ -326,7 +327,7 @@ class PersonalizedScrubber(ScrubberBase):
 
     def add_value(self,
                   value: Any,
-                  scrub_method: str,
+                  scrub_method: SCRUBMETHOD,
                   patient: bool = True,
                   clear_cache: bool = True) -> None:
         """
@@ -358,8 +359,9 @@ class PersonalizedScrubber(ScrubberBase):
         if clear_cache:
             self.clear_cache()
 
-    def get_elements_date(self, value: Union[datetime.datetime,
-                                             datetime.date]) -> List[str]:
+    def get_elements_date(self,
+                          value: Union[datetime.datetime,
+                                       datetime.date]) -> Optional[List[str]]:
         # Source is a date.
         try:
             value = coerce_to_date(value)
@@ -469,7 +471,7 @@ class PersonalizedScrubber(ScrubberBase):
             log.debug("Third party scrubber: {}".format(
                 self.get_tp_regex_string()))
 
-    def scrub(self, text: str) -> str:
+    def scrub(self, text: str) -> Optional[str]:
         """Scrub some text and return the scrubbed result."""
         if text is None:
             return None

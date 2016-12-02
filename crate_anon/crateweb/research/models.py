@@ -5,7 +5,7 @@ from collections import OrderedDict
 from functools import lru_cache
 import logging
 # import os
-from typing import Any, Dict, List, Iterator, Optional, Tuple, Type
+from typing import Any, Dict, List, Generator, Iterable, Optional, Tuple, Type
 
 from django.db import connections, models
 from django.db.models import QuerySet
@@ -65,12 +65,12 @@ class Highlight(models.Model):
         return min(self.colour, N_CSS_HIGHLIGHT_CLASSES - 1)
 
     @staticmethod
-    def as_ordered_dict(highlight_list) -> Dict[int, HIGHLIGHT_FWD_REF]:
+    def as_ordered_dict(highlight_list) -> Dict[int, List[HIGHLIGHT_FWD_REF]]:
         d = dict()
         for highlight in highlight_list:
             n = highlight.get_safe_colour()
             if n not in d:
-                d[n] = []
+                d[n] = []  # type: List[HIGHLIGHT_FWD_REF]
             d[n].append(highlight)
         return OrderedDict(sorted(d.items()))
 
@@ -197,6 +197,7 @@ class Query(models.Model):
         self.mark_audited()
 
     def get_original_sql(self) -> str:
+        # noinspection PyTypeChecker
         return self.sql
 
     def get_sql_args_for_mysql(self) -> Tuple[str, Optional[List[Any]]]:
@@ -233,7 +234,7 @@ class Query(models.Model):
 
     def gen_rows(self,
                  firstrow: int = 0,
-                 lastrow: int = None) -> Iterator[List[Any]]:
+                 lastrow: int = None) -> Generator[List[Any], None, None]:
         """
         Generate rows from the query.
         """
@@ -270,19 +271,19 @@ class Query(models.Model):
         h = Highlight(text=text, colour=colour)
         self.highlight_set.add(h)
 
-    def get_highlights_as_dict(self) -> Dict[int, Highlight]:
+    def get_highlights_as_dict(self) -> Dict[int, Iterable[Highlight]]:
         d = OrderedDict()
         for n in range(N_CSS_HIGHLIGHT_CLASSES):
             d[n] = Highlight.objects.filter(query_id=self.id, colour=n)
         return d
 
-    def get_highlight_descriptions(self):
+    def get_highlight_descriptions(self) -> List[str]:
         d = self.get_highlights_as_dict()
         desc = []
         for n in range(N_CSS_HIGHLIGHT_CLASSES):
             if d[n]:
-                desc.append([", ".join(highlight_text(h.text, n))
-                             for h in d[n]])
+                # noinspection PyTypeChecker
+                desc.append(", ".join(highlight_text(h.text, n) for h in d[n]))
         return desc
 
 
@@ -861,6 +862,7 @@ def get_mpid(trid: int = None,
              rid: str = None,
              mrid: str = None) -> int:
     lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
+    # noinspection PyTypeChecker
     return lookup.mpid
 
 
@@ -868,4 +870,5 @@ def get_pid(trid: int = None,
             rid: str = None,
             mrid: str = None) -> int:
     lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
+    # noinspection PyTypeChecker
     return lookup.pid

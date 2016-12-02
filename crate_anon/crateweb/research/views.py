@@ -607,7 +607,8 @@ def render_resultcount(request: HttpRequest, query: Query) -> HttpResponse:
     return render(request, 'query_count.html', context)
 
 
-def get_highlight_descriptions(highlight_dict: Dict[int, Highlight]) -> str:
+def get_highlight_descriptions(
+        highlight_dict: Dict[int, List[Highlight]]) -> List[str]:
     """
     Returns a list of length up to N_CSS_HIGHLIGHT_CLASSES of HTML
     elements illustrating the highlights.

@@ -2,7 +2,7 @@
 # crate_anon/nlp_manager/parse_clinical.py
 
 import logging
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -152,7 +152,8 @@ class Height(NumericalResultParser):
             print("Regex for {}: {}".format(type(self).__name__, self.REGEX))
 
     def parse(self, text: str,
-              debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
+                                                None, None]:
         """Parser for Height. Specialized for complex unit conversion."""
         for m in self.COMPILED_REGEX.finditer(text):  # watch out: 'm'/metres
             if debug:
@@ -357,7 +358,8 @@ class Weight(NumericalResultParser):
             print("Regex for {}: {}".format(type(self).__name__, self.REGEX))
 
     def parse(self, text: str,
-              debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
+                                                None, None]:
         """Parser for Weight. Specialized for complex unit conversion."""
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
@@ -443,6 +445,13 @@ class Weight(NumericalResultParser):
             ("she weighs 200 lb", [kg_from_st_lb_oz(pounds=200)]),
             ("she weighs 200 pounds", [kg_from_st_lb_oz(pounds=200)]),
             ("she weighs 6 st 12 lb", [kg_from_st_lb_oz(stones=6, pounds=12)]),
+            ("change in weight -0.4kg", [-0.4]),
+            ("change in weight - 0.4kg", [0.4]),  # ASCII hyphen (hyphen-minus)
+            ("change in weight ‐ 0.4kg", [0.4]),  # Unicode hyphen
+            # ("failme", [999]),
+            ("change in weight −0.4kg", [-0.4]),  # Unicode minus
+            ("change in weight –0.4kg", [-0.4]),  # en dash
+            ("change in weight —0.4kg", [0.4]),  # em dash
         ])
         self.detailed_test("Weight: 80.8kgs", [{
             self.target_unit: 80.8,
@@ -517,7 +526,8 @@ class Bmi(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -528,6 +538,7 @@ class Bmi(SimpleNumericalResultParser):
             ("BMI 25 kg/sq m", [25]),
             ("BMI was 18.4 kg/m^-2", [18.4]),
             ("ACE 79", []),
+            ("BMI-23", [23]),
         ])
 
 
@@ -676,7 +687,8 @@ class Bp(BaseNlpParser):
         ]}
 
     def parse(self, text: str,
-              debug: bool = False) -> Iterator[Tuple[str, Dict[str, Any]]]:
+              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
+                                                None, None]:
         """Parser for BP. Specialized because we're fetching two numbers."""
         for m in self.COMPILED_REGEX.finditer(text):
             if debug:
@@ -774,7 +786,7 @@ class BpValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+def test_all() -> None:
     height = Height(None, None)
     height.test()
     weight = Weight(None, None)
@@ -783,3 +795,7 @@ if __name__ == '__main__':
     bmi.test()
     bp = Bp(None, None)
     bp.test()
+
+
+if __name__ == '__main__':
+    test_all()

@@ -7,7 +7,7 @@ Slightly extended ConfigParser.
 
 import ast
 import configparser
-from typing import Dict, Iterable, Iterator, Generic, List, Optional
+from typing import Dict, Iterable, Generator, Generic, List, Optional
 # http://mypy-lang.org/examples.html
 # https://www.python.org/dev/peps/pep-0484/
 # https://docs.python.org/3/library/typing.html
@@ -15,14 +15,14 @@ from typing import Dict, Iterable, Iterator, Generic, List, Optional
 from crate_anon.anonymise.dbholder import DatabaseHolder
 
 
-def gen_lines(multiline: str) -> Iterator[str]:
+def gen_lines(multiline: str) -> Generator[str, None, None]:
     for line in multiline.splitlines():
         line = line.strip()
         if line:
             yield line
 
 
-def gen_words(lines: Iterable[str]) -> Iterator[str]:
+def gen_words(lines: Iterable[str]) -> Generator[str, None, None]:
     for line in lines:
         for word in line.split():
             yield word
@@ -31,7 +31,7 @@ def gen_words(lines: Iterable[str]) -> Iterator[str]:
 def gen_ints(words: Iterable[str],
              minimum: int = None,
              maximum: int = None,
-             suppress_errors: bool = False) -> Iterator[int]:
+             suppress_errors: bool = False) -> Generator[int, None, None]:
     for word in words:
         try:
             value = int(word)

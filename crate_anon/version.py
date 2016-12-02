@@ -25,5 +25,5 @@ Copyright/licensing:
 
 """
 
-VERSION = "0.18.8"
-VERSION_DATE = "2016-11-15"
+VERSION = "0.18.9"
+VERSION_DATE = "2016-12-02"

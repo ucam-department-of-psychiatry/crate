@@ -35,7 +35,7 @@ import html
 import logging
 import random
 import sys
-from typing import Any, Iterable, Iterator, List, Tuple
+from typing import Any, Iterable, Generator, List, Optional, Tuple
 
 import regex
 
@@ -285,7 +285,7 @@ def opting_out_mpid(mpid: int) -> bool:
     return OptOutMpid.opting_out(config.admindb.session, mpid)
 
 
-def gen_optout_rids() -> Iterator(int):
+def gen_optout_rids() -> Generator[int, None, None]:
     # If a patient opts out, we need to be able to wipe their information from
     # the database, and hence look up their RID for that purpose.
     session = config.admindb.session
@@ -308,7 +308,7 @@ def gen_optout_rids() -> Iterator(int):
 # =============================================================================
 
 def gen_patient_ids(tasknum: int = 0,
-                    ntasks: int = 1) -> Iterator(int):
+                    ntasks: int = 1) -> Generator[int, None, None]:
     """
     Generate patient IDs.
 
@@ -414,7 +414,7 @@ def gen_rows(dbname: str,
              intpkname: str = None,
              tasknum: int = 0,
              ntasks: int = 1,
-             debuglimit: int = 0) -> Iterator(List[Any]):
+             debuglimit: int = 0) -> Generator[List[Any], None, None]:
     """
     Generates rows from a source table
     ... each row being a list of values
@@ -471,7 +471,8 @@ def count_rows(dbname: str, sourcetable: str, pid: int = None) -> int:
 
 def gen_index_row_sets_by_table(
         tasknum: int = 0,
-        ntasks: int = 1) -> Iterator[Tuple[str, List[DataDictionaryRow]]]:
+        ntasks: int = 1) -> Generator[Tuple[str, List[DataDictionaryRow]],
+                                      None, None]:
     """
     Generate (table, list-of-DD-rows-for-indexed-fields) tuples for all tables
     requiring indexing.
@@ -489,7 +490,7 @@ def gen_index_row_sets_by_table(
 
 def gen_nonpatient_tables_without_int_pk(
         tasknum: int = 0,
-        ntasks: int = 1) -> Iterator[Tuple[str, str]]:
+        ntasks: int = 1) -> Generator[Tuple[str, str], None, None]:
     """
     Generate (source db name, source table) tuples for all tables that
     (a) don't contain patient information and
@@ -503,7 +504,8 @@ def gen_nonpatient_tables_without_int_pk(
         yield pair  # will be a (dbname, table) tuple
 
 
-def gen_nonpatient_tables_with_int_pk() -> Iterator[Tuple[str, str, str]]:
+def gen_nonpatient_tables_with_int_pk() -> Generator[Tuple[str, str, str],
+                                                     None, None]:
     """
     Generate (source db name, source table, PK name) tuples for all tables that
     (a) don't contain patient information and
@@ -519,7 +521,7 @@ def gen_nonpatient_tables_with_int_pk() -> Iterator[Tuple[str, str, str]]:
 
 def gen_pks(srcdbname: str,
             tablename: str,
-            pkname: str) -> Iterator[int]:
+            pkname: str) -> Generator[int, None, None]:
     """
     Generate PK values from a table.
     """
@@ -723,7 +725,7 @@ def process_table(sourcedbname: str,
 def extract_text(value: Any,
                  row: List[Any],
                  alter_method: AlterMethod,
-                 ddrows: List[DataDictionaryRow]) -> Tuple[str, bool]:
+                 ddrows: List[DataDictionaryRow]) -> Tuple[Optional[str], bool]:
     """
     Take a field's value and return extracted text, for file-related fields,
     where the DD row indicates that this field contains a filename or a BLOB.
@@ -980,14 +982,15 @@ def drop_remake(incremental: bool = False,
                 chunksize=config.chunksize)
 
 
-def gen_integers_from_file(filename: str) -> Iterator(int):
+def gen_integers_from_file(filename: str) -> Generator[int, None, None]:
     for line in open(filename):
         pids = [int(x) for x in line.split() if x.isdigit()]
         for pid in pids:
             yield pid
 
 
-def gen_opt_out_pids_from_file(mpid: bool = False) -> Iterator(int):
+def gen_opt_out_pids_from_file(mpid: bool = False) -> Generator[int,
+                                                                None, None]:
     if mpid:
         text = "MPID"
         filenames = config.optout_mpid_filenames
@@ -1002,7 +1005,8 @@ def gen_opt_out_pids_from_file(mpid: bool = False) -> Iterator(int):
             yield(gen_integers_from_file(filename))
 
 
-def gen_opt_out_pids_from_database(mpid: bool = False) -> Iterator(int):
+def gen_opt_out_pids_from_database(mpid: bool = False) -> Generator[int, None,
+                                                                    None]:
     text = "MPID" if mpid else "PID"
     found_one = False
     defining_fields = config.dd.get_optout_defining_fields()

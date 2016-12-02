@@ -79,7 +79,8 @@ class Mmse(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -92,6 +93,7 @@ class Mmse(SimpleNumericalResultParser):
             ("mini-mental state exam 30", [30]),
             ("minimental 25", [25]),
             ("MMSE 30", [30]),
+            ("MMSE-27", [27]),
             ("MMSE score was 30", [30]),
             ("ACE 79", []),
         ])
@@ -177,7 +179,8 @@ class Ace(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -203,6 +206,7 @@ class Ace(SimpleNumericalResultParser):
             ("ACE III 79", [79]),
             ("ACE 3 79", [3]),  # nasty; not easy to cope with this well.
             ("ACE 3", [3]),
+            ("ACE-82", [82]),
         ])
 
 
@@ -286,7 +290,8 @@ class MiniAce(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -303,6 +308,7 @@ class MiniAce(SimpleNumericalResultParser):
             ("M-ACE 29/30", [29]),
             ("M-ACE 29/29", []),
             ("MACE 29", [29]),
+            ("MACE-29", [29]),
             ("mini-ACE 29", [29]),
         ])
 
@@ -382,7 +388,8 @@ class Moca(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -392,6 +399,7 @@ class Moca(SimpleNumericalResultParser):
             ("MOCA 25/30", [25]),
             ("MOCA score was 25", [25]),
             ("MOCA 25/29", []),
+            ("MOCA-25", [25]),
             ("Montreal Cognitive Assessment 25/30", [25]),
         ])
 
@@ -413,7 +421,7 @@ class MocaValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+def test_all() -> None:
     mmse = Mmse(None, None)
     mmse.test()
     ace = Ace(None, None)
@@ -422,5 +430,10 @@ if __name__ == '__main__':
     mace.test()
     moca = Moca(None, None)
     moca.test()
+
+
+if __name__ == '__main__':
+    test_all()
+
 
 # support also "scored X on the MOCA"?

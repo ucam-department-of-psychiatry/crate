@@ -10,7 +10,7 @@ import datetime
 import logging
 import os
 import sys
-from typing import Dict, List, Optional
+from typing import Dict, Iterable, List, Optional
 
 from cardinal_pythonlib.rnc_datetime import get_now_utc_notz
 from cardinal_pythonlib.rnc_lang import chunks
@@ -261,7 +261,7 @@ class NlpDefinition(object):
         return self._processors
 
     # noinspection PyUnresolvedReferences
-    def get_ifconfigs(self) -> List['input_field_config.InputFieldConfig']:  # typing / circular reference problem  # noqa
+    def get_ifconfigs(self) -> Iterable['input_field_config.InputFieldConfig']:  # typing / circular reference problem  # noqa
         return self._inputfieldmap.values()
 
     def get_now(self) -> datetime.datetime:

@@ -85,7 +85,8 @@ class Esr(SimpleNumericalResultParser):
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     def test(self):
@@ -109,6 +110,7 @@ class Esr(SimpleNumericalResultParser):
             ("ESR 1.9 (H) mg/L", []),  # wrong units
             ("ESR        |       1.9 (H)      | mg/L", []),
             ("my ESR was 15, but his ESR was 89!", [15, 89]),
+            ("ESR-18", [18]),
         ])
 
 
@@ -161,7 +163,8 @@ class WbcBase(SimpleNumericalResultParser):
             variable=variable,
             target_unit=self.PREFERRED_UNIT_COLUMN,
             units_to_factor=self.UNIT_MAPPING,
-            commit=commit
+            commit=commit,
+            take_absolute=True
         )
 
     @staticmethod
@@ -251,6 +254,11 @@ class Wbc(WbcBase):
             ("white cells 9800 cells/mm3", [9.8]),
             ("white cells 9800 per cubic mm", [9.8]),
             ("white cells 17,600/mm3", [17.6]),
+            ("WBC – 6", [6]),  # en dash
+            ("WBC—6", [6]),  # em dash
+            ("WBC -- 6", [6]),  # double hyphen used as dash
+            ("WBC - 6", [6]),
+            ("WBC-6.5", [6.5]),
         ])
 
 
@@ -313,6 +321,7 @@ class Neutrophils(WbcBase):
             ("neutrophils count 9800 cells/mm3", [9.8]),
             ("n0 9800 per cubic mm", [9.8]),
             ("n0 17,600/mm3", [17.6]),
+            ("neuts-17", [17]),
         ])
 
 
@@ -371,6 +380,7 @@ class Lymphocytes(WbcBase):
             ("lymphocytes count 9800 cells/mm3", [9.8]),
             ("l0 9800 per cubic mm (should fail)", []),
             ("l0 17,600/mm3 (should fail)", []),
+            ("lymphs-6.3", [6.3]),
         ])
 
 
@@ -428,6 +438,7 @@ class Monocytes(WbcBase):
             ("monocytes count 9800 cells/mm3", [9.8]),
             ("m0 9800 per cubic mm (should fail)", []),
             ("m0 17,600/mm3 (should fail)", []),
+            ("monocytes-5.2", [5.2]),
         ])
 
 
@@ -485,6 +496,7 @@ class Basophils(WbcBase):
             ("basophils count 9800 cells/mm3", [9.8]),
             ("b0 9800 per cubic mm (should fail)", []),
             ("b0 17,600/mm3 (should fail)", []),
+            ("basophils-5.2", [5.2]),
         ])
 
 
@@ -542,6 +554,7 @@ class Eosinophils(WbcBase):
             ("eosinophils count 9800 cells/mm3", [9.8]),
             ("e0 9800 per cubic mm (should fail)", []),
             ("e0 17,600/mm3 (should fail)", []),
+            ("eosinophils-5.3", [5.3]),
         ])
 
 
@@ -562,7 +575,7 @@ class EosinophilsValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-if __name__ == '__main__':
+def test_all() -> None:
     # ESR
     esr = Esr(None, None)
     esr.test()
@@ -580,3 +593,7 @@ if __name__ == '__main__':
     b0.test()
     e0 = Eosinophils(None, None)
     e0.test()
+
+
+if __name__ == '__main__':
+    test_all()

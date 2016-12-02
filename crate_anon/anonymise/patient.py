@@ -28,7 +28,7 @@ Copyright/licensing:
 """
 
 import logging
-from typing import AbstractSet, Any, Iterator, List
+from typing import AbstractSet, Any, Generator, List
 
 from sqlalchemy.sql import column, select, table
 
@@ -47,7 +47,7 @@ log = logging.getLogger(__name__)
 def gen_all_values_for_patient(dbname: str,
                                tablename: str,
                                fields: List[str],
-                               pid: int) -> Iterator[List[Any]]:
+                               pid: int) -> Generator[List[Any], None, None]:
     """
     Generate all sensitive (scrub_src) values for a given patient, from a given
     source table. Used to build the scrubber.
