@@ -173,8 +173,8 @@ GT = "(?: > | (?:more|greater) \s+ than )"
 # OF = "\b of \b"  # as in: "a BMI of 30"... but too likely to be mistaken for a target?  # noqa
 
 RELATION = r"(?: {LE} | {LT} | {EQ} | {GE} | {GT} )".format(
-    LT=LT,
     LE=LE,
+    LT=LT,
     EQ=EQ,
     GE=GE,
     GT=GT,
@@ -936,7 +936,6 @@ def test_base_regexes(verbose: bool = False) -> None:
         ("a greater than b", ["greater than"]),
         ("a blah b", []),
     ])
-
 
 
 # =============================================================================
