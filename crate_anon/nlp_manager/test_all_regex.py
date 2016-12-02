@@ -6,22 +6,15 @@ import argparse
 from crate_anon.nlp_manager import (
     all_processors,
     regex_parser,
-
-    parse_biochemistry,
-    parse_clinical,
-    parse_cognitive,
-    parse_haematology,
+    regex_units,
 )
 
 
 def test_all_regex_nlp(verbose: bool = False) -> None:
     regex_parser.test_all(verbose=verbose)  # basic regexes
-    all_processors.test_all_processors()  # framework classes
-
-    parse_biochemistry.test_all()
-    parse_clinical.test_all()
-    parse_cognitive.test_all()
-    parse_haematology.test_all()
+    regex_units.test_all(verbose=verbose)
+    all_processors.test_all_processors(verbose=verbose)
+    # ... tests all parser classes
 
 
 if __name__ == '__main__':

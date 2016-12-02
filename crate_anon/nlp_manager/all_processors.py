@@ -117,12 +117,13 @@ def possible_processor_table() -> str:
     return pt.get_string()
 
 
-def test_all_processors() -> None:
+def test_all_processors(verbose: bool = False) -> None:
     for cls in all_parser_classes():
         if cls.__name__ in ['Gate',
                             'Medex',
                             'NumericalResultParser',
                             'SimpleNumericalResultParser',
+                            'NumeratorOutOfDenominatorParser',
                             'ValidatorBase',
                             'WbcBase']:
             continue
@@ -132,7 +133,7 @@ def test_all_processors() -> None:
         # noinspection PyCallingNonCallable
         instance = cls(None, None)
         print("... instantiated OK")
-        instance.test()
+        instance.test(verbose=verbose)
 
 
 if __name__ == '__main__':

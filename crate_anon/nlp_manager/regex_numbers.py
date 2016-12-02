@@ -3,26 +3,26 @@
 
 
 # =============================================================================
-# Numbers
+# Mathematical operations and quantities
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# Mathematical operations and quantities
-# -----------------------------------------------------------------------------
+MULTIPLY = r"[x\*×⋅]"  # x, *, ×, ⋅
+MULTIPLY_OR_SPACE = r"[x\*×⋅\s]"  # x, *, ×, ⋅, space
+POWER = r"(?: \^ | \*\* )"  # ^, **
+POWER_INC_E = r"(?: e | \^ | \*\* )"  # e, ^, **
+
 
 def times_ten_to_power(n):
     return r"(?: {MULTIPLY}? \s* 10 \s* {POWER_INC_E} \s* {n})".format(
         MULTIPLY=MULTIPLY, POWER_INC_E=POWER_INC_E, n=n)
 
-MULTIPLY = r"[x\*×⋅]"  # x, *, ×, ⋅
-POWER = r"(?: \^ | \*\* )"  # ^, **
-POWER_INC_E = r"(?: e | \^ | \*\* )"  # e, ^, **
+
 BILLION = times_ten_to_power(9)
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Number components
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Don't create components that are entirely optional; they're hard to test!
 
 PLUS_SIGN = r"\+"  # don't forget to escape it
@@ -55,9 +55,9 @@ SCIENTIFIC_NOTATION_EXPONENT = r"(?: E {sign}? \d+ )".format(
 # Specifically, float("-3.4e-27") is fine, but float("-3.4e-27.1") isn't.
 
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Number types
-# -----------------------------------------------------------------------------
+# =============================================================================
 # Beware of unsigned types. You may not want a sign, but if you use an
 # unsigned type, "-3" will be read as "3".
 

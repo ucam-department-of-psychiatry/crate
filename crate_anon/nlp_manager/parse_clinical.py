@@ -11,10 +11,31 @@ from crate_anon.nlp_manager.regex_parser import (
     BaseNlpParser,
     common_tense,
     compile_regex,
+    FN_CONTENT,
+    FN_END,
+    FN_RELATION,
+    FN_RELATION_TEXT,
+    FN_START,
+    FN_TENSE,
+    FN_TENSE_TEXT,
+    FN_UNITS,
+    FN_VALUE_TEXT,
+    FN_VARIABLE_NAME,
+    FN_VARIABLE_TEXT,
+    HELP_CONTENT,
+    HELP_END,
+    HELP_RELATION,
+    HELP_START,
+    HELP_TENSE,
+    HELP_UNITS,
+    HELP_VALUE_TEXT,
+    HELP_VARIABLE_TEXT,
+    MAX_RELATION_LENGTH,
+    MAX_TENSE_LENGTH,
+    MAX_UNITS_LENGTH,
+    MAX_VALUE_TEXT_LENGTH,
     NumericalResultParser,
     OPTIONAL_RESULTS_IGNORABLES,
-    PAST,
-    PRESENT,
     RELATION,
     SimpleNumericalResultParser,
     TENSE_INDICATOR,
@@ -75,10 +96,12 @@ class Height(NumericalResultParser):
                 ( {CM} )                    # capture group 12
             )
         )
-    """.format(SIGNED_FLOAT=SIGNED_FLOAT,
-               OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-               M=M,
-               CM=CM)
+    """.format(
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        M=M,
+        CM=CM
+    )
     IMPERIAL_HEIGHT = r"""
         (                           # capture group 13
             (?:
@@ -101,15 +124,13 @@ class Height(NumericalResultParser):
                 ( {INCHES} )            # capture group 21
             )
         )
-    """.format(SIGNED_FLOAT=SIGNED_FLOAT,
-               OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-               FEET=FEET,
-               INCHES=INCHES)
-    HEIGHT = r"""
-        (?:
-            \b height \b
-        )
-    """
+    """.format(
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        FEET=FEET,
+        INCHES=INCHES
+    )
+    HEIGHT = r"(?: \b height \b)"
     REGEX = r"""
         ( {HEIGHT} )                       # group 1 for "height" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -222,24 +243,24 @@ class Height(NumericalResultParser):
             tense, relation = common_tense(tense_text, relation_text)
 
             result = {
-                self.FN_VARIABLE_NAME: self.variable,
-                self.FN_CONTENT: matching_text,
-                self.FN_START: startpos,
-                self.FN_END: endpos,
+                FN_VARIABLE_NAME: self.variable,
+                FN_CONTENT: matching_text,
+                FN_START: startpos,
+                FN_END: endpos,
 
-                self.FN_VARIABLE_TEXT: variable_text,
-                self.FN_RELATION_TEXT: relation_text,
-                self.FN_RELATION: relation,
-                self.FN_VALUE_TEXT: expression,
-                self.FN_UNITS: units,
+                FN_VARIABLE_TEXT: variable_text,
+                FN_RELATION_TEXT: relation_text,
+                FN_RELATION: relation,
+                FN_VALUE_TEXT: expression,
+                FN_UNITS: units,
                 self.target_unit: value_m,
-                self.FN_TENSE_TEXT: tense_text,
-                self.FN_TENSE: tense,
+                FN_TENSE_TEXT: tense_text,
+                FN_TENSE: tense,
             }
             # log.critical(result)
             yield self.tablename, result
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("Height", []),  # should fail; no values
             ("her height was 1.6m", [1.6]),
@@ -248,11 +269,11 @@ class Height(NumericalResultParser):
             ('''Height 5'8" ''', [m_from_ft_in(feet=5, inches=8)]),
             ("Height 5 ft 8 in", [m_from_ft_in(feet=5, inches=8)]),
             ("Height 5 feet 8 inches", [m_from_ft_in(feet=5, inches=8)]),
-        ])
+        ], verbose=verbose)
         self.detailed_test("Height 5 ft 11 in", [{
             self.target_unit: m_from_ft_in(feet=5, inches=11),
-            self.FN_UNITS: "ft in",
-        }])
+            FN_UNITS: "ft in",
+        }], verbose=verbose)
         # *** deal with "tall" and plain "is", e.g.
         # she is 6'2"; she is 1.5m tall
 
@@ -282,9 +303,11 @@ class Weight(NumericalResultParser):
             {OPTIONAL_RESULTS_IGNORABLES}
             ( {KG} )                    # capture group 6
         )
-    """.format(SIGNED_FLOAT=SIGNED_FLOAT,
-               OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-               KG=KG)
+    """.format(
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        KG=KG
+    )
     IMPERIAL_WEIGHT = r"""
         (                           # capture group 7
             (?:
@@ -307,15 +330,13 @@ class Weight(NumericalResultParser):
                 ( {LB} )                # capture group 15
             )
         )
-    """.format(SIGNED_FLOAT=SIGNED_FLOAT,
-               OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-               STONES=STONES,
-               LB=LB)
-    WEIGHT = r"""
-        (?:
-            \b weigh[ts] \b       # weight, weighs
-        )
-    """
+    """.format(
+        SIGNED_FLOAT=SIGNED_FLOAT,
+        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+        STONES=STONES,
+        LB=LB
+    )
+    WEIGHT = r"(?: \b weigh[ts] \b )"  # weight, weighs
     REGEX = r"""
         ( {WEIGHT} )                       # group 1 for "weight" or equivalent
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -413,24 +434,24 @@ class Weight(NumericalResultParser):
             tense, relation = common_tense(tense_text, relation_text)
 
             result = {
-                self.FN_VARIABLE_NAME: self.variable,
-                self.FN_CONTENT: matching_text,
-                self.FN_START: startpos,
-                self.FN_END: endpos,
+                FN_VARIABLE_NAME: self.variable,
+                FN_CONTENT: matching_text,
+                FN_START: startpos,
+                FN_END: endpos,
 
-                self.FN_VARIABLE_TEXT: variable_text,
-                self.FN_RELATION_TEXT: relation_text,
-                self.FN_RELATION: relation,
-                self.FN_VALUE_TEXT: expression,
-                self.FN_UNITS: units,
+                FN_VARIABLE_TEXT: variable_text,
+                FN_RELATION_TEXT: relation_text,
+                FN_RELATION: relation,
+                FN_VALUE_TEXT: expression,
+                FN_UNITS: units,
                 self.target_unit: value_kg,
-                self.FN_TENSE_TEXT: tense_text,
-                self.FN_TENSE: tense,
+                FN_TENSE_TEXT: tense_text,
+                FN_TENSE: tense,
             }
             # log.critical(result)
             yield self.tablename, result
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("Weight", []),  # should fail; no values
             ("her weight was 60.2kg", [60.2]),
@@ -452,11 +473,11 @@ class Weight(NumericalResultParser):
             ("change in weight −0.4kg", [-0.4]),  # Unicode minus
             ("change in weight –0.4kg", [-0.4]),  # en dash
             ("change in weight —0.4kg", [0.4]),  # em dash
-        ])
+        ], verbose=verbose)
         self.detailed_test("Weight: 80.8kgs", [{
             self.target_unit: 80.8,
-            self.FN_UNITS: "kgs",
-        }])
+            FN_UNITS: "kgs",
+        }], verbose=verbose)
 
 
 class WeightValidator(ValidatorBase):
@@ -530,7 +551,7 @@ class Bmi(SimpleNumericalResultParser):
             take_absolute=True
         )
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("BMI", []),  # should fail; no values
             ("body mass index was 30", [30]),
@@ -539,7 +560,7 @@ class Bmi(SimpleNumericalResultParser):
             ("BMI was 18.4 kg/m^-2", [18.4]),
             ("ACE 79", []),
             ("BMI-23", [23]),
-        ])
+        ], verbose=verbose)
 
 
 class BmiValidator(ValidatorBase):
@@ -561,7 +582,8 @@ class BmiValidator(ValidatorBase):
 
 class Bp(BaseNlpParser):
     """Blood pressure, in mmHg. (Since we produce two variables, SBP and DBP,
-    we subclass BaseNlpParser directly.)"""
+    and we use something a little more complex than
+    NumeratorOutOfDenominatorParser, we subclass BaseNlpParser directly.)"""
     BP = r"""
         (?:
             \b blood \s+ pressure \b
@@ -608,12 +630,12 @@ class Bp(BaseNlpParser):
         ( {RELATION} )?                # optional group for relation
         {OPTIONAL_RESULTS_IGNORABLES}
         (                              # BP
-            {SIGNED_FLOAT}                  # 120
+            {SIGNED_FLOAT}                  # systolic
             (?:
                 \s*
                 (?: \b over \b | \/ )       # /
                 \s*
-                {SIGNED_FLOAT}              # 80
+                {SIGNED_FLOAT}              # diastolic
             )?
         )
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -657,33 +679,20 @@ class Bp(BaseNlpParser):
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         return {self.tablename: [
-            Column(NumericalResultParser.FN_CONTENT, Text,
-                   doc="Matching text contents"),
-            Column(NumericalResultParser.FN_START, Integer,
-                   doc="Start position (of matching string within whole "
-                       "text)"),
-            Column(NumericalResultParser.FN_END, Integer,
-                   doc="End position (of matching string within whole text)"),
-            Column(NumericalResultParser.FN_VARIABLE_TEXT, Text,
-                   doc="Text that matched the variable name"),
-            Column(NumericalResultParser.FN_RELATION,
-                   String(NumericalResultParser.MAX_RELATION_LENGTH),
-                   doc="Text that matched the mathematical relationship "
-                       "between variable and value (e.g. '=', '<='"),
-            Column(NumericalResultParser.FN_VALUE_TEXT,
-                   String(NumericalResultParser.MAX_VALUE_TEXT_LENGTH),
-                   doc="Matched numerical value, as text"),
-            Column(NumericalResultParser.FN_UNITS,
-                   String(NumericalResultParser.MAX_UNITS_LENGTH),
-                   doc="Matched units, as text"),
+            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
+            Column(FN_START, Integer, doc=HELP_START),
+            Column(FN_END, Integer, doc=HELP_END),
+            Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+            Column(FN_RELATION, String(MAX_RELATION_LENGTH),
+                   doc=HELP_RELATION),
+            Column(FN_VALUE_TEXT, String(MAX_VALUE_TEXT_LENGTH),
+                   doc=HELP_VALUE_TEXT),
+            Column(FN_UNITS, String(MAX_UNITS_LENGTH), doc=HELP_UNITS),
             Column(self.FN_SYSTOLIC_BP_MMHG, Float,
-                   doc="Systolic BP in mmHg"),
+                   doc="Systolic blood pressure in mmHg"),
             Column(self.FN_DIASTOLIC_BP_MMHG, Float,
-                   doc="Diastolic BP in mmHg"),
-            Column(NumericalResultParser.FN_TENSE,
-                   String(NumericalResultParser.MAX_TENSE_LENGTH),
-                   doc="Tense indicator, if known (e.g. '{}', '{}')".format(
-                       PAST, PRESENT)),
+                   doc="Diastolic blood pressure in mmHg"),
+            Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
         ]}
 
     def parse(self, text: str,
@@ -722,23 +731,27 @@ class Bp(BaseNlpParser):
             tense, relation = common_tense(tense_indicator, relation)
 
             yield self.tablename, {
-                NumericalResultParser.FN_CONTENT: matching_text,
-                NumericalResultParser.FN_START: startpos,
-                NumericalResultParser.FN_END: endpos,
-                NumericalResultParser.FN_VARIABLE_TEXT: variable_text,
-                NumericalResultParser.FN_RELATION: relation,
-                NumericalResultParser.FN_VALUE_TEXT: value_text,
-                NumericalResultParser.FN_UNITS: units,
+                FN_CONTENT: matching_text,
+                FN_START: startpos,
+                FN_END: endpos,
+                FN_VARIABLE_TEXT: variable_text,
+                FN_RELATION: relation,
+                FN_VALUE_TEXT: value_text,
+                FN_UNITS: units,
                 self.FN_SYSTOLIC_BP_MMHG: sbp,
                 self.FN_DIASTOLIC_BP_MMHG: dbp,
-                NumericalResultParser.FN_TENSE: tense,
+                FN_TENSE: tense,
             }
 
     def test_bp_parser(
             self,
-            test_expected_list: List[Tuple[str, List[Tuple[float,
-                                                           float]]]]) -> None:
+            test_expected_list: List[
+                Tuple[str, List[Tuple[float, float]]]
+            ],
+            verbose: bool = False) -> None:
         print("Testing parser: {}".format(type(self).__name__))
+        if verbose:
+            print("... regex:\n{}".format(self.REGEX))
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 (x[self.FN_SYSTOLIC_BP_MMHG], x[self.FN_DIASTOLIC_BP_MMHG])
@@ -754,7 +767,7 @@ class Bp(BaseNlpParser):
             )
         print("... OK")
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_bp_parser([
             ("BP", []),  # should fail; no values
             ("his blood pressure was 120/80", [(120, 80)]),
@@ -766,7 +779,7 @@ class Bp(BaseNlpParser):
             # One reason not to might be if people express changes, e.g.
             # "BP change -40/-10", but I very much doubt it.
             # Went with abs value using to_pos_float().
-        ])
+        ], verbose=verbose)
 
 
 class BpValidator(ValidatorBase):
@@ -786,16 +799,16 @@ class BpValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-def test_all() -> None:
+def test_all(verbose: bool = False) -> None:
     height = Height(None, None)
-    height.test()
+    height.test(verbose=verbose)
     weight = Weight(None, None)
-    weight.test()
+    weight.test(verbose=verbose)
     bmi = Bmi(None, None)
-    bmi.test()
+    bmi.test(verbose=verbose)
     bp = Bp(None, None)
-    bp.test()
+    bp.test(verbose=verbose)
 
 
 if __name__ == '__main__':
-    test_all()
+    test_all(verbose=True)

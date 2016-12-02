@@ -205,7 +205,7 @@ def get_column_info(engine: Engine, tablename: str,
 
 
 def get_column_type(engine: Engine, tablename: str,
-                    columnname: str) -> Optional[Column]:
+                    columnname: str) -> Optional[TypeEngine]:
     # Dictionary structure: see
     # http://docs.sqlalchemy.org/en/latest/core/reflection.html#sqlalchemy.engine.reflection.Inspector.get_columns  # noqa
     columns = get_columns_info(engine, tablename)
@@ -305,7 +305,7 @@ def _get_sqla_coltype_class_from_str(coltype: str,
 
 @lru_cache(maxsize=None)
 def get_sqla_coltype_from_dialect_str(coltype: str,
-                                      dialect: Any) -> Column:
+                                      dialect: Any) -> TypeEngine:
     """
     Args:
         dialect: a SQLAlchemy dialect class
@@ -468,7 +468,7 @@ def convert_sqla_type_for_dialect(coltype: TypeEngine,
 # Questions about SQLAlchemy column types
 # =============================================================================
 
-def is_sqlatype_binary(coltype: Column) -> bool:
+def is_sqlatype_binary(coltype: TypeEngine) -> bool:
     # Several binary types inherit internally from _Binary, making that the
     # easiest to check.
 
@@ -476,7 +476,7 @@ def is_sqlatype_binary(coltype: Column) -> bool:
     return isinstance(coltype, sqltypes._Binary)
 
 
-def is_sqlatype_date(coltype: Column) -> bool:
+def is_sqlatype_date(coltype: TypeEngine) -> bool:
     # isinstance also cheerfully handles multiple inheritance, i.e. if you have
     # class A(object), class B(object), and class C(A, B), followed by x = C(),
     # then all of isinstance(x, A), isinstance(x, B), isinstance(x, C) are True
@@ -485,15 +485,15 @@ def is_sqlatype_date(coltype: Column) -> bool:
     return isinstance(coltype, sqltypes._DateAffinity)
 
 
-def is_sqlatype_integer(coltype: Column) -> bool:
+def is_sqlatype_integer(coltype: TypeEngine) -> bool:
     return isinstance(coltype, sqltypes.Integer)
 
 
-def is_sqlatype_numeric(coltype: Column) -> bool:
+def is_sqlatype_numeric(coltype: TypeEngine) -> bool:
     return isinstance(coltype, sqltypes.Numeric)  # includes Float, Decimal
 
 
-def is_sqlatype_text_of_length_at_least(coltype: Column,
+def is_sqlatype_text_of_length_at_least(coltype: TypeEngine,
                                         min_length: int = 1000) -> bool:
     if not isinstance(coltype, sqltypes.String):
         return False  # not a string/text type at all
@@ -502,16 +502,16 @@ def is_sqlatype_text_of_length_at_least(coltype: Column,
     return coltype.length >= min_length
 
 
-def is_sqlatype_text_over_one_char(coltype: Column) -> bool:
+def is_sqlatype_text_over_one_char(coltype: TypeEngine) -> bool:
     return is_sqlatype_text_of_length_at_least(coltype, 2)
 
 
-def does_sqlatype_merit_fulltext_index(coltype: Column,
+def does_sqlatype_merit_fulltext_index(coltype: TypeEngine,
                                        min_length: int = 1000) -> bool:
     return is_sqlatype_text_of_length_at_least(coltype, min_length)
 
 
-def does_sqlatype_require_index_len(coltype: Column) -> bool:
+def does_sqlatype_require_index_len(coltype: TypeEngine) -> bool:
     # MySQL, at least, requires index length to be specified for BLOB and TEXT
     # columns: http://dev.mysql.com/doc/refman/5.7/en/create-index.html
     if isinstance(coltype, sqltypes.Text):

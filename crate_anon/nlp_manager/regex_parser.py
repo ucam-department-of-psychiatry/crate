@@ -4,11 +4,8 @@
 # Shared elements for regex-based NLP work.
 
 import logging
-import regex
-# noinspection PyProtectedMember
-from regex import _regex_core
 import typing
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
 
@@ -18,6 +15,12 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.number import to_float, to_pos_float
+from crate_anon.nlp_manager.regex_func import (
+    compile_regex,
+    compile_regex_dict,
+    get_regex_dict_match,
+)
 from crate_anon.nlp_manager.regex_numbers import (
     BILLION,
     LIBERAL_NUMBER,
@@ -35,11 +38,14 @@ from crate_anon.nlp_manager.regex_numbers import (
     UNSIGNED_FLOAT,
     UNSIGNED_INTEGER,
 )
+from crate_anon.nlp_manager.regex_test import test_text_regex
 from crate_anon.nlp_manager.regex_units import (
     CELLS,
     CELLS_PER_CUBIC_MM,
     CUBIC_MM,
+    OUT_OF_SEPARATOR,
     PER_CUBIC_MM,
+    SCORE,
 )
 
 log = logging.getLogger(__name__)
@@ -48,65 +54,8 @@ log = logging.getLogger(__name__)
 # =============================================================================
 #  Generic entities
 # =============================================================================
-# - All will use VERBOSE mode for legibility. (No impact on speed: compiled.)
-# - Don't forget to use raw strings for all regex definitions!
-# - Beware comments inside regexes. The comment parser isn't quite as benign
-#   as you might think. Use very plain text only.
-# - (?: XXX ) makes XXX into an unnamed group.
 
-
-# -----------------------------------------------------------------------------
-# Regex basics
-# -----------------------------------------------------------------------------
-
-REGEX_COMPILE_FLAGS = (regex.IGNORECASE | regex.MULTILINE | regex.VERBOSE |
-                       regex.UNICODE)
 WORD_BOUNDARY = r"\b"
-
-
-def at_wb_start_end(regex_str: str) -> str:
-    """
-    Caution using this. Digits do not end a word, so "mm3" will not match if
-    your "mm" group ends in a word boundary.
-    """
-    return "\b(?: {} )\b".format(regex_str)
-
-
-def at_start_wb(regex_str: str) -> str:
-    """
-    With word boundary at start. Beware, though; e.g. "3kg" is reasonable, and
-    this does NOT have a word boundary in.
-    """
-    return "(?: \b (?: {} ) )".format(regex_str)
-
-
-def compile_regex(regex_str: str) -> typing.re.Pattern:
-    try:
-        return regex.compile(regex_str, REGEX_COMPILE_FLAGS)
-    except _regex_core.error:
-        print("FAILING REGEX:\n{}".format(regex_str))
-        raise
-
-
-def compile_regex_dict(regexstr_to_value_dict: Dict[str, Any]) \
-        -> Dict[typing.re.Pattern, Any]:
-    return {
-        compile_regex(k): v
-        for k, v in regexstr_to_value_dict.items()
-    }
-
-
-def get_regex_dict_match(text: Optional[str],
-                         regex_to_value_dict: Dict[typing.re.Pattern, Any],
-                         default: Any = None) \
-        -> Tuple[bool, Any]:
-    """Returns (matched, result)."""
-    if text:
-        for r, value in regex_to_value_dict.items():
-            if r.match(text):
-                return True, value
-    return False, default
-
 
 # -----------------------------------------------------------------------------
 # Blood results
@@ -114,21 +63,12 @@ def get_regex_dict_match(text: Optional[str],
 
 OPTIONAL_RESULTS_IGNORABLES = r"""
     (?:  # OPTIONAL_RESULTS_IGNORABLES
-        \s          # whitespace
-        | \|        # bar
-        | \:        # colon
-        | \bHH?\b   # H or HH at a word boundary
-        | \(HH?\)   # (H) or (HH)
-        | \bLL?\b   # L or LL at a word boundary
-        | \(LL?\)   # (L) or (LL)
-        | \*        # *
-        | \(\*\)    # (*)
-        | \(        # isolated left parenthesis
-        | —         # em dash
-        | --        # double hyphen used as dash
-        | –\s+      # en dash followed by whitespace
-        | -\s+      # ASCII hyphen followed by whitespace
-        | ‐\s+      # Unicode hyphen followed by whitespace
+        \s | \| | \:          # whitespace, bar, colon
+        | \bHH?\b | \(HH?\)   # H/HH at a word boundary; (H)/(HH)
+        | \bLL?\b | \(LL?\)   # L/LL etc.
+        | \* | \(\*\) | \(    # *, (*), isolated left parenthesis
+        | — | --              # em dash, double hyphen-minus
+        | –\s+ | -\s+ | ‐\s+  # en dash/hyphen-minus/Unicode hyphen; whitespace
     )*
 """
 # - you often get | characters when people copy/paste tables
@@ -198,21 +138,44 @@ RELATION_LOOKUP = compile_regex_dict({
 #  Generic processors
 # =============================================================================
 
-def to_float(s: str) -> Optional[float]:
-    try:
-        s = s.replace(',', '')  # comma as thousands separator
-        s = s.replace('−', '-')  # Unicode minus
-        s = s.replace('–', '-')  # en dash
-        return float(s)
-    except (TypeError, ValueError):
-        return None
+FN_VARIABLE_NAME = 'variable_name'
+FN_CONTENT = '_content'
+FN_START = '_start'
+FN_END = '_end'
+FN_VARIABLE_TEXT = 'variable_text'
+FN_RELATION_TEXT = 'relation_text'
+FN_RELATION = 'relation'
+FN_VALUE_TEXT = 'value_text'
+FN_UNITS = 'units'
+FN_TENSE_TEXT = 'tense_text'
+FN_TENSE = 'tense'
 
+HELP_VARIABLE_NAME = "Variable name"
+HELP_CONTENT = "Matching text contents"
+HELP_START = "Start position (of matching string within whole text)"
+HELP_END = "End position (of matching string within whole text)"
+HELP_VARIABLE_TEXT = "Text that matched the variable name"
+HELP_RELATION_TEXT = (
+    "Text that matched the mathematical relationship between variable and "
+    "value (e.g. '=', '<=', 'less than')"
+)
+HELP_RELATION = (
+    "Standardized mathematical relationship between variable and value "
+    "(e.g. '=', '<=')"
+)
+HELP_VALUE_TEXT = "Matched numerical value, as text"
+HELP_UNITS = HELP_VALUE_TEXT
+HELP_TARGET_UNIT = "Numerical value in preferred units, if known"
+HELP_TENSE_TEXT = "Tense text, if known (e.g. '{}', '{}')".format(IS, WAS)
+HELP_TENSE = "Calculated tense, if known (e.g. '{}', '{}')".format(PAST,
+                                                                   PRESENT)
 
-def to_pos_float(s: str) -> Optional[float]:
-    try:
-        return abs(to_float(s))
-    except TypeError:  # to_float() returned None
-        return None
+MAX_RELATION_TEXT_LENGTH = 50
+MAX_RELATION_LENGTH = max(len(x) for x in RELATION_LOOKUP.values())
+MAX_VALUE_TEXT_LENGTH = 50
+MAX_UNITS_LENGTH = 50
+MAX_TENSE_TEXT_LENGTH = 50
+MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.values())
 
 
 def common_tense(tense_text: str, relation_text: str) -> Tuple[str, str]:
@@ -236,24 +199,6 @@ def common_tense(tense_text: str, relation_text: str) -> Tuple[str, str]:
 class NumericalResultParser(BaseNlpParser):
     """DO NOT USE DIRECTLY. Base class for generic numerical results, where
     a SINGLE variable is produced."""
-    FN_VARIABLE_NAME = 'variable_name'
-    FN_CONTENT = '_content'
-    FN_START = '_start'
-    FN_END = '_end'
-    FN_VARIABLE_TEXT = 'variable_text'
-    FN_RELATION_TEXT = 'relation_text'
-    FN_RELATION = 'relation'
-    FN_VALUE_TEXT = 'value_text'
-    FN_UNITS = 'units'
-    FN_TENSE_TEXT = 'tense_text'
-    FN_TENSE = 'tense'
-
-    MAX_RELATION_TEXT_LENGTH = 50
-    MAX_RELATION_LENGTH = max(len(x) for x in RELATION_LOOKUP.values())
-    MAX_VALUE_TEXT_LENGTH = 50
-    MAX_UNITS_LENGTH = 50
-    MAX_TENSE_TEXT_LENGTH = 50
-    MAX_TENSE_LENGTH = max(len(x) for x in TENSE_LOOKUP.values())
 
     def __init__(self,
                  nlpdef: NlpDefinition,
@@ -285,36 +230,23 @@ class NumericalResultParser(BaseNlpParser):
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         return {self.tablename: [
-            Column(self.FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   doc="Variable name"),
-            Column(self.FN_CONTENT, Text,
-                   doc="Matching text contents"),
-            Column(self.FN_START, Integer,
-                   doc="Start position (of matching string within whole "
-                       "text)"),
-            Column(self.FN_END, Integer,
-                   doc="End position (of matching string within whole text)"),
-            Column(self.FN_VARIABLE_TEXT, Text,
-                   doc="Text that matched the variable name"),
-            Column(self.FN_RELATION_TEXT, String(self.MAX_RELATION_TEXT_LENGTH),
-                   doc="Text that matched the mathematical relationship "
-                       "between variable and value (e.g. '=', '<=', "
-                       "'less than')"),
-            Column(self.FN_RELATION, String(self.MAX_RELATION_LENGTH),
-                   doc="Standardized mathematical relationship "
-                       "between variable and value (e.g. '=', '<=')"),
-            Column(self.FN_VALUE_TEXT, String(self.MAX_VALUE_TEXT_LENGTH),
-                   doc="Matched numerical value, as text"),
-            Column(self.FN_UNITS, String(self.MAX_UNITS_LENGTH),
-                   doc="Matched units, as text"),
-            Column(self.target_unit, Float,
-                   doc="Numerical value in preferred units, if known"),
-            Column(self.FN_TENSE_TEXT, String(self.MAX_TENSE_TEXT_LENGTH),
-                   doc="Tense text, if known (e.g. '{}', '{}')".format(
-                       IS, WAS)),
-            Column(self.FN_TENSE, String(self.MAX_TENSE_LENGTH),
-                   doc="Calculated tense, if known (e.g. '{}', '{}')".format(
-                       PAST, PRESENT)),
+            Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
+                   doc=HELP_VARIABLE_NAME),
+            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
+            Column(FN_START, Integer, doc=HELP_START),
+            Column(FN_END, Integer, doc=HELP_END),
+            Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+            Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
+                   doc=HELP_RELATION_TEXT),
+            Column(FN_RELATION, String(MAX_RELATION_LENGTH),
+                   doc=HELP_RELATION),
+            Column(FN_VALUE_TEXT, String(MAX_VALUE_TEXT_LENGTH),
+                   doc=HELP_VALUE_TEXT),
+            Column(FN_UNITS, String(MAX_UNITS_LENGTH), doc=HELP_UNITS),
+            Column(self.target_unit, Float, doc=HELP_TARGET_UNIT),
+            Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),
+                   doc=HELP_TENSE_TEXT),
+            Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
         ]}
 
     def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]], None,
@@ -324,29 +256,36 @@ class NumericalResultParser(BaseNlpParser):
 
     def test_numerical_parser(
             self,
-            test_expected_list: List[Tuple[str, List[float]]]) -> None:
+            test_expected_list: List[Tuple[str, List[float]]],
+            verbose: bool = False) -> None:
         """
-        :param test_expected_list: list of tuples of (a) test string and
+        test_expected_list: list of tuples of (a) test string and
          (b) list of expected numerical (float) results, which can be an
          empty list
-        :return: none; will assert on failure
+        Returne: none; will assert on failure
         """
         print("Testing parser: {}".format(type(self).__name__))
+        if verbose:
+            print("... regex string is the responsibility of subclass")
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 x[self.target_unit] for t, x in self.parse(test_string)
             )
             assert actual_values == expected_values, (
-                """Parser {}: Expected {}, got {}, when parsing {}""".format(
-                    type(self).__name__,
-                    expected_values,
-                    actual_values,
-                    repr(test_string)
+                "Parser {name}: Expected {expected}, got {actual}, when "
+                "parsing {test_string}; full result:\n{full}".format(
+                    name=type(self).__name__,
+                    expected=expected_values,
+                    actual=actual_values,
+                    test_string=repr(test_string),
+                    full=repr(list(self.parse(test_string))),
                 )
             )
         print("... OK")
 
-    def detailed_test(self, text: str, expected: List[Dict[str, Any]]) -> None:
+    # noinspection PyUnusedLocal
+    def detailed_test(self, text: str, expected: List[Dict[str, Any]],
+                      verbose: bool = False) -> None:
         i = 0
         for _, values in self.parse(text):
             if i >= len(expected):
@@ -472,24 +411,212 @@ class SimpleNumericalResultParser(NumericalResultParser):
             tense, relation = common_tense(tense_text, relation_text)
 
             result = {
-                self.FN_VARIABLE_NAME: self.variable,
-                self.FN_CONTENT: matching_text,
-                self.FN_START: startpos,
-                self.FN_END: endpos,
+                FN_VARIABLE_NAME: self.variable,
+                FN_CONTENT: matching_text,
+                FN_START: startpos,
+                FN_END: endpos,
 
-                self.FN_VARIABLE_TEXT: variable_text,
-                self.FN_RELATION_TEXT: relation_text,
-                self.FN_RELATION: relation,
-                self.FN_VALUE_TEXT: value_text,
-                self.FN_UNITS: units,
+                FN_VARIABLE_TEXT: variable_text,
+                FN_RELATION_TEXT: relation_text,
+                FN_RELATION: relation,
+                FN_VALUE_TEXT: value_text,
+                FN_UNITS: units,
                 self.target_unit: value_in_target_units,
-                self.FN_TENSE_TEXT: tense_text,
-                self.FN_TENSE: tense,
+                FN_TENSE_TEXT: tense_text,
+                FN_TENSE: tense,
             }
             # log.critical(result)
             if debug:
                 print("Match {} for {} -> {}".format(m, repr(text), result))
             yield self.tablename, result
+
+
+class NumeratorOutOfDenominatorParser(BaseNlpParser):
+    """Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
+    Integer denominator, expected to be positive.
+    Otherwise similar to SimpleNumericalResultParser."""
+    def __init__(self,
+                 nlpdef: NlpDefinition,
+                 cfgsection: str,
+                 variable_name: str,  # e.g. "MMSE"
+                 variable_regex_str: str,  # e.g. regex for MMSE
+                 expected_denominator: int,
+                 numerator_text_fieldname: str = "numerator_text",
+                 numerator_fieldname: str = "numerator",
+                 denominator_text_fieldname: str = "denominator_text",
+                 denominator_fieldname: str = "denominator",
+                 correct_numerator_fieldname: str = None,  # default below
+                 take_absolute: bool = True,
+                 commit: bool = False,
+                 debug: bool = False) -> None:
+        """
+        This class operates with compiled regexes having this group format:
+          - quantity_regex_str: e.g. to find "MMSE"
+        """
+        self.variable_name = variable_name
+        assert(expected_denominator > 0)
+        self.expected_denominator = expected_denominator
+        self.numerator_text_fieldname = numerator_text_fieldname
+        self.numerator_fieldname = numerator_fieldname
+        self.denominator_text_fieldname = denominator_text_fieldname
+        self.denominator_fieldname = denominator_fieldname
+        self.correct_numerator_fieldname = (
+            correct_numerator_fieldname or
+            "out_of_{}".format(expected_denominator))
+        self.take_absolute = take_absolute
+
+        super().__init__(nlpdef=nlpdef,
+                         cfgsection=cfgsection,
+                         commit=commit)
+        if nlpdef is None:  # only None for debugging!
+            self.tablename = ''
+        else:
+            self.tablename = nlpdef.opt_str(
+                cfgsection, 'desttable', required=True)
+
+        regex_str = r"""
+            ( {variable} )                     # 1. group for variable (thing being measured)
+            {OPTIONAL_RESULTS_IGNORABLES}
+            {SCORE}?                           # optional "score" or similar
+            {OPTIONAL_RESULTS_IGNORABLES}
+            ( {TENSE_INDICATOR} )?             # 2. optional group for tense indicator
+            {OPTIONAL_RESULTS_IGNORABLES}
+            ( {RELATION} )?                    # 3. optional group for relation
+            {OPTIONAL_RESULTS_IGNORABLES}
+            ( {SIGNED_FLOAT} )                 # 4. group for numerator
+            (?:                                # optional "/ denominator"
+                \s* {OUT_OF_SEPARATOR} \s*
+                ( {UNSIGNED_INTEGER} )         # 5. group for denominator
+            )?
+        """.format(  # noqa
+            variable=variable_regex_str,
+            OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
+            SCORE=SCORE,
+            TENSE_INDICATOR=TENSE_INDICATOR,
+            RELATION=RELATION,
+            SIGNED_FLOAT=SIGNED_FLOAT,
+            OUT_OF_SEPARATOR=OUT_OF_SEPARATOR,
+            UNSIGNED_INTEGER=UNSIGNED_INTEGER,
+        )
+        if debug:
+            print("Regex for {}: {}".format(type(self).__name__, regex_str))
+        self.regex_str = regex_str
+        self.compiled_regex = compile_regex(regex_str)
+
+    def dest_tables_columns(self) -> Dict[str, List[Column]]:
+        return {self.tablename: [
+            Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
+                   doc=HELP_VARIABLE_NAME),
+            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
+            Column(FN_START, Integer, doc=HELP_START),
+            Column(FN_END, Integer, doc=HELP_END),
+            Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+            Column(FN_RELATION, String(MAX_RELATION_LENGTH),
+                   doc=HELP_RELATION),
+            Column(self.numerator_text_fieldname,
+                   String(MAX_VALUE_TEXT_LENGTH),
+                   doc="Numerator, as text"),
+            Column(self.numerator_fieldname, Float,
+                   doc="Numerator"),
+            Column(self.denominator_text_fieldname,
+                   String(MAX_VALUE_TEXT_LENGTH),
+                   doc="Denominator, as text"),
+            Column(self.denominator_fieldname, Float,
+                   doc="Denominator"),
+            Column(self.correct_numerator_fieldname, Float,
+                   doc="Numerator, if denominator is as expected (units are "
+                       "correct)"),
+            Column(FN_TENSE, String(MAX_TENSE_LENGTH), doc=HELP_TENSE),
+        ]}
+
+    def parse(self, text: str,
+              debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
+                                                None, None]:
+        """Default parser for NumeratorOutOfDenominatorParser."""
+        for m in self.compiled_regex.finditer(text):
+            startpos = m.start()
+            endpos = m.end()
+            # groups = repr(m.groups())  # all matching groups
+            matching_text = m.group(0)  # the whole thing
+            # matching_text = text[startpos:endpos]  # same thing
+
+            variable_text = m.group(1)
+            tense_text = m.group(2)
+            relation_text = m.group(3)
+            numerator_text = m.group(4)
+            denominator_text = m.group(5)
+
+            if self.take_absolute:
+                numerator = to_pos_float(numerator_text)
+            else:
+                numerator = to_float(numerator_text)
+            denominator = to_float(denominator_text)
+
+            if numerator is None:
+                log.critical("bug - numerator is None, should be impossible")
+                continue
+            correct_numerator = None
+            if denominator is None:
+                if numerator <= self.expected_denominator:
+                    correct_numerator = numerator
+            else:
+                if numerator <= denominator == self.expected_denominator:
+                    correct_numerator = numerator
+
+            tense, relation = common_tense(tense_text, relation_text)
+
+            result = {
+                FN_VARIABLE_NAME: self.variable_name,
+                FN_CONTENT: matching_text,
+                FN_START: startpos,
+                FN_END: endpos,
+
+                FN_VARIABLE_TEXT: variable_text,
+                FN_RELATION_TEXT: relation_text,
+                FN_RELATION: relation,
+                self.numerator_text_fieldname: numerator_text,
+                self.numerator_fieldname: numerator,
+                self.denominator_text_fieldname: denominator_text,
+                self.denominator_fieldname: denominator,
+                self.correct_numerator_fieldname: correct_numerator,
+                FN_TENSE_TEXT: tense_text,
+                FN_TENSE: tense,
+            }
+            # log.critical(result)
+            if debug:
+                print("Match {} for {} -> {}".format(m, repr(text), result))
+            yield self.tablename, result
+
+    def test_numerator_denominator_parser(
+            self,
+            test_expected_list: List[
+                Tuple[str, List[Tuple[float, float]]]
+            ],
+            verbose: bool = False) -> None:
+        """
+        test_expected_list: list of tuples of (a) test string and
+         (b) list of expected numerical (numerator, denominator) results, which
+         can be an empty list
+        Returns: none; will assert on failure
+        """
+        print("Testing parser: {}".format(type(self).__name__))
+        if verbose:
+            print("... regex:\n{}".format(self.regex_str))
+        for test_string, expected_values in test_expected_list:
+            actual_values = list(
+                (x[self.numerator_fieldname], x[self.denominator_fieldname])
+                for t, x in self.parse(test_string)
+            )
+            assert actual_values == expected_values, (
+                "Parser {name}: Expected {expected}, got {actual}, when "
+                "parsing {test_string}; full result:\n{full}".format(
+                    name=type(self).__name__,
+                    expected=expected_values,
+                    actual=actual_values,
+                    test_string=repr(test_string),
+                    full=repr(list(self.parse(test_string))),
+                )
+            )
 
 
 # =============================================================================
@@ -578,10 +705,6 @@ class ValidatorBase(BaseNlpParser):
     the CRP class looks for things like "CRP is 6" or "CRP 20 mg/L", whereas
     the CRP validator looks for things like "CRP".
     """
-    FN_VARIABLE_NAME = 'variable_name'
-    FN_CONTENT = '_content'
-    FN_START = '_start'
-    FN_END = '_end'
 
     def __init__(self,
                  nlpdef: NlpDefinition,
@@ -610,15 +733,11 @@ class ValidatorBase(BaseNlpParser):
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         return {self.tablename: [
-            Column(self.FN_VARIABLE_NAME, SqlTypeDbIdentifier,
-                   doc="Variable name"),
-            Column(self.FN_CONTENT, Text,
-                   doc="Matching text contents"),
-            Column(self.FN_START, Integer,
-                   doc="Start position (of matching string within whole "
-                       "text)"),
-            Column(self.FN_END, Integer,
-                   doc="End position (of matching string within whole text)"),
+            Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
+                   doc=HELP_VARIABLE_NAME),
+            Column(FN_CONTENT, Text, doc=HELP_CONTENT),
+            Column(FN_START, Integer, doc=HELP_START),
+            Column(FN_END, Integer, doc=HELP_END),
         ]}
 
     def parse(self, text: str) -> Generator[Tuple[str, Dict[str, Any]],
@@ -633,24 +752,16 @@ class ValidatorBase(BaseNlpParser):
                 # matching_text = text[startpos:endpos]  # same thing
 
                 yield self.tablename, {
-                    self.FN_VARIABLE_NAME: self.variable,
-                    self.FN_CONTENT: matching_text,
-                    self.FN_START: startpos,
-                    self.FN_END: endpos,
+                    FN_VARIABLE_NAME: self.variable,
+                    FN_CONTENT: matching_text,
+                    FN_START: startpos,
+                    FN_END: endpos,
                 }
 
 
 # =============================================================================
 #  More general testing
 # =============================================================================
-
-def f_score(precision: float, recall: float, beta: float = 1) -> float:
-    # https://en.wikipedia.org/wiki/F1_score
-    beta_sq = beta ** 2
-    return (
-        (1 + beta_sq) * precision * recall / ((beta_sq * precision) + recall)
-    )
-
 
 def learning_alternative_regex_groups():
     regex_str = r"""
@@ -673,46 +784,6 @@ def learning_alternative_regex_groups():
         - groups are ordered by their opening bracket
         - matches are filled in neatly
     """
-
-
-def get_compiled_regex_results(compiled_regex: typing.re.Pattern,
-                               text: str) -> List[str]:
-    results = []
-    for m in compiled_regex.finditer(text):
-        results.append(m.group(0))
-    return results
-
-
-def print_compiled_regex_results(compiled_regex: typing.re.Pattern, text: str,
-                                 prefix_spaces: int = 4) -> None:
-    results = get_compiled_regex_results(compiled_regex, text)
-    print("{}{} -> {}".format(' ' * prefix_spaces,
-                              repr(text), repr(results)))
-
-
-def test_text_regex(name: str,
-                    regex_text: str,
-                    test_expected_list: List[Tuple[str, List[str]]],
-                    verbose: bool = False) -> None:
-    compiled_regex = compile_regex(regex_text)
-    print("Testing regex named {}".format(name))
-    if verbose:
-        print("... regex text:\n{}".format(regex_text))
-    for test_string, expected_values in test_expected_list:
-        actual_values = get_compiled_regex_results(compiled_regex, test_string)
-        assert actual_values == expected_values, (
-            "Regex {name}: Expected {expected_values}, got {actual_values}, "
-            "when parsing {test_string}. Regex text:\n{regex_text}]".format(
-                name=name,
-                expected_values=expected_values,
-                actual_values=actual_values,
-                test_string=repr(test_string),
-                regex_text=regex_text,
-            )
-        )
-    print("... OK")
-    # print_compiled_regex_results(compiled_regex, text,
-    #                              prefix_spaces=prefix_spaces)
 
 
 def test_base_regexes(verbose: bool = False) -> None:
@@ -917,7 +988,7 @@ def test_base_regexes(verbose: bool = False) -> None:
         ("a is b", ["is"]),
         ("a was b", ["was"]),
         ("a blah b", []),
-    ])
+    ], verbose=verbose)
 
     # -------------------------------------------------------------------------
     # Mathematical relations
@@ -935,7 +1006,7 @@ def test_base_regexes(verbose: bool = False) -> None:
         ("a more than b", ["more than"]),
         ("a greater than b", ["greater than"]),
         ("a blah b", []),
-    ])
+    ], verbose=verbose)
 
 
 # =============================================================================

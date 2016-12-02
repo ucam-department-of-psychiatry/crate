@@ -6,15 +6,10 @@ from typing import Optional
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
-    OPTIONAL_RESULTS_IGNORABLES,
-    RELATION,
-    SimpleNumericalResultParser,
-    TENSE_INDICATOR,
+    NumeratorOutOfDenominatorParser,
     ValidatorBase,
     WORD_BOUNDARY,
 )
-from crate_anon.nlp_manager.regex_numbers import SIGNED_FLOAT
-from crate_anon.nlp_manager.regex_units import out_of, out_of_anything, SCORE
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +18,7 @@ log = logging.getLogger(__name__)
 # Mini-mental state examination (MMSE)
 # =============================================================================
 
-class Mmse(SimpleNumericalResultParser):
+class Mmse(NumeratorOutOfDenominatorParser):
     """Mini-mental state examination (MMSE)."""
     MMSE = r"""
         (?:
@@ -35,38 +30,7 @@ class Mmse(SimpleNumericalResultParser):
             {WORD_BOUNDARY}
         )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    OUT_OF_30 = out_of(30)
-    REGEX = r"""
-        ( {MMSE} )                         # group for "MMSE" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        {SCORE}?                           # optional "score" or similar
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # group for units
-            {OUT_OF_30}                         # good
-            | {OUT_OF_ANYTHING}                 # bad
-        )?
-    """.format(
-        MMSE=MMSE,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        SCORE=SCORE,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OUT_OF_30=OUT_OF_30,
-        OUT_OF_ANYTHING=out_of_anything(),
-    )
     NAME = "MMSE"
-    PREFERRED_UNIT_COLUMN = "out_of_30"
-    UNIT_MAPPING = {
-        OUT_OF_30: 1,       # preferred unit
-        # not out_of_anything()
-    }
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -75,28 +39,27 @@ class Mmse(SimpleNumericalResultParser):
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
-            regex_str=self.REGEX,
-            variable=self.NAME,
-            target_unit=self.PREFERRED_UNIT_COLUMN,
-            units_to_factor=self.UNIT_MAPPING,
             commit=commit,
+            variable_name=self.NAME,
+            variable_regex_str=self.MMSE,
+            expected_denominator=30,
             take_absolute=True
         )
 
-    def test(self):
-        self.test_numerical_parser([
+    def test(self, verbose: bool = False) -> None:
+        self.test_numerator_denominator_parser([
             ("MMSE", []),  # should fail; no values
-            ("MMSE 30/30", [30]),
-            ("MMSE 25 / 30", [25]),
-            ("MMSE 25 / 29", []),
-            ("MMSE 25 / 31", []),
-            ("mini-mental state exam 30", [30]),
-            ("minimental 25", [25]),
-            ("MMSE 30", [30]),
-            ("MMSE-27", [27]),
-            ("MMSE score was 30", [30]),
+            ("MMSE 30/30", [(30, 30)]),
+            ("MMSE 25 / 30", [(25, 30)]),
+            ("MMSE 25 / 29", [(25, 29)]),
+            ("MMSE 25 / 31", [(25, 31)]),
+            ("mini-mental state exam 30", [(30, None)]),
+            ("minimental 25", [(25, None)]),
+            ("MMSE 30", [(30, None)]),
+            ("MMSE-27", [(27, None)]),
+            ("MMSE score was 30", [(30, None)]),
             ("ACE 79", []),
-        ])
+        ], verbose=verbose)
 
 
 class MmseValidator(ValidatorBase):
@@ -116,7 +79,7 @@ class MmseValidator(ValidatorBase):
 # Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III)
 # =============================================================================
 
-class Ace(SimpleNumericalResultParser):
+class Ace(NumeratorOutOfDenominatorParser):
     """Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III)."""
     ACE = r"""
         (?:
@@ -135,38 +98,7 @@ class Ace(SimpleNumericalResultParser):
             {WORD_BOUNDARY}
         )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    OUT_OF_100 = out_of(100)
-    REGEX = r"""
-        ( {ACE} )                          # group for "ACE" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        {SCORE}?                           # optional "score" or similar
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # group for units
-            {OUT_OF_100}                        # good
-            | {OUT_OF_ANYTHING}                 # bad
-        )?
-    """.format(
-        ACE=ACE,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        SCORE=SCORE,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OUT_OF_100=OUT_OF_100,
-        OUT_OF_ANYTHING=out_of_anything(),
-    )
     NAME = "ACE"
-    PREFERRED_UNIT_COLUMN = "out_of_100"
-    UNIT_MAPPING = {
-        OUT_OF_100: 1,       # preferred unit
-        # not out_of_anything()
-    }
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -175,39 +107,38 @@ class Ace(SimpleNumericalResultParser):
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
-            regex_str=self.REGEX,
-            variable=self.NAME,
-            target_unit=self.PREFERRED_UNIT_COLUMN,
-            units_to_factor=self.UNIT_MAPPING,
             commit=commit,
+            variable_name=self.NAME,
+            variable_regex_str=self.ACE,
+            expected_denominator=100,
             take_absolute=True
         )
 
-    def test(self):
-        self.test_numerical_parser([
+    def test(self, verbose: bool = False) -> None:
+        self.test_numerator_denominator_parser([
             ("MMSE", []),
             ("MMSE 30/30", []),
             ("MMSE 25 / 30", []),
             ("mini-mental state exam 30", []),
             ("minimental 25", []),
             ("MMSE 30", []),
-            ("ACE 79", [79]),
-            ("ACE 79/100", [79]),
-            ("ACE 79/95", []),
-            ("ACE 79 / 100", [79]),
-            ("Addenbrooke's cognitive examination 79", [79]),
-            ("Addenbrookes cognitive evaluation 79", [79]),
-            ("ACE-R 79", [79]),
-            ("ACE-R 79 out of 100", [79]),
-            ("ACE-III 79", [79]),
-            ("ACE-III score was 79", [79]),
-            ("ACE-3 79", [79]),
-            ("ACE R 79", [79]),
-            ("ACE III 79", [79]),
-            ("ACE 3 79", [3]),  # nasty; not easy to cope with this well.
-            ("ACE 3", [3]),
-            ("ACE-82", [82]),
-        ])
+            ("ACE 79", [(79, None)]),
+            ("ACE 79/100", [(79, 100)]),
+            ("ACE 79/95", [(79, 95)]),
+            ("ACE 79 / 100", [(79, 100)]),
+            ("Addenbrooke's cognitive examination 79", [(79, None)]),
+            ("Addenbrookes cognitive evaluation 79", [(79, None)]),
+            ("ACE-R 79", [(79, None)]),
+            ("ACE-R 79 out of 100", [(79, 100)]),
+            ("ACE-III 79", [(79, None)]),
+            ("ACE-III score was 79", [(79, None)]),
+            ("ACE-3 79", [(79, None)]),
+            ("ACE R 79", [(79, None)]),
+            ("ACE III 79", [(79, None)]),
+            ("ACE 3 79", [(3, None)]),  # nasty; not easy to cope with this well.  # noqa
+            ("ACE 3", [(3, None)]),
+            ("ACE-82", [(82, None)]),
+        ], verbose=verbose)
 
 
 class AceValidator(ValidatorBase):
@@ -227,7 +158,7 @@ class AceValidator(ValidatorBase):
 # Mini-Addenbrooke's Cognitive Examination (M-ACE)
 # =============================================================================
 
-class MiniAce(SimpleNumericalResultParser):
+class MiniAce(NumeratorOutOfDenominatorParser):
     """Mini-Addenbrooke's Cognitive Examination (M-ACE)."""
     MACE = r"""
         (?:
@@ -246,38 +177,7 @@ class MiniAce(SimpleNumericalResultParser):
             {WORD_BOUNDARY}
         )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    OUT_OF_30 = out_of(30)
-    REGEX = r"""
-        ( {MACE} )                         # group for "M-ACE" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        {SCORE}?                           # optional "score" or similar
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # group for units
-            {OUT_OF_30}                         # good
-            | {OUT_OF_ANYTHING}                 # bad
-        )?
-    """.format(
-        MACE=MACE,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        SCORE=SCORE,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OUT_OF_30=OUT_OF_30,
-        OUT_OF_ANYTHING=out_of_anything(),
-    )
     NAME = "MiniACE"
-    PREFERRED_UNIT_COLUMN = "out_of_30"
-    UNIT_MAPPING = {
-        OUT_OF_30: 1,       # preferred unit
-        # not out_of_anything()
-    }
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -286,31 +186,30 @@ class MiniAce(SimpleNumericalResultParser):
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
-            regex_str=self.REGEX,
-            variable=self.NAME,
-            target_unit=self.PREFERRED_UNIT_COLUMN,
-            units_to_factor=self.UNIT_MAPPING,
             commit=commit,
+            variable_name=self.NAME,
+            variable_regex_str=self.MACE,
+            expected_denominator=30,
             take_absolute=True
         )
 
-    def test(self):
-        self.test_numerical_parser([
+    def test(self, verbose: bool = False) -> None:
+        self.test_numerator_denominator_parser([
             ("MMSE 30", []),
             ("ACE 79", []),
             ("ACE 79/100", []),
             ("Addenbrooke's cognitive examination 79", []),
             ("Addenbrookes cognitive evaluation 79", []),
-            ("mini-Addenbrooke's cognitive examination 79", [79]),
-            ("mini-Addenbrookes cognitive evaluation 79", [79]),
-            ("M-ACE 20", [20]),
-            ("M-ACE score is 20", [20]),
-            ("M-ACE 29/30", [29]),
-            ("M-ACE 29/29", []),
-            ("MACE 29", [29]),
-            ("MACE-29", [29]),
-            ("mini-ACE 29", [29]),
-        ])
+            ("mini-Addenbrooke's cognitive examination 79", [(79, None)]),
+            ("mini-Addenbrookes cognitive evaluation 79", [(79, None)]),
+            ("M-ACE 20", [(20, None)]),
+            ("M-ACE score is 20", [(20, None)]),
+            ("M-ACE 29/30", [(29, 30)]),
+            ("M-ACE 29/29", [(29, 29)]),
+            ("MACE 29", [(29, None)]),
+            ("MACE-29", [(29, None)]),
+            ("mini-ACE 29", [(29, None)]),
+        ], verbose=verbose)
 
 
 class MiniAceValidator(ValidatorBase):
@@ -330,7 +229,7 @@ class MiniAceValidator(ValidatorBase):
 # Montreal Cognitive Assessment (MOCA)
 # =============================================================================
 
-class Moca(SimpleNumericalResultParser):
+class Moca(NumeratorOutOfDenominatorParser):
     """Montreal Cognitive Assessment (MOCA)."""
     MOCA = r"""
         (?:
@@ -344,38 +243,7 @@ class Moca(SimpleNumericalResultParser):
             {WORD_BOUNDARY}
         )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
-    OUT_OF_30 = out_of(30)
-    REGEX = r"""
-        ( {MOCA} )                         # group for "M-ACE" or equivalent
-        {OPTIONAL_RESULTS_IGNORABLES}
-        {SCORE}?                           # optional "score" or similar
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {TENSE_INDICATOR} )?             # optional group for tense indicator
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {RELATION} )?                    # optional group for relation
-        {OPTIONAL_RESULTS_IGNORABLES}
-        ( {SIGNED_FLOAT} )                 # group for value
-        {OPTIONAL_RESULTS_IGNORABLES}
-        (                                  # group for units
-            {OUT_OF_30}                         # good
-            | {OUT_OF_ANYTHING}                 # bad
-        )?
-    """.format(
-        MOCA=MOCA,
-        OPTIONAL_RESULTS_IGNORABLES=OPTIONAL_RESULTS_IGNORABLES,
-        SCORE=SCORE,
-        TENSE_INDICATOR=TENSE_INDICATOR,
-        RELATION=RELATION,
-        SIGNED_FLOAT=SIGNED_FLOAT,
-        OUT_OF_30=OUT_OF_30,
-        OUT_OF_ANYTHING=out_of_anything(),
-    )
     NAME = "MOCA"
-    PREFERRED_UNIT_COLUMN = "out_of_30"
-    UNIT_MAPPING = {
-        OUT_OF_30: 1,       # preferred unit
-        # not out_of_anything()
-    }
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -384,23 +252,22 @@ class Moca(SimpleNumericalResultParser):
         super().__init__(
             nlpdef=nlpdef,
             cfgsection=cfgsection,
-            regex_str=self.REGEX,
-            variable=self.NAME,
-            target_unit=self.PREFERRED_UNIT_COLUMN,
-            units_to_factor=self.UNIT_MAPPING,
             commit=commit,
+            variable_name=self.NAME,
+            variable_regex_str=self.MOCA,
+            expected_denominator=30,
             take_absolute=True
         )
 
-    def test(self):
-        self.test_numerical_parser([
-            ("MOCA 30", [30]),
-            ("MOCA 30/30", [30]),
-            ("MOCA 25/30", [25]),
-            ("MOCA score was 25", [25]),
-            ("MOCA 25/29", []),
-            ("MOCA-25", [25]),
-            ("Montreal Cognitive Assessment 25/30", [25]),
+    def test(self, verbose: bool = False) -> None:
+        self.test_numerator_denominator_parser([
+            ("MOCA 30", [(30, None)]),
+            ("MOCA 30/30", [(30, 30)]),
+            ("MOCA 25/30", [(25, 30)]),
+            ("MOCA score was 25", [(25, None)]),
+            ("MOCA 25/29", [(25, 29)]),
+            ("MOCA-25", [(25, None)]),
+            ("Montreal Cognitive Assessment 25/30", [(25, 30)]),
         ])
 
 
@@ -421,19 +288,19 @@ class MocaValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-def test_all() -> None:
+def test_all(verbose: bool = False) -> None:
     mmse = Mmse(None, None)
-    mmse.test()
+    mmse.test(verbose=verbose)
     ace = Ace(None, None)
-    ace.test()
+    ace.test(verbose=verbose)
     mace = MiniAce(None, None)
-    mace.test()
+    mace.test(verbose=verbose)
     moca = Moca(None, None)
-    moca.test()
+    moca.test(verbose=verbose)
 
 
 if __name__ == '__main__':
-    test_all()
+    test_all(verbose=True)
 
 
 # support also "scored X on the MOCA"?

@@ -23,6 +23,7 @@ from cardinal_pythonlib.rnc_lang import (
     count_bool,
 )
 from sqlalchemy import Column
+from sqlalchemy.sql.sqltypes import TypeEngine
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.altermethod import AlterMethod
@@ -461,7 +462,7 @@ class DataDictionaryRow(object):
     def set_src_sqla_coltype(self, sqla_coltype: Column) -> None:
         self._src_sqla_coltype = sqla_coltype
 
-    def get_dest_sqla_coltype(self, config: CONFIG_FWD_REF) -> Column:
+    def get_dest_sqla_coltype(self, config: CONFIG_FWD_REF) -> TypeEngine:
         dialect = config.get_dest_dialect()
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
@@ -703,7 +704,7 @@ class DataDictionaryRow(object):
                              table: str,
                              field: str,
                              datatype_sqltext: str,
-                             sqla_coltype: Column,
+                             sqla_coltype: TypeEngine,
                              dbconf: DATABASE_SAFE_CONFIG_FWD_REF,
                              config: CONFIG_FWD_REF,
                              comment=None) -> None:

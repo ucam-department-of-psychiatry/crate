@@ -89,7 +89,7 @@ class Esr(SimpleNumericalResultParser):
             take_absolute=True
         )
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("ESR (should fail)", []),  # should fail; no values
             ("ESR 6 (should succeed)", [6]),
@@ -111,7 +111,7 @@ class Esr(SimpleNumericalResultParser):
             ("ESR        |       1.9 (H)      | mg/L", []),
             ("my ESR was 15, but his ESR was 89!", [15, 89]),
             ("ESR-18", [18]),
-        ])
+        ], verbose=verbose)
 
 
 class EsrValidator(ValidatorBase):
@@ -239,7 +239,7 @@ class Wbc(WbcBase):
                          cell_type_regex_text=self.WBC,
                          variable=self.NAME)
 
-    def test(self) -> None:
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("WBC (should fail)", []),  # should fail; no values
             ("WBC 6", [6]),
@@ -259,7 +259,7 @@ class Wbc(WbcBase):
             ("WBC -- 6", [6]),  # double hyphen used as dash
             ("WBC - 6", [6]),
             ("WBC-6.5", [6.5]),
-        ])
+        ], verbose=verbose)
 
 
 class WbcValidator(ValidatorBase):
@@ -306,7 +306,7 @@ class Neutrophils(WbcBase):
                          cell_type_regex_text=self.NEUTROPHILS,
                          variable=self.NAME)
 
-    def test(self) -> None:
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("neutrophils (should fail)", []),  # should fail; no values
             ("absolute neutrophil count 6", [6]),
@@ -322,7 +322,7 @@ class Neutrophils(WbcBase):
             ("n0 9800 per cubic mm", [9.8]),
             ("n0 17,600/mm3", [17.6]),
             ("neuts-17", [17]),
-        ])
+        ], verbose=verbose)
 
 
 class NeutrophilsValidator(ValidatorBase):
@@ -365,7 +365,7 @@ class Lymphocytes(WbcBase):
                          cell_type_regex_text=self.LYMPHOCYTES,
                          variable=self.NAME)
 
-    def test(self) -> None:
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("lymphocytes (should fail)", []),  # should fail; no values
             ("absolute lymphocyte count 6", [6]),
@@ -381,7 +381,7 @@ class Lymphocytes(WbcBase):
             ("l0 9800 per cubic mm (should fail)", []),
             ("l0 17,600/mm3 (should fail)", []),
             ("lymphs-6.3", [6.3]),
-        ])
+        ], verbose=verbose)
 
 
 class LymphocytesValidator(ValidatorBase):
@@ -424,7 +424,7 @@ class Monocytes(WbcBase):
                          cell_type_regex_text=self.MONOCYTES,
                          variable=self.NAME)
 
-    def test(self) -> None:
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("monocytes (should fail)", []),  # should fail; no values
             ("absolute monocyte count 6", [6]),
@@ -439,7 +439,7 @@ class Monocytes(WbcBase):
             ("m0 9800 per cubic mm (should fail)", []),
             ("m0 17,600/mm3 (should fail)", []),
             ("monocytes-5.2", [5.2]),
-        ])
+        ], verbose=verbose)
 
 
 class MonocytesValidator(ValidatorBase):
@@ -482,7 +482,7 @@ class Basophils(WbcBase):
                          cell_type_regex_text=self.BASOPHILS,
                          variable=self.NAME)
 
-    def test(self) -> None:
+    def test(self, verbose=False) -> None:
         self.test_numerical_parser([
             ("basophils (should fail)", []),  # should fail; no values
             ("absolute basophil count 6", [6]),
@@ -497,7 +497,7 @@ class Basophils(WbcBase):
             ("b0 9800 per cubic mm (should fail)", []),
             ("b0 17,600/mm3 (should fail)", []),
             ("basophils-5.2", [5.2]),
-        ])
+        ], verbose=verbose)
 
 
 class BasophilsValidator(ValidatorBase):
@@ -540,7 +540,7 @@ class Eosinophils(WbcBase):
                          cell_type_regex_text=self.EOSINOPHILS,
                          variable=self.NAME)
 
-    def test(self) -> None:
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("eosinophils (should fail)", []),  # should fail; no values
             ("absolute eosinophil count 6", [6]),
@@ -555,7 +555,7 @@ class Eosinophils(WbcBase):
             ("e0 9800 per cubic mm (should fail)", []),
             ("e0 17,600/mm3 (should fail)", []),
             ("eosinophils-5.3", [5.3]),
-        ])
+        ], verbose=verbose)
 
 
 class EosinophilsValidator(ValidatorBase):
@@ -575,25 +575,25 @@ class EosinophilsValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-def test_all() -> None:
+def test_all(verbose: bool = False) -> None:
     # ESR
     esr = Esr(None, None)
-    esr.test()
+    esr.test(verbose=verbose)
 
     # WBC and differential
     wbc = Wbc(None, None)
-    wbc.test()
+    wbc.test(verbose=verbose)
     n0 = Neutrophils(None, None)
-    n0.test()
+    n0.test(verbose=verbose)
     l0 = Lymphocytes(None, None)
-    l0.test()
+    l0.test(verbose=verbose)
     m0 = Monocytes(None, None)
-    m0.test()
+    m0.test(verbose=verbose)
     b0 = Basophils(None, None)
-    b0.test()
+    b0.test(verbose=verbose)
     e0 = Eosinophils(None, None)
-    e0.test()
+    e0.test(verbose=verbose)
 
 
 if __name__ == '__main__':
-    test_all()
+    test_all(verbose=True)

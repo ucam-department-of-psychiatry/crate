@@ -101,7 +101,7 @@ class Crp(SimpleNumericalResultParser):
             take_absolute=True
         )
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("CRP", []),  # should fail; no values
             ("CRP 6", [6]),
@@ -130,7 +130,7 @@ class Crp(SimpleNumericalResultParser):
             ("CRP-97", [97]),
             ("CRP 1.9 mg L-1", [1.9]),
             ("CRP        |       1.9 (H)      | mg/L", [1.9]),
-        ])
+        ], verbose=verbose)
 
 
 class CrpValidator(ValidatorBase):
@@ -213,7 +213,7 @@ class Sodium(SimpleNumericalResultParser):
             take_absolute=True
         )
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("Na", []),  # should fail; no values
             ("Na 120", [120]),
@@ -230,7 +230,7 @@ class Sodium(SimpleNumericalResultParser):
             ("Na (145) something", [145]),
             ("Na (145 mM), others", [145]),
             ("Na-145", [145])
-        ])
+        ], verbose=verbose)
 
 
 class SodiumValidator(ValidatorBase):
@@ -306,7 +306,7 @@ class Tsh(SimpleNumericalResultParser):
             take_absolute=True
         )
 
-    def test(self):
+    def test(self, verbose: bool = False) -> None:
         self.test_numerical_parser([
             ("TSH", []),  # should fail; no values
             ("TSH 1.5", [1.5]),
@@ -338,14 +338,14 @@ class TshValidator(ValidatorBase):
 #  Command-line entry point
 # =============================================================================
 
-def test_all() -> None:
+def test_all(verbose: bool = False) -> None:
     crp = Crp(None, None)
-    crp.test()
+    crp.test(verbose=verbose)
     na = Sodium(None, None)
-    na.test()
+    na.test(verbose=verbose)
     tsh = Tsh(None, None)
-    tsh.test()
+    tsh.test(verbose=verbose)
 
 
 if __name__ == '__main__':
-    test_all()
+    test_all(verbose=True)
