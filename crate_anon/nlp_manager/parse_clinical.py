@@ -584,31 +584,15 @@ class Bp(BaseNlpParser):
     """Blood pressure, in mmHg. (Since we produce two variables, SBP and DBP,
     and we use something a little more complex than
     NumeratorOutOfDenominatorParser, we subclass BaseNlpParser directly.)"""
-    BP = r"""
-        (?:
-            \b blood \s+ pressure \b
-            | \b B\.?P\.? \b
-        )
-    """
-    SYSTOLIC_BP = r"""
-        (?:
-            \b systolic \s+ {BP}
-            | \b S\.?B\.?P\.? \b
-        )
-    """.format(BP=BP)
-    DIASTOLIC_BP = r"""
-        (?:
-            \b diastolic \s+ {BP}
-            | \b D\.?B\.?P\.? \b
-        )
-    """.format(BP=BP)
+    BP = r"(?: \b blood \s+ pressure \b | \b B\.?P\.? \b )"
+    SYSTOLIC_BP = r"(?: \b systolic \s+ {BP} | \b S\.?B\.?P\.? \b )".format(
+        BP=BP)
+    DIASTOLIC_BP = r"(?: \b diastolic \s+ {BP} | \b D\.?B\.?P\.? \b )".format(
+        BP=BP)
 
     TWO_NUMBER_BP = r"""
         ( {SIGNED_FLOAT} )
-        (?:
-            \b over \b
-            | \/
-        )
+        \s* (?: \b over \b | \/ ) \s*
         ( {SIGNED_FLOAT} )
     """.format(SIGNED_FLOAT=SIGNED_FLOAT)
     ONE_NUMBER_BP = SIGNED_FLOAT
@@ -629,13 +613,11 @@ class Bp(BaseNlpParser):
         {OPTIONAL_RESULTS_IGNORABLES}
         ( {RELATION} )?                # optional group for relation
         {OPTIONAL_RESULTS_IGNORABLES}
-        (                              # BP
-            {SIGNED_FLOAT}                  # systolic
+        (
+            {SIGNED_FLOAT}                      # systolic
             (?:
-                \s*
-                (?: \b over \b | \/ )       # /
-                \s*
-                {SIGNED_FLOAT}              # diastolic
+                \s* (?: \b over \b | \/ ) \s*   # /
+                {SIGNED_FLOAT}                  # diastolic
             )?
         )
         {OPTIONAL_RESULTS_IGNORABLES}
@@ -713,6 +695,7 @@ class Bp(BaseNlpParser):
 
             sbp = None
             dbp = None
+            bpmatch = None
             if self.COMPILED_SBP.match(variable_text):
                 if self.COMPILED_ONE_NUMBER_BP.match(value_text):
                     sbp = to_pos_float(value_text)
@@ -725,7 +708,19 @@ class Bp(BaseNlpParser):
                     sbp = to_pos_float(bpmatch.group(1))
                     dbp = to_pos_float(bpmatch.group(2))
             if sbp is None and dbp is None:
-                log.warning("Failed interpretation: {}".format(matching_text))
+                log.warning(
+                    "Failed interpretation: matching_text={matching_text}, "
+                    "variable_text={variable_text}, "
+                    "tense_indicator={tense_indicator}, relation={relation}, "
+                    "value_text={value_text}, units={units}".format(
+                        matching_text=repr(matching_text),
+                        variable_text=repr(variable_text),
+                        tense_indicator=repr(tense_indicator),
+                        relation=repr(relation),
+                        value_text=repr(value_text),
+                        units=repr(units),
+                    )
+                )
                 continue
 
             tense, relation = common_tense(tense_indicator, relation)
@@ -758,11 +753,13 @@ class Bp(BaseNlpParser):
                 for t, x in self.parse(test_string)
             )
             assert actual_values == expected_values, (
-                """Parser {}: Expected {}, got {}, when parsing {}""".format(
-                    type(self).__name__,
-                    expected_values,
-                    actual_values,
-                    repr(test_string)
+                "Parser {name}: Expected {expected}, got {actual}, when "
+                "parsing {test_string}; full result={full}".format(
+                    name=type(self).__name__,
+                    expected=expected_values,
+                    actual=actual_values,
+                    test_string=repr(test_string),
+                    full=repr(list(self.parse(test_string))),
                 )
             )
         print("... OK")
@@ -775,6 +772,10 @@ class Bp(BaseNlpParser):
             ("systolic BP 120", [(120, None)]),
             ("diastolic BP 80", [(None, 80)]),
             ("BP-130/70", [(130, 70)]),
+            ("BP 110 /80", [(110, 80)]),
+            ("BP 110 /80 -", [(110, 80)]),  # real example
+            ("BP 120 / 70 -", [(120, 70)]),  # real example
+            ("BP :115 / 70 -", [(115, 70)]),  # real example
             # Unsure if best to take abs value.
             # One reason not to might be if people express changes, e.g.
             # "BP change -40/-10", but I very much doubt it.
