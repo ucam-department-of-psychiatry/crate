@@ -82,7 +82,7 @@ class Ace(NumeratorOutOfDenominatorParser):
         (?: {WORD_BOUNDARY}
             (?: ACE | (?: Addenbrooke{APOSTROPHE}?s \s+ cognitive \s+
                           (?: (?:evaluation) | exam(?:ination)? ) ) )
-            (?: (?: -? 3 ) | (?: \s* -? \s* (?: R | III ) ) )?
+            (?: \s* -? \s* (?: R | III | 3 | 111 ) \b )?
         {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY, APOSTROPHE=APOSTROPHE)
     NAME = "ACE"
@@ -122,8 +122,11 @@ class Ace(NumeratorOutOfDenominatorParser):
             ("ACE-3 79", [(79, None)]),
             ("ACE R 79", [(79, None)]),
             ("ACE III 79", [(79, None)]),
-            ("ACE 3 79", [(3, None)]),  # nasty; not easy to cope with this well.  # noqa
-            ("ACE 3", [(3, None)]),
+            ("ACE 3 79", [(79, None)]),
+            ("ACE 3 79/100", [(79, 100)]),
+            ("ACE 3 3", [(3, None)]),
+            ("ACE 3 3/100", [(3, 100)]),
+            ("ACE 111 99", [(99, None)]),  # "ACE 111" from real data
             ("ACE-82", [(82, None)]),
         ], verbose=verbose)
 
