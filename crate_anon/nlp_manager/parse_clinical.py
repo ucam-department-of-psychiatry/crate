@@ -167,6 +167,7 @@ class Height(NumericalResultParser):
             cfgsection=cfgsection,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
+            regex_str_for_debugging=self.REGEX,
             commit=commit
         )
         if debug:
@@ -373,6 +374,7 @@ class Weight(NumericalResultParser):
             cfgsection=cfgsection,
             variable=self.NAME,
             target_unit=self.PREFERRED_UNIT_COLUMN,
+            regex_str_for_debugging=self.REGEX,
             commit=commit
         )
         if debug:
@@ -500,14 +502,9 @@ class WeightValidator(ValidatorBase):
 class Bmi(SimpleNumericalResultParser):
     """Body mass index (in kg / m^2)."""
     BMI = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                BMI
-                | body \s+ mass \s+ index
-            )
-            {WORD_BOUNDARY}
-        )
+        (?: {WORD_BOUNDARY}
+            (?: BMI | body \s+ mass \s+ index )
+        {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     REGEX = r"""
         ( {BMI} )                          # group for "BMI" or equivalent

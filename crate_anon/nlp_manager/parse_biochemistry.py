@@ -48,14 +48,9 @@ class Crp(SimpleNumericalResultParser):
     """
 
     CRP = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                (?: C [-\s]+ reactive [\s]+ protein )
-                | (?: CRP )
-            )
-            {WORD_BOUNDARY}
-        )
+        (?: {WORD_BOUNDARY}
+            (?: (?: C [-\s]+ reactive [\s]+ protein ) | (?: CRP ) )
+        {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     REGEX = r"""
         ( {CRP} )                          # group for "CRP" or equivalent
@@ -154,14 +149,7 @@ class CrpValidator(ValidatorBase):
 class Sodium(SimpleNumericalResultParser):
     """Sodium (Na)."""
     SODIUM = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                Na
-                | Sodium
-            )
-            {WORD_BOUNDARY}
-        )
+        (?: {WORD_BOUNDARY} (?: Na | Sodium ) {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     REGEX = r"""
         ( {SODIUM} )                       # group for "Na" or equivalent
@@ -253,14 +241,9 @@ class SodiumValidator(ValidatorBase):
 class Tsh(SimpleNumericalResultParser):
     """Thyroid-stimulating hormone (TSH)."""
     TSH = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                TSH
-                | thyroid [-\s]+ stimulating [-\s]+ hormone
-            )
-            {WORD_BOUNDARY}
-        )
+        (?: {WORD_BOUNDARY}
+            (?: TSH | thyroid [-\s]+ stimulating [-\s]+ hormone )
+        {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     REGEX = r"""
         ( {TSH} )                          # group for "TSH" or equivalent

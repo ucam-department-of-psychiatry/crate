@@ -133,6 +133,11 @@ RELATION_LOOKUP = compile_regex_dict({
     GT: ">",
 })
 
+# -----------------------------------------------------------------------------
+# Punctuation
+# -----------------------------------------------------------------------------
+
+APOSTROPHE = "[\'’]"  # ASCII apostrophe; right single quote (U+2019)
 
 # =============================================================================
 #  Generic processors
@@ -205,10 +210,12 @@ class NumericalResultParser(BaseNlpParser):
                  cfgsection: str,
                  variable: str,
                  target_unit: str,
+                 regex_str_for_debugging: str,
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
         self.variable = variable
         self.target_unit = target_unit
+        self.regex_str_for_debugging = regex_str_for_debugging
 
         if nlpdef is None:  # only None for debugging!
             self.tablename = ''
@@ -266,7 +273,7 @@ class NumericalResultParser(BaseNlpParser):
         """
         print("Testing parser: {}".format(type(self).__name__))
         if verbose:
-            print("... regex string is the responsibility of subclass")
+            print("... regex string:\n{}".format(self.regex_str_for_debugging))
         for test_string, expected_values in test_expected_list:
             actual_values = list(
                 x[self.target_unit] for t, x in self.parse(test_string)
@@ -362,6 +369,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
                          cfgsection=cfgsection,
                          variable=variable,
                          target_unit=target_unit,
+                         regex_str_for_debugging=regex_str,
                          commit=commit)
         if debug:
             print("Regex for {}: {}".format(type(self).__name__, regex_str))

@@ -34,14 +34,10 @@ log = logging.getLogger(__name__)
 class Esr(SimpleNumericalResultParser):
     """Erythrocyte sedimentation rate (ESR)."""
     ESR = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                (?: Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate)
-                | (?:ESR)
-            )
-            {WORD_BOUNDARY}
-        )
+        (?: {WORD_BOUNDARY}
+            (?: (?: Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate)
+                | (?:ESR) )
+        {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     REGEX = r"""
         ( {ESR} )                           # group for "ESR" or equivalent
@@ -202,30 +198,18 @@ class WbcBase(SimpleNumericalResultParser):
 class Wbc(WbcBase):
     """White cell count (WBC, WCC)."""
     WBC = r"""
-        (?:
-            \b
-            (?:
-                (?:                 # White blood cells, white cell count, etc.
-                    White\b
-                    [\s]*
-                    (?:\bblood\b)?
-                    [\s]*
-                    \bcell[s]?\b
-                    [\s]*
-                    (?:\bcount\b)?
-                    [\s]*
-                    (?:                 # optional suffix (WBC), (WBCC), (WCC)
-                        [\(]?           # brackets are optional
-                        (?: WBC | WBCC | WCC)
-                        [\)]?
-                    )?
-                )
-                | (?:               # just WBC(s), WBCC, WCC
-                    (?: WBC[s]? | WBCC | WCC )
-                )
+        (?: \b (?:
+            (?:                 # White blood cells, white cell count, etc.
+                White\b [\s]* (?:\bblood\b)? [\s]* \bcell[s]?\b
+                [\s]* (?:\bcount\b)? [\s]*
+                (?:     # optional suffix WBC, (WBC), (WBCC), (WCC), etc.
+                    [\(]? (?: WBC | WBCC | WCC) [\)]?
+                )?
             )
-            \b
-        )
+            | (?:               # just WBC(s), WBCC, WCC
+                (?: WBC[s]? | WBCC | WCC )
+            )
+        ) \b )
     """
     NAME = "WBC"
 
@@ -284,13 +268,7 @@ class Neutrophils(WbcBase):
     NEUTROPHILS = r"""
         (?:
             (?: \b absolute \s* )?
-            \b
-            (?:
-                Neut(?:r(?:o(?:phil)?)?)?s?
-                |
-                N0
-            )
-            \b
+            \b (?: Neut(?:r(?:o(?:phil)?)?)?s? | N0 ) \b
             (?: \s* count \b )?
         )
     """
@@ -347,9 +325,7 @@ class Lymphocytes(WbcBase):
     LYMPHOCYTES = r"""
         (?:
             (?: \b absolute \s* )?
-            \b
-            Lymph(?:o(?:cyte)?)?s?
-            \b
+            \b Lymph(?:o(?:cyte)?)?s? \b
             (?: \s* count \b )?
         )
     """
@@ -406,9 +382,7 @@ class Monocytes(WbcBase):
     MONOCYTES = r"""
         (?:
             (?: \b absolute \s* )?
-            \b
-            Mono(?:cyte)?s?
-            \b
+            \b Mono(?:cyte)?s? \b
             (?: \s* count \b )?
         )
     """
@@ -464,9 +438,7 @@ class Basophils(WbcBase):
     BASOPHILS = r"""
         (?:
             (?: \b absolute \s* )?
-            \b
-            Baso(?:phil)?s?
-            \b
+            \b Baso(?:phil)?s? \b
             (?: \s* count \b )?
         )
     """
@@ -522,9 +494,7 @@ class Eosinophils(WbcBase):
     EOSINOPHILS = r"""
         (?:
             (?: \b absolute \s* )?
-            \b
-            Eo(?:sin(?:o(?:phil)?)?)?s?
-            \b
+            \b Eo(?:sin(?:o(?:phil)?)?)?s? \b
             (?: \s* count \b )?
         )
     """

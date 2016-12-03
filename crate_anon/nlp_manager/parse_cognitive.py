@@ -6,6 +6,7 @@ from typing import Optional
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.regex_parser import (
+    APOSTROPHE,
     NumeratorOutOfDenominatorParser,
     ValidatorBase,
     WORD_BOUNDARY,
@@ -21,14 +22,10 @@ log = logging.getLogger(__name__)
 class Mmse(NumeratorOutOfDenominatorParser):
     """Mini-mental state examination (MMSE)."""
     MMSE = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                MMSE
-                | mini[-\s]*mental (?: \s+ state)? (?: \s+ exam(?:ination)? )?
-            )
-            {WORD_BOUNDARY}
-        )
+        (?: {WORD_BOUNDARY}
+            (?: MMSE | mini[-\s]*mental (?: \s+ state)?
+                       (?: \s+ exam(?:ination)? )? )
+        {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     NAME = "MMSE"
 
@@ -82,22 +79,12 @@ class MmseValidator(ValidatorBase):
 class Ace(NumeratorOutOfDenominatorParser):
     """Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III)."""
     ACE = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                ACE
-                | (?:
-                    Addenbrooke'?s \s+ cognitive \s+
-                    (?: (?:evaluation) | exam(?:ination)? )
-                )
-            )
-            (?:
-                (?: -? 3 )
-                | (?: \s* -? \s* (?: R | III ) )
-            )?
-            {WORD_BOUNDARY}
-        )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+        (?: {WORD_BOUNDARY}
+            (?: ACE | (?: Addenbrooke{APOSTROPHE}?s \s+ cognitive \s+
+                          (?: (?:evaluation) | exam(?:ination)? ) ) )
+            (?: (?: -? 3 ) | (?: \s* -? \s* (?: R | III ) ) )?
+        {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY, APOSTROPHE=APOSTROPHE)
     NAME = "ACE"
 
     def __init__(self,
@@ -161,22 +148,12 @@ class AceValidator(ValidatorBase):
 class MiniAce(NumeratorOutOfDenominatorParser):
     """Mini-Addenbrooke's Cognitive Examination (M-ACE)."""
     MACE = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                mini | M
-            )
-            \s* -? \s*
-            (?:
-                ACE
-                | (?:
-                    Addenbrooke'?s \s+ cognitive \s+
-                    (?: (?:evaluation) | exam(?:ination)? )
-                )
-            )
-            {WORD_BOUNDARY}
-        )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY)
+        (?: {WORD_BOUNDARY}
+            (?: mini | M ) \s* -? \s*
+            (?: ACE | (?: Addenbrooke{APOSTROPHE}?s \s+ cognitive \s+
+                          (?: (?:evaluation) | exam(?:ination)? ) ) )
+        {WORD_BOUNDARY} )
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY, APOSTROPHE=APOSTROPHE)
     NAME = "MiniACE"
 
     def __init__(self,
@@ -201,6 +178,7 @@ class MiniAce(NumeratorOutOfDenominatorParser):
             ("Addenbrooke's cognitive examination 79", []),
             ("Addenbrookes cognitive evaluation 79", []),
             ("mini-Addenbrooke's cognitive examination 79", [(79, None)]),
+            ("mini-Addenbrooke’s cognitive examination 79", [(79, None)]),
             ("mini-Addenbrookes cognitive evaluation 79", [(79, None)]),
             ("M-ACE 20", [(20, None)]),
             ("M-ACE score is 20", [(20, None)]),
@@ -232,16 +210,9 @@ class MiniAceValidator(ValidatorBase):
 class Moca(NumeratorOutOfDenominatorParser):
     """Montreal Cognitive Assessment (MOCA)."""
     MOCA = r"""
-        (?:
-            {WORD_BOUNDARY}
-            (?:
-                MOCA
-                | (?:
-                    Montreal \s+ cognitive \s+ assessment
-                )
-            )
-            {WORD_BOUNDARY}
-        )
+        (?: {WORD_BOUNDARY}
+            (?: MOCA | (?: Montreal \s+ cognitive \s+ assessment ) )
+        {WORD_BOUNDARY} )
     """.format(WORD_BOUNDARY=WORD_BOUNDARY)
     NAME = "MOCA"
 
