@@ -5,6 +5,7 @@ import logging
 from typing import Optional
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.nlp_manager.regex_numbers import UNSIGNED_INTEGER
 from crate_anon.nlp_manager.regex_parser import (
     APOSTROPHE,
     NumeratorOutOfDenominatorParser,
@@ -85,14 +86,17 @@ class Ace(NumeratorOutOfDenominatorParser):
                           (?: (?:evaluation) | exam(?:ination)? ) ) )
             (?: \s* -? \s*
                 (?: R | III | 111
-                    | (?: # 3 when not followed by...
-                          3 (?! \s* {OUT_OF_SEPARATOR} ) )
+                    # or: 3 when not followed by an "out of X" expression
+                    | (?: 3 (?! \s* {OUT_OF_SEPARATOR} \s* {UNSIGNED_INTEGER}))
                 ) \b
             )?+
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY,
-               APOSTROPHE=APOSTROPHE,
-               OUT_OF_SEPARATOR=OUT_OF_SEPARATOR)
+    """.format(
+        WORD_BOUNDARY=WORD_BOUNDARY,
+        APOSTROPHE=APOSTROPHE,
+        OUT_OF_SEPARATOR=OUT_OF_SEPARATOR,
+        UNSIGNED_INTEGER=UNSIGNED_INTEGER
+    )
     # ... note the possessive "?+" above; see tests below.
     NAME = "ACE"
 
@@ -156,6 +160,8 @@ class Ace(NumeratorOutOfDenominatorParser):
             # - But if we combine a possessive "3" with saying "3 unless it's
             #   "3 out of...", then we win.
             ("ACE 3", []),
+            ("ACE 3/MOCA", []),
+            ("ACE 3 / MOCA", []),
         ], verbose=verbose)
 
 
