@@ -11,6 +11,7 @@ from crate_anon.nlp_manager.regex_parser import (
     ValidatorBase,
     WORD_BOUNDARY,
 )
+from crate_anon.nlp_manager.regex_units import OUT_OF_SEPARATOR
 
 log = logging.getLogger(__name__)
 
@@ -82,9 +83,17 @@ class Ace(NumeratorOutOfDenominatorParser):
         (?: {WORD_BOUNDARY}
             (?: ACE | (?: Addenbrooke{APOSTROPHE}?s \s+ cognitive \s+
                           (?: (?:evaluation) | exam(?:ination)? ) ) )
-            (?: \s* -? \s* (?: R | III | 3 | 111 ) \b )?
+            (?: \s* -? \s*
+                (?: R | III | 111
+                    | (?: # 3 when not followed by...
+                          3 (?! \s* {OUT_OF_SEPARATOR} ) )
+                ) \b
+            )?+
         {WORD_BOUNDARY} )
-    """.format(WORD_BOUNDARY=WORD_BOUNDARY, APOSTROPHE=APOSTROPHE)
+    """.format(WORD_BOUNDARY=WORD_BOUNDARY,
+               APOSTROPHE=APOSTROPHE,
+               OUT_OF_SEPARATOR=OUT_OF_SEPARATOR)
+    # ... note the possessive "?+" above; see tests below.
     NAME = "ACE"
 
     def __init__(self,
@@ -119,15 +128,34 @@ class Ace(NumeratorOutOfDenominatorParser):
             ("ACE-R 79 out of 100", [(79, 100)]),
             ("ACE-III 79", [(79, None)]),
             ("ACE-III score was 79", [(79, None)]),
-            ("ACE-3 79", [(79, None)]),
             ("ACE R 79", [(79, None)]),
             ("ACE III 79", [(79, None)]),
+            ("ACE-82", [(82, None)]),
+            ("ACE 111 99", [(99, None)]),  # "ACE 111" (for III) from real data
+            # Note the difficulties created by the "ACE-3" representation of
+            # the task's name. We have to get these right:
+            ("ACE-3 79", [(79, None)]),
             ("ACE 3 79", [(79, None)]),
             ("ACE 3 79/100", [(79, 100)]),
             ("ACE 3 3", [(3, None)]),
             ("ACE 3 3/100", [(3, 100)]),
-            ("ACE 111 99", [(99, None)]),  # "ACE 111" from real data
-            ("ACE-82", [(82, None)]),
+            # ... but also a score of 3 (!) on the older ACE:
+            ("ACE 3/100", [(3, 100)]),
+            ("ACE 3 out of 100", [(3, 100)]),
+            # - This next one is ambiguous. Reference to new task? To old
+            #   score? Making the "3" optional as part of the task name means
+            #   that this will be accepted by the regex as a score.
+            # - We need a special exception to get "ACE 3" not to give a score.
+            # - We do this with a "possessive" quantifier on the "3" (or
+            #   similar) part of the ACE descriptor.
+            # - http://www.rexegg.com/regex-quantifiers.html
+            # - Possessive quantifiers are in regex, not re:
+            #   https://pypi.python.org/pypi/regex
+            #   https://docs.python.org/3.5/library/re.html
+            # - Ah, no. That makes "ACE 3/100" fail.
+            # - But if we combine a possessive "3" with saying "3 unless it's
+            #   "3 out of...", then we win.
+            ("ACE 3", []),
         ], verbose=verbose)
 
 
