@@ -695,7 +695,6 @@ class Bp(BaseNlpParser):
 
             sbp = None
             dbp = None
-            bpmatch = None
             if self.COMPILED_SBP.match(variable_text):
                 if self.COMPILED_ONE_NUMBER_BP.match(value_text):
                     sbp = to_pos_float(value_text)
@@ -708,19 +707,22 @@ class Bp(BaseNlpParser):
                     sbp = to_pos_float(bpmatch.group(1))
                     dbp = to_pos_float(bpmatch.group(2))
             if sbp is None and dbp is None:
-                log.warning(
-                    "Failed interpretation: matching_text={matching_text}, "
-                    "variable_text={variable_text}, "
-                    "tense_indicator={tense_indicator}, relation={relation}, "
-                    "value_text={value_text}, units={units}".format(
-                        matching_text=repr(matching_text),
-                        variable_text=repr(variable_text),
-                        tense_indicator=repr(tense_indicator),
-                        relation=repr(relation),
-                        value_text=repr(value_text),
-                        units=repr(units),
-                    )
-                )
+                # This is OK; e.g. "BP 110", which we will ignore.
+                # log.warning(
+                #     "Failed interpretation: matching_text={matching_text}, "
+                #     "variable_text={variable_text}, "
+                #     "tense_indicator={tense_indicator}, "
+                #     "relation={relation}, "
+                #     "value_text={value_text}, "
+                #     "units={units}".format(
+                #         matching_text=repr(matching_text),
+                #         variable_text=repr(variable_text),
+                #         tense_indicator=repr(tense_indicator),
+                #         relation=repr(relation),
+                #         value_text=repr(value_text),
+                #         units=repr(units),
+                #     )
+                # )
                 continue
 
             tense, relation = common_tense(tense_indicator, relation)
@@ -776,11 +778,13 @@ class Bp(BaseNlpParser):
             ("BP 110 /80 -", [(110, 80)]),  # real example
             ("BP 120 / 70 -", [(120, 70)]),  # real example
             ("BP :115 / 70 -", [(115, 70)]),  # real example
-            # Unsure if best to take abs value.
-            # One reason not to might be if people express changes, e.g.
-            # "BP change -40/-10", but I very much doubt it.
-            # Went with abs value using to_pos_float().
+            ("B.P 110", []),  # real example
         ], verbose=verbose)
+        # 1. Unsure if best to take abs value.
+        #    One reason not to might be if people express changes, e.g.
+        #    "BP change -40/-10", but I very much doubt it.
+        #    Went with abs value using to_pos_float().
+        # 2. "BP 110" - too unreliable; not definitely a blood pressure.
 
 
 class BpValidator(ValidatorBase):
