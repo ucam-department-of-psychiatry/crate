@@ -519,6 +519,8 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             Column(FN_START, Integer, doc=HELP_START),
             Column(FN_END, Integer, doc=HELP_END),
             Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+            Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
+                   doc=HELP_RELATION_TEXT),
             Column(FN_RELATION, String(MAX_RELATION_LENGTH),
                    doc=HELP_RELATION),
             Column(self.numerator_text_fieldname,

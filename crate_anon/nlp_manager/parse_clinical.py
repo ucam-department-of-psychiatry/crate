@@ -25,12 +25,14 @@ from crate_anon.nlp_manager.regex_parser import (
     HELP_CONTENT,
     HELP_END,
     HELP_RELATION,
+    HELP_RELATION_TEXT,
     HELP_START,
     HELP_TENSE,
     HELP_UNITS,
     HELP_VALUE_TEXT,
     HELP_VARIABLE_TEXT,
     MAX_RELATION_LENGTH,
+    MAX_RELATION_TEXT_LENGTH,
     MAX_TENSE_LENGTH,
     MAX_UNITS_LENGTH,
     MAX_VALUE_TEXT_LENGTH,
@@ -662,6 +664,8 @@ class Bp(BaseNlpParser):
             Column(FN_START, Integer, doc=HELP_START),
             Column(FN_END, Integer, doc=HELP_END),
             Column(FN_VARIABLE_TEXT, Text, doc=HELP_VARIABLE_TEXT),
+            Column(FN_RELATION_TEXT, String(MAX_RELATION_TEXT_LENGTH),
+                   doc=HELP_RELATION_TEXT),
             Column(FN_RELATION, String(MAX_RELATION_LENGTH),
                    doc=HELP_RELATION),
             Column(FN_VALUE_TEXT, String(MAX_VALUE_TEXT_LENGTH),
@@ -686,7 +690,7 @@ class Bp(BaseNlpParser):
             matching_text = m.group(0)  # the whole thing
             variable_text = m.group(1)
             tense_indicator = m.group(2)
-            relation = m.group(3)
+            relation_text = m.group(3)
             value_text = m.group(4)
             units = m.group(5)
 
@@ -722,13 +726,14 @@ class Bp(BaseNlpParser):
                 # )
                 continue
 
-            tense, relation = common_tense(tense_indicator, relation)
+            tense, relation = common_tense(tense_indicator, relation_text)
 
             yield self.tablename, {
                 FN_CONTENT: matching_text,
                 FN_START: startpos,
                 FN_END: endpos,
                 FN_VARIABLE_TEXT: variable_text,
+                FN_RELATION_TEXT: relation_text,
                 FN_RELATION: relation,
                 FN_VALUE_TEXT: value_text,
                 FN_UNITS: units,
