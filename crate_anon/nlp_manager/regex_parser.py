@@ -727,6 +727,7 @@ class ValidatorBase(BaseNlpParser):
           - variable
         """
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
+        self.regex_str_list = regex_str_list  # for debugging only
         self.compiled_regex_list = [compile_regex(r) for r in regex_str_list]
         self.variable = "{}_validator".format(validated_variable)
         self.NAME = self.variable
@@ -767,6 +768,39 @@ class ValidatorBase(BaseNlpParser):
                     FN_START: startpos,
                     FN_END: endpos,
                 }
+
+    def test_validator(self, test_expected_list: List[Tuple[str, bool]],
+                       verbose: bool = False) -> None:
+        """
+        The 'bool' part of test_expected_list is: should it match any?
+        ... noting that "match anywhere" is the "search" function, whereas
+            "match" matches at the beginning:
+            https://docs.python.org/3/library/re.html#re.regex.match
+        """
+        print("Testing validator: {}".format(type(self).__name__))
+        if verbose:
+            n = len(self.regex_str_list)
+            for i, r in enumerate(self.regex_str_list):
+                print("... regex #{i}/{n}: {r}\n".format(i=i + 1, n=n, r=r))
+        for test_string, expected_match in test_expected_list:
+            actual_match = any(r.search(test_string)
+                               for r in self.compiled_regex_list)
+            assert actual_match == expected_match, (
+                "Validator {name}: Expected 'any search'={expected}, got "
+                "{actual}, when parsing {test_string}; full={full}".format(
+                    name=type(self).__name__,
+                    expected=expected_match,
+                    actual=actual_match,
+                    test_string=repr(test_string),
+                    full=list(r.search(test_string)
+                              for r in self.compiled_regex_list),
+                )
+            )
+        print("... OK")
+
+    def test(self, verbose: bool = False) -> None:
+        print("... no tests implemented for validator {}".format(
+            type(self).__name__))
 
 
 # =============================================================================

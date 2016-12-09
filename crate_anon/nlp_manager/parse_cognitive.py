@@ -80,6 +80,7 @@ class MmseValidator(ValidatorBase):
 
 class Ace(NumeratorOutOfDenominatorParser):
     """Addenbrooke's Cognitive Examination (ACE, ACE-R, ACE-III)."""
+    NAME = "ACE"
     ACE = r"""
         (?: {WORD_BOUNDARY}
             (?: ACE | (?: Addenbrooke{APOSTROPHE}?s \s+ cognitive \s+
@@ -87,18 +88,17 @@ class Ace(NumeratorOutOfDenominatorParser):
             (?: \s* -? \s*
                 (?: R | III | 111
                     # or: 3 when not followed by an "out of X" expression
-                    | (?: 3 (?! \s* {OUT_OF_SEPARATOR} \s* {UNSIGNED_INTEGER}))
+                    | (?: 3 (?! \s* {out_of} \s* {uint}))
                 ) \b
             )?+
         {WORD_BOUNDARY} )
     """.format(
         WORD_BOUNDARY=WORD_BOUNDARY,
         APOSTROPHE=APOSTROPHE,
-        OUT_OF_SEPARATOR=OUT_OF_SEPARATOR,
-        UNSIGNED_INTEGER=UNSIGNED_INTEGER
+        out_of=OUT_OF_SEPARATOR,
+        uint=UNSIGNED_INTEGER
     )
     # ... note the possessive "?+" above; see tests below.
-    NAME = "ACE"
 
     def __init__(self,
                  nlpdef: Optional[NlpDefinition],
@@ -176,6 +176,21 @@ class AceValidator(ValidatorBase):
                          regex_str_list=[Ace.ACE],
                          validated_variable=Ace.NAME,
                          commit=commit)
+
+    def test(self, verbose: bool = False) -> None:
+        self.test_validator([
+            ("pass me my mace, my boy", False),
+            ("he scored 10 on the ACE today", True),
+            ("he scored 10 on the ACE 3 today", True),
+            ("he scored 10 on the ACE3 today", True),
+            ("ACE 3/100", True),
+            ("ACE 3 3/100", True),
+            ("ACE3 4", True),
+            ("ACE 3", True),
+            ("ACE3", True),
+            ("ACE 3/MOCA", True),
+            ("ACE 3 / MOCA", True),
+        ], verbose=verbose)
 
 
 # =============================================================================
@@ -299,10 +314,15 @@ class MocaValidator(ValidatorBase):
 def test_all(verbose: bool = False) -> None:
     mmse = Mmse(None, None)
     mmse.test(verbose=verbose)
+
     ace = Ace(None, None)
     ace.test(verbose=verbose)
+    ace_validator = AceValidator(None, None)
+    ace_validator.test(verbose=verbose)
+
     mace = MiniAce(None, None)
     mace.test(verbose=verbose)
+
     moca = Moca(None, None)
     moca.test(verbose=verbose)
 

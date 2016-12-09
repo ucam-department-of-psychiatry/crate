@@ -116,7 +116,7 @@ setup(
 
     keywords='anonymisation',
 
-    packages=find_packages(),
+    packages=find_packages(),  # finds all the .py files in subdirectories
     package_data={
         '': [
             'README.md'

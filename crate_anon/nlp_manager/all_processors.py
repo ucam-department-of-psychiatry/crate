@@ -127,8 +127,8 @@ def test_all_processors(verbose: bool = False) -> None:
                             'ValidatorBase',
                             'WbcBase']:
             continue
-        if cls.__name__.endswith('Validator'):
-            continue
+        # if cls.__name__.endswith('Validator'):
+        #     continue
         print("Testing parser class: {}".format(cls.__name__))
         # noinspection PyCallingNonCallable
         instance = cls(None, None)
