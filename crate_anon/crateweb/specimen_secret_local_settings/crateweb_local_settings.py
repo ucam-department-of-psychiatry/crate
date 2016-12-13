@@ -161,6 +161,11 @@ RESEARCH_DB_INFO = [
     # },
 ]
 
+# For the automatic query generator, we need to know the underlying SQL dialect
+# Options are
+# - 'mysql' => MySQL
+# - 'mssql' => Microsoft SQL Server
+RESEARCH_DB_DIALECT = 'mysql'
 
 # Configuration of the secret mapping database (as set during initial
 # anonymisation)

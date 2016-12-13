@@ -12,7 +12,7 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 from sqlalchemy.schema import Table
 
-from crate_anon.anonymise.constants import MYSQL_CHARSET
+from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.debugfunc import pdb_run
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sql import (
@@ -28,7 +28,7 @@ from crate_anon.common.sql import (
     get_table_names,
     get_view_names,
     set_print_not_execute,
-    sql_fragment_cast_to_int,
+    sql_fragment_cast_to_int_mssql,
     ViewMaker,
 )
 from crate_anon.preprocess.rio_constants import (
@@ -166,7 +166,7 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
                            column_names=required_cols)
     log.info("Table '{}': updating columns '{}' and '{}'".format(
         table.name, CRATE_COL_PK, CRATE_COL_RIO_NUMBER))
-    cast_id_to_int = sql_fragment_cast_to_int(string_pt_id)
+    cast_id_to_int = sql_fragment_cast_to_int_mssql(string_pt_id)
     if rio_type and rio_pk:
         execute(engine, """
             UPDATE {tablename} SET
@@ -794,7 +794,7 @@ def main() -> None:
     set_print_not_execute(progargs.print)
 
     engine = create_engine(progargs.url, echo=progargs.echo,
-                           encoding=MYSQL_CHARSET)
+                           encoding=CHARSET)
     metadata = MetaData()
     metadata.bind = engine
     log.info("Database: {}".format(repr(engine.url)))  # ... repr hides p/w

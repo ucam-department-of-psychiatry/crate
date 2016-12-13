@@ -7,7 +7,7 @@ from sqlalchemy.types import BigInteger, DateTime, String
 
 from crate_anon.anonymise.constants import (
     MAX_PID_STR,
-    MYSQL_TABLE_KWARGS,
+    TABLE_KWARGS,
 )
 from crate_anon.nlp_manager.constants import (
     HashClass,
@@ -62,7 +62,7 @@ class NlpRecord(ProgressBase):
             # SQL Server 2008+ (http://stackoverflow.com/questions/767657) and
             # MySQL also seems happy.
         ),
-        MYSQL_TABLE_KWARGS
+        TABLE_KWARGS
     )
     # http://stackoverflow.com/questions/6626810/multiple-columns-index-when-using-the-declarative-orm-extension-of-sqlalchemy  # noqa
     # http://docs.sqlalchemy.org/en/latest/orm/extensions/declarative/table_config.html  # noqa

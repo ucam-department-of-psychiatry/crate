@@ -43,7 +43,7 @@ from sqlalchemy.orm.session import Session
 import xlrd
 
 from cardinal_pythonlib.rnc_extract_text import docx_process_simple_text
-from crate_anon.anonymise.constants import MYSQL_CHARSET, MYSQL_TABLE_KWARGS
+from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
 from crate_anon.common.fileops import find_first
 from crate_anon.common.lang import rename_kwarg
 from crate_anon.common.logsupport import configure_logger_for_colour
@@ -104,7 +104,7 @@ def commit_and_announce(session: Session) -> None:
 # =============================================================================
 
 class ExtendedBase(object):
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
 
 Base = declarative_base(metadata=metadata, cls=ExtendedBase)
@@ -1371,7 +1371,7 @@ def main() -> None:
         show_docs()
         sys.exit(0)
 
-    engine = create_engine(args.url, echo=args.echo, encoding=MYSQL_CHARSET)
+    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
     metadata.bind = engine
     session = sessionmaker(bind=engine)()
 

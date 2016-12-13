@@ -65,6 +65,11 @@ from crate_anon.common.sql import (
     sql_date_literal,
     sql_string_literal,
 )
+from crate_anon.common.sql_grammar import (
+    DIALECT_MYSQL,
+    DIALECT_MSSQL,
+    make_grammar,
+)
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     toggle_distinct,
@@ -187,12 +192,15 @@ def build_query(request: HttpRequest) -> HttpResponse:
     default_schema = get_default_schema()
     form = None
     if request.method == 'POST':
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
         try:
             if 'global_clear' in request.POST:
                 profile.sql_scratchpad = ''
                 profile.save()
             elif 'global_toggle_distinct' in request.POST:
-                profile.sql_scratchpad = toggle_distinct(profile.sql_scratchpad)
+                profile.sql_scratchpad = toggle_distinct(
+                    profile.sql_scratchpad,
+                    dialect=settings.RESEARCH_DB_DIALECT)
                 profile.save()
             elif 'global_save' in request.POST:
                 return submit_query(request, profile.sql_scratchpad, run=False)
@@ -205,10 +213,13 @@ def build_query(request: HttpRequest) -> HttpResponse:
                     schema = form.cleaned_data['schema']
                     table = form.cleaned_data['table']
                     if schema == default_schema:
-                        full_table = table
+                        quoted_full_table = grammar.quote_identifier(table)
                     else:
-                        full_table = "{}.{}".format(schema, table)
+                        quoted_full_table = "{}.{}".format(
+                            grammar.quote_identifier(schema),
+                            grammar.quote_identifier(table))
                     column = form.cleaned_data['column']
+                    quoted_column = grammar.quote_identifier(column)
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
@@ -218,6 +229,8 @@ def build_query(request: HttpRequest) -> HttpResponse:
                             select_column=column,
                             # JOIN bits
                             magic_join=True,
+                            # dialect
+                            dialect=settings.RESEARCH_DB_DIALECT
                         )
                     elif 'submit_where' in request.POST:
                         datatype = form.cleaned_data['datatype']
@@ -234,16 +247,22 @@ def build_query(request: HttpRequest) -> HttpResponse:
                             elif datatype == ColumnInfo.DATATYPE_DATE:
                                 value = sql_date_literal(value)
                         # WHERE fragment
-                        if op == 'MATCH':
+                        if op == 'MATCH':  # MySQL
                             where_expression = (
                                 "MATCH ({col}) AGAINST ({val})".format(
-                                    col=column, val=value))
+                                    col=quoted_column,
+                                    val=value))
                         elif op in QueryBuilderForm.VALUE_UNNECESSARY:
                             where_expression = "{tab}.{col} {op}".format(
-                                tab=full_table, col=column, op=op)
+                                tab=quoted_full_table,
+                                col=quoted_column,
+                                op=op)
                         else:
                             where_expression = "{tab}.{col} {op} {val}".format(
-                                tab=full_table, col=column, op=op, val=value)
+                                tab=quoted_full_table,
+                                col=quoted_column,
+                                op=op,
+                                val=value)
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             # WHERE bits
@@ -253,6 +272,8 @@ def build_query(request: HttpRequest) -> HttpResponse:
                             where_table=table,
                             # JOIN bits
                             magic_join=True,
+                            # dialect
+                            dialect=settings.RESEARCH_DB_DIALECT
                         )
                     else:
                         raise ValueError("Bad form command!")
@@ -286,6 +307,9 @@ def build_query(request: HttpRequest) -> HttpResponse:
         'parse_error': parse_error,
         'database_structure': get_db_structure_json(),
         'starting_values': json.dumps(starting_values_dict),
+        'sql_dialect': settings.RESEARCH_DB_DIALECT,
+        'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
+        'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
     }
     context.update(query_context(request))
     return render(request, 'build_query.html', context)

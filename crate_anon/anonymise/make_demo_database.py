@@ -68,8 +68,8 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import text
 
 from crate_anon.anonymise.constants import (
-    MYSQL_CHARSET,
-    MYSQL_TABLE_KWARGS,
+    CHARSET,
+    TABLE_KWARGS,
 )
 from crate_anon.common.logsupport import configure_logger_for_colour
 
@@ -165,7 +165,7 @@ def compile_blob_mysql(type_, compiler, **kw):
 
 class Patient(Base):
     __tablename__ = 'patient'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     patient_id = Column(Integer, primary_key=True, autoincrement=False)
     forename = Column(String(50))
@@ -181,7 +181,7 @@ class Patient(Base):
 
 class Note(Base):
     __tablename__ = 'note'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     note_id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
@@ -192,7 +192,7 @@ class Note(Base):
 
 class BlobDoc(Base):
     __tablename__ = 'blobdoc'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     blob_doc_id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
@@ -210,7 +210,7 @@ class BlobDoc(Base):
 
 class FilenameDoc(Base):
     __tablename__ = 'filenamedoc'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     filename_doc_id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
@@ -294,7 +294,7 @@ def main() -> None:
 
     log.info("Opening database.")
     log.debug("URL: {}".format(args.url))
-    engine = create_engine(args.url, echo=args.echo, encoding=MYSQL_CHARSET)
+    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
     session = sessionmaker(bind=engine)()
 
     # 3. Create tables

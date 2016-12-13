@@ -28,6 +28,8 @@ var DATATYPE_DATE = "date",
     DATATYPE_STRING = "string",
     DATATYPE_STRING_FULLTEXT = "string_fulltext",
     DATATYPE_UNKNOWN = "unknown",
+    DIALECT_MYSQL = "mysql",  // must match sql_grammar.py
+    DIALECT_MSSQL = "mssql",  // must match sql_grammar.py
     // All ID_* values must match HTML id tags.
     // ID_ANNOUNCEMENT = "id_announcement",
     ID_COLTYPE = "id_coltype",
@@ -54,60 +56,70 @@ var DATATYPE_DATE = "date",
         {value: "IS NULL", text: "IS NULL"},
         {value: "IS NOT NULL", text: "IS NOT NULL"}
     ],
+    // Both MySQL and SQL Server permit != or <> for "not equal",
+    // but <> is the ANSI standard
     OPS_NUMBER_DATE = [
         {value: "<", text: "<"},
         {value: "<=", text: "<="},
         {value: "=", text: "="},
-        {value: "!=", text: "!= (not equals)"},
+        {value: "<>", text: "<> (not equal)"},
         {value: ">=", text: ">="},
         {value: ">", text: ">"}
     ].concat(OPS_IN_NULL),
-    OPS_STRING_BASE = [
+    OPS_STRING = [  // any string field, any dialect
         {value: "=", text: "="},
-        {value: "!=", text: "!= (not equal)"},
-        {value: "LIKE", text: "LIKE (use % as wildcard)"},
+        {value: "<>", text: "<> (not equal)"},
+        {value: "LIKE", text: "LIKE (use % _ as wildcards)"}
+    ].concat(OPS_IN_NULL),
+    OPS_STRING_MYSQL = OPS_STRING.concat([
         {value: "REGEXP", text: "REGEXP (regular expression match)"}
-    ],
-    OPS_STRING = OPS_STRING_BASE.concat(OPS_IN_NULL),
-    OPS_STRING_FULLTEXT = OPS_STRING_BASE.concat([
+    ]),
+    OPS_STRING_FULLTEXT_MYSQL = OPS_STRING_MYSQL.concat([
         {value: "MATCH", text: "MATCH (match whole words)"}
-    ]).concat(OPS_IN_NULL),
+    ]),
+    OPS_STRING_FULLTEXT_MSSQL = OPS_STRING.concat([
+        {value: "CONTAINS", text: "CONTAINS (match whole words)"}
+    ]),
     OPS_USING_FILE = ["IN", "NOT IN"],
     OPS_USING_NULL = ["IS NULL", "IS NOT NULL"];
 
 // The variables that follow are pre-populated by the server.
-/* Examples:
+// See build_query.html and research/views.py
+// The declarations from the server come later in the HTML and will override
+// these, so it's safe to declare dummy instances here, which helps the linter:
+
 var DATABASE_STRUCTURE = [
         {
-            schema: 'schema1',
+            schema: 'dummy_schema',
             tables: [
                 {
-                    table: 'table1',
+                    table: 'dummy_table',
                     columns: [
-                        {colname: 't1_col1_str', coltype: DATATYPE_STRING, comment: "comment 1"},
-                        {colname: 't1_col2_str_ft', coltype: DATATYPE_STRING_FULLTEXT, comment: "comment 2"},
-                        {colname: 't1_col3_int', coltype: DATATYPE_INTEGER, comment: "comment 3"},
-                        {colname: 't1_col4_date', coltype: DATATYPE_DATE, comment: "comment 4"}
-                    ],
-                },
-                {
-                    table: 'table2',
-                    columns: [
-                        {colname: 't2_col1', coltype: DATATYPE_STRING, comment: ""},
-                        {colname: 't2_col2', coltype: DATATYPE_STRING, comment: ""},
-                        {colname: 't2_col3', coltype: DATATYPE_STRING, comment: ""}
+                        {
+                            colname: 'dummy_column',
+                            coltype: DATATYPE_STRING,
+                            rawtype: 'VARCHAR(255)',
+                            comment: 'dummy_comment'
+                        }
                     ]
                 }
             ]
         }
     ],
     STARTING_VALUES = {
-        schema: "schema1",
-        table: "table2",
-        column: "t2_col3",
-        // ... etc.; see research/views.py
-    };
-*/
+        'schema': '',
+        'table': '',
+        'column': '',
+        'op': '',
+        'date_value': '',
+        'float_value': '',
+        'int_value': '',
+        'string_value': '',
+        'offer_where': false,
+        'form_errors': '',
+        'default_schema': ''
+    },
+    SQL_DIALECT = DIALECT_MYSQL;
 
 // ============================================================================
 // Read table/column information from variables passed in
@@ -301,6 +313,7 @@ function get_input_value_by_id(id) {
     return element.value;
 }
 
+/*
 function set_checkbox_input_by_id(id, value) {
     // For <input ... type="checkbox" ...>
     var element = document.getElementById(id);
@@ -312,6 +325,7 @@ function set_checkbox_input_by_id(id, value) {
         delete element.checked;
     }
 }
+*/
 
 function set_hidden_boolean_input_by_id(id, value) {
     set_input_value_by_id(id, value ? "True" : "False");
@@ -490,7 +504,17 @@ function column_changed() {
                 reset_select_options(where_op_picker, OPS_STRING);
                 break;
             case DATATYPE_STRING_FULLTEXT:
-                reset_select_options(where_op_picker, OPS_STRING_FULLTEXT);
+                if (SQL_DIALECT == DIALECT_MYSQL) {
+                    reset_select_options(where_op_picker,
+                                         OPS_STRING_FULLTEXT_MYSQL);
+                } else if (SQL_DIALECT == DIALECT_MSSQL) {
+                    reset_select_options(where_op_picker,
+                                         OPS_STRING_FULLTEXT_MSSQL);
+                } else {
+                    warn("Error: unknown SQL dialect " + SQL_DIALECT +
+                         "; fulltext search ignored");
+                    reset_select_options(where_op_picker, OPS_STRING);
+                }
                 break;
             default:
                 reset_select_options(where_op_picker, OPS_NONE);

@@ -163,14 +163,15 @@ class SRCFLAG(StrEnum):
 # Databases
 # =============================================================================
 
-MYSQL_CHARSET = 'utf8'
-MYSQL_TABLE_KWARGS = {
-    'mysql_charset': MYSQL_CHARSET,
+CHARSET = 'utf8'
+TABLE_KWARGS = {
+    # MySQL:
+    'mysql_charset': CHARSET,
     'mysql_engine': 'InnoDB',
 }
 
-MYSQL_MAX_IDENTIFIER_LENGTH = 64
-# http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
+MAX_IDENTIFIER_LENGTH = 64
+# MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
 
 # =============================================================================
 # Demo config

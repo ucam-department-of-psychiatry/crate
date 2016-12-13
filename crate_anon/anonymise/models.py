@@ -27,7 +27,7 @@ from sqlalchemy.orm.session import Session
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     MAX_TRID,
-    MYSQL_TABLE_KWARGS,
+    TABLE_KWARGS,
     PidType,
     TridType,
 )
@@ -41,7 +41,7 @@ AdminBase = declarative_base(metadata=admin_meta)
 
 class PatientInfo(AdminBase):
     __tablename__ = 'secret_map'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     pid = Column(
         'pid', PidType,
@@ -100,7 +100,7 @@ class PatientInfo(AdminBase):
 
 class TridRecord(AdminBase):
     __tablename__ = 'secret_trid_cache'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     pid = Column(
         "pid", PidType,
@@ -141,7 +141,7 @@ class TridRecord(AdminBase):
 
 class OptOutPid(AdminBase):
     __tablename__ = 'opt_out_pid'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     pid = Column(
         'pid', PidType,
@@ -162,7 +162,7 @@ class OptOutPid(AdminBase):
 
 class OptOutMpid(AdminBase):
     __tablename__ = 'opt_out_mpid'
-    __table_args__ = MYSQL_TABLE_KWARGS
+    __table_args__ = TABLE_KWARGS
 
     mpid = Column(
         'mpid', PidType,

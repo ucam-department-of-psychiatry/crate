@@ -24,20 +24,29 @@ TIMING_COMMIT = "commit"
 # =============================================================================
 
 def sql_string_literal(text: str) -> str:
+    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+    # <character string literal>
     return "'" + text.replace("'", "''") + "'"
 
 
 def sql_date_literal(dt: datetime.datetime) -> str:
+    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+    # <date string>
     return dt.strftime("'%Y-%m-%d'")
 
 
 def sql_datetime_literal(dt: datetime.datetime,
                          subsecond: bool = False) -> str:
-    fmt = "'%Y-%m-%dT%H:%M:%S{}'".format(".%f" if subsecond else "")
+    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+    # <timestamp string>
+    # ... the subsecond part is non-ANSI
+    fmt = "'%Y-%m-%d %H:%M:%S{}'".format(".%f" if subsecond else "")
     return dt.strftime(fmt)
 
 
 def combine_db_table(db: str, table: str) -> str:
+    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+    # <table name>, <qualified name>
     if db:
         return "{}.{}".format(db, table)
     else:
@@ -80,7 +89,8 @@ def format_sql_for_print(sql: str) -> str:
     return "\n".join(lines)
 
 
-def sql_fragment_cast_to_int(expr: str) -> str:
+def sql_fragment_cast_to_int_mssql(expr: str) -> str:
+    # For Microsoft SQL Server.
     # Conversion to INT:
     # http://stackoverflow.com/questions/2000045
     # http://stackoverflow.com/questions/14719760  # this one
@@ -276,14 +286,14 @@ def ensure_columns_present(engine: sqlalchemy.engine.Engine,
 def create_view(engine: sqlalchemy.engine.Engine,
                 viewname: str,
                 select_sql: str) -> None:
-    # MySQL has CREATE OR REPLACE VIEW.
-    # SQL Server doesn't: http://stackoverflow.com/questions/18534919
     if engine.dialect.name == 'mysql':
+        # MySQL has CREATE OR REPLACE VIEW.
         sql = "CREATE OR REPLACE VIEW {viewname} AS {select_sql}".format(
             viewname=viewname,
             select_sql=select_sql,
         )
     else:
+        # SQL Server doesn't: http://stackoverflow.com/questions/18534919
         drop_view(engine, viewname, quiet=True)
         sql = "CREATE VIEW {viewname} AS {select_sql}".format(
             viewname=viewname,

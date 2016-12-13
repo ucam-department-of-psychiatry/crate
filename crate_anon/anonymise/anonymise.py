@@ -56,7 +56,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
     INDEX,
-    MYSQL_TABLE_KWARGS,
+    TABLE_KWARGS,
     SEP,
 )
 from crate_anon.anonymise.models import (
@@ -193,7 +193,7 @@ def delete_dest_rows_with_no_src_row(
         config.temporary_tablename,
         metadata,
         Column(pkfield, pkddr.get_dest_sqla_coltype(config), primary_key=True),
-        **MYSQL_TABLE_KWARGS
+        **TABLE_KWARGS
     )
     # THIS (ABOVE) IS WHAT CONSTRAINS A USER-DEFINED PK TO BE UNIQUE WITHIN ITS
     # TABLE.
@@ -891,7 +891,7 @@ def wipe_opt_out_patients(report_every: int = 1000,
         config.temporary_tablename,
         metadata,
         Column(pkfield, config.SqlTypeEncryptedPid, primary_key=True),
-        **MYSQL_TABLE_KWARGS
+        **TABLE_KWARGS
     )
     log.debug(start + ": 1. dropping temporary table")
     temptable.drop(destengine, checkfirst=True)  # use engine, not session

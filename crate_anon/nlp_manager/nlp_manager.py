@@ -74,7 +74,7 @@ from sqlalchemy.types import BigInteger, String
 from crate_anon.anonymise.constants import (
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
-    MYSQL_TABLE_KWARGS,
+    TABLE_KWARGS,
     SEP,
 )
 from crate_anon.common.logsupport import configure_logger_for_colour
@@ -232,7 +232,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
             database['metadata'],
             Column(FN_SRCPKVAL, BigInteger),  # not PK, as may be a hash
             Column(FN_SRCPKSTR, String(MAX_STRING_PK_LENGTH)),
-            **MYSQL_TABLE_KWARGS
+            **TABLE_KWARGS
         )
         temptable.drop(engine, checkfirst=True)
         temptable.create(engine, checkfirst=True)

@@ -33,7 +33,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_INDEX_LEN,
     INDEX,
     LONGTEXT,
-    MYSQL_MAX_IDENTIFIER_LENGTH,
+    MAX_IDENTIFIER_LENGTH,
     ODD_CHARS_TRANSLATE,
     SCRUBMETHOD,
     SCRUBSRC,
@@ -534,18 +534,18 @@ class DataDictionaryRow(object):
         srccfg = config.sources[self.src_db].srccfg
         ensure_valid_table_name(self.src_table)
         ensure_valid_field_name(self.src_field)
-        if len(self.src_table) > MYSQL_MAX_IDENTIFIER_LENGTH:
+        if len(self.src_table) > MAX_IDENTIFIER_LENGTH:
             log.warning(
                 "Table name in {}.{} is too long for MySQL ({} characters > "
                 "{} maximum".format(
                     self.src_table, self.src_field,
-                    len(self.src_table), MYSQL_MAX_IDENTIFIER_LENGTH))
-        if len(self.src_field) > MYSQL_MAX_IDENTIFIER_LENGTH:
+                    len(self.src_table), MAX_IDENTIFIER_LENGTH))
+        if len(self.src_field) > MAX_IDENTIFIER_LENGTH:
             log.warning(
                 "Field name in {}.{} is too long for MySQL ({} characters > "
                 "{} maximum".format(
                     self.src_table, self.src_field,
-                    len(self.src_field), MYSQL_MAX_IDENTIFIER_LENGTH))
+                    len(self.src_field), MAX_IDENTIFIER_LENGTH))
 
         # REMOVED 2016-06-04; fails with complex SQL Server types, which can
         # look like 'NVARCHAR(10) COLLATE "Latin1_General_CI_AS"'.

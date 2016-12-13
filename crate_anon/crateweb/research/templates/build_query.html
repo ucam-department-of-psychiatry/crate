@@ -8,7 +8,8 @@
     <script type="text/javascript" src="{% static 'querybuilder.js' %}"></script>
     <script type="text/javascript">
 var DATABASE_STRUCTURE = {{ database_structure|safe }},
-    STARTING_VALUES = {{ starting_values|safe }};
+    STARTING_VALUES = {{ starting_values|safe }},
+    SQL_DIALECT = "{{ sql_dialect }}";
     </script>
 {% endblock %}
 {% block onload %}onload="populate()"{% endblock %}
@@ -73,22 +74,45 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
 
     <h2>Tips</h2>
     <ul>
+        {% if dialect_mysql %}
+            <li>This server is running MySQL.</li>
+        {% endif %}
+        {% if dialect_mssql %}
+            <li>This server is running Microsoft SQL Server.</li>
+        {% endif %}
         <li>Inexact string comparison can be done in several ways:
             <ul>
-                <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">LIKE</a>,
-                    in which ‘%’ stands for any number of characters, and ‘_’
-                    for one unknown character. For example, use
-                    <span class="code">%schizophreni%</span> to find text
-                    containing ‘schizophrenia’, ‘schizophrenic’, or
-                    ‘schizophreniform’.</li>
-                <li><a href="https://dev.mysql.com/doc/refman/5.7/en/fulltext-search.html">MATCH</a>,
-                    which is much faster than LIKE. MATCH can be used if there
-                    is a full-text index on the column in question. You can
-                    MATCH AGAINST words or phrases.</li>
-                <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">REGEXP</a>,
-                    using <a href="https://en.wikipedia.org/wiki/Regular_expression">regular expressions</a>.
-                    This is complicated; see a <a href="http://regexone.com/">tutorial</a>
-                    and use a <a href="http://regexr.com/">regular expression tester</a>.</li>
+                {% if dialect_mysql %}
+                    <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">LIKE</a>,
+                        in which ‘%’ stands for any number of characters, and ‘_’
+                        for one unknown character. For example, use
+                        <span class="code">%schizophreni%</span> to find text
+                        containing ‘schizophrenia’, ‘schizophrenic’, or
+                        ‘schizophreniform’.</li>
+                    <li><a href="https://dev.mysql.com/doc/refman/5.7/en/fulltext-search.html">MATCH</a>,
+                        which is much faster than LIKE. MATCH can be used if there
+                        is a full-text index on the column in question. You can
+                        MATCH AGAINST words or phrases.</li>
+                    <li><a href="http://dev.mysql.com/doc/refman/5.7/en/pattern-matching.html">REGEXP</a>,
+                        using <a href="https://en.wikipedia.org/wiki/Regular_expression">regular expressions</a>.
+                        This is complicated; see a <a href="http://regexone.com/">tutorial</a>
+                        and use a <a href="http://regexr.com/">regular expression tester</a>.</li>
+                {% endif %}
+
+                {% if dialect_mssql %}
+                    <li><a href="https://msdn.microsoft.com/en-us/library/ms179859.aspx">LIKE</a>,
+                        in which ‘%’ stands for any number of characters, and ‘_’
+                        for one unknown character. For example, use
+                        <span class="code">%schizophreni%</span> to find text
+                        containing ‘schizophrenia’, ‘schizophrenic’, or
+                        ‘schizophreniform’. You can also match (or anti-match)
+                        character groups; see the
+                        <a href="https://msdn.microsoft.com/en-us/library/ms179859.aspx">help</a>.</li>
+                    <li><a href="https://msdn.microsoft.com/en-us/library/ms187787.aspx">CONTAINS</a>,
+                        which is much faster than LIKE. CONTAINS can be used if there
+                        is a full-text index on the column in question. You can
+                        use CONTAINS with words or phrases.</li>
+                {% endif %}
             </ul></li>
 
         <li>This query builder parses the SQL you start with, and then

@@ -265,6 +265,17 @@ def add_index(engine: Engine,
             )
             # DDL(sql, bind=engine).execute_if(dialect='mysql')
             DDL(sql, bind=engine).execute()
+        elif engine.dialect.name == 'mssql':  # Microsoft SQL Server
+            # https://msdn.microsoft.com/library/ms187317(SQL.130).aspx
+            sql = (
+                "CREATE FULLTEXT INDEX ON {tablename} ({colname}) "
+                "KEY INDEX {idxname} ".format(
+                    tablename=tablename,
+                    idxname=idxname,
+                    colname=colname,
+                )
+            )
+            DDL(sql, bind=engine).execute()
         else:
             log.error("Don't know how to make full text index on dialect "
                       "{}".format(engine.dialect.name))
