@@ -31,6 +31,7 @@ from crate_anon.common.sql import (
     sql_fragment_cast_to_int_mssql,
     ViewMaker,
 )
+from crate_anon.common.sqla import is_sqlatype_integer
 from crate_anon.preprocess.rio_constants import (
     CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES,
     CRATE_COL_LAST_DOC,
@@ -126,6 +127,10 @@ def get_rio_patient_id_col(table: Table) -> str:
 
 
 def get_rio_pk_col_nonpatient_table(table: Table) -> str:
+    for colname, column in table.columns:
+        if ((column.primary_key or column.autoincrement) and
+                is_sqlatype_integer(column.type)):
+            return column.name
     if RIO_COL_DEFAULT_PK in table.columns.keys():
         default = RIO_COL_DEFAULT_PK
     else:
@@ -225,7 +230,7 @@ def process_nonpatient_table(table: Table,
     if progargs.rcep:
         return
     pk_col = get_rio_pk_col_nonpatient_table(table)
-    if pk_col:
+    if pk_col:  # table has a primary key already
         add_columns(engine, table, {CRATE_COL_PK: 'INTEGER'})
     else:
         add_columns(engine, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
