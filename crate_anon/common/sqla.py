@@ -238,15 +238,15 @@ def get_single_int_pk_colname(table_: Table) -> Optional[str]:
         log.warning(repr(col))
         if col.primary_key:
             n_pks += 1
-            if is_sqlatype_integer(col):
+            if is_sqlatype_integer(col.type):
                 int_pk_names.append(col.name)
     if n_pks == 1 and len(int_pk_names) == 1:
-        log.warning("get_single_int_pk_colname({}) -> {}".format(
-            repr(table_.name),
-            repr(int_pk_names[0])))
+        # log.warning("get_single_int_pk_colname({}) -> {}".format(
+        #     repr(table_.name),
+        #     repr(int_pk_names[0])))
         return int_pk_names[0]
-    log.warning("get_single_int_pk_colname({}) -> None".format(
-        repr(table_.name)))
+    # log.warning("get_single_int_pk_colname({}) -> None".format(
+    #     repr(table_.name)))
     return None
 
 
@@ -281,19 +281,19 @@ def get_single_int_autoincrement_colname(table_: Table) -> Optional[str]:
     for col in table_.columns:
         if col.autoincrement:
             n_autoinc += 1
-            log.warning("FOUND AN AUTOINCREMENT!")
-            if is_sqlatype_integer(col):
+            # log.warning("FOUND AN AUTOINCREMENT!")
+            if is_sqlatype_integer(col.type):
                 int_autoinc_names.append(col.name)
     if n_autoinc > 1:
         log.warning("Table {} has {} autoincrement columns".format(
             repr(table_.name), n_autoinc))
     if n_autoinc == 1 and len(int_autoinc_names) == 1:
-        log.warning("get_single_int_pk_colname({}) -> {}".format(
-            repr(table_.name),
-            repr(int_autoinc_names[0])))
+        # log.warning("get_single_int_pk_colname({}) -> {}".format(
+        #     repr(table_.name),
+        #     repr(int_autoinc_names[0])))
         return int_autoinc_names[0]
-    log.warning("get_single_int_pk_colname({}) -> None".format(
-        repr(table_.name)))
+    # log.warning("get_single_int_pk_colname({}) -> None".format(
+    #     repr(table_.name)))
     return None
 
 
