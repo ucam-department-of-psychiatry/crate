@@ -14,7 +14,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
-from sqlalchemy.schema import Column, DDL, Index
+from sqlalchemy.schema import Column, DDL, Index, Table
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import column, exists, func, select, sqltypes, table
 from sqlalchemy.sql.expression import (
@@ -217,6 +217,51 @@ def get_column_type(engine: Engine, tablename: str,
 
 def get_column_names(engine: Engine, tablename: str) -> List[str]:
     return [x['name'] for x in get_columns_info(engine, tablename)]
+
+
+# =============================================================================
+# More introspection
+# =============================================================================
+
+def get_single_int_pk_colname(table_: Table) -> Optional[str]:
+    """
+    If a table has a single-field (non-composite) integer PK, this will
+    return its name; otherwise, None.
+
+    Note that it is fine to have both a composite primary key and a separate
+    IDENTITY (AUTOINCREMENT) integer field.
+    """
+    n_pks = 0
+    int_pk_names = []
+    for col in table_.columns:
+        if col.primary_key:
+            n_pks += 1
+            if is_sqlatype_integer(col):
+                int_pk_names.append(col.name)
+    if n_pks == 1 and len(int_pk_names) == 1:
+        return int_pk_names[0]
+    return None
+
+
+def get_single_int_autoincrement_colname(table_: Table) -> Optional[str]:
+    """
+    If a table has a single integer AUTOINCREMENT column, this will
+    return its name; otherwise, None.
+
+    (It's unlikely that a database has >1 AUTOINCREMENT field anyway, but we
+    should check.)
+    SQL Server's IDENTITY keyword is equivalent to MySQL's AUTOINCREMENT.
+    """
+    n_autoinc = 0
+    int_autoinc_names = []
+    for col in table_.columns:
+        if col.autoincrement:
+            n_autoinc += 1
+            if is_sqlatype_integer(col):
+                int_autoinc_names.append(col.name)
+    if n_autoinc == 1 and len(int_autoinc_names) == 1:
+        return int_autoinc_names[0]
+    return None
 
 
 # =============================================================================

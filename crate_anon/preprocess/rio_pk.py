@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # crate_anon/preprocess/rio_pk.py
 
-RIO_6_2_ATYPICAL_PKS = {
+__SUPERSEDED = """
+
+RIO_6_2_ATYPICAL_PKS = {  # SUPERSEDED by better PK detection
+
     # These are table: pk_field mappings for PATIENT tables, i.e. those
     # containing the ClientID field, where that PK is not the default of
     # SequenceID.
@@ -122,6 +125,8 @@ RIO_6_2_ATYPICAL_PKS = {
     'UserAssesstfkcsa_childprev': 'type12_RowID',  # Keeping Children Safe Assessment subtable  # noqa
     'UserAssesstfkcsa_childs': 'type12_RowID',  # Keeping Children Safe Assessment subtable  # noqa
 }
+
+"""
 
 RIO_6_2_ATYPICAL_PATIENT_ID_COLS = {
     'SNOMED_Client': 'SC_ClientID',
