@@ -233,7 +233,9 @@ def get_single_int_pk_colname(table_: Table) -> Optional[str]:
     """
     n_pks = 0
     int_pk_names = []
+    log.warning("get_single_int_pk_colname")
     for col in table_.columns:
+        log.warning(repr(col))
         if col.primary_key:
             n_pks += 1
             if is_sqlatype_integer(col):
