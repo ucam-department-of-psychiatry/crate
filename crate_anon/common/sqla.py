@@ -246,7 +246,7 @@ def get_single_int_pk_colname(table_: Table) -> Optional[str]:
             repr(int_pk_names[0])))
         return int_pk_names[0]
     log.warning("get_single_int_pk_colname({}) -> None".format(
-        repr(table_.name))
+        repr(table_.name)))
     return None
 
 
@@ -272,7 +272,7 @@ def get_single_int_autoincrement_colname(table_: Table) -> Optional[str]:
             repr(int_autoinc_names[0])))
         return int_autoinc_names[0]
     log.warning("get_single_int_pk_colname({}) -> None".format(
-        repr(table_.name))
+        repr(table_.name)))
     return None
 
 
