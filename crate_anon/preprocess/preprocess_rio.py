@@ -108,7 +108,11 @@ def table_is_rio_type(tablename: str,
     return tablename == progargs.full_prognotes_table
 
 
-def get_rio_pk_col_patient_table(table: Table) -> str:
+def get_rio_int_pk_col_patient_table(table: Table) -> str:
+    for column in table.columns:
+        if ((column.primary_key or column.autoincrement) and
+                is_sqlatype_integer(column.type)):
+            return column.name
     if table.name.startswith('UserAssess'):
         default = RIO_COL_USER_ASSESS_DEFAULT_PK
     else:
@@ -126,7 +130,7 @@ def get_rio_patient_id_col(table: Table) -> str:
     return patient_id_col
 
 
-def get_rio_pk_col_nonpatient_table(table: Table) -> str:
+def get_rio_int_pk_col_nonpatient_table(table: Table) -> str:
     for column in table.columns:
         if ((column.primary_key or column.autoincrement) and
                 is_sqlatype_integer(column.type)):
@@ -142,7 +146,7 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
     log.info("Patient table: '{}'".format(table.name))
     rio_type = table_is_rio_type(table.name, progargs)
     if rio_type:
-        rio_pk = get_rio_pk_col_patient_table(table)
+        rio_pk = get_rio_int_pk_col_patient_table(table)
         string_pt_id = get_rio_patient_id_col(table)
         required_cols = [string_pt_id]
     else:  # RCEP type
@@ -229,7 +233,7 @@ def process_nonpatient_table(table: Table,
                              progargs: Any) -> None:
     if progargs.rcep:
         return
-    pk_col = get_rio_pk_col_nonpatient_table(table)
+    pk_col = get_rio_int_pk_col_nonpatient_table(table)
     if pk_col:  # table has a primary key already
         add_columns(engine, table, {CRATE_COL_PK: 'INTEGER'})
     else:
