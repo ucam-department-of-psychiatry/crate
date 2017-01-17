@@ -12,7 +12,7 @@ Based on
       Copyright (c) 2006, The University of Sheffield.
     - https://gate.ac.uk/sale/tao/splitch7.html#chap:api
 New code:
-    - Copyright (C) 2015-2016, Rudolf Cardinal (rudolf@pobox.com).
+    - Copyright (C) 2015-2017, Rudolf Cardinal (rudolf@pobox.com).
 Free software, licenced under the GNU Library General Public License,
 Version 2, June 1991.
 

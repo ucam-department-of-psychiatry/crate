@@ -1,7 +1,27 @@
 #!/usr/bin/env python
 # crate_anon/crateweb/config/urls.py
 
-"""crateweb URL Configuration
+"""
+===============================================================================
+    Copyright © 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+===============================================================================
+
+crateweb URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/1.8/topics/http/urls/
@@ -16,6 +36,7 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
+
 from django.conf.urls import include, url  # patterns
 # import django.contrib.auth.views
 # from django.contrib import admin

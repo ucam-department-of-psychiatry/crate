@@ -84,7 +84,7 @@ setup(
     author_email='rudolf@pobox.com',
 
     # Choose your license
-    license='Apache License 2.0',
+    license='GNU General Public License v3 or later (GPLv3+)',
 
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -98,7 +98,7 @@ setup(
         'Intended Audience :: Science/Research',
 
         # Pick your license as you wish (should match "license" above)
-        'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)',  # noqa
 
         'Natural Language :: English',
 

@@ -2,26 +2,41 @@
 # crate_anon/anonymise/launch_multiprocess_anonymiser.py
 
 """
+===============================================================================
+    Copyright © 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+===============================================================================
+
 Launch anonymise.py in multiprocess mode.
 
-Author: Rudolf Cardinal
-Copyright (C) 2015-2016 Rudolf Cardinal.
-License: http://www.apache.org/licenses/LICENSE-2.0
+Previous bash version: see
 
-Previous bash version:
+    http://stackoverflow.com/questions/356100
+    http://stackoverflow.com/questions/1644856
+    http://stackoverflow.com/questions/8903239
+    http://stackoverflow.com/questions/1951506
+    Note: $! is the process ID of last process launched in background
+    http://stackoverflow.com/questions/59895
 
-http://stackoverflow.com/questions/356100
-http://stackoverflow.com/questions/1644856
-http://stackoverflow.com/questions/8903239
-http://stackoverflow.com/questions/1951506
-Note: $! is the process ID of last process launched in background
-http://stackoverflow.com/questions/59895
+Python version: see
 
-Python version:
-
-http://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel  # noqa
-http://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program  # noqa
-http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
+    http://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel  # noqa
+    http://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program  # noqa
+    http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
 """
 
 import argparse

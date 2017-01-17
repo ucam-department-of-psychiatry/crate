@@ -1,6 +1,27 @@
 #!/usr/bin/env python
 # crate_anon/common/sqla.py
 
+"""
+===============================================================================
+    Copyright © 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+===============================================================================
+"""
+
 import ast
 import copy
 from functools import lru_cache
@@ -233,20 +254,13 @@ def get_single_int_pk_colname(table_: Table) -> Optional[str]:
     """
     n_pks = 0
     int_pk_names = []
-    log.warning("get_single_int_pk_colname")
     for col in table_.columns:
-        log.warning(repr(col))
         if col.primary_key:
             n_pks += 1
             if is_sqlatype_integer(col.type):
                 int_pk_names.append(col.name)
     if n_pks == 1 and len(int_pk_names) == 1:
-        # log.warning("get_single_int_pk_colname({}) -> {}".format(
-        #     repr(table_.name),
-        #     repr(int_pk_names[0])))
         return int_pk_names[0]
-    # log.warning("get_single_int_pk_colname({}) -> None".format(
-    #     repr(table_.name)))
     return None
 
 
@@ -281,19 +295,13 @@ def get_single_int_autoincrement_colname(table_: Table) -> Optional[str]:
     for col in table_.columns:
         if col.autoincrement:
             n_autoinc += 1
-            # log.warning("FOUND AN AUTOINCREMENT!")
             if is_sqlatype_integer(col.type):
                 int_autoinc_names.append(col.name)
     if n_autoinc > 1:
         log.warning("Table {} has {} autoincrement columns".format(
             repr(table_.name), n_autoinc))
     if n_autoinc == 1 and len(int_autoinc_names) == 1:
-        # log.warning("get_single_int_pk_colname({}) -> {}".format(
-        #     repr(table_.name),
-        #     repr(int_autoinc_names[0])))
         return int_autoinc_names[0]
-    # log.warning("get_single_int_pk_colname({}) -> None".format(
-    #     repr(table_.name)))
     return None
 
 

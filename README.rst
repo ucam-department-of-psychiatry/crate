@@ -47,8 +47,8 @@
 
 ## Copyright/licensing
 
-- CRATE: copyright &copy; 2015-2016 Rudolf Cardinal (rudolf@pobox.com).
-- Licensed under the Apache License, version 2.0: see LICENSE file.
+- CRATE: copyright &copy; 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+- Licensed under the GNU GPL v3: see LICENSE file.
 - Third-party code/libraries included:
   - aspects of CamAnonGatePipeline.java are based on demonstration GATE code,
     copyright &copy; University of Sheffield, and licensed under the GNU LGPL
