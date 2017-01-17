@@ -149,8 +149,8 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
     log.info("Patient table: '{}'".format(table.name))
     rio_type = table_is_rio_type(table.name, progargs)
     if rio_type:
-        # rio_pk = get_rio_int_pk_col_patient_table(table)
-        rio_pk = get_rio_int_pk_col(table)
+        pk_col = get_rio_int_pk_col(table)
+        rio_pk = pk_col if pk_col != CRATE_COL_PK else None
         string_pt_id = get_rio_patient_id_col(table)
         required_cols = [string_pt_id]
     else:  # RCEP type
@@ -237,22 +237,22 @@ def process_nonpatient_table(table: Table,
                              progargs: Any) -> None:
     if progargs.rcep:
         return
-    # pk_col = get_rio_int_pk_col_nonpatient_table(table)
     pk_col = get_rio_int_pk_col(table)
-    if pk_col:  # table has a primary key already
+    other_pk_col = pk_col if pk_col != CRATE_COL_PK else None
+    if other_pk_col:  # table has a primary key already
         add_columns(engine, table, {CRATE_COL_PK: 'INTEGER'})
     else:
         add_columns(engine, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
     if not progargs.print:
         ensure_columns_present(engine, tablename=table.name,
                                column_names=[CRATE_COL_PK])
-    if pk_col:
+    if other_pk_col:
         execute(engine, """
             UPDATE {tablename} SET {crate_pk} = {rio_pk}
             WHERE {crate_pk} IS NULL
         """.format(tablename=table.name,
                    crate_pk=CRATE_COL_PK,
-                   rio_pk=pk_col))
+                   rio_pk=other_pk_col))
     add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
                                  'column': CRATE_COL_PK,
                                  'unique': True}])
