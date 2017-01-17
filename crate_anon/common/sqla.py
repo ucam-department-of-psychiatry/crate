@@ -255,17 +255,38 @@ def get_single_int_autoincrement_colname(table_: Table) -> Optional[str]:
     If a table has a single integer AUTOINCREMENT column, this will
     return its name; otherwise, None.
 
-    (It's unlikely that a database has >1 AUTOINCREMENT field anyway, but we
-    should check.)
-    SQL Server's IDENTITY keyword is equivalent to MySQL's AUTOINCREMENT.
+    - It's unlikely that a database has >1 AUTOINCREMENT field anyway, but we
+      should check.
+    - SQL Server's IDENTITY keyword is equivalent to MySQL's AUTOINCREMENT.
+    - Verify against SQL Server:
+
+        SELECT table_name, column_name
+        FROM information_schema.columns
+        WHERE COLUMNPROPERTY(OBJECT_ID(table_schema + '.' + table_name),
+                             column_name,
+                             'IsIdentity') = 1
+        ORDER BY table_name;
+
+      ... http://stackoverflow.com/questions/87747
+
+    - Also:
+
+        sp_columns 'tablename';
+
+        ... which is what SQLAlchemy does (dialects/mssql/base.py, in
+        get_columns).
     """
     n_autoinc = 0
     int_autoinc_names = []
     for col in table_.columns:
         if col.autoincrement:
             n_autoinc += 1
+            log.warning("FOUND AN AUTOINCREMENT!")
             if is_sqlatype_integer(col):
                 int_autoinc_names.append(col.name)
+    if n_autoinc > 1:
+        log.warning("Table {} has {} autoincrement columns".format(
+            repr(table_.name), n_autoinc))
     if n_autoinc == 1 and len(int_autoinc_names) == 1:
         log.warning("get_single_int_pk_colname({}) -> {}".format(
             repr(table_.name),
