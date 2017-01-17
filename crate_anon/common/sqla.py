@@ -239,7 +239,12 @@ def get_single_int_pk_colname(table_: Table) -> Optional[str]:
             if is_sqlatype_integer(col):
                 int_pk_names.append(col.name)
     if n_pks == 1 and len(int_pk_names) == 1:
+        log.warning("get_single_int_pk_colname({}) -> {}".format(
+            repr(table_.name),
+            repr(int_pk_names[0])))
         return int_pk_names[0]
+    log.warning("get_single_int_pk_colname({}) -> None".format(
+        repr(table_.name))
     return None
 
 
@@ -260,7 +265,12 @@ def get_single_int_autoincrement_colname(table_: Table) -> Optional[str]:
             if is_sqlatype_integer(col):
                 int_autoinc_names.append(col.name)
     if n_autoinc == 1 and len(int_autoinc_names) == 1:
+        log.warning("get_single_int_pk_colname({}) -> {}".format(
+            repr(table_.name),
+            repr(int_autoinc_names[0])))
         return int_autoinc_names[0]
+    log.warning("get_single_int_pk_colname({}) -> None".format(
+        repr(table_.name))
     return None
 
 
