@@ -127,7 +127,7 @@ def get_rio_patient_id_col(table: Table) -> str:
 
 
 def get_rio_pk_col_nonpatient_table(table: Table) -> str:
-    for colname, column in table.columns:
+    for column in table.columns:
         if ((column.primary_key or column.autoincrement) and
                 is_sqlatype_integer(column.type)):
             return column.name
