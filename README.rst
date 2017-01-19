@@ -41,7 +41,7 @@
   - ...
 
 - `changelog.Debian` &ndash; Debian package changelog and general version history
-- `LICENCE` &ndash; Apache license applicable to CRATE
+- `LICENCE` &ndash; license applicable to CRATE
 - `README.rst` &ndash; this file
 - `setup.py` &ndash; file to set up package for distribution, etc.
 

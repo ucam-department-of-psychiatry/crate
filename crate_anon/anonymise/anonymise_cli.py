@@ -173,4 +173,7 @@ def main() -> None:
 # =============================================================================
 
 if __name__ == '__main__':
-    pdb_run(main)
+    if False:
+        pdb_run(main)
+    else:
+        main()
