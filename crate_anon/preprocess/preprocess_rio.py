@@ -181,7 +181,10 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
         crate_pk_col = Column(CRATE_COL_PK, BigInteger,
                               Sequence('dummy_name', start=1, increment=1))
         # ... autopopulates
-    crate_rio_number_col = Column(CRATE_COL_RIO_NUMBER, Integer, nullable=True)
+    crate_rio_number_col = Column(CRATE_COL_RIO_NUMBER, BigInteger,
+                                  nullable=True)
+    # ... even if RiO numbers are INT, they come from VARCHAR(15) here, and
+    # that can (aod does) look numeric and overflow an INT.
     # SQL Server requires Table-bound columns in order to generate DDL:
     table.append_column(crate_pk_col)
     table.append_column(crate_rio_number_col)
@@ -632,7 +635,7 @@ def add_postcode_geography_view(engine: Engine,
 def process_table(table: Table, engine: Engine, progargs: Any) -> None:
     tablename = table.name
     column_names = table.columns.keys()
-    log.debug("TABLE: '{}'; COLUMNS: {}".format(tablename, column_names))
+    log.debug("TABLE: {}; COLUMNS: {}".format(tablename, column_names))
     if progargs.rio:
         patient_table_indicator_column = get_rio_patient_id_col(table)
     else:  # RCEP:

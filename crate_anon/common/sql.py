@@ -111,14 +111,25 @@ def format_sql_for_print(sql: str) -> str:
     return "\n".join(lines)
 
 
-def sql_fragment_cast_to_int_mssql(expr: str) -> str:
+def sql_fragment_cast_to_int_mssql(expr: str, signed: bool = False,
+                                   big: bool = True) -> str:
     # For Microsoft SQL Server.
     # Conversion to INT:
     # http://stackoverflow.com/questions/2000045
     # http://stackoverflow.com/questions/14719760  # this one
     # http://stackoverflow.com/questions/14692131
-    return "CASE WHEN {expr} NOT LIKE '%[^0-9]%' " \
-           "THEN CAST({expr} AS INTEGER) ELSE NULL END".format(expr=expr)
+    # https://msdn.microsoft.com/en-us/library/ms174214(v=sql.120).aspx
+    regex = '{ws}*{opt_neg}{digit}+{ws}*'.format(
+        ws=':b',  # whitespace
+        digit='[0-9]',
+        opt_neg='-?' if signed else ''
+    )
+    inttype = "BIGINT" if big else "INTEGER"
+    return (
+        "CASE WHEN {expr} LIKE '{regex}' "
+        "THEN CAST({expr} AS {inttype}) ELSE NULL END".format(
+            expr=expr, regex=regex, inttype=inttype)
+    )
 
 
 def execute(engine: sqlalchemy.engine.Engine, sql: str) -> None:
@@ -140,8 +151,8 @@ def add_columns(engine: sqlalchemy.engine.Engine,
         if column.name.lower() not in existing_column_names:
             column_defs.append(column_creation_ddl(column, engine))
         else:
-            log.debug("Table '{}': column '{}' already exists; not "
-                      "adding".format(table.name, column.name))
+            log.debug("Table {}: column {} already exists; not adding".format(
+                repr(table.name), repr(column.name)))
     # ANSI SQL: add one column at a time: ALTER TABLE ADD [COLUMN] coldef
     #   - i.e. "COLUMN" optional, one at a time, no parentheses
     #   - http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
@@ -155,8 +166,8 @@ def add_columns(engine: sqlalchemy.engine.Engine,
     #   - http://stackoverflow.com/questions/2523676
     # SQLAlchemy doesn't provide a shortcut for this.
     for column_def in column_defs:
-        log.info("Table '{}': adding column {}".format(
-            table.name, column_def))
+        log.info("Table {}: adding column {}".format(
+            repr(table.name), repr(column_def)))
         execute(engine, """
             ALTER TABLE {tablename} ADD {column_def}
         """.format(tablename=table.name, column_def=column_def))
@@ -169,11 +180,11 @@ def drop_columns(engine: sqlalchemy.engine.Engine,
                                              to_lower=True)
     for name in column_names:
         if name.lower() not in existing_column_names:
-            log.debug("Table '{}': column '{}' does not exist; not "
-                      "dropping".format(table.name, name))
+            log.debug("Table {}: column {} does not exist; not "
+                      "dropping".format(repr(table.name), repr(name)))
         else:
-            log.info("Table '{}': dropping column '{}'".format(table.name,
-                                                               name))
+            log.info("Table {}: dropping column {}".format(
+                repr(table.name), repr(name)))
             sql = "ALTER TABLE {t} DROP COLUMN {c}".format(t=table.name,
                                                            c=name)
             # SQL Server:
@@ -195,8 +206,8 @@ def add_indexes(engine: sqlalchemy.engine.Engine,
             column = ", ".join(column)  # must be a list
         unique = idxdefdict.get('unique', False)
         if index_name.lower() not in existing_index_names:
-            log.info("Table '{}': adding index '{}' on columns '{}'".format(
-                table.name, index_name, column))
+            log.info("Table {}: adding index {} on column {}".format(
+                repr(table.name), repr(index_name), repr(column)))
             execute(engine, """
                 CREATE{unique} INDEX {idxname} ON {tablename} ({column})
             """.format(
@@ -206,8 +217,8 @@ def add_indexes(engine: sqlalchemy.engine.Engine,
                 column=column,
             ))
         else:
-            log.debug("Table '{}': index '{}' already exists; not "
-                      "adding".format(table.name, index_name))
+            log.debug("Table {}: index {} already exists; not adding".format(
+                repr(table.name), repr(index_name)))
 
 
 def drop_indexes(engine: sqlalchemy.engine.Engine,
@@ -217,11 +228,11 @@ def drop_indexes(engine: sqlalchemy.engine.Engine,
                                            to_lower=True)
     for index_name in index_names:
         if index_name.lower() not in existing_index_names:
-            log.debug("Table '{}': index '{}' does not exist; not "
-                      "dropping".format(table.name, index_name))
+            log.debug("Table {}: index {} does not exist; not dropping".format(
+                repr(table.name), repr(index_name)))
         else:
-            log.info("Table '{}': dropping index '{}'".format(table.name,
-                                                              index_name))
+            log.info("Table {}: dropping index {}".format(
+                repr(table.name), repr(index_name)))
             if engine.dialect.name == 'mysql':
                 sql = "ALTER TABLE {t} DROP INDEX {i}".format(t=table.name,
                                                               i=index_name)
@@ -301,7 +312,8 @@ def ensure_columns_present(engine: sqlalchemy.engine.Engine,
     for col in column_names:
         if col.lower() not in existing_column_names:
             raise ValueError(
-                "Column '{}' missing from table '{}'".format(col, tablename))
+                "Column {} missing from table {}".format(
+                    repr(col), repr(tablename)))
 
 
 def create_view(engine: sqlalchemy.engine.Engine,
@@ -320,7 +332,7 @@ def create_view(engine: sqlalchemy.engine.Engine,
             viewname=viewname,
             select_sql=select_sql,
         )
-    log.info("Creating view: '{}'".format(viewname))
+    log.info("Creating view: {}".format(repr(viewname)))
     execute(engine, sql)
 
 
@@ -336,7 +348,7 @@ def drop_view(engine: sqlalchemy.engine.Engine,
         log.debug("View {} does not exist; not dropping".format(viewname))
     else:
         if not quiet:
-            log.info("Dropping view: '{}'".format(viewname))
+            log.info("Dropping view: {}".format(repr(viewname)))
         sql = "DROP VIEW {viewname}".format(viewname=viewname)
         execute(engine, sql)
 
