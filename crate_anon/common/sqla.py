@@ -376,6 +376,31 @@ def add_index(engine: Engine,
 # =============================================================================
 
 def column_creation_ddl(sqla_column: Column, engine: Engine):
+    """
+    Manual testing:
+
+        from sqlalchemy.schema import Column, CreateColumn, MetaData, Sequence, Table
+        from sqlalchemy.sql.sqltypes import BigInteger
+        from sqlalchemy.dialects.mssql.base import MSDialect
+        dialect = MSDialect()
+        col1 = Column('hello', BigInteger, nullable=True)
+        col2 = Column('world', BigInteger, autoincrement=True)  # does NOT generate IDENTITY
+        col3 = Column('you', BigInteger, Sequence('dummy_name', start=1, increment=1))
+        metadata = MetaData()
+        t = Table('mytable', metadata)
+        t.append_column(col1)
+        t.append_column(col2)
+        t.append_column(col3)
+        print(CreateColumn(col1).compile(dialect=dialect))  # hello BIGINT NULL
+        print(CreateColumn(col2).compile(dialect=dialect))  # world BIGINT NULL
+        print(CreateColumn(col3).compile(dialect=dialect))  # you BIGINT NOT NULL IDENTITY(1,1)
+
+    If you don't append the column to a Table object, the DDL generation step
+    gives:
+
+        sqlalchemy.exc.CompileError: mssql requires Table-bound columns in
+        order to generate DDL
+    """  # noqa
     return CreateColumn(sqla_column).compile(bind=engine)
 
 

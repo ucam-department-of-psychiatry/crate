@@ -198,7 +198,7 @@ def add_indexes(engine: sqlalchemy.engine.Engine,
             log.info("Table '{}': adding index '{}' on columns '{}'".format(
                 table.name, index_name, column))
             execute(engine, """
-              CREATE{unique} INDEX {idxname} ON {tablename} ({column})
+                CREATE{unique} INDEX {idxname} ON {tablename} ({column})
             """.format(
                 unique=" UNIQUE" if unique else "",
                 idxname=index_name,
