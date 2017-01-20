@@ -35,7 +35,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
-from sqlalchemy.schema import Column, DDL, Index, Table
+from sqlalchemy.schema import Column, CreateColumn, DDL, Index, Table
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import column, exists, func, select, sqltypes, table
 from sqlalchemy.sql.expression import (
@@ -369,6 +369,14 @@ def add_index(engine: Engine,
         index = Index(idxname, sqla_column, unique=unique, mysql_length=length)
         index.create(engine)
     # Index creation doesn't require a commit.
+
+
+# =============================================================================
+# More DDL
+# =============================================================================
+
+def column_creation_ddl(sqla_column: Column, engine: Engine):
+    return CreateColumn(sqla_column).compile(bind=engine)
 
 
 # =============================================================================

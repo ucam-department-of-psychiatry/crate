@@ -34,6 +34,7 @@ import sqlalchemy.schema
 
 from crate_anon.common.formatting import sizeof_fmt
 from crate_anon.common.timing import MultiTimerContext, timer
+from crate_anon.common.sqla import column_creation_ddl
 
 log = logging.getLogger(__name__)
 
@@ -131,17 +132,16 @@ def execute(engine: sqlalchemy.engine.Engine, sql: str) -> None:
 
 def add_columns(engine: sqlalchemy.engine.Engine,
                 table: sqlalchemy.schema.Table,
-                name_coltype_dict: Dict[str,
-                                        sqlalchemy.schema.Column]) -> None:
+                columns: List[sqlalchemy.schema.Column]) -> None:
     existing_column_names = get_column_names(engine, tablename=table.name,
                                              to_lower=True)
     column_defs = []
-    for name, coltype in name_coltype_dict.items():
-        if name.lower() not in existing_column_names:
-            column_defs.append("{} {}".format(name, coltype))
+    for column in columns:
+        if column.name.lower() not in existing_column_names:
+            column_defs.append(column_creation_ddl(column, engine))
         else:
             log.debug("Table '{}': column '{}' already exists; not "
-                      "adding".format(table.name, name))
+                      "adding".format(table.name, column.name))
     # ANSI SQL: add one column at a time: ALTER TABLE ADD [COLUMN] coldef
     #   - i.e. "COLUMN" optional, one at a time, no parentheses
     #   - http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt

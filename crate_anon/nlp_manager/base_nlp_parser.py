@@ -287,7 +287,7 @@ class BaseNlpParser(object):
             log.debug(
                 "delete_from_dest_dbs... {}.{} -> {}.{}".format(
                     srcdb, srctable, destdb_name, tablename))
-            # noinspection PyProtectedMember
+            # noinspection PyProtectedMember,PyPropertyAccess
             delquery = (
                 desttable.delete().
                 where(desttable.c._srcdb == srcdb).
@@ -297,7 +297,7 @@ class BaseNlpParser(object):
                 where(desttable.c._nlpdef == nlpdef_name)
             )
             if srcpkstr is not None:
-                # noinspection PyProtectedMember
+                # noinspection PyProtectedMember,PyPropertyAccess
                 delquery = delquery.where(desttable.c._srcpkstr == srcpkstr)
             with MultiTimerContext(timer, TIMING_DELETE_DEST_RECORD):
                 session.execute(delquery)
@@ -317,7 +317,7 @@ class BaseNlpParser(object):
             log.debug(
                 "delete_where_srcpk_not... {}.{} -> {}.{}".format(
                     srcdb, srctable, self._destdb_name, desttable_name))
-            # noinspection PyProtectedMember
+            # noinspection PyProtectedMember,PyPropertyAccess
             dest_deletion_query = (
                 # see get_core_indexes_for_dest
                 desttable.delete().
@@ -338,7 +338,7 @@ class BaseNlpParser(object):
                 #   )
                 temptable_pkvalcol = temptable.columns[FN_SRCPKVAL]
                 temptable_pkstrcol = temptable.columns[FN_SRCPKSTR]
-                # noinspection PyProtectedMember
+                # noinspection PyProtectedMember,PyPropertyAccess
                 dest_deletion_query = dest_deletion_query.where(
                     ~exists().where(
                         and_(

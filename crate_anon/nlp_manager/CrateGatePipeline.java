@@ -6,15 +6,73 @@ CrateGatePipeline.java
     http://www.cs.usfca.edu/~parrt/course/601/lectures/java.tools.html
 
 Based on
-    - https://gate.ac.uk/wiki/code-repository/src/sheffield/examples/StandAloneAnnie.java,
+
+- https://gate.ac.uk/wiki/code-repository/src/sheffield/examples/StandAloneAnnie.java
+
+    /*
+     *  StandAloneAnnie.java
+     *
+     *
+     * Copyright (c) 2000-2001, The University of Sheffield.
+     *
+     * This file is part of GATE (see http://gate.ac.uk/), and is free
+     * software, licenced under the GNU Library General Public License,
+     * Version 2, June1991.
+     *
+     * A copy of this licence is included in the distribution in the file
+     * licence.html, and is also available at http://gate.ac.uk/gate/licence.html.
+     *
+     *  hamish, 29/1/2002
+     *
+     *  $Id: StandAloneAnnie.java,v 1.6 2006/01/09 16:43:22 ian Exp $
+     */
+
       Copyright (C) 2000-2001, The University of Sheffield.
-    - https://gate.ac.uk/wiki/code-repository/src/sheffield/examples/BatchProcessApp.java
+
+- https://gate.ac.uk/wiki/code-repository/src/sheffield/examples/BatchProcessApp.java
+
+    /*
+     *  BatchProcessApp.java
+     *
+     *
+     * Copyright (c) 2006, The University of Sheffield.
+     *
+     * This file is part of GATE (see http://gate.ac.uk/), and is free
+     * software, licenced under the GNU Library General Public License,
+     * Version 2, June1991.
+     *
+     * A copy of this licence is included in the distribution in the file
+     * licence.html, and is also available at http://gate.ac.uk/gate/licence.html.
+     *
+     *  Ian Roberts, March 2006
+     *
+     *  $Id: BatchProcessApp.java,v 1.5 2006/06/11 19:17:57 ian Exp $
+     */
       Copyright (c) 2006, The University of Sheffield.
-    - https://gate.ac.uk/sale/tao/splitch7.html#chap:api
-New code:
-    - Copyright (C) 2015-2017, Rudolf Cardinal (rudolf@pobox.com).
-Free software, licenced under the GNU Library General Public License,
-Version 2, June 1991.
+
+- https://gate.ac.uk/sale/tao/splitch7.html#chap:api
+
+- New code/derivative work (noting that the GPLv3+ license is compatible with
+  the inclusion of code already licensed under the LGPLv2; see
+  https://www.gnu.org/licenses/gpl-faq.html#AllCompatibility):
+===============================================================================
+    Copyright © 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+===============================================================================
 
 TO COMPILE, THEN RUN: see buildme.sh
 

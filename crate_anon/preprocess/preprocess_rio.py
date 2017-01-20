@@ -31,7 +31,8 @@ from sqlalchemy import (
     MetaData,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.schema import Table
+from sqlalchemy.schema import Column, Table
+from sqlalchemy.sql.sqltypes import BigInteger, Integer
 
 from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.debugfunc import pdb_run
@@ -107,18 +108,6 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Constants
-# =============================================================================
-
-AUTONUMBER_COLTYPE = "INTEGER IDENTITY(1, 1) NOT NULL"
-# ... is specific to SQL Server, which is what RiO uses.
-#     MySQL equivalent would be "INTEGER PRIMARY KEY AUTO_INCREMENT" or
-#     "INTEGER UNIQUE KEY AUTO_INCREMENT".
-#     (MySQL allows only one auto column and it must be a key.)
-#     (This also does the indexing.)
-
-
-# =============================================================================
 # Generic table processors
 # =============================================================================
 
@@ -180,18 +169,22 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
         string_pt_id = RCEP_COL_PATIENT_ID
     if not progargs.print:
         required_cols.extend([CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+
     # -------------------------------------------------------------------------
     # Add pk and rio_number columns, if not present
     # -------------------------------------------------------------------------
     if rio_type and rio_pk is not None:
-        crate_pk_type = 'INTEGER'  # can't do NOT NULL; need to populate it
+        crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
+        # ... can't do NOT NULL; need to populate it
         required_cols.append(rio_pk)
     else:  # RCEP type, or no PK in RiO
-        crate_pk_type = AUTONUMBER_COLTYPE  # autopopulates
-    add_columns(engine, table, {
-        CRATE_COL_PK: crate_pk_type,
-        CRATE_COL_RIO_NUMBER: 'INTEGER',
-    })
+        crate_pk_col = Column(CRATE_COL_PK, BigInteger, autoincrement=True)
+        # ... autopopulates
+    crate_rio_number_col = Column(CRATE_COL_RIO_NUMBER, Integer, nullable=True)
+    # SQL Server requires Table-bound columns in order to generate DDL:
+    table.append_column(crate_pk_col)
+    table.append_column(crate_rio_number_col)
+    add_columns(engine, table, [crate_pk_col, crate_rio_number_col])
 
     # -------------------------------------------------------------------------
     # Update pk and rio_number values, if not NULL
@@ -261,9 +254,11 @@ def process_nonpatient_table(table: Table,
     pk_col = get_rio_int_pk_col(table)
     other_pk_col = pk_col if pk_col != CRATE_COL_PK else None
     if other_pk_col:  # table has a primary key already
-        add_columns(engine, table, {CRATE_COL_PK: 'INTEGER'})
+        crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
     else:
-        add_columns(engine, table, {CRATE_COL_PK: AUTONUMBER_COLTYPE})
+        crate_pk_col = Column(CRATE_COL_PK, BigInteger, autoincrement=True)
+    table.append_column(crate_pk_col)  # must be Table-bound, as above
+    add_columns(engine, table, [crate_pk_col])
     if not progargs.print:
         ensure_columns_present(engine, tablename=table.name,
                                column_names=[CRATE_COL_PK])
