@@ -375,7 +375,7 @@ def add_index(engine: Engine,
 # More DDL
 # =============================================================================
 
-def column_creation_ddl(sqla_column: Column, engine: Engine):
+def column_creation_ddl(sqla_column: Column, engine: Engine) -> str:
     """
     Manual testing:
 
@@ -391,9 +391,9 @@ def column_creation_ddl(sqla_column: Column, engine: Engine):
         t.append_column(col1)
         t.append_column(col2)
         t.append_column(col3)
-        print(CreateColumn(col1).compile(dialect=dialect))  # hello BIGINT NULL
-        print(CreateColumn(col2).compile(dialect=dialect))  # world BIGINT NULL
-        print(CreateColumn(col3).compile(dialect=dialect))  # you BIGINT NOT NULL IDENTITY(1,1)
+        print(str(CreateColumn(col1).compile(dialect=dialect)))  # hello BIGINT NULL
+        print(str(CreateColumn(col2).compile(dialect=dialect)))  # world BIGINT NULL
+        print(str(CreateColumn(col3).compile(dialect=dialect)))  # you BIGINT NOT NULL IDENTITY(1,1)
 
     If you don't append the column to a Table object, the DDL generation step
     gives:
@@ -401,7 +401,7 @@ def column_creation_ddl(sqla_column: Column, engine: Engine):
         sqlalchemy.exc.CompileError: mssql requires Table-bound columns in
         order to generate DDL
     """  # noqa
-    return CreateColumn(sqla_column).compile(bind=engine)
+    return str(CreateColumn(sqla_column).compile(bind=engine))
 
 
 # =============================================================================

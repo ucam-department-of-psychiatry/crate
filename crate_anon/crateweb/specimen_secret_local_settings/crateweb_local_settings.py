@@ -210,6 +210,15 @@ SECRET_MAP = {
 CLINICAL_LOOKUP_DB = 'dummy_clinical'
 
 # =============================================================================
+# Database extra structure help file
+# =============================================================================
+
+# If specified, this must be a string that is an absolute filename of TRUSTED
+# HTML that will be included.
+
+DATABASE_HELP_HTML_FILENAME = None
+
+# =============================================================================
 # Local file storage (for PDFs etc).
 # =============================================================================
 

@@ -955,6 +955,20 @@ def structure_tsv(request: HttpRequest) -> HttpResponse:
 
 
 # =============================================================================
+# Local help on structure
+# =============================================================================
+
+def local_structure_help(request: HttpRequest) -> HttpResponse:
+    if settings.DATABASE_HELP_HTML_FILENAME:
+        with open(settings.DATABASE_HELP_HTML_FILENAME, 'r') as infile:
+            content = infile.read().replace('\n', '')
+    else:
+        content = "<p>No local help available.</p>"
+    context = {'content': content}
+    return render(request, 'local_structure_help.html', context)
+
+
+# =============================================================================
 # SQL helpers
 # =============================================================================
 

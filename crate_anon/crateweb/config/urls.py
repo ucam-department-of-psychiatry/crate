@@ -122,6 +122,8 @@ urlpatterns = [
         name='structure_tree'),
     url(r'^structure_tsv/$', research_views.structure_tsv,
         name='structure_tsv'),
+    url(r'^structure_help/$', research_views.local_structure_help,
+        name='structure_help'),
 
     # -------------------------------------------------------------------------
     # SQL helpers
