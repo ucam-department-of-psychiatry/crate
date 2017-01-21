@@ -710,7 +710,7 @@ def hack_in_mssql_xml_type():
     print(repr(mssql.base.ischema_names.keys()))
     print(repr(mssql.base.ischema_names))
     print(repr(mssql.base.ischema_names['xml']))
-    # assert False
+    assert False
 
 
 # =============================================================================
