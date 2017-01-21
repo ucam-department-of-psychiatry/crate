@@ -149,7 +149,7 @@ def add_columns(engine: sqlalchemy.engine.Engine,
     column_defs = []
     for column in columns:
         if column.name.lower() not in existing_column_names:
-            column_defs.append(column_creation_ddl(column, engine))
+            column_defs.append(column_creation_ddl(column, engine.dialect))
         else:
             log.debug("Table {}: column {} already exists; not adding".format(
                 repr(table.name), repr(column.name)))

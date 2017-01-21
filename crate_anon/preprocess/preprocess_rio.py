@@ -31,7 +31,7 @@ from sqlalchemy import (
     MetaData,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.schema import Column, Sequence, Table
+from sqlalchemy.schema import Column, Table
 from sqlalchemy.sql.sqltypes import BigInteger, Integer
 
 from crate_anon.anonymise.constants import CHARSET
@@ -56,6 +56,7 @@ from crate_anon.common.sql import (
 from crate_anon.common.sqla import (
     get_single_int_pk_colname,
     get_single_int_autoincrement_colname,
+    make_bigint_autoincrement_column,
 )
 from crate_anon.preprocess.rio_constants import (
     CPFT_RCEP_TABLE_FULL_PROGRESS_NOTES,
@@ -178,8 +179,8 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
         # ... can't do NOT NULL; need to populate it
         required_cols.append(rio_pk)
     else:  # RCEP type, or no PK in RiO
-        crate_pk_col = Column(CRATE_COL_PK, BigInteger,
-                              Sequence('dummy_name', start=1, increment=1))
+        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
+                                                        engine.dialect)
         # ... autopopulates
     crate_rio_number_col = Column(CRATE_COL_RIO_NUMBER, BigInteger,
                                   nullable=True)
@@ -263,8 +264,8 @@ def process_nonpatient_table(table: Table,
     if other_pk_col:  # table has a primary key already
         crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
     else:
-        crate_pk_col = Column(CRATE_COL_PK, BigInteger,
-                              Sequence('dummy_name', start=1, increment=1))
+        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
+                                                        engine.dialect)
     table.append_column(crate_pk_col)  # must be Table-bound, as above
     add_columns(engine, table, [crate_pk_col])
     if not progargs.print:

@@ -31,11 +31,12 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 
 from sqlalchemy.dialects import mssql, mysql
 from sqlalchemy.engine import Engine
-# from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative.api import DeclarativeMeta
-from sqlalchemy.schema import Column, CreateColumn, DDL, Index, Table
+from sqlalchemy.schema import (Column, CreateColumn, DDL, MetaData, Index,
+                               Sequence, Table)
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import column, exists, func, select, sqltypes, table
 from sqlalchemy.sql.expression import (
@@ -43,7 +44,7 @@ from sqlalchemy.sql.expression import (
     Insert,
     TableClause,
 )
-from sqlalchemy.sql.sqltypes import TypeEngine
+from sqlalchemy.sql.sqltypes import BigInteger, TypeEngine
 
 log = logging.getLogger(__name__)
 
@@ -375,7 +376,20 @@ def add_index(engine: Engine,
 # More DDL
 # =============================================================================
 
-def column_creation_ddl(sqla_column: Column, engine: Engine) -> str:
+def make_bigint_autoincrement_column(column_name: str,
+                                     dialect: Dialect) -> Column:
+    if dialect.name == 'mssql':
+        return Column(column_name, BigInteger,
+                      Sequence('dummy_name', start=1, increment=1))
+    else:
+        # return Column(column_name, BigInteger, autoincrement=True)
+        raise AssertionError(
+            "SQLAlchemy doesn't support non-PK autoincrement fields yet for "
+            "dialect {}".format(repr(dialect.name)))
+        # see http://stackoverflow.com/questions/2937229
+
+
+def column_creation_ddl(sqla_column: Column, dialect: Dialect) -> str:
     """
     The column should already be bound to a table (because e.g. the SQL Server
     dialect requires this for DDL generation).
@@ -404,16 +418,16 @@ def column_creation_ddl(sqla_column: Column, engine: Engine) -> str:
         sqlalchemy.exc.CompileError: mssql requires Table-bound columns in
         order to generate DDL
     """  # noqa
-    return str(CreateColumn(sqla_column).compile(bind=engine))
+    return str(CreateColumn(sqla_column).compile(dialect=dialect))
 
 
-def giant_text_type(dialect: Any) -> str:
+def giant_text_sqltype(dialect: Dialect) -> str:
     """
     Args:
         dialect: a SQLAlchemy dialect class
     Returns:
-        the SQL data type of "giant text", typically LONGTEXT for MySQL
-        and NVARCHAR(MAX) for SQL Server.
+        the SQL data type of "giant text", typically 'LONGTEXT' for MySQL
+        and 'NVARCHAR(MAX)' for SQL Server.
     """
     if dialect.name == 'mssql':
         return 'NVARCHAR(MAX)'
@@ -439,7 +453,7 @@ RE_COLTYPE_WITH_TWO_PARAMS = re.compile(
 
 
 def _get_sqla_coltype_class_from_str(coltype: str,
-                                     dialect: Any) -> Type[Column]:
+                                     dialect: Dialect) -> Type[Column]:
     """
     As-is/lower-case search.
     For example, the SQLite dialect uses upper case, and the
@@ -454,7 +468,7 @@ def _get_sqla_coltype_class_from_str(coltype: str,
 
 @lru_cache(maxsize=None)
 def get_sqla_coltype_from_dialect_str(coltype: str,
-                                      dialect: Any) -> TypeEngine:
+                                      dialect: Dialect) -> TypeEngine:
     """
     Args:
         dialect: a SQLAlchemy dialect class
@@ -501,8 +515,7 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
     kwargs = {}
 
     try:
-
-        # Split e.g. "VARCHAR(32) COLLATE blah" into "VARCHAR(32)" and "who cares"
+        # Split e.g. "VARCHAR(32) COLLATE blah" into "VARCHAR(32)", "who cares"
         m = RE_COLTYPE_WITH_COLLATE.match(coltype)
         if m is not None:
             coltype = m.group('maintype')
@@ -518,7 +531,9 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
             m = RE_COLTYPE_WITH_ONE_PARAM.match(coltype)
             if m is not None:
                 basetype = m.group('type').upper()
-                size = ast.literal_eval(m.group('size'))
+                size_text = m.group('size').strip().upper()
+                if size_text != 'MAX':
+                    size = ast.literal_eval(size_text)
             else:
                 basetype = coltype.upper()
 
@@ -569,7 +584,7 @@ def remove_collation(coltype: Column) -> Column:
 
 @lru_cache(maxsize=None)
 def convert_sqla_type_for_dialect(coltype: TypeEngine,
-                                  dialect: Any,
+                                  dialect: Dialect,
                                   strip_collation: bool = True) -> TypeEngine:
     # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
     #                                                     vars(coltype)))
@@ -675,3 +690,58 @@ def does_sqlatype_require_index_len(coltype: TypeEngine) -> bool:
     if isinstance(coltype, sqltypes.LargeBinary):
         return True
     return False
+
+
+def test_assert(x, y) -> None:
+    try:
+        assert x == y
+    except AssertionError:
+        print("{} should have been {}".format(repr(x), repr(y)))
+        raise
+
+
+def unit_tests() -> None:
+    from sqlalchemy.dialects.mssql.base import MSDialect
+    from sqlalchemy.dialects.mysql.base import MySQLDialect
+    d_mssql = MSDialect()
+    d_mysql = MySQLDialect()
+    col1 = Column('hello', BigInteger, nullable=True)
+    col2 = Column('world', BigInteger,
+                  autoincrement=True)  # does NOT generate IDENTITY
+    col3 = make_bigint_autoincrement_column('you', d_mssql)
+    metadata = MetaData()
+    t = Table('mytable', metadata)
+    t.append_column(col1)
+    t.append_column(col2)
+    t.append_column(col3)
+
+    print("Checking Column -> DDL: SQL Server (mssql)")
+    test_assert(column_creation_ddl(col1, d_mssql), "hello BIGINT NULL")
+    test_assert(column_creation_ddl(col2, d_mssql), "world BIGINT NULL")
+    test_assert(column_creation_ddl(col3, d_mssql),
+                "you BIGINT NOT NULL IDENTITY(1,1)")
+
+    print("Checking Column -> DDL: MySQL (mysql)")
+    test_assert(column_creation_ddl(col1, d_mysql), "hello BIGINT")
+    test_assert(column_creation_ddl(col2, d_mysql), "world BIGINT")
+    # not col3; unsupported
+
+    print("Checking SQL type -> SQL Alchemy type")
+    to_check = [
+        # mssql
+        ("BIGINT", d_mssql),
+        ("NVARCHAR(32)", d_mssql),
+        ("NVARCHAR(MAX)", d_mssql),
+        # mysql
+        ("BIGINT", d_mssql),
+        ("LONGTEXT", d_mysql),
+    ]
+    for coltype, dialect in to_check:
+        print("... {} -> dialect {} -> {}".format(
+            repr(coltype),
+            repr(dialect.name),
+            repr(get_sqla_coltype_from_dialect_str(coltype, dialect))))
+
+
+if __name__ == '__main__':
+    unit_tests()

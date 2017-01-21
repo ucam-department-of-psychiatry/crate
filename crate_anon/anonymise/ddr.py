@@ -63,7 +63,7 @@ from crate_anon.common.sqla import (
     convert_sqla_type_for_dialect,
     does_sqlatype_merit_fulltext_index,
     does_sqlatype_require_index_len,
-    giant_text_type,
+    giant_text_sqltype,
     get_sqla_coltype_from_dialect_str,
     is_sqlatype_binary,
     is_sqlatype_date,
@@ -849,7 +849,7 @@ class DataDictionaryRow(object):
             self._alter_methods.append(AlterMethod(truncate_date=True))
         elif self.matches_fielddef(dbconf.ddgen_filename_to_text_fields):
             self._alter_methods.append(AlterMethod(extract_from_filename=True))
-            self.dest_datatype = giant_text_type(config.get_dest_dialect())
+            self.dest_datatype = giant_text_sqltype(config.get_dest_dialect())
             extracting_text = True
         elif self.matches_fielddef(dbconf.bin2text_dict.keys()):
             for binfielddef, extfield in dbconf.bin2text_dict.items():
@@ -857,7 +857,7 @@ class DataDictionaryRow(object):
                     self._alter_methods.append(AlterMethod(
                         extract_from_blob=True,
                         extract_ext_field=extfield))
-            self.dest_datatype = giant_text_type(config.get_dest_dialect())
+            self.dest_datatype = giant_text_sqltype(config.get_dest_dialect())
             extracting_text = True
         elif (not self._primary_pid and
               not self._master_pid and
