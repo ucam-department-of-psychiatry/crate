@@ -377,6 +377,9 @@ def add_index(engine: Engine,
 
 def column_creation_ddl(sqla_column: Column, engine: Engine) -> str:
     """
+    The column should already be bound to a table (because e.g. the SQL Server
+    dialect requires this for DDL generation).
+
     Manual testing:
 
         from sqlalchemy.schema import Column, CreateColumn, MetaData, Sequence, Table
@@ -402,6 +405,22 @@ def column_creation_ddl(sqla_column: Column, engine: Engine) -> str:
         order to generate DDL
     """  # noqa
     return str(CreateColumn(sqla_column).compile(bind=engine))
+
+
+def giant_text_type(dialect: Any) -> str:
+    """
+    Args:
+        dialect: a SQLAlchemy dialect class
+    Returns:
+        the SQL data type of "giant text", typically LONGTEXT for MySQL
+        and NVARCHAR(MAX) for SQL Server.
+    """
+    if dialect.name == 'mssql':
+        return 'NVARCHAR(MAX)'
+    elif dialect.name == 'mysql':
+        return 'LONGTEXT'
+    else:
+        raise ValueError("Unknown dialect: {}".format(dialect.name))
 
 
 # =============================================================================

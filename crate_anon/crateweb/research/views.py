@@ -961,11 +961,12 @@ def structure_tsv(request: HttpRequest) -> HttpResponse:
 def local_structure_help(request: HttpRequest) -> HttpResponse:
     if settings.DATABASE_HELP_HTML_FILENAME:
         with open(settings.DATABASE_HELP_HTML_FILENAME, 'r') as infile:
-            content = infile.read().replace('\n', '')
+            content = infile.read()
+            return HttpResponse(content.encode('utf8'))
     else:
         content = "<p>No local help available.</p>"
-    context = {'content': content}
-    return render(request, 'local_structure_help.html', context)
+        context = {'content': content}
+        return render(request, 'local_structure_help.html', context)
 
 
 # =============================================================================
