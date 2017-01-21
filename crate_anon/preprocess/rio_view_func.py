@@ -569,8 +569,10 @@ def where_prognotes_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.prognotes_current_only:
         return
     viewmaker.add_where(
-        "(EnteredInError <> 1 OR EnteredInError IS NULL) "
-        "AND {last_note_col} = 1".format(last_note_col=CRATE_COL_LAST_NOTE))
+        "({bt}.EnteredInError <> 1 OR {bt}.EnteredInError IS NULL) "
+        "AND {bt}.{last_note_col} = 1".format(
+            bt=viewmaker.basetable,
+            last_note_col=CRATE_COL_LAST_NOTE))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
                                            'EnteredInError')
     # CRATE_COL_LAST_NOTE already indexed
@@ -579,8 +581,10 @@ def where_prognotes_current(viewmaker: ViewMaker) -> None:
 def where_clindocs_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.clindocs_current_only:
         return
-    viewmaker.add_where("{last_doc_col} = 1 AND DeletedDate IS NULL".format(
-        last_doc_col=CRATE_COL_LAST_DOC))
+    viewmaker.add_where(
+        "{bt}.{last_doc_col} = 1 AND {bt}.DeletedDate IS NULL".format(
+            bt=viewmaker.basetable,
+            last_doc_col=CRATE_COL_LAST_DOC))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'DeletedDate')
     # CRATE_COL_LAST_DOC already indexed
 
@@ -588,9 +592,7 @@ def where_clindocs_current(viewmaker: ViewMaker) -> None:
 def where_allergies_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.allergies_current_only:
         return
-    viewmaker.add_where("{bt}.Deleted = 0 OR {bt}.Deleted IS NULL".format(
-        bt=viewmaker.basetable))
-    viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'Deleted')
+    where_not_deleted_flag(viewmaker.basetable, 'Deleted')
 
 
 def where_not_deleted_flag(viewmaker: ViewMaker, basecolumn: str) -> None:
@@ -752,7 +754,8 @@ def rio_amend_standard_noncore(viewmaker: ViewMaker) -> None:
     rio_add_user_lookup(viewmaker, "type12_UpdatedBy",
                         column_prefix="Updated_By", internal_alias_prefix="ub")
     # Omit deleted:
-    viewmaker.add_where("type12_DeletedDate IS NULL")
+    viewmaker.add_where("{bt}.type12_DeletedDate IS NULL".format(
+        bt=viewmaker.basetable))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
                                            'type12_DeletedDate')
 
