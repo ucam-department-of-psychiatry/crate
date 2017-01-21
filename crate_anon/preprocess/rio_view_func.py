@@ -592,7 +592,7 @@ def where_clindocs_current(viewmaker: ViewMaker) -> None:
 def where_allergies_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.allergies_current_only:
         return
-    where_not_deleted_flag(viewmaker.basetable, 'Deleted')
+    where_not_deleted_flag(viewmaker, 'Deleted')
 
 
 def where_not_deleted_flag(viewmaker: ViewMaker, basecolumn: str) -> None:
