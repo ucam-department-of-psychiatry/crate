@@ -71,6 +71,7 @@ from crate_anon.common.sqla import (
     count_star,
     exists_plain,
     get_column_names,
+    hack_in_mssql_xml_type,
 )
 
 log = logging.getLogger(__name__)
@@ -1189,6 +1190,9 @@ def anonymise(args: Any) -> None:
 
     # random number seed
     random.seed(args.seed)
+
+    # support XML type under SQL Server
+    hack_in_mssql_xml_type()
 
     # -------------------------------------------------------------------------
 

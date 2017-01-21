@@ -692,6 +692,19 @@ def does_sqlatype_require_index_len(coltype: TypeEngine) -> bool:
     return False
 
 
+# =============================================================================
+# Hack in new type
+# =============================================================================
+
+def hack_in_mssql_xml_type():
+    mssql.base.ischema_names['xml'] = mssql.base.TEXT
+    # http://stackoverflow.com/questions/32917867/sqlalchemy-making-schema-reflection-find-use-a-custom-type-for-all-instances  # noqa
+
+
+# =============================================================================
+# Tests
+# =============================================================================
+
 def test_assert(x, y) -> None:
     try:
         assert x == y
