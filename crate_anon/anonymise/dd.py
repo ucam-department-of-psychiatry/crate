@@ -40,6 +40,7 @@ from typing import AbstractSet, Any, List, Optional, Tuple
 
 from cardinal_pythonlib.rnc_db import is_sqltype_integer
 from sortedcontainers import SortedSet
+import sqlalchemy.exc
 from sqlalchemy import Column, Table
 
 # don't import config: circular dependency would have to be sorted out
@@ -134,7 +135,12 @@ class DataDictionary(object):
                     # import pdb; pdb.set_trace()
                     # log.critical("str(coltype) == {}".format(str(c.type)))
                     # log.critical("repr(coltype) == {}".format(repr(c.type)))
-                    datatype_sqltext = str(c.type)
+                    try:
+                        datatype_sqltext = str(c.type)
+                    except sqlalchemy.exc.CompileError:
+                        log.critical("Column that failed was: {}".format(
+                            repr(c)))
+                        raise
                     sqla_coltype = c.type
                     # Do not manipulate the case of SOURCE tables/columns.
                     # If you do, they can fail to match the SQLAlchemy
