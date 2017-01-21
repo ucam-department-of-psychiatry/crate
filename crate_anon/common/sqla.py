@@ -499,47 +499,54 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
     dp = None
     args = []
     kwargs = {}
-    
-    # Split e.g. "VARCHAR(32) COLLATE blah" into "VARCHAR(32)" and "who cares"
-    m = RE_COLTYPE_WITH_COLLATE.match(coltype)
-    if m is not None:
-        coltype = m.group('maintype')
-    
-    # Split e.g. "DECIMAL(10, 2)" into DECIMAL, 10, 2
-    m = RE_COLTYPE_WITH_TWO_PARAMS.match(coltype)
-    if m is not None:
-        basetype = m.group('type').upper()
-        size = ast.literal_eval(m.group('size'))
-        dp = ast.literal_eval(m.group('dp'))
-    else:
-        # Split e.g. "VARCHAR(32)" into VARCHAR, 32
-        m = RE_COLTYPE_WITH_ONE_PARAM.match(coltype)
+
+    try:
+
+        # Split e.g. "VARCHAR(32) COLLATE blah" into "VARCHAR(32)" and "who cares"
+        m = RE_COLTYPE_WITH_COLLATE.match(coltype)
+        if m is not None:
+            coltype = m.group('maintype')
+
+        # Split e.g. "DECIMAL(10, 2)" into DECIMAL, 10, 2
+        m = RE_COLTYPE_WITH_TWO_PARAMS.match(coltype)
         if m is not None:
             basetype = m.group('type').upper()
             size = ast.literal_eval(m.group('size'))
+            dp = ast.literal_eval(m.group('dp'))
         else:
-            basetype = coltype.upper()
+            # Split e.g. "VARCHAR(32)" into VARCHAR, 32
+            m = RE_COLTYPE_WITH_ONE_PARAM.match(coltype)
+            if m is not None:
+                basetype = m.group('type').upper()
+                size = ast.literal_eval(m.group('size'))
+            else:
+                basetype = coltype.upper()
 
-    # Special cases: pre-processing
-    if dialect.name == 'mssql' and basetype.lower() == 'integer':
-        basetype = 'int'
+        # Special cases: pre-processing
+        if dialect.name == 'mssql' and basetype.lower() == 'integer':
+            basetype = 'int'
 
-    cls = _get_sqla_coltype_class_from_str(basetype, dialect)
+        cls = _get_sqla_coltype_class_from_str(basetype, dialect)
 
-    # Special cases: post-processing
-    if basetype == 'DATETIME' and size:
-        # First argument to DATETIME() is timezone, so...
-        if dialect.name == 'mysql':
-            kwargs = {'fsp': size}
+        # Special cases: post-processing
+        if basetype == 'DATETIME' and size:
+            # First argument to DATETIME() is timezone, so...
+            if dialect.name == 'mysql':
+                kwargs = {'fsp': size}
+            else:
+                pass
         else:
-            pass
-    else:
-        args = [x for x in [size, dp] if x is not None]
+            args = [x for x in [size, dp] if x is not None]
 
-    try:
-        return cls(*args, **kwargs)
-    except TypeError:
-        return cls()
+        try:
+            return cls(*args, **kwargs)
+        except TypeError:
+            return cls()
+
+    except:
+        raise ValueError("Failed to convert SQL type {} in dialect {} to an "
+                         "SQLAlchemy type".format(repr(coltype),
+                                                  repr(dialect.name)))
 
 # get_sqla_coltype_from_dialect_str("INTEGER", engine.dialect)
 # get_sqla_coltype_from_dialect_str("INTEGER(11)", engine.dialect)
