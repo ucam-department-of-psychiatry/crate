@@ -296,7 +296,7 @@ MANAGERS = (
 # wkhtmltopdf that incorporates any need for an X Server (not the default
 # /usr/bin/wkhtmltopdf). See http://stackoverflow.com/questions/9604625/ .
 # Basically, you can try
-#   WKHTMLTOPDF_FILENAME =
+#   WKHTMLTOPDF_FILENAME = ''
 # and if it fails, try
 #   WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
 # but if that fails, use

@@ -588,7 +588,8 @@ def where_clindocs_current(viewmaker: ViewMaker) -> None:
 def where_allergies_current(viewmaker: ViewMaker) -> None:
     if not viewmaker.progargs.allergies_current_only:
         return
-    viewmaker.add_where("Deleted = 0 OR Deleted IS NULL")
+    viewmaker.add_where("{bt}.Deleted = 0 OR {bt}.Deleted IS NULL".format(
+        bt=viewmaker.basetable))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'Deleted')
 
 
