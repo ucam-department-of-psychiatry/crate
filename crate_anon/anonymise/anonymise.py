@@ -1164,9 +1164,6 @@ def anonymise(args: Any) -> None:
     everything = not any([args.dropremake, args.optout, args.nonpatienttables,
                           args.patienttables, args.index])
 
-    # support XML type under SQL Server
-    hack_in_mssql_xml_type()
-
     # Load/validate config
     config.report_every_n_rows = args.reportevery
     config.chunksize = args.chunksize

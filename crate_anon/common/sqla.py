@@ -707,11 +707,8 @@ def hack_in_mssql_xml_type():
     mssql.base.ischema_names['xml'] = mssql.base.TEXT
     # http://stackoverflow.com/questions/32917867/sqlalchemy-making-schema-reflection-find-use-a-custom-type-for-all-instances  # noqa
 
-    print(repr(mssql.base.ischema_names.keys()))
-    print(repr(mssql.base.ischema_names))
-    print(repr(mssql.base.ischema_names['xml']))
-    crash
-    assert False
+    # print(repr(mssql.base.ischema_names.keys()))
+    # print(repr(mssql.base.ischema_names))
 
 
 # =============================================================================

@@ -108,10 +108,17 @@ from crate_anon.common.hash import (
     HmacSHA512Hasher,
 )
 from crate_anon.common.sql import TransactionSizeLimiter
-from crate_anon.common.sqla import monkeypatch_TableClause
+from crate_anon.common.sqla import (
+    hack_in_mssql_xml_type,
+    monkeypatch_TableClause,
+)
 
 log = logging.getLogger(__name__)
+
+# The Config class is loaded very early, via the nasty singleton.
+# This is therefore the appropriate moment to make any changes to SQLAlchemy.
 monkeypatch_TableClause()
+hack_in_mssql_xml_type()  # support XML type under SQL Server
 
 
 # =============================================================================
