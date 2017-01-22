@@ -9,7 +9,6 @@ Based on
 
 - https://gate.ac.uk/wiki/code-repository/src/sheffield/examples/StandAloneAnnie.java
 
-    /*
      *  StandAloneAnnie.java
      *
      *
@@ -25,13 +24,11 @@ Based on
      *  hamish, 29/1/2002
      *
      *  $Id: StandAloneAnnie.java,v 1.6 2006/01/09 16:43:22 ian Exp $
-     */
 
       Copyright (C) 2000-2001, The University of Sheffield.
 
 - https://gate.ac.uk/wiki/code-repository/src/sheffield/examples/BatchProcessApp.java
 
-    /*
      *  BatchProcessApp.java
      *
      *
@@ -47,8 +44,6 @@ Based on
      *  Ian Roberts, March 2006
      *
      *  $Id: BatchProcessApp.java,v 1.5 2006/06/11 19:17:57 ian Exp $
-     */
-      Copyright (c) 2006, The University of Sheffield.
 
 - https://gate.ac.uk/sale/tao/splitch7.html#chap:api
 
@@ -56,7 +51,7 @@ Based on
   the inclusion of code already licensed under the LGPLv2; see
   https://www.gnu.org/licenses/gpl-faq.html#AllCompatibility):
 ===============================================================================
-    Copyright © 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 

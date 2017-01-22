@@ -3,7 +3,7 @@
 
 """
 ===============================================================================
-    Copyright © 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -210,7 +210,7 @@ SECRET_MAP = {
 CLINICAL_LOOKUP_DB = 'dummy_clinical'
 
 # =============================================================================
-# Database extra structure help file
+# Database extra help file
 # =============================================================================
 
 # If specified, this must be a string that is an absolute filename of TRUSTED

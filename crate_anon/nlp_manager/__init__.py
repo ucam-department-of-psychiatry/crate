@@ -2,7 +2,7 @@
 
 """
 ===============================================================================
-    Copyright © 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
