@@ -111,6 +111,7 @@ ddgen_table_blacklist = #
     Audit*  # RiO Audit Trail
     CDSContract*  # something to do with commissioner contracts
     Chd*  # Child development (interesting, but lots of tables and all empty)
+    Client  # RiO 5; superseded by ClientIndex (and then view Client_Demographic_Details); ?runs alongside as partial duplicate?
     ClientAddressHistory  # defunct according to RIO 6.2 docs
     ClientAddressMerged  # defunct according to RIO 6.2 docs
     ClientChild*  # child info e.g. birth/immunisation (interesting, but several tables and all empty)
@@ -124,6 +125,7 @@ ddgen_table_blacklist = #
     DemAuditTrail  # not in v6.2 docs; ?audit trail for demographics
     DgnDiagnosis  # "Obsolete"; see DiagnosisClient
     DS*  # Drug Service within EP
+    dtoElectoralWardPCLookup  # we do our own geography; 2.5m records
     EP*  # E-Prescribing (EP) module, which we don't have
     #   ... mostly we don't have it, but we may have EPClientAllergies etc.
     #   ... so see whitelist too
@@ -133,12 +135,16 @@ ddgen_table_blacklist = #
     GenCon*  # lookup codes for Con*
     GenDiagnosis  # "Obsolete"
     GenError*  # system
+    GenExtendedPostcode  # we provide our own geography lookups; 5m records
     GenExtract*  # details of reporting extracts
     GenHCPTemplateDetails  # HCP diary template
     GenIDSeed  # system (counters for different ID types)
     GenLicenseKeys  # system; NB shows what components are licensed!
+    GenNumbers  # just a list of integers
+    GenPostcodeGeographicDataMappings  # as above, we do our own geography; 2.5m records
     GenPrinter*  # printers
     GenToDoList  # user to-do list items/notifications
+    gridall  # same number of records as dtoElectoralWardPCLookup; also geography;
     KP90ErrorLog  # error log for KP90 report; http://www.hscic.gov.uk/datacollections/kp90
     LR*  # Legitimate Relationships module
     Meeting*  # Meetings module
@@ -160,7 +166,7 @@ ddgen_table_blacklist = #
     umt*  # system
     Wfl*  # workflow
     WL*  # Waiting lists (WL) module
-    view_AuditTrailPurge  # system
+    view_AuditTrailPurge  # system; e.g. 96m records
     # -------------------------------------------------------------------------
     # Blacklist: Middle bits, suffixes
     # -------------------------------------------------------------------------
@@ -209,7 +215,8 @@ ddgen_pid_defining_fieldnames = Client_Demographic_Details.crate_rio_number
 
 ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
-    # Original RiO tables (some may be superseded by views; list both here)
+    # Original RiO tables (some may be superseded by views; list both here;
+    # if the table is blacklisted anyway, it doesn't matter).
     # ----------------------------------------------------------------------
     AmsReferral.DischargeAddressLine*  # superseded by view Referral
     AmsReferral.DischargePostCode  # superseded by view Referral

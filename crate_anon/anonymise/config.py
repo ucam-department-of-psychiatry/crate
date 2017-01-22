@@ -312,7 +312,6 @@ class Config(object):
 
         self.data_dictionary_filename = opt_str('data_dictionary_filename')
         self.hash_method = opt_str('hash_method')
-        self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
         self.per_table_patient_id_encryption_phrase = opt_str(
             'per_table_patient_id_encryption_phrase')
         self.master_patient_id_encryption_phrase = opt_str(
