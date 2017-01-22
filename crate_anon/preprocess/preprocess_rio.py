@@ -82,11 +82,9 @@ from crate_anon.preprocess.rio_constants import (
     RCEP_COL_POSTCODE,
     RCEP_TABLE_ADDRESS,
     RCEP_TABLE_MASTER_PATIENT,
-    # RIO_COL_DEFAULT_PK,
     RIO_COL_NHS_NUMBER,
     RIO_COL_PATIENT_ID,
     RIO_COL_POSTCODE,
-    # RIO_COL_USER_ASSESS_DEFAULT_PK,
     RIO_TABLE_ADDRESS,
     RIO_TABLE_CLINICAL_DOCUMENTS,
     RIO_TABLE_MASTER_PATIENT,
@@ -99,7 +97,6 @@ from crate_anon.preprocess.rio_ddgen import (
     get_rio_dd_settings,
 )
 from crate_anon.preprocess.rio_pk import (
-    # RIO_6_2_ATYPICAL_PKS,
     RIO_6_2_ATYPICAL_PATIENT_ID_COLS,
 )
 from crate_anon.preprocess.rio_view_func import rio_add_audit_info
@@ -122,30 +119,12 @@ def table_is_rio_type(tablename: str,
     return tablename == progargs.full_prognotes_table
 
 
-# def get_rio_int_pk_col_patient_table(table: Table) -> str:
-#     if table.name.startswith('UserAssess'):
-#         default = RIO_COL_USER_ASSESS_DEFAULT_PK
-#     else:
-#         default = RIO_COL_DEFAULT_PK
-#     pkcol = RIO_6_2_ATYPICAL_PKS.get(table.name, default)
-#     log.debug("get_rio_pk_col: {} -> {}".format(table.name, pkcol))
-#     return pkcol
-
-
 def get_rio_patient_id_col(table: Table) -> str:
     patient_id_col = RIO_6_2_ATYPICAL_PATIENT_ID_COLS.get(table.name,
                                                           RIO_COL_PATIENT_ID)
     # log.debug("get_rio_patient_id_col: {} -> {}".format(table.name,
     #                                                     patient_id_col))
     return patient_id_col
-
-
-# def get_rio_int_pk_col_nonpatient_table(table: Table) -> str:
-#     if RIO_COL_DEFAULT_PK in table.columns.keys():
-#         default = RIO_COL_DEFAULT_PK
-#     else:
-#         default = None
-#     return RIO_6_2_ATYPICAL_PKS.get(table.name, default)
 
 
 def get_rio_int_pk_col(table: Table) -> Optional[str]:

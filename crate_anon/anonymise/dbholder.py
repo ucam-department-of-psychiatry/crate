@@ -28,7 +28,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import MetaData
 
-from crate_anon.common.sqla import get_table_names
+# from crate_anon.common.sqla import get_table_names
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class DatabaseHolder(object):
         if with_conn:  # for raw connections
             self.conn = self.engine.connect()
         if reflect:
-            self.table_names = get_table_names(self.engine)
+            # self.table_names = get_table_names(self.engine)
             self.metadata.reflect(views=True)  # include views
             self.table_names = [t.name
                                 for t in self.metadata.sorted_tables]

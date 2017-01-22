@@ -703,6 +703,8 @@ def hack_in_mssql_xml_type():
        sqlalchemy\dialects\mssql\base.py:1921: SAWarning: Did not recognize
        type 'xml' of column '...'
 
+    We will convert anything of type XML into type TEXT.
+
     """
     mssql.base.ischema_names['xml'] = mssql.base.TEXT
     # http://stackoverflow.com/questions/32917867/sqlalchemy-making-schema-reflection-find-use-a-custom-type-for-all-instances  # noqa
