@@ -1123,23 +1123,23 @@ def show_source_counts() -> None:
     """
     Show the number of records in all source tables.
     """
-    log.info("SOURCE TABLE RECORD COUNTS:")
+    print("SOURCE TABLE RECORD COUNTS:")
     for d in config.dd.get_source_databases():
         session = config.sources[d].session
         for t in config.dd.get_src_tables(d):
             n = count_star(session, t)
-            log.info("{}.{}: {} records".format(d, t, n))
+            print("{}.{}: {} records".format(d, t, n))
 
 
 def show_dest_counts() -> None:
     """
     Show the number of records in all destination tables.
     """
-    log.info("DESTINATION TABLE RECORD COUNTS:")
+    print("DESTINATION TABLE RECORD COUNTS:")
     session = config.destdb.session
     for t in config.dd.get_dest_tables():
         n = count_star(session, t)
-        log.info("DESTINATION: {}: {} records".format(t, n))
+        print("DESTINATION: {}: {} records".format(t, n))
 
 
 # =============================================================================

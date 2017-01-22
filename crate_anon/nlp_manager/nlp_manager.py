@@ -453,26 +453,26 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
     """
     Show the number of records in all source tables.
     """
-    log.info("SOURCE TABLE RECORD COUNTS:")
+    print("SOURCE TABLE RECORD COUNTS:")
     for ifconfig in nlpdef.get_ifconfigs():
         session = ifconfig.get_source_session()
         dbname = ifconfig.get_srcdb()
         tablename = ifconfig.get_srctable()
         n = count_star(session, tablename)
-        log.info("{}.{}: {} records".format(dbname, tablename, n))
+        print("{}.{}: {} records".format(dbname, tablename, n))
 
 
 def show_dest_counts(nlpdef: NlpDefinition) -> None:
     """
     Show the number of records in all destination tables.
     """
-    log.info("DESTINATION TABLE RECORD COUNTS:")
+    print("DESTINATION TABLE RECORD COUNTS:")
     for processor in nlpdef.get_processors():
         session = processor.get_session()
         dbname = processor.get_dbname()
         for tablename in processor.get_tablenames():
             n = count_star(session, tablename)
-            log.info("DESTINATION: {}.{}: {} records".format(
+            print("DESTINATION: {}.{}: {} records".format(
                 dbname, tablename, n))
 
 

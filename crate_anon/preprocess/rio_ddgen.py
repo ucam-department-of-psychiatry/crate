@@ -121,6 +121,7 @@ ddgen_table_blacklist = #
     ClientRestrictedRecord*  # ? but admin
     Con*  # Contracts module
     DA*  # Drug Administration within EP
+    DemAuditTrail  # not in v6.2 docs; ?audit trail for demographics
     DgnDiagnosis  # "Obsolete"; see DiagnosisClient
     DS*  # Drug Service within EP
     EP*  # E-Prescribing (EP) module, which we don't have
@@ -159,6 +160,7 @@ ddgen_table_blacklist = #
     umt*  # system
     Wfl*  # workflow
     WL*  # Waiting lists (WL) module
+    view_AuditTrailPurge  # system
     # -------------------------------------------------------------------------
     # Blacklist: Middle bits, suffixes
     # -------------------------------------------------------------------------
