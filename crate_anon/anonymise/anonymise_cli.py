@@ -105,6 +105,8 @@ def main() -> None:
                         help="Process patient tables only")
     parser.add_argument("--index", action="store_true",
                         help="Create indexes only")
+    parser.add_argument("--skip_dd_check", action="store_true",
+                        help="Skip data dictionary validity check")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(

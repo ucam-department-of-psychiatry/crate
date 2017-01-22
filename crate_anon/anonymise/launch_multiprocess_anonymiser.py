@@ -119,7 +119,8 @@ def main() -> None:
     # -------------------------------------------------------------------------
     procargs = [
         sys.executable, '-m', ANONYMISER,
-        '--optout', '--processcluster=OPTOUT'
+        '--optout', '--processcluster=OPTOUT',
+        '--skip_dd_check'
     ] + common_options
     check_call_process(procargs)
 
@@ -134,7 +135,8 @@ def main() -> None:
             '--patienttables',
             '--processcluster=PATIENT',
             '--nprocesses={}'.format(nprocesses_patient),
-            '--process={}'.format(procnum)
+            '--process={}'.format(procnum),
+            '--skip_dd_check'
         ] + common_options
         args_list.append(procargs)
     for procnum in range(nprocesses_nonpatient):
@@ -143,7 +145,8 @@ def main() -> None:
             '--nonpatienttables',
             '--processcluster=NONPATIENT',
             '--nprocesses={}'.format(nprocesses_nonpatient),
-            '--process={}'.format(procnum)
+            '--process={}'.format(procnum),
+            '--skip_dd_check'
         ] + common_options
         args_list.append(procargs)
     run_multiple_processes(args_list)  # Wait for them all to finish
@@ -160,7 +163,8 @@ def main() -> None:
             '--index',
             '--processcluster=INDEX',
             '--nprocesses={}'.format(nprocesses_index),
-            '--process={}'.format(procnum)
+            '--process={}'.format(procnum),
+            '--skip_dd_check'
         ] for procnum in range(nprocesses_index)
     ]
     run_multiple_processes(args_list)

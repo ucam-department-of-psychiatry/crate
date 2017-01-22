@@ -1171,7 +1171,7 @@ def anonymise(args: Any) -> None:
     config.save_scrubbers = args.savescrubbers
     config.set_echo(args.echo)
     if not args.draftdd:
-        config.load_dd()
+        config.load_dd(check_against_source_db=not args.skip_dd_check)
 
     if args.draftdd or args.incrementaldd:
         # Note: the difference is that for incrementaldd, the data dictionary

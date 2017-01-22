@@ -54,17 +54,35 @@ class DatabaseHolder(object):
         self.engine = create_engine(url, encoding=encoding)
         self.conn = None
         self.session = None
-        self.table_names = []
-        self.metadata = MetaData(bind=self.engine)
+        self._reflect_on_request = reflect
+        self._reflected = False
+        self._table_names = []
+        self._metadata = MetaData(bind=self.engine)
         log.debug(self.engine)  # obscures password
 
         if with_conn:  # for raw connections
             self.conn = self.engine.connect()
-        if reflect:
-            # self.table_names = get_table_names(self.engine)
-            self.metadata.reflect(views=True)  # include views
-            self.table_names = [t.name
-                                for t in self.metadata.sorted_tables]
         if with_session:  # for ORM
             self.session = sessionmaker(bind=self.engine)()  # for ORM
 
+    def _reflect(self):
+        # Reflection is expensive, so we defer unless required
+        if not self._reflect_on_request:
+            return
+        log.info("Reflecting database: {}".format(self.name))
+        # self.table_names = get_table_names(self.engine)
+        self._metadata.reflect(views=True)  # include views
+        self._table_names = [t.name for t in self._metadata.sorted_tables]
+        self._reflected = True
+
+    @property
+    def metadata(self):
+        if not self._reflected:
+            self._reflect()
+        return self._metadata
+
+    @property
+    def table_names(self):
+        if not self._reflected:
+            self._reflect()
+        return self._table_names
