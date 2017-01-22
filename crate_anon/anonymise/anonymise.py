@@ -67,12 +67,12 @@ from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.common.formatting import print_record_counts
+from crate_anon.common.sql import matches_tabledef
 from crate_anon.common.sqla import (
     add_index,
     count_star,
     exists_plain,
     get_column_names,
-    hack_in_mssql_xml_type,
 )
 
 log = logging.getLogger(__name__)
@@ -558,7 +558,7 @@ def process_table(sourcedbname: str,
 
     # Limit the data quantity for debugging?
     srccfg = config.sources[sourcedbname].srccfg
-    if sourcetable in srccfg.debug_limited_tables:
+    if matches_tabledef(sourcetable, srccfg.debug_limited_tables):
         debuglimit = srccfg.debug_row_limit
     else:
         debuglimit = 0

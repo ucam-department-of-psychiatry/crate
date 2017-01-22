@@ -34,6 +34,7 @@ import sqlalchemy.schema
 
 from crate_anon.common.formatting import sizeof_fmt
 from crate_anon.common.timing import MultiTimerContext, timer
+from crate_anon.common.stringfunc import get_spec_match_regex
 from crate_anon.common.sqla import column_creation_ddl
 
 log = logging.getLogger(__name__)
@@ -477,3 +478,40 @@ class TransactionSizeLimiter(object):
                 "limit is {})".format(self._rows_in_transaction,
                                       self._max_rows_before_commit))
             self.commit()
+
+
+# =============================================================================
+# Specification matching
+# =============================================================================
+
+def _matches_tabledef(table: str, tabledef: str) -> bool:
+    tr = get_spec_match_regex(tabledef)
+    return tr.match(table)
+
+
+def matches_tabledef(table: str, tabledef: Union[str, List[str]]) -> bool:
+    if isinstance(tabledef, str):
+        return _matches_tabledef(table, tabledef)
+    elif not tabledef:
+        return False
+    else:  # list
+        return any(_matches_tabledef(table, td) for td in tabledef)
+
+
+def _matches_fielddef(table: str, field: str, fielddef: str) -> bool:
+    t, c = split_db_table(fielddef)
+    cr = get_spec_match_regex(c)
+    if not t:
+        return cr.match(table)
+    tr = get_spec_match_regex(t)
+    return tr.match(table) and cr.match(field)
+
+
+def matches_fielddef(table: str, field: str,
+                     fielddef: Union[str, List[str]]) -> bool:
+    if isinstance(fielddef, str):
+        return _matches_fielddef(table, field, fielddef)
+    elif not fielddef:
+        return False
+    else:  # list
+        return any(_matches_fielddef(table, field, fd) for fd in fielddef)

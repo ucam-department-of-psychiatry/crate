@@ -22,8 +22,11 @@
 ===============================================================================
 """
 
-import re
+import fnmatch
+from functools import lru_cache
 from typing import Dict, Iterable, List
+
+import regex
 
 
 # =============================================================================
@@ -34,9 +37,9 @@ def multiple_replace(text: str, rep: Dict[str, str]) -> str:
     """Returns text in which the keys of rep (a dict) have been replaced by
     their values."""
     # http://stackoverflow.com/questions/6116978/python-replace-multiple-strings  # noqa
-    rep = dict((re.escape(k), v) for k, v in rep.items())
-    pattern = re.compile("|".join(rep.keys()))
-    return pattern.sub(lambda m: rep[re.escape(m.group(0))], text)
+    rep = dict((regex.escape(k), v) for k, v in rep.items())
+    pattern = regex.compile("|".join(rep.keys()))
+    return pattern.sub(lambda m: rep[regex.escape(m.group(0))], text)
 
 
 def replace_in_list(stringlist: Iterable[str],
@@ -72,3 +75,12 @@ def remove_whitespace(s: str) -> str:
     Removes whitespace from a string.
     """
     return ''.join(s.split())
+
+
+# =============================================================================
+# Specification matching
+# =============================================================================
+
+@lru_cache(maxsize=None)
+def get_spec_match_regex(spec):
+    return regex.compile(fnmatch.translate(spec), regex.IGNORECASE)

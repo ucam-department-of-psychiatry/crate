@@ -27,12 +27,9 @@
 # =============================================================================
 
 import ast
-import fnmatch
-from functools import lru_cache
 import logging
 from typing import Any, List, Dict, Iterable, Union
 
-import regex
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
@@ -71,18 +68,9 @@ from crate_anon.common.sqla import (
     is_sqlatype_text_of_length_at_least,
     is_sqlatype_text_over_one_char,
 )
-from crate_anon.common.sql import split_db_table
+import crate_anon.common.sql
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Cache for spec matching
-# =============================================================================
-
-@lru_cache(maxsize=None)
-def get_spec_match_regex(spec):
-    return regex.compile(fnmatch.translate(spec), regex.IGNORECASE)
 
 
 # =============================================================================
@@ -329,33 +317,12 @@ class DataDictionaryRow(object):
     def __lt__(self, other: DDR_FWD_REF) -> bool:
         return self.get_signature() < other.get_signature()
 
-    def _matches_tabledef(self, tabledef: str) -> bool:
-        tr = get_spec_match_regex(tabledef)
-        return tr.match(self.src_table)
-
     def matches_tabledef(self, tabledef: Union[str, List[str]]) -> bool:
-        if isinstance(tabledef, str):
-            return self._matches_tabledef(tabledef)
-        elif not tabledef:
-            return False
-        else:  # list
-            return any(self._matches_tabledef(td) for td in tabledef)
-
-    def _matches_fielddef(self, fielddef: str) -> bool:
-        t, c = split_db_table(fielddef)
-        cr = get_spec_match_regex(c)
-        if not t:
-            return cr.match(self.src_field)
-        tr = get_spec_match_regex(t)
-        return tr.match(self.src_table) and cr.match(self.src_field)
+        return crate_anon.common.sql.matches_tabledef(self.src_table, tabledef)
 
     def matches_fielddef(self, fielddef: Union[str, List[str]]) -> bool:
-        if isinstance(fielddef, str):
-            return self._matches_fielddef(fielddef)
-        elif not fielddef:
-            return False
-        else:  # list
-            return any(self._matches_fielddef(fd) for fd in fielddef)
+        return crate_anon.common.sql.matches_fielddef(
+            self.src_table, self.src_field, fielddef)
 
     # -------------------------------------------------------------------------
     # Representations
