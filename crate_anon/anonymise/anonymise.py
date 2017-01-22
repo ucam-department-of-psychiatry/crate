@@ -1210,19 +1210,19 @@ def anonymise(args: Any) -> None:
     if args.optout or everything:
         setup_opt_out(incremental=args.incremental)
 
-    # 3. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
-    if args.nonpatienttables or everything:
-        process_nonpatient_tables(tasknum=args.process,
-                                  ntasks=args.nprocesses,
-                                  incremental=args.incremental)
-
-    # 4. Tables with patient info. (This bit supports multithreading.)
+    # 3. Tables with patient info.
     #    Process PER PATIENT, across all tables, because we have to synthesize
     #    information to scrub across the entirety of that patient's record.
     if args.patienttables or everything:
         process_patient_tables(tasknum=args.process,
                                ntasks=args.nprocesses,
                                incremental=args.incremental)
+
+    # 4. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
+    if args.nonpatienttables or everything:
+        process_nonpatient_tables(tasknum=args.process,
+                                  ntasks=args.nprocesses,
+                                  incremental=args.incremental)
 
     # 5. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
     if args.index or everything:
