@@ -806,19 +806,6 @@ class DataDictionaryRow(object):
         else:
             self.scrub_method = SCRUBMETHOD.WORDS
 
-        # Should we omit it (at least until a human has looked at the DD)?
-        # In descending order of priority:
-        if self._pk or self._primary_pid or self._master_pid:
-            self.omit = False
-        elif self.matches_fielddef(dbconf.ddgen_omit_fields):  # explicit
-            self.omit = True
-        elif self.matches_fielddef(dbconf.ddgen_include_fields):  # explicit
-            self.omit = False
-        elif bool(self.scrub_src):
-            self.omit = True
-        else:
-            self.omit = dbconf.ddgen_omit_by_default
-
         # Do we want to change the destination fieldname?
         if self._primary_pid:
             self.dest_field = config.research_id_fieldname
@@ -911,6 +898,29 @@ class DataDictionaryRow(object):
                 does_sqlatype_require_index_len(dest_sqla_type))
             else None
         )
+
+        # Should we omit it (at least until a human has looked at the DD)?
+        # In descending order of priority:
+        if self._pk or self._primary_pid or self._master_pid:
+            # We always want PKs, and the translated PID/MPID (RID+TRID or
+            # MRID respectively).
+            self.omit = False
+        elif self.matches_fielddef(dbconf.ddgen_omit_fields):  # explicit
+            # Otherwise, explicit omission trumps everything else
+            self.omit = True
+        elif bool(self.scrub_src):
+            # Scrub-source fields are generally sensitive and therefore worthy
+            # of omission, EXCEPT that if a date is marked for truncation, the
+            # user probably wants it (truncated) to come through!
+            if any(am.truncate_date for am in self._alter_methods):
+                self.omit = False
+            else:
+                self.omit = True
+        elif self.matches_fielddef(dbconf.ddgen_include_fields):  # explicit
+            # Explicit inclusion next.
+            self.omit = False
+        else:
+            self.omit = dbconf.ddgen_omit_by_default
 
         self.comment = comment
         self._from_file = False
