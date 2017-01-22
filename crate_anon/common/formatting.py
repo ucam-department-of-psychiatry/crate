@@ -22,6 +22,9 @@
 ===============================================================================
 """
 
+from typing import List, Tuple
+from operator import itemgetter
+
 
 # =============================================================================
 # Ancillary functions
@@ -34,3 +37,15 @@ def sizeof_fmt(num: float, suffix: str = 'B') -> str:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
+def print_record_counts(counts: List[Tuple[str, int]]) -> None:
+    alphabetical = sorted(counts, key=itemgetter(0))
+    numerical = sorted(counts, key=itemgetter(1))
+    print("\n-- ALPHABETICALLY\n")
+    for t, n in alphabetical:
+        print("{}: {} records".format(t, n))
+    print("\n-- NUMERICALLY\n")
+    for t, n in numerical:
+        print("{} records in {}".format(n, t))
+    print()

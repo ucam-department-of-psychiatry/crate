@@ -75,6 +75,7 @@ from crate_anon.anonymise.constants import (
     TABLE_KWARGS,
     SEP,
 )
+from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sqla import count_star
 from crate_anon.common.timing import MultiTimerContext, timer
@@ -454,12 +455,14 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
     Show the number of records in all source tables.
     """
     print("SOURCE TABLE RECORD COUNTS:")
+    counts = []
     for ifconfig in nlpdef.get_ifconfigs():
         session = ifconfig.get_source_session()
         dbname = ifconfig.get_srcdb()
         tablename = ifconfig.get_srctable()
         n = count_star(session, tablename)
-        print("{}.{}: {} records".format(dbname, tablename, n))
+        counts.append(("{}.{}".format(dbname, tablename), n))
+    print_record_counts(counts)
 
 
 def show_dest_counts(nlpdef: NlpDefinition) -> None:
@@ -467,13 +470,14 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
     Show the number of records in all destination tables.
     """
     print("DESTINATION TABLE RECORD COUNTS:")
+    counts = []
     for processor in nlpdef.get_processors():
         session = processor.get_session()
         dbname = processor.get_dbname()
         for tablename in processor.get_tablenames():
             n = count_star(session, tablename)
-            print("DESTINATION: {}.{}: {} records".format(
-                dbname, tablename, n))
+            counts.append(("DESTINATION: {}.{}".format(dbname, tablename), n))
+    print_record_counts(counts)
 
 
 # =============================================================================

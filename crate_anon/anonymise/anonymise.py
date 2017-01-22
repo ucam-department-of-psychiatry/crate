@@ -66,6 +66,7 @@ from crate_anon.anonymise.models import (
 from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.sqla import (
     add_index,
     count_star,
@@ -1124,11 +1125,13 @@ def show_source_counts() -> None:
     Show the number of records in all source tables.
     """
     print("SOURCE TABLE RECORD COUNTS:")
+    counts = []
     for d in config.dd.get_source_databases():
         session = config.sources[d].session
         for t in config.dd.get_src_tables(d):
             n = count_star(session, t)
-            print("{}.{}: {} records".format(d, t, n))
+            counts.append(("{}.{}".format(d, t), n))
+    print_record_counts(counts)
 
 
 def show_dest_counts() -> None:
@@ -1136,10 +1139,12 @@ def show_dest_counts() -> None:
     Show the number of records in all destination tables.
     """
     print("DESTINATION TABLE RECORD COUNTS:")
+    counts = []
     session = config.destdb.session
     for t in config.dd.get_dest_tables():
         n = count_star(session, t)
-        print("DESTINATION: {}: {} records".format(t, n))
+        counts.append(("DESTINATION: {}".format(t), n))
+    print_record_counts(counts)
 
 
 # =============================================================================
