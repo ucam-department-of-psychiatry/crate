@@ -86,6 +86,7 @@ ddgen_per_table_pid_field = crate_rio_number
 ddgen_add_per_table_pids_to_scrubber = False
 
 ddgen_master_pid_fieldname = crate_nhs_number_int
+    # ... is in Client_Demographic_Details view
 
 ddgen_table_whitelist = #
     # -------------------------------------------------------------------------
@@ -175,6 +176,10 @@ ddgen_table_blacklist = #
     *Cache*  # system
     *Lock*  # system
     *Timeout*  # system
+    # -------------------------------------------------------------------------
+    # Blacklist: CPFT custom
+    # -------------------------------------------------------------------------
+    CDL_OUTDATEDPATIENTS_TWI  # RiO to CPFT 'M' number mapping, but we will use NHS number
     # -------------------------------------------------------------------------
     # Blacklist: Views supersede
     # Below here, we have other tables suppressed because CRATE's views offer
@@ -338,7 +343,7 @@ ddgen_safe_fields_exempt_from_scrubbing =
     # fields, but they need different special handling.)
 ddgen_min_length_for_scrubbing = 81
 
-ddgen_truncate_date_fields = ClientIndex.DateOfBirth
+ddgen_truncate_date_fields = Client_Demographic_Details.Date_Of_Birth
 
 ddgen_filename_to_text_fields = Clinical_Documents.Path
 

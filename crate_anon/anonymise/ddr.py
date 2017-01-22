@@ -810,12 +810,12 @@ class DataDictionaryRow(object):
         # In descending order of priority:
         if self._pk or self._primary_pid or self._master_pid:
             self.omit = False
+        elif self.matches_fielddef(dbconf.ddgen_omit_fields):  # explicit
+            self.omit = True
+        elif self.matches_fielddef(dbconf.ddgen_include_fields):  # explicit
+            self.omit = False
         elif bool(self.scrub_src):
             self.omit = True
-        elif self.matches_fielddef(dbconf.ddgen_omit_fields):
-            self.omit = True
-        elif self.matches_fielddef(dbconf.ddgen_include_fields):
-            self.omit = False
         else:
             self.omit = dbconf.ddgen_omit_by_default
 
