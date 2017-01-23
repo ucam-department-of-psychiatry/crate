@@ -24,7 +24,7 @@
 
 import argparse
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy import (
     create_engine,
@@ -484,10 +484,10 @@ def get_rio_views(engine: Engine,
                   progargs: None,
                   ddhint: DDHint,
                   suppress_basetables: bool = True,
-                  suppress_lookup: bool = True) -> Dict[str, str]:
+                  suppress_lookup: bool = True) -> List[ViewMaker]:
     # ddhint modified
     # Returns dictionary of {viewname: select_sql} pairs.
-    views = {}
+    views = []
     all_tables_lower = get_table_names(engine, to_lower=True)
     all_views_lower = get_view_names(engine, to_lower=True)
     all_selectables_lower = list(set(all_tables_lower + all_views_lower))
@@ -505,7 +505,8 @@ def get_rio_views(engine: Engine,
         ddhint.suppress_tables(suppress_other_tables)
         rename = viewdetails.get('rename', None)
         # noinspection PyTypeChecker
-        viewmaker = ViewMaker(engine, basetable,
+        viewmaker = ViewMaker(viewname=viewname,
+                              engine=engine, basetable=basetable,
                               rename=rename, progargs=progargs)
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
@@ -515,11 +516,11 @@ def get_rio_views(engine: Engine,
                 function(**kwargs)  # will alter viewmaker
         if progargs.audit_info:
             rio_add_audit_info(viewmaker)  # will alter viewmaker
-        views[viewname] = viewmaker.get_sql()
         if suppress_lookup:
             ddhint.suppress_tables(viewmaker.get_lookup_tables())
         ddhint.add_bulk_source_index_request(
             viewmaker.get_lookup_table_keyfields())
+        views.append(viewmaker)
     return views
 
 
@@ -528,8 +529,8 @@ def create_rio_views(engine: Engine,
                      progargs: Any,
                      ddhint: DDHint) -> None:  # ddhint modified
     rio_views = get_rio_views(engine, progargs, ddhint)
-    for viewname, select_sql in rio_views.items():
-        create_view(engine, viewname, select_sql)
+    for viewmaker in rio_views:
+        viewmaker.create_view(engine)
     ddhint.add_indexes(engine, metadata)
 
 
@@ -539,8 +540,8 @@ def drop_rio_views(engine: Engine,
                    ddhint: DDHint) -> None:  # ddhint modified
     rio_views = get_rio_views(engine, progargs, ddhint)
     ddhint.drop_indexes(engine, metadata)
-    for viewname, _ in rio_views.items():
-        drop_view(engine, viewname)
+    for viewmaker in rio_views:
+        viewmaker.drop_view(engine)
 
 
 # =============================================================================

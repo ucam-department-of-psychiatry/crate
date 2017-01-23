@@ -29,15 +29,15 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from sqlalchemy import inspect
 from sqlalchemy.dialects.mssql.base import MS_2012_VERSION
-import sqlalchemy.engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.engine.interfaces import Dialect
-import sqlalchemy.orm.session
-import sqlalchemy.schema
+from sqlalchemy.orm.session import Session
+from sqlalchemy.schema import Column, Table
 
 from crate_anon.common.formatting import sizeof_fmt
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.stringfunc import get_spec_match_regex
-from crate_anon.common.sqla import column_creation_ddl
+from crate_anon.common.sqla import column_creation_ddl, count_star
 
 log = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def format_sql_for_print(sql: str) -> str:
     return "\n".join(lines)
 
 
-def execute(engine: sqlalchemy.engine.Engine, sql: str) -> None:
+def execute(engine: Engine, sql: str) -> None:
     log.debug(sql)
     if _print_not_execute:
         print(format_sql_for_print(sql) + "\n;")
@@ -123,9 +123,7 @@ def execute(engine: sqlalchemy.engine.Engine, sql: str) -> None:
         engine.execute(sql)
 
 
-def add_columns(engine: sqlalchemy.engine.Engine,
-                table: sqlalchemy.schema.Table,
-                columns: List[sqlalchemy.schema.Column]) -> None:
+def add_columns(engine: Engine, table: Table, columns: List[Column]) -> None:
     existing_column_names = get_column_names(engine, tablename=table.name,
                                              to_lower=True)
     column_defs = []
@@ -155,8 +153,7 @@ def add_columns(engine: sqlalchemy.engine.Engine,
         """.format(tablename=table.name, column_def=column_def))
 
 
-def drop_columns(engine: sqlalchemy.engine.Engine,
-                 table: sqlalchemy.schema.Table,
+def drop_columns(engine: Engine, table: Table,
                  column_names: Iterable[str]) -> None:
     existing_column_names = get_column_names(engine, tablename=table.name,
                                              to_lower=True)
@@ -176,8 +173,7 @@ def drop_columns(engine: sqlalchemy.engine.Engine,
             execute(engine, sql)
 
 
-def add_indexes(engine: sqlalchemy.engine.Engine,
-                table: sqlalchemy.schema.Table,
+def add_indexes(engine: Engine, table: Table,
                 indexdictlist: Iterable[Dict[str, Any]]) -> None:
     existing_index_names = get_index_names(engine, tablename=table.name,
                                            to_lower=True)
@@ -203,8 +199,7 @@ def add_indexes(engine: sqlalchemy.engine.Engine,
                 repr(table.name), repr(index_name)))
 
 
-def drop_indexes(engine: sqlalchemy.engine.Engine,
-                 table: sqlalchemy.schema.Table,
+def drop_indexes(engine: Engine, table: Table,
                  index_names: Iterable[str]) -> None:
     existing_index_names = get_index_names(engine, tablename=table.name,
                                            to_lower=True)
@@ -225,7 +220,7 @@ def drop_indexes(engine: sqlalchemy.engine.Engine,
             execute(engine, sql)
 
 
-def get_table_names(engine: sqlalchemy.engine.Engine,
+def get_table_names(engine: Engine,
                     to_lower: bool = False,
                     sort: bool = False) -> List[str]:
     inspector = inspect(engine)
@@ -237,7 +232,7 @@ def get_table_names(engine: sqlalchemy.engine.Engine,
     return table_names
 
 
-def get_view_names(engine: sqlalchemy.engine.Engine,
+def get_view_names(engine: Engine,
                    to_lower: bool = False,
                    sort: bool = False) -> List[str]:
     inspector = inspect(engine)
@@ -249,7 +244,7 @@ def get_view_names(engine: sqlalchemy.engine.Engine,
     return view_names
 
 
-def get_column_names(engine: sqlalchemy.engine.Engine,
+def get_column_names(engine: Engine,
                      tablename: str,
                      to_lower: bool = False,
                      sort: bool = False) -> List[str]:
@@ -267,7 +262,7 @@ def get_column_names(engine: sqlalchemy.engine.Engine,
     return column_names
 
 
-def get_index_names(engine: sqlalchemy.engine.Engine,
+def get_index_names(engine: Engine,
                     tablename: str,
                     to_lower: bool = False) -> List[str]:
     """
@@ -284,7 +279,7 @@ def get_index_names(engine: sqlalchemy.engine.Engine,
     return index_names
 
 
-def ensure_columns_present(engine: sqlalchemy.engine.Engine,
+def ensure_columns_present(engine: Engine,
                            tablename: str,
                            column_names: Iterable[str]) -> None:
     existing_column_names = get_column_names(engine, tablename=tablename,
@@ -298,7 +293,7 @@ def ensure_columns_present(engine: sqlalchemy.engine.Engine,
                     repr(col), repr(tablename)))
 
 
-def create_view(engine: sqlalchemy.engine.Engine,
+def create_view(engine: Engine,
                 viewname: str,
                 select_sql: str) -> None:
     if engine.dialect.name == 'mysql':
@@ -318,7 +313,7 @@ def create_view(engine: sqlalchemy.engine.Engine,
     execute(engine, sql)
 
 
-def drop_view(engine: sqlalchemy.engine.Engine,
+def drop_view(engine: Engine,
               viewname: str,
               quiet: bool = False) -> None:
     # MySQL has DROP VIEW IF EXISTS, but SQL Server only has that from
@@ -341,15 +336,20 @@ def drop_view(engine: sqlalchemy.engine.Engine,
 
 class ViewMaker(object):
     def __init__(self,
-                 engine: sqlalchemy.engine.Engine,
+                 viewname: str,
+                 engine: Engine,
                  basetable: str,
                  existing_to_lower: bool = False,
                  rename: bool = None,
-                 progargs: argparse.Namespace = None) -> None:
+                 progargs: argparse.Namespace = None,
+                 permit_more_rows: bool = False) -> None:
         rename = rename or {}
+        self.viewname = viewname
         self.engine = engine
         self.basetable = basetable
         self.progargs = progargs  # only for others' benefit
+        self.permit_more_rows = permit_more_rows
+
         self.select_elements = []
         for colname in get_column_names(engine, tablename=basetable,
                                         to_lower=existing_to_lower):
@@ -390,6 +390,22 @@ class ViewMaker(object):
                 from_elements="\n        ".join(self.from_elements),
                 where=where))
 
+    def create_view(self, engine: Engine) -> None:
+        create_view(engine, self.viewname, self.get_sql())
+        if self.permit_more_rows:
+            return
+        n_base = count_star(engine, self.basetable)
+        n_view = count_star(engine, self.viewname)
+        if n_view != n_base:
+            raise ValueError(
+                "View bug: view {} has {} records but its base table {} "
+                "has {}; they should be equal".format(
+                    self.viewname, n_view,
+                    self.basetable, n_base))
+
+    def drop_view(self, engine: Engine) -> None:
+        drop_view(engine, self.viewname)
+
     def record_lookup_table_keyfield(
             self,
             table: str,
@@ -417,7 +433,7 @@ class ViewMaker(object):
 # =============================================================================
 
 class TransactionSizeLimiter(object):
-    def __init__(self, session: sqlalchemy.orm.session.Session,
+    def __init__(self, session: Session,
                  max_rows_before_commit: int = None,
                  max_bytes_before_commit: int = None) -> None:
         self._session = session

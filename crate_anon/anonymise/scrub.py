@@ -302,8 +302,9 @@ class PersonalizedScrubber(ScrubberBase):
         self.re_tp_elements = []
         # ... both changed from set to list to reflect referee's point re
         #     potential importance of scrubber order
-        self.elements_tupleset = []  # of tuples: (patient?, type, value)
-        # ... used for get_raw_info(); original order is unimportant
+        self.elements_tuplelist = []  # of tuples: (patient?, type, value)
+        # ... used for get_raw_info(); since we've made the order important,
+        #     we should detect changes in order here as well
         self.clear_cache()
 
     def clear_cache(self) -> None:
@@ -338,7 +339,9 @@ class PersonalizedScrubber(ScrubberBase):
         """
         if value is None:
             return
-        self.elements_tupleset.add((patient, scrub_method, repr(value)))
+        new_tuple = (patient, scrub_method, repr(value))
+        if new_tuple not in self.elements_tuplelist:
+            self.elements_tuplelist.append(new_tuple)
         # Note: object reference
         r = self.re_patient_elements if patient else self.re_tp_elements
 
@@ -513,6 +516,6 @@ class PersonalizedScrubber(ScrubberBase):
             ('nonspecific_scrubber_hash',
              self.nonspecific_scrubber.get_hash() if self.nonspecific_scrubber
              else None),
-            ('elements', sorted(self.elements_tupleset)),
+            ('elements', self.elements_tuplelist),
         )
         return OrderedDict(d)

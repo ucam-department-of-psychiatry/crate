@@ -40,8 +40,32 @@ from crate_anon.preprocess.rio_constants import (
 # RiO view creators: generic
 # =============================================================================
 
-def lookup_from_fragment(lookup_table, aliased_table, lookup_pk,
-                         basetable, basecolumn):
+def lookup_from_fragment(lookup_table: str,
+                         aliased_lookup_table: str,
+                         lookup_pk: str,
+                         basetable: str,
+                         basecolumn: str) -> str:
+    """
+    For when lookup_pk is really a PK.
+    """
+    return (
+        "LEFT JOIN {lookup_table} {aliased_lookup_table}\n"
+        "            ON {aliased_lookup_table}.{lookup_pk} = "
+        "{basetable}.{basecolumn}".format(
+            lookup_table=lookup_table,
+            aliased_lookup_table=aliased_lookup_table,
+            lookup_pk=lookup_pk,
+            basetable=basetable,
+            basecolumn=basecolumn)
+    )
+
+
+def lookup_from_fragment_first_row(lookup_table: str,
+                                   aliased_lookup_table: str,
+                                   lookup_key: str,
+                                   lookup_unique_field: str,
+                                   basetable: str,
+                                   basecolumn: str) -> str:
     """
     Modified 2017-01-23, because sometimes the lookup column is not unique,
     e.g. lookup from "Code" to "CodeDescription" in NNNStatus (see also
@@ -51,13 +75,13 @@ def lookup_from_fragment(lookup_table, aliased_table, lookup_pk,
 
     We were doing the FROM component as:
 
-        LEFT JOIN {lookup_table} {aliased_table}
-            ON {aliased_table}.{lookup_pk} = {basetable}.{basecolumn}
+        LEFT JOIN {lookup_table} {aliased_lookup_table}
+            ON {aliased_lookup_table}.{lookup_pk} = {basetable}.{basecolumn}
 
     and we'll replace that with
 
-        LEFT JOIN {lookup_table} {aliased_table}
-            ON {aliased_table}.{lookup_pk} = (
+        LEFT JOIN {lookup_table} {aliased_lookup_table}
+            ON {aliased_lookup_table}.{lookup_pk} = (
                 SELECT {lookup_pk} FROM {lookup_table}
                 WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}
                 ORDER BY {lookup_table}.{lookup_pk}
@@ -77,30 +101,45 @@ def lookup_from_fragment(lookup_table, aliased_table, lookup_pk,
     Note that SQL Server uses "SELECT TOP 1 ..." not "SELECT ... LIMIT 1".
 
     """  # noqa
-
-    # OLD:
-    # return (
-    #     "LEFT JOIN {lookup_table} {aliased_table}\n"
-    #     "            ON {aliased_table}.{lookup_pk} = "
-    #     "{basetable}.{basecolumn}".format(
-    #         lookup_table=lookup_table,
-    #         aliased_table=aliased_table,
-    #         lookup_pk=lookup_pk,
-    #         basetable=basetable,
-    #         basecolumn=basecolumn)
-    # )
-
-    # NEW:
     return (
-        "LEFT JOIN {lookup_table} {aliased_table} "
-        "ON {aliased_table}.{lookup_pk} = ("
-        " SELECT TOP 1 {lookup_pk} FROM {lookup_table}"
-        " WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}"
-        " ORDER BY {lookup_table}.{lookup_pk}"
+        "LEFT JOIN {lookup_table} {aliased_lookup_table} "
+        "ON {aliased_lookup_table}.{lookup_unique_field} = ("
+        " SELECT TOP 1 {lookup_unique_field} FROM {lookup_table}"
+        " WHERE {lookup_table}.{lookup_key} = {basetable}.{basecolumn}"
+        " ORDER BY {lookup_table}.{lookup_unique_field}"
         ")".format(
             lookup_table=lookup_table,
-            aliased_table=aliased_table,
-            lookup_pk=lookup_pk,
+            aliased_lookup_table=aliased_lookup_table,
+            lookup_unique_field=lookup_unique_field,
+            lookup_key=lookup_key,
+            basetable=basetable,
+            basecolumn=basecolumn)
+    )
+
+
+def lookup_from_fragment_first_row_outer_apply(lookup_fields: Iterable[str],
+                                               lookup_table: str,
+                                               aliased_lookup_table: str,
+                                               lookup_key: str,
+                                               basetable: str,
+                                               basecolumn: str) -> str:
+    """
+    As for lookup_from_fragment_first_row, but works without a unique
+    field in the lookup table.
+
+    http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row  # noqa
+    http://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql  # noqa
+    """
+    return (
+        "OUTER APPLY ("
+        " SELECT TOP 1 {lookup_fields}"
+        " FROM {lookup_table}"
+        " WHERE {lookup_table}.{lookup_key} = {basetable}.{basecolumn}"
+        ") {aliased_lookup_table}".format(
+            lookup_fields=", ".join(lookup_fields),
+            lookup_table=lookup_table,
+            aliased_lookup_table=aliased_lookup_table,
+            lookup_key=lookup_key,
             basetable=basetable,
             basecolumn=basecolumn)
     )
@@ -117,14 +156,18 @@ def simple_lookup_join(viewmaker: ViewMaker,
     assert lookup_pk, "Missing lookup_pk"
     assert lookup_fields_aliases, "lookup_fields_aliases column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
-    aliased_table = internal_alias_prefix + "_" + lookup_table
+    aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
     for column, alias in lookup_fields_aliases.items():
-        viewmaker.add_select("{aliased_table}.{column} AS {alias}".format(
-            aliased_table=aliased_table, column=column, alias=alias))
-    viewmaker.add_from(lookup_from_fragment(
+        viewmaker.add_select(
+            "{aliased_lookup_table}.{column} AS {alias}".format(
+                aliased_lookup_table=aliased_lookup_table,
+                column=column,
+                alias=alias))
+    viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
+        lookup_fields=lookup_fields_aliases.keys(),
         lookup_table=lookup_table,
-        aliased_table=aliased_table,
-        lookup_pk=lookup_pk,
+        aliased_lookup_table=aliased_lookup_table,
+        lookup_key=lookup_pk,
         basetable=viewmaker.basetable,
         basecolumn=basecolumn
     ))
@@ -140,21 +183,22 @@ def standard_rio_code_lookup(viewmaker: ViewMaker,
     assert lookup_table, "Missing lookup_table"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
-    aliased_table = internal_alias_prefix + "_" + lookup_table
+    aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
     viewmaker.add_select("""
         {basetable}.{basecolumn} AS {cp}_Code,
-        {aliased_table}.CodeDescription AS {cp}_Description
+        {aliased_lookup_table}.CodeDescription AS {cp}_Description
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
-        aliased_table=aliased_table,
+        aliased_lookup_table=aliased_lookup_table,
     ))
     lookup_pk = 'Code'
-    viewmaker.add_from(lookup_from_fragment(
+    viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
+        lookup_fields=['CodeDescription'],
         lookup_table=lookup_table,
-        aliased_table=aliased_table,
-        lookup_pk=lookup_pk,
+        aliased_lookup_table=aliased_lookup_table,
+        lookup_key=lookup_pk,
         basetable=viewmaker.basetable,
         basecolumn=basecolumn
     ))
@@ -171,22 +215,23 @@ def standard_rio_code_lookup_with_national_code(
     assert lookup_table, "Missing lookup_table"
     assert column_prefix, "Missing column_prefix"
     assert internal_alias_prefix, "Missing internal_alias_prefix"
-    aliased_table = internal_alias_prefix + "_" + lookup_table
+    aliased_lookup_table = internal_alias_prefix + "_" + lookup_table
     viewmaker.add_select("""
         {basetable}.{basecolumn} AS {cp}_Code,
-        {aliased_table}.CodeDescription AS {cp}_Description,
-        {aliased_table}.NationalCode AS {cp}_National_Code
+        {aliased_lookup_table}.CodeDescription AS {cp}_Description,
+        {aliased_lookup_table}.NationalCode AS {cp}_National_Code
     """.format(  # noqa
         basetable=viewmaker.basetable,
         basecolumn=basecolumn,
         cp=column_prefix,
-        aliased_table=aliased_table,
+        aliased_lookup_table=aliased_lookup_table,
     ))
     lookup_pk = 'Code'
-    viewmaker.add_from(lookup_from_fragment(
+    viewmaker.add_from(lookup_from_fragment_first_row_outer_apply(
+        lookup_fields=['CodeDescription', 'NationalCode'],
         lookup_table=lookup_table,
-        aliased_table=aliased_table,
-        lookup_pk=lookup_pk,
+        aliased_lookup_table=aliased_lookup_table,
+        lookup_key=lookup_pk,
         basetable=viewmaker.basetable,
         basecolumn=basecolumn
     ))

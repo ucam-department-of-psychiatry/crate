@@ -39,6 +39,7 @@ import regex  # sudo apt-get install python-regex
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,  # for unit testing
+    reduce_to_alphanumeric,  # for unit testing
 )
 
 log = logging.getLogger(__name__)
@@ -321,13 +322,13 @@ def get_string_regex_elements(
 def get_phrase_regex_elements(
         phrase: str,
         at_word_boundaries_only: bool = True,
-        max_errors: int = 0) -> Optional[List[str]]:
+        max_errors: int = 0) -> List[str]:
     """
     phrase: e.g. '4 Privet Drive'
     """
     strings = get_anon_fragments_from_string(phrase)
     if not strings:
-        return None
+        return []
     strings = [escape_literal_string_for_regex(x) for x in strings]
     s = AT_LEAST_ONE_NONWORD.join(strings)
     if max_errors > 0:
@@ -523,7 +524,84 @@ class TestAnonRegexes(unittest.TestCase):
             get_number_of_length_n_regex_elements(10)))
 
 
+def examples_for_paper():
+    testwords = "John Al'Rahem"
+    min_string_length_to_scrub_with = 4
+    scrub_string_suffixes = []
+    max_errors = 0
+    at_word_boundaries_only = True
+    words_regexes = []
+    for s in get_anon_fragments_from_string(testwords):
+        l = len(s)
+        if l < min_string_length_to_scrub_with:
+            continue
+        words_regexes.extend(get_string_regex_elements(
+            s,
+            suffixes=scrub_string_suffixes,
+            at_word_boundaries_only=at_word_boundaries_only,
+            max_errors=max_errors
+        ))
+    print("--- For words {}:".format(testwords))
+    for r in words_regexes:
+        print(r)
+
+    testphrase = "4 Privet Drive"
+    phrase_regexes = get_phrase_regex_elements(
+        testphrase,
+        max_errors=max_errors,
+        at_word_boundaries_only=at_word_boundaries_only
+    )
+    print("--- For phrase {}:".format(testphrase))
+    for r in phrase_regexes:
+        print(r)
+
+    testnumber = "(01223) 123456"
+    anonymise_numbers_at_word_boundaries_only = False
+    anonymise_numbers_at_numeric_boundaries_only = True
+    number_regexes = get_code_regex_elements(
+        get_digit_string_from_vaguely_numeric_string(str(testnumber)),
+        at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only,
+        at_numeric_boundaries_only=anonymise_numbers_at_numeric_boundaries_only
+    )
+    print("--- For number {}:".format(testnumber))
+    for r in number_regexes:
+        print(r)
+
+    testcode = "CB12 3DE"
+    anonymise_codes_at_word_boundaries_only = True
+    code_regexes = get_code_regex_elements(
+        reduce_to_alphanumeric(str(testcode)),
+        at_word_boundaries_only=anonymise_codes_at_word_boundaries_only
+    )
+    print("--- For code {}:".format(testcode))
+    for r in code_regexes:
+        print(r)
+
+    n_digits = 10
+    nonspec_10_digit_number_regexes = get_number_of_length_n_regex_elements(
+        n_digits,
+        at_word_boundaries_only=anonymise_numbers_at_word_boundaries_only
+    )
+    print("--- NONSPECIFIC: numbers of length {}:".format(n_digits))
+    for r in nonspec_10_digit_number_regexes:
+        print(r)
+
+    uk_postcode_regexes = get_uk_postcode_regex_elements(
+        at_word_boundaries_only=anonymise_codes_at_word_boundaries_only
+    )
+    print("--- NONSPECIFIC: UK postcodes:")
+    for r in uk_postcode_regexes:
+        print(r)
+
+    testdate = datetime.date(year=2016, month=12, day=31)
+    date_regexes = get_date_regex_elements(testdate)
+    print("--- For date {}:".format(testdate))
+    for r in date_regexes:
+        print(r)
+
+
 if __name__ == '__main__':
     rootlogger = logging.getLogger()
     configure_logger_for_colour(rootlogger, level=logging.DEBUG)
-    unittest.main()
+    # unittest.main()
+    examples_for_paper()

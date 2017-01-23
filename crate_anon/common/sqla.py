@@ -27,10 +27,10 @@ import copy
 from functools import lru_cache
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from sqlalchemy.dialects import mssql, mysql
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
@@ -84,8 +84,10 @@ def get_or_create(session: Session,
 # -----------------------------------------------------------------------------
 # http://stackoverflow.com/questions/12941416
 
-def count_star(session: Session, tablename: str) -> int:
-    # works if you pass a connection or a session
+def count_star(session: Union[Session, Engine, Connection],
+               tablename: str) -> int:
+    # works if you pass a connection or a session or an engine; all have
+    # the execute() method
     query = select([func.count()]).select_from(table(tablename))
     return session.execute(query).scalar()
 
@@ -94,7 +96,8 @@ def count_star(session: Session, tablename: str) -> int:
 # SELECT COUNT(*), MAX(field) (SQLAlchemy Core)
 # -----------------------------------------------------------------------------
 
-def count_star_and_max(session: Session, tablename: str,
+def count_star_and_max(session: Union[Session, Engine, Connection],
+                       tablename: str,
                        maxfield: str) -> Tuple[int, Optional[int]]:
     query = select([
         func.count(),
