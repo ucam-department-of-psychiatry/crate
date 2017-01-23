@@ -57,6 +57,7 @@ from crate_anon.common.sql import (
 from crate_anon.common.sqla import (
     get_single_int_pk_colname,
     get_single_int_autoincrement_colname,
+    hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
 from crate_anon.preprocess.rio_constants import (
@@ -794,6 +795,8 @@ def main() -> None:
     rootlogger = logging.getLogger()
     configure_logger_for_colour(
         rootlogger, level=logging.DEBUG if progargs.verbose else logging.INFO)
+
+    hack_in_mssql_xml_type()
 
     progargs.rio = not progargs.rcep
     if progargs.rcep:
