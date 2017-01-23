@@ -40,6 +40,7 @@ from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
+    assert_view_has_same_num_rows,
     create_view,
     drop_columns,
     drop_indexes,
@@ -504,10 +505,14 @@ def get_rio_views(engine: Engine,
             ddhint.suppress_table(basetable)
         ddhint.suppress_tables(suppress_other_tables)
         rename = viewdetails.get('rename', None)
+        enforce_same_n_rows_as_base = viewdetails.get(
+            'enforce_same_n_rows_as_base', True)
         # noinspection PyTypeChecker
-        viewmaker = ViewMaker(viewname=viewname,
-                              engine=engine, basetable=basetable,
-                              rename=rename, progargs=progargs)
+        viewmaker = ViewMaker(
+            viewname=viewname,
+            engine=engine, basetable=basetable,
+            rename=rename, progargs=progargs,
+            enforce_same_n_rows_as_base=enforce_same_n_rows_as_base)
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
                 function = addition['function']
@@ -607,6 +612,8 @@ def add_postcode_geography_view(engine: Engine,
         rio_postcodecol=rio_postcodecol,
     )
     create_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY, select_sql)
+    assert_view_has_same_num_rows(engine, addresstable,
+                                  VIEW_ADDRESS_WITH_GEOGRAPHY)
     ddhint.suppress_table(addresstable)
 
 
@@ -834,8 +841,7 @@ def main() -> None:
         # Drop views (and view-induced table indexes) first
         if progargs.rio:
             drop_rio_views(engine, metadata, progargs, ddhint)
-        if progargs.postcodedb:
-            drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
+        drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
         if not progargs.debug_skiptables:
             process_all_tables(engine, metadata, progargs)
     else:

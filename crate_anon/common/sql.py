@@ -313,6 +313,20 @@ def create_view(engine: Engine,
     execute(engine, sql)
 
 
+def assert_view_has_same_num_rows(engine: Engine,
+                                  basetable: str,
+                                  viewname: str) -> None:
+    # Note that this relies on the data, i.e. design failures MAY cause this
+    # assertion to fail, but won't necessarily (e.g. if the table is empty).
+    n_base = count_star(engine, basetable)
+    n_view = count_star(engine, viewname)
+    assert n_view == n_base, (
+        "View bug: view {} has {} records but its base table {} "
+        "has {}; they should be equal".format(
+            viewname, n_view,
+            basetable, n_base))
+
+
 def drop_view(engine: Engine,
               viewname: str,
               quiet: bool = False) -> None:
@@ -342,13 +356,13 @@ class ViewMaker(object):
                  existing_to_lower: bool = False,
                  rename: bool = None,
                  progargs: argparse.Namespace = None,
-                 permit_more_rows: bool = False) -> None:
+                 enforce_same_n_rows_as_base: bool = True) -> None:
         rename = rename or {}
         self.viewname = viewname
         self.engine = engine
         self.basetable = basetable
         self.progargs = progargs  # only for others' benefit
-        self.permit_more_rows = permit_more_rows
+        self.enforce_same_n_rows_as_base = enforce_same_n_rows_as_base
 
         self.select_elements = []
         for colname in get_column_names(engine, tablename=basetable,
@@ -392,16 +406,9 @@ class ViewMaker(object):
 
     def create_view(self, engine: Engine) -> None:
         create_view(engine, self.viewname, self.get_sql())
-        if self.permit_more_rows:
-            return
-        n_base = count_star(engine, self.basetable)
-        n_view = count_star(engine, self.viewname)
-        if n_view != n_base:
-            raise ValueError(
-                "View bug: view {} has {} records but its base table {} "
-                "has {}; they should be equal".format(
-                    self.viewname, n_view,
-                    self.basetable, n_base))
+        if self.enforce_same_n_rows_as_base:
+            assert_view_has_same_num_rows(engine, self.basetable,
+                                          self.viewname)
 
     def drop_view(self, engine: Engine) -> None:
         drop_view(engine, self.viewname)

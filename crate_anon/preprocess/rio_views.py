@@ -232,6 +232,7 @@ RIO_VIEWS = OrderedDict([
     #     ],
     #     'suppress_basetable': True,
     #     'suppress_other_tables': [],
+    #     'enforce_same_n_rows_as_base': True,
     # }),
 
     # -------------------------------------------------------------------------

@@ -680,6 +680,7 @@ def where_prognotes_current(viewmaker: ViewMaker) -> None:
             last_note_col=CRATE_COL_LAST_NOTE))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
                                            'EnteredInError')
+    viewmaker.enforce_same_n_rows_as_base = False
     # CRATE_COL_LAST_NOTE already indexed
 
 
@@ -691,6 +692,7 @@ def where_clindocs_current(viewmaker: ViewMaker) -> None:
             bt=viewmaker.basetable,
             last_doc_col=CRATE_COL_LAST_DOC))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable, 'DeletedDate')
+    viewmaker.enforce_same_n_rows_as_base = False
     # CRATE_COL_LAST_DOC already indexed
 
 
@@ -706,6 +708,7 @@ def where_not_deleted_flag(viewmaker: ViewMaker, basecolumn: str) -> None:
         "({table}.{col} IS NULL OR {table}.{col} = 0)".format(
             table=viewmaker.basetable, col=basecolumn))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable, basecolumn)
+    viewmaker.enforce_same_n_rows_as_base = False
 
 
 def rio_add_bay_lookup(viewmaker: ViewMaker,
@@ -863,6 +866,7 @@ def rio_amend_standard_noncore(viewmaker: ViewMaker) -> None:
         bt=viewmaker.basetable))
     viewmaker.record_lookup_table_keyfield(viewmaker.basetable,
                                            'type12_DeletedDate')
+    viewmaker.enforce_same_n_rows_as_base = False
 
 
 def rio_noncore_yn(viewmaker: ViewMaker,
