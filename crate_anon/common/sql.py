@@ -28,7 +28,9 @@ import logging
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 from sqlalchemy import inspect
+from sqlalchemy.dialects.mssql.base import MS_2012_VERSION
 import sqlalchemy.engine
+from sqlalchemy.engine.interfaces import Dialect
 import sqlalchemy.orm.session
 import sqlalchemy.schema
 
@@ -110,27 +112,6 @@ def format_sql_for_print(sql: str) -> str:
     if firstleftpos > 0:
         lines = [x[firstleftpos:] for x in lines]
     return "\n".join(lines)
-
-
-def sql_fragment_cast_to_int_mssql(expr: str, signed: bool = False,
-                                   big: bool = True) -> str:
-    # For Microsoft SQL Server.
-    # Conversion to INT:
-    # http://stackoverflow.com/questions/2000045
-    # http://stackoverflow.com/questions/14719760  # this one
-    # http://stackoverflow.com/questions/14692131
-    # https://msdn.microsoft.com/en-us/library/ms174214(v=sql.120).aspx
-    regex = '{ws}*{opt_neg}{digit}+{ws}*'.format(
-        ws=':b',  # whitespace
-        digit='[0-9]',
-        opt_neg='-?' if signed else ''
-    )
-    inttype = "BIGINT" if big else "INTEGER"
-    return (
-        "CASE WHEN {expr} LIKE '{regex}' "
-        "THEN CAST({expr} AS {inttype}) ELSE NULL END".format(
-            expr=expr, regex=regex, inttype=inttype)
-    )
 
 
 def execute(engine: sqlalchemy.engine.Engine, sql: str) -> None:
@@ -515,3 +496,91 @@ def matches_fielddef(table: str, field: str,
         return False
     else:  # list
         return any(_matches_fielddef(table, field, fd) for fd in fielddef)
+
+
+# =============================================================================
+# More SQL
+# =============================================================================
+
+def sql_fragment_cast_to_int(expr: str,
+                             big: bool = True,
+                             dialect: Dialect = None,
+                             viewmaker: ViewMaker = None) -> str:
+    """
+    For Microsoft SQL Server.
+    Conversion to INT:
+    - http://stackoverflow.com/questions/2000045
+    - http://stackoverflow.com/questions/14719760  # this one
+    - http://stackoverflow.com/questions/14692131
+      ... LIKE example.
+      ... ISNUMERIC()
+          https://msdn.microsoft.com/en-us/library/ms186272.aspx
+          ... but that includes non-integer numerics
+    - https://msdn.microsoft.com/en-us/library/ms174214(v=sql.120).aspx
+      ... relates to the SQL Server Management Studio "Find and Replace"
+          dialogue box, not to SQL itself!
+    - http://stackoverflow.com/questions/29206404/mssql-regular-expression
+
+    Note that the regex-like expression supported by LIKE is extremely limited.
+    - https://msdn.microsoft.com/en-us/library/ms179859.aspx
+    The only things supported are:
+
+        %   any characters
+        _   any single character
+        []  single character in range or set, e.g. [a-f], [abcdef]
+        [^] single character NOT in range or set, e.g. [^a-f], [abcdef]
+
+    SQL Server does not support a REGEXP command directly.
+
+    So the best bet is to have the LIKE clause check for a non-integer:
+
+        CASE
+            WHEN something LIKE '%[^0-9]%' THEN NULL
+            ELSE CAST(something AS BIGINT)
+        END
+
+    ... which doesn't deal with spaces properly, but there you go.
+    Could also strip whitespace left/right:
+
+        CASE
+            WHEN LTRIM(RTRIM(something)) LIKE '%[^0-9]%' THEN NULL
+            ELSE CAST(something AS BIGINT)
+        END
+
+    Only works for positive integers.
+    LTRIM/RTRIM are not ANSI SQL.
+    Nor are unusual LIKE clauses; see
+        http://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
+
+    The other, for SQL Server 2012 or higher, is TRY_CAST:
+
+        TRY_CAST(something AS BIGINT)
+        ... returns NULL upon failure
+        ... https://msdn.microsoft.com/en-us/library/hh974669.aspx
+    """  # noqa
+    inttype = "BIGINT" if big else "INTEGER"
+    if dialect is None and viewmaker is not None:
+        dialect = viewmaker.engine.dialect
+    if dialect is None:
+        sql_server = True
+        supports_try_cast = False
+    else:
+        # noinspection PyUnresolvedReferences
+        sql_server = dialect.name == 'mssql'
+        # noinspection PyUnresolvedReferences
+        supports_try_cast = (sql_server and
+                             dialect.server_version_info >= MS_2012_VERSION)
+    if supports_try_cast:
+        return "TRY_CAST({expr} AS {inttype})".format(expr=expr,
+                                                      inttype=inttype)
+    elif sql_server:
+        return (
+            "CASE WHEN LTRIM(RTRIM({expr})) LIKE '%[^0-9]%' "
+            "THEN NULL ELSE CAST({expr} AS {inttype}) END".format(
+                expr=expr, inttype=inttype)
+        )
+        # Doesn't support negative integers.
+    else:
+        # noinspection PyUnresolvedReferences
+        raise ValueError("Code not yet written for convert-to-int for "
+                         "dialect {}".format(dialect.name))

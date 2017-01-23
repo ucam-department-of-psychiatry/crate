@@ -50,7 +50,7 @@ from crate_anon.common.sql import (
     get_table_names,
     get_view_names,
     set_print_not_execute,
-    sql_fragment_cast_to_int_mssql,
+    sql_fragment_cast_to_int,
     ViewMaker,
 )
 from crate_anon.common.sqla import (
@@ -175,7 +175,8 @@ def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
     # -------------------------------------------------------------------------
     ensure_columns_present(engine, tablename=table.name,
                            column_names=required_cols)
-    cast_id_to_int = sql_fragment_cast_to_int_mssql(string_pt_id)
+    cast_id_to_int = sql_fragment_cast_to_int(string_pt_id,
+                                              dialect=engine.dialect)
     if rio_type and rio_pk:
         log.info("Table {}: updating columns {} and {}".format(
             repr(table.name), repr(CRATE_COL_PK), repr(CRATE_COL_RIO_NUMBER)))

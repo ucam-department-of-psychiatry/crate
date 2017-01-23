@@ -26,7 +26,7 @@ from collections import OrderedDict
 
 from cardinal_pythonlib.rnc_lang import merge_dicts
 
-from crate_anon.common.sql import sql_fragment_cast_to_int_mssql
+from crate_anon.common.sql import sql_fragment_cast_to_int
 from crate_anon.preprocess.rio_constants import (
     VIEW_ADDRESS_WITH_GEOGRAPHY,
 )
@@ -781,7 +781,7 @@ RIO_VIEWS = OrderedDict([
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': sql_fragment_cast_to_int_mssql('MainCarer'),
+                    'expr': sql_fragment_cast_to_int('MainCarer'),
                     'alias': 'Main_Carer',
                     # RCEP; RiO number CROSS-REFERENCE
                 },
@@ -789,7 +789,7 @@ RIO_VIEWS = OrderedDict([
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': sql_fragment_cast_to_int_mssql('OtherCarer'),
+                    'expr': sql_fragment_cast_to_int('OtherCarer'),
                     'alias': 'Other_Carer',
                     # RCEP; RiO number CROSS-REFERENCE
                 },
@@ -891,7 +891,7 @@ RIO_VIEWS = OrderedDict([
             {
                 'function': simple_view_expr,
                 'kwargs': {
-                    'expr': sql_fragment_cast_to_int_mssql('RelatedClientID'),
+                    'expr': sql_fragment_cast_to_int('RelatedClientID'),
                     'alias': 'Related_Client_ID',
                     # RCEP; RiO number CROSS-REFERENCE
                 },

@@ -363,9 +363,16 @@ def gen_patient_ids(tasknum: int = 0,
         if ntasks > 1:
             query = query.where(pidcol % ntasks == tasknum)
         result = session.execute(query)
+        log.debug("Looking for patient IDs in {}.{}".format(ddr.src_table,
+                                                            ddr.src_field))
         for row in result:
             # Extract ID
             patient_id = row[0]
+
+            # Duff?
+            if patient_id is None:
+                log.warning("Patient ID is NULL")
+                continue
 
             # Duplicate?
             if keeping_track:

@@ -378,11 +378,13 @@ def add_index(engine: Engine,
 
 def make_bigint_autoincrement_column(column_name: str,
                                      dialect: Dialect) -> Column:
+    # noinspection PyUnresolvedReferences
     if dialect.name == 'mssql':
         return Column(column_name, BigInteger,
                       Sequence('dummy_name', start=1, increment=1))
     else:
         # return Column(column_name, BigInteger, autoincrement=True)
+        # noinspection PyUnresolvedReferences
         raise AssertionError(
             "SQLAlchemy doesn't support non-PK autoincrement fields yet for "
             "dialect {}".format(repr(dialect.name)))
@@ -421,6 +423,7 @@ def column_creation_ddl(sqla_column: Column, dialect: Dialect) -> str:
     return str(CreateColumn(sqla_column).compile(dialect=dialect))
 
 
+# noinspection PyUnresolvedReferences
 def giant_text_sqltype(dialect: Dialect) -> str:
     """
     Args:
@@ -538,6 +541,7 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
                 basetype = coltype.upper()
 
         # Special cases: pre-processing
+        # noinspection PyUnresolvedReferences
         if dialect.name == 'mssql' and basetype.lower() == 'integer':
             basetype = 'int'
 
@@ -546,6 +550,7 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
         # Special cases: post-processing
         if basetype == 'DATETIME' and size:
             # First argument to DATETIME() is timezone, so...
+            # noinspection PyUnresolvedReferences
             if dialect.name == 'mysql':
                 kwargs = {'fsp': size}
             else:
@@ -559,6 +564,7 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
             return cls()
 
     except:
+        # noinspection PyUnresolvedReferences
         raise ValueError("Failed to convert SQL type {} in dialect {} to an "
                          "SQLAlchemy type".format(repr(coltype),
                                                   repr(dialect.name)))
@@ -588,6 +594,7 @@ def convert_sqla_type_for_dialect(coltype: TypeEngine,
                                   strip_collation: bool = True) -> TypeEngine:
     # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
     #                                                     vars(coltype)))
+    # noinspection PyUnresolvedReferences
     to_mysql = dialect.name == 'mysql'
     typeclass = type(coltype)
     
