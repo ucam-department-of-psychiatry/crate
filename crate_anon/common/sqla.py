@@ -38,7 +38,8 @@ from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.schema import (Column, CreateColumn, DDL, MetaData, Index,
                                Sequence, Table)
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import column, exists, func, select, sqltypes, table
+from sqlalchemy.sql import (column, exists, func, literal, select, sqltypes,
+                            table)
 from sqlalchemy.sql.expression import (
     ClauseElement,
     Insert,
@@ -129,7 +130,18 @@ def exists_orm(session: Session,
     q = session.query(ormclass)
     for criterion in criteria:
         q = q.filter(criterion)
-    return session.query(q.exists()).scalar()
+
+    # NOT THIS:
+    #   return session.query(q.exists()).scalar()
+    # ... it produces "SELECT EXISTS (SELECT 1 FROM tablename.fieldname
+    #                  WHERE tablename.fieldname = ?) AS anon_1"
+    # ... but that isn't valid syntax for SQL Server.
+    # See this:
+    # - https://bitbucket.org/zzzeek/sqlalchemy/issues/3212/misleading-documentation-for-queryexists  # noqa
+    #
+    #  THIS INSTEAD:
+    exists_ = q.exists()
+    return session.query(literal(True)).filter(exists_).scalar()
 
 
 # =============================================================================

@@ -796,8 +796,6 @@ def main() -> None:
     configure_logger_for_colour(
         rootlogger, level=logging.DEBUG if progargs.verbose else logging.INFO)
 
-    hack_in_mssql_xml_type()
-
     progargs.rio = not progargs.rcep
     if progargs.rcep:
         # RCEP
@@ -815,17 +813,19 @@ def main() -> None:
         progargs.master_patient_table = RIO_TABLE_MASTER_PATIENT
         progargs.full_prognotes_table = RIO_TABLE_PROGRESS_NOTES
 
-    if progargs.postcodedb and not progargs.geogcols:
-        raise ValueError(
-            "If you specify postcodedb, you must specify some geogcols")
-
     log.info("CRATE in-place preprocessor for RiO or RiO CRIS Extract Program "
              "(RCEP) databases")
     safeargs = {k: v for k, v in vars(progargs).items() if k != 'url'}
     log.debug("args (except url): {}".format(repr(safeargs)))
     log.info("RiO mode" if progargs.rio else "RCEP mode")
 
+    if progargs.postcodedb and not progargs.geogcols:
+        raise ValueError(
+            "If you specify postcodedb, you must specify some geogcols")
+
     set_print_not_execute(progargs.print)
+
+    hack_in_mssql_xml_type()
 
     engine = create_engine(progargs.url, echo=progargs.echo,
                            encoding=CHARSET)
