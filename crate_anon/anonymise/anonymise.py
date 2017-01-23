@@ -560,6 +560,8 @@ def process_table(sourcedbname: str,
     srccfg = config.sources[sourcedbname].srccfg
     if matches_tabledef(sourcetable, srccfg.debug_limited_tables):
         debuglimit = srccfg.debug_row_limit
+        log.debug("Limiting table {} to {} rows (per process)".format(
+            sourcetable, debuglimit))
     else:
         debuglimit = 0
 
