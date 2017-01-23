@@ -153,6 +153,8 @@ def insert_on_duplicate(tablename, values=None, inline=False, **kwargs):
 
 # noinspection PyPep8Naming
 def monkeypatch_TableClause():
+    log.debug("Adding 'INSERT ON DUPLICATE KEY UPDATE' support for MySQL "
+              "to SQLAlchemy")
     TableClause.insert_on_duplicate = insert_on_duplicate
 
 
@@ -716,6 +718,7 @@ def hack_in_mssql_xml_type():
     We will convert anything of type XML into type TEXT.
 
     """
+    log.debug("Adding type 'xml' to SQLAlchemy reflection for dialect 'mssql'")
     mssql.base.ischema_names['xml'] = mssql.base.TEXT
     # http://stackoverflow.com/questions/32917867/sqlalchemy-making-schema-reflection-find-use-a-custom-type-for-all-instances  # noqa
 
