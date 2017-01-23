@@ -40,6 +40,70 @@ from crate_anon.preprocess.rio_constants import (
 # RiO view creators: generic
 # =============================================================================
 
+def lookup_from_fragment(lookup_table, aliased_table, lookup_pk,
+                         basetable, basecolumn):
+    """
+    Modified 2017-01-23, because sometimes the lookup column is not unique,
+    e.g. lookup from "Code" to "CodeDescription" in NNNStatus (see also
+    rio_views.py). The LEFT JOIN was giving us duplicate rows. We want only
+    the first match. See
+    https://www.periscopedata.com/blog/4-ways-to-join-only-the-first-row-in-sql.html
+
+    We were doing the FROM component as:
+
+        LEFT JOIN {lookup_table} {aliased_table}
+            ON {aliased_table}.{lookup_pk} = {basetable}.{basecolumn}
+
+    and we'll replace that with
+
+        LEFT JOIN {lookup_table} {aliased_table}
+            ON {aliased_table}.{lookup_pk} = (
+                SELECT {lookup_pk} FROM {lookup_table}
+                WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}
+                ORDER BY {lookup_table}.{lookup_pk}
+                LIMIT 1
+            )
+
+    ... compare to the example of
+
+        SELECT * FROM users
+        JOIN widgets ON widgets.id = (
+            SELECT id FROM widgets
+            WHERE widgets.user_id = users.id
+            ORDER BY created_at DESC
+            LIMIT 1
+        )
+
+    """  # noqa
+
+    # OLD:
+    # return (
+    #     "LEFT JOIN {lookup_table} {aliased_table}\n"
+    #     "            ON {aliased_table}.{lookup_pk} = "
+    #     "{basetable}.{basecolumn}".format(
+    #         lookup_table=lookup_table,
+    #         aliased_table=aliased_table,
+    #         lookup_pk=lookup_pk,
+    #         basetable=basetable,
+    #         basecolumn=basecolumn)
+    # )
+
+    # NEW:
+    return (
+        "LEFT JOIN {lookup_table} {aliased_table} "
+        "ON {aliased_table}.{lookup_pk} = ("
+        " SELECT {lookup_pk} FROM {lookup_table}"
+        " WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}"
+        " ORDER BY {lookup_table}.{lookup_pk}"
+        " LIMIT 1)".format(
+            lookup_table=lookup_table,
+            aliased_table=aliased_table,
+            lookup_pk=lookup_pk,
+            basetable=basetable,
+            basecolumn=basecolumn)
+    )
+
+
 def simple_lookup_join(viewmaker: ViewMaker,
                        basecolumn: str,
                        lookup_table: str,
@@ -55,15 +119,13 @@ def simple_lookup_join(viewmaker: ViewMaker,
     for column, alias in lookup_fields_aliases.items():
         viewmaker.add_select("{aliased_table}.{column} AS {alias}".format(
             aliased_table=aliased_table, column=column, alias=alias))
-    viewmaker.add_from(
-        "LEFT JOIN {lookup_table} {aliased_table}\n"
-        "            ON {aliased_table}.{lookup_pk} = "
-        "{basetable}.{basecolumn}".format(
-            lookup_table=lookup_table,
-            aliased_table=aliased_table,
-            lookup_pk=lookup_pk,
-            basetable=viewmaker.basetable,
-            basecolumn=basecolumn))
+    viewmaker.add_from(lookup_from_fragment(
+        lookup_table=lookup_table,
+        aliased_table=aliased_table,
+        lookup_pk=lookup_pk,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn
+    ))
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
@@ -87,15 +149,13 @@ def standard_rio_code_lookup(viewmaker: ViewMaker,
         aliased_table=aliased_table,
     ))
     lookup_pk = 'Code'
-    viewmaker.add_from(
-        "LEFT JOIN {lookup_table} {aliased_table}\n"
-        "            ON {aliased_table}.{lookup_pk} = "
-        "{basetable}.{basecolumn}".format(
-            lookup_table=lookup_table,
-            aliased_table=aliased_table,
-            lookup_pk=lookup_pk,
-            basetable=viewmaker.basetable,
-            basecolumn=basecolumn))
+    viewmaker.add_from(lookup_from_fragment(
+        lookup_table=lookup_table,
+        aliased_table=aliased_table,
+        lookup_pk=lookup_pk,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn
+    ))
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 
@@ -121,15 +181,13 @@ def standard_rio_code_lookup_with_national_code(
         aliased_table=aliased_table,
     ))
     lookup_pk = 'Code'
-    viewmaker.add_from(
-        "LEFT JOIN {lookup_table} {aliased_table}\n"
-        "            ON {aliased_table}.{lookup_pk} = "
-        "{basetable}.{basecolumn}".format(
-            lookup_table=lookup_table,
-            aliased_table=aliased_table,
-            lookup_pk=lookup_pk,
-            basetable=viewmaker.basetable,
-            basecolumn=basecolumn))
+    viewmaker.add_from(lookup_from_fragment(
+        lookup_table=lookup_table,
+        aliased_table=aliased_table,
+        lookup_pk=lookup_pk,
+        basetable=viewmaker.basetable,
+        basecolumn=basecolumn
+    ))
     viewmaker.record_lookup_table_keyfield(lookup_table, lookup_pk)
 
 

@@ -803,6 +803,12 @@ RIO_VIEWS = OrderedDict([
                     # ... RCEP except code was NNN_Status
                     'internal_alias_prefix': 'ns',
                 },
+                # PROBLEM HERE 2017-01-23: RiO has multiple entries in the
+                # NNNStatus table for some Code values, differing by
+                # NationalCode (but Code is what's looked up from ClientIndex).
+                # They all have the same CodeDescription. So we only want the
+                # first, or we get duplicate rows from the LEFT JOIN.
+                # See standard_rio_code_lookup, thus modified.
             },
             {
                 'function': standard_rio_code_lookup,
