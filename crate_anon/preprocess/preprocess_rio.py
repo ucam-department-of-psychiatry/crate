@@ -663,8 +663,6 @@ def process_table(table: Table, engine: Engine, progargs: Any) -> None:
 def process_all_tables(engine: Engine,
                        metadata: MetaData,
                        progargs: Any) -> None:
-    if progargs.debug_skiptables:
-        return
     for table in sorted(metadata.tables.values(),
                         key=lambda t: t.name.lower()):
         process_table(table, engine, progargs)
@@ -837,10 +835,12 @@ def main() -> None:
             drop_rio_views(engine, metadata, progargs, ddhint)
         if progargs.postcodedb:
             drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
-        process_all_tables(engine, metadata, progargs)
+        if not progargs.debug_skiptables:
+            process_all_tables(engine, metadata, progargs)
     else:
         # Tables first, then views
-        process_all_tables(engine, metadata, progargs)
+        if not progargs.debug_skiptables:
+            process_all_tables(engine, metadata, progargs)
         if progargs.postcodedb:
             add_postcode_geography_view(engine, progargs, ddhint)
         if progargs.rio:
