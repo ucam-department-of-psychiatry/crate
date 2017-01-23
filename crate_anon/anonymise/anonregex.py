@@ -342,13 +342,20 @@ def get_phrase_regex_elements(
 # Combining regex elements into a giant regex
 # =============================================================================
 
+def unique_list(seq: List[str]):
+    # http://stackoverflow.com/questions/480214/how-do-you-remove-duplicates-from-a-list-in-whilst-preserving-order  # noqa
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
+
+
 def get_regex_string_from_elements(elementlist: List[str]) -> str:
     """
     Convert a list of regex elements into a single regex string.
     """
     if not elementlist:
         return ""
-    return u"|".join(elementlist)
+    return u"|".join(unique_list(elementlist))
     # The or operator | has the lowest precedence.
     # ... http://www.regular-expressions.info/alternation.html
     # We also want to minimize the number of brackets.

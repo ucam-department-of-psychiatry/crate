@@ -74,6 +74,8 @@ def lookup_from_fragment(lookup_table, aliased_table, lookup_pk,
             LIMIT 1
         )
 
+    Note that SQL Server uses "SELECT TOP 1 ..." not "SELECT ... LIMIT 1".
+
     """  # noqa
 
     # OLD:
@@ -92,10 +94,10 @@ def lookup_from_fragment(lookup_table, aliased_table, lookup_pk,
     return (
         "LEFT JOIN {lookup_table} {aliased_table} "
         "ON {aliased_table}.{lookup_pk} = ("
-        " SELECT {lookup_pk} FROM {lookup_table}"
+        " SELECT TOP 1 {lookup_pk} FROM {lookup_table}"
         " WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}"
         " ORDER BY {lookup_table}.{lookup_pk}"
-        " LIMIT 1)".format(
+        ")".format(
             lookup_table=lookup_table,
             aliased_table=aliased_table,
             lookup_pk=lookup_pk,

@@ -298,9 +298,12 @@ class PersonalizedScrubber(ScrubberBase):
         self.re_patient = None  # re: regular expression
         self.re_tp = None
         self.regexes_built = False
-        self.re_patient_elements = set()
-        self.re_tp_elements = set()
-        self.elements_tupleset = set()  # patient?, type, value
+        self.re_patient_elements = []
+        self.re_tp_elements = []
+        # ... both changed from set to list to reflect referee's point re
+        #     potential importance of scrubber order
+        self.elements_tupleset = []  # of tuples: (patient?, type, value)
+        # ... used for get_raw_info(); original order is unimportant
         self.clear_cache()
 
     def clear_cache(self) -> None:
@@ -352,7 +355,7 @@ class PersonalizedScrubber(ScrubberBase):
         else:
             raise ValueError("Bug: unknown scrub_method to add_value: "
                              "{}".format(scrub_method))
-        r.update(set(elements))  # remembering r is a set, not a list
+        r.extend(elements)
         if clear_cache:
             self.clear_cache()
 
@@ -448,17 +451,15 @@ class PersonalizedScrubber(ScrubberBase):
 
     def get_patient_regex_string(self) -> str:
         """Return the string version of the patient regex, sorted."""
-        return get_regex_string_from_elements(sorted(self.re_patient_elements))
+        return get_regex_string_from_elements(self.re_patient_elements)
 
     def get_tp_regex_string(self) -> str:
         """Return the string version of the third-party regex, sorted."""
-        return get_regex_string_from_elements(sorted(self.re_tp_elements))
+        return get_regex_string_from_elements(self.re_tp_elements)
 
     def build_regexes(self) -> None:
-        self.re_patient = get_regex_from_elements(
-            list(self.re_patient_elements))
-        self.re_tp = get_regex_from_elements(
-            list(self.re_tp_elements))
+        self.re_patient = get_regex_from_elements(self.re_patient_elements)
+        self.re_tp = get_regex_from_elements(self.re_tp_elements)
         self.regexes_built = True
         # Note that the regexes themselves may be None even if they have
         # been built.
