@@ -27,10 +27,20 @@ Anonymise multiple SQL-based databases using a data dictionary.
 
 import argparse
 import os
+import sys
 
 from cardinal_pythonlib.rnc_extract_text import document_to_text
 
-# ENCODING = 'utf-8'
+
+def uprint(*objects, sep=' ', end='\n', file=sys.stdout):
+    # http://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined  # noqa
+    enc = file.encoding
+    if enc == 'UTF-8':
+        print(*objects, sep=sep, end=end, file=file)
+    else:
+        def f(obj):
+            return str(obj).encode(enc, errors='backslashreplace').decode(enc)
+        print(*map(f, objects), sep=sep, end=end, file=file)
 
 
 def main():
@@ -52,8 +62,7 @@ def main():
                               extension=extension,
                               plain=args.plain,
                               width=args.width)
-    # print(result.encode(ENCODING))
-    print(result)
+    uprint(result)
 
 
 if __name__ == '__main__':
