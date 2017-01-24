@@ -30,7 +30,7 @@ import os
 
 from cardinal_pythonlib.rnc_extract_text import document_to_text
 
-ENCODING = 'utf-8'
+# ENCODING = 'utf-8'
 
 
 def main():
@@ -52,7 +52,8 @@ def main():
                               extension=extension,
                               plain=args.plain,
                               width=args.width)
-    print(result.encode(ENCODING))
+    # print(result.encode(ENCODING))
+    print(result)
 
 
 if __name__ == '__main__':
