@@ -114,13 +114,23 @@ def count_star_and_max(session: Union[Session, Engine, Connection],
 # http://stackoverflow.com/questions/15381604
 # http://docs.sqlalchemy.org/en/latest/orm/query.html
 
+
 def exists_plain(session: Session, tablename: str, *criteria: Any) -> bool:
-    # works if you pass a connection or a session
     exists_clause = exists().select_from(table(tablename))
+    # ... EXISTS (SELECT * FROM tablename)
     for criterion in criteria:
         exists_clause = exists_clause.where(criterion)
-    query = select([exists_clause])
-    return session.execute(query).scalar()
+    # ... EXISTS (SELECT * FROM tablename WHERE ...)
+
+    if session.get_bind().dialect.name == 'mssql':
+        query = select([literal(True)]).where(exists_clause)
+        # ... SELECT 1 WHERE EXISTS (SELECT * FROM tablename WHERE ...)
+    else:
+        query = select([exists_clause])
+        # ... SELECT EXISTS (SELECT * FROM tablename WHERE ...)
+
+    result = session.execute(query).scalar()
+    return bool(result)
 
 
 def exists_orm(session: Session,
@@ -131,17 +141,24 @@ def exists_orm(session: Session,
     for criterion in criteria:
         q = q.filter(criterion)
 
-    # NOT THIS:
-    #   return session.query(q.exists()).scalar()
-    # ... it produces "SELECT EXISTS (SELECT 1 FROM tablename.fieldname
-    #                  WHERE tablename.fieldname = ?) AS anon_1"
-    # ... but that isn't valid syntax for SQL Server.
     # See this:
     # - https://bitbucket.org/zzzeek/sqlalchemy/issues/3212/misleading-documentation-for-queryexists  # noqa
-    #
-    #  THIS INSTEAD:
-    exists_ = q.exists()
-    return session.query(literal(True)).filter(exists_).scalar()
+    # - http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.exists  # noqa
+
+    exists_clause = q.exists()
+    if session.get_bind().dialect.name == 'mssql':
+        # SQL Server
+        result = session.query(literal(True)).filter(exists_clause).scalar()
+        # SELECT 1 WHERE EXISTS (SELECT 1 FROM table WHERE ...)
+        # ... giving 1 or None (no rows)
+        # ... fine for SQL Server, but invalid for MySQL (no FROM clause)
+    else:
+        # MySQL, etc.
+        result = session.query(exists_clause).scalar()
+        # SELECT EXISTS (SELECT 1 FROM table WHERE ...)
+        # ... giving 1 or 0
+        # ... fine for MySQL, but invalid syntax for SQL server
+    return bool(result)
 
 
 # =============================================================================
@@ -479,6 +496,7 @@ def _get_sqla_coltype_class_from_str(coltype: str,
     For example, the SQLite dialect uses upper case, and the
     MySQL dialect uses lower case.
     """
+    # noinspection PyUnresolvedReferences
     ischema_names = dialect.ischema_names
     try:
         return ischema_names[coltype]
