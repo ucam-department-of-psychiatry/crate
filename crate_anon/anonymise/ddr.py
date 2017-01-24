@@ -789,13 +789,11 @@ class DataDictionaryRow(object):
             # ... this will choke on a Unicode string
 
         # Do we want to change the destination field SQL type?
-        self.dest_datatype = (
-            config.sqltype_encrypted_pid_as_sql
-            if (self._primary_pid or self._master_pid)
-            # else rnc_db.full_datatype_to_mysql(datatype_full)
-            # else datatype_full
-            else ''
-        )
+        if self._primary_pid or self._master_pid:
+            self.dest_datatype = config.sqltype_encrypted_pid_as_sql
+        else:
+            self.dest_datatype = ''
+        # ... and see also potential changes made below
 
         # How should we manipulate the destination?
         extracting_text = False
