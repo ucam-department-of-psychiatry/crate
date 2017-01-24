@@ -30,6 +30,8 @@ import os
 
 from cardinal_pythonlib.rnc_extract_text import document_to_text
 
+ENCODING = 'utf-8'
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -50,7 +52,7 @@ def main():
                               extension=extension,
                               plain=args.plain,
                               width=args.width)
-    print(result)
+    print(result.encode(ENCODING))
 
 
 if __name__ == '__main__':
