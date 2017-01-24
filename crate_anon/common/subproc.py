@@ -126,12 +126,14 @@ def wait_for_processes(die_on_failure: bool = True,
     something_running = True
     while something_running:
         something_running = False
-        for p in processes:
+        for i, p in enumerate(processes):
             try:
                 retcode = p.wait(timeout=timeout_sec)
-                # log.critical("retcode: {}".format(retcode))
-                if die_on_failure and retcode > 0:
-                    fail()  # exit this process, therefore kill its children
+                if retcode != 0:
+                    log.critical("Process {} exited with return code {} "
+                                 "(indicating failure)".format(i, retcode))
+                    if die_on_failure:
+                        fail()  # exit this process, therefore kill its children  # noqa
             except TimeoutExpired:
                 something_running = True
     processes.clear()

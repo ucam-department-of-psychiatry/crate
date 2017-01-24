@@ -24,6 +24,7 @@
 
 import fnmatch
 from functools import lru_cache
+import sys
 from typing import Dict, Iterable, List
 
 import regex
@@ -84,3 +85,23 @@ def remove_whitespace(s: str) -> str:
 @lru_cache(maxsize=None)
 def get_spec_match_regex(spec):
     return regex.compile(fnmatch.translate(spec), regex.IGNORECASE)
+
+
+# =============================================================================
+# Printing/encoding
+# =============================================================================
+
+def uprint(*objects, sep=' ', end='\n', file=sys.stdout):
+    """
+    Prints strings to outputs that support UTF-8 encoding, but also to those
+    that do not (e.g. Windows stdout).
+    """
+    # http://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined  # noqa
+    enc = file.encoding
+    if enc == 'UTF-8':
+        print(*objects, sep=sep, end=end, file=file)
+    else:
+        def f(obj):
+            return str(obj).encode(enc, errors='backslashreplace').decode(enc)
+        # https://docs.python.org/3.5/library/codecs.html#codec-base-classes
+        print(*map(f, objects), sep=sep, end=end, file=file)
