@@ -235,6 +235,7 @@ setup(
             'crate_anonymise=crate_anon.anonymise.anonymise_cli:main',
             'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
+            'crate_test_extract_text=crate_anon.anonymise.test_extract_text:main',  # noqa
             'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
             'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main',  # noqa
