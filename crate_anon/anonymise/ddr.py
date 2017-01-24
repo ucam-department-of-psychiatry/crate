@@ -462,8 +462,10 @@ class DataDictionaryRow(object):
             # source database by reflection.
             # Will be autoconverted to the destination dialect.
             # With some exceptions, addressed as below:
-            return convert_sqla_type_for_dialect(self._src_sqla_coltype,
-                                                 dialect)
+            return convert_sqla_type_for_dialect(
+                coltype=self._src_sqla_coltype,
+                dialect=dialect,
+                expand_for_scrubbing=self.being_scrubbed())
 
     def get_dest_sqla_column(self, config: CONFIG_FWD_REF) -> Column:
         name = self.dest_field

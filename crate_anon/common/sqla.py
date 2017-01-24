@@ -628,7 +628,14 @@ def convert_sqla_type_for_dialect(
         coltype: TypeEngine,
         dialect: Dialect,
         strip_collation: bool = True,
-        convert_mssql_timestamp: bool = True) -> TypeEngine:
+        convert_mssql_timestamp: bool = True,
+        expand_for_scrubbing: bool = False) -> TypeEngine:
+    """
+    - The purpose of expand_for_scrubbing is that, for example, a VARCHAR(200)
+      field containing one or more instances of "Jones", where "Jones" is to be
+      replaced with "[XXXXXX]", will get longer (by an unpredictable amount).
+      So, better to expand to unlimited length.
+    """
     # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
     #                                                     vars(coltype)))
     # noinspection PyUnresolvedReferences
@@ -654,12 +661,12 @@ def convert_sqla_type_for_dialect(
     # gives e.g.: 'NVARCHAR requires a length on dialect mysql'.)
     if isinstance(coltype, sqltypes.Unicode):
         # Includes NVARCHAR(MAX) in SQL -> NVARCHAR() in SQLAlchemy.
-        if coltype.length is None and to_mysql:
+        if (coltype.length is None and to_mysql) or expand_for_scrubbing:
             return sqltypes.UnicodeText()
     # The most general case; will pick up any other string types.
     if isinstance(coltype, sqltypes.String):
         # Includes VARCHAR(MAX) in SQL -> VARCHAR() in SQLAlchemy
-        if coltype.length is None and to_mysql:
+        if (coltype.length is None and to_mysql) or expand_for_scrubbing:
             return sqltypes.Text()
         if strip_collation:
             # noinspection PyTypeChecker
