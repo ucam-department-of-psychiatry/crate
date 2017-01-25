@@ -822,7 +822,7 @@ def patient_processing_fn(tasknum: int = 0,
         process source data for that patient, scrubbing it;
         insert the patient into the mapping table in the admin database.
     """
-    n_patients = estimate_count_patients()
+    n_patients = estimate_count_patients() // ntasks
     i = 0
     for pid in gen_patient_ids(tasknum, ntasks):
         # gen_patient_ids() assigns the work to the appropriate thread/process
@@ -830,7 +830,7 @@ def patient_processing_fn(tasknum: int = 0,
         i += 1
         log.info(
             "Processing patient ID: {pid} (incremental={incremental}; "
-            "patient {i}/~{n_patients}; {progress})".format(
+            "patient {i}/~{n_patients} for this process; {progress})".format(
                 pid=pid, incremental=incremental, i=i, n_patients=n_patients,
                 progress=config.overall_progress()))
 
