@@ -266,7 +266,8 @@ class Config(object):
         except (KeyError, AssertionError):
             print(
                 "You must set the {} environment variable to point to a CRATE "
-                "anonymisation config file. Run crate_print_demo_anon_config "
+                "anonymisation config file, or specify it on the command "
+                "line. Run crate_print_demo_anon_config "
                 "to see a specimen config.".format(CONFIG_ENV_VAR))
             sys.exit(1)
 

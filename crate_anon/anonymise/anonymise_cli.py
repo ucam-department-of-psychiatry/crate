@@ -167,7 +167,11 @@ def main() -> None:
 
     # Delayed import; pass everything else on
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
-    anonymise(args)
+    try:
+        anonymise(args)
+    except:
+        log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+        raise
 
 
 # =============================================================================

@@ -492,14 +492,14 @@ RE_COLTYPE_WITH_TWO_PARAMS = re.compile(
 def _get_sqla_coltype_class_from_str(coltype: str,
                                      dialect: Dialect) -> Type[Column]:
     """
-    As-is/lower-case search.
+    Upper- and lower-case search.
     For example, the SQLite dialect uses upper case, and the
     MySQL dialect uses lower case.
     """
     # noinspection PyUnresolvedReferences
     ischema_names = dialect.ischema_names
     try:
-        return ischema_names[coltype]
+        return ischema_names[coltype.upper()]
     except KeyError:
         return ischema_names[coltype.lower()]
 

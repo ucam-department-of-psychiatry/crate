@@ -126,7 +126,8 @@ def wait_for_processes(die_on_failure: bool = True,
     """
     global processes
     global proc_args_list
-    Pool(len(processes)).map(print_lines, processes)  # in case of PIPE
+    n = len(processes)
+    Pool(n).map(print_lines, processes)  # in case of PIPE
     something_running = True
     while something_running:
         something_running = False
@@ -135,9 +136,9 @@ def wait_for_processes(die_on_failure: bool = True,
                 retcode = p.wait(timeout=timeout_sec)
                 if retcode != 0:
                     log.critical(
-                        "Process {} exited with return code {} (indicating "
-                        "failure); its args were: {}".format(
-                            i, retcode, repr(proc_args_list[i])))
+                        "Process #{} (of {}) exited with return code {} "
+                        "(indicating failure); its args were: {}".format(
+                            i, n, retcode, repr(proc_args_list[i])))
                     if die_on_failure:
                         fail()  # exit this process, therefore kill its children  # noqa
             except TimeoutExpired:
