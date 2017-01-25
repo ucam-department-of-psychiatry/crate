@@ -42,6 +42,7 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 processes = []
+args_list = []  # to report back which process failed, if any did
 
 
 # =============================================================================
@@ -98,11 +99,13 @@ def start_process(args: List[str],
     """
     log.debug(args)
     global processes
+    global args_list
     proc = Popen(args, stdin=stdin, stdout=stdout, stderr=stderr)
     # proc = Popen(args, stdin=None, stdout=PIPE, stderr=STDOUT)
     # proc = Popen(args, stdin=None, stdout=PIPE, stderr=PIPE)
     # Can't preserve colour: http://stackoverflow.com/questions/13299550/preserve-colored-output-from-python-os-popen  # noqa
     processes.append(proc)
+    args_list.append(args)
     return proc
 
 
@@ -122,6 +125,7 @@ def wait_for_processes(die_on_failure: bool = True,
     if it doesn't, we try the next. That is much more responsive.
     """
     global processes
+    global args_list
     Pool(len(processes)).map(print_lines, processes)  # in case of PIPE
     something_running = True
     while something_running:
@@ -130,13 +134,16 @@ def wait_for_processes(die_on_failure: bool = True,
             try:
                 retcode = p.wait(timeout=timeout_sec)
                 if retcode != 0:
-                    log.critical("Process {} exited with return code {} "
-                                 "(indicating failure)".format(i, retcode))
+                    log.critical(
+                        "Process {} exited with return code {} (indicating "
+                        "failure); its args were: {}".format(
+                            i, retcode, repr(args_list[i])))
                     if die_on_failure:
                         fail()  # exit this process, therefore kill its children  # noqa
             except TimeoutExpired:
                 something_running = True
     processes.clear()
+    args_list.clear()
 
 
 def print_lines(process: Popen) -> None:
