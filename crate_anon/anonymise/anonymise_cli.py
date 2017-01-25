@@ -173,6 +173,8 @@ def main() -> None:
         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
         raise
 
+    sys.exit(0)  # explicit exit; ?sometimes returning non-zero if exception caught/handled??  # noqa
+
 
 # =============================================================================
 # Command-line entry point

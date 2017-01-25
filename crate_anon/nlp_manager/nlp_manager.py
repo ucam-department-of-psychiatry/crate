@@ -627,13 +627,20 @@ def main() -> None:
             drop_remake(args, config, incremental=args.incremental,
                         skipdelete=args.skipdelete)
 
+    # From here, in a multiprocessing environment, trap any errors simply so
+    # we can report the process number clearly.
+
     # 2. NLP
     if args.nlp or everything:
-        process_nlp(config,
-                    incremental=args.incremental,
-                    report_every=args.report_every_nlp,
-                    tasknum=args.process,
-                    ntasks=args.nprocesses)
+        try:
+            process_nlp(config,
+                        incremental=args.incremental,
+                        report_every=args.report_every_nlp,
+                        tasknum=args.process,
+                        ntasks=args.nprocesses)
+        except:
+            log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
+            raise
 
     log.info("Finished")
     end = get_now_utc()
@@ -642,6 +649,8 @@ def main() -> None:
 
     if args.timing:
         timer.report()
+
+    sys.exit(0)  # explicit exit; ?sometimes returning non-zero if exception caught/handled??  # noqa
 
 
 # =============================================================================
