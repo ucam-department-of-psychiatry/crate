@@ -27,7 +27,6 @@
 import argparse
 import logging
 import os
-import sys
 
 from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
 
@@ -40,6 +39,8 @@ from crate_anon.anonymise.constants import (
 from crate_anon.common.debugfunc import pdb_run
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.version import VERSION, VERSION_DATE
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -173,8 +174,6 @@ def main() -> None:
     except:
         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
         raise
-
-    sys.exit(0)  # explicit exit; ?sometimes returning non-zero if exception caught/handled??  # noqa
 
 
 # =============================================================================

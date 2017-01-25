@@ -650,8 +650,6 @@ def main() -> None:
     if args.timing:
         timer.report()
 
-    sys.exit(0)  # explicit exit; ?sometimes returning non-zero if exception caught/handled??  # noqa
-
 
 # =============================================================================
 # Command-line entry point

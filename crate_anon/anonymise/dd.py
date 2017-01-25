@@ -147,8 +147,12 @@ class DataDictionary(object):
                     # introspection and cause a crash.
                     # Changed to be a destination manipulation (2016-06-04).
                     if cfg.is_table_blacklisted(tablename):
+                        log.debug("Skipping blacklisted table: {}.{}".format(
+                            tablename, columnname))
                         continue
                     if cfg.is_field_blacklisted(columnname):
+                        log.debug("Skipping blacklisted column: {}.{}".format(
+                            tablename, columnname))
                         continue
                     comment = ''  # currently unsupported by SQLAlchemy
                     if self.config.append_source_info_to_comment:
@@ -168,6 +172,8 @@ class DataDictionary(object):
                     # If we have this one already, skip ASAP
                     sig = ddr.get_signature()
                     if sig in existing_signatures:
+                        log.debug("Skipping duplicated column: {}.{}".format(
+                            tablename, columnname))
                         continue
                     existing_signatures.add(sig)
 

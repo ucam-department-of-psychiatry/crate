@@ -827,6 +827,7 @@ def unit_tests() -> None:
         ("BIGINT", d_mssql),
         ("NVARCHAR(32)", d_mssql),
         ("NVARCHAR(MAX)", d_mssql),
+        ('NVARCHAR(160) COLLATE "Latin1_General_CI_AS"', d_mssql),
         # mysql
         ("BIGINT", d_mssql),
         ("LONGTEXT", d_mysql),
