@@ -801,6 +801,7 @@ def column_lists_equal(a: List[Column], b: List[Column]) -> bool:
         return False
     for i in range(n):
         if not columns_equal(a[i], b[i]):
+            log.debug("Mismatch: {} != {}".format(a[i], b[i]))
             return False
     return True
 

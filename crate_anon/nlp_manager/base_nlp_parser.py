@@ -129,8 +129,8 @@ class BaseNlpParser(object):
                     " blend source tables with different column names into a "
                     "single NLP results table?) Mismatch is between list {a} "
                     "and list {b}.\n"
-                    "-- FIRST LIST: {a_list}.\n"
-                    "-- SECOND LIST: {b_list}.\n"
+                    "-- LIST A: {a_list}.\n"
+                    "-- LIST B: {b_list}.\n"
                     "-- ALL LISTS: {all_lists}.\n"
                     "-- ALL COLUMN NAMES: {all_colnames}.".format(
                         description=description,
