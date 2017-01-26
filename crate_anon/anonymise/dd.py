@@ -129,8 +129,8 @@ class DataDictionary(object):
 
                 # Skip table?
                 if cfg.is_table_blacklisted(tablename):
-                    log.debug("Skipping blacklisted table: {}.{}".format(
-                        tablename, columnname))
+                    log.debug("Skipping blacklisted table: {}".format(
+                        tablename))
                     continue
                 all_col_names = [c.name for c in t.columns]
                 if cfg.does_table_fail_minimum_fields(all_col_names):
