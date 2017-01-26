@@ -506,7 +506,7 @@ def _matches_fielddef(table: str, field: str, fielddef: str) -> bool:
     t, c = split_db_table(fielddef)
     cr = get_spec_match_regex(c)
     if not t:
-        return cr.match(table)
+        return cr.match(field)
     tr = get_spec_match_regex(t)
     return tr.match(table) and cr.match(field)
 
@@ -607,3 +607,25 @@ def sql_fragment_cast_to_int(expr: str,
         # noinspection PyUnresolvedReferences
         raise ValueError("Code not yet written for convert-to-int for "
                          "dialect {}".format(dialect.name))
+
+
+# =============================================================================
+# More SQL
+# =============================================================================
+
+def unit_tests():
+    assert matches_tabledef("sometable", "sometable")
+    assert matches_tabledef("sometable", "some*")
+    assert matches_tabledef("sometable", "*table")
+    assert matches_tabledef("sometable", "*")
+    assert matches_tabledef("sometable", "s*e")
+    assert not matches_tabledef("sometable", "x*y")
+
+    assert matches_fielddef("sometable", "somefield", "*.somefield")
+    assert matches_fielddef("sometable", "somefield", "sometable.somefield")
+    assert matches_fielddef("sometable", "somefield", "sometable.*")
+    assert matches_fielddef("sometable", "somefield", "somefield")
+
+
+if __name__ == '__main__':
+    unit_tests()
