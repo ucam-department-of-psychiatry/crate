@@ -137,8 +137,8 @@ class DatabaseSafeConfig(object):
         def opt_str(option: str) -> str:
             return parser.get(section, option, fallback=None)
 
-        def opt_multiline(option: str) -> List[str]:
-            return parser.get_str_list(section, option)
+        def opt_multiline(option: str, as_words: bool = True) -> List[str]:
+            return parser.get_str_list(section, option, as_words=as_words)
 
         def opt_bool(option: str, default: bool) -> bool:
             return parser.getboolean(section, option, fallback=default)
@@ -148,7 +148,7 @@ class DatabaseSafeConfig(object):
 
         def opt_multiline_csv_pairs(option: str) -> Dict[str, str]:
             d = {}
-            lines = opt_multiline(option)
+            lines = opt_multiline(option, as_words=False)
             for line in lines:
                 pair = [item.strip() for item in line.split(",")]
                 if len(pair) != 2:
