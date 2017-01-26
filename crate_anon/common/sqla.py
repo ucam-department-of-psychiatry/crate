@@ -784,6 +784,28 @@ def hack_in_mssql_xml_type():
 
 
 # =============================================================================
+# Check column definition equality
+# =============================================================================
+
+def columns_equal(a: Column, b: Column) -> bool:
+    return (
+        a.name == b.name and
+        a.type == b.type and
+        a.nullable == b.nullable
+    )
+
+
+def column_lists_equal(a: List[Column], b: List[Column]) -> bool:
+    n = len(a)
+    if len(b) != n:
+        return False
+    for i in range(n):
+        if not columns_equal(a[i], b[i]):
+            return False
+    return True
+
+
+# =============================================================================
 # Tests
 # =============================================================================
 

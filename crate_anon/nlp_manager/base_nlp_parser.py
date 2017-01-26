@@ -33,6 +33,7 @@ from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 
 from crate_anon.common.timing import MultiTimerContext, timer
+from crate_anon.common.sqla import column_lists_equal
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,
@@ -122,14 +123,16 @@ class BaseNlpParser(object):
         for i in range(n - 1):
             a_list = list_of_column_lists[i]
             b_list = list_of_column_lists[i + 1]
-            if a_list != b_list:
+            if not column_lists_equal(a_list, b_list):
                 msg = (
                     "Mismatch between {description} lists. (Are you trying to"
                     " blend source tables with different column names into a "
                     "single NLP results table?) Mismatch is between list {a} "
-                    "and list {b}. FIRST LIST: {a_list}. SECOND LIST: "
-                    "{b_list}. ALL LISTS: {all_lists}. "
-                    "ALL COLUMN NAMES: {all_colnames}.".format(
+                    "and list {b}.\n"
+                    "-- FIRST LIST: {a_list}.\n"
+                    "-- SECOND LIST: {b_list}.\n"
+                    "-- ALL LISTS: {all_lists}.\n"
+                    "-- ALL COLUMN NAMES: {all_colnames}.".format(
                         description=description,
                         a=i,
                         b=i + 1,
