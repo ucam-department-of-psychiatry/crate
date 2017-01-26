@@ -822,6 +822,15 @@ ddgen_table_blacklist =
     # Whitelist any tables? (Whitelists override blacklists.)
 ddgen_table_whitelist =
 
+    # List any fields that all tables MUST contain. If a table doesn't contain
+    # all of the field(s) listed here, it will be skipped.
+ddgen_table_require_field_absolute =
+
+    # List any fields that are required conditional on other fields.
+    # List them as one or more pairs: "A, B" where B is required if A is
+    # present (or the table will be skipped).
+ddgen_table_require_field_conditional =
+
     # Blacklist any fields (regardless of their table) when creating new data
     # dictionaries? Wildcards of */? operate as above.
 ddgen_field_blacklist =
@@ -949,6 +958,8 @@ ddgen_per_table_pid_field = patient_id
 ddgen_master_pid_fieldname = nhsnum
 ddgen_table_blacklist =
 ddgen_field_blacklist =
+ddgen_table_require_field_absolute =
+ddgen_table_require_field_conditional =
 ddgen_pk_fields =
 ddgen_constant_content = False
 ddgen_scrubsrc_patient_fields =
@@ -1015,6 +1026,8 @@ ddgen_field_blacklist = _patient_iddesc1
     _removal_pending
     _move_off_tablet
 
+ddgen_table_require_field_absolute =
+ddgen_table_require_field_conditional =
 ddgen_pk_fields = _pk
 ddgen_constant_content = False
 

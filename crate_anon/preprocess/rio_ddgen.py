@@ -24,6 +24,8 @@
 
 from crate_anon.preprocess.ddhint import DDHint
 from crate_anon.preprocess.rio_constants import (
+    CRATE_COL_PK,
+    CRATE_COL_RIO_NUMBER,
     RIO_COL_PATIENT_ID,
     VIEW_ADDRESS_WITH_GEOGRAPHY,
 )
@@ -87,20 +89,6 @@ ddgen_add_per_table_pids_to_scrubber = False
 
 ddgen_master_pid_fieldname = crate_nhs_number_int
     # ... is in Client_Demographic_Details view
-
-ddgen_table_whitelist = #
-    # -------------------------------------------------------------------------
-    # Whitelist: Prefixes: groups of tables
-    # -------------------------------------------------------------------------
-    EPClientAllergy*  # Allergy details within EP module
-    # -------------------------------------------------------------------------
-    # Whitelist: Suffixes
-    # -------------------------------------------------------------------------
-    *_crate  # Views added by CRATE
-    # -------------------------------------------------------------------------
-    # Whitelist: Individual tables
-    # -------------------------------------------------------------------------
-    EPReactionType  # Allergy reaction type details within EP module
 
 ddgen_table_blacklist = #
     # -------------------------------------------------------------------------
@@ -194,12 +182,34 @@ ddgen_table_blacklist = #
 # UserAssess* = non-core assessments themselves
 # UserMaster* = lookup tables for non-core assessments
 
-ddgen_field_whitelist =
+ddgen_table_whitelist = #
+    # -------------------------------------------------------------------------
+    # Whitelist: Prefixes: groups of tables
+    # -------------------------------------------------------------------------
+    EPClientAllergy*  # Allergy details within EP module
+    # -------------------------------------------------------------------------
+    # Whitelist: Suffixes
+    # -------------------------------------------------------------------------
+    *_crate  # Views added by CRATE
+    # -------------------------------------------------------------------------
+    # Whitelist: Individual tables
+    # -------------------------------------------------------------------------
+    EPReactionType  # Allergy reaction type details within EP module
+
+ddgen_table_require_field_absolute = #
+    # All tables/fields must have crate_pk
+    {CRATE_COL_PK}
+
+ddgen_table_require_field_conditional = #
+    # If a table/view has ClientID, it must have crate_rio_number
+    {RIO_COL_PATIENT_ID}, {CRATE_COL_RIO_NUMBER}
 
 ddgen_field_blacklist = #
-    {RIO_COL_PATIENT_ID}  # replaced by crate_rio_number
+    {RIO_COL_PATIENT_ID}  # replaced by crate_rio_number (which is then pseudonymised)
     *Soundex  # identifying 4-character code; https://msdn.microsoft.com/en-us/library/ms187384.aspx
     Spine*  # NHS Spine identifying codes
+
+ddgen_field_whitelist =
 
 ddgen_pk_fields = crate_pk
 
@@ -287,7 +297,7 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     # ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
     # ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
     # ----------------------------------------------------------------------
-    # Views
+    # RCEP/CRATE views
     # ----------------------------------------------------------------------
     Client_Personal_Contacts.Family_Name
     Client_Personal_Contacts.Given_Name
@@ -306,7 +316,7 @@ ddgen_scrubsrc_thirdparty_xref_pid_fields = # several:
     # ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
     # ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
     # ----------------------------------------------------------------------
-    # Views
+    # RCEP/CRATE views
     # ----------------------------------------------------------------------
     Client_Demographic_Details.Main_Carer
     Client_Demographic_Details.Other_Carer
@@ -359,7 +369,9 @@ ddgen_force_lower_case = False
 
 ddgen_convert_odd_chars_to_underscore = True
     """.format(  # noqa
-        suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
+        CRATE_COL_PK=CRATE_COL_PK,
+        CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,
         RIO_COL_PATIENT_ID=RIO_COL_PATIENT_ID,
+        suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
         VIEW_ADDRESS_WITH_GEOGRAPHY=VIEW_ADDRESS_WITH_GEOGRAPHY,
     )

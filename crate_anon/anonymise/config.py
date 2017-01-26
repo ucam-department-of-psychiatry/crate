@@ -70,7 +70,7 @@ import fnmatch
 import logging
 import os
 import sys
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import regex
 from cardinal_pythonlib.rnc_db import (
@@ -146,6 +146,17 @@ class DatabaseSafeConfig(object):
         def opt_int(option: str, default: Optional[int]) -> Optional[int]:
             return parser.get_int_default_if_failure(section, option, default)
 
+        def opt_multiline_csv_pairs(option: str) -> Dict[str, str]:
+            d = {}
+            lines = opt_multiline(option)
+            for line in lines:
+                pair = [item.strip() for item in line.split(",")]
+                if len(pair) != 2:
+                    raise ValueError("For option {}: specify items as a list "
+                                     "of comma-separated pairs".format(option))
+                d[pair[0]] = pair[1]
+            return d
+
         self.ddgen_omit_by_default = opt_bool(
             'ddgen_omit_by_default', True)
         self.ddgen_omit_fields = opt_multiline('ddgen_omit_fields')
@@ -159,6 +170,10 @@ class DatabaseSafeConfig(object):
         self.ddgen_master_pid_fieldname = opt_str('ddgen_master_pid_fieldname')
         self.ddgen_table_blacklist = opt_multiline('ddgen_table_blacklist')
         self.ddgen_table_whitelist = opt_multiline('ddgen_table_whitelist')
+        self.ddgen_table_require_field_absolute = opt_multiline(
+            'ddgen_table_require_field_absolute')
+        self.ddgen_table_require_field_conditional = opt_multiline_csv_pairs(
+            'ddgen_table_require_field_conditional')
         self.ddgen_field_blacklist = opt_multiline('ddgen_field_blacklist')
         self.ddgen_field_whitelist = opt_multiline('ddgen_field_whitelist')
         self.ddgen_pk_fields = opt_multiline('ddgen_pk_fields')
@@ -202,15 +217,8 @@ class DatabaseSafeConfig(object):
         self.ddgen_filename_to_text_fields = opt_multiline(
             'ddgen_filename_to_text_fields')
 
-        ddgen_binary_to_text_field_pairs = opt_multiline(
+        self.bin2text_dict = opt_multiline_csv_pairs(
             'ddgen_binary_to_text_field_pairs')
-        self.bin2text_dict = {}
-        for pair in ddgen_binary_to_text_field_pairs:
-            items = [item.strip() for item in pair.split(",")]
-            if len(items) != 2:
-                raise ValueError("ddgen_binary_to_text_field_pairs: specify "
-                                 "fields in pairs")
-            self.bin2text_dict[items[0]] = items[1]
         self.ddgen_skip_row_if_extract_text_fails_fields = opt_multiline(
             'ddgen_skip_row_if_extract_text_fails_fields')
 
@@ -244,6 +252,15 @@ class DatabaseSafeConfig(object):
         for black in self.ddgen_field_blacklist:
             r = regex.compile(fnmatch.translate(black), regex.IGNORECASE)
             if r.match(field):
+                return True
+        return False
+
+    def does_table_fail_minimum_fields(self, colnames: List[str]) -> bool:
+        for abs_req in self.ddgen_table_require_field_absolute:
+            if abs_req not in colnames:
+                return True
+        for if_field, then_field in self.ddgen_table_require_field_conditional.items():  # noqa
+            if if_field in colnames and then_field not in colnames:
                 return True
         return False
 

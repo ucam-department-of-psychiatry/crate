@@ -126,6 +126,18 @@ class DataDictionary(object):
                 log.info("... ... table: {}".format(tablename))
                 new_rows = []
                 is_patient_table = False
+
+                # Skip table?
+                if cfg.is_table_blacklisted(tablename):
+                    log.debug("Skipping blacklisted table: {}.{}".format(
+                        tablename, columnname))
+                    continue
+                all_col_names = [c.name for c in t.columns]
+                if cfg.does_table_fail_minimum_fields(all_col_names):
+                    log.debug("Skipping table {} because it fails minimum "
+                              "field requirements".format(t))
+                    continue
+
                 for c in t.columns:
                     i += 1
                     if report_every and i % report_every == 0:
@@ -146,10 +158,6 @@ class DataDictionary(object):
                     # If you do, they can fail to match the SQLAlchemy
                     # introspection and cause a crash.
                     # Changed to be a destination manipulation (2016-06-04).
-                    if cfg.is_table_blacklisted(tablename):
-                        log.debug("Skipping blacklisted table: {}.{}".format(
-                            tablename, columnname))
-                        continue
                     if cfg.is_field_blacklisted(columnname):
                         log.debug("Skipping blacklisted column: {}.{}".format(
                             tablename, columnname))
