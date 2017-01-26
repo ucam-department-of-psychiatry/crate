@@ -114,18 +114,31 @@ class BaseNlpParser(object):
 
     @staticmethod
     def _assert_column_lists_identical(
-            list_of_column_lists: List[List[Any]],
+            list_of_column_lists: List[List[Column]],
             description: str) -> None:
         n = len(list_of_column_lists)
         if n <= 1:
             return
         for i in range(n - 1):
-            if list_of_column_lists[i] != list_of_column_lists[i + 1]:
+            a_list = list_of_column_lists[i]
+            b_list = list_of_column_lists[i + 1]
+            if a_list != b_list:
                 msg = (
-                    "Mismatch between {} lists: {}. (Are you trying to blend "
-                    "source tables with different column names into a single "
-                    "NLP results table?".format(
-                        description, list_of_column_lists)
+                    "Mismatch between {description} lists. (Are you trying to"
+                    " blend source tables with different column names into a "
+                    "single NLP results table?) Mismatch is between list {a} "
+                    "and list {b}. FIRST LIST: {a_list}. SECOND LIST: "
+                    "{b_list}. ALL LISTS: {all_lists}. "
+                    "ALL COLUMN NAMES: {all_colnames}.".format(
+                        description=description,
+                        a=i,
+                        b=i + 1,
+                        a_list=a_list,
+                        b_list=b_list,
+                        all_lists=list_of_column_lists,
+                        all_colnames=[[c.name for c in columns]
+                                      for columns in list_of_column_lists],
+                    )
                 )
                 log.critical(msg)
                 raise ValueError(msg)
