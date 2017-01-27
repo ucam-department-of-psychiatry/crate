@@ -615,7 +615,7 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
 # Do special dialect conversions on SQLAlchemy SQL types (of class type)
 # =============================================================================
 
-def remove_collation(coltype: Column) -> Column:
+def remove_collation(coltype: TypeEngine) -> TypeEngine:
     if not hasattr(coltype, 'collation') or not coltype.collation:
         return coltype
     newcoltype = copy.copy(coltype)
@@ -669,7 +669,6 @@ def convert_sqla_type_for_dialect(
         if (coltype.length is None and to_mysql) or expand_for_scrubbing:
             return sqltypes.Text()
         if strip_collation:
-            # noinspection PyTypeChecker
             return remove_collation(coltype)
         return coltype
 
@@ -787,10 +786,16 @@ def hack_in_mssql_xml_type():
 # Check column definition equality
 # =============================================================================
 
+def column_types_equal(a_coltype: TypeEngine, b_coltype: TypeEngine) -> bool:
+    # http://stackoverflow.com/questions/34787794/sqlalchemy-column-type-comparison  # noqa
+    # IMPERFECT:
+    return str(a_coltype) == str(b_coltype)
+
+
 def columns_equal(a: Column, b: Column) -> bool:
     return (
         a.name == b.name and
-        a.type == b.type and
+        column_types_equal(a.type, b.type) and
         a.nullable == b.nullable
     )
 
@@ -801,7 +806,7 @@ def column_lists_equal(a: List[Column], b: List[Column]) -> bool:
         return False
     for i in range(n):
         if not columns_equal(a[i], b[i]):
-            log.debug("Mismatch: {} != {}".format(a[i], b[i]))
+            log.debug("Mismatch: {} != {}".format(repr(a[i]), repr(b[i])))
             return False
     return True
 
