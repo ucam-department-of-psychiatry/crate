@@ -274,6 +274,8 @@ class BaseNlpParser(object):
 
     def process(self, text: str,
                 starting_fields_values: Dict[str, Any]) -> None:
+        if not text:
+            return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()
         session = self.get_session()
         n_values = 0

@@ -402,6 +402,8 @@ class SimpleNumericalResultParser(NumericalResultParser):
               debug: bool = False) -> Generator[Tuple[str, Dict[str, Any]],
                                                 None, None]:
         """Default parser for SimpleNumericalResultParser."""
+        if not text:
+            return
         for m in self.compiled_regex.finditer(text):
             startpos = m.start()
             endpos = m.end()

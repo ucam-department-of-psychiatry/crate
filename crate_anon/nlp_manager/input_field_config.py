@@ -348,6 +348,8 @@ class InputFieldConfig(object):
                         return
 
                     text = row[1]
+                    if not text:
+                        continue
                     other_values = dict(zip(self._copyfields, row[2:]))
                     if pk_is_integer:
                         other_values[FN_SRCPKVAL] = pkval
