@@ -811,6 +811,22 @@ def column_lists_equal(a: List[Column], b: List[Column]) -> bool:
     return True
 
 
+def indexes_equal(a: Index, b: Index) -> bool:
+    # Unsure.
+    return str(a) == str(b)
+
+
+def index_lists_equal(a: List[Index], b: List[Index]) -> bool:
+    n = len(a)
+    if len(b) != n:
+        return False
+    for i in range(n):
+        if not indexes_equal(a[i], b[i]):
+            log.debug("Mismatch: {} != {}".format(repr(a[i]), repr(b[i])))
+            return False
+    return True
+
+
 # =============================================================================
 # Tests
 # =============================================================================

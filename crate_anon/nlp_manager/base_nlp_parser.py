@@ -33,7 +33,10 @@ from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.sql import and_, exists, or_
 
 from crate_anon.common.timing import MultiTimerContext, timer
-from crate_anon.common.sqla import column_lists_equal
+from crate_anon.common.sqla import (
+    column_lists_equal,
+    index_lists_equal
+)
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,
@@ -115,8 +118,7 @@ class BaseNlpParser(object):
 
     @staticmethod
     def _assert_column_lists_identical(
-            list_of_column_lists: List[List[Column]],
-            description: str) -> None:
+            list_of_column_lists: List[List[Column]]) -> None:
         n = len(list_of_column_lists)
         if n <= 1:
             return
@@ -125,7 +127,7 @@ class BaseNlpParser(object):
             b_list = list_of_column_lists[i + 1]
             if not column_lists_equal(a_list, b_list):
                 msg = (
-                    "Mismatch between {description} lists. (Are you trying to"
+                    "Mismatch between column lists. (Are you trying to"
                     " blend source tables with different column names into a "
                     "single NLP results table?) Mismatch is between list {a} "
                     "and list {b}.\n"
@@ -133,7 +135,6 @@ class BaseNlpParser(object):
                     "-- LIST B: {b_list}.\n"
                     "-- ALL LISTS: {all_lists}.\n"
                     "-- ALL COLUMN NAMES: {all_colnames}.".format(
-                        description=description,
                         a=i,
                         b=i + 1,
                         a_list=a_list,
@@ -141,6 +142,37 @@ class BaseNlpParser(object):
                         all_lists=list_of_column_lists,
                         all_colnames=[[c.name for c in columns]
                                       for columns in list_of_column_lists],
+                    )
+                )
+                log.critical(msg)
+                raise ValueError(msg)
+
+    @staticmethod
+    def _assert_index_lists_identical(
+            list_of_index_lists: List[List[Index]]) -> None:
+        n = len(list_of_index_lists)
+        if n <= 1:
+            return
+        for i in range(n - 1):
+            a_list = list_of_index_lists[i]
+            b_list = list_of_index_lists[i + 1]
+            if not index_lists_equal(a_list, b_list):
+                msg = (
+                    "Mismatch between index lists. (Are you trying to"
+                    " blend source tables with different column names into a "
+                    "single NLP results table?) Mismatch is between list {a} "
+                    "and list {b}.\n"
+                    "-- LIST A: {a_list}.\n"
+                    "-- LIST B: {b_list}.\n"
+                    "-- ALL LISTS: {all_lists}.\n"
+                    "-- ALL COLUMN NAMES: {all_colnames}.".format(
+                        a=i,
+                        b=i + 1,
+                        a_list=a_list,
+                        b_list=b_list,
+                        all_lists=list_of_index_lists,
+                        all_colnames=[[c.name for c in columns]
+                                      for columns in list_of_index_lists],
                     )
                 )
                 log.critical(msg)
@@ -157,7 +189,7 @@ class BaseNlpParser(object):
         assert self._destdb, "Cannot use tables() call without a database"
 
         copycolumns_list = [i.get_copy_columns() for i in ifconfigs]
-        self._assert_column_lists_identical(copycolumns_list, "column")
+        self._assert_column_lists_identical(copycolumns_list)
         copy_columns = copycolumns_list[0]
 
         core_columns = InputFieldConfig.get_core_columns_for_dest()
@@ -185,7 +217,7 @@ class BaseNlpParser(object):
             if tablename in t_indexes:
                 extra_dest_indexes = t_indexes[tablename]
             copyindexes_list = [i.get_copy_indexes() for i in ifconfigs]
-            self._assert_column_lists_identical(copyindexes_list, "index")
+            self._assert_index_lists_identical(copyindexes_list)
             copy_indexes = copyindexes_list[0]
             core_indexes = InputFieldConfig.get_core_indexes_for_dest()
 
