@@ -420,8 +420,13 @@ outputtypemap =
     # - Use double quotes to encapsulate any filename that may have spaces
     #   within it (e.g. C:/Program Files/...).
     #   Use a forward slash director separator, even under Windows.
+    #   ... ? If that doesn't work, use a double backslash, \\.
     # - Under Windows, use a semicolon to separate parts of the Java classpath.
     #   Under Linux, use a colon.
+    # - So a Linux Java classpath looks like
+    #       /some/path:/some/other/path:/third/path
+    #   and a Windows one looks like
+    #       C:/some/path;C:/some/other/path;C:/third/path
     #
     # You can use substitutable parameters:
     #
@@ -434,6 +439,7 @@ outputtypemap =
 
 progargs = java
     -classpath "{{NLPPROGDIR}}":"{{GATEDIR}}/bin/gate.jar":"{{GATEDIR}}/lib/*"
+    -Dgate.home="{{GATEDIR}}"
     {CLASSNAME}
     -g "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
     -a Person
@@ -441,7 +447,7 @@ progargs = java
     -it END_OF_TEXT_FOR_NLP
     -ot END_OF_NLP_OUTPUT_RECORD
     -lt {{NLPLOGTAG}}
-    -v -v
+    -v
 
 progenvsection = MY_ENV_SECTION
 

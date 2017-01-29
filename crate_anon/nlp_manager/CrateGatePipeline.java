@@ -71,7 +71,7 @@ Based on
 
 TO COMPILE, THEN RUN: see buildme.sh
 
-FIELDS THAT ARE USED AS STANDARD: see process_annotation()
+FIELDS THAT ARE USED AS STANDARD: see processAnnotation()
 
 */
 
@@ -80,6 +80,11 @@ FIELDS THAT ARE USED AS STANDARD: see process_annotation()
 import java.util.*;
 import java.io.*;
 import java.text.SimpleDateFormat;
+
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 
 import gate.*;
 import gate.creole.*;
@@ -94,11 +99,8 @@ public class CrateGatePipeline {
     // ========================================================================
 
     // Constants
-    private static final String m_defaultlogprefix = "crate_gate_pipeline:";
     private static final String m_default_input_terminator = "END_OF_DOCUMENT";
     private static final String m_default_output_terminator = "END_OF_DOCUMENT";
-    private static final SimpleDateFormat m_datetimefmt = new SimpleDateFormat(
-        "yyyy-MM-dd HH:mm:ss.SSS");
     private static final String TAB = "\t";
     private static final String NEWLINE = "\n";
     // Interface
@@ -117,10 +119,12 @@ public class CrateGatePipeline {
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
     // Internal
-    private String m_logprefix = m_defaultlogprefix;
+    private String m_extra_log_prefix = "";
     private int m_count = 0;
     private String m_std_encoding = "UTF-8";
     private PrintStream m_out = null;
+    // Logger:
+    private static final Logger m_log = Logger.getLogger(CrateGatePipeline.class);
 
     // GATE things
     private CorpusController m_controller = null;
@@ -132,43 +136,59 @@ public class CrateGatePipeline {
 
     public CrateGatePipeline(String args[])
             throws GateException, IOException, ResourceInstantiationException {
-        m_out = new PrintStream(System.out, true, m_std_encoding);
+        // --------------------------------------------------------------------
+        // Arguments
+        // --------------------------------------------------------------------
         m_args = args;
-        process_args();
-        if (m_verbose > 0) {
-            report_args();
-        }
+        processArgs();
 
-        setup_gate();
-        status("Ready for input");
+        // --------------------------------------------------------------------
+        // Logging
+        // --------------------------------------------------------------------
+        Level main_level = m_verbose >= 2 ? Level.DEBUG
+                                          : (m_verbose >= 1 ? Level.INFO
+                                                            : Level.WARN);
+        Level gate_level = m_verbose >= 3 ? Level.DEBUG
+                                          : (m_verbose >= 1 ? Level.INFO
+                                                            : Level.WARN);
+        configureLog(m_log, main_level, m_extra_log_prefix);
+        configureLog(Logger.getLogger("gate"), gate_level, "");
+
+        // --------------------------------------------------------------------
+        // Setup stdout
+        // --------------------------------------------------------------------
+        m_out = new PrintStream(System.out, true, m_std_encoding);
+
+        // --------------------------------------------------------------------
+        // Do interesting things
+        // --------------------------------------------------------------------
+        reportArgs();
+        setupGate();
+        m_log.info("Ready for input");
 
         // Read from stdin, using end-of-text markers to split stdin into
         // multiple texts, creating documents in turn
         StdinResult result;
         do {
             // Read from stdin
-            result = read_stdin();
+            result = readStdin();
             if (result.finished) {
                 continue;
             }
-            if (m_verbose > 0) {
-                status("Read text");
-            }
-            if (m_verbose >= 2) {
-                status(m_sep1 + "CONTENTS OF STDIN:");
-                status(result.contents);
-                status(m_sep2);
-            }
+            m_log.info("Read text");
+            m_log.debug(m_sep1 + "CONTENTS OF STDIN:");
+            m_log.debug(result.contents);
+            m_log.debug(m_sep2);
 
             // Process text
-            process_input(result.contents);
+            processInput(result.contents);
 
             ++m_count;
         } while (!result.finished);
     }
 
     // ========================================================================
-    // Handling of args, stdin, etc.
+    // Handling of args, exiting, etc.
     // ========================================================================
 
     private void exit() {
@@ -179,13 +199,14 @@ public class CrateGatePipeline {
         System.exit(1);
     }
 
-    private void fail(String msg) {
-        status(msg);
+    private void argfail(String msg) {
+        // Don't use the log; it's not configured yet.
+        writeStderr(msg);
         abort();
     }
 
     private void usage() {
-        status(
+        writeStderr(
 "usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]] [-e ENCODING]\n" +
 "                         [-h] [-it TERM] [-ot TERM] [-v [-v]]\n" +
 "                         [-wa FILESTEM] [-wg FILESTEM] [-wt FILESTEM]\n" +
@@ -194,7 +215,7 @@ public class CrateGatePipeline {
 "Takes input on stdin. Produces output on stdout.\n" +
 "\n" +
 "required arguments:\n" +
-"  -g GATEAPP       Specifies the GATE app (.gapp) file to use.\n" +
+"  -g GATEAPP       Specifies the GATE app (.gapp/.xgapp) file to use.\n" +
 "\n" +
 "optional arguments:\n" +
 "  -a ANNOT         Adds the specified annotation to the target list.\n" +
@@ -206,38 +227,37 @@ public class CrateGatePipeline {
 "  -ot TERMINATOR   Specify stdout end-of-document terminator.\n" +
 "  -lt LOGTAG       Use an additional tag for stderr logging.\n" +
 "                   Helpful in multiprocess environments.\n" +
-"  -v               Verbose (use twice to be more verbose).\n" +
+"  -v               Verbose (use up to 3 times to be more verbose).\n" +
 "  -wa FILESTEM     Write annotated XML document to FILESTEM<n>.xml, where <n>\n" +
 "                   is the file's sequence number (starting from 0).\n" +
 "  -wg FILESTEM     Write GateXML document to FILESTEM<n>.xml.\n" +
-"  -wt FILESTEM     Write TSV-format annotations FILESTEM<n>.tsv.\n",
-            false
+"  -wt FILESTEM     Write TSV-format annotations FILESTEM<n>.tsv.\n"
         );
     }
 
-    private void process_args() {
+    private void processArgs() {
         int i = 0;
         int nleft;
         String arg;
-        String insufficient = "insufficient arguments";
+        String insufficient = "Insufficient arguments";
         // Process
         while (i < m_args.length) {
             arg = m_args[i++].toLowerCase();
             nleft = m_args.length - i;
             switch (arg) {
                 case "-a":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     if (m_target_annotations == null) {
                         m_target_annotations = new ArrayList<String>();
                     }
                     m_target_annotations.add(m_args[i++]);
                     break;
                 case "-e":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     m_file_encoding = m_args[i++];
                     break;
                 case "-g":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     m_gapp_file = new File(m_args[i++]);
                     break;
                 case "-h":
@@ -245,30 +265,30 @@ public class CrateGatePipeline {
                     exit();
                     break;
                 case "-it":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     m_input_terminator = m_args[i++];
                     break;
                 case "-ot":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     m_output_terminator = m_args[i++];
                     break;
                 case "-lt":
-                    if (nleft < 1) fail(insufficient);
-                    set_logtag(m_args[i++]);
+                    if (nleft < 1) argfail(insufficient);
+                    m_extra_log_prefix = m_args[i++];
                     break;
                 case "-v":
                     m_verbose++;
                     break;
                 case "-wa":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     m_annotxml_filename_stem = m_args[i++];
                     break;
                 case "-wg":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     m_gatexml_filename_stem = m_args[i++];
                     break;
                 case "-wt":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) argfail(insufficient);
                     m_tsv_filename_stem = m_args[i++];
                     break;
                 default:
@@ -279,24 +299,44 @@ public class CrateGatePipeline {
         }
         // Validate
         if (m_gapp_file == null) {
-            status("missing -g parameter (no .gapp file specified); " +
-                   "use -h for help");
+            argfail("Missing -g parameter (no .gapp file specified); " +
+                    "use -h for help");
             abort();
         }
     }
 
-    private void report_args() {
+    private void reportArgs() {
         for (int i = 0; i < m_args.length; i++) {
-            status("Arg " + i + " = " + m_args[i]);
+            m_log.debug("Arg " + i + " = " + m_args[i]);
         }
     }
 
-    private void set_logtag(String msg) {
-        m_logprefix = m_defaultlogprefix;
-        if (m_logprefix.length() > 0) {
-            m_logprefix += msg + ":";
+    // ========================================================================
+    // Escaping text
+    // ========================================================================
+
+    private String escapeTabsNewlines(String s) {
+        if (s == null) {
+            return s;
         }
+        s = s.replace("\\", "\\");
+        s = s.replace("\n", "\\n");
+        s = s.replace("\r", "\\r");
+        s = s.replace("\t", "\\t");
+        return s;
     }
+
+    private String escapePercent(String s) {
+        if (s == null) {
+            return s;
+        }
+        s = s.replace("%", "%%");
+        return s;
+    }
+
+    // ========================================================================
+    // stdin handling
+    // ========================================================================
 
     private final class StdinResult {
         public String contents;
@@ -311,7 +351,7 @@ public class CrateGatePipeline {
         }
     }
 
-    private StdinResult read_stdin() throws IOException {
+    private StdinResult readStdin() throws IOException {
         BufferedReader br = new BufferedReader(
             new InputStreamReader(System.in, m_std_encoding));
         StringBuffer sb = new StringBuffer();
@@ -333,27 +373,39 @@ public class CrateGatePipeline {
         return new StdinResult(sb.toString(), finished_everything);
     }
 
-    private String now() {
-        return m_datetimefmt.format(Calendar.getInstance().getTime());
-    }
+    // ========================================================================
+    // stdout/stderr/log handling
+    // ========================================================================
 
-    private void status(String msg) {
-        status(msg, true);
-    }
-
-    private void status(String msg, boolean prefix) {
-        System.err.println((prefix ? (now() + ":" + m_logprefix) : "") + msg);
+    private void writeStderr(String msg) {
+        System.err.println(msg);
     }
 
     private void print(String msg) {
-        // System.out.print(msg);
         m_out.print(msg);
     }
 
     private void println(String msg) {
-        // System.out.println(msg);
         m_out.println(msg);
     }
+
+    private void configureLog(Logger log, Level level, String logtag) {
+        // http://stackoverflow.com/questions/8965946/configuring-log4j-loggers-programmatically
+        // https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PatternLayout.html
+        String tag = "";
+        if (!logtag.isEmpty()) {
+            tag += "|" + escapePercent(logtag);
+        }
+        String log_pattern = "%d{yyyy-MM-dd HH:mm:ss.SSS} [%p|%c" + tag + "] %m%n";
+        PatternLayout log_layout = new PatternLayout(log_pattern);
+        ConsoleAppender log_appender = new ConsoleAppender(log_layout, "System.err");
+        log.addAppender(log_appender);
+        log.setLevel(level);
+    }
+
+    // ========================================================================
+    // File handling
+    // ========================================================================
 
     private void writeToFile(String filename, String contents)
             throws FileNotFoundException, UnsupportedEncodingException,
@@ -382,27 +434,27 @@ public class CrateGatePipeline {
     // GATE input processing
     // ========================================================================
 
-    private void setup_gate()
+    private void setupGate()
             throws GateException, IOException, ResourceInstantiationException {
-        status("Initializing GATE...");
+        m_log.info("Initializing GATE...");
         Gate.init();
-        status("... GATE initialized");
+        m_log.info("... GATE initialized");
 
-        status("Initializing app...");
+        m_log.info("Initializing app...");
         // load the saved application
         m_controller = (CorpusController)
             PersistenceManager.loadObjectFromFile(m_gapp_file);
-        status("... app initialized");
+        m_log.info("... app initialized");
 
-        status("Initializing corpus...");
+        m_log.info("Initializing corpus...");
         // Create a GATE corpus (name is arbitrary)
         m_corpus = Factory.newCorpus("CrateGatePipeline corpus");
         // Tell the controller about the corpus
         m_controller.setCorpus(m_corpus);
-        status("... corpus initialized");
+        m_log.info("... corpus initialized");
     }
 
-    private void process_input(String text)
+    private void processInput(String text)
             throws ResourceInstantiationException, ExecutionException,
                    IOException, InvalidOffsetException {
         // Make a document from plain text
@@ -410,10 +462,10 @@ public class CrateGatePipeline {
         // Add the single document to the corpus
         m_corpus.add(doc);
         // Run the application.
-        status("Running application...");
+        m_log.info("Running application...");
         m_controller.execute();
-        status("Application complete, processing output...");
-        report_output(doc);
+        m_log.info("Application complete, processing output...");
+        reportOutput(doc);
         // remove the document from the corpus again
         m_corpus.clear();
         // Garbage collection
@@ -425,7 +477,7 @@ public class CrateGatePipeline {
     // GATE output processing
     // ========================================================================
 
-    private void report_output(Document doc)
+    private void reportOutput(Document doc)
             throws IOException, InvalidOffsetException {
         FeatureMap features = doc.getFeatures();
         String outstring;
@@ -466,7 +518,7 @@ public class CrateGatePipeline {
             Iterator annIt = annotationsToWrite.iterator();
             while (annIt.hasNext()) {
                 Annotation annot = (Annotation)annIt.next();
-                process_annotation(annot, doc, outtsv);
+                processAnnotation(annot, doc, outtsv);
             }
             // Write annotated contents (as XML) to file?
             if (m_annotxml_filename_stem != null) {
@@ -480,7 +532,7 @@ public class CrateGatePipeline {
             Iterator annIt = annotations.iterator();
             while (annIt.hasNext()) {
                 Annotation annot = (Annotation)annIt.next();
-                process_annotation(annot, doc, outtsv);
+                processAnnotation(annot, doc, outtsv);
             }
             if (m_annotxml_filename_stem != null) {
                 writeXml(m_annotxml_filename_stem, doc.toXml());
@@ -496,14 +548,14 @@ public class CrateGatePipeline {
             writeXml(m_gatexml_filename_stem, doc.toXml());
         }
 
-        // Having written to stdout via process_annotation()...
+        // Having written to stdout via processAnnotation()...
         println(m_output_terminator);
         // Flushing is not required:
         // http://stackoverflow.com/questions/7166328
     }
 
-    private void process_annotation(Annotation a, Document doc,
-                                    PrintStream outtsv)
+    private void processAnnotation(Annotation a, Document doc,
+                                   PrintStream outtsv)
             throws InvalidOffsetException, IOException {
         String type = a.getType();
         long id = a.getId();
@@ -526,34 +578,21 @@ public class CrateGatePipeline {
         }
 
         // Primary output
-        print_map_as_tsv_line(outputmap, m_out);
+        printMapAsTsvLine(outputmap, m_out);
 
         // Send to file as well?
         if (outtsv != null) {
-            print_map_as_tsv_line(outputmap, outtsv);
+            printMapAsTsvLine(outputmap, outtsv);
         }
 
         // Debugging
-        if (m_verbose >= 1) {
-            status(m_sep1 + "ANNOTATION:");
-            report_map_to_status(outputmap);
-            status(m_sep2);
-        }
+        m_log.debug(m_sep1 + "ANNOTATION:");
+        reportMap(outputmap);
+        m_log.debug(m_sep2);
     }
 
-    private String escape_tabs_newlines(String s) {
-        if (s == null) {
-            return s;
-        }
-        s = s.replace("\\", "\\");
-        s = s.replace("\n", "\\n");
-        s = s.replace("\r", "\\r");
-        s = s.replace("\t", "\\t");
-        return s;
-    }
-
-    private void print_map_as_tsv_line(Map<String, String> map,
-                                       PrintStream stream) {
+    private void printMapAsTsvLine(Map<String, String> map,
+                                   PrintStream stream) {
         boolean first = true;
         for (Map.Entry<String, String> entry : map.entrySet()) {
             if (!first) {
@@ -562,15 +601,15 @@ public class CrateGatePipeline {
             first = false;
             stream.print(entry.getKey());
             stream.print("\t");
-            stream.print(escape_tabs_newlines(entry.getValue()));
+            stream.print(escapeTabsNewlines(entry.getValue()));
         }
         stream.print("\n");
     }
 
-    private void report_map_to_status(Map<String, String> map) {
+    private void reportMap(Map<String, String> map) {
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            status(entry.getKey() + ":" +
-                   escape_tabs_newlines(entry.getValue()));
+            m_log.debug(entry.getKey() + ":" +
+                        escapeTabsNewlines(entry.getValue()));
         }
     }
 
@@ -579,6 +618,6 @@ public class CrateGatePipeline {
     // ========================================================================
 
     public static void main(String args[]) throws GateException, IOException {
-        CrateGatePipeline annie = new CrateGatePipeline(args);
+        CrateGatePipeline pipeline = new CrateGatePipeline(args);
     }
 }
