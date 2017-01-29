@@ -73,8 +73,9 @@ class Gate(BaseNlpParser):
     - ZeroMQ with some sort of security
         - pip install zmq
         - some sort of Java binding (jzmq, jeromq...)
-    - redirect stdout
-        System.setOut
+    - redirect stdout in our Java handler
+        System.setOut()
+        ... yes, that works.
     """
     NAME = "GATE"
 

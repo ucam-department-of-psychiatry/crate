@@ -106,7 +106,7 @@ public class CrateGatePipeline {
     // Interface
     private String m_args[];
     // Options
-    private ArrayList<String> m_target_annotations = null;
+    private ArrayList<String> m_target_annotations = new ArrayList<String>();
     private String m_input_terminator = m_default_input_terminator;
     private String m_output_terminator = m_default_output_terminator;
     private File m_gapp_file = null;
@@ -151,7 +151,7 @@ public class CrateGatePipeline {
                                           : (m_verbose >= 1 ? Level.INFO
                                                             : Level.WARN);
         Level gate_level = m_verbose >= 3 ? Level.DEBUG
-                                          : (m_verbose >= 1 ? Level.INFO
+                                          : (m_verbose >= 2 ? Level.INFO
                                                             : Level.WARN);
         String tag = "";
         if (!m_extra_log_prefix.isEmpty()) {
@@ -275,9 +275,6 @@ public class CrateGatePipeline {
             switch (arg) {
                 case "-a":
                     if (nleft < 1) argfail(insufficient);
-                    if (m_target_annotations == null) {
-                        m_target_annotations = new ArrayList<String>();
-                    }
                     m_target_annotations.add(m_args[i++]);
                     break;
                 case "-e":
@@ -511,7 +508,7 @@ public class CrateGatePipeline {
         }
 
         // Fetch relevant output
-        if (m_target_annotations != null) {
+        if (!m_target_annotations.isEmpty()) {
             // User has specified annotations to report.
             // Create a temporary Set to hold the annotations we wish to write out
             Set<Annotation> annotationsToWrite = new HashSet<Annotation>();
@@ -600,6 +597,7 @@ public class CrateGatePipeline {
         }
 
         // Debugging
+        m_log.info("Found annotation of type: " + type);
         m_log.debug(m_sep1 + "ANNOTATION:");
         reportMap(outputmap);
         m_log.debug(m_sep2);
