@@ -198,12 +198,14 @@ public class CrateGatePipeline {
         // unless we divert them:
         if (m_suppress_gate_stdout) {
             // http://stackoverflow.com/questions/4799006
+            m_log.debug("Suppressing GATE stdout");
             System.setOut(new PrintStream(new OutputStream() {
                 public void write(int b) {
                     // DO NOTHING
                 }
             }));
         } else {
+            m_log.debug("Sending GATE stdout to stderr");
             System.setOut(System.err);
         }
 
