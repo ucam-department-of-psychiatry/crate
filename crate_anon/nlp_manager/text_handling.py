@@ -22,8 +22,11 @@
 ===============================================================================
 """
 
+import logging
 from typing import Dict
 from cardinal_pythonlib.rnc_lang import chunks
+
+log = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -37,6 +40,9 @@ def tsv_pairs_to_dict(line: str, key_lower: bool = True) -> Dict[str, str]:
     items = line.split("\t")
     d = {}
     for chunk in chunks(items, 2):
+        if len(chunk) < 2:
+            log.warning("Bad chunk, not of length 2: {}".format(repr(chunk)))
+            continue
         key = chunk[0]
         value = unescape_tabs_newlines(chunk[1])
         if key_lower:
