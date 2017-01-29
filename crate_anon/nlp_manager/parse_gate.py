@@ -62,6 +62,19 @@ class Gate(BaseNlpParser):
     We send text to it, it parses the text, and it sends us back results, which
     we return as dictionaries. The specific text sought depends on the
     configuration file and the specific GATE program used.
+
+    PROBLEM when attempting to use KConnect (Bio-YODIE): its source code is
+    riddled with direct calls to System.out.println().
+
+    POTENTIAL SOLUTIONS
+    - named pipes:
+        os.mkfifo() - Unix only.
+        win32pipe - http://stackoverflow.com/questions/286614
+    - ZeroMQ with some sort of security
+        - pip install zmq
+        - some sort of Java binding (jzmq, jeromq...)
+    - redirect stdout
+        System.setOut
     """
     NAME = "GATE"
 

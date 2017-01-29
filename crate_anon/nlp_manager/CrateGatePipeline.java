@@ -179,7 +179,13 @@ public class CrateGatePipeline {
         // --------------------------------------------------------------------
         // Setup stdout
         // --------------------------------------------------------------------
+
+        // We're going to write to this:
         m_out = new PrintStream(System.out, true, m_std_encoding);
+
+        // Some GATE apps may write to System.out, which will cause us problems
+        // unless we divert them:
+        System.setOut(System.err);
 
         // --------------------------------------------------------------------
         // Do interesting things
