@@ -125,6 +125,7 @@ public class CrateGatePipeline {
     private String m_annotxml_filename_stem = null;
     private String m_gatexml_filename_stem = null;
     private String m_tsv_filename_stem = null;
+    private boolean m_suppress_gate_stdout = false;
     // Text
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
@@ -195,7 +196,16 @@ public class CrateGatePipeline {
 
         // Some GATE apps may write to System.out, which will cause us problems
         // unless we divert them:
-        System.setOut(System.err);
+        if (m_suppress_gate_stdout) {
+            // http://stackoverflow.com/questions/4799006
+            System.setOut(new PrintStream(new OutputStream() {
+                public void write(int b) {
+                    // DO NOTHING
+                }
+            }));
+        } else {
+            System.setOut(System.err);
+        }
 
         // --------------------------------------------------------------------
         // Do interesting things
@@ -269,7 +279,8 @@ public class CrateGatePipeline {
 "  -wa FILESTEM     Write annotated XML document to FILESTEM<n>.xml, where <n>\n" +
 "                   is the file's sequence number (starting from 0).\n" +
 "  -wg FILESTEM     Write GateXML document to FILESTEM<n>.xml.\n" +
-"  -wt FILESTEM     Write TSV-format annotations FILESTEM<n>.tsv.\n"
+"  -wt FILESTEM     Write TSV-format annotations FILESTEM<n>.tsv.\n" +
+"  -s               Suppress any stdout from GATE application.\n"
         );
     }
 
@@ -325,6 +336,10 @@ public class CrateGatePipeline {
                 case "-wt":
                     if (nleft < 1) argfail(insufficient);
                     m_tsv_filename_stem = m_args[i++];
+                    break;
+                case "-s":
+                    if (nleft < 1) argfail(insufficient);
+                    m_suppress_gate_stdout = true;
                     break;
                 default:
                     usage();
