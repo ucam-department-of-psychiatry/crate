@@ -71,7 +71,7 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 # PLEASE SEE THE MANUAL FOR AN OVERVIEW.
 #
 # =============================================================================
-# Default fields
+# Notes on default fields
 # =============================================================================
 # - NOTE THAT THE FOLLOWING FIELDNAMES ARE USED AS STANDARD, AND WILL BE
 #   AUTOCREATED:
@@ -130,9 +130,13 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 
 
 # =============================================================================
-# Individual NLP definitions
-# - referred to by the nlp_manager.py's command-line arguments
+# A. Individual NLP definitions
 # =============================================================================
+# - referred to by the nlp_manager.py's command-line arguments
+
+# -----------------------------------------------------------------------------
+# GATE people-and-places demo
+# -----------------------------------------------------------------------------
 
 [NLPDEF_NAME_LOCATION_NLP]
 
@@ -149,9 +153,6 @@ inputfielddefs =
     # For possible processor types, see "crate_nlp --listprocessors".
 
 processors =
-    # -------------------------------------------------------------------------
-    # GATE
-    # -------------------------------------------------------------------------
     GATE procdef_gate_name_location
 
     # To allow incremental updates, information is stored in a progress table.
@@ -165,6 +166,37 @@ hashphrase = doesnotmatter
     # Default is {DEFAULT_TEMPORARY_TABLENAME}
 # temporary_tablename = {DEFAULT_TEMPORARY_TABLENAME}
 
+# -----------------------------------------------------------------------------
+# KConnect (Bio-YODIE) GATE app
+# -----------------------------------------------------------------------------
+
+[NLPDEF_KCONNECT]
+
+inputfielddefs =
+    INPUT_FIELD_CLINICAL_DOCUMENTS
+    INPUT_FIELD_PROGRESS_NOTES
+processors =
+    GATE procdef_gate_kconnect
+progressdb = DESTINATION_DATABASE
+hashphrase = doesnotmatter
+
+# -----------------------------------------------------------------------------
+# Medex-UIMA drug-finding app
+# -----------------------------------------------------------------------------
+
+[NLPDEF_MEDEX_DRUGS]
+
+inputfielddefs =
+    INPUT_FIELD_CLINICAL_DOCUMENTS
+    INPUT_FIELD_PROGRESS_NOTES
+processors =
+    Medex procdef_medex_drugs
+progressdb = DESTINATION_DATABASE
+hashphrase = doesnotmatter
+
+# -----------------------------------------------------------------------------
+# CRATE number-finding Python regexes
+# -----------------------------------------------------------------------------
 
 [NLPDEF_BIOMARKERS]
 
@@ -242,7 +274,7 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
 
 # =============================================================================
-# NLP processor definitions
+# B. NLP processor definitions
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -388,7 +420,7 @@ destdb = DESTINATION_DATABASE
 desttable = validate_neutrophils
 
 # -----------------------------------------------------------------------------
-# Specimen GATE processor definition
+# Specimen GATE demo people/places processor definition
 # -----------------------------------------------------------------------------
 
 [procdef_gate_name_location]
@@ -477,10 +509,36 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
 # max_external_prog_uses = 1000
 
 # -----------------------------------------------------------------------------
+# Specimen KConnect (Bio-YODIE) processor definition
+# -----------------------------------------------------------------------------
+
+[procdef_gate_kconnect]
+
+destdb = DESTINATION_DATABASE
+outputtypemap =
+    disease_or_syndrome output_disease_or_syndrome
+progargs = java
+    -classpath "{{NLPPROGDIR}}":"{{GATEDIR}}/bin/gate.jar":"{{GATEDIR}}/lib/*"
+    -Dgate.home="{{GATEDIR}}"
+    CrateGatePipeline
+    -g "{{KCONNECTDIR}}/main-bio/main-bio.xgapp"
+    -a Disease_or_Syndrome
+    -it END_OF_TEXT_FOR_NLP
+    -ot END_OF_NLP_OUTPUT_RECORD
+    -lt {{NLPLOGTAG}}
+    -s
+    -v
+progenvsection = MY_ENV_SECTION
+input_terminator = END_OF_TEXT_FOR_NLP
+output_terminator = END_OF_NLP_OUTPUT_RECORD
+# max_external_prog_uses = 1000
+
+# -----------------------------------------------------------------------------
 # Specimen MedEx processor definition
 # -----------------------------------------------------------------------------
 
 [procdef_medex_drugs]
+
 destdb = DESTINATION_DATABASE
 desttable = drugs
 progargs = java
@@ -492,20 +550,27 @@ progargs = java
 progenvsection = MY_ENV_SECTION
 
 # =============================================================================
-# Environment variable definitions (for external program, and progargs).
+# C. Environment variable definitions (for external program, and progargs).
+# =============================================================================
 # The environment will start by inheriting the parent environment, then add
 # variables here. Keys are case-sensitive
-# =============================================================================
 
 [MY_ENV_SECTION]
 
 GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
 NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
 MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
+KCONNECTDIR = /home/myuser/somewhere/yodie-pipeline-1-2-umls-only
+
 
 # =============================================================================
-# Output types for GATE
+# D. Output definitions (for GATE apps)
 # =============================================================================
+# These define the tables that will receive GATE output.
+
+# -----------------------------------------------------------------------------
+# Output types for GATE people-and-places demo
+# -----------------------------------------------------------------------------
 
 [output_person]
 
@@ -540,13 +605,38 @@ indexdefs =
     rule    100
     loctype 100
 
+
+# -----------------------------------------------------------------------------
+# Output types for KConnect/Bio-YODIE
+# -----------------------------------------------------------------------------
+
+[output_disease_or_syndrome]
+
+destdb = DESTINATION_DATABASE
+desttable = kconnect_diseases
+destfields =
+    # Found by manual inspection of KConnect/Bio-YODIE output from the GATE console:
+    Experiencer  VARCHAR(100)  # e.g. "Patient"
+    Negation     VARCHAR(100)  # e.g. "Affirmed"
+    PREF         VARCHAR(100)  # e.g. "Rheumatic gout"; PREFferred name
+    STY          VARCHAR(100)  # e.g. "Disease or Syndrome"; Semantic Type (STY) [semantic type name]
+    TUI          VARCHAR(4)    # e.g. "T047"; Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/
+    Temporality  VARCHAR(100)  # e.g. "Recent"
+    VOCABS       VARCHAR(255)  # e.g. "AIR,MSH,NDFRT,MEDLINEPLUS,NCI,LNC,NCI_FDA,NCI,MTH,AIR,ICD9CM,LNC,SNOMEDCT_US,LCH_NW,HPO,SNOMEDCT_US,ICD9CM,SNOMEDCT_US,COSTAR,CST,DXP,QMR,OMIM,OMIM,AOD,CSP,NCI_NCI-GLOSS,CHV"; list of UMLS vocabularies
+    inst         VARCHAR(8)    # e.g. "C0003873"; looks like a Concept Unique Identifier (CUI); 1 letter then 7 digits
+    inst_full    VARCHAR(255)  # e.g. "http://linkedlifedata.com/resource/umls/id/C0003873"
+    language     VARCHAR(100)  # e.g. ""; ?will look like "ENG" for English? See https://www.nlm.nih.gov/research/umls/implementation_resources/query_diagrams/er1.html
+    tui_full     VARCHAR(255)  # e.g. "http://linkedlifedata.com/resource/semanticnetwork/id/T047"
+
+
 # =============================================================================
-# Input field definitions, referred to within the NLP definition, and cross-
-# referencing database definitions.
+# E. Input field definitions
+# =============================================================================
+# - Referred to within the NLP definition, and cross-referencing database
+#   definitions.
 # - The 'copyfields' are optional.
 # - The 'indexed_copyfields' are an optional subset of 'copyfields'; they'll be
 #   indexed.
-# =============================================================================
 
 [INPUT_FIELD_CLINICAL_DOCUMENTS]
 
@@ -575,7 +665,7 @@ indexed_copyfields = RID_FIELD
     TRID_FIELD
 
 # =============================================================================
-# Database definitions, each in its own section
+# F. Database definitions, each in its own section
 # =============================================================================
 # Use SQLAlchemy URLs: http://docs.sqlalchemy.org/en/latest/core/engines.html
 
