@@ -86,11 +86,21 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
 
-import gate.*;
-import gate.creole.*;
-import gate.util.*;
-import gate.util.persistence.PersistenceManager;
+import gate.Annotation;
+import gate.AnnotationSet;
+import gate.Corpus;
+import gate.CorpusController;
+import gate.Document;
+import gate.Factory;
+import gate.FeatureMap;
+import gate.Gate;
+
 import gate.corpora.RepositioningInfo;
+import gate.creole.ExecutionException;
+import gate.creole.ResourceInstantiationException;
+import gate.util.GateException;
+import gate.util.InvalidOffsetException;
+import gate.util.persistence.PersistenceManager;
 
 public class CrateGatePipeline {
 
@@ -203,7 +213,7 @@ public class CrateGatePipeline {
             if (result.finished) {
                 continue;
             }
-            m_log.info("Read text");
+            m_log.info("Text read from stdin");
             m_log.debug(m_sep1 + "CONTENTS OF STDIN:");
             m_log.debug(result.contents);
             m_log.debug(m_sep2);
@@ -488,16 +498,35 @@ public class CrateGatePipeline {
     // GATE output processing
     // ========================================================================
 
+    private Map<String, AnnotationSet> getAnnotationSets(Document doc) {
+        // The default of doc.getAnnotations() only gets the default (unnamed)
+        // AnnotationSet. But for KConnect/Bio-YODIE, we find an unnamed set,
+        // and a set named "Bio", whose annotations look like "Bio#Disease".
+        //
+        // The underlying functions are:
+        //      public AnnotationSet SimpleDocument::getAnnotations();
+        //      public AnnotationSet SimpleDocument::getAnnotations(String name);
+        // and then the other useful one is:
+        //      public Set<String> SimpleDocument::getAnnotationSetNames();
+
+        Map<String, AnnotationSet> sets = new HashMap<String, AnnotationSet>();
+        sets.put("", doc.getAnnotations());  // the unnamed one
+        for (String name : doc.getAnnotationSetNames()) {
+            sets.put(name, doc.getAnnotations(name));
+        }
+        return sets;
+    }
+
     private void reportOutput(Document doc)
             throws IOException, InvalidOffsetException {
         FeatureMap features = doc.getFeatures();
         String outstring;
         /*
-        String originalContent = (String)
+        String original_content = (String)
             features.get(GateConstants.ORIGINAL_DOCUMENT_CONTENT_FEATURE_NAME);
         RepositioningInfo info = (RepositioningInfo)
             features.get(GateConstants.DOCUMENT_REPOSITIONING_INFO_FEATURE_NAME);
-        status("originalContent: " + originalContent);
+        status("original_content: " + original_content);
         status("info: " + info);
         */
 
@@ -509,45 +538,67 @@ public class CrateGatePipeline {
 
         // Fetch relevant output
         if (!m_target_annotations.isEmpty()) {
+
+            // ----------------------------------------------------------------
             // User has specified annotations to report.
+            // ----------------------------------------------------------------
+
             // Create a temporary Set to hold the annotations we wish to write out
-            Set<Annotation> annotationsToWrite = new HashSet<Annotation>();
-            // We only extract annotations from the default (unnamed)
-            // AnnotationSet in this example
-            AnnotationSet defaultAnnots = doc.getAnnotations();
-            Iterator annotTypesIt = m_target_annotations.iterator();
-            while (annotTypesIt.hasNext()) {
-                // extract all the annotations of each requested type and add
-                // them to the temporary set
-                AnnotationSet annotsOfThisType = defaultAnnots.get(
-                    (String)annotTypesIt.next());
-                if (annotsOfThisType != null) {
-                    annotationsToWrite.addAll(annotsOfThisType);
+            Set<Annotation> annotations_to_write = new HashSet<Annotation>();
+
+            // Extract the annotations
+            Map<String, AnnotationSet> sets = getAnnotationSets(doc);
+            for (Map.Entry<String, AnnotationSet> entry : sets.entrySet()) {
+                String name = entry.getKey();
+                AnnotationSet annotations = entry.getValue();
+                Iterator annot_types_it = m_target_annotations.iterator();
+                while (annot_types_it.hasNext()) {
+                    // extract all the annotations of each requested type and
+                    // add them to the temporary set
+                    AnnotationSet annots_of_this_type = annotations.get(
+                        (String)annot_types_it.next());
+                    if (annots_of_this_type != null) {
+                        annotations_to_write.addAll(annots_of_this_type);
+                    }
                 }
             }
+
             // Process individual annotations
-            Iterator annIt = annotationsToWrite.iterator();
-            while (annIt.hasNext()) {
-                Annotation annot = (Annotation)annIt.next();
+            Iterator ann_it = annotations_to_write.iterator();
+            while (ann_it.hasNext()) {
+                Annotation annot = (Annotation)ann_it.next();
                 processAnnotation(annot, doc, outtsv);
             }
+
             // Write annotated contents (as XML) to file?
             if (m_annotxml_filename_stem != null) {
                 writeXml(m_annotxml_filename_stem,
-                         doc.toXml(annotationsToWrite));
+                         doc.toXml(annotations_to_write));
             }
+
         } else {
-            // No annotations specified.
-            // Process all of them and write the whole thing as GateXML.
-            AnnotationSet annotations = doc.getAnnotations();
-            Iterator annIt = annotations.iterator();
-            while (annIt.hasNext()) {
-                Annotation annot = (Annotation)annIt.next();
-                processAnnotation(annot, doc, outtsv);
+
+            // ----------------------------------------------------------------
+            // No annotations specified. Process them all.
+            // ----------------------------------------------------------------
+
+            // Process all of them...
+            Map<String, AnnotationSet> sets = getAnnotationSets(doc);
+            for (Map.Entry<String, AnnotationSet> entry : sets.entrySet()) {
+                String name = entry.getKey();
+                AnnotationSet annotations = entry.getValue();
+                Iterator ann_it = annotations.iterator();
+                while (ann_it.hasNext()) {
+                    Annotation annot = (Annotation)ann_it.next();
+                    processAnnotation(annot, doc, outtsv);
+                }
             }
+
+            // ... and write the whole thing as GateXML.
             if (m_annotxml_filename_stem != null) {
                 writeXml(m_annotxml_filename_stem, doc.toXml());
             }
+
         }
 
         if (outtsv != null) {
