@@ -145,14 +145,36 @@ public class CrateGatePipeline {
         // --------------------------------------------------------------------
         // Logging
         // --------------------------------------------------------------------
+        // http://stackoverflow.com/questions/8965946/configuring-log4j-loggers-programmatically
+        // https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PatternLayout.html
         Level main_level = m_verbose >= 2 ? Level.DEBUG
                                           : (m_verbose >= 1 ? Level.INFO
                                                             : Level.WARN);
         Level gate_level = m_verbose >= 3 ? Level.DEBUG
                                           : (m_verbose >= 1 ? Level.INFO
                                                             : Level.WARN);
-        configureLog(m_log, main_level, m_extra_log_prefix);
-        configureLog(Logger.getLogger("gate"), gate_level, "");
+        String tag = "";
+        if (!m_extra_log_prefix.isEmpty()) {
+            tag += "|" + escapePercent(m_extra_log_prefix);
+        }
+        String log_pattern = "%d{yyyy-MM-dd HH:mm:ss.SSS} [%p|%c" + tag + "] %m%n";
+        PatternLayout log_layout = new PatternLayout(log_pattern);
+        ConsoleAppender log_appender = new ConsoleAppender(log_layout, "System.err");
+        Logger rootlog = Logger.getRootLogger();
+        rootlog.addAppender(log_appender);
+
+        rootlog.setLevel(gate_level);
+        m_log.setLevel(main_level);
+
+        /*
+        // Test:
+        rootlog.debug("rootlog debug");
+        rootlog.info("rootlog info");
+        rootlog.warn("rootlog warn");
+        m_log.debug("m_log debug");
+        m_log.info("m_log info");
+        m_log.warn("m_log warn");
+        */
 
         // --------------------------------------------------------------------
         // Setup stdout
@@ -387,20 +409,6 @@ public class CrateGatePipeline {
 
     private void println(String msg) {
         m_out.println(msg);
-    }
-
-    private void configureLog(Logger log, Level level, String logtag) {
-        // http://stackoverflow.com/questions/8965946/configuring-log4j-loggers-programmatically
-        // https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PatternLayout.html
-        String tag = "";
-        if (!logtag.isEmpty()) {
-            tag += "|" + escapePercent(logtag);
-        }
-        String log_pattern = "%d{yyyy-MM-dd HH:mm:ss.SSS} [%p|%c" + tag + "] %m%n";
-        PatternLayout log_layout = new PatternLayout(log_pattern);
-        ConsoleAppender log_appender = new ConsoleAppender(log_layout, "System.err");
-        log.addAppender(log_appender);
-        log.setLevel(level);
     }
 
     // ========================================================================
