@@ -57,6 +57,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # log.warning("BASE_DIR: {}".format(BASE_DIR))
 
+DEBUG_TOOLBAR_PATCH_SETTINGS = False
 
 # Application definition
 
@@ -84,6 +85,14 @@ INSTALLED_APPS = (
 MIDDLEWARE_CLASSES = (
     # 'silk.middleware.SilkyMiddleware',
 
+    # Last, when using the profiling panel? But actually breaks it...
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # ... should be added automatically, but there's a problem (2016-04-14)
+    # ... reinstated here 2017-01-30 (django-debug-toolbar==1.6)
+    # ... "as early as possible... but after any other middle that encodes the
+    #     response's content, such as GZipMiddleware"
+    # ... http://django-debug-toolbar.readthedocs.io/en/1.0/installation.html#explicit-setup  # noqa
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -100,10 +109,6 @@ MIDDLEWARE_CLASSES = (
     'crate_anon.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
     # 'crate_anon.crateweb.extra.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
 
-    # Last, when using the profiling panel? But actually breaks it...
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
-    # ... should be added automatically, but there's a problem (2016-04-14)
-    # ... reinstated here 2017-01-30 (django-debug-toolbar==1.6)
 )
 
 # Celery things

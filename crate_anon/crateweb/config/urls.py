@@ -37,11 +37,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
 
-from django.conf.urls import include, url  # patterns
+from django.conf import settings
+from django.conf.urls import include, patterns, url
 # import django.contrib.auth.views
 # from django.contrib import admin
 # import django.views.defaults
 # import admin_honeypot
+import debug_toolbar
 from crate_anon.crateweb.core.admin import (
     mgr_admin_site,
     dev_admin_site,
@@ -241,3 +243,10 @@ urlpatterns = [
 
 # urlpatterns += patterns('', url(r'^silk/',
 #                                 include('silk.urls', namespace='silk')))
+
+
+if settings.DEBUG:
+    # https://github.com/jazzband/django-debug-toolbar/issues/529
+    urlpatterns += patterns('',
+        url(r'^__debug__/', include(debug_toolbar.urls)),
+    )
