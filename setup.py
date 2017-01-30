@@ -211,8 +211,8 @@ setup(
         'xlrd==1.0.0',
 
         # Serving:
-        'gunicorn==19.3.0',  # UNIX only, though will install under Windows
-        'cherrypy==5.1.0',  # Cross-platform
+        'gunicorn>=19.3.0',  # UNIX only, though will install under Windows
+        'cherrypy>=5.1.0',  # Cross-platform
 
         # ---------------------------------------------------------------------
         # For the anonymiser/pythonlib:

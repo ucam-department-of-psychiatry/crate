@@ -775,6 +775,7 @@ OPTIMAL: proxy Apache through to Gunicorn
         # b) Restrict CRATE to SSL.
         #    - Set CRATE_HTTPS=True in the CRATE local config file, which sets
         #      several other flags in response to restrict cookies to HTTPS.
+        #      (This is the default.)
         #    - Redirect HTTP to HTTPS in Apache. Ensure you have run:
         #       sudo a2enmod rewrite
         #    - Then these commands:
