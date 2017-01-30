@@ -38,7 +38,7 @@ Including another URLconf
 """
 
 from django.conf import settings
-from django.conf.urls import include, patterns, url
+from django.conf.urls import include, url
 # import django.contrib.auth.views
 # from django.contrib import admin
 # import django.views.defaults
@@ -247,6 +247,7 @@ urlpatterns = [
 
 if settings.DEBUG:
     # https://github.com/jazzband/django-debug-toolbar/issues/529
-    urlpatterns += patterns('',
+    # http://stackoverflow.com/questions/32111203/what-is-the-benefit-of-using-django-conf-urls-patterns-versus-a-list-of-url-in-d  # noqa
+    urlpatterns += [
         url(r'^__debug__/', include(debug_toolbar.urls)),
-    )
+    ]
