@@ -175,44 +175,44 @@ setup(
         # For the web front end:
         # ---------------------------------------------------------------------
         # Core tools with accessories:
-        'arrow==0.7.0',  # better datetime
-        'colorlog==2.6.1',  # colour in logs
+        'arrow==0.10.0',  # better datetime
+        'colorlog==2.10.0',  # colour in logs
         # 'configobj==5.0.6',  # better config files
-        'distro==0.6.0',  # replaces platform.linux_distribution
+        'distro==1.0.2',  # replaces platform.linux_distribution
         # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
-        'psutil==4.1.0',  # process management
+        'psutil==5.0.1',  # process management
         'pyhashxx==0.1.3',  # fast non-cryptographic hashing
         'semver==2.4.1',  # comparing semantic versions
-        'SQLAlchemy>=1.1.3',  # database access
-        'typing==3.5.2.2',  # part of stdlib in Python 3.5, but not 3.4
+        'SQLAlchemy==1.1.5',  # database access
+        'typing==3.5.3.0',  # part of stdlib in Python 3.5, but not 3.4
 
         # Web app:
-        'celery>=3.1.23',
+        'celery==4.0.2',
         'colorlog==2.6.1',
-        'Django>=1.9.3',  # "django" versus "Django": neither helps pycharm checking  # noqa
-        'django-debug-toolbar>=1.4',
-        'django-debug-toolbar-template-profiler>=1.0.1',
-        'django-extensions>=1.7.6',
-        'django-picklefield>=0.3.2',
+        'Django==1.10.5',  # "django" versus "Django": neither helps pycharm checking  # noqa
+        'django-debug-toolbar==1.6',
+        'django-debug-toolbar-template-profiler==1.0.1',
+        'django-extensions==1.7.6',
+        'django-picklefield==0.3.2',
         # 'django-silk==0.5.7',
-        'django-sslserver>=0.15',
-        'flower>=0.9.1',  # debug Celery; web server; only runs explicitly
-        'pdfkit>=0.5.0',
+        'django-sslserver==0.19',
+        'flower==0.9.1',  # debug Celery; web server; only runs explicitly
+        'pdfkit==0.6.1',
         # 'pygraphviz==1.3.1',  # not used
-        'pyparsing==2.1.5',  # generic grammar parser
-        'PyPDF2==1.25.1',
-        'pytz==2015.6',
-        'python-dateutil==2.4.2',
-        'sqlparse==0.1.19',
-        'Werkzeug>=0.10.4',
+        'pyparsing==2.1.10',  # generic grammar parser
+        'PyPDF2==1.26.0',
+        'pytz==2016.10',
+        'python-dateutil==2.6.0',
+        'sqlparse==0.2.2',
+        'Werkzeug==0.11.15',
 
         # ONSPD:
-        'openpyxl==2.3.5',
+        'openpyxl==2.4.1',
         'xlrd==1.0.0',
 
         # Serving:
-        'gunicorn>=19.3.0',  # UNIX only, though will install under Windows
-        'cherrypy>=5.1.0',  # Cross-platform
+        'gunicorn==19.6.0',  # UNIX only, though will install under Windows
+        'cherrypy==10.0.0',  # Cross-platform
 
         # ---------------------------------------------------------------------
         # For the anonymiser/pythonlib:
@@ -220,12 +220,12 @@ setup(
 
         'cardinal_pythonlib==0.2.4',
 
-        'beautifulsoup4==4.4.1',
+        'beautifulsoup4==4.5.3',
         'prettytable==0.7.2',
         # 'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
         # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-        'regex==2015.11.14',
-        'sortedcontainers==1.4.2',
+        'regex==2017.1.17',
+        'sortedcontainers==1.5.7',
 
         # ---------------------------------------------------------------------
         # For database connections (see manual): install manually
