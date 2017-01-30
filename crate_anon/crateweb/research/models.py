@@ -737,6 +737,7 @@ ORDER BY
         # We execute this one directly, rather than using the Query class,
         # since this is a system rather than a per-user query.
         cursor = connection.cursor()
+        log.debug("sql = {}, args = {}".format(repr(sql), repr(args)))
         cursor.execute(sql, args)
         results = dictfetchall(cursor)  # list of OrderedDicts
         log.debug("... done")

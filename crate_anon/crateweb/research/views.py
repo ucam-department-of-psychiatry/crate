@@ -133,7 +133,8 @@ def query_context(request: HttpRequest) -> Dict[str, Any]:
 @lru_cache(maxsize=None)
 def get_db_structure_json() -> str:
     colinfolist = research_database_info.get_colinfolist()
-    log.debug("get_db_structure_json(): colinfolist: {}".format(repr(colinfolist)))  # noqa
+    if not colinfolist:
+        log.warning("get_db_structure_json(): colinfolist is empty")
     info = []
     for schema in get_researchdb_schemas():  # preserve order
         if not is_schema_eligible_for_query_builder(schema):
