@@ -167,7 +167,7 @@ class InputFieldConfig(object):
         return [
             Column(FN_PK, BigInteger, primary_key=True,
                    autoincrement=True,
-                   doc="Arbitrary PK of output record"),
+                   doc="Arbitrary primary key (PK) of output record"),
             Column(FN_NLPDEF, SqlTypeDbIdentifier,
                    doc="Name of the NLP definition producing this row"),
             Column(FN_SRCDB, SqlTypeDbIdentifier,

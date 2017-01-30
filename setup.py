@@ -187,24 +187,24 @@ setup(
         'typing==3.5.2.2',  # part of stdlib in Python 3.5, but not 3.4
 
         # Web app:
-        'celery==3.1.23',
+        'celery>=3.1.23',
         'colorlog==2.6.1',
         'Django>=1.9.3',  # "django" versus "Django": neither helps pycharm checking  # noqa
-        'django-debug-toolbar==1.4',
-        'django-debug-toolbar-template-profiler==1.0.1',
-        'django-extensions==1.5.9',
-        'django-picklefield==0.3.2',
+        'django-debug-toolbar>=1.4',
+        'django-debug-toolbar-template-profiler>=1.0.1',
+        'django-extensions>=1.7.6',
+        'django-picklefield>=0.3.2',
         # 'django-silk==0.5.7',
-        'django-sslserver==0.15',
-        'flower==0.9.1',  # debug Celery; web server; only runs explicitly
-        'pdfkit==0.5.0',
+        'django-sslserver>=0.15',
+        'flower>=0.9.1',  # debug Celery; web server; only runs explicitly
+        'pdfkit>=0.5.0',
         # 'pygraphviz==1.3.1',  # not used
         'pyparsing==2.1.5',  # generic grammar parser
         'PyPDF2==1.25.1',
         'pytz==2015.6',
         'python-dateutil==2.4.2',
         'sqlparse==0.1.19',
-        'Werkzeug==0.10.4',
+        'Werkzeug>=0.10.4',
 
         # ONSPD:
         'openpyxl==2.3.5',

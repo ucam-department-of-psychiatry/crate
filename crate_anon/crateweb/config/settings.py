@@ -69,7 +69,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.humanize',  # for nice comma formatting of numbers
     'debug_toolbar',  # for debugging
-    'django_extensions',  # for graph_models etc.
+    'django_extensions',  # for graph_models, show_urls etc.
     'sslserver',  # for SSL testing
     # 'kombu.transport.django',  # for Celery with Django database as broker
     'template_profiler_panel',

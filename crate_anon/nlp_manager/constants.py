@@ -76,20 +76,25 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 # - NOTE THAT THE FOLLOWING FIELDNAMES ARE USED AS STANDARD, AND WILL BE
 #   AUTOCREATED:
 #
-#   From nlp_manager.py, for *all* NLP processors:
+#   For *all* NLP processors (from input_field_config.py):
 #
-#       _pk INT
-#           -- PK within this table.
+#       _pk BIGINT
+#           -- Arbitrary primary key (PK) within this table.
+#       _nlpdef {IdentType}
+#           -- Name of the NLP definition producing this row.
 #       _srcdb {IdentType}
-#           -- Source database name
+#           -- Source database name (from CRATE NLP config file)
 #       _srctable {IdentType}
 #           -- Source table name
 #       _srcpkfield {IdentType}
-#           -- Source primary key (PK) field name
-#       _srcpkval INT
+#           -- PK field (column) name in source table
+#       _srcpkval BIGINT
 #           -- Source PK value
+#       _srcpkstr VARCHAR({MAX_STRING_PK_LENGTH})
+#           -- NULL if the table has an integer PK, but the PK if
+#              the PK was a string, to deal with hash collisions.
 #       _srcfield {IdentType}
-#           -- Source field containing text content
+#           -- Field (column) name of source text
 #
 #   The length of the VARCHAR fields is set by the MAX_SQL_FIELD_LEN constant.
 #
@@ -133,12 +138,14 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 # A. Individual NLP definitions
 # =============================================================================
 # - referred to by the nlp_manager.py's command-line arguments
+# - You are likely to need to alter these (particularly the bits in capital
+#   letters) to refer to your own database(s).
 
 # -----------------------------------------------------------------------------
 # GATE people-and-places demo
 # -----------------------------------------------------------------------------
 
-[NLPDEF_NAME_LOCATION_NLP]
+[MY_NLPDEF_NAME_LOCATION_NLP]
 
     # Input is from one or more source databases/tables/fields.
     # This list refers to config sections that define those fields in more
@@ -161,6 +168,10 @@ processors =
 
 progressdb = DESTINATION_DATABASE
 hashphrase = doesnotmatter
+    # ... you should replace this with a hash phrase of your own, but it's not
+    # especially secret (it's only used for change detection and users are
+    # likely to have access to the source material anyway), and its specific
+    # value is unimportant.
 
     # Temporary tablename to use (in progress and destination databases).
     # Default is {DEFAULT_TEMPORARY_TABLENAME}
@@ -170,7 +181,7 @@ hashphrase = doesnotmatter
 # KConnect (Bio-YODIE) GATE app
 # -----------------------------------------------------------------------------
 
-[NLPDEF_KCONNECT]
+[MY_NLPDEF_KCONNECT]
 
 inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
@@ -184,7 +195,7 @@ hashphrase = doesnotmatter
 # Medex-UIMA drug-finding app
 # -----------------------------------------------------------------------------
 
-[NLPDEF_MEDEX_DRUGS]
+[MY_NLPDEF_MEDEX_DRUGS]
 
 inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
@@ -198,7 +209,7 @@ hashphrase = doesnotmatter
 # CRATE number-finding Python regexes
 # -----------------------------------------------------------------------------
 
-[NLPDEF_BIOMARKERS]
+[MY_NLPDEF_BIOMARKERS]
 
 inputfielddefs =
     INPUT_FIELD_CLINICAL_DOCUMENTS
@@ -276,6 +287,8 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 # =============================================================================
 # B. NLP processor definitions
 # =============================================================================
+# - You're likely to have to modify the destination databases these point to,
+#   but otherwise you can probably leave them as they are.
 
 # -----------------------------------------------------------------------------
 # Specimen CRATE regular expression processor definitions
@@ -459,6 +472,8 @@ outputtypemap =
     #       /some/path:/some/other/path:/third/path
     #   and a Windows one looks like
     #       C:/some/path;C:/some/other/path;C:/third/path
+    # - To make this simpler, we can define the environment variable OS_PATHSEP
+    #   (by analogy to Python's os.pathsep), as below.
     #
     # You can use substitutable parameters:
     #
@@ -470,7 +485,7 @@ outputtypemap =
     #       run; used to label the output from {CLASSNAME}.
 
 progargs = java
-    -classpath "{{NLPPROGDIR}}":"{{GATEDIR}}/bin/gate.jar":"{{GATEDIR}}/lib/*"
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     {CLASSNAME}
     -g "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
@@ -518,7 +533,7 @@ destdb = DESTINATION_DATABASE
 outputtypemap =
     disease_or_syndrome output_disease_or_syndrome
 progargs = java
-    -classpath "{{NLPPROGDIR}}":"{{GATEDIR}}/bin/gate.jar":"{{GATEDIR}}/lib/*"
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     -g "{{KCONNECTDIR}}/main-bio/main-bio.xgapp"
@@ -552,8 +567,10 @@ progenvsection = MY_ENV_SECTION
 # =============================================================================
 # C. Environment variable definitions (for external program, and progargs).
 # =============================================================================
-# The environment will start by inheriting the parent environment, then add
-# variables here. Keys are case-sensitive
+# - The environment will start by inheriting the parent environment, then add
+#   variables here.
+# - Keys are case-sensitive.
+# - You'll need to modify this according to your local configuration.
 
 [MY_ENV_SECTION]
 
@@ -561,12 +578,15 @@ GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
 NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
 MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
 KCONNECTDIR = /home/myuser/somewhere/yodie-pipeline-1-2-umls-only
+OS_PATHSEP = :
 
 
 # =============================================================================
 # D. Output definitions (for GATE apps)
 # =============================================================================
-# These define the tables that will receive GATE output.
+# - These define the tables that will receive GATE output.
+# - You probably don't have to modify these, unless you're adding a new GATE
+#   app.
 
 # -----------------------------------------------------------------------------
 # Output types for GATE people-and-places demo
@@ -595,7 +615,6 @@ indexdefs =
 
 [output_location]
 
-destdb = DESTINATION_DATABASE
 desttable = location
 destfields =
     rule        VARCHAR(100)
@@ -612,7 +631,6 @@ indexdefs =
 
 [output_disease_or_syndrome]
 
-destdb = DESTINATION_DATABASE
 desttable = kconnect_diseases
 destfields =
     # Found by manual inspection of KConnect/Bio-YODIE output from the GATE console:
@@ -683,6 +701,7 @@ url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
     DEFAULT_TEMPORARY_TABLENAME=DEFAULT_TEMPORARY_TABLENAME,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+    MAX_STRING_PK_LENGTH=MAX_STRING_PK_LENGTH,
     VERSION=VERSION,
     VERSION_DATE=VERSION_DATE,
 ))
