@@ -73,7 +73,8 @@ INSTALLED_APPS = (
     'django_extensions',  # for graph_models, show_urls etc.
     'sslserver',  # for SSL testing
     # 'kombu.transport.django',  # for Celery with Django database as broker
-    'template_profiler_panel',
+
+    # 'template_profiler_panel',
     # 'silk',
 
     'crate_anon.crateweb.config.apps.UserProfileAppConfig',  # for user-specific settings  # noqa
@@ -172,7 +173,7 @@ DEBUG_TOOLBAR_PANELS = [
     # Built in but not enabled as standard:
     # 'debug_toolbar.panels.profiling.ProfilingPanel',  # EXTREME DANGER! Breaks middleware inc. LoginRequiredMiddleware!  # noqa
     # Extra:
-    'template_profiler_panel.panels.template.TemplateProfilerPanel',
+    # 'template_profiler_panel.panels.template.TemplateProfilerPanel',  # removed 2017-01-31; division by zero error  # noqa
 ]
 
 # Internationalization
