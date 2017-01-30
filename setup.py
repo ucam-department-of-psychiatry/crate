@@ -188,7 +188,6 @@ setup(
 
         # Web app:
         'celery==4.0.2',
-        'colorlog==2.6.1',
         'Django==1.10.5',  # "django" versus "Django": neither helps pycharm checking  # noqa
         'django-debug-toolbar==1.6',
         'django-debug-toolbar-template-profiler==1.0.1',
