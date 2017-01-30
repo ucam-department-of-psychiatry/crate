@@ -92,6 +92,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+
     # Additional:
     'crate_anon.crateweb.extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
     'crate_anon.crateweb.extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
@@ -100,7 +101,9 @@ MIDDLEWARE_CLASSES = (
     # 'crate_anon.crateweb.extra.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
 
     # Last, when using the profiling panel? But actually breaks it...
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware',  # should be added automatically, but there's a problem (2016-04-14)  # noqa
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    # ... should be added automatically, but there's a problem (2016-04-14)
+    # ... reinstated here 2017-01-30 (django-debug-toolbar==1.6)
 )
 
 # Celery things
