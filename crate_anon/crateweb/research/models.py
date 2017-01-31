@@ -641,8 +641,10 @@ FROM (
         pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type,
         pgd.description AS column_comment,
         i.indrelid,
-        CASE WHEN pg_get_indexdef(indexrelid) ~ 'USING (gin |gist )' THEN 1
-            ELSE 0 END AS indexed_fulltext
+        CASE
+            WHEN pg_get_indexdef(indexrelid) ~ 'USING (gin |gist )' THEN 1
+            ELSE 0
+        END AS indexed_fulltext
     FROM pg_catalog.pg_statio_all_tables AS t
     INNER JOIN information_schema.columns c ON (
         c.table_schema = t.schemaname
@@ -674,7 +676,7 @@ ORDER BY
     d.table_schema,
     d.table_name,
     d.column_name
-                    """.format(schema_placeholder=schema_placeholder))
+            """.format(schema_placeholder=schema_placeholder))
             args = schemas
 
         # ---------------------------------------------------------------------
@@ -695,8 +697,7 @@ FROM (
         ta.name AS table_name,
         c.name AS column_name,
         c.is_nullable,
-        UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')'
-            AS column_type,
+        UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')' AS column_type,
         CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT
         i.index_id
     FROM sys.tables ta
@@ -724,7 +725,7 @@ ORDER BY
     table_schema,
     table_name,
     column_name
-                    """.format(schema_placeholder=schema_placeholder))  # noqa
+            """.format(schema_placeholder=schema_placeholder))  # noqa
             args = schemas
 
         # ---------------------------------------------------------------------
@@ -742,6 +743,11 @@ ORDER BY
         results = dictfetchall(cursor)  # list of OrderedDicts
         log.debug("results = {}".format(repr(results)))
         log.debug("... done")
+        if not results:
+            log.warning("ResearchDatabaseInfo.get_infodictlist(): no results "
+                        "for 'research' database - misconfigured?")
+            log.warning("Database settings: {}".format(repr(
+                settings.DATABASES['research'])))
         return results
         # Multiple values:
         # - Don't circumvent the parameter protection against SQL injection.
