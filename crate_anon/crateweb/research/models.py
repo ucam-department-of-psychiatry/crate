@@ -738,16 +738,14 @@ ORDER BY
         # We execute this one directly, rather than using the Query class,
         # since this is a system rather than a per-user query.
         cursor = connection.cursor()
-        log.debug("sql = {}, args = {}".format(repr(sql), repr(args)))
+        # log.debug("sql = {}, args = {}".format(repr(sql), repr(args)))
         cursor.execute(sql, args)
         results = dictfetchall(cursor)  # list of OrderedDicts
-        log.debug("results = {}".format(repr(results)))
+        # log.debug("results = {}".format(repr(results)))
         log.debug("... done")
         if not results:
             log.warning("ResearchDatabaseInfo.get_infodictlist(): no results "
                         "for 'research' database - misconfigured?")
-            log.warning("Database settings: {}".format(repr(
-                settings.DATABASES['research'])))
         return results
         # Multiple values:
         # - Don't circumvent the parameter protection against SQL injection.
