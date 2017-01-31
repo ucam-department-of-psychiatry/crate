@@ -699,8 +699,8 @@ FROM (
             AS column_type,
         CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT
         i.index_id
-	FROM sys.tables ta
-    INNER JOIN sys.schemas s on ta.schema_id = s.schema_id
+    FROM sys.tables ta
+    INNER JOIN sys.schemas s ON ta.schema_id = s.schema_id
     INNER JOIN sys.columns c ON c.object_id = ta.object_id
     INNER JOIN sys.types ty ON ty.system_type_id = c.system_type_id
     LEFT JOIN sys.extended_properties x ON (
@@ -740,6 +740,7 @@ ORDER BY
         log.debug("sql = {}, args = {}".format(repr(sql), repr(args)))
         cursor.execute(sql, args)
         results = dictfetchall(cursor)  # list of OrderedDicts
+        log.debug("results = {}".format(repr(results)))
         log.debug("... done")
         return results
         # Multiple values:
