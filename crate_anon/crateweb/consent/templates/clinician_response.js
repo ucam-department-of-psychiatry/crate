@@ -13,6 +13,7 @@ var r_available_python = "{{ option_r_available }}";
 var r_available = r_available_python == "True";
 var initial_response = "{{ initial_response }}";
 
+//noinspection JSUnusedGlobalSymbols
 function startup() {
     // document.getElementById("debug").innerHTML += "initial_response: " + initial_response + ".";
     if (initial_response == 'A') {

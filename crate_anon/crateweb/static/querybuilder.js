@@ -600,18 +600,17 @@ function schema_changed() {
 
 function db_changed() {
     var db = get_current_db(),
-
-        table_picker = document.getElementById(ID_TABLE_PICKER),
-        table_names = get_all_table_names(schema),
-        table_options = get_select_options_from_list(table_names);
-    log("schema_changed: schema = " + schema);
-    if (!schema) {
-        hide_element(table_picker);
+        schema_picker = document.getElementById(ID_SCHEMA_PICKER),
+        schema_names = get_all_table_names(db),
+        schema_options = get_select_options_from_list(schema_names);
+    log("db_changed: db = " + db);
+    if (!db) {
+        hide_element(schema_picker);
     } else {
-        show_element(table_picker);
+        show_element(schema_picker);
     }
-    reset_select_options_by_id(ID_TABLE_PICKER, table_options);
-    table_changed();
+    reset_select_options_by_id(ID_SCHEMA_PICKER, schema_options);
+    schema_changed();
 }
 
 function populate() {

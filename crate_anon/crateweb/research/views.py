@@ -86,7 +86,6 @@ from crate_anon.common.sql import (
     ColumnName,
     sql_date_literal,
     sql_string_literal,
-    TableName,
     toggle_distinct,
 )
 from crate_anon.common.sql_grammar import (
