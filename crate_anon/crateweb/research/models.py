@@ -336,7 +336,8 @@ class QueryAudit(models.Model):
     query = models.ForeignKey('Query')
     when = models.DateTimeField(auto_now_add=True)
     count_only = models.BooleanField(default=False)
-    n_records = models.PositiveIntegerField(default=0)
+    n_records = models.IntegerField(default=0)
+    # ... not PositiveIntegerField; SQL Server gives -1, for example
     failed = models.BooleanField(default=False)
     fail_msg = models.TextField()
 
