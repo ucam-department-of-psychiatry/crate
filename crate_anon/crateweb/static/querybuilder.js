@@ -161,8 +161,7 @@ function get_all_schema_names(db) {
         schema,
         i;
     for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
-        if (!STARTING_VALUES.with_database ||
-                DATABASE_STRUCTURE[i].database == db) {
+        if (DATABASE_STRUCTURE[i].database == db) {
             schema = DATABASE_STRUCTURE[i].schema;
             if (!contains(schema_names, schema)) {
                 schema_names.push(schema);
@@ -172,18 +171,19 @@ function get_all_schema_names(db) {
     return schema_names;
 }
 
-function get_schema_info(schema) {
+function get_schema_info(db, schema) {
     var i;
     for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
-        if (DATABASE_STRUCTURE[i].schema == schema) {
+        if (DATABASE_STRUCTURE[i].database == db &&
+                DATABASE_STRUCTURE[i].schema == schema) {
             return DATABASE_STRUCTURE[i];
         }
     }
     return null;
 }
 
-function get_all_table_names(schema) {
-    var schema_info = get_schema_info(schema),
+function get_all_table_names(db, schema) {
+    var schema_info = get_schema_info(db, schema),
         table_names = [],
         i;
     if (schema_info === null) {
@@ -195,8 +195,8 @@ function get_all_table_names(schema) {
     return table_names;
 }
 
-function get_table_info(schema, table) {
-    var schema_info = get_schema_info(schema),
+function get_table_info(db, schema, table) {
+    var schema_info = get_schema_info(db, schema),
         i;
     if (schema_info === null) {
         return null;
@@ -209,8 +209,8 @@ function get_table_info(schema, table) {
     return null;
 }
 
-function get_all_column_names(schema, table) {
-    var tableinfo = get_table_info(schema, table),
+function get_all_column_names(db, schema, table) {
+    var tableinfo = get_table_info(db, schema, table),
         column_names = [],
         i;
     if (tableinfo === null) {
@@ -222,8 +222,8 @@ function get_all_column_names(schema, table) {
     return column_names;
 }
 
-function get_column_info(schema, table, column) {
-    var tableinfo = get_table_info(schema, table),
+function get_column_info(db, schema, table, column) {
+    var tableinfo = get_table_info(db, schema, table),
         i;
     if (tableinfo === null) {
         return null;
@@ -406,7 +406,11 @@ function announce(text) {
 // ============================================================================
 
 function get_current_db() {
-    return get_picker_value_by_id(ID_DATABASE_PICKER);
+    if (STARTING_VALUES.with_database) {
+        return get_picker_value_by_id(ID_DATABASE_PICKER);
+    } else {
+        return '';
+    }
 }
 
 function get_current_schema() {
@@ -510,7 +514,7 @@ function column_changed() {
         schema = get_current_schema(),
         table = get_current_table(),
         column = get_current_column(),
-        colinfo = get_column_info(schema, table, column),
+        colinfo = get_column_info(db, schema, table, column),
         old_op = get_current_op(),
         coltype = colinfo ? colinfo.coltype : null,
         rawtype = colinfo ? colinfo.rawtype : null,
@@ -578,10 +582,11 @@ function column_changed() {
 }
 
 function table_changed() {
-    var schema = get_current_schema(),
+    var db = get_current_db(),
+        schema = get_current_schema(),
         table = get_current_table(),
         column_picker = document.getElementById(ID_COLUMN_PICKER),
-        column_names = get_all_column_names(schema, table),
+        column_names = get_all_column_names(db, schema, table),
         column_options = get_select_options_from_list(column_names);
     log("table_changed: table = " + table);
     if (!table) {
@@ -594,9 +599,10 @@ function table_changed() {
 }
 
 function schema_changed() {
-    var schema = get_current_schema(),
+    var db = get_current_db(),
+        schema = get_current_schema(),
         table_picker = document.getElementById(ID_TABLE_PICKER),
-        table_names = get_all_table_names(schema),
+        table_names = get_all_table_names(db, schema),
         table_options = get_select_options_from_list(table_names);
     log("schema_changed: schema = " + schema);
     if (!schema) {
@@ -635,8 +641,8 @@ function populate() {
         current_col_element = document.getElementById(ID_CURRENT_COLUMN),
         db_names = get_all_db_names(),
         db_options = get_select_options_from_list(db_names),
-        schema_names = get_all_schema_names(),
-        schema_options = get_select_options_from_list(schema_names),
+        schema_names = get_all_schema_names(''),  // in case we're not using the database level
+        schema_options = get_select_options_from_list(schema_names),  // in case we're not using the database level
         some_info = (STARTING_VALUES.with_database
                      ? db_names.length > 0
                      : schema_names.length > 0);
