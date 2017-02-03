@@ -125,6 +125,7 @@ class QueryBuilderForm(forms.Form):
                                 'IN', 'NOT IN']
     FILE_REQUIRED = ['IN', 'NOT IN']
 
+    database = CharField(label="Schema", required=False)
     schema = CharField(label="Schema", required=True)
     table = CharField(label="Table", required=True)
     column = CharField(label="Column", required=True)
