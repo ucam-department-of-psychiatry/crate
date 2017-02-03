@@ -6,6 +6,9 @@
 
     <h1>Research database structure: tree form</h1>
 
+    {% if with_database %}
+        <p>Default database: {{ default_database }}</p>
+    {% endif %}
     <p>Default schema: {{ default_schema }}</p>
 
     {% include "expand_collapse_buttons.html" %}

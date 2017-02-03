@@ -71,9 +71,10 @@ from crate_anon.crateweb.research.html_functions import (
 )
 from crate_anon.crateweb.research.models import (
     ColumnInfo,
+    get_default_database,
     get_default_schema,
-    get_researchdb_schemas,
-    is_schema_eligible_for_query_builder,
+    get_researchdb_databases_schemas,
+    is_db_schema_eligible_for_query_builder,
     get_schema_trid_field,
     get_schema_rid_field,
     Highlight,
@@ -82,18 +83,18 @@ from crate_anon.crateweb.research.models import (
     research_database_info,
 )
 from crate_anon.common.sql import (
+    ColumnName,
     sql_date_literal,
     sql_string_literal,
+    TableName,
+    toggle_distinct,
 )
 from crate_anon.common.sql_grammar import (
     DIALECT_MYSQL,
     DIALECT_MSSQL,
     make_grammar,
 )
-from crate_anon.crateweb.research.sql_writer import (
-    add_to_select,
-    toggle_distinct,
-)
+from crate_anon.crateweb.research.sql_writer import add_to_select
 
 log = logging.getLogger(__name__)
 
@@ -136,22 +137,31 @@ def get_db_structure_json() -> str:
     if not colinfolist:
         log.warning("get_db_structure_json(): colinfolist is empty")
     info = []
-    for schema in get_researchdb_schemas():  # preserve order
-        if not is_schema_eligible_for_query_builder(schema):
+    for db, schema in get_researchdb_databases_schemas():  # preserve order  # noqa
+        log.info("get_db_structure_json: db {}, schema {}".format(
+            repr(db), repr(schema)))
+        if not is_db_schema_eligible_for_query_builder(db, schema):
+            log.debug("Skipping db={}, schema={}: not eligible for query "
+                      "builder".format(repr(db), repr(schema)))
             continue
-        schema_cil = [x for x in colinfolist if x.table_schema == schema]
-        trid_field = get_schema_trid_field(schema)
-        rid_field = get_schema_rid_field(schema)
+        schema_cil = [x for x in colinfolist
+                      if x.table_catalog == db and x.table_schema == schema]
+        trid_field = get_schema_trid_field(db, schema)
+        rid_field = get_schema_rid_field(db, schema)
         table_info = []
         for table in sorted(set(x.table_name for x in schema_cil)):
             table_cil = [x for x in schema_cil if x.table_name == table]
             if not any(x for x in table_cil
                        if x.column_name == trid_field):
                 # This table doesn't contain a TRID, so we will skip it.
+                log.debug("... skipping table {}: no TRID [{}]".format(
+                    table, trid_field))
                 continue
             if not any(x for x in table_cil
                        if x.column_name == rid_field):
                 # This table doesn't contain a RID, so we will skip it.
+                log.debug("... skipping table {}: no RID [{}]".format(
+                    table, rid_field))
                 continue
             column_info = []
             for ci in sorted(table_cil, key=lambda x: x.column_name):
@@ -166,8 +176,11 @@ def get_db_structure_json() -> str:
                     'table': table,
                     'columns': column_info,
                 })
+        if 'schema' == 'starfeeder':
+            log.critical(table_info)
         if table_info:
             info.append({
+                'database': db,
                 'schema': schema,
                 'tables': table_info,
             })
@@ -211,7 +224,9 @@ def build_query(request: HttpRequest) -> HttpResponse:
 
     profile = request.user.profile
     parse_error = ''
+    default_database = get_default_database()
     default_schema = get_default_schema()
+    with_database = research_database_info.uses_database_level()
     form = None
     if request.method == 'POST':
         grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
@@ -232,23 +247,35 @@ def build_query(request: HttpRequest) -> HttpResponse:
                 form = QueryBuilderForm(request.POST, request.FILES)
                 if form.is_valid():
                     # log.critical("is_valid")
+                    database = (form.cleaned_data['database'] if with_database
+                                else '')
                     schema = form.cleaned_data['schema']
                     table = form.cleaned_data['table']
-                    if schema == default_schema:
+                    if (database == default_database and
+                            schema == default_schema):
                         quoted_full_table = grammar.quote_identifier(table)
                     else:
-                        quoted_full_table = "{}.{}".format(
-                            grammar.quote_identifier(schema),
-                            grammar.quote_identifier(table))
+                        if with_database:
+                            quoted_full_table = "{}.{}.{}".format(
+                                grammar.quote_identifier(database),
+                                grammar.quote_identifier(schema),
+                                grammar.quote_identifier(table))
+                        else:
+                            quoted_full_table = "{}.{}".format(
+                                grammar.quote_identifier(schema),
+                                grammar.quote_identifier(table))
                     column = form.cleaned_data['column']
                     quoted_column = grammar.quote_identifier(column)
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             # SELECT bits
-                            select_db=schema,
-                            select_table=table,
-                            select_column=column,
+                            select_column=ColumnName(
+                                db=database,
+                                schema=schema,
+                                table=table,
+                                column=column
+                            ),
                             # JOIN bits
                             magic_join=True,
                             # dialect
@@ -290,8 +317,11 @@ def build_query(request: HttpRequest) -> HttpResponse:
                             # WHERE bits
                             where_type="AND",
                             where_expression=where_expression,
-                            where_db=schema,
-                            where_table=table,
+                            where_table=TableName(
+                                db=database,
+                                schema=schema,
+                                table=table
+                            ),
                             # JOIN bits
                             magic_join=True,
                             # dialect
@@ -309,6 +339,7 @@ def build_query(request: HttpRequest) -> HttpResponse:
         form = QueryBuilderForm()
 
     starting_values_dict = {
+        'database': form.data.get('database', '') if with_database else '',
         'schema': form.data.get('schema', ''),
         'table': form.data.get('table', ''),
         'column': form.data.get('column', ''),
@@ -321,7 +352,9 @@ def build_query(request: HttpRequest) -> HttpResponse:
         'offer_where': bool(profile.sql_scratchpad),  # existing SELECT?
         'form_errors': "<br>".join("{}: {}".format(k, v)
                                    for k, v in form.errors.items()),
+        'default_database': default_database,
         'default_schema': default_schema,
+        'with_database': with_database,
     }
     context = {
         'nav_on_querybuilder': True,
@@ -901,6 +934,7 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
         'paginated': False,
         'infodictlist': infodictlist,
         'rowcount': rowcount,
+        'default_database': get_default_database(),
         'default_schema': get_default_schema(),
     }
     return render(request, 'database_structure.html', context)
@@ -914,6 +948,7 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
         'paginated': True,
         'infodictlist': infodictlist,
         'rowcount': rowcount,
+        'default_database': get_default_database(),
         'default_schema': get_default_schema(),
     }
     return render(request, 'database_structure.html', context)
@@ -921,18 +956,23 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
 
 @lru_cache(maxsize=None)
 def get_structure_tree_html() -> str:
-    schema_table_idl = research_database_info.get_infodictlist_by_tables()
+    db_schema_table_idl = research_database_info.get_infodictlist_by_tables()
     content = ""
-    for i, (schema, tablename, infodictlist) in enumerate(schema_table_idl):
-        html_table = render_to_string('database_structure_table.html',
-                                      {'infodictlist': infodictlist})
+    for i, (database, schema, tablename,
+            infodictlist) in enumerate(db_schema_table_idl):
+        html_table = render_to_string(
+            'database_structure_table.html', {
+                'infodictlist': infodictlist,
+                'with_database': research_database_info.uses_database_level()
+            })
         tag = str(i)
         cd_button = collapsible_div_spanbutton(tag)
         cd_content = collapsible_div_contentdiv(tag, html_table)
         content += (
-            '<div class="titlecolour">{button} {schema}.<b>{table}</b></div>'
+            '<div class="titlecolour">{button} {db_schema}.<b>{table}</b></div>'
             '{cd}'.format(
-                schema=schema,
+                db_schema=research_database_info.format_db_schema(database,
+                                                                  schema),
                 table=tablename,
                 button=cd_button,
                 cd=cd_content,
@@ -944,6 +984,7 @@ def get_structure_tree_html() -> str:
 def structure_tree(request: HttpRequest) -> HttpResponse:
     context = {
         'content': get_structure_tree_html(),
+        'default_database': get_default_database(),
         'default_schema': get_default_schema(),
     }
     return render(request, 'database_structure_tree.html', context)
@@ -988,6 +1029,9 @@ def textmatch(column_name: str,
 
 
 def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
+    """
+    Creates SQL to find text anywhere in the database(s) via a UNION query.
+    """
     # When you forget, go back to:
     # http://www.slideshare.net/pydanny/advanced-django-forms-usage
     default_values = {
@@ -1010,9 +1054,9 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
                 "No tables containing fieldname: {}".format(fkname))
         if include_content:
             queries = []
-            for (schema, table) in tables:
+            for (db, schema, table) in tables:
                 columns = research_database_info.text_columns(
-                    schema, table, min_length)
+                    db=db, schema=schema, table=table, min_length=min_length)
                 for column_name, indexed_fulltext in columns:
                     query = (
                         "SELECT {fkname} AS patient_id,"
@@ -1025,7 +1069,8 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
                             table_literal=escape_sql_string_literal(table),
                             col_literal=escape_sql_string_literal(column_name),
                             column_name=column_name,
-                            schema=schema,
+                            schema=research_database_info.format_db_schema(
+                                db, schema),
                             table=table,
                             condition=textmatch(
                                 column_name,
@@ -1038,10 +1083,10 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
             sql = "\nUNION\n".join(queries)
             sql += "\nORDER BY patient_id".format(fkname)
         else:
-            for (schema, table) in tables:
+            for (db, schema, table) in tables:
                 elements = []
                 columns = research_database_info.text_columns(
-                    schema, table, min_length)
+                    db=db, schema=schema, table=table, min_length=min_length)
                 if not columns:
                     continue
                 for column_name, indexed_fulltext in columns:

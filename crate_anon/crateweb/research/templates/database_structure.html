@@ -9,7 +9,10 @@
     {% else %}
         <h1>Research database structure: long form</h1>
     {% endif %}
-    
+
+    {% if with_database %}
+        <p>Default database: {{ default_database }}</p>
+    {% endif %}
     <p>Default schema: {{ default_schema }}</p>
 
     {% include "database_structure_table.html" %}

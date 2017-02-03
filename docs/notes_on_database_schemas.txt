@@ -1,0 +1,131 @@
+===============================================================================
+Microsoft SQL Server
+===============================================================================
+
+In Microsoft SQL Server (MSSQL), at least from 2005+, there are 4 "layers":
+
+    SELECT database_name.schema_name.table_name.column_name
+    FROM database_name.schema_name.table_name;
+
+The default schema is 'dbo'.
+(In old versions of MSSQL, up to SQL Server 2000, "owners" stood in the stead
+of schemas; the default owner was 'dbo', the database owner.)
+
+- https://technet.microsoft.com/en-us/library/dd283095(v=sql.100).aspx
+- https://blog.sqlauthority.com/2009/09/07/sql-server-importance-of-database-schemas-in-sql-server/
+
+Default schemas include:
+    dbo
+    guest
+    sys
+    INFORMATION_SCHEMA
+
+... so there's one of those for EACH database.
+
+- https://msdn.microsoft.com/en-us/library/bb669061(v=vs.110).aspx
+
+Can a connection talk to >1 database? Yes.
+A connection has a database context.
+This is set automatically to the default database for the login, and can be
+set or changed explicitly using
+    USE mydatabase;
+
+- https://msdn.microsoft.com/en-us/library/ms188366.aspx
+
+SELECTed things can actually be 5-layered; the "table"-level one can be any
+of:
+
+    server_name.[database_name].[schema_name].object_name
+    | database_name.[schema_name].object_name
+    | schema_name.object_name
+    | object_name
+
+- https://msdn.microsoft.com/en-us/library/ms177563.aspx
+
+To describe a database, use its INFORMATION_SCHEMA.
+
+===============================================================================
+PostgreSQL
+===============================================================================
+
+Similar to SQL Server in that the levels are database/schema/table/column.
+
+However, Postgres doesn't allow you to query across databases, so "schema"
+becomes more important.
+
+- http://stackoverflow.com/questions/1152405/postgresql-is-it-better-using-multiple-databases-with-1-schema-each-or-1-datab
+- http://stackoverflow.com/questions/46324/possible-to-perform-cross-database-queries-with-postgres
+- http://stackoverflow.com/questions/4678862/joining-results-from-two-separate-databases
+- http://wiki.postgresql.org/wiki/FAQ#How_do_I_perform_queries_using_multiple_databases.3F
+
+The default PostgreSQL schema is 'public'.
+
+- https://www.postgresql.org/docs/9.3/static/ddl-schemas.html
+
+
+===============================================================================
+ANSI SQL
+===============================================================================
+
+- http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+  21.2   INFORMATION_SCHEMA
+  21.3.4 INFORMATION_SCHEMA.SCHEMATA
+
+===============================================================================
+MySQL
+===============================================================================
+
+SCHEMA and DATABASE are synonymous.
+
+- http://stackoverflow.com/questions/11618277/difference-between-schema-database-in-mysql
+- https://dev.mysql.com/doc/refman/5.7/en/glossary.html#glos_schema
+
+The SELECT statement can go up to:
+
+    SELECT database_name.table_name.column_name
+    FROM database_name.table_name;
+
+As before, the USE statement allows you to specify a particular default
+database, but doesn't stop you querying from others.
+
+- https://dev.mysql.com/doc/refman/5.7/en/use.html
+
+INFORMATION_SCHEMA is at the same level as databases.
+... and the TABLE_CATALOG column is meaningless.
+
+See als:
+- http://dba.stackexchange.com/questions/3774/what-is-the-point-of-the-table-catalog-column-in-information-schema-tables
+
+===============================================================================
+CRATE web interface
+===============================================================================
+
+- We will have a single connection to the research database(s).
+- That is django.conf.settings.DATABASES['research'].
+- We will want to scan, potentially, several schemas.
+- We don't want a distinction between the "browse structure" views and the
+  query builder.
+- We'll need to know the dialect, to know whether we need to use d.s.t.c
+  or a three-level structure.
+- For MySQL, should we call the top level "database" or "schema"?
+- Well, the concept of schemas allows enforced foreign keys between two
+  different schemas in the same database (in SQL Server).
+  - http://stackoverflow.com/questions/2095268/foreign-key-reference-to-table-in-another-schema
+- SQL Server doesn't allow referential constraints across databases, except
+  via manual triggers
+  - http://stackoverflow.com/questions/4452132/add-foreign-key-relationship-between-two-databases
+- What about MySQL?
+  MySQL allows FKs between two different databases, I think:
+  - http://stackoverflow.com/questions/3905013/mysql-innodb-foreign-key-between-different-databases
+  ... but are they properly enforced? I think so.
+- That would make a MySQL {database/schema} more like an SQL Server schema,
+  rather than an SQL Server database.
+- On the other hand, from the outside in, "database" probably makes more sense
+  to users.
+
+- Therefore, we'll say that RESEARCH_DB_INFO has keys:
+    database  -- None for MySQL/PostgreSQL
+    schemas
+    ...
+
+- The query builder may or may not offer the additional "database" level.

@@ -106,6 +106,7 @@ log = logging.getLogger(__name__)
 
 DIALECT_MSSQL = 'mssql'  # Microsoft SQL Server; must match querybuilder.js
 DIALECT_MYSQL = 'mysql'  # MySQL; must match querybuilder.js
+DIALECT_POSTGRES = 'postgres'  # *** NOT PROPERLY SUPPORTED.
 
 VALID_DIALECTS = [DIALECT_MYSQL, DIALECT_MYSQL]
 

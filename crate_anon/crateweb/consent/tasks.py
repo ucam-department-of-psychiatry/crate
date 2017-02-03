@@ -158,7 +158,7 @@ def test_email_rdbm_task() -> None:
 # noinspection PyCallingNonCallable
 @shared_task
 @task(ignore_result=True)
-def email_rdbm_task(subject, text) -> None:
+def email_rdbm_task(subject: str, text: str) -> None:
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)
     email.send()

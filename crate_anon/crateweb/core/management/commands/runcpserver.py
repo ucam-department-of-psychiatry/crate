@@ -36,9 +36,8 @@ TEST COMMAND:
 ./manage.py runcpserver --port 8080 --ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem --ssl_private_key /etc/ssl/private/ssl-cert-snakeoil.key
 """  # noqa
 
-from argparse import Namespace
+from argparse import ArgumentParser, Namespace
 import logging
-import sys
 # import errno
 # import os
 # import signal
@@ -74,7 +73,7 @@ class Command(BaseCommand):
     help = ("Run this project in a CherryPy webserver. To do this, "
             "CherryPy is required (pip install cherrypy).")
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: ArgumentParser) -> None:
         parser.add_argument(
             '--host', type=str, default="127.0.0.1",
             help="hostname to listen on (default: 127.0.0.1)")
@@ -229,7 +228,8 @@ class Missing(object):
         return "[CherryPy server says:] Nothing to see here. Wrong URL path."
 
 
-def start_server(opts):
+# noinspection PyUnresolvedReferences
+def start_server(opts: Namespace) -> None:
     """
     Start CherryPy server
     """
@@ -281,7 +281,7 @@ def start_server(opts):
         cherrypy.engine.stop()
 
 
-def runcpserver(opts):
+def runcpserver(opts: Namespace) -> None:
     # if opts.stop:
     #     if not opts.pidfile:
     #         raise ValueError("Must specify --pidfile to use --stop")
@@ -308,5 +308,13 @@ def runcpserver(opts):
     start_server(opts)
 
 
+def main():
+    command = Command()
+    parser = ArgumentParser()
+    command.add_arguments(parser)
+    cmdargs = parser.parse_args()
+    runcpserver(cmdargs)
+
+
 if __name__ == '__main__':
-    runcpserver(sys.argv[1:])
+    main()

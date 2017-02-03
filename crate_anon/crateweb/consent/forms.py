@@ -25,7 +25,7 @@
 import logging
 from django import forms
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from crate_anon.crateweb.extra.forms import (
     MultipleNhsNumberAreaField,
     MultipleWordAreaField,
@@ -43,7 +43,7 @@ class SingleNhsNumberForm(forms.Form):
     nhs_number = SingleNhsNumberField(label="NHS number")
 
 
-def get_queryset_possible_contact_studies():
+def get_queryset_possible_contact_studies() -> QuerySet:
     return (
         Study.objects
         .filter(patient_contact=True)
@@ -57,7 +57,7 @@ def get_queryset_possible_contact_studies():
 
 
 class AbstractContactRequestForm(forms.Form):
-    def clean(self):
+    def clean(self) -> None:
         cleaned_data = super().clean()
 
         study = cleaned_data.get("study")

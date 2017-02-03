@@ -25,6 +25,7 @@
 import logging
 from re import compile
 import sys
+from typing import Optional
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -32,6 +33,7 @@ from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
+from django.http import HttpResponse, HttpRequest
 from django.views.debug import technical_500_response
 from django.utils.cache import add_never_cache_headers
 
@@ -47,7 +49,8 @@ log = logging.getLogger(__name__)
 class UserBasedExceptionMiddleware(object):
     # noinspection PyUnusedLocal
     @staticmethod
-    def process_exception(request, exception):
+    def process_exception(request: HttpRequest,
+                          exception: Exception) -> HttpResponse:
         if request.user.is_superuser:
             return technical_500_response(request, *sys.exc_info())
 
@@ -158,7 +161,10 @@ class LoginRequiredMiddleware:
 
     # noinspection PyUnusedLocal
     @staticmethod
-    def process_view(request, view_func, view_args, view_kwargs):
+    def process_view(request: HttpRequest,
+                     view_func,
+                     view_args,
+                     view_kwargs) -> Optional[HttpResponse]:
         # log.critical("LoginRequiredMiddleware.process_view")
         if not hasattr(request, 'user'):
             raise ImproperlyConfigured(
@@ -193,6 +199,7 @@ class LoginRequiredMiddleware:
 class DisableClientSideCachingMiddleware(object):
     # noinspection PyUnusedLocal
     @staticmethod
-    def process_response(request, response):
+    def process_response(request: HttpRequest,
+                         response: HttpResponse) -> HttpResponse:
         add_never_cache_headers(response)
         return response

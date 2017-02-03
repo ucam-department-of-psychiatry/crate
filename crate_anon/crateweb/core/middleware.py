@@ -24,7 +24,7 @@
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden, HttpRequest
 from crate_anon.crateweb.core.utils import is_developer
 
 
@@ -40,7 +40,7 @@ class RestrictAdminMiddleware(object):
     privileges.
     """
     @staticmethod
-    def process_request(request):
+    def process_request(request: HttpRequest) -> HttpResponse:
         if not hasattr(request, 'user'):
             raise ImproperlyConfigured(
                 "Authentication middleware required. Edit your"

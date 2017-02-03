@@ -324,6 +324,11 @@ LOGGING = {
             'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
             'propagate': True,
         },
+        'config': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
+            'propagate': True,
+        },
         'extra': {
             'handlers': ['console'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
@@ -421,12 +426,19 @@ else:
     You must set the {e} environment variable first.
     Aim it at your settings file, like this:
 
+    (For Linux:)
+
     export {e}=/etc/crate/my_secret_crate_settings.py
+
+    (For Windows:)
+
+    set {e}=C:/some/path/my_secret_crate_settings.py
         """.format(e=CRATEWEB_CONFIG_ENV_VAR))
-    log.info("Loading local settings")
-    _loader = importlib.machinery.SourceFileLoader(
-        'local_settings',
-        os.environ[CRATEWEB_CONFIG_ENV_VAR])
+    filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
+    log.debug("Loading local settings from {}".format(filename))
+    # ... but logger not yet enabled... You see nothing.
+    _loader = importlib.machinery.SourceFileLoader('local_settings',
+                                                   filename)
     _local_module = _loader.load_module()
     # noinspection PyUnresolvedReferences
     from local_settings import *  # noqa

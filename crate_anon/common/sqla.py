@@ -616,7 +616,7 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
 # =============================================================================
 
 def remove_collation(coltype: TypeEngine) -> TypeEngine:
-    if not hasattr(coltype, 'collation') or not coltype.collation:
+    if not getattr(coltype, 'collation', None):
         return coltype
     newcoltype = copy.copy(coltype)
     newcoltype.collation = None

@@ -54,8 +54,9 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
     <form action="{% url 'build_query' %}" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <!-- name tags must match QueryBuilderForm -->
-        <select id="id_schema" name="schema" title="Database schema"></select>
-        <select id="id_table" name="table" title="Database table"></select>
+        <select id="id_database" name="database" title="Database"></select>
+        <select id="id_schema" name="schema" title="Schema"></select>
+        <select id="id_table" name="table" title="Table"></select>
         <select id="id_column" name="column" title="Column (field) within table"></select>
         <input id="id_coltype" type="hidden" name="datatype" title="" value="">
         <input id="id_offer_where" type="hidden" name="offer_where" title="" value="">
@@ -75,10 +76,14 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
     <h2>Tips</h2>
     <ul>
         {% if dialect_mysql %}
-            <li>This server is running MySQL.</li>
-        {% endif %}
-        {% if dialect_mssql %}
-            <li>This server is running Microsoft SQL Server.</li>
+            <li>This server is running MySQL. (A database and a schema
+            are synonymous under MySQL, so the heirarchy is
+            schema, table, column.)</li>
+        {% elif dialect_mssql %}
+            <li>This server is running Microsoft SQL Server. (The hierarchy
+            is: database, schema, table, column.)</li>
+        {% else %}
+            <li><b>BUG: UNKNOWN SQL DIALECT.</b></li>
         {% endif %}
         <li>Inexact string comparison can be done in several ways:
             <ul>
@@ -159,10 +164,10 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
             source database; the TRID is taken from a one-time pad.</li>
 
         <li>The query builder will also automatically join tables across
-            databases. If the administrator has said that patient tables in the
-            databases use a common research ID (RID), that field will be used.
-            [Example: both databases use the same patient numbers, and they
-            have been hashed in the same way.]
+            schemas/databases. If the administrator has said that patient
+            tables in the databases use a common research ID (RID), that field
+            will be used. [Example: both databases use the same patient
+            numbers, and they have been hashed in the same way.]
             Otherwise, if they both have tables containing a master research
             ID (MRID), that is used to bridge the databases.
             [Example: two databases use different patient numbers, but they

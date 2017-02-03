@@ -37,6 +37,7 @@ var DATATYPE_DATE = "date",
     ID_COLUMN_PICKER = "id_column",
     ID_COMMENT = "id_comment",
     ID_CURRENT_COLUMN = "id_current_column",
+    ID_DATABASE_PICKER = "id_database",
     ID_SCHEMA_PICKER = "id_schema",
     ID_TABLE_PICKER = "id_table",
     ID_OFFER_WHERE = "id_offer_where",
@@ -90,6 +91,7 @@ var DATATYPE_DATE = "date",
 
 var DATABASE_STRUCTURE = [
         {
+            database: 'dummy_database',
             schema: 'dummy_schema',
             tables: [
                 {
@@ -107,6 +109,7 @@ var DATABASE_STRUCTURE = [
         }
     ],
     STARTING_VALUES = {
+        'database': '',
         'schema': '',
         'table': '',
         'column': '',
@@ -117,19 +120,54 @@ var DATABASE_STRUCTURE = [
         'string_value': '',
         'offer_where': false,
         'form_errors': '',
-        'default_schema': ''
+        'default_database': '',
+        'default_schema': '',
+        'with_database': false
     },
     SQL_DIALECT = DIALECT_MYSQL;
+
+// ============================================================================
+// Javascript helpers
+// ============================================================================
+
+function contains(a, obj) {
+    for (var i = 0; i < a.length; i++) {
+        if (a[i] === obj) {
+            return true;
+        }
+    }
+    return false;
+}
 
 // ============================================================================
 // Read table/column information from variables passed in
 // ============================================================================
 
-function get_all_schema_names() {
-    var schema_names = [],
+function get_all_db_names() {
+    var db_names = [],
+        db,
         i;
     for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
-        schema_names.push(DATABASE_STRUCTURE[i].schema);
+        db = DATABASE_STRUCTURE[i].database;
+        if (!contains(db_names, db)) {
+            db_names.push(db);
+        }
+    }
+    return db_names;
+}
+
+function get_all_schema_names(db) {
+    var schema_names = [],
+        schema,
+        i;
+    for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
+        if (!STARTING_VALUES.with_database ||
+                DATABASE_STRUCTURE[i].database == db) {
+            schema = DATABASE_STRUCTURE[i].schema;
+            if (!contains(schema_names, schema)) {
+                schema_names.push(schema);
+            }
+        }
     }
     return schema_names;
 }
@@ -501,7 +539,11 @@ function column_changed() {
                 reset_select_options(where_op_picker, OPS_NUMBER_DATE);
                 break;
             case DATATYPE_STRING:
-                reset_select_options(where_op_picker, OPS_STRING);
+                if (SQL_DIALECT == DIALECT_MYSQL) {
+                    reset_select_options(where_op_picker, OPS_STRING_MYSQL);
+                } else {
+                    reset_select_options(where_op_picker, OPS_STRING);
+                }
                 break;
             case DATATYPE_STRING_FULLTEXT:
                 if (SQL_DIALECT == DIALECT_MYSQL) {
@@ -556,33 +598,71 @@ function schema_changed() {
     table_changed();
 }
 
+function db_changed() {
+    var db = get_current_db(),
+
+        table_picker = document.getElementById(ID_TABLE_PICKER),
+        table_names = get_all_table_names(schema),
+        table_options = get_select_options_from_list(table_names);
+    log("schema_changed: schema = " + schema);
+    if (!schema) {
+        hide_element(table_picker);
+    } else {
+        show_element(table_picker);
+    }
+    reset_select_options_by_id(ID_TABLE_PICKER, table_options);
+    table_changed();
+}
+
 function populate() {
-    var schema_picker = document.getElementById(ID_SCHEMA_PICKER),
+    // This is the "onload" function called by the HTML.
+    log("populate");
+    var db_picker = document.getElementById(ID_DATABASE_PICKER),
+        schema_picker = document.getElementById(ID_SCHEMA_PICKER),
         table_picker = document.getElementById(ID_TABLE_PICKER),
         column_picker = document.getElementById(ID_COLUMN_PICKER),
         where_op_picker = document.getElementById(ID_WHERE_OP),
+        coltype_info_element = document.getElementById(ID_COLTYPE_INFO),
+        current_col_element = document.getElementById(ID_CURRENT_COLUMN),
+        db_names = get_all_db_names(),
+        db_options = get_select_options_from_list(db_names),
         schema_names = get_all_schema_names(),
-        schema_options = get_select_options_from_list(schema_names);
-    log("populate");
+        schema_options = get_select_options_from_list(schema_names),
+        some_info = (STARTING_VALUES.with_database
+                     ? db_names.length > 0
+                     : schema_names.length > 0);
+    db_picker.addEventListener("change", db_changed);
     schema_picker.addEventListener("change", schema_changed);
     table_picker.addEventListener("change", table_changed);
     column_picker.addEventListener("change", column_changed);
     where_op_picker.addEventListener("change", where_op_changed);
-    reset_select_options(schema_picker, schema_options);
-    set_schema(STARTING_VALUES.schema);
-    set_table(STARTING_VALUES.table);
-    set_column(STARTING_VALUES.column);
-    set_op(STARTING_VALUES.op);
-    set_input_value_by_id(ID_WHERE_VALUE_DATE, STARTING_VALUES.date_value);
-    // CANNOT SET // set_input_value_by_id(ID_WHERE_VALUE_FILE, STARTING_VALUES.file_value);
-    // "Uncaught InvalidStateError: Failed to set the 'value' property on 'HTMLInputElement': This input element accepts a filename, which may only be programmatically set to the empty string."
-    set_input_value_by_id(ID_WHERE_VALUE_FLOAT, STARTING_VALUES.float_value);
-    set_input_value_by_id(ID_WHERE_VALUE_INTEGER, STARTING_VALUES.int_value);
-    set_input_value_by_id(ID_WHERE_VALUE_TEXT, STARTING_VALUES.string_value);
-    set_hidden_boolean_input_by_id(ID_OFFER_WHERE, STARTING_VALUES.offer_where);
-    if (schema_names.length == 0) {
-        warn("No databases!");
+    if (some_info) {
+        if (STARTING_VALUES.with_database) {
+            reset_select_options(db_picker, db_options);
+        } else {
+            hide_element(db_picker);
+            reset_select_options(schema_picker, schema_options);
+        }
+        set_schema(STARTING_VALUES.schema);
+        set_table(STARTING_VALUES.table);
+        set_column(STARTING_VALUES.column);
+        set_op(STARTING_VALUES.op);
+        set_input_value_by_id(ID_WHERE_VALUE_DATE, STARTING_VALUES.date_value);
+        // CANNOT SET // set_input_value_by_id(ID_WHERE_VALUE_FILE, STARTING_VALUES.file_value);
+        // "Uncaught InvalidStateError: Failed to set the 'value' property on 'HTMLInputElement': This input element accepts a filename, which may only be programmatically set to the empty string."
+        set_input_value_by_id(ID_WHERE_VALUE_FLOAT, STARTING_VALUES.float_value);
+        set_input_value_by_id(ID_WHERE_VALUE_INTEGER, STARTING_VALUES.int_value);
+        set_input_value_by_id(ID_WHERE_VALUE_TEXT, STARTING_VALUES.string_value);
+        set_hidden_boolean_input_by_id(ID_OFFER_WHERE, STARTING_VALUES.offer_where);
+    } else {
+        warn("No databases/schemas!");
+        hide_element(db_picker);
         hide_element(schema_picker);
+        hide_element(table_picker);
+        hide_element(column_picker);
+        hide_element(where_op_picker);
+        hide_element(current_col_element);
+        hide_element(coltype_info_element);
     }
     if (STARTING_VALUES.form_errors) {  // will be empty if all OK
         warn(STARTING_VALUES.form_errors);

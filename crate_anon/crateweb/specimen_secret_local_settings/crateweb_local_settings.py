@@ -118,7 +118,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'HOST': '127.0.0.1',
         'PORT': 3306,  # local
-        'NAME': 'anonymous_output',  # will be the default schema; use None for no default schema  # noqa
+        'NAME': 'anonymous_output',  # will be the default database; use None for no default database  # noqa
         'USER': 'researcher',
         'PASSWORD': 'somepassword',
     },
@@ -148,17 +148,34 @@ DATABASES = {
 # Database title
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 
-# Schemas to provide database structure info for, and details on how to
-# join within/between them (for the query builder).
-# - The first schema is the default selected in the query builder.
-# - WITHIN a database, tables will be autojoined on the trid_field.
-# - ACROSS databases, tables will be autojoined on the rid_field if they are in
+# Databases/schemas to provide database structure info for, and details on how
+# to join within/between them (for the query builder).
+# - Note that ALL these databases use the DATABASES['research'] connection
+#   specified above.
+# - Under SQL Server, "database" and "schema" are different levels of
+#   organization. Specify a schema of "dbo" if you are unsure; this is the
+#   default.
+# - Under MySQL, "database" and "schema" mean the same thing. Here, we'll call
+#   this a SCHEMA.
+# - The first database/schema is the default selected in the query builder.
+# - WITHIN a schema, tables will be autojoined on the trid_field.
+# - ACROSS schemas, tables will be autojoined on the rid_field if they are in
 #   the same rid_family (a non-False Python value, e.g. integers starting at
 #   1), and on mrid_table.mrid_field otherwise.
+# - PostgreSQL can only query a single database via a single connection.
 RESEARCH_DB_INFO = [
     {
-        'schema': DATABASES['research']['NAME'],  # if it's not None!
-        # ... 'anonymous_output'
+        # Database name:
+        # - BLANK, i.e. '', for MySQL.
+        # - BLANK, i.e. '', for PostgreSQL.
+        # - The database name, for SQL Server.
+        'database': '',
+        # Schema name:
+        # - The database=schema name, for MySQL.
+        # - The schema name, for PostgreSQL (usual default: 'public').
+        # - The schema name, for SQL Server (usual default: 'dbo').
+        'schema': 'dbo',
+
         'trid_field': 'trid',
         'rid_field': 'brcid',
         'rid_family': 1,
@@ -166,7 +183,8 @@ RESEARCH_DB_INFO = [
         'mrid_field': 'nhshash',
     },
     # {
-    #     'schema': 'similar_database',
+    #     'database': 'similar_database',
+    #     'schema': 'similar_schema',
     #     'trid_field': 'trid',
     #     'rid_field': 'same_rid',
     #     'rid_family': 1,
@@ -174,7 +192,8 @@ RESEARCH_DB_INFO = [
     #     'mrid_field': None,
     # },
     # {
-    #     'schema': 'different_database',
+    #     'database': 'different_database',
+    #     'schema': 'different_schema',
     #     'trid_field': 'trid',
     #     'rid_field': 'different_rid',
     #     'rid_family': 2,

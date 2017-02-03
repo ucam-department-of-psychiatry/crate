@@ -2,6 +2,9 @@
 
 <table>
     <tr>
+        {% if with_database %}
+            <th>Database</th>
+        {%  endif %}
         <th>Schema</th>
         <th>Table</th>
         <th>Column</th>
@@ -17,6 +20,15 @@
     </tr>
     {% for d in infodictlist %}
         <tr>
+            {% if with_database %}
+                <td>
+                    {% if d.table_catalog == default_database %}
+                        {{ d.table_catalog }}
+                    {% else %}
+                        <b>{{ d.table_catalog }}</b>
+                    {% endif %}
+                </td>
+            {% endif %}
             <td>
                 {% if d.table_schema == default_schema %}
                     {{ d.table_schema }}

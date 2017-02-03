@@ -25,8 +25,9 @@
 import argparse
 import datetime
 import logging
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Tuple, Union
 
+from pyparsing import ParseResults
 from sqlalchemy import inspect
 from sqlalchemy.dialects.mssql.base import MS_2012_VERSION
 from sqlalchemy.engine import Engine
@@ -35,8 +36,15 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Table
 
 from crate_anon.common.formatting import sizeof_fmt
+from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.stringfunc import get_spec_match_regex
+from crate_anon.common.sql_grammar import (
+    DIALECT_MYSQL,
+    make_grammar,
+    SqlGrammar,
+    text_from_parsed,
+)
 from crate_anon.common.sqla import column_creation_ddl, count_star
 
 log = logging.getLogger(__name__)
@@ -69,23 +77,264 @@ def sql_datetime_literal(dt: datetime.datetime,
     return dt.strftime(fmt)
 
 
-def combine_db_table(db: str, table: str) -> str:
-    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
-    # <table name>, <qualified name>
-    if db:
-        return "{}.{}".format(db, table)
-    else:
-        return table
+# def combine_db_schema_table(db: Optional[str],
+#                             schema: Optional[str],
+#                             table: str) -> str:
+#     # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
+#     # <table name>, <qualified name>
+#     if not table:
+#         raise ValueError("Missing table supplied to combine_db_schema_table")
+#     return ".".join(x for x in [db, schema, table] if x)
 
 
-def split_db_table(dbtable: str) -> Tuple[Optional[str], str]:
-    components = dbtable.split('.')
-    if len(components) == 2:  # db.table
-        return components[0], components[1]
+class TableName(object):
+    def __init__(self, db: str = '', schema: str = '',
+                 table: str = '') -> None:
+        self._db = db
+        self._schema = schema
+        self._table = table
+
+    def __bool__(self) -> bool:
+        return bool(self._table)
+
+    def identifier(self, grammar: SqlGrammar) -> str:
+        return make_identifier(grammar,
+                               database=self._db,
+                               schema=self._schema,
+                               table=self._table)
+
+    def columnname(self, column: str) -> 'ColumnName':
+        return ColumnName(db=self._db, schema=self._schema,
+                          table=self._table, column=column)
+
+    def db(self) -> str:
+        return self._db
+
+    def schema(self) -> str:
+        return self._schema
+
+    def table(self) -> str:
+        return self._table
+
+    def __str__(self) -> str:
+        return dumb_make_identifier(self._db, self._schema, self._table)
+
+    def __repr__(self) -> str:
+        return (
+            "<Tablename(db={db}, schema={schema}, table={table}) "
+            "at {id}>".format(
+                db=repr(self._db),
+                schema=repr(self._schema),
+                table=repr(self._table),
+                id=hex(id(self)),
+            )
+        )
+
+
+class ColumnName(object):
+    def __init__(self, db: str = '', schema: str = '',
+                 table: str = '', column: str = '') -> None:
+        self._db = db
+        self._schema = schema
+        self._table = table
+        self._column = column
+
+    def __bool__(self) -> bool:
+        return bool(self._column)
+
+    def identifier(self, grammar: SqlGrammar) -> str:
+        return make_identifier(grammar,
+                               database=self._db,
+                               schema=self._schema,
+                               table=self._table,
+                               column=self._column)
+
+    def db(self) -> str:
+        return self._db
+
+    def schema(self) -> str:
+        return self._schema
+
+    def table(self) -> str:
+        return self._table
+
+    def column(self) -> str:
+        return self._column
+
+    def tablename(self) -> TableName:
+        return TableName(db=self._db, schema=self._schema, table=self._table)
+
+    def has_table_and_column(self) -> bool:
+        return bool(self._table and self._column)
+
+    def __str__(self) -> str:
+        return dumb_make_identifier(self._db, self._schema,
+                                    self._table, self._column)
+
+    def __repr__(self) -> str:
+        return (
+            "<ColumnName(db={db}, schema={schema}, table={table}, "
+            "column={column}) at {id}>".format(
+                db=repr(self._db),
+                schema=repr(self._schema),
+                table=repr(self._table),
+                column=repr(self._column),
+                id=hex(id(self)),
+            )
+        )
+
+
+def split_db_schema_table(db_schema_table: str) -> TableName:
+    components = db_schema_table.split('.')
+    if len(components) == 3:  # db.schema.table
+        d, s, t = components[0], components[1], components[2]
+    elif len(components) == 2:  # schema.table
+        d, s, t = '', components[0], components[1]
     elif len(components) == 1:  # table
-        return None, components[0]
+        d, s, t = '', '', components[0]
     else:
-        raise ValueError("Bad dbtable: {}".format(dbtable))
+        raise ValueError("Bad db_schema_table: {}".format(db_schema_table))
+    return TableName(db=d, schema=s, table=t)
+
+
+def split_db_schema_table_column(db_schema_table_col: str) -> ColumnName:
+    components = db_schema_table_col.split('.')
+    if len(components) == 4:  # db.schema.table.column
+        d, s, t, c = components[0], components[1], components[2], components[3]
+    elif len(components) == 3:  # schema.table.column
+        d, s, t, c = '', components[0], components[1], components[2]
+    elif len(components) == 2:  # table.column
+        d, s, t, c = '', '', components[0], components[1]
+    elif len(components) == 1:  # column
+        d, s, t, c = '', '', '', components[0]
+    else:
+        raise ValueError("Bad db_schema_table_col: {}".format(
+            db_schema_table_col))
+    return ColumnName(db=d, schema=s, table=t, column=c)
+
+
+# =============================================================================
+# Using SQL grammars (but without reference to Django models, for testing)
+# =============================================================================
+
+def make_identifier(grammar: SqlGrammar,
+                    database: str = None,
+                    schema: str = None,
+                    table: str = None,
+                    column: str = None) -> str:
+    elements = [grammar.quote_identifier_if_required(x)
+                for x in [database, schema, table, column] if x]
+    assert elements, "make_identifier(): No elements passed!"
+    return ".".join(elements)
+
+
+def dumb_make_identifier(database: str = None,
+                         schema: str = None,
+                         table: str = None,
+                         column: str = None) -> str:
+    elements = filter(None, [database, schema, table, column])
+    assert elements, "make_identifier(): No elements passed!"
+    return ".".join(elements)
+
+
+def parser_add_result_column(parsed: ParseResults,
+                             column: str,
+                             grammar: SqlGrammar) -> ParseResults:
+    # Presupposes at least one column already in the SELECT statement.
+
+    existing_columns = parsed.select_expression.select_columns.asList()
+    # log.critical(parsed.dump())
+    # log.critical("existing columns: {}".format(repr(existing_columns)))
+    # log.critical("adding column: {}".format(column))
+    if column not in existing_columns:
+        # log.critical("... doesn't exist; adding")
+        newcol = grammar.get_column_spec().parseString(column)[0]
+        parsed.select_expression.extend([",", newcol])
+    # else:
+    #     log.critical("... skipping column; exists")
+    # log.critical(parsed.dump())
+    return parsed
+
+
+def parser_add_from_tables(parsed: ParseResults,
+                           joininfo: List[Dict[str, str]],
+                           grammar: SqlGrammar) -> ParseResults:
+    """
+    joininfo: list of dictionaries with keys:
+        table, join_type, join_condition
+    Presupposes at least one table already in the FROM clause.
+    """
+    # log.critical(parsed.dump())
+    existing_tables = parsed.join_source.from_tables.asList()
+    # log.critical("existing tables: {}".format(existing_tables))
+    # log.critical("adding table: {}".format(table))
+    for infodict in joininfo:
+        table = infodict['table']
+        join_type = infodict.get('join_type', 'INNER JOIN')
+        join_condition = infodict.get('join_condition', None)
+        if table in existing_tables:  # already there
+            # log.critical("field already present")
+            continue
+        parsed_join = grammar.get_join_op().parseString(join_type)[0]  # e.g. INNER JOIN  # noqa
+        parsed_table = grammar.get_table_spec().parseString(table)[0]
+        extrabits = [parsed_join, parsed_table]
+        if join_condition:  # e.g. ON x = y
+            extrabits.append(
+                grammar.get_join_constraint().parseString(join_condition)[0])
+        parsed.join_source.extend(extrabits)
+    # log.critical(parsed.dump())
+    return parsed
+
+
+def get_first_from_table(
+        parsed: ParseResults,
+        match_db: str = '',
+        match_schema: str = '',
+        match_table: str = '') -> TableName:
+    """
+    Given a set of parsed results from a SELECT statement,
+    returns the (db, schema, table) tuple
+    representing the first table in the FROM clause.
+
+    Optionally, the match may be constrained with the match* parameters.
+    """
+    existing_tables = parsed.join_source.from_tables.asList()
+    for t in existing_tables:
+        tablename = split_db_schema_table(t)
+        if match_db and tablename.db() != match_db:
+            continue
+        if match_schema and tablename.schema() != match_schema:
+            continue
+        if match_table and tablename.table() != match_table:
+            continue
+        return tablename
+    return TableName()
+
+
+def toggle_distinct(sql: str,
+                    formatted: bool = True,
+                    debug: bool = False,
+                    debug_verbose: bool = False,
+                    dialect: str = DIALECT_MYSQL) -> str:
+    grammar = make_grammar(dialect)
+    p = grammar.get_select_statement().parseString(sql)
+    if debug:
+        log.info("START: {}".format(sql))
+        if debug_verbose:
+            log.debug("start dump:\n" + p.dump())
+    # log.critical(repr(p.select_specifier))
+    if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
+        # log.critical("Already has DISTINCT")
+        del p.select_specifier[:]
+    else:
+        # log.critical("Does not already have DISTINCT")
+        p.select_specifier.append('DISTINCT')
+    result = text_from_parsed(p, formatted=formatted)
+    if debug:
+        log.info("END: {}".format(result))
+        if debug_verbose:
+            log.debug("end dump:\n" + p.dump())
+    return result
 
 
 # =============================================================================
@@ -354,7 +603,7 @@ class ViewMaker(object):
                  engine: Engine,
                  basetable: str,
                  existing_to_lower: bool = False,
-                 rename: bool = None,
+                 rename: Dict[str, str] = None,
                  progargs: argparse.Namespace = None,
                  enforce_same_n_rows_as_base: bool = True) -> None:
         rename = rename or {}
@@ -503,11 +752,11 @@ def matches_tabledef(table: str, tabledef: Union[str, List[str]]) -> bool:
 
 
 def _matches_fielddef(table: str, field: str, fielddef: str) -> bool:
-    t, c = split_db_table(fielddef)
-    cr = get_spec_match_regex(c)
-    if not t:
+    columnname = split_db_schema_table_column(fielddef)
+    cr = get_spec_match_regex(columnname.column())
+    if not columnname.table():
         return cr.match(field)
-    tr = get_spec_match_regex(t)
+    tr = get_spec_match_regex(columnname.table())
     return tr.match(table) and cr.match(field)
 
 
@@ -626,6 +875,16 @@ def unit_tests():
     assert matches_fielddef("sometable", "somefield", "sometable.*")
     assert matches_fielddef("sometable", "somefield", "somefield")
 
+    dialect = DIALECT_MYSQL
+    grammar = make_grammar(dialect)
+    sql = "SELECT t1.c1, t2.c2 " \
+          "FROM t1 INNER JOIN t2 ON t1.k = t2.k"
+    parsed = grammar.get_select_statement().parseString(sql)
+    first_db, first_schema, first_table = get_first_from_table(parsed)  # noqa
+    log.info("db={}, schema={}, table={}".format(
+        first_db, first_schema, first_table))
+
 
 if __name__ == '__main__':
+    main_only_quicksetup_rootlogger()
     unit_tests()
