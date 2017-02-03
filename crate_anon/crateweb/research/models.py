@@ -574,7 +574,7 @@ SELECT
     d.column_type,
     d.column_comment,
     CASE WHEN COUNT(d.index_id) > 0 THEN 1 ELSE 0 END AS indexed,
-    CASE WHEN COUNT(fi.column_id) > 0 THEN 1 ELSE 0 END AS indexed_fulltext
+    CASE WHEN COUNT(d.fulltext_index_object_id) > 0 THEN 1 ELSE 0 END AS indexed_fulltext
 FROM (
     SELECT
         s.name AS table_schema,
@@ -583,7 +583,8 @@ FROM (
         c.is_nullable,
         UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')' AS column_type,
         CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT
-        i.index_id
+        i.index_id,
+        fi.object_id AS fulltext_index_object_id
     FROM [{db_name}].sys.tables ta
     INNER JOIN [{db_name}].sys.schemas s ON ta.schema_id = s.schema_id
     INNER JOIN [{db_name}].sys.columns c ON c.object_id = ta.object_id
