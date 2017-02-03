@@ -433,6 +433,11 @@ function get_current_op() {
 // Logic
 // ============================================================================
 
+function set_db(db) {
+    set_picker_value_by_id(ID_DATABASE_PICKER, db);
+    db_changed();
+}
+
 function set_schema(schema) {
     set_picker_value_by_id(ID_SCHEMA_PICKER, schema);
     schema_changed();
@@ -501,6 +506,7 @@ function column_changed() {
     var where_op_picker = document.getElementById(ID_WHERE_OP),
         where_button = document.getElementById(ID_WHERE_BUTTON),
         select_button = document.getElementById(ID_SELECT_BUTTON),
+        db = get_current_db(),
         schema = get_current_schema(),
         table = get_current_table(),
         column = get_current_column(),
@@ -512,12 +518,12 @@ function column_changed() {
         colinfo_html = "";
     log("column_changed: column = " + column + ", coltype = " + coltype);
     set_input_value_by_id(ID_COLTYPE, coltype);
-    if (schema == STARTING_VALUES.default_schema) {
-        colinfo_html = "<i>[default schema]</i>&nbsp;";
-    } else {
-        colinfo_html = "<i>" + schema + "</i>.";
+    if (STARTING_VALUES.with_database) {
+        colinfo_html += "<i>" + db + "</i>.";
     }
-    colinfo_html += table + ".<b>" + column + "</b>";
+    colinfo_html += "<i>" + schema + "</i>." +
+                    table + "." +
+                    "<b>" + column + "</b>";
     display_html_by_id(ID_CURRENT_COLUMN, colinfo_html);
     display_html_by_id(
         ID_COMMENT,
@@ -634,7 +640,9 @@ function populate() {
         some_info = (STARTING_VALUES.with_database
                      ? db_names.length > 0
                      : schema_names.length > 0);
-    db_picker.addEventListener("change", db_changed);
+    if (STARTING_VALUES.with_database) {
+        db_picker.addEventListener("change", db_changed);
+    }
     schema_picker.addEventListener("change", schema_changed);
     table_picker.addEventListener("change", table_changed);
     column_picker.addEventListener("change", column_changed);
@@ -642,6 +650,7 @@ function populate() {
     if (some_info) {
         if (STARTING_VALUES.with_database) {
             reset_select_options(db_picker, db_options);
+            set_db(STARTING_VALUES.database);
         } else {
             hide_element(db_picker);
             reset_select_options(schema_picker, schema_options);
