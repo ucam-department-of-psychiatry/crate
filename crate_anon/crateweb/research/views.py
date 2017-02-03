@@ -175,8 +175,8 @@ def get_db_structure_json() -> str:
                     'table': table,
                     'columns': column_info,
                 })
-        if 'schema' == 'starfeeder':
-            log.critical(table_info)
+            log.debug("... using table {}: {} columns".format(
+                table, len(column_info)))
         if table_info:
             info.append({
                 'database': db,
