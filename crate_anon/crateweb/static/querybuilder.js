@@ -601,7 +601,7 @@ function schema_changed() {
 function db_changed() {
     var db = get_current_db(),
         schema_picker = document.getElementById(ID_SCHEMA_PICKER),
-        schema_names = get_all_table_names(db),
+        schema_names = get_all_schema_names(db),
         schema_options = get_select_options_from_list(schema_names);
     log("db_changed: db = " + db);
     if (!db) {
