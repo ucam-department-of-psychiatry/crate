@@ -5,7 +5,37 @@
 
 {% block collapsejs %}{% endblock %}
 {% block extrahead %}
+    {% comment %}
+- Use Modernizr to sort out date pickers.
+- From https://modernizr.com, choose Download.
+- Pick the "Form input types" option, then "Build", then save.
+- To use for date pickers, see http://stackoverflow.com/questions/30503195/html-5-input-type-date-not-working-in-firefox
+    {% endcomment %}
+    <script type="text/javascript" src="{% static 'modernizr.js' %}"></script>
+    <script type="text/javascript" src="{% static 'jquery-3.1.1.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'jquery-ui-1.12.1/jquery-ui.min.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'jquery-ui-1.12.1/jquery-ui.structure.min.css' %}">
+    <link rel="stylesheet" href="{% static 'jquery-ui-1.12.1/jquery-ui.theme.min.css' %}">
     <script type="text/javascript" src="{% static 'querybuilder.js' %}"></script>
+    <script type="text/javascript">
+$(function(){  // The $ stuff uses jQuery; http://stackoverflow.com/questions/7642442/what-does-function-do
+    console.log("Checking for HTML5 date picker support...");
+    if (Modernizr.inputtypes.date) {
+        console.log("... present");
+    } else {
+        console.log("... absent; adding it via jQuery...");
+        // If not native HTML5 support, fallback to jQuery datePicker
+        $('input[type=date]').datepicker({
+                // Consistent format with the HTML5 picker
+                dateFormat : 'yy-mm-dd'
+            },
+            // Localization
+            $.datepicker.regional['uk']
+        );
+        console.log("... done");
+    }
+});
+    </script>
     <script type="text/javascript">
 var DATABASE_STRUCTURE = {{ database_structure|safe }},
     STARTING_VALUES = {{ starting_values|safe }},
@@ -137,6 +167,11 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
             in ASCII or UTF-8 format, with one value per line. Lines will
             be stripped of whitespace (left + right). Lines starting with
             a # character will be treated as comments and ignored.</li>
+
+        <li>Browsers: Firefox doesn’t support date pickers (as of
+        version 50.0.2, Nov 2016). Chrome does. See
+        <a href="http://caniuse.com/#feat=input-datetime">http://caniuse.com/#feat=input-datetime</a>.
+        This page hacks in date picker support for browsers as required.</li>
 
     </ul>
 

@@ -228,21 +228,26 @@ def build_query(request: HttpRequest) -> HttpResponse:
     default_schema = get_default_schema()
     with_database = research_database_info.uses_database_level()
     form = None
+
     if request.method == 'POST':
         grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
         try:
             if 'global_clear' in request.POST:
                 profile.sql_scratchpad = ''
                 profile.save()
+
             elif 'global_toggle_distinct' in request.POST:
                 profile.sql_scratchpad = toggle_distinct(
                     profile.sql_scratchpad,
                     dialect=settings.RESEARCH_DB_DIALECT)
                 profile.save()
+
             elif 'global_save' in request.POST:
                 return submit_query(request, profile.sql_scratchpad, run=False)
+
             elif 'global_run' in request.POST:
                 return submit_query(request, profile.sql_scratchpad, run=True)
+
             else:
                 form = QueryBuilderForm(request.POST, request.FILES)
                 if form.is_valid():
@@ -251,36 +256,23 @@ def build_query(request: HttpRequest) -> HttpResponse:
                                 else '')
                     schema = form.cleaned_data['schema']
                     table = form.cleaned_data['table']
-                    if (database == default_database and
-                            schema == default_schema):
-                        quoted_full_table = grammar.quote_identifier(table)
-                    else:
-                        if with_database:
-                            quoted_full_table = "{}.{}.{}".format(
-                                grammar.quote_identifier(database),
-                                grammar.quote_identifier(schema),
-                                grammar.quote_identifier(table))
-                        else:
-                            quoted_full_table = "{}.{}".format(
-                                grammar.quote_identifier(schema),
-                                grammar.quote_identifier(table))
                     column = form.cleaned_data['column']
-                    quoted_column = grammar.quote_identifier(column)
+                    columnname = ColumnName(
+                        db=database,
+                        schema=schema,
+                        table=table,
+                        column=column
+                    )
+                    tablename = columnname.tablename()
+
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            # SELECT bits
-                            select_column=ColumnName(
-                                db=database,
-                                schema=schema,
-                                table=table,
-                                column=column
-                            ),
-                            # JOIN bits
+                            select_column=columnname,
                             magic_join=True,
-                            # dialect
                             dialect=settings.RESEARCH_DB_DIALECT
                         )
+
                     elif 'submit_where' in request.POST:
                         datatype = form.cleaned_data['datatype']
                         op = form.cleaned_data['where_op']
@@ -299,42 +291,37 @@ def build_query(request: HttpRequest) -> HttpResponse:
                         if op == 'MATCH':  # MySQL
                             where_expression = (
                                 "MATCH ({col}) AGAINST ({val})".format(
-                                    col=quoted_column,
+                                    col=columnname.identifier(grammar),
                                     val=value))
                         elif op in QueryBuilderForm.VALUE_UNNECESSARY:
-                            where_expression = "{tab}.{col} {op}".format(
-                                tab=quoted_full_table,
-                                col=quoted_column,
+                            where_expression = "{col} {op}".format(
+                                col=columnname.identifier(grammar),
                                 op=op)
                         else:
-                            where_expression = "{tab}.{col} {op} {val}".format(
-                                tab=quoted_full_table,
-                                col=quoted_column,
+                            where_expression = "{col} {op} {val}".format(
+                                col=columnname.identifier(grammar),
                                 op=op,
                                 val=value)
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            # WHERE bits
                             where_type="AND",
                             where_expression=where_expression,
-                            where_table=TableName(
-                                db=database,
-                                schema=schema,
-                                table=table
-                            ),
-                            # JOIN bits
+                            where_table=tablename,
                             magic_join=True,
-                            # dialect
                             dialect=settings.RESEARCH_DB_DIALECT
                         )
+
                     else:
                         raise ValueError("Bad form command!")
                     profile.save()
+
                 else:
                     # log.critical("not is_valid")
                     pass
+
         except ParseException as e:
             parse_error = str(e)
+
     if form is None:
         form = QueryBuilderForm()
 

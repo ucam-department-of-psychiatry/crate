@@ -147,6 +147,10 @@ def get_join_info(grammar: SqlGrammar,
     # log.critical("get_join_info: new DB, different RID family, using MRID")
     existing_mrid_column = get_mrid_column(first_from_table)
     existing_mrid_table = existing_mrid_column.tablename()
+    if not existing_mrid_table:
+        raise ValueError(
+            "No MRID table available (in the same database as table {}; "
+            "cannot link)".format(first_from_table))
     new_mrid_column = get_mrid_column(jointable)
     new_mrid_table = new_mrid_column.tablename()
     existing_mrid_table_in_query = bool(get_first_from_table(
@@ -226,6 +230,7 @@ def add_to_select(sql: str,
         log.debug("where_type: {}".format(where_type))
         log.debug("where_expression: {}".format(where_expression))
         log.debug("where_table: {}".format(where_table))
+
     if not sql:
         # ---------------------------------------------------------------------
         # Fresh SQL statement
@@ -244,6 +249,7 @@ def add_to_select(sql: str,
                 result += " WHERE {}".format(where_expression)
         else:
             raise ValueError("Blank starting SQL but no SELECT table/column")
+
     else:
         p = grammar.get_select_statement().parseString(sql)
         if debug and debug_verbose:

@@ -36,7 +36,11 @@ from django.http.request import HttpRequest
 # from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 
-from crate_anon.common.sql_grammar import DIALECT_MSSQL, DIALECT_POSTGRES
+from crate_anon.common.sql_grammar import (
+    DIALECT_MSSQL,
+    DIALECT_POSTGRES,
+    DIALECT_MYSQL,
+)
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
@@ -414,19 +418,30 @@ def get_researchdb_databases_schemas() -> List[Tuple[str, str]]:
 
 
 def get_default_database() -> str:
-    return settings.DATABASES['research']['NAME']
+    if settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL:
+        return settings.DATABASES['research']['NAME']
+    elif settings.RESEARCH_DB_DIALECT == DIALECT_POSTGRES:
+        return ''
+    elif settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL:
+        return ''
+    else:
+        raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
 
 
-def get_default_schema() -> Optional[str]:
+def get_default_schema() -> str:
     if settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL:
         return 'dbo'
     elif settings.RESEARCH_DB_DIALECT == DIALECT_POSTGRES:
         return 'public'
+    elif settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL:
+        return settings.DATABASES['research']['NAME']
     else:
-        return ''
+        raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
 
 
 def get_db_info(db: str, schema: str) -> Optional[Dict[str, Any]]:
+    db = db or get_default_database()
+    schema = schema or get_default_schema()
     infolist = [x for x in settings.RESEARCH_DB_INFO
                 if x['database'] == db and x['schema'] == schema]
     if not infolist:
