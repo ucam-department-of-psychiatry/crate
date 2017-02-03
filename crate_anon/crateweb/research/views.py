@@ -370,6 +370,21 @@ def submit_query(request: HttpRequest,
     """
     all_queries = get_all_queries(request)
     identical_queries = all_queries.filter(sql=sql)
+    # - 2017-02-03: we had a problem here, in which the parameter was sent to
+    #   SQL Server as type NTEXT, but the field "sql" is NVARCHAR(MAX), leading
+    #   to "The data types nvarchar(max) and ntext are incompatible in the
+    #   equal to operator."
+    # - The Django field type TextField is converted to NVARCHAR(MAX) by
+    #   django-pyodbc-azure, in sql_server/pyodbc/base.py, also at
+    #   https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa
+    # - Error is reproducible with
+    #       ... WHERE sql = CAST('hello' AS NTEXT) ...
+    # - The order of the types in the error message matches the order in the
+    #   SQL statement.
+    # - A solution would be to cast the parameter as
+    #   CAST(some_parameter AS NVARCHAR(MAX))
+    # - Fixed by upgrading pyodbc from 3.1.1 to 4.0.3
+    # - Added to FAQ
     if identical_queries:
         identical_queries[0].activate()
         query_id = identical_queries[0].id

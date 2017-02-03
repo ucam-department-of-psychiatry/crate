@@ -603,6 +603,7 @@ FROM (
         AND fi.column_id = c.column_id
     )
     WHERE s.name IN ({schema_placeholder})
+    AND ty.user_type_id = ty.system_type_id  -- restricts to system data types; eliminates 'sysname' type
 ) AS d
 GROUP BY
     table_schema,
