@@ -405,6 +405,10 @@ function announce(text) {
 // Readers
 // ============================================================================
 
+function get_current_db() {
+    return get_picker_value_by_id(ID_DATABASE_PICKER);
+}
+
 function get_current_schema() {
     return get_picker_value_by_id(ID_SCHEMA_PICKER);
 }
