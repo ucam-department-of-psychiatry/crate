@@ -922,6 +922,7 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
         'rowcount': rowcount,
         'default_database': get_default_database(),
         'default_schema': get_default_schema(),
+        'with_database': research_database_info.uses_database_level(),
     }
     return render(request, 'database_structure.html', context)
 
@@ -936,6 +937,7 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
         'rowcount': rowcount,
         'default_database': get_default_database(),
         'default_schema': get_default_schema(),
+        'with_database': research_database_info.uses_database_level(),
     }
     return render(request, 'database_structure.html', context)
 
@@ -949,6 +951,8 @@ def get_structure_tree_html() -> str:
         html_table = render_to_string(
             'database_structure_table.html', {
                 'infodictlist': infodictlist,
+                'default_database': get_default_database(),
+                'default_schema': get_default_schema(),
                 'with_database': research_database_info.uses_database_level()
             })
         tag = str(i)
