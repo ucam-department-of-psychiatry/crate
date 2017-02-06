@@ -65,6 +65,14 @@ class UserProfile(models.Model):
         (500, '500'),
         (1000, '1000'),
     )
+    N_PATIENT_PAGE_CHOICES = (
+        (1, '1'),
+        (5, '5'),
+        (10, '10'),
+        (20, '20'),
+        (50, '50'),
+        (100, '100'),
+    )
 
     # -------------------------------------------------------------------------
     # Web site personal settings
@@ -72,6 +80,10 @@ class UserProfile(models.Model):
     per_page = models.PositiveSmallIntegerField(
         choices=N_PAGE_CHOICES, default=50,
         verbose_name="Number of items to show per page")
+    patients_per_page = models.PositiveSmallIntegerField(
+        choices=N_PATIENT_PAGE_CHOICES, default=1,
+        verbose_name="Number of patients to show per page "
+                     "(for Patient Explorer view)")
     line_length = models.PositiveSmallIntegerField(
         default=80,
         verbose_name="Characters to word-wrap text at in results "
@@ -162,3 +174,9 @@ def get_per_page(request: HttpRequest) -> Optional[int]:
     if not request.user.is_authenticated():
         return None
     return request.user.profile.per_page
+
+
+def get_patients_per_page(request: HttpRequest) -> Optional[int]:
+    if not request.user.is_authenticated():
+        return None
+    return request.user.profile.get_patients_per_page

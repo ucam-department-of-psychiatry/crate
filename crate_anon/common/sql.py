@@ -24,6 +24,7 @@
 
 import argparse
 import datetime
+import functools
 import logging
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
@@ -36,6 +37,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Table
 
 from crate_anon.common.formatting import sizeof_fmt
+from crate_anon.common.lang import unique_list
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.stringfunc import get_spec_match_regex
@@ -49,11 +51,46 @@ from crate_anon.common.sqla import column_creation_ddl, count_star
 
 log = logging.getLogger(__name__)
 
+# =============================================================================
+# Constants
+# =============================================================================
+
 TIMING_COMMIT = "commit"
+
+SQL_OPS_VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL']
+SQL_OPS_MULTIPLE_VALUES = ['IN', 'NOT IN']
+
+SQLTYPES_INTEGER = [
+    "INT", "INTEGER",
+    "TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT",
+    "BIT", "BOOL", "BOOLEAN",
+]
+SQLTYPES_FLOAT = [
+    "DOUBLE", "FLOAT", "DEC", "DECIMAL",
+]
+SQLTYPES_TEXT = [
+    "CHAR", "VARCHAR", "NVARCHAR",
+    "TINYTEXT", "TEXT", "NTEXT", "MEDIUMTEXT", "LONGTEXT",
+]
+SQLTYPES_WITH_DATE = [
+    "DATE", "DATETIME", "TIMESTAMP",
+]
+# SQLTYPES_BINARY = [
+#     "BINARY", "BLOB", "IMAGE", "LONGBLOB", "VARBINARY",
+# ]
+
+# Must match querybuilder.js:
+QB_DATATYPE_INTEGER = "int"
+QB_DATATYPE_FLOAT = "float"
+QB_DATATYPE_DATE = "date"
+QB_DATATYPE_STRING = "string"
+QB_DATATYPE_STRING_FULLTEXT = "string_fulltext"
+QB_DATATYPE_UNKNOWN = "unknown"
+QB_STRING_TYPES = [QB_DATATYPE_STRING, QB_DATATYPE_STRING_FULLTEXT]
 
 
 # =============================================================================
-# SQL elements: literals, identifiers
+# SQL elements: literals
 # =============================================================================
 
 def sql_string_literal(text: str) -> str:
@@ -87,7 +124,12 @@ def sql_datetime_literal(dt: datetime.datetime,
 #     return ".".join(x for x in [db, schema, table] if x)
 
 
-class TableName(object):
+# =============================================================================
+# SQL elements: identifiers
+# =============================================================================
+
+@functools.total_ordering
+class TableId(object):
     def __init__(self, db: str = '', schema: str = '',
                  table: str = '') -> None:
         self._db = db
@@ -97,15 +139,39 @@ class TableName(object):
     def __bool__(self) -> bool:
         return bool(self._table)
 
+    def __eq__(self, other: 'TableId') -> bool:
+        return (  # ordering is for speed
+            self._table == other._table and
+            self._schema == other._schema and
+            self._db == other._db
+        )
+
+    def __lt__(self, other: 'TableId') -> bool:
+        return (
+            (self._db, self._schema, self._table) <
+            (other._db, other._schema, other._table)
+        )
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
     def identifier(self, grammar: SqlGrammar) -> str:
         return make_identifier(grammar,
                                database=self._db,
                                schema=self._schema,
                                table=self._table)
 
-    def columnname(self, column: str) -> 'ColumnName':
-        return ColumnName(db=self._db, schema=self._schema,
-                          table=self._table, column=column)
+    def column_id(self, column: str) -> 'ColumnId':
+        return ColumnId(db=self._db, schema=self._schema,
+                        table=self._table, column=column)
+
+    def database_schema_part(self, grammar: SqlGrammar) -> str:
+        return make_identifier(grammar,
+                               database=self._db,
+                               schema=self._schema)
+
+    def table_part(self, grammar: SqlGrammar) -> str:
+        return make_identifier(grammar, table=self._table)
 
     def db(self) -> str:
         return self._db
@@ -117,11 +183,12 @@ class TableName(object):
         return self._table
 
     def __str__(self) -> str:
-        return dumb_make_identifier(self._db, self._schema, self._table)
+        grammar = make_grammar(DIALECT_MYSQL)  # specific one unimportant
+        return self.identifier(grammar)
 
     def __repr__(self) -> str:
         return (
-            "<Tablename(db={db}, schema={schema}, table={table}) "
+            "<TableId(db={db}, schema={schema}, table={table}) "
             "at {id}>".format(
                 db=repr(self._db),
                 schema=repr(self._schema),
@@ -131,7 +198,7 @@ class TableName(object):
         )
 
 
-class ColumnName(object):
+class ColumnId(object):
     def __init__(self, db: str = '', schema: str = '',
                  table: str = '', column: str = '') -> None:
         self._db = db
@@ -141,6 +208,20 @@ class ColumnName(object):
 
     def __bool__(self) -> bool:
         return bool(self._column)
+
+    def __eq__(self, other: 'ColumnId') -> bool:
+        return (
+            self._column == other._column and
+            self._table == other._table and
+            self._schema == other._schema and
+            self._db == other._db
+        )
+
+    def __lt__(self, other: 'ColumnId') -> bool:
+        return (
+            (self._db, self._schema, self._table, self._column) <
+            (other._db, other._schema, other._table, other._column)
+        )
 
     def identifier(self, grammar: SqlGrammar) -> str:
         return make_identifier(grammar,
@@ -161,8 +242,8 @@ class ColumnName(object):
     def column(self) -> str:
         return self._column
 
-    def tablename(self) -> TableName:
-        return TableName(db=self._db, schema=self._schema, table=self._table)
+    def table_id(self) -> TableId:
+        return TableId(db=self._db, schema=self._schema, table=self._table)
 
     def has_table_and_column(self) -> bool:
         return bool(self._table and self._column)
@@ -173,7 +254,7 @@ class ColumnName(object):
 
     def __repr__(self) -> str:
         return (
-            "<ColumnName(db={db}, schema={schema}, table={table}, "
+            "<ColumnId(db={db}, schema={schema}, table={table}, "
             "column={column}) at {id}>".format(
                 db=repr(self._db),
                 schema=repr(self._schema),
@@ -184,7 +265,7 @@ class ColumnName(object):
         )
 
 
-def split_db_schema_table(db_schema_table: str) -> TableName:
+def split_db_schema_table(db_schema_table: str) -> TableId:
     components = db_schema_table.split('.')
     if len(components) == 3:  # db.schema.table
         d, s, t = components[0], components[1], components[2]
@@ -194,10 +275,10 @@ def split_db_schema_table(db_schema_table: str) -> TableName:
         d, s, t = '', '', components[0]
     else:
         raise ValueError("Bad db_schema_table: {}".format(db_schema_table))
-    return TableName(db=d, schema=s, table=t)
+    return TableId(db=d, schema=s, table=t)
 
 
-def split_db_schema_table_column(db_schema_table_col: str) -> ColumnName:
+def split_db_schema_table_column(db_schema_table_col: str) -> ColumnId:
     components = db_schema_table_col.split('.')
     if len(components) == 4:  # db.schema.table.column
         d, s, t, c = components[0], components[1], components[2], components[3]
@@ -210,7 +291,22 @@ def split_db_schema_table_column(db_schema_table_col: str) -> ColumnName:
     else:
         raise ValueError("Bad db_schema_table_col: {}".format(
             db_schema_table_col))
-    return ColumnName(db=d, schema=s, table=t, column=c)
+    return ColumnId(db=d, schema=s, table=t, column=c)
+
+
+def columns_to_table_column_hierarchy(
+        columns: List[ColumnId],
+        sort: bool = True) -> List[Tuple[TableId, List[ColumnId]]]:
+    tables = unique_list(c.table_id() for c in columns)
+    if sort:
+        tables.sort()
+    table_column_map = []
+    for t in tables:
+        t_columns = [c for c in columns if c.table_id() == t]
+        if sort:
+            t_columns.sort()
+        table_column_map.append((t, t_columns))
+    return table_column_map
 
 
 # =============================================================================
@@ -290,7 +386,7 @@ def get_first_from_table(
         parsed: ParseResults,
         match_db: str = '',
         match_schema: str = '',
-        match_table: str = '') -> TableName:
+        match_table: str = '') -> TableId:
     """
     Given a set of parsed results from a SELECT statement,
     returns the (db, schema, table) tuple
@@ -300,15 +396,15 @@ def get_first_from_table(
     """
     existing_tables = parsed.join_source.from_tables.asList()
     for t in existing_tables:
-        tablename = split_db_schema_table(t)
-        if match_db and tablename.db() != match_db:
+        table_id = split_db_schema_table(t)
+        if match_db and table_id.db() != match_db:
             continue
-        if match_schema and tablename.schema() != match_schema:
+        if match_schema and table_id.schema() != match_schema:
             continue
-        if match_table and tablename.table() != match_table:
+        if match_table and table_id.table() != match_table:
             continue
-        return tablename
-    return TableName()
+        return table_id
+    return TableId()
 
 
 def toggle_distinct(sql: str,
@@ -752,11 +848,11 @@ def matches_tabledef(table: str, tabledef: Union[str, List[str]]) -> bool:
 
 
 def _matches_fielddef(table: str, field: str, fielddef: str) -> bool:
-    columnname = split_db_schema_table_column(fielddef)
-    cr = get_spec_match_regex(columnname.column())
-    if not columnname.table():
+    column_id = split_db_schema_table_column(fielddef)
+    cr = get_spec_match_regex(column_id.column())
+    if not column_id.table():
         return cr.match(field)
-    tr = get_spec_match_regex(columnname.table())
+    tr = get_spec_match_regex(column_id.table())
     return tr.match(table) and cr.match(field)
 
 
@@ -856,6 +952,71 @@ def sql_fragment_cast_to_int(expr: str,
         # noinspection PyUnresolvedReferences
         raise ValueError("Code not yet written for convert-to-int for "
                          "dialect {}".format(dialect.name))
+
+
+# =============================================================================
+# Abstracted SQL WHERE condition
+# =============================================================================
+
+class WhereCondition(object):
+    # Ancillary class for building SQL WHERE expressions from our web forms.
+    def __init__(self, column_id: ColumnId, op: str, datatype: str,
+                 value_or_values: Any) -> None:
+        self._column_id = column_id
+        self._op = op.upper()
+        self._datatype = datatype
+        self._value = value_or_values
+        self._no_value = False
+        self._multivalue = False
+
+        if self._op in SQL_OPS_VALUE_UNNECESSARY:
+            self._no_value = True
+            assert value_or_values is None, "Superfluous value passed"
+        elif self._op in SQL_OPS_MULTIPLE_VALUES:
+            self._multivalue = True
+            assert isinstance(value_or_values, list), "Need list"
+        else:
+            assert not isinstance(value_or_values, list), "Need single value"
+
+    def column_id(self) -> ColumnId:
+        return self._column_id
+
+    def table_id(self) -> TableId:
+        return self.column_id().table_id()
+
+    def sql(self, grammar: SqlGrammar) -> str:
+        if self._no_value:
+            return "{col} {op}".format(
+                col=self._column_id.identifier(grammar),
+                op=self._op)
+
+        if self._datatype in QB_STRING_TYPES:
+            element_converter = sql_string_literal
+        elif self._datatype == QB_DATATYPE_DATE:
+            element_converter = sql_date_literal
+        elif self._datatype == QB_DATATYPE_INTEGER:
+            element_converter = str
+        elif self._datatype == QB_DATATYPE_FLOAT:
+            element_converter = str
+        else:
+            # Safe default
+            element_converter = sql_string_literal
+
+        if self._multivalue:
+            literal = "({})".format(", ".join(element_converter(v)
+                                              for v in self._value))
+        else:
+            literal = element_converter(self._value)
+
+        if self._op == 'MATCH':  # MySQL
+            return "MATCH ({col}) AGAINST ({val})".format(
+                col=self._column_id.identifier(grammar),
+                val=literal)
+        else:
+            return "{col} {op} {val}".format(
+                col=self._column_id.identifier(grammar),
+                op=self._op,
+                val=literal)
 
 
 # =============================================================================

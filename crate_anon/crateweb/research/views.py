@@ -22,6 +22,7 @@
 ===============================================================================
 """
 
+import datetime
 from functools import lru_cache
 import json
 import logging
@@ -62,31 +63,35 @@ from crate_anon.crateweb.research.forms import (
     SQLHelperTextAnywhereForm,
 )
 from crate_anon.crateweb.research.html_functions import (
-    collapsible_div_contentdiv,
-    collapsible_div_spanbutton,
     highlight_text,
+    HtmlElementCounter,
     make_result_element,
     make_collapsible_query,
     N_CSS_HIGHLIGHT_CLASSES,
+    pre,
 )
 from crate_anon.crateweb.research.models import (
-    ColumnInfo,
+    Highlight,
+    PidLookup,
+    PatientExplorer,
+    Query,
+)
+from crate_anon.crateweb.research.research_db_info import (
     get_default_database,
     get_default_schema,
     get_researchdb_databases_schemas,
     is_db_schema_eligible_for_query_builder,
     get_schema_trid_field,
     get_schema_rid_field,
-    Highlight,
-    PidLookup,
-    Query,
     research_database_info,
 )
+from crate_anon.crateweb.userprofile.models import get_patients_per_page
 from crate_anon.common.sql import (
-    ColumnName,
-    sql_date_literal,
-    sql_string_literal,
+    ColumnId,
+    SQL_OPS_MULTIPLE_VALUES,
+    SQL_OPS_VALUE_UNNECESSARY,
     toggle_distinct,
+    WhereCondition,
 )
 from crate_anon.common.sql_grammar import (
     DIALECT_MYSQL,
@@ -116,14 +121,22 @@ def validate_blank_form(request: HttpRequest) -> None:
 
 def query_context(request: HttpRequest) -> Dict[str, Any]:
     query_id = Query.get_active_query_id_or_none(request)
+    pe_id = PatientExplorer.get_active_pe_id_or_none(request)
     return {
         'query_selected': query_id is not None,
         'current_query_id': query_id,
+        'pe_selected': pe_id is not None,
+        'current_pe_id': pe_id,
     }
     # Try to minimize SQL here, as these calls will be used for EVERY
     # request.
     # This problem can be circumvented with a per-request cache; see
     # http://stackoverflow.com/questions/3151469/per-request-cache-in-django
+
+
+def datetime_iso_for_filename() -> str:
+    dtnow = datetime.datetime.now()
+    return dtnow.strftime("%Y%m%d_%H%M%S")
 
 
 # =============================================================================
@@ -166,7 +179,7 @@ def get_db_structure_json() -> str:
             for ci in sorted(table_cil, key=lambda x: x.column_name):
                 column_info.append({
                     'colname': ci.column_name,
-                    'coltype': ci.querybuilder_type,
+                    'coltype': ci.querybuilder_type(),
                     'rawtype': ci.column_type,
                     'comment': ci.column_comment or '',
                 })
@@ -256,18 +269,18 @@ def build_query(request: HttpRequest) -> HttpResponse:
                     schema = form.cleaned_data['schema']
                     table = form.cleaned_data['table']
                     column = form.cleaned_data['column']
-                    columnname = ColumnName(
+                    column_id = ColumnId(
                         db=database,
                         schema=schema,
                         table=table,
                         column=column
                     )
-                    tablename = columnname.tablename()
+                    table_id = column_id.table_id()
 
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            select_column=columnname,
+                            select_column=column_id,
                             magic_join=True,
                             dialect=settings.RESEARCH_DB_DIALECT
                         )
@@ -276,36 +289,22 @@ def build_query(request: HttpRequest) -> HttpResponse:
                         datatype = form.cleaned_data['datatype']
                         op = form.cleaned_data['where_op']
                         # Value
-                        if op in QueryBuilderForm.FILE_REQUIRED:
+                        if op in SQL_OPS_MULTIPLE_VALUES:
                             value = form.file_values_list
-                        elif op in QueryBuilderForm.VALUE_UNNECESSARY:
+                        elif op in SQL_OPS_VALUE_UNNECESSARY:
                             value = None
                         else:
                             value = form.get_cleaned_where_value()
-                            if datatype in ColumnInfo.STRING_TYPES:
-                                value = sql_string_literal(value)
-                            elif datatype == ColumnInfo.DATATYPE_DATE:
-                                value = sql_date_literal(value)
                         # WHERE fragment
-                        if op == 'MATCH':  # MySQL
-                            where_expression = (
-                                "MATCH ({col}) AGAINST ({val})".format(
-                                    col=columnname.identifier(grammar),
-                                    val=value))
-                        elif op in QueryBuilderForm.VALUE_UNNECESSARY:
-                            where_expression = "{col} {op}".format(
-                                col=columnname.identifier(grammar),
-                                op=op)
-                        else:
-                            where_expression = "{col} {op} {val}".format(
-                                col=columnname.identifier(grammar),
-                                op=op,
-                                val=value)
+                        wherecond = WhereCondition(column_id=column_id,
+                                                   op=op,
+                                                   datatype=datatype,
+                                                   value_or_values=value)
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             where_type="AND",
-                            where_expression=where_expression,
-                            where_table=tablename,
+                            where_expression=wherecond.sql(grammar),
+                            where_table=table_id,
                             magic_join=True,
                             dialect=settings.RESEARCH_DB_DIALECT
                         )
@@ -436,16 +435,20 @@ def edit_select_query(request: HttpRequest) -> HttpResponse:
     form = AddQueryForm(values)
     queries = paginate(request, all_queries)
     profile = request.user.profile
-    for i, q in enumerate(queries):
+    element_counter = HtmlElementCounter()
+    for q in queries:
         q.formatted_query_safe = make_collapsible_query(
             q.get_original_sql(),
-            i,
+            element_counter=element_counter,
             collapse_at_n_lines=profile.collapse_at_n_lines,
         )
+        element_counter.next()
     context = {
         'form': form,
         'queries': queries,
         'nav_on_query': True,
+        'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
+        'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
     }
     context.update(query_context(request))
     return render(request, 'edit_select_query.html', context)
@@ -487,7 +490,6 @@ def edit_select_highlight(request: HttpRequest) -> HttpResponse:
 
     values = {'colour': 0}
     form = AddHighlightForm(values)
-    query = Query.get_active_query_or_none(request)
     active_highlights = all_highlights.filter(active=True)
     highlight_dict = Highlight.as_ordered_dict(active_highlights)
     highlight_descriptions = get_highlight_descriptions(highlight_dict)
@@ -499,7 +501,6 @@ def edit_select_highlight(request: HttpRequest) -> HttpResponse:
         'N_CSS_HIGHLIGHT_CLASSES': N_CSS_HIGHLIGHT_CLASSES,
         'highlight_descriptions': highlight_descriptions,
         'colourlist': list(range(N_CSS_HIGHLIGHT_CLASSES)),
-        'sql': query.get_original_sql() if query else '',
     }
     context.update(query_context(request))
     return render(request, 'edit_select_highlight.html', context)
@@ -533,7 +534,7 @@ def no_query_selected(request: HttpRequest) -> HttpResponse:
     return render(request, 'no_query_selected.html', query_context(request))
 
 
-def count(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_count(request: HttpRequest, query_id: int) -> HttpResponse:
     """
     View COUNT(*) from specific query.
     """
@@ -553,7 +554,7 @@ def count(request: HttpRequest, query_id: int) -> HttpResponse:
     return render_resultcount(request, query)
 
 
-def count_current(request: HttpRequest) -> HttpResponse:
+def query_count_current(request: HttpRequest) -> HttpResponse:
     """
     View COUNT(*) from current query.
     """
@@ -563,7 +564,7 @@ def count_current(request: HttpRequest) -> HttpResponse:
     return render_resultcount(request, query)
 
 
-def results(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_results(request: HttpRequest, query_id: int) -> HttpResponse:
     """
     View results of chosen query, in tabular format
     """
@@ -582,7 +583,8 @@ def results(request: HttpRequest, query_id: int) -> HttpResponse:
                             line_length=profile.line_length)
 
 
-def results_recordwise(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_results_recordwise(request: HttpRequest,
+                             query_id: int) -> HttpResponse:
     """
     View results of chosen query, in tabular format
     """
@@ -602,7 +604,7 @@ def results_recordwise(request: HttpRequest, query_id: int) -> HttpResponse:
         line_length=profile.line_length)
 
 
-def tsv(request: HttpRequest) -> HttpResponse:
+def query_tsv(request: HttpRequest) -> HttpResponse:
     """
     Download TSV of current query.
     """
@@ -670,21 +672,21 @@ def render_resultcount(request: HttpRequest, query: Query) -> HttpResponse:
     if query is None:
         return render_missing_query(request)
     try:
-        cursor = query.get_executed_cursor()
+        with query.get_executed_cursor() as cursor:
+            rowcount = cursor.rowcount
+        query.audit(count_only=True, n_records=rowcount)
+        context = {
+            'rowcount': rowcount,
+            'sql': query.get_original_sql(),
+            'nav_on_count': True,
+        }
+        context.update(query_context(request))
+        return render(request, 'query_count.html', context)
     # See above re exception classes
     except DatabaseError as exception:
         query.audit(count_only=True, failed=True,
                     fail_msg=str(exception))
         return render_bad_query(request, query, exception)
-    rowcount = cursor.rowcount
-    query.audit(count_only=True, n_records=rowcount)
-    context = {
-        'rowcount': rowcount,
-        'sql': query.get_original_sql(),
-        'nav_on_count': True,
-    }
-    context.update(query_context(request))
-    return render(request, 'query_count.html', context)
 
 
 def get_highlight_descriptions(
@@ -702,6 +704,90 @@ def get_highlight_descriptions(
     return desc
 
 
+def resultset_html_table(fieldnames: List[str],
+                         rows: List[List[Any]],
+                         element_counter: HtmlElementCounter,
+                         start_index: int = 0,
+                         highlight_dict: Dict[int, List[Highlight]] = None,
+                         collapse_at_len: int = None,
+                         collapse_at_n_lines: int = None,
+                         line_length: int = None,
+                         ditto: bool = True,
+                         ditto_html: str = '″') -> str:
+    ditto_cell = '    <td class="queryresult ditto">{}</td>\n'.format(
+        ditto_html)
+
+    html = '<table>\n'
+    html += '  <tr>\n'
+    html += '    <th><i>#</i></th>\n'
+    for field in fieldnames:
+        html += '    <th>{}</th>\n'.format(escape(field))
+    html += '  </tr>\n'
+    for row_index, row in enumerate(rows):
+        # row_index is zero-based within this table
+        html += '  <tr class="{}">\n'.format(
+            "stripy_even" if row_index % 2 == 0 else "stripy_odd"
+        )
+        # Row number
+        html += '    <td><b><i>{}</i></b></td>\n'.format(
+            row_index + start_index + 1)
+        # Values
+        for col_index, value in enumerate(row):
+            if (row_index > 0 and ditto and
+                    value == rows[row_index - 1][col_index]):
+                html += ditto_cell
+            else:
+                html += (
+                    '    <td class="queryresult">{}</td>\n'.format(
+                        make_result_element(
+                            value,
+                            element_counter=element_counter,
+                            highlight_dict=highlight_dict,
+                            collapse_at_len=collapse_at_len,
+                            collapse_at_n_lines=collapse_at_n_lines,
+                            line_length=line_length
+                        )
+                    )
+                )
+            element_counter.next()
+        html += '  </tr>\n'
+    html += '</table>\n'
+    return html
+
+
+def single_record_html_table(fieldnames: List[str],
+                             record: List[Any],
+                             element_counter: HtmlElementCounter,
+                             highlight_dict: Dict[int, List[Highlight]] = None,
+                             collapse_at_len: int = None,
+                             collapse_at_n_lines: int = None,
+                             line_length: int = None) -> str:
+    table_html = '<table>\n'
+    for col_index, value in enumerate(record):
+        fieldname = fieldnames[col_index]
+        table_html += '  <tr class="{}">\n'.format(
+            "stripy_even" if col_index % 2 == 0 else "stripy_odd"
+        )
+        table_html += '    <th>{}</th>'.format(escape(fieldname))
+        table_html += (
+            '    <td class="queryresult">{}</td>\n'.format(
+                make_result_element(
+                    value,
+                    element_counter=element_counter,
+                    highlight_dict=highlight_dict,
+                    collapse_at_len=collapse_at_len,
+                    collapse_at_n_lines=collapse_at_n_lines,
+                    line_length=line_length,
+                    collapsed=False,
+                )
+            )
+        )
+        element_counter.next()
+        table_html += '  </tr>\n'
+    table_html += '</table>\n'
+    return table_html
+
+
 def render_resultset(request: HttpRequest,
                      query: Query,
                      highlights: Union[QuerySet, List[Highlight]],
@@ -714,14 +800,14 @@ def render_resultset(request: HttpRequest,
     if query is None:
         return render_missing_query(request)
     try:
-        cursor = query.get_executed_cursor()
+        with query.get_executed_cursor() as cursor:
+            rowcount = cursor.rowcount
+            query.audit(n_records=rowcount)
+            fieldnames = get_fieldnames_from_cursor(cursor)
+            rows = cursor.fetchall()
     except DatabaseError as exception:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
-    rowcount = cursor.rowcount
-    query.audit(n_records=rowcount)
-    fieldnames = get_fieldnames_from_cursor(cursor)
-    rows = cursor.fetchall()
     row_indexes = list(range(len(rows)))
     # We don't need to process all rows before we paginate.
     page = paginate(request, row_indexes)
@@ -732,43 +818,19 @@ def render_resultset(request: HttpRequest,
     highlight_dict = Highlight.as_ordered_dict(highlights)
     highlight_descriptions = get_highlight_descriptions(highlight_dict)
     # Table
-    ditto_cell = '    <td class="queryresult ditto">{}</td>\n'.format(
-        ditto_html)
-    elementnum = 0  # used for collapsing divs/buttons
-    table_html = '<table>\n'
-    table_html += '  <tr>\n'
-    table_html += '    <th><i>#</i></th>\n'
-    for field in fieldnames:
-        table_html += '    <th>{}</th>\n'.format(escape(field))
-    table_html += '  </tr>\n'
-    for row_index, row in enumerate(display_rows):
-        table_html += '  <tr class="{}">\n'.format(
-            "stripy_even" if row_index % 2 == 0 else "stripy_odd"
-        )
-        # Row number
-        table_html += '    <td><b><i>{}</i></b></td>\n'.format(
-            row_index + start_index + 1)
-        # Values
-        for col_index, value in enumerate(row):
-            if (row_index > 0 and ditto and
-                    value == display_rows[row_index - 1][col_index]):
-                table_html += ditto_cell
-            else:
-                table_html += (
-                    '    <td class="queryresult">{}</td>\n'.format(
-                        make_result_element(
-                            value,
-                            elementnum,
-                            highlight_dict=highlight_dict,
-                            collapse_at_len=collapse_at_len,
-                            collapse_at_n_lines=collapse_at_n_lines,
-                            line_length=line_length
-                        )
-                    )
-                )
-            elementnum += 1
-        table_html += '  </tr>\n'
-    table_html += '</table>\n'
+    element_counter = HtmlElementCounter()
+    table_html = resultset_html_table(
+        fieldnames=fieldnames,
+        rows=display_rows,
+        element_counter=element_counter,
+        start_index=start_index,
+        highlight_dict=highlight_dict,
+        collapse_at_len=collapse_at_len,
+        collapse_at_n_lines=collapse_at_n_lines,
+        line_length=line_length,
+        ditto=ditto,
+        ditto_html=ditto_html,
+    )
     # Render
     context = {
         'fieldnames': fieldnames,
@@ -793,48 +855,37 @@ def render_resultset_recordwise(request: HttpRequest,
     if query is None:
         return render_missing_query(request)
     try:
-        cursor = query.get_executed_cursor()
+        with query.get_executed_cursor() as cursor:
+            rowcount = cursor.rowcount
+            query.audit(n_records=rowcount)
+            fieldnames = get_fieldnames_from_cursor(cursor)
+            rows = cursor.fetchall()
     except DatabaseError as exception:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
-    rowcount = cursor.rowcount
-    query.audit(n_records=rowcount)
-    fieldnames = get_fieldnames_from_cursor(cursor)
-    rows = cursor.fetchall()
     row_indexes = list(range(len(rows)))
     # We don't need to process all rows before we paginate.
     page = paginate(request, row_indexes, per_page=1)
-    record_index = page.start_index() - 1
-    record = rows[record_index]
     # Highlights
     highlight_dict = Highlight.as_ordered_dict(highlights)
     highlight_descriptions = get_highlight_descriptions(highlight_dict)
-    # Table
-    elementnum = 0  # used for collapsing divs/buttons
-    table_html = '<p><i>Record {}</i></p>\n'.format(page.start_index())
-    table_html += '<table>\n'
-    for col_index, value in enumerate(record):
-        fieldname = fieldnames[col_index]
-        table_html += '  <tr class="{}">\n'.format(
-            "stripy_even" if col_index % 2 == 0 else "stripy_odd"
+    if rows:
+        record_index = page.start_index() - 1
+        record = rows[record_index]
+        # Table
+        element_counter = HtmlElementCounter()
+        table_html = '<p><i>Record {}</i></p>\n'.format(page.start_index())
+        table_html += single_record_html_table(
+            fieldnames=fieldnames,
+            record=record,
+            element_counter=element_counter,
+            highlight_dict=highlight_dict,
+            collapse_at_len=collapse_at_len,
+            collapse_at_n_lines=collapse_at_n_lines,
+            line_length=line_length,
         )
-        table_html += '    <th>{}</th>'.format(escape(fieldname))
-        table_html += (
-            '    <td class="queryresult">{}</td>\n'.format(
-                make_result_element(
-                    value,
-                    elementnum,
-                    highlight_dict=highlight_dict,
-                    collapse_at_len=collapse_at_len,
-                    collapse_at_n_lines=collapse_at_n_lines,
-                    line_length=line_length,
-                    collapsed=False,
-                )
-            )
-        )
-        elementnum += 1
-        table_html += '  </tr>\n'
-    table_html += '</table>\n'
+    else:
+        table_html = "<b>No rows returned.</b>"
     # Render
     context = {
         'fieldnames': fieldnames,
@@ -860,9 +911,13 @@ def render_tsv(request: HttpRequest, query: Query) -> HttpResponse:
         return render_missing_query(request)
     try:
         tsv_result = query.make_tsv()
+        filename = "crate_results_{num}_{datetime}.tsv".format(
+            num=query.id,
+            datetime=datetime_iso_for_filename(),
+        )
+        return tsv_response(tsv_result, filename=filename)
     except DatabaseError as exception:
         return render_bad_query(request, query, exception)
-    return tsv_response(tsv_result, filename="results.tsv")
 
 
 def render_missing_query(request: HttpRequest) -> HttpResponse:
@@ -929,11 +984,11 @@ def render_lookup(request: HttpRequest,
 # =============================================================================
 
 def structure_table_long(request: HttpRequest) -> HttpResponse:
-    infodictlist = research_database_info.get_infodictlist()
-    rowcount = len(infodictlist)
+    colinfolist = research_database_info.get_colinfolist()
+    rowcount = len(colinfolist)
     context = {
         'paginated': False,
-        'infodictlist': infodictlist,
+        'colinfolist': colinfolist,
         'rowcount': rowcount,
         'default_database': get_default_database(),
         'default_schema': get_default_schema(),
@@ -943,12 +998,12 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
 
 
 def structure_table_paginated(request: HttpRequest) -> HttpResponse:
-    infodictlist = research_database_info.get_infodictlist()
-    rowcount = len(infodictlist)
-    infodictlist = paginate(request, infodictlist)
+    colinfolist = research_database_info.get_colinfolist()
+    rowcount = len(colinfolist)
+    colinfolist = paginate(request, colinfolist)
     context = {
         'paginated': True,
-        'infodictlist': infodictlist,
+        'colinfolist': colinfolist,
         'rowcount': rowcount,
         'default_database': get_default_database(),
         'default_schema': get_default_schema(),
@@ -959,26 +1014,26 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
 
 @lru_cache(maxsize=None)
 def get_structure_tree_html() -> str:
-    db_schema_table_idl = research_database_info.get_infodictlist_by_tables()
+    table_to_colinfolist = research_database_info.get_colinfolist_by_tables()
     content = ""
-    for i, (database, schema, tablename,
-            infodictlist) in enumerate(db_schema_table_idl):
+    element_counter = HtmlElementCounter()
+    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    for table_id, colinfolist in table_to_colinfolist:
         html_table = render_to_string(
             'database_structure_table.html', {
-                'infodictlist': infodictlist,
+                'colinfolist': colinfolist,
                 'default_database': get_default_database(),
                 'default_schema': get_default_schema(),
                 'with_database': research_database_info.uses_database_level()
             })
-        tag = str(i)
-        cd_button = collapsible_div_spanbutton(tag)
-        cd_content = collapsible_div_contentdiv(tag, html_table)
+        cd_button = element_counter.collapsible_div_spanbutton()
+        cd_content = element_counter.collapsible_div_contentdiv(
+            contents=html_table)
         content += (
             '<div class="titlecolour">{button} {db_schema}.<b>{table}</b></div>'
             '{cd}'.format(
-                db_schema=research_database_info.format_db_schema(database,
-                                                                  schema),
-                table=tablename,
+                db_schema=table_id.database_schema_part(grammar),
+                table=table_id.table_part(grammar),
                 button=cd_button,
                 cd=cd_content,
             )
@@ -1046,6 +1101,7 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
         'include_content': False,
     }
     form = SQLHelperTextAnywhereForm(request.POST or default_values)
+    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
     if form.is_valid():
         fkname = form.cleaned_data['fkname']
         min_length = form.cleaned_data['min_length']
@@ -1059,28 +1115,29 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
                 "No tables containing fieldname: {}".format(fkname))
         if include_content:
             queries = []
-            for (db, schema, table) in tables:
+            for table_id in tables:
                 columns = research_database_info.text_columns(
-                    db=db, schema=schema, table=table, min_length=min_length)
-                for column_name, indexed_fulltext in columns:
+                    table_id=table_id, min_length=min_length)
+                for columninfo in columns:
+                    column_identifier = columninfo.column_id().identifier(grammar)  # noqa
                     query = (
                         "SELECT {fkname} AS patient_id,"
                         "\n    '{table_literal}' AS table_name,"
                         "\n    '{col_literal}' AS column_name,"
                         "\n    {column_name} AS content"
-                        "\nFROM {schema}.{table}"
+                        "\nFROM {table}"
                         "\nWHERE {condition}".format(
                             fkname=fkname,
-                            table_literal=escape_sql_string_literal(table),
-                            col_literal=escape_sql_string_literal(column_name),
-                            column_name=column_name,
-                            schema=research_database_info.format_db_schema(
-                                db, schema),
-                            table=table,
+                            table_literal=escape_sql_string_literal(
+                                table_id.identifier(grammar)),
+                            col_literal=escape_sql_string_literal(
+                                columninfo.column_name),
+                            column_name=column_identifier,
+                            table=table_id.identifier(grammar),
                             condition=textmatch(
-                                column_name,
+                                column_identifier,
                                 fragment,
-                                indexed_fulltext and use_fulltext_index
+                                columninfo.indexed_fulltext and use_fulltext_index  # noqa
                             ),
                         )
                     )
@@ -1088,24 +1145,23 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
             sql = "\nUNION\n".join(queries)
             sql += "\nORDER BY patient_id".format(fkname)
         else:
-            for (db, schema, table) in tables:
+            for table_id in tables:
                 elements = []
                 columns = research_database_info.text_columns(
-                    db=db, schema=schema, table=table, min_length=min_length)
+                    table_id=table_id, min_length=min_length)
                 if not columns:
                     continue
-                for column_name, indexed_fulltext in columns:
+                for columninfo in columns:
                     element = textmatch(
-                        column_name,
+                        columninfo.column_id().identifier(grammar),
                         fragment,
-                        indexed_fulltext and use_fulltext_index)
+                        columninfo.indexed_fulltext and use_fulltext_index)
                     elements.append(element)
                 table_query = (
-                    "SELECT {fkname} FROM {schema}.{table} WHERE ("
+                    "SELECT {fkname} FROM {table} WHERE ("
                     "\n    {elements}\n)".format(
                         fkname=fkname,
-                        schema=schema,
-                        table=table,
+                        table=table_id.identifier(grammar),
                         elements="\n    OR ".join(elements),
                     )
                 )
@@ -1121,3 +1177,115 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
             return render(request, 'sql_fragment.html', {'sql': sql})
 
     return render(request, 'sqlhelper_form_text_anywhere.html', {'form': form})
+
+
+# =============================================================================
+# Per-patient views
+# =============================================================================
+
+def patient_explorer_build(request: HttpRequest) -> HttpResponse:
+    return HttpResponse()  # ***
+
+
+def patient_explorer_choose(request: HttpRequest) -> HttpResponse:
+    return HttpResponse()  # ***
+
+
+def patient_explorer_activate(request: HttpRequest,
+                              pe_id: int) -> HttpResponse:
+    validate_blank_form(request)
+    pe = get_object_or_404(PatientExplorer, id=pe_id)
+    pe.activate()
+    return redirect('pe_choose')
+
+
+def patient_explorer_delete(request: HttpRequest, pe_id: int) -> HttpResponse:
+    validate_blank_form(request)
+    pe = get_object_or_404(PatientExplorer, id=pe_id)
+    pe.delete_if_permitted()
+    return redirect('pe_choose')
+
+
+def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
+    pe = get_object_or_404(PatientExplorer, id=pe_id)
+    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    profile = request.user.profile
+    highlights = Highlight.get_active_highlights(request)
+    highlight_dict = Highlight.as_ordered_dict(highlights)
+    try:
+        trids = pe.get_patient_trids()
+        page = paginate(request, trids,
+                        per_page=get_patients_per_page(request))
+        active_trids = list(page)
+        results = []
+        element_counter = HtmlElementCounter()
+        for table_id, sql in pe.all_queries(trids=active_trids):
+            with pe.get_executed_cursor(sql) as cursor:
+                fieldnames = get_fieldnames_from_cursor(cursor)
+                rows = cursor.fetchall()
+                table_html = resultset_html_table(
+                    fieldnames=fieldnames,
+                    rows=rows,
+                    element_counter=element_counter,
+                    highlight_dict=highlight_dict,
+                    collapse_at_len=profile.collapse_at_len,
+                    collapse_at_n_lines=profile.collapse_at_n_lines,
+                    line_length=profile.line_length,
+                )
+                query_html = element_counter.collapsible_div_contentdiv(
+                    contents=pre(sql))
+                results.append({
+                    'tablename': table_id.identifier(grammar),
+                    'table_html': table_html,
+                    'query_html': query_html,
+                })
+        context = {
+            'nav_on_pe_results': True,
+            'results': results,
+            'page': page,
+            'rowcount': len(trids),
+        }
+        context.update(query_context(request))
+        return render(request, 'pe_result.html', context)
+
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)
+
+
+def patient_explorer_tsv(request: HttpRequest) -> HttpResponse:
+    # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
+    pe = PatientExplorer.get_active_pe_or_none(request)
+    if pe is None:
+        return render_missing_pe(request)
+    try:
+        zipdata = pe.get_zipped_tsv_binary_data()
+        resp = HttpResponse(zipdata, mimetype="application/x-zip-compressed")
+        filename = "crate_patientexplorer_{num}_{datetime}.zip".format(
+            num=pe.id,
+            datetime=datetime_iso_for_filename(),
+        )
+        resp['Content-Disposition'] = "attachment;filename={}".format(filename)
+        return resp
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)
+
+
+def render_missing_pe(request: HttpRequest) -> HttpResponse:
+    return render(request, 'pe_missing.html', query_context(request))
+
+
+def render_bad_pe(request: HttpRequest,
+                  pe: PatientExplorer,
+                  exception: Exception) -> HttpResponse:
+    context = {
+        'queries': pe.all_full_queries(),
+        'exception': str(exception),
+    }
+    context.update(query_context(request))
+    return render(request, 'pe_bad.html', context)
+
+
+def render_bad_pe_id(request: HttpRequest, pe_id: int) -> HttpResponse:
+    context = {'pe_id': pe_id}
+    context.update(query_context(request))
+    return render(request, 'bad_pe_id.html', context)

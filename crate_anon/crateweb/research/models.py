@@ -23,48 +23,44 @@
 """
 
 from collections import OrderedDict
-from functools import lru_cache
+import io
 import logging
-# import os
-from typing import Any, Dict, List, Generator, Iterable, Optional, Tuple, Type
+from typing import Any, Dict, List, Iterable, Optional, Tuple, Type
+import zipfile
 
 from django.db import connections, models
-from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models import QuerySet
 from django.conf import settings
 from django.http.request import HttpRequest
-# from django.utils.functional import cached_property
 from picklefield.fields import PickledObjectField
 
-from crate_anon.common.sql_grammar import (
-    DIALECT_MSSQL,
-    DIALECT_POSTGRES,
-    DIALECT_MYSQL,
+from crate_anon.common.sql import (
+    ColumnId,
+    columns_to_table_column_hierarchy,
+    make_grammar,
+    TableId,
+    WhereCondition,
 )
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
     get_fieldnames_from_cursor,
-    is_mysql_column_type_textual,
+    make_tsv_row,
     translate_sql_qmark_to_percent,
-    tsv_escape,
 )
 from crate_anon.crateweb.research.html_functions import (
     highlight_text,
     N_CSS_HIGHLIGHT_CLASSES,
 )
+from crate_anon.crateweb.research.research_db_info import (
+    get_trid_column,
+    get_rid_column,
+)
+from crate_anon.crateweb.research.sql_writer import (
+    add_to_select,
+)
 
 log = logging.getLogger(__name__)
-
-
-# =============================================================================
-# Constants
-# =============================================================================
-
-# https://docs.djangoproject.com/en/1.10/howto/custom-lookups/#writing-alternative-implementations-for-existing-lookups  # noqa
-VENDOR_MICROSOFT = 'microsoft'
-VENDOR_POSTGRESQL = 'postgresql'
-VENDOR_MYSQL = 'mysql'
 
 
 # =============================================================================
@@ -140,6 +136,7 @@ class Query(models.Model):
 
     id = models.AutoField(primary_key=True)  # automatic
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
+
     sql = models.TextField(verbose_name='SQL query')
     args = PickledObjectField(verbose_name='Pickled arguments',
                               null=True)
@@ -172,9 +169,15 @@ class Query(models.Model):
                          .update(active=False)
         super().save(*args, **kwargs)
 
+    # -------------------------------------------------------------------------
+    # Fetching
+    # -------------------------------------------------------------------------
+
     @staticmethod
     def get_active_query_or_none(request: HttpRequest) \
             -> Optional[QUERY_FWD_REF]:
+        if not request.user.is_authenticated():
+            return None
         try:
             return Query.objects.get(user=request.user, active=True)
         except Query.DoesNotExist:
@@ -190,6 +193,10 @@ class Query(models.Model):
         except Query.DoesNotExist:
             return None
 
+    # -------------------------------------------------------------------------
+    # Activating, deleting, auditing
+    # -------------------------------------------------------------------------
+
     def activate(self) -> None:
         self.active = True
         self.save()
@@ -202,13 +209,13 @@ class Query(models.Model):
 
     def mark_deleted(self) -> None:
         if self.deleted:
-            log.debug("pointless)")
+            # log.debug("pointless")
             return
         self.deleted = True
         self.active = False
-        log.debug("about to save")
+        # log.debug("about to save")
         self.save()
-        log.debug("saved")
+        # log.debug("saved")
 
     def delete_if_permitted(self) -> None:
         """If a query has been audited, it isn't properly deleted."""
@@ -232,6 +239,33 @@ class Query(models.Model):
                        fail_msg=fail_msg)
         a.save()
         self.mark_audited()
+
+    # -------------------------------------------------------------------------
+    # Highlights
+    # -------------------------------------------------------------------------
+
+    def add_highlight(self, text: str, colour: int = 0) -> None:
+        h = Highlight(text=text, colour=colour)
+        self.highlight_set.add(h)
+
+    def get_highlights_as_dict(self) -> Dict[int, Iterable[Highlight]]:
+        d = OrderedDict()
+        for n in range(N_CSS_HIGHLIGHT_CLASSES):
+            d[n] = Highlight.objects.filter(query_id=self.id, colour=n)
+        return d
+
+    def get_highlight_descriptions(self) -> List[str]:
+        d = self.get_highlights_as_dict()
+        desc = []
+        for n in range(N_CSS_HIGHLIGHT_CLASSES):
+            if d[n]:
+                # noinspection PyTypeChecker
+                desc.append(", ".join(highlight_text(h.text, n) for h in d[n]))
+        return desc
+
+    # -------------------------------------------------------------------------
+    # SQL queries
+    # -------------------------------------------------------------------------
 
     def get_original_sql(self) -> str:
         # noinspection PyTypeChecker
@@ -269,59 +303,41 @@ class Query(models.Model):
             cursor.execute(sql)
         return cursor
 
-    def gen_rows(self,
-                 firstrow: int = 0,
-                 lastrow: int = None) -> Generator[List[Any], None, None]:
-        """
-        Generate rows from the query.
-        """
-        if firstrow > 0 or lastrow is not None:
-            sql_append_raw = " LIMIT {f},{n}".format(
-                f=firstrow,
-                n=(lastrow - firstrow + 1),
-            )
-            # zero-indexed; http://dev.mysql.com/doc/refman/5.0/en/select.html
-        else:
-            sql_append_raw = None
-        cursor = self.get_executed_cursor(sql_append_raw)
-        row = cursor.fetchone()
-        while row is not None:
-            yield row
-            row = cursor.fetchone()
+    # def gen_rows(self,
+    #              firstrow: int = 0,
+    #              lastrow: int = None) -> Generator[List[Any], None, None]:
+    #     """
+    #     Generate rows from the query.
+    #     """
+    #     if firstrow > 0 or lastrow is not None:
+    #         sql_append_raw = " LIMIT {f},{n}".format(
+    #             f=firstrow,
+    #             n=(lastrow - firstrow + 1),
+    #         )
+    #         # zero-indexed;
+    #         # http://dev.mysql.com/doc/refman/5.0/en/select.html
+    #     else:
+    #         sql_append_raw = None
+    #     with self.get_executed_cursor(sql_append_raw) as cursor:
+    #         row = cursor.fetchone()
+    #         while row is not None:
+    #             yield row
+    #             row = cursor.fetchone()
 
     def make_tsv(self) -> str:
-        cursor = self.get_executed_cursor()
-        fieldnames = get_fieldnames_from_cursor(cursor)
-        tsv = "\t".join([tsv_escape(f) for f in fieldnames]) + "\n"
-        row = cursor.fetchone()
-        while row is not None:
-            tsv += "\t".join([tsv_escape(x) for x in row]) + "\n"
+        with self.get_executed_cursor() as cursor:
+            fieldnames = get_fieldnames_from_cursor(cursor)
+            tsv = make_tsv_row(fieldnames)
             row = cursor.fetchone()
-        return tsv
+            while row is not None:
+                tsv += make_tsv_row(row)
+                row = cursor.fetchone()
+            return tsv
 
     def dictfetchall(self) -> List[Dict[str, Any]]:
         """Generates all results as a list of OrderedDicts."""
-        cursor = self.get_executed_cursor()
-        return dictfetchall(cursor)
-
-    def add_highlight(self, text: str, colour: int = 0) -> None:
-        h = Highlight(text=text, colour=colour)
-        self.highlight_set.add(h)
-
-    def get_highlights_as_dict(self) -> Dict[int, Iterable[Highlight]]:
-        d = OrderedDict()
-        for n in range(N_CSS_HIGHLIGHT_CLASSES):
-            d[n] = Highlight.objects.filter(query_id=self.id, colour=n)
-        return d
-
-    def get_highlight_descriptions(self) -> List[str]:
-        d = self.get_highlights_as_dict()
-        desc = []
-        for n in range(N_CSS_HIGHLIGHT_CLASSES):
-            if d[n]:
-                # noinspection PyTypeChecker
-                desc.append(", ".join(highlight_text(h.text, n) for h in d[n]))
-        return desc
+        with self.get_executed_cursor() as cursor:
+            return dictfetchall(cursor)
 
 
 # =============================================================================
@@ -343,606 +359,6 @@ class QueryAudit(models.Model):
 
     def __str__(self):
         return "<QueryAudit id={}>".format(self.id)
-
-
-# =============================================================================
-# Information about the research database
-# =============================================================================
-
-SQLTYPES_INTEGER = [
-    "INT", "INTEGER",
-    "TINYINT", "SMALLINT", "MEDIUMINT", "BIGINT",
-    "BIT", "BOOL", "BOOLEAN",
-]
-SQLTYPES_FLOAT = [
-    "DOUBLE", "FLOAT", "DEC", "DECIMAL",
-]
-SQLTYPES_TEXT = [
-    "CHAR", "VARCHAR", "NVARCHAR",
-    "TINYTEXT", "TEXT", "NTEXT", "MEDIUMTEXT", "LONGTEXT",
-]
-SQLTYPES_WITH_DATE = [
-    "DATE", "DATETIME", "TIMESTAMP",
-]
-# SQLTYPES_BINARY = [
-#     "BINARY", "BLOB", "IMAGE", "LONGBLOB", "VARBINARY",
-# ]
-
-
-class ColumnInfo(object):
-    # See also querybuilder.js
-    DATATYPE_INTEGER = "int"
-    DATATYPE_FLOAT = "float"
-    DATATYPE_DATE = "date"
-    DATATYPE_STRING = "string"
-    DATATYPE_STRING_FULLTEXT = "string_fulltext"
-    DATATYPE_UNKNOWN = "unknown"
-    STRING_TYPES = [DATATYPE_STRING, DATATYPE_STRING_FULLTEXT]
-
-    def __init__(self, **kwargs) -> None:
-        self.table_catalog = kwargs.pop('table_catalog')
-        self.table_schema = kwargs.pop('table_schema')
-        self.table_name = kwargs.pop('table_name')
-        self.column_name = kwargs.pop('column_name')
-        self.is_nullable = kwargs.pop('is_nullable')
-        self.column_type = kwargs.pop('column_type')
-        self.column_comment = kwargs.pop('column_comment')
-        self.indexed = kwargs.pop('indexed')
-        self.indexed_fulltext = kwargs.pop('indexed_fulltext')
-
-    @property
-    def basetype(self) -> str:
-        return self.column_type.split("(")[0].upper()
-
-    @property
-    def querybuilder_type(self) -> str:
-        """
-        Returns a string that is defined in querybuilder.js
-        """
-        basetype = self.basetype
-        if basetype in SQLTYPES_FLOAT:
-            return self.DATATYPE_FLOAT
-        if basetype in SQLTYPES_WITH_DATE:
-            return self.DATATYPE_DATE
-        if basetype in SQLTYPES_TEXT:
-            if self.indexed_fulltext:
-                return self.DATATYPE_STRING_FULLTEXT
-            else:
-                return self.DATATYPE_STRING
-        if basetype in SQLTYPES_INTEGER:
-            return self.DATATYPE_INTEGER
-        return self.DATATYPE_UNKNOWN
-
-
-def get_researchdb_databases_schemas() -> List[Tuple[str, str]]:
-    return [(x['database'], x['schema']) for x in settings.RESEARCH_DB_INFO]
-
-
-def get_default_database() -> str:
-    if settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL:
-        return settings.DATABASES['research']['NAME']
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_POSTGRES:
-        return ''
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL:
-        return ''
-    else:
-        raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
-
-
-def get_default_schema() -> str:
-    if settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL:
-        return 'dbo'
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_POSTGRES:
-        return 'public'
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL:
-        return settings.DATABASES['research']['NAME']
-    else:
-        raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
-
-
-def get_db_info(db: str, schema: str) -> Optional[Dict[str, Any]]:
-    db = db or get_default_database()
-    schema = schema or get_default_schema()
-    infolist = [x for x in settings.RESEARCH_DB_INFO
-                if x['database'] == db and x['schema'] == schema]
-    if not infolist:
-        log.warning("No such database/schema: {}.{}".format(db, schema))
-        return None
-    return infolist[0]
-
-
-@lru_cache(maxsize=None)
-def get_schema_trid_field(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('trid_field', '')
-
-
-@lru_cache(maxsize=None)
-def get_schema_rid_field(db: str, schema: str) -> str:
-    schema_info = get_db_info(db, schema)
-    if not schema_info:
-        return ''
-    return schema_info.get('rid_field', '')
-
-
-@lru_cache(maxsize=None)
-def get_db_rid_family(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('rid_family', '')
-
-
-@lru_cache(maxsize=None)
-def get_db_mrid_table(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('mrid_table', '')
-
-
-@lru_cache(maxsize=None)
-def get_db_mrid_field(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('mrid_field', '')
-
-
-@lru_cache(maxsize=None)
-def is_db_schema_eligible_for_query_builder(db: str, schema: str) -> bool:
-    this_dbs_info = get_db_info(db, schema)
-    if not this_dbs_info:
-        return False
-    first_dbs_info = settings.RESEARCH_DB_INFO[0]
-    first_dbs_name = first_dbs_info['database']
-    first_dbs_schema = first_dbs_info['schema']
-    if db == first_dbs_name and schema == first_dbs_schema:
-        # First one: always eligible
-        return True
-    first_db_talks_to_world = bool(
-        first_dbs_info.get('mrid_table', None) and
-        first_dbs_info.get('mrid_field', None)
-    )
-    this_db_talks_to_world = bool(
-        this_dbs_info.get('mrid_table', None) and
-        this_dbs_info.get('mrid_field', None)
-    )
-    can_communicate_directly = bool(
-        first_dbs_info.get('rid_field', None) and
-        this_dbs_info.get('rid_field', None) and
-        this_dbs_info.get('rid_family', None) and
-        this_dbs_info.get('rid_family', None) ==
-        first_dbs_info.get('rid_family', None)
-    )
-    return (
-        (first_db_talks_to_world and this_db_talks_to_world) or
-        can_communicate_directly
-    )
-
-
-class ResearchDatabaseInfo(object):
-    """
-    Fetches schema information from the research database.
-    Class only exists to be able to use @cached_property.
-    ... replaced by lru_cache
-    """
-
-    @classmethod
-    def connection(cls) -> BaseDatabaseWrapper:
-        return connections['research']
-
-    @classmethod
-    def uses_database_level(cls) -> bool:
-        return cls._offers_db_above_schema(cls.connection())
-
-    @classmethod
-    def format_db_schema(cls, db: str, schema: str) -> str:
-        if cls.uses_database_level():
-            return "{}.{}".format(db, schema)
-        else:
-            return schema
-
-    @staticmethod
-    def _offers_db_above_schema(connection: BaseDatabaseWrapper) -> bool:
-        return connection.vendor in [VENDOR_MICROSOFT]
-        # not MySQL ("database" concept = "schema" concept)
-        # not PostgreSQL (only one database per connection)
-
-    @classmethod
-    def get_info_microsoft(cls, db_name: str,
-                           schema_names: List[str]) -> Tuple[str, List[Any]]:
-        if not schema_names:
-            raise ValueError("No schema_names specified (for SQL Server "
-                             "database)")
-        # SQL Server INFORMATION_SCHEMA.COLUMNS:
-        # - https://msdn.microsoft.com/en-us/library/ms188348.aspx
-        # Re fulltext indexes:
-        # - http://stackoverflow.com/questions/16280918/how-to-find-full-text-indexing-on-database-in-sql-server-2008  # noqa
-        # - sys.fulltext_indexes: https://msdn.microsoft.com/en-us/library/ms186903.aspx  # noqa
-        # - sys.fulltext_catalogs: https://msdn.microsoft.com/en-us/library/ms188779.aspx  # noqa
-        # - sys.fulltext_index_columns: https://msdn.microsoft.com/en-us/library/ms188335.aspx  # noqa
-        schema_placeholder = ",".join(["?"] * len(schema_names))
-        sql = translate_sql_qmark_to_percent("""
-SELECT
-    ? AS table_catalog,
-    d.table_schema,
-    d.table_name,
-    d.column_name,
-    d.is_nullable,
-    d.column_type,
-    d.column_comment,
-    CASE WHEN COUNT(d.index_id) > 0 THEN 1 ELSE 0 END AS indexed,
-    CASE WHEN COUNT(d.fulltext_index_object_id) > 0 THEN 1 ELSE 0 END AS indexed_fulltext
-FROM (
-    SELECT
-        s.name AS table_schema,
-        ta.name AS table_name,
-        c.name AS column_name,
-        c.is_nullable,
-        UPPER(ty.name) + '(' + CONVERT(VARCHAR(100), c.max_length) + ')' AS column_type,
-        CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT
-        i.index_id,
-        fi.object_id AS fulltext_index_object_id
-    FROM [{db_name}].sys.tables ta
-    INNER JOIN [{db_name}].sys.schemas s ON ta.schema_id = s.schema_id
-    INNER JOIN [{db_name}].sys.columns c ON c.object_id = ta.object_id
-    INNER JOIN [{db_name}].sys.types ty ON ty.system_type_id = c.system_type_id
-    LEFT JOIN [{db_name}].sys.extended_properties x ON (
-        x.major_id = c.object_id
-        AND x.minor_id = c.column_id
-    )
-    LEFT JOIN [{db_name}].sys.index_columns i ON (
-        i.object_id = c.object_id
-        AND i.column_id = c.column_id
-    )
-    LEFT JOIN [{db_name}].sys.fulltext_index_columns fi ON (
-        fi.object_id = c.object_id
-        AND fi.column_id = c.column_id
-    )
-    WHERE s.name IN ({schema_placeholder})
-    AND ty.user_type_id = ty.system_type_id  -- restricts to system data types; eliminates 'sysname' type
-) AS d
-GROUP BY
-    table_schema,
-    table_name,
-    column_name,
-    is_nullable,
-    column_type,
-    column_comment
-ORDER BY
-    table_schema,
-    table_name,
-    column_name
-        """.format(db_name=db_name,  # noqa
-                   schema_placeholder=schema_placeholder))
-        args = [db_name] + schema_names
-        return sql, args
-
-    @classmethod
-    def get_info_mysql(cls, db_and_schema_name: str) -> Tuple[str, List[Any]]:
-        # ---------------------------------------------------------------------
-        # Method A. Stupidly slow, e.g. 47s for the query.
-        # ---------------------------------------------------------------------
-        # It's the EXISTS stuff that's slow.
-        #
-        # sql = translate_sql_qmark_to_percent("""
-        #     SELECT
-        #         c.table_schema,
-        #         c.table_name,
-        #         c.column_name,
-        #         c.is_nullable,
-        #         c.column_type,  /* MySQL: e.g. varchar(32) */
-        #         c.column_comment,  /* MySQL */
-        #         EXISTS (
-        #             SELECT *
-        #             FROM information_schema.statistics s
-        #             WHERE s.table_schema = c.table_schema
-        #             AND s.table_name = c.table_name
-        #             AND s.column_name = c.column_name
-        #         ) AS indexed,
-        #         EXISTS (
-        #             SELECT *
-        #             FROM information_schema.statistics s
-        #             WHERE s.table_schema = c.table_schema
-        #             AND s.table_name = c.table_name
-        #             AND s.column_name = c.column_name
-        #             AND s.index_type LIKE 'FULLTEXT%'
-        #         ) AS indexed_fulltext
-        #     FROM
-        #         information_schema.columns c
-        #     WHERE
-        #         c.table_schema IN ({schema_placeholder})
-        #     ORDER BY
-        #         c.table_schema,
-        #         c.table_name,
-        #         c.column_name
-        # """.format(
-        #     schema_placeholder=",".join(["?"] * len(schemas)),
-        # ))
-        # args = schemas
-        #
-        # ---------------------------------------------------------------------
-        # Method B. Much faster, e.g. 0.35s for the same thing.
-        # ---------------------------------------------------------------------
-        # http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins  # noqa
-        # (Note that EXISTS() above returns 0 or 1.)
-        # The LEFT JOIN below will produce NULL values for the index
-        # columns for non-indexed fields.
-        # However, you can have more than one index on a column, in which
-        # case the column appears in two rows.
-        #
-        # MySQL's INFORMATION_SCHEMA.COLUMNS:
-        # - https://dev.mysql.com/doc/refman/5.7/en/tables-table.html
-        sql = translate_sql_qmark_to_percent("""
-SELECT
-    '' AS table_catalog,
-    d.table_schema,
-    d.table_name,
-    d.column_name,
-    d.is_nullable,
-    d.column_type,
-    d.column_comment,
-    d.indexed,
-    MAX(d.indexed_fulltext) AS indexed_fulltext
-FROM (
-    SELECT
-        -- c.table_catalog,  -- will always be 'def'
-        c.table_schema,
-        c.table_name,
-        c.column_name,
-        c.is_nullable,
-        c.column_type,  /* MySQL: e.g. varchar(32) */
-        c.column_comment,  /* MySQL */
-        /* s.index_name, */
-        /* s.index_type, */
-        IF(s.index_type IS NOT NULL, 1, 0) AS indexed,
-        IF(s.index_type LIKE 'FULLTEXT%', 1, 0) AS indexed_fulltext
-    FROM
-        information_schema.columns c
-        LEFT JOIN information_schema.statistics s
-        ON (
-            c.table_schema = s.table_schema
-            AND c.table_name = s.table_name
-            AND c.column_name = s.column_name
-        )
-    WHERE
-        c.table_schema = ?
-) AS d  /* "Every derived table must have its own alias" */
-GROUP BY
-    table_catalog,
-    table_schema,
-    table_name,
-    column_name,
-    is_nullable,
-    column_type,
-    column_comment,
-    indexed
-ORDER BY
-    table_catalog,
-    table_schema,
-    table_name,
-    column_name
-        """)
-        args = [db_and_schema_name]
-        return sql, args
-
-    @classmethod
-    def get_info_postgres(cls, schema_names: List[str]) -> Tuple[str, List[Any]]:  # noqa
-        # A PostgreSQL connection is always to a single database.
-        # http://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql  # noqa
-        if not schema_names:
-            raise ValueError("No schema_names specified (for PostgreSQL "
-                             "database)")
-        # http://dba.stackexchange.com/questions/75015
-        # http://stackoverflow.com/questions/14713774
-        # Note that creating a GIN index looks like:
-        #       ALTER TABLE t ADD COLUMN tsv_mytext TSVECTOR;
-        #       UPDATE t SET tsv_mytext = to_tsvector(mytext);
-        #       CREATE INDEX idx_t_mytext_gin ON t USING GIN(tsv_mytext);
-        schema_placeholder = ",".join(["?"] * len(schema_names))
-        # PostgreSQL INFORMATION_SCHEMA.COLUMNS:
-        # - https://www.postgresql.org/docs/9.1/static/infoschema-columns.html
-        sql = translate_sql_qmark_to_percent("""
-SELECT
-    '' AS table_catalog,
-    d.table_schema,
-    d.table_name,
-    d.column_name,
-    d.is_nullable,
-    d.column_type,
-    d.column_comment,
-    CASE WHEN COUNT(d.indrelid) > 0 THEN 1 ELSE 0 END AS indexed,
-    MAX(d.indexed_fulltext) AS indexed_fulltext
-FROM (
-    SELECT
-        -- c.table_catalog,  -- will always be the connection's database name
-        c.table_schema,
-        c.table_name,
-        c.column_name,
-        a.attnum as column_seq_num,
-        c.is_nullable,
-        pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type,
-        pgd.description AS column_comment,
-        i.indrelid,
-        CASE
-            WHEN pg_get_indexdef(indexrelid) ~ 'USING (gin |gist )' THEN 1
-            ELSE 0
-        END AS indexed_fulltext
-    FROM pg_catalog.pg_statio_all_tables AS t
-    INNER JOIN information_schema.columns c ON (
-        c.table_schema = t.schemaname
-        AND c.table_name = t.relname
-    )
-    INNER JOIN pg_catalog.pg_attribute a ON (  -- one row per column
-        a.attrelid = t.relid
-        AND a.attname = c.column_name
-    )
-    LEFT JOIN pg_catalog.pg_index AS i ON (
-        i.indrelid = t.relid  -- match on table
-        AND i.indkey[0] = a.attnum  -- match on column sequence number
-        AND i.indnatts = 1  -- one column in the index
-    )
-    LEFT JOIN pg_catalog.pg_description pgd ON (
-        pgd.objoid = t.relid
-        AND pgd.objsubid = c.ordinal_position
-    )
-    WHERE t.schemaname IN ({schema_placeholder})
-) AS d
-GROUP BY
-    table_catalog,
-    table_schema,
-    table_name,
-    column_name,
-    is_nullable,
-    column_type,
-    column_comment
-ORDER BY
-    table_catalog,
-    table_schema,
-    table_name,
-    column_name
-        """.format(schema_placeholder=schema_placeholder))
-        args = schema_names
-        return sql, args
-
-    @classmethod
-    def get_infodictlist_for_db(
-            cls, connection: BaseDatabaseWrapper, vendor: str, db_name: str,
-            schema_name: str) -> List[Dict[str, Any]]:
-        log.debug("Fetching/caching database structure (for database {}, "
-                  "schema {})...".format(db_name, schema_name))
-        if db_name is None:
-            raise ValueError("Use '', not None, for a blank db_name")
-        if schema_name is None:
-            raise ValueError("Use '', not None, for a blank schema_name")
-        if vendor == VENDOR_MICROSOFT:
-            if not db_name:
-                raise ValueError("No db_name specified; required for MSSQL")
-            if not schema_name:
-                raise ValueError("No schema_name specified; required for MSSQL")  # noqa
-            sql, args = cls.get_info_microsoft(db_name, [schema_name])
-        elif vendor == VENDOR_POSTGRESQL:
-            if db_name:
-                raise ValueError("db_name specified; must be '' for PostgreSQL")  # noqa
-            if not schema_name:
-                raise ValueError("No schema_name specified; required for PostgreSQL")  # noqa
-            sql, args = cls.get_info_postgres([schema_name])
-        elif vendor == VENDOR_MYSQL:
-            if db_name:
-                raise ValueError("db_name specified; must be '' for MySQL")
-            if not schema_name:
-                raise ValueError("No schema_name specified; required for MySQL")  # noqa
-            sql, args = cls.get_info_mysql(db_and_schema_name=schema_name)
-        else:
-            raise ValueError(
-                "Don't know how to get metadata for "
-                "connection.vendor=='{}'".format(vendor))
-        # We execute this one directly, rather than using the Query class,
-        # since this is a system rather than a per-user query.
-        cursor = connection.cursor()
-        # log.debug("sql = {}, args = {}".format(sql, repr(args)))
-        cursor.execute(sql, args)
-        results = dictfetchall(cursor)  # list of OrderedDicts
-        # log.debug("results = {}".format(repr(results)))
-        log.debug("... done")
-        return results
-        # Re passing multiple values to SQL via args:
-        # - Don't circumvent the parameter protection against SQL injection.
-        # - Too much hassle to use Django's ORM model here, though that would
-        #   also be possible.
-        # - http://stackoverflow.com/questions/907806
-        # - Similarly via SQLAlchemy reflection/inspection.
-
-    @lru_cache(maxsize=None)
-    def get_infodictlist(self) -> List[Dict[str, Any]]:
-        connection = self.connection()
-        vendor = connection.vendor
-        results = []
-        for dbinfo in settings.RESEARCH_DB_INFO:
-            db_name = dbinfo['database']
-            schema_name = dbinfo['schema']
-            results.extend(self.get_infodictlist_for_db(connection, vendor,
-                                                        db_name, schema_name))
-        if not results:
-            log.warning("ResearchDatabaseInfo.get_infodictlist(): no results "
-                        "for 'research' database - misconfigured?")
-        return results
-
-    @lru_cache(maxsize=None)
-    def get_colinfolist(self) -> List[ColumnInfo]:
-        infodictlist = self.get_infodictlist()
-        return [ColumnInfo(**d) for d in infodictlist]
-
-    @lru_cache(maxsize=None)
-    def get_infodictlist_by_tables(self) \
-            -> List[Tuple[str, str, str, List[Dict[str, Any]]]]:
-        idl = self.get_infodictlist()
-        db_schema_table_idl = []
-        for database, schema, table in sorted(set(
-                (x['table_catalog'], x['table_schema'], x['table_name'])
-                for x in idl)):
-            log.debug("database={}, schema={}, table={}".format(
-                database, schema, table))
-            dictlist = [i for i in idl
-                        if i['table_catalog'] == database and
-                        i['table_schema'] == schema and
-                        i['table_name'] == table]
-            db_schema_table_idl.append((database, schema, table, dictlist))
-        # log.debug(repr(schema_table_idl))
-        return db_schema_table_idl
-
-    @lru_cache(maxsize=1000)
-    def tables_containing_field(self,
-                                fieldname: str) -> List[Tuple[str, str, str]]:
-        """
-        Returns a list of (db, schema, table) tuples.
-        We won't use a SELECT on INFORMATION_SCHEMA here, since we already
-        have the information.
-        """
-        idl = self.get_infodictlist()
-        results = []
-        for infodict in idl:
-            if infodict['column_name'] == fieldname:
-                newtuple = (
-                    infodict['table_catalog'],
-                    infodict['table_schema'],
-                    infodict['table_name']
-                )
-                if newtuple not in results:
-                    results.append(newtuple)
-        return results
-
-    @lru_cache(maxsize=1000)
-    def text_columns(self,
-                     db: str,
-                     schema: str,
-                     table: str,
-                     min_length: int = 1) -> List[Tuple[str, bool]]:
-        """
-        Returns list of (column_name, indexed_fulltext) pairs.
-        """
-        results = []
-        use_db = self.uses_database_level()
-        for rowdict in self.get_infodictlist():
-            if use_db and rowdict['table_catalog'] != db:
-                continue
-            if rowdict['table_schema'] != schema:
-                continue
-            if rowdict['table_name'] != table:
-                continue
-            column_type = rowdict['column_type']
-            if not is_mysql_column_type_textual(column_type, min_length):
-                continue
-            column_name = rowdict['column_name']
-            indexed_fulltext = rowdict['indexed_fulltext']
-            results.append((column_name, indexed_fulltext))
-        return results
-
-
-research_database_info = ResearchDatabaseInfo()
 
 
 # =============================================================================
@@ -1018,3 +434,406 @@ def get_pid(trid: int = None,
     lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
     # noinspection PyTypeChecker
     return lookup.pid
+
+
+# =============================================================================
+# Patient Explorer multi-query class
+# =============================================================================
+
+"""
+
+1. Patient ID query
+
+- Single database is easy; we can use RID or TRID, and therefore TRID for
+  performance.
+  Note that UNION gives only DISTINCT results by default ("UNION ALL" gives
+  everything).
+  ... http://stackoverflow.com/questions/49925/what-is-the-difference-between-union-and-union-all
+
+    -- Clear, but extensibility of boolean logic less clear:
+    SELECT trid
+        FROM diagnosis_table
+        WHERE diagnosis LIKE 'F20%'
+    INTERSECT
+    SELECT trid
+        FROM progress_note_table
+        WHERE note LIKE '%schizophreni%' OR note LIKE '%depression%'
+    ORDER BY trid
+    ... logic across tables requires careful arrangement of UNION vs. INTERSECT
+    ... logic for multiple fields within one table can be done with AND/OR
+
+    -- Slower (?), but simpler to manipulate logic?
+    SELECT DISTINCT something.trid
+    FROM diagnosis_table INNER JOIN progress_note_table
+    ON diagnosis_table.trid = progress_note_table.trid
+    WHERE
+        diagnosis_table.diagnosis LIKE 'F20%'
+        AND (progress_note_table.note LIKE '%schizophreni%'
+             OR progress_note_table.notenote LIKE '%depression%')
+    ORDER BY something.trid
+    -- ... boolean logic can all be encapsulated in a single WHERE clause
+    -- ... can also share existing join code
+    -- ... ?reasonable speed since the TRID fields will be indexed
+    -- ... preferable.
+
+1b. Which ID for the patient ID query
+
+    ... the TRID (for speed, inc. sorting) of the first database
+    ... can use the TRID from the first "where clause" table
+        (don't have to join to a master patient table)
+    ... join everything across databases as before
+
+2. Results queries
+
+    -- Something like:
+
+    SELECT rid, date_of_note, note
+    FROM progress_note_table
+    WHERE trid IN ( ... patient_id_query ... )
+    ORDER BY trid
+
+    SELECT rid, date_of_diagnosis, diagnosis, diagnosis_description
+    FROM diagnosis_table
+    WHERE trid IN ( ... patient_id_query ... )
+    ORDER BY trid
+
+
+This means we will repeat the patient_id_query, which may be inefficient.
+Options:
+- store the TRIDs in Python, then pass them as arguments
+  ... at which point the SQL string/packet length becomes relevant;
+  ... http://stackoverflow.com/questions/1869753/maximum-size-for-a-sql-server-query-in-clause-is-there-a-better-approach
+  ... http://stackoverflow.com/questions/16335011/what-is-maximum-query-size-for-mysql
+  ... http://stackoverflow.com/questions/96553/practical-limit-to-length-of-sql-query-specifically-mysql
+- let the database worry about it
+  ... probably best for now!
+
+
+3. Display
+
+    One patient per page, with multiple results tables.
+
+===========
+
+- Boolean logic on patient selection
+    ... within
+
+
+"""  # noqa
+
+
+class PatientMultiQuery(object):
+    def __init__(self):
+        self.output_columns = []  # type: List[ColumnId]
+        self.patient_conditions = []  # type: List[WhereCondition]
+        self.overriding_manual_patient_id_query = ''  # type: str
+
+    def add_output_column(self, column_id: ColumnId) -> None:
+        if column_id not in self.output_columns:
+            self.output_columns.append(column_id)
+
+    def add_patient_condition(self, where: WhereCondition) -> None:
+        if where not in self.patient_conditions:
+            self.patient_conditions.append(where)
+
+    def set_override_query(self, query: str) -> None:
+        self.overriding_manual_patient_id_query = query
+
+    def patient_id_query(self) -> str:
+        # Returns an SQL SELECT statement based on the list of WHERE conditions
+        # already stored, joined with AND by default.
+
+        if self.overriding_manual_patient_id_query:
+            # User has specified one manually.
+            return self.overriding_manual_patient_id_query
+
+        if not self.patient_conditions:
+            return ''
+
+        dialect = settings.RESEARCH_DB_DIALECT
+        grammar = make_grammar(dialect)
+        select_trid_column = get_trid_column(
+            self.patient_conditions[0].table_id())
+        trid_alias = "_trid"
+        sql = add_to_select(
+            '',
+            select_column=select_trid_column,
+            select_alias=trid_alias,
+            magic_join=True,
+            dialect=dialect
+        )
+        for where_condition in self.patient_conditions:
+            sql = add_to_select(
+                sql,
+                where_type="AND",
+                where_expression=where_condition.sql(grammar),
+                where_table=where_condition.table_id(),
+                magic_join=True,
+                dialect=dialect
+            )
+        return sql
+
+    def all_full_queries(self) -> List[Tuple[TableId, str]]:
+        return self.all_queries(trids=None)
+
+    def all_queries_specific_patients(
+            self,
+            trids: List[int]) -> List[Tuple[TableId, str]]:
+        return self.all_queries(trids=trids)
+
+    def all_queries(self,
+                    trids: List[int] = None) -> List[Tuple[TableId, str]]:
+        queries = []
+        table_columns_map = columns_to_table_column_hierarchy(
+            self.output_columns, sort=True)
+        for table, columns in table_columns_map:
+            newquery = self.make_query(table_id=table,
+                                       columns=columns,
+                                       trids=trids)
+            queries.append(newquery)
+        return queries
+
+    def make_query(self,
+                   table_id: TableId,
+                   columns: List[ColumnId],
+                   trids: List[int] = None) -> Tuple[TableId, str]:
+        # TRUSTS THE "trids" PARAMETERS.
+        trids = trids or []
+        if not columns:
+            raise ValueError("No columns specified")
+
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        rid_column = get_rid_column(table_id)
+        trid_column = get_trid_column(table_id)
+        all_columns = [rid_column, trid_column]
+        for c in columns:
+            if c not in all_columns:
+                all_columns.append(c)
+
+        if trids:
+            in_clause = ",".join(str(t) for t in trids)
+        else:
+            # If we haven't specified specific patients, use our patient-
+            # finding query.
+            in_clause = self.patient_id_query()
+        where_clause = "WHERE {trid} IN ({in_clause})".format(
+            trid=trid_column.identifier(grammar),
+            in_clause=in_clause,
+        )
+        sql = "SELECT {all_columns} FROM {table} {where_clause}".format(
+            all_columns=", ".join(c.identifier(grammar) for c in all_columns),
+            table=table_id.identifier(grammar),
+            where_clause=where_clause,
+        )
+        return table_id, sql
+
+
+PATIENT_EXPLORER_FWD_REF = "PatientExplorer"
+
+
+class PatientExplorer(models.Model):
+    """
+    Class to explore the research database on a per-patient basis.
+    """
+    class Meta:
+        app_label = "research"
+
+    id = models.AutoField(primary_key=True)  # automatic
+    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    patient_multiquery = PickledObjectField(
+        verbose_name='Pickled PatientMultiQuery',
+        null=True)  # type: PatientMultiQuery
+    active = models.BooleanField(default=True)  # see save() below
+    created = models.DateTimeField(auto_now_add=True)
+    deleted = models.BooleanField(
+        default=False,
+        verbose_name="Deleted from the user's perspective. "
+                     "Audited queries are never properly deleted.")
+    audited = models.BooleanField(default=False)
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        if not self.patient_multiquery:
+            self.patient_multiquery = PatientMultiQuery()
+
+    def __str__(self) -> str:
+        return "<PatientExplorer id={}>".format(self.id)
+
+    def save(self, *args, **kwargs) -> None:
+        """
+        Custom save method. Ensures that only one PatientExplorer has
+        active == True for a given user.
+        """
+        if self.active:
+            PatientExplorer.objects\
+                .filter(user=self.user, active=True)\
+                .update(active=False)
+        super().save(*args, **kwargs)
+
+    # -------------------------------------------------------------------------
+    # Fetching
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def get_active_pe_or_none(request: HttpRequest) \
+            -> Optional[PATIENT_EXPLORER_FWD_REF]:
+        if not request.user.is_authenticated():
+            return None
+        try:
+            return PatientExplorer.objects.get(user=request.user, active=True)
+        except PatientExplorer.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_active_pe_id_or_none(request: HttpRequest) -> Optional[int]:
+        if not request.user.is_authenticated():
+            return None
+        try:
+            pe = PatientExplorer.objects.get(user=request.user, active=True)
+            return pe.id
+        except PatientExplorer.DoesNotExist:
+            return None
+
+    # -------------------------------------------------------------------------
+    # Activating, deleting, auditing
+    # -------------------------------------------------------------------------
+
+    def activate(self) -> None:
+        self.active = True
+        self.save()
+
+    def mark_audited(self) -> None:
+        if self.audited:
+            return
+        self.audited = True
+        self.save()
+
+    def mark_deleted(self) -> None:
+        if self.deleted:
+            # log.debug("pointless")
+            return
+        self.deleted = True
+        self.active = False
+        # log.debug("about to save")
+        self.save()
+        # log.debug("saved")
+
+    def delete_if_permitted(self) -> None:
+        """If a PE has been audited, it isn't properly deleted."""
+        if self.deleted:
+            log.debug("already flagged as deleted")
+            return
+        if self.audited:
+            log.debug("marking as deleted")
+            self.mark_deleted()
+        else:
+            # actually delete
+            log.debug("actually deleting")
+            self.delete()
+
+    def audit(self, count_only: bool = False, n_records: int = 0,
+              failed: bool = False, fail_msg: str = "") -> None:
+        a = PatientExplorerAudit(patient_explorer=self,
+                                 count_only=count_only,
+                                 n_records=n_records,
+                                 failed=failed,
+                                 fail_msg=fail_msg)
+        a.save()
+        self.mark_audited()
+
+    # -------------------------------------------------------------------------
+    # Highlights
+    # -------------------------------------------------------------------------
+
+    def add_highlight(self, text: str, colour: int = 0) -> None:
+        h = Highlight(text=text, colour=colour)
+        self.highlight_set.add(h)
+
+    def get_highlights_as_dict(self) -> Dict[int, Iterable[Highlight]]:
+        d = OrderedDict()
+        for n in range(N_CSS_HIGHLIGHT_CLASSES):
+            d[n] = Highlight.objects.filter(query_id=self.id, colour=n)
+        return d
+
+    def get_highlight_descriptions(self) -> List[str]:
+        d = self.get_highlights_as_dict()
+        desc = []
+        for n in range(N_CSS_HIGHLIGHT_CLASSES):
+            if d[n]:
+                # noinspection PyTypeChecker
+                desc.append(", ".join(highlight_text(h.text, n) for h in d[n]))
+        return desc
+
+    # -------------------------------------------------------------------------
+    # Using the internal PatientMultiQuery
+    # -------------------------------------------------------------------------
+
+    def set_manual_patient_query(self, query: str) -> None:
+        self.patient_multiquery.set_override_query(query)
+
+    def add_output_column(self, column_id: ColumnId) -> None:
+        self.patient_multiquery.add_output_column(column_id)
+
+    def add_patient_condition(self, where: WhereCondition) -> None:
+        self.patient_multiquery.add_patient_condition(where)
+
+    def all_queries(self, trids: List[int] = None) -> List[Tuple[TableId, str]]:  # noqa
+        return self.patient_multiquery.all_queries(trids=trids)
+
+    @staticmethod
+    def get_executed_cursor(sql: str, args: List[Any] = None) -> Any:
+        """
+        Get cursor with a query executed
+        """
+        args = args or []
+        cursor = connections['research'].cursor()
+        if args:
+            cursor.execute(sql, args)
+        else:
+            cursor.execute(sql)
+        return cursor
+
+    def get_patient_trids(self) -> List[int]:
+        sql = self.patient_multiquery.patient_id_query()
+        with self.get_executed_cursor(sql) as cursor:
+            return [row[0] for row in cursor.fetchall()]
+
+    def get_zipped_tsv_binary_data(self) -> bytes:
+        # Don't pass giant result sets around beyond what's necessary.
+        # Use cursor.fetchone()
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        memfile = io.BytesIO()
+        z = zipfile.ZipFile(memfile, "w")
+        for table_id, sql in self.patient_multiquery.all_queries():
+            with self.get_executed_cursor(sql) as cursor:
+                fieldnames = get_fieldnames_from_cursor(cursor)
+                tsv = make_tsv_row(fieldnames)
+                row = cursor.fetchone()
+                while row is not None:
+                    tsv += make_tsv_row(row)
+                    row = cursor.fetchone()
+            filename = table_id.identifier(grammar) + ".tsv"
+            z.writestr(filename, tsv.encode("utf-8"))
+        z.close()
+        return memfile.getvalue()
+
+
+# =============================================================================
+# PatientExplorer auditing class
+# =============================================================================
+
+class PatientExplorerAudit(models.Model):
+    """
+    Audit log for a PatientExplorer.
+    """
+    id = models.AutoField(primary_key=True)  # automatic
+    patient_explorer = models.ForeignKey('PatientExplorer')
+    when = models.DateTimeField(auto_now_add=True)
+    count_only = models.BooleanField(default=False)
+    n_records = models.IntegerField(default=0)
+    # ... not PositiveIntegerField; SQL Server gives -1, for example
+    failed = models.BooleanField(default=False)
+    fail_msg = models.TextField()
+
+    def __str__(self):
+        return "<PatientExplorerAudit id={}>".format(self.id)

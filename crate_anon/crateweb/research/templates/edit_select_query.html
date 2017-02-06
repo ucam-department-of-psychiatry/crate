@@ -30,15 +30,21 @@
             <a href="https://www.codecademy.com/learn/learn-sql">Codecademy</a>, or
             <a href="http://www.w3schools.com/sql/">W3Schools</a>.</li>
 
-        <li>The research database runs MySQL.</li>
-
-        <li>Append <b><code>LIMIT row_count</code></b> or
-            <b><code>LIMIT offset, row_count</code></b> to limit the results,
-            where <code>offset</code> is numbered from 0 (not 1), and
-            <code>row_count</code> is the number of records to retrieve
-            (so <code>LIMIT 50</code> or <code>LIMIT 0, 50</code> retrieves
-            the first 50 records, and <code>LIMIT 50, 50</code> retrieves the
-            next 50).</li>
+        {% if dialect_mysql %}
+            <li>The research database runs MySQL.</li>
+            <li>Append <b><code>LIMIT row_count</code></b> or
+                <b><code>LIMIT offset, row_count</code></b> to limit the results,
+                where <code>offset</code> is numbered from 0 (not 1), and
+                <code>row_count</code> is the number of records to retrieve
+                (so <code>LIMIT 50</code> or <code>LIMIT 0, 50</code> retrieves
+                the first 50 records, and <code>LIMIT 50, 50</code> retrieves the
+                next 50).</li>
+        {% elif dialect_mssql %}
+            <li>The research database runs Microsoft SQL Server.</li>
+            <li>Use <b><code>SELECT TOP 100 ...</code></b>
+                to limit the results to the first 100 rows.
+                </li>
+        {% endif %}
 
         <li>The query builder is not as sophisticated as raw SQL, so it may
             fail to alter complex SQL properly.</li>

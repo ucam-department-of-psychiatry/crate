@@ -36,6 +36,7 @@ import unittest
 
 import regex  # sudo apt-get install python-regex
 
+from crate_anon.common.lang import unique_list
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,  # for unit testing
@@ -342,13 +343,6 @@ def get_phrase_regex_elements(
 # =============================================================================
 # Combining regex elements into a giant regex
 # =============================================================================
-
-def unique_list(seq: List[str]):
-    # http://stackoverflow.com/questions/480214/how-do-you-remove-duplicates-from-a-list-in-whilst-preserving-order  # noqa
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
-
 
 def get_regex_string_from_elements(elementlist: List[str]) -> str:
     """

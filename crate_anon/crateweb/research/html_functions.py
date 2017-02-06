@@ -26,7 +26,7 @@ import logging
 import re
 import textwrap
 import typing
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, List, Optional
 
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
@@ -45,7 +45,7 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 
 
 # =============================================================================
-# Collapsible div
+# Collapsible div, etc.
 # =============================================================================
 
 def collapsible_div_with_divbutton(tag: str,
@@ -129,6 +129,52 @@ def overflow_div(tag: str,
 
 
 # =============================================================================
+# Class to maintain element counters, for use with pages having lots of
+# collapsible divs (or other HTML elements requiring individual numbering)
+# =============================================================================
+
+class HtmlElementCounter(object):
+    def __init__(self):
+        self.elementnum = 0
+
+    def next(self):
+        self.elementnum += 1
+
+    def tag(self):
+        return str(self.elementnum)
+
+    def collapsible_div_with_divbutton(self,
+                                       contents: str,
+                                       extradivclasses: Iterable[str] = None,
+                                       collapsed: bool = True) -> str:
+        return collapsible_div_with_divbutton(tag=self.tag(),
+                                              contents=contents,
+                                              extradivclasses=extradivclasses,
+                                              collapsed=collapsed)
+
+    def collapsible_div_spanbutton(self, collapsed: bool = True) -> str:
+        return collapsible_div_spanbutton(tag=self.tag(), collapsed=collapsed)
+
+    def collapsible_div_contentdiv(self,
+                                   contents: str,
+                                   extradivclasses: Iterable[str] = None,
+                                   collapsed: bool = True) -> str:
+        return collapsible_div_contentdiv(tag=self.tag(),
+                                          contents=contents,
+                                          extradivclasses=extradivclasses,
+                                          collapsed=collapsed)
+
+    def overflow_div(self,
+                     contents: str,
+                     extradivclasses: Iterable[str] = None,
+                     collapsed: bool = True) -> str:
+        return overflow_div(tag=self.tag(),
+                            contents=contents,
+                            extradivclasses=extradivclasses,
+                            collapsed=collapsed)
+
+
+# =============================================================================
 # Highlighting of query results
 # =============================================================================
 
@@ -172,8 +218,9 @@ def make_highlight_replacement_regex(n: int = 0) -> str:
 
 
 def make_result_element(x: Optional[str],
-                        elementnum: int,
-                        highlight_dict: Dict[int, HIGHLIGHT_FWD_REF] = None,
+                        element_counter: HtmlElementCounter,
+                        highlight_dict: Dict[int,
+                                             List[HIGHLIGHT_FWD_REF]] = None,
                         collapse_at_len: int = None,
                         collapse_at_n_lines: int = None,
                         line_length: int = None,
@@ -209,7 +256,8 @@ def make_result_element(x: Optional[str],
         output = find.sub(replace, output)
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        return overflow_div(str(elementnum), output, collapsed=collapsed)
+        return element_counter.overflow_div(contents=output,
+                                            collapsed=collapsed)
     return output
 
 
@@ -218,7 +266,7 @@ def pre(x: str = '') -> str:
 
 
 def make_collapsible_query(x: Optional[str],
-                           elementnum: int,
+                           element_counter: HtmlElementCounter,
                            collapse_at_len: int = 400,
                            collapse_at_n_lines: int = 5) -> str:
     if x is None:
@@ -229,5 +277,5 @@ def make_collapsible_query(x: Optional[str],
     x = linebreaksbr(escape(x))
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        return overflow_div(str(elementnum), pre(x))
+        return element_counter.overflow_div(contents=pre(x))
     return pre(x)

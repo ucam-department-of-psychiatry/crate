@@ -13,44 +13,36 @@
         <th>May be NULL?</th>
         <th>Indexed?</th>
         <th>FULLTEXT index?</th>
-        {% comment %}
-        <th>table.column</th>
-        <th>schema.table.column</th>
-        {% endcomment %}
     </tr>
-    {% for d in infodictlist %}
+    {% for c in colinfolist %}
         <tr>
             {% if with_database %}
                 <td>
-                    {% if d.table_catalog == default_database %}
-                        {{ d.table_catalog }}
+                    {% if c.table_catalog == default_database %}
+                        {{ c.table_catalog }}
                     {% else %}
-                        <b>{{ d.table_catalog }}</b>
+                        <b>{{ c.table_catalog }}</b>
                     {% endif %}
                 </td>
             {% endif %}
             <td>
-                {% if d.table_schema == default_schema %}
-                    {{ d.table_schema }}
+                {% if c.table_schema == default_schema %}
+                    {{ c.table_schema }}
                 {% else %}
-                    <b>{{ d.table_schema }}</b>
+                    <b>{{ c.table_schema }}</b>
                 {% endif %}
             </td>
-            <td><b>{{ d.table_name }}</b></td>
-            <td><b>{{ d.column_name }}</b></td>
-            <td>{{ d.column_comment }}</td>
-            <td>{{ d.column_type|upper }}</td>
-            <td>{{ d.is_nullable|yesno }}</td>
-            <td>{{ d.indexed|yesno }}</td>
+            <td><b>{{ c.table_name }}</b></td>
+            <td><b>{{ c.column_name }}</b></td>
+            <td>{{ c.column_comment }}</td>
+            <td>{{ c.column_type|upper }}</td>
+            <td>{{ c.is_nullable|yesno }}</td>
+            <td>{{ c.indexed|yesno }}</td>
             <td>
-                {% if d.indexed_fulltext %}<b>{% endif %}
-                {{ d.indexed_fulltext|yesno }}
-                {% if d.indexed_fulltext %}</b>{% endif %}
+                {% if c.indexed_fulltext %}<b>{% endif %}
+                {{ c.indexed_fulltext|yesno }}
+                {% if c.indexed_fulltext %}</b>{% endif %}
             </td>
-            {% comment %}
-            <td><b>{{ d.table_name }}.{{ d.column_name }}</b></td>
-            <td><b>{{ d.table_schema }}.{{ d.table_name }}.{{ d.column_name }}</b></td>
-            {% endcomment %}
         </tr>
     {% endfor %}
 </table>

@@ -115,6 +115,20 @@ DATABASES = {
     # Anonymised research database
     # -------------------------------------------------------------------------
     'research': {
+
+        # *********************************************************************
+        # IT IS CRITICALLY IMPORTANT THAT THIS CONNECTION (i.e. its user's
+        # access) IS READ-ONLY FOR THE RESEARCH DATABASES [1] AND HAS NO
+        # ACCESS WHATSOEVER TO SECRET DATABASES (like the 'default' or
+        # 'secret' databases) [2]. RESEARCHERS ARE GIVEN FULL ABILITY TO
+        # EXECUTE SQL VIA THIS CONNECTION, AND CAN DO SO FOR ANY DATABASES
+        # THAT THE CONNECTION PERMITS, NOT JUST THE ONE YOU SPECIFY
+        # EXPLICITLY.
+        #
+        # [1] ... so researchers can't alter/delete research data
+        # [2] ... so researchers can't see secrets
+        # *********************************************************************
+
         'ENGINE': 'django.db.backends.mysql',
         'HOST': '127.0.0.1',
         'PORT': 3306,  # local

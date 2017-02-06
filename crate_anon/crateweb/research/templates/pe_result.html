@@ -1,0 +1,24 @@
+{# pe_result.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Patient Explorer results</h1>
+
+    {% include "expand_collapse_buttons.html" %}
+
+    {% for resultset in results %}
+        <h2>{{ resultset.tablename }}</h2>
+        {{ resultset.table_html|safe }}
+        {{ resultset.query_html|safe }}
+    {% endfor %}
+
+    {% include "page_nav_results.html" with page=page %}
+
+    <h1>SQL</h1>
+    <pre>{{ sql }}</pre>
+
+{% endblock %}

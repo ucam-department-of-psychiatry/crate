@@ -103,7 +103,7 @@ def get_fieldnames_from_cursor(cursor) -> List[str]:
     return [i[0] for i in cursor.description]
 
 
-def tsv_escape(x: str) -> str:
+def tsv_escape(x: Any) -> str:
     """
     Escape data for tab-separated value format.
     """
@@ -111,6 +111,10 @@ def tsv_escape(x: str) -> str:
         return ""
     x = str(x)
     return x.replace("\t", "\\t").replace("\n", "\\n")
+
+
+def make_tsv_row(values: List[Any]) -> str:
+    return "\t".join([tsv_escape(x) for x in values]) + "\n"
 
 
 def genrows(cursor, arraysize: int = 1000) -> Generator[List[Any], None, None]:

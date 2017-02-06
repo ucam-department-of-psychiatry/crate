@@ -1,0 +1,13 @@
+{# bad_pe_id.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Invalid Patient Explorer ID</h1>
+    <p>Patient Explorer {{ pe_id }} is invalid (or invalid for your user).
+    Please create or choose another Patient Explorer.</p>
+
+{% endblock %}

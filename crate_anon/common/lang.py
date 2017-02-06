@@ -22,8 +22,7 @@
 ===============================================================================
 """
 
-# from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 
 def get_case_insensitive_dict_key(d: Dict, k: str) -> Optional[str]:
@@ -35,3 +34,10 @@ def get_case_insensitive_dict_key(d: Dict, k: str) -> Optional[str]:
 
 def rename_kwarg(kwargs: Dict[str, Any], old: str, new: str) -> None:
     kwargs[new] = kwargs.pop(old)
+
+
+def unique_list(seq: Iterable[Any]) -> List[Any]:
+    # http://stackoverflow.com/questions/480214/how-do-you-remove-duplicates-from-a-list-in-whilst-preserving-order  # noqa
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]

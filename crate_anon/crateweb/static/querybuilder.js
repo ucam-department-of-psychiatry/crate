@@ -21,13 +21,13 @@
     Not equals: <> in ANSI SQL, but != is supported by MySQL and clearer.
 
 */
-    // DATATYPE_* values must match research.forms.QueryBuilderForm
-var DATATYPE_DATE = "date",
-    DATATYPE_FLOAT = "float",
-    DATATYPE_INTEGER = "int",
-    DATATYPE_STRING = "string",
-    DATATYPE_STRING_FULLTEXT = "string_fulltext",
-    DATATYPE_UNKNOWN = "unknown",
+    // QB_DATATYPE_* values must match crate_anon.common.sql.py
+var QB_DATATYPE_DATE = "date",
+    QB_DATATYPE_FLOAT = "float",
+    QB_DATATYPE_INTEGER = "int",
+    QB_DATATYPE_STRING = "string",
+    QB_DATATYPE_STRING_FULLTEXT = "string_fulltext",
+    QB_DATATYPE_UNKNOWN = "unknown",
     DIALECT_MYSQL = "mysql",  // must match sql_grammar.py
     DIALECT_MSSQL = "mssql",  // must match sql_grammar.py
     // All ID_* values must match HTML id tags.
@@ -99,7 +99,7 @@ var DATABASE_STRUCTURE = [
                     columns: [
                         {
                             colname: 'dummy_column',
-                            coltype: DATATYPE_STRING,
+                            coltype: QB_DATATYPE_STRING,
                             rawtype: 'VARCHAR(255)',
                             comment: 'dummy_comment'
                         }
@@ -485,20 +485,20 @@ function where_op_changed() {
         // show nothing
     } else {
         switch (coltype) {
-            case DATATYPE_DATE:
+            case QB_DATATYPE_DATE:
                 show_input(entry_date);
                 break;
-            case DATATYPE_FLOAT:
+            case QB_DATATYPE_FLOAT:
                 show_input(entry_float);
                 break;
-            case DATATYPE_INTEGER:
+            case QB_DATATYPE_INTEGER:
                 show_input(entry_integer);
                 break;
-            case DATATYPE_STRING:
-            case DATATYPE_STRING_FULLTEXT:
+            case QB_DATATYPE_STRING:
+            case QB_DATATYPE_STRING_FULLTEXT:
                 show_input(entry_text);
                 break;
-            case DATATYPE_UNKNOWN:
+            case QB_DATATYPE_UNKNOWN:
                 break;
             default:
                 break;
@@ -541,25 +541,25 @@ function column_changed() {
         show_element(select_button);
     }
     if (!STARTING_VALUES.offer_where || !column ||
-            coltype == DATATYPE_UNKNOWN) {
+            coltype == QB_DATATYPE_UNKNOWN) {
         reset_select_options(where_op_picker, OPS_NONE);
         hide_element(where_op_picker);
         hide_element(where_button);
     } else {
         switch (coltype) {
-            case DATATYPE_DATE:
-            case DATATYPE_FLOAT:
-            case DATATYPE_INTEGER:
+            case QB_DATATYPE_DATE:
+            case QB_DATATYPE_FLOAT:
+            case QB_DATATYPE_INTEGER:
                 reset_select_options(where_op_picker, OPS_NUMBER_DATE);
                 break;
-            case DATATYPE_STRING:
+            case QB_DATATYPE_STRING:
                 if (SQL_DIALECT == DIALECT_MYSQL) {
                     reset_select_options(where_op_picker, OPS_STRING_MYSQL);
                 } else {
                     reset_select_options(where_op_picker, OPS_STRING);
                 }
                 break;
-            case DATATYPE_STRING_FULLTEXT:
+            case QB_DATATYPE_STRING_FULLTEXT:
                 if (SQL_DIALECT == DIALECT_MYSQL) {
                     reset_select_options(where_op_picker,
                                          OPS_STRING_FULLTEXT_MYSQL);

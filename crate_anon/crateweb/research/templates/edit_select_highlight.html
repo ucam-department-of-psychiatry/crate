@@ -85,15 +85,4 @@
         <div class="highlight{{ colour }}">Colour {{ colour }}</div>
     {% endfor %}
 
-    {% if query_selected %}
-        <h1>Currently selected SQL</h1>
-        <pre>{{ sql }}</pre>
-
-        <h1>Proceed to results</h1>
-        {% comment %}
-            <div><a href="{% url 'count' current_query_id %}">Preview count</a></div>
-        {% endcomment %}
-        <div><a href="{% url 'results' current_query_id %}">View results</a></div>
-    {% endif %}
-
 {% endblock %}

@@ -31,22 +31,21 @@ from django.conf import settings
 from django.forms import (
     BooleanField,
     CharField,
-    # ChoiceField,
     DateField,
     FileField,
     FloatField,
     IntegerField,
     ModelForm,
 )
-# from django.forms.widgets import HiddenInput
 from crate_anon.crateweb.extra.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
 )
-from crate_anon.crateweb.research.models import ColumnInfo, Highlight, Query
+from crate_anon.crateweb.research.models import Highlight, Query
+from crate_anon.crateweb.research.research_db_info import ColumnInfo
 from crate_anon.common.sql import (
-    sql_date_literal,
-    sql_string_literal,
+    SQL_OPS_MULTIPLE_VALUES,
+    SQL_OPS_VALUE_UNNECESSARY,
 )
 
 log = logging.getLogger(__name__)
@@ -92,7 +91,8 @@ class PidLookupForm(forms.Form):
 
 
 class SQLHelperTextAnywhereForm(forms.Form):
-    fkname = CharField(label="Field name containing patient ID", required=True)
+    fkname = CharField(label="Field name containing patient research ID",
+                       required=True)
     min_length = IntegerField(
         label="Minimum length of textual field (suggest e.g. 50)",
         min_value=1, required=True)
@@ -120,10 +120,6 @@ def float_validator(text: str) -> str:
 
 class QueryBuilderForm(forms.Form):
     # See also querybuilder.js
-    VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL']
-    SINGLE_VALUE_UNNECESSARY = ['IS NULL', 'IS NOT NULL',
-                                'IN', 'NOT IN']
-    FILE_REQUIRED = ['IN', 'NOT IN']
 
     database = CharField(label="Schema", required=False)
     schema = CharField(label="Schema", required=True)
@@ -142,7 +138,7 @@ class QueryBuilderForm(forms.Form):
     file = FileField(label="File (for IN)", required=False)
 
     def __init__(self, *args, **kwargs) -> None:
-        self.file_values_list = ''
+        self.file_values_list = []
         super().__init__(*args, **kwargs)
 
     def get_datatype(self) -> Optional[str]:
@@ -189,7 +185,9 @@ class QueryBuilderForm(forms.Form):
 
         # No need for a value for NULL-related comparisons. But otherwise:
         where_op = cleaned_data['where_op']
-        if where_op not in self.SINGLE_VALUE_UNNECESSARY:
+        if where_op not in SQL_OPS_VALUE_UNNECESSARY + SQL_OPS_MULTIPLE_VALUES:
+            # Can't take 0 or many parameters, so need the standard single
+            # value:
             value_fieldname = self.get_value_fieldname()
             value = cleaned_data.get(value_fieldname)
             if not value:
@@ -200,7 +198,7 @@ class QueryBuilderForm(forms.Form):
         # ---------------------------------------------------------------------
         # Special processing for file upload operations
         # ---------------------------------------------------------------------
-        if where_op not in self.FILE_REQUIRED:
+        if where_op not in SQL_OPS_MULTIPLE_VALUES:
             return
         fileobj = cleaned_data['file']
         # ... is an instance of InMemoryUploadedFile
@@ -211,22 +209,17 @@ class QueryBuilderForm(forms.Form):
         datatype = self.get_datatype()
         if datatype in ColumnInfo.STRING_TYPES:
             form_to_python_fn = str
-            literal_func = sql_string_literal
         elif datatype == ColumnInfo.DATATYPE_DATE:
             form_to_python_fn = html_form_date_to_python
-            literal_func = sql_date_literal
         elif datatype == ColumnInfo.DATATYPE_INTEGER:
             form_to_python_fn = int_validator
-            literal_func = str
         elif datatype == ColumnInfo.DATATYPE_FLOAT:
             form_to_python_fn = float_validator
-            literal_func = str
         else:
             # Safe defaults
             form_to_python_fn = str
-            literal_func = sql_string_literal
         # Or: http://www.dabeaz.com/generators/Generators.pdf
-        literals = []
+        self.file_values_list = []
         for line in fileobj.read().decode("utf8").splitlines():
             raw_item = line.strip()
             if not raw_item or raw_item.startswith('#'):
@@ -237,8 +230,7 @@ class QueryBuilderForm(forms.Form):
                 self.add_error('file', forms.ValidationError(
                     "File contains bad value: {}".format(repr(raw_item))))
                 return
-            literals.append(literal_func(value))
-        if not literals:
+            self.file_values_list.append(value)
+        if not self.file_values_list:
             self.add_error('file', forms.ValidationError(
                 "No values found in file"))
-        self.file_values_list = "({})".format(", ".join(literals))

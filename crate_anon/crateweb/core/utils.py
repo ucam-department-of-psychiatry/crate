@@ -68,14 +68,13 @@ def paginate(request: HttpRequest,
     if per_page is None:
         per_page = get_per_page(request)
     paginator = Paginator(all_items, per_page)
-    page = request.GET.get('page')
+    requested_page = request.GET.get('page')
     try:
-        items = paginator.page(page)
+        return paginator.page(requested_page)
     except PageNotAnInteger:
-        items = paginator.page(1)
+        return paginator.page(1)
     except EmptyPage:
-        items = paginator.page(paginator.num_pages)
-    return items
+        return paginator.page(paginator.num_pages)
 
 
 # =============================================================================

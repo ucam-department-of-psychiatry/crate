@@ -47,3 +47,37 @@
     {% endif %}
     ]
 </div>
+
+<div>
+    [
+    {% if nav_on_pe_build %}
+        <b>Patient Explorer: build</b>
+    {% else %}
+        <a href="{% url 'pe_build' %}">Patient Explorer: build</a>
+    {% endif %}
+    |
+    {% if nav_on_pe_choose %}
+        <b>Patient Explorer: view</b>
+    {% else %}
+        <a href="{% url 'pe_choose' %}">Patient Explorer: choose</a>
+    {% endif %}
+    |
+    {% if nav_on_highlight %}
+        <b>highlighting</b>
+    {% else %}
+        <a href="{% url 'highlight' %}">highlighting</a>
+    {% endif %}
+    |
+    {% if nav_on_pe_results or not pe_selected %}
+        <b>Patient Explorer: view results</b>
+    {% else %}
+        <a href="{% url 'pe_results' %}">Patient Explorer: view results</a>
+    {% endif %}
+    |
+    {% if not pe_selected %}
+        <b>Patient Explorer: export as TSV</b>
+    {% else %}
+        <a href="{% url 'pe_tsv' %}">Patient Explorer: export as TSV</a>
+    {% endif %}
+    ]
+</div>

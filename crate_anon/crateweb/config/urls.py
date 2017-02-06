@@ -58,9 +58,9 @@ import crate_anon.crateweb.userprofile.views as userprofile_views
 # This is the place for one-time startup code.
 # http://stackoverflow.com/questions/6791911/execute-code-when-django-starts-once-only  # noqa
 # So we cache things here that we don't want the user to have to wait for:
-from crate_anon.crateweb.research.models import research_database_info
+from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
 
-research_database_info.get_infodictlist()
+research_database_info.get_colinfolist()
 
 
 urlpatterns = [
@@ -105,12 +105,27 @@ urlpatterns = [
     url(r'^delete_highlight/(?P<highlight_id>[0-9]+)/$',
         research_views.delete_highlight, name='delete_highlight'),
     url(r'^count/(?P<query_id>[0-9]+)/$',
-        research_views.count, name='count'),
+        research_views.query_count, name='count'),
     url(r'^results/(?P<query_id>[0-9]+)/$',
-        research_views.results, name='results'),
+        research_views.query_results, name='results'),
     url(r'^results_recordwise/(?P<query_id>[0-9]+)/$',
-        research_views.results_recordwise, name='results_recordwise'),
-    url(r'^tsv/$', research_views.tsv, name='tsv'),
+        research_views.query_results_recordwise, name='results_recordwise'),
+    url(r'^tsv/$', research_views.query_tsv, name='tsv'),
+
+    # -------------------------------------------------------------------------
+    # Patient Explorer views
+    # -------------------------------------------------------------------------
+    url(r'^pe_build/$', research_views.patient_explorer_build,
+        name='pe_build'),
+    url(r'^pe_choose/$', research_views.patient_explorer_choose,
+        name='pe_choose'),
+    url(r'^pe_activate/(?P<query_id>[0-9]+)/$',
+        research_views.patient_explorer_activate, name='pe_activate'),
+    url(r'^pe_delete/(?P<query_id>[0-9]+)/$',
+        research_views.patient_explorer_delete, name='pe_delete'),
+    url(r'^pe_results/(?P<query_id>[0-9]+)/$',
+        research_views.patient_explorer_results, name='pe_results'),
+    url(r'^pe_tsv/$', research_views.patient_explorer_tsv, name='pe_tsv'),
 
     # -------------------------------------------------------------------------
     # Research database structure

@@ -30,11 +30,11 @@ import sqlparse
 
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.sql import (
-    ColumnName,
+    ColumnId,
     get_first_from_table,
     parser_add_result_column,
     parser_add_from_tables,
-    TableName,
+    TableId,
 )
 from crate_anon.common.sql_grammar import (
     DIALECT_MYSQL,
@@ -42,7 +42,7 @@ from crate_anon.common.sql_grammar import (
     SqlGrammar,
     text_from_parsed,
 )
-from crate_anon.crateweb.research.models import (
+from crate_anon.crateweb.research.research_db_info import (
     get_schema_trid_field,
     get_schema_rid_field,
     get_db_rid_family,
@@ -53,29 +53,14 @@ from crate_anon.crateweb.research.models import (
 log = logging.getLogger(__name__)
 
 
-def get_rid_column(table: TableName) -> ColumnName:
-    # RID column in the specified table
-    return table.columnname(get_schema_rid_field(table.db(), table.schema()))
-
-
-def get_trid_column(table: TableName) -> ColumnName:
-    # TRID column in the specified table
-    return table.columnname(get_schema_trid_field(table.db(), table.schema()))
-
-
-def get_mrid_column(table: TableName) -> ColumnName:
-    # MRID column in the MRID master table
-    db = table.db()
-    schema = table.schema()
-    return ColumnName(db=db,
-                      schema=schema,
-                      table=get_db_mrid_table(db=db, schema=schema),
-                      column=get_db_mrid_field(db=db, schema=schema))
-
+# =============================================================================
+# Automagically create/manipulate SQL statements based on our extra knowledge
+# of the fields that can be used to link across tables/databases.
+# =============================================================================
 
 def get_join_info(grammar: SqlGrammar,
                   parsed: ParseResults,
-                  jointable: TableName,
+                  jointable: TableId,
                   magic_join: bool = False,
                   nonmagic_join_type: str = "INNER JOIN",
                   nonmagic_join_condition: str = None) -> List[Dict[str, str]]:
@@ -146,13 +131,13 @@ def get_join_info(grammar: SqlGrammar,
     # If we get here, we have to do a complicated join via the MRID.
     # log.critical("get_join_info: new DB, different RID family, using MRID")
     existing_mrid_column = get_mrid_column(first_from_table)
-    existing_mrid_table = existing_mrid_column.tablename()
+    existing_mrid_table = existing_mrid_column.table_id()
     if not existing_mrid_table:
         raise ValueError(
             "No MRID table available (in the same database as table {}; "
             "cannot link)".format(first_from_table))
     new_mrid_column = get_mrid_column(jointable)
-    new_mrid_table = new_mrid_column.tablename()
+    new_mrid_table = new_mrid_column.table_id()
     existing_mrid_table_in_query = bool(get_first_from_table(
         parsed,
         match_db=existing_mrid_table.db(),
@@ -191,11 +176,12 @@ def get_join_info(grammar: SqlGrammar,
 
 def add_to_select(sql: str,
                   # For SELECT:
-                  select_column: ColumnName = ColumnName(),
+                  select_column: ColumnId = ColumnId(),
+                  select_alias: str = '',
                   # For WHERE:
                   where_expression: str = '',
                   where_type: str = "AND",
-                  where_table: TableName = TableName(),
+                  where_table: TableId = TableId(),
                   bracket_where: bool = False,
                   # For either, for JOIN:
                   magic_join: bool = True,
@@ -221,7 +207,7 @@ def add_to_select(sql: str,
     isn't yet in the FROM clause, this will be added as well.
     """
     grammar = make_grammar(dialect)
-    select_table = select_column.tablename()
+    select_table = select_column.table_id()
     if debug:
         log.info("START: {}".format(sql))
         log.debug("select_column: {}".format(select_column))
@@ -238,10 +224,15 @@ def add_to_select(sql: str,
         if debug:
             log.debug("Starting SQL from scratch")
         if select_table and select_column:
+            if select_alias:
+                alias_clause = ' AS {}'.format(select_alias)
+            else:
+                alias_clause = ''
             result = sqlparse.format(
-                "SELECT {col} FROM {table}".format(
+                "SELECT {col}{alias_clause} FROM {table}".format(
                     col=select_column.identifier(grammar),
-                    table=select_column.tablename().identifier(grammar)
+                    alias_clause=alias_clause,
+                    table=select_column.table_id().identifier(grammar)
                 ),
                 reindent=True
             )
@@ -265,7 +256,7 @@ def add_to_select(sql: str,
                 p,
                 get_join_info(grammar=grammar,
                               parsed=p,
-                              jointable=select_column.tablename(),
+                              jointable=select_column.table_id(),
                               magic_join=magic_join),
                 grammar=grammar
             )
@@ -307,12 +298,16 @@ def add_to_select(sql: str,
     return result
 
 
+# =============================================================================
+# Unit tests
+# =============================================================================
+
 def unit_tests() -> None:
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-                  select_column=ColumnName(table="t2", column="c"))
+                  select_column=ColumnId(table="t2", column="c"))
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-                  select_column=ColumnName(table="t1", column="a"))
-    add_to_select("", select_column=ColumnName(table="t2", column="c"))
+                  select_column=ColumnId(table="t1", column="a"))
+    add_to_select("", select_column=ColumnId(table="t2", column="c"))
     add_to_select("SELECT t1.a, t1.b FROM t1",
                   where_expression="t1.col2 < 3")
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",

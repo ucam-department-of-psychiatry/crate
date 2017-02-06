@@ -11,6 +11,34 @@ To do
   - https://www.students.ncl.ac.uk/keith.newman/r/maps-in-r#uk
   - www.londonr.org/download/?id=80
 
+- Redo consent system if necessary as per ethics
+- Pull consent/discharge info from RiO
+- "After discharge" code
+
+- ?Patient-finding view, e.g. stored in JSON:
+    {
+        'select_fields': [field, field...],
+        'where_conditions': { field: value, ... }
+    }
+
+  mapping to something like:
+
+    SELECT
+        patient_id, 'XX' AS column, YY AS value
+        FROM ...
+        WHERE patient_id IN (
+            <patient_select_clause>
+        )
+    UNION
+    SELECT
+        patient_id, 'XX' AS column, YY AS value
+        FROM ...
+        WHERE patient_id IN (
+            <patient_select_clause>
+        )
+    ...
+
+
 ===============================================================================
 Consider
 ===============================================================================
