@@ -42,10 +42,14 @@ from crate_anon.crateweb.extra.forms import (
     MultipleWordAreaField,
 )
 from crate_anon.crateweb.research.models import Highlight, Query
-from crate_anon.crateweb.research.research_db_info import ColumnInfo
 from crate_anon.common.sql import (
     SQL_OPS_MULTIPLE_VALUES,
     SQL_OPS_VALUE_UNNECESSARY,
+    QB_DATATYPE_DATE,
+    QB_DATATYPE_FLOAT,
+    QB_DATATYPE_INTEGER,
+    QB_DATATYPE_UNKNOWN,
+    QB_STRING_TYPES,
 )
 
 log = logging.getLogger(__name__)
@@ -145,7 +149,7 @@ class QueryBuilderForm(forms.Form):
         return self.data.get('datatype', None)
 
     def is_datatype_unknown(self) -> bool:
-        return self.get_datatype() == ColumnInfo.DATATYPE_UNKNOWN
+        return self.get_datatype() == QB_DATATYPE_UNKNOWN
 
     def offering_where(self) -> bool:
         if self.is_datatype_unknown():
@@ -154,15 +158,15 @@ class QueryBuilderForm(forms.Form):
 
     def get_value_fieldname(self) -> str:
         datatype = self.get_datatype()
-        if datatype == ColumnInfo.DATATYPE_INTEGER:
+        if datatype == QB_DATATYPE_INTEGER:
             return "int_value"
-        if datatype == ColumnInfo.DATATYPE_FLOAT:
+        if datatype == QB_DATATYPE_FLOAT:
             return "float_value"
-        if datatype == ColumnInfo.DATATYPE_DATE:
+        if datatype == QB_DATATYPE_DATE:
             return "date_value"
-        if datatype in ColumnInfo.STRING_TYPES:
+        if datatype in QB_STRING_TYPES:
             return "string_value"
-        if datatype == ColumnInfo.DATATYPE_UNKNOWN:
+        if datatype == QB_DATATYPE_UNKNOWN:
             return ""
         raise ValueError("Invalid field type")
 
@@ -207,13 +211,13 @@ class QueryBuilderForm(forms.Form):
             return
 
         datatype = self.get_datatype()
-        if datatype in ColumnInfo.STRING_TYPES:
+        if datatype in QB_STRING_TYPES:
             form_to_python_fn = str
-        elif datatype == ColumnInfo.DATATYPE_DATE:
+        elif datatype == QB_DATATYPE_DATE:
             form_to_python_fn = html_form_date_to_python
-        elif datatype == ColumnInfo.DATATYPE_INTEGER:
+        elif datatype == QB_DATATYPE_INTEGER:
             form_to_python_fn = int_validator
-        elif datatype == ColumnInfo.DATATYPE_FLOAT:
+        elif datatype == QB_DATATYPE_FLOAT:
             form_to_python_fn = float_validator
         else:
             # Safe defaults

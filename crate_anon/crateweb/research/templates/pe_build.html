@@ -1,0 +1,58 @@
+{# pe_build.html #}
+
+{% extends "base.html" %}
+
+{% block collapsejs %}{% endblock %}
+{% block extrahead %}
+    {% include "querybuilder_extrahead.html" %}
+{% endblock %}
+
+{% block onload %}onload="populate()"{% endblock %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Build a Patient Explorer</h1>
+
+    <h2>Current Patient Explorer</h2>
+
+    <h3>A. Output columns</h3>
+    <div>{{ pmq_output_columns|safe }}</div>
+
+    <h3>B. Patient selection criteria</h3>
+    <div>{{ pmq_patient_conditions|safe }}</div>
+
+    <h3>C. Manual patient selection query</h3>
+    <div>{{ pmq_manual_patient_query|safe }}</div>
+
+    <h3>Final patient selection query</h3>
+    <div>{{ pmq_final_patient_query|safe }}</div>
+
+    <form action="{% url 'pe_build' %}" method="post">
+        {% csrf_token %}
+        <input type="submit" name="global_clear" value="Clear" />
+        <input type="submit" name="global_save" value="Save" />
+        <input type="submit" name="global_run" value="Run" />
+    </form>
+
+    <h2>Build your Patient Explorer!</h2>
+
+    {% include "querybuilder_form.html" with form_submit_url='pe_build' %}
+
+    <h2>Explanation</h2>
+    <ul>
+        <li>Patient Explorers (PEs) do two things: (1) find patients based on
+            criteria you specify, and (2) show information about those
+            patients.</li>
+
+        <li>The PE will automatically join tables in the same way as the
+            Query Builder (q.v.).</li>
+
+        <li>Each PE can generate several SQL statements: one to find patient
+            IDs, and then one or more other ones to fetch information on those
+            patients. You can take the SQL and edit it yourself, if you
+            wish.</li>
+    </ul>
+
+{% endblock %}

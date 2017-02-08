@@ -23,10 +23,13 @@
 """
 
 from typing import Any, List, Optional, Type
+
 from django.conf import settings
 from django.db import models
 from django.dispatch import receiver
 from django.http.request import HttpRequest
+from picklefield.fields import PickledObjectField
+
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_PHONE,
@@ -98,6 +101,9 @@ class UserProfile(models.Model):
                      "collapsed (0 for none)")
     sql_scratchpad = models.TextField(
         verbose_name='SQL scratchpad for query builder')
+    patient_multiquery_scratchpad = PickledObjectField(
+        verbose_name='PatientMultiQuery scratchpad (pickled) for builder',
+        null=True)  # type: PatientMultiQuery
 
     # -------------------------------------------------------------------------
     # Developer
@@ -179,4 +185,4 @@ def get_per_page(request: HttpRequest) -> Optional[int]:
 def get_patients_per_page(request: HttpRequest) -> Optional[int]:
     if not request.user.is_authenticated():
         return None
-    return request.user.profile.get_patients_per_page
+    return request.user.profile.patients_per_page

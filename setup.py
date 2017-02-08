@@ -197,6 +197,7 @@ setup(
         'django-sslserver==0.19',
         'flower==0.9.1',  # debug Celery; web server; only runs explicitly
         'pdfkit==0.6.1',
+        'pygments==2.2.0',  # syntax highlighting
         # 'pygraphviz==1.3.1',  # not used
         'pyparsing==2.1.10',  # generic grammar parser
         'PyPDF2==1.26.0',
@@ -206,7 +207,7 @@ setup(
         'Werkzeug==0.11.15',
 
         # ONSPD:
-        'openpyxl==2.4.1',
+        'openpyxl==2.4.2',
         'xlrd==1.0.0',
 
         # Serving:

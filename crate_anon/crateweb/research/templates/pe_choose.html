@@ -1,0 +1,62 @@
+{# pe_choose.html #}
+
+{% extends "base.html" %}
+
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Choose Patient Explorer</h1>
+
+    <h2>Saved Patient Explorers</h2>
+
+    {% include "expand_collapse_buttons.html" %}
+
+    {% if patient_explorers %}
+        <table>
+            <tr>
+                <th>Created at</th>
+                <th>Delete PE</th>
+                <th>Details</th>
+                <th>Active?</th>
+                <th>Choose this one</th>
+            </tr>
+            {% for pe in patient_explorers %}
+                <tr>
+                    <td>{{ pe.created }}</td>
+                    <td>
+                        <form action="{% url 'pe_delete' pe.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="submit" value="Delete" />
+                        </form>
+                    </td>
+                    <td>PENDING</td>
+                    <td>
+                        {% if pe.active %}<b>{% endif %}
+                        {{ pe.active|yesno }}
+                        {% if pe.active %}</b>{% endif %}
+                    </td>
+                    <td>
+                        {% if pe.active %}
+                            (activated)
+                        {% else %}
+                            <form action="{% url 'pe_activate' pe.id %}" method="post">
+                                {% csrf_token %}
+                                <input type="submit" value="Choose" />
+                            </form>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+        {% include "page_nav.html" with page=patient_explorers %}
+
+    {% else %}
+        <div>None.</div>
+    {% endif %}
+
+{% endblock %}

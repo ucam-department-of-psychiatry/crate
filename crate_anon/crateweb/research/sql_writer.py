@@ -26,7 +26,6 @@ import logging
 from typing import Dict, List
 
 from pyparsing import ParseResults
-import sqlparse
 
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.sql import (
@@ -38,16 +37,16 @@ from crate_anon.common.sql import (
 )
 from crate_anon.common.sql_grammar import (
     DIALECT_MYSQL,
+    format_sql,
     make_grammar,
     SqlGrammar,
     text_from_parsed,
 )
 from crate_anon.crateweb.research.research_db_info import (
-    get_schema_trid_field,
-    get_schema_rid_field,
     get_db_rid_family,
-    get_db_mrid_table,
-    get_db_mrid_field,
+    get_trid_column,
+    get_mrid_column,
+    get_rid_column,
 )
 
 log = logging.getLogger(__name__)
@@ -176,12 +175,12 @@ def get_join_info(grammar: SqlGrammar,
 
 def add_to_select(sql: str,
                   # For SELECT:
-                  select_column: ColumnId = ColumnId(),
+                  select_column: ColumnId = None,
                   select_alias: str = '',
                   # For WHERE:
                   where_expression: str = '',
                   where_type: str = "AND",
-                  where_table: TableId = TableId(),
+                  where_table: TableId = None,
                   bracket_where: bool = False,
                   # For either, for JOIN:
                   magic_join: bool = True,
@@ -189,8 +188,8 @@ def add_to_select(sql: str,
                   join_condition: str = '',
                   # General:
                   formatted: bool = True,
-                  debug: bool = False,
-                  debug_verbose: bool = False,
+                  debug: bool = True,
+                  debug_verbose: bool = True,
                   # Dialect:
                   dialect: str = DIALECT_MYSQL) -> str:
     """
@@ -207,7 +206,7 @@ def add_to_select(sql: str,
     isn't yet in the FROM clause, this will be added as well.
     """
     grammar = make_grammar(dialect)
-    select_table = select_column.table_id()
+    select_table = select_column.table_id() if select_column else None
     if debug:
         log.info("START: {}".format(sql))
         log.debug("select_column: {}".format(select_column))
@@ -228,13 +227,10 @@ def add_to_select(sql: str,
                 alias_clause = ' AS {}'.format(select_alias)
             else:
                 alias_clause = ''
-            result = sqlparse.format(
-                "SELECT {col}{alias_clause} FROM {table}".format(
-                    col=select_column.identifier(grammar),
-                    alias_clause=alias_clause,
-                    table=select_column.table_id().identifier(grammar)
-                ),
-                reindent=True
+            result = "SELECT {col}{alias_clause} FROM {table}".format(
+                col=select_column.identifier(grammar),
+                alias_clause=alias_clause,
+                table=select_column.table_id().identifier(grammar)
             )
             if where_expression:
                 result += " WHERE {}".format(where_expression)
@@ -274,11 +270,12 @@ def add_to_select(sql: str,
                 p.where_clause.where_expr.extend(extra)
             else:
                 # No WHERE as yet
+                log.critical("No WHERE; where_clause is: " + repr(p.where_clause))
                 if bracket_where:
                     extra = ["WHERE", "(", cond, ")"]
                 else:
                     extra = ["WHERE", cond]
-                p.where_clause.extend(extra)
+                p.where_clause.extend(extra)  # can fail: AttributeError: 'str' object has no attribute 'extend'  # noqa
             if where_table:
                 p = parser_add_from_tables(
                     p,
@@ -292,9 +289,11 @@ def add_to_select(sql: str,
 
         if debug and debug_verbose:
             log.debug("end dump:\n" + p.dump())
-        result = text_from_parsed(p, formatted=formatted)
+        result = text_from_parsed(p, formatted=False)
+    if formatted:
+        result = formatted(result)
     if debug:
-        log.info("END:\n{}".format(result))
+        log.info("END: {}".format(result))
     return result
 
 

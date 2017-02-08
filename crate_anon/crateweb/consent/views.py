@@ -34,6 +34,7 @@ from django.http.response import HttpResponseBase
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, render
 
+from crate_anon.common.contenttypes import CONTENTTYPE_PDF
 from crate_anon.common.nhs import generate_random_nhs_number
 from crate_anon.crateweb.core.utils import (
     is_developer,
@@ -116,29 +117,29 @@ def validate_letter_request(user: settings.AUTH_USER_MODEL,
 
 # noinspection PyUnusedLocal
 def study_details(request: HttpRequest, study_id: int) -> HttpResponseBase:
-    study = get_object_or_404(Study, pk=study_id)
+    study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.study_details_pdf:
         raise Http404("No details")
     return serve_file(study.study_details_pdf.path,
-                      content_type="application/pdf",
+                      content_type=CONTENTTYPE_PDF,
                       as_inline=True)
 study_details.login_required = False
 
 
 # noinspection PyUnusedLocal
 def study_form(request: HttpRequest, study_id: int) -> HttpResponseBase:
-    study = get_object_or_404(Study, pk=study_id)
+    study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.subject_form_template_pdf:
         raise Http404("No study form for clinicians to complete")
     return serve_file(study.subject_form_template_pdf.path,
-                      content_type="application/pdf",
+                      content_type=CONTENTTYPE_PDF,
                       as_inline=True)
 study_form.login_required = False
 
 
 # noinspection PyUnusedLocal
 def study_pack(request: HttpRequest, study_id: int) -> HttpResponseBase:
-    study = get_object_or_404(Study, pk=study_id)
+    study = get_object_or_404(Study, pk=study_id)  # type: Study
     filenames = filter(None, [
         study.study_details_pdf.path
         if study.study_details_pdf else None,
@@ -175,14 +176,14 @@ def generate_fake_nhs(request: HttpRequest, n: int = 10) -> HttpResponse:
 
 
 def view_email_html(request: HttpRequest, email_id: int) -> HttpResponse:
-    email = get_object_or_404(Email, pk=email_id)
+    email = get_object_or_404(Email, pk=email_id)  # type: Email
     validate_email_request(request.user, email)
     return HttpResponse(email.msg_html)
 
 
 def view_email_attachment(request: HttpRequest,
                           attachment_id: int) -> HttpResponseBase:
-    attachment = get_object_or_404(EmailAttachment, pk=attachment_id)
+    attachment = get_object_or_404(EmailAttachment, pk=attachment_id)  # type: EmailAttachment
     validate_email_request(request.user, attachment.email)
     if not attachment.file:
         raise Http404("Attachment missing")
@@ -206,22 +207,22 @@ def test_patient_lookup(request: HttpRequest) -> HttpResponse:
 
 # noinspection PyUnusedLocal
 def view_leaflet(request: HttpRequest, leaflet_name: str) -> HttpResponseBase:
-    leaflet = get_object_or_404(Leaflet, name=leaflet_name)
+    leaflet = get_object_or_404(Leaflet, name=leaflet_name)  # type: Leaflet
     if not leaflet.pdf:
         raise Http404("Missing leaflet")
     return serve_file(leaflet.pdf.path,
-                      content_type="application/pdf",
+                      content_type=CONTENTTYPE_PDF,
                       as_inline=True)
 view_leaflet.login_required = False
 
 
 def view_letter(request: HttpRequest, letter_id: int) -> HttpResponseBase:
-    letter = get_object_or_404(Letter, pk=letter_id)
+    letter = get_object_or_404(Letter, pk=letter_id)  # type: Letter
     validate_letter_request(request.user, letter)
     if not letter.pdf:
         raise Http404("Missing letter")
     return serve_file(letter.pdf.path,
-                      content_type="application/pdf",
+                      content_type=CONTENTTYPE_PDF,
                       as_inline=True)
 
 
@@ -290,8 +291,8 @@ def clinician_response_view(request: HttpRequest,
     """
     REC DOCUMENTS 09, 11, 13 (B): Web form for clinicians to respond with
     """
-    clinician_response = get_object_or_404(ClinicianResponse,
-                                           pk=clinician_response_id)
+    clinician_response = get_object_or_404(
+        ClinicianResponse, pk=clinician_response_id)  # type: ClinicianResponse
     contact_request = clinician_response.contact_request
     study = contact_request.study
     patient_lookup = contact_request.patient_lookup
@@ -402,8 +403,8 @@ clinician_response_view.login_required = False
 def clinician_pack(request: HttpRequest,
                    clinician_response_id: int,
                    token: str) -> HttpResponse:
-    clinician_response = get_object_or_404(ClinicianResponse,
-                                           pk=clinician_response_id)
+    clinician_response = get_object_or_404(
+        ClinicianResponse, pk=clinician_response_id)  # type: ClinicianResponse
     contact_request = clinician_response.contact_request
     # Check token authentication
     if token != clinician_response.token:
@@ -415,7 +416,7 @@ def clinician_pack(request: HttpRequest,
     offered_filename = "clinician_pack_{}.pdf".format(clinician_response_id)
     return serve_buffer(pdf,
                         offered_filename=offered_filename,
-                        content_type="application/pdf",
+                        content_type=CONTENTTYPE_PDF,
                         as_attachment=False,
                         as_inline=True)
 
@@ -430,7 +431,8 @@ clinician_pack.login_required = False
 @user_passes_test(is_developer)
 def draft_clinician_email(request: HttpRequest,
                           contact_request_id: int) -> HttpResponse:
-    contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
+    contact_request = get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
     return HttpResponse(
         contact_request.get_clinician_email_html(save=False)
     )
@@ -440,7 +442,8 @@ def draft_clinician_email(request: HttpRequest,
 @user_passes_test(is_developer)
 def draft_approval_email(request: HttpRequest,
                          contact_request_id: int) -> HttpResponse:
-    contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
+    contact_request = get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
     return HttpResponse(contact_request.get_approval_email_html())
 
 
@@ -448,7 +451,8 @@ def draft_approval_email(request: HttpRequest,
 @user_passes_test(is_developer)
 def draft_withdrawal_email(request: HttpRequest,
                            contact_request_id: int) -> HttpResponse:
-    contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
+    contact_request = get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
     return HttpResponse(contact_request.get_withdrawal_email_html())
 
 
@@ -461,7 +465,8 @@ def draft_withdrawal_email(request: HttpRequest,
 def draft_approval_letter(request: HttpRequest,
                           contact_request_id: int,
                           viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
+    contact_request = get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
     html = contact_request.get_approval_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
@@ -471,7 +476,8 @@ def draft_approval_letter(request: HttpRequest,
 def draft_withdrawal_letter(request: HttpRequest,
                             contact_request_id: int,
                             viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
+    contact_request = get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
     html = contact_request.get_withdrawal_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
@@ -481,7 +487,8 @@ def draft_withdrawal_letter(request: HttpRequest,
 def draft_first_traffic_light_letter(request: HttpRequest,
                                      patient_lookup_id: int,
                                      viewtype: str) -> HttpResponse:
-    patient_lookup = get_object_or_404(PatientLookup, id=patient_lookup_id)
+    patient_lookup = get_object_or_404(
+        PatientLookup, id=patient_lookup_id)  # type: PatientLookup
     html = patient_lookup.get_first_traffic_light_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
@@ -491,7 +498,8 @@ def draft_first_traffic_light_letter(request: HttpRequest,
 def draft_confirm_traffic_light_letter(request: HttpRequest,
                                        consent_mode_id: int,
                                        viewtype: str) -> HttpResponse:
-    consent_mode = get_object_or_404(ConsentMode, id=consent_mode_id)
+    consent_mode = get_object_or_404(
+        ConsentMode, id=consent_mode_id)  # type: ConsentMode
     html = consent_mode.get_confirm_traffic_to_patient_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
@@ -501,7 +509,8 @@ def draft_confirm_traffic_light_letter(request: HttpRequest,
 def draft_letter_clinician_to_pt_re_study(request: HttpRequest,
                                           contact_request_id: int,
                                           viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
+    contact_request = get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
     html = contact_request.get_letter_clinician_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
 
@@ -511,7 +520,8 @@ def draft_letter_clinician_to_pt_re_study(request: HttpRequest,
 def decision_form_to_pt_re_study(request: HttpRequest,
                                  contact_request_id: int,
                                  viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(ContactRequest, id=contact_request_id)
+    contact_request = get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
     html = contact_request.get_decision_form_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
 

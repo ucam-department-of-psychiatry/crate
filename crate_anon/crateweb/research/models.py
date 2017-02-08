@@ -23,6 +23,7 @@
 """
 
 from collections import OrderedDict
+import datetime
 import io
 import logging
 from typing import Any, Dict, List, Iterable, Optional, Tuple, Type
@@ -32,15 +33,18 @@ from django.db import connections, models
 from django.db.models import QuerySet
 from django.conf import settings
 from django.http.request import HttpRequest
+from openpyxl import Workbook
 from picklefield.fields import PickledObjectField
 
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
     make_grammar,
+    set_distinct,
     TableId,
     WhereCondition,
 )
+from crate_anon.common.sql_grammar import format_sql
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     escape_percent_for_python_dbapi,
@@ -332,7 +336,17 @@ class Query(models.Model):
             while row is not None:
                 tsv += make_tsv_row(row)
                 row = cursor.fetchone()
-            return tsv
+        return tsv
+
+    def add_excel_sheet(self, workbook: Workbook, title: str = None) -> None:
+        ws = workbook.create_sheet(title)
+        with self.get_executed_cursor() as cursor:
+            fieldnames = get_fieldnames_from_cursor(cursor)
+            ws.append(fieldnames)
+            row = cursor.fetchone()
+            while row is not None:
+                ws.append(row)
+                row = cursor.fetchone()
 
     def dictfetchall(self) -> List[Dict[str, Any]]:
         """Generates all results as a list of OrderedDicts."""
@@ -523,54 +537,94 @@ Options:
 
 
 class PatientMultiQuery(object):
-    def __init__(self):
-        self.output_columns = []  # type: List[ColumnId]
-        self.patient_conditions = []  # type: List[WhereCondition]
-        self.overriding_manual_patient_id_query = ''  # type: str
+    def __init__(self,
+                 output_columns: List[ColumnId] = None,
+                 patient_conditions: List[WhereCondition] = None,
+                 manual_patient_id_query: str = ''):
+        self._output_columns = output_columns or []  # type: List[ColumnId]
+        self._patient_conditions = patient_conditions or []  # type: List[WhereCondition]
+        self._manual_patient_id_query = manual_patient_id_query
+
+    def __repr__(self) -> str:
+        return (
+            "<{qualname}("
+            "output_columns={output_columns}, "
+            "patient_conditions={patient_conditions}, "
+            "manual_patient_id_query={manual_patient_id_query}"
+            ") at {addr}>".format(
+                qualname=self.__class__.__qualname__,
+                output_columns=repr(self._output_columns),
+                patient_conditions=repr(self._patient_conditions),
+                manual_patient_id_query=repr(self._manual_patient_id_query),
+                addr=hex(id(self)),
+            )
+        )
+
+    def __eq__(self, other: 'PatientMultiQuery') -> bool:
+        return (
+            self._output_columns == other._output_columns and
+            self._patient_conditions == other._patient_conditions and
+            self._manual_patient_id_query == other._manual_patient_id_query
+        )
+
+    def get_output_columns(self) -> List[ColumnId]:
+        return sorted(self._output_columns)
+
+    def get_patient_conditions(self) -> List[WhereCondition]:
+        return sorted(self._patient_conditions)
+
+    def get_manual_patient_id_query(self) -> str:
+        return self._manual_patient_id_query
 
     def add_output_column(self, column_id: ColumnId) -> None:
-        if column_id not in self.output_columns:
-            self.output_columns.append(column_id)
+        if column_id not in self._output_columns:
+            self._output_columns.append(column_id)
 
     def add_patient_condition(self, where: WhereCondition) -> None:
-        if where not in self.patient_conditions:
-            self.patient_conditions.append(where)
+        if where not in self._patient_conditions:
+            self._patient_conditions.append(where)
 
     def set_override_query(self, query: str) -> None:
-        self.overriding_manual_patient_id_query = query
+        self._manual_patient_id_query = query
 
     def patient_id_query(self) -> str:
         # Returns an SQL SELECT statement based on the list of WHERE conditions
         # already stored, joined with AND by default.
 
-        if self.overriding_manual_patient_id_query:
+        if self._manual_patient_id_query:
             # User has specified one manually.
-            return self.overriding_manual_patient_id_query
+            return self._manual_patient_id_query
 
-        if not self.patient_conditions:
+        if not self._patient_conditions:
             return ''
 
         dialect = settings.RESEARCH_DB_DIALECT
         grammar = make_grammar(dialect)
         select_trid_column = get_trid_column(
-            self.patient_conditions[0].table_id())
+            self._patient_conditions[0].table_id())
         trid_alias = "_trid"
         sql = add_to_select(
             '',
             select_column=select_trid_column,
             select_alias=trid_alias,
             magic_join=True,
-            dialect=dialect
+            dialect=dialect,
+            formatted=False
         )
-        for where_condition in self.patient_conditions:
+        sql = set_distinct(sql, dialect=dialect, formatted=False)
+        # log.critical(sql)
+        for where_condition in self._patient_conditions:
             sql = add_to_select(
                 sql,
                 where_type="AND",
                 where_expression=where_condition.sql(grammar),
                 where_table=where_condition.table_id(),
                 magic_join=True,
-                dialect=dialect
+                dialect=dialect,
+                formatted=False
             )
+            # log.critical(sql)
+        sql = format_sql(sql)
         return sql
 
     def all_full_queries(self) -> List[Tuple[TableId, str]]:
@@ -585,7 +639,7 @@ class PatientMultiQuery(object):
                     trids: List[int] = None) -> List[Tuple[TableId, str]]:
         queries = []
         table_columns_map = columns_to_table_column_hierarchy(
-            self.output_columns, sort=True)
+            self._output_columns, sort=True)
         for table, columns in table_columns_map:
             newquery = self.make_query(table_id=table,
                                        columns=columns,
@@ -768,15 +822,6 @@ class PatientExplorer(models.Model):
     # Using the internal PatientMultiQuery
     # -------------------------------------------------------------------------
 
-    def set_manual_patient_query(self, query: str) -> None:
-        self.patient_multiquery.set_override_query(query)
-
-    def add_output_column(self, column_id: ColumnId) -> None:
-        self.patient_multiquery.add_output_column(column_id)
-
-    def add_patient_condition(self, where: WhereCondition) -> None:
-        self.patient_multiquery.add_patient_condition(where)
-
     def all_queries(self, trids: List[int] = None) -> List[Tuple[TableId, str]]:  # noqa
         return self.patient_multiquery.all_queries(trids=trids)
 
@@ -816,6 +861,34 @@ class PatientExplorer(models.Model):
             z.writestr(filename, tsv.encode("utf-8"))
         z.close()
         return memfile.getvalue()
+
+    def get_xlsx_binary_data(self) -> bytes:
+        wb = Workbook()
+        wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
+        sqlsheet_rows = [["Table", "SQL", "Executed at"]]
+        for table_id, sql in self.patient_multiquery.all_queries():
+            sqlsheet_rows.append([str(table_id), sql, datetime.datetime.now()])
+            ws = wb.create_sheet(title=str(table_id))
+            with self.get_executed_cursor(sql) as cursor:
+                fieldnames = get_fieldnames_from_cursor(cursor)
+                ws.append(fieldnames)
+                row = cursor.fetchone()
+                while row is not None:
+                    ws.append(row)
+                    row = cursor.fetchone()
+        sql_ws = wb.create_sheet(title="SQL")
+        for r in sqlsheet_rows:
+            sql_ws.append(r)
+        memfile = io.BytesIO()
+        wb.save(memfile)
+        return memfile.getvalue()
+
+    # -------------------------------------------------------------------------
+    # Using the internal PatientMultiQuery
+    # -------------------------------------------------------------------------
+
+    def get_patient_id_query(self) -> str:
+        return self.patient_multiquery.patient_id_query()
 
 
 # =============================================================================

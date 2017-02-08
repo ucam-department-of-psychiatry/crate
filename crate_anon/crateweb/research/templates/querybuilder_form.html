@@ -1,0 +1,32 @@
+{# querybuilder_form.html #}
+
+<div>
+    <span id="id_current_column" class="titlecolour">Please choose a table and column:</span>
+    <span id="id_comment"></span>
+</div>
+
+<div id="id_coltype_info"></div>
+
+<div id="id_warning" class="warning"></div>
+
+<form action="{% url form_submit_url %}" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <!-- name tags must match QueryBuilderForm -->
+    <select id="id_database" name="database" title="Database"></select>
+    <select id="id_schema" name="schema" title="Schema"></select>
+    <select id="id_table" name="table" title="Table"></select>
+    <select id="id_column" name="column" title="Column (field) within table"></select>
+    <input id="id_coltype" type="hidden" name="datatype" title="" value="">
+    <input id="id_offer_where" type="hidden" name="offer_where" title="" value="">
+    <select id="id_where_op" name="where_op" title="WHERE operation"></select>
+    <input id="id_where_value_date" type="date" name="date_value" title="Value (date)" value="">
+    <input id="id_where_value_float" type="number" name="float_value" title="Value (floating-point number)" step="any" value="">
+    <input id="id_where_value_integer" type="number" name="int_value" title="Value (integer)" step="1" value="">
+    <input id="id_where_value_text" type="text" name="string_value" title="Value (string)" value="">
+    <input id="id_file" type="file" name="file">
+    <br>
+    <input id="id_where_button" type="submit" name="submit_where" value="Set condition (WHERE)">
+    <br>
+    <br>
+    <input id="id_select_button" type="submit" name="submit_select" value="Add to output (SELECT)">
+</form>

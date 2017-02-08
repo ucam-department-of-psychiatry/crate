@@ -85,7 +85,7 @@ var QB_DATATYPE_DATE = "date",
     OPS_USING_NULL = ["IS NULL", "IS NOT NULL"];
 
 // The variables that follow are pre-populated by the server.
-// See build_query.html and research/views.py
+// See query_build.html and research/views.py
 // The declarations from the server come later in the HTML and will override
 // these, so it's safe to declare dummy instances here, which helps the linter:
 

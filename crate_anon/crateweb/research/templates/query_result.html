@@ -2,6 +2,10 @@
 
 {% extends "base.html" %}
 
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
 {% block content %}
 
     {% include "query_nav.html" %}
@@ -15,6 +19,6 @@
     {% include "page_nav_results.html" with page=page %}
 
     <h1>SQL</h1>
-    <pre>{{ sql }}</pre>
+    {{ sql|safe }}
 
 {% endblock %}

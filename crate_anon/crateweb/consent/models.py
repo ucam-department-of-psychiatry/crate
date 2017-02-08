@@ -49,6 +49,8 @@ from django.http.request import HttpRequest
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
+
+from crate_anon.common.contenttypes import CONTENTTYPE_PDF
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_FIELD_DESCRIPTION,
@@ -187,13 +189,13 @@ class Study(models.Model):
     study_details_pdf = ContentTypeRestrictedFileField(
         blank=True,
         storage=privatestorage,
-        content_types=['application/pdf'],
+        content_types=[CONTENTTYPE_PDF],
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=study_details_upload_to)
     subject_form_template_pdf = ContentTypeRestrictedFileField(
         blank=True,
         storage=privatestorage,
-        content_types=['application/pdf'],
+        content_types=[CONTENTTYPE_PDF],
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=study_form_upload_to)
     # http://nemesisdesign.net/blog/coding/django-private-file-upload-and-serving/  # noqa
@@ -297,7 +299,7 @@ class Leaflet(models.Model):
     pdf = ContentTypeRestrictedFileField(
         blank=True,
         storage=privatestorage,
-        content_types=['application/pdf'],
+        content_types=[CONTENTTYPE_PDF],
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=leaflet_upload_to)
 
@@ -3060,7 +3062,7 @@ class Email(models.Model):
         email.save()
         EmailAttachment.create(email=email,
                                fileobj=letter.pdf,
-                               content_type="application/pdf")  # will save
+                               content_type=CONTENTTYPE_PDF)  # will save
         return email
 
     @classmethod
@@ -3086,7 +3088,7 @@ class Email(models.Model):
         email.save()
         EmailAttachment.create(email=email,
                                fileobj=letter.pdf,
-                               content_type="application/pdf")  # will save
+                               content_type=CONTENTTYPE_PDF)  # will save
         return email
 
     @classmethod

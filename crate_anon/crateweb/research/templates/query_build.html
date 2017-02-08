@@ -1,47 +1,10 @@
-{# build_query.html #}
+{# query_build.html #}
 
 {% extends "base.html" %}
-{% load staticfiles %}
 
 {% block collapsejs %}{% endblock %}
 {% block extrahead %}
-    {% comment %}
-- Use Modernizr to sort out date pickers.
-- From https://modernizr.com, choose Download.
-- Pick the "Form input types" option, then "Build", then save.
-- To use for date pickers, see http://stackoverflow.com/questions/30503195/html-5-input-type-date-not-working-in-firefox
-    {% endcomment %}
-    <script type="text/javascript" src="{% static 'modernizr.js' %}"></script>
-    <script type="text/javascript" src="{% static 'jquery-3.1.1.min.js' %}"></script>
-    <script type="text/javascript" src="{% static 'jquery-ui-1.12.1/jquery-ui.min.js' %}"></script>
-    <link rel="stylesheet" href="{% static 'jquery-ui-1.12.1/jquery-ui.structure.min.css' %}">
-    <link rel="stylesheet" href="{% static 'jquery-ui-1.12.1/jquery-ui.theme.min.css' %}">
-    <script type="text/javascript" src="{% static 'querybuilder.js' %}"></script>
-    <script type="text/javascript">
-$(function(){  // The $ stuff uses jQuery; http://stackoverflow.com/questions/7642442/what-does-function-do
-    console.log("Checking for HTML5 date picker support...");
-    if (Modernizr.inputtypes.date) {
-        console.log("... present");
-    } else {
-        console.log("... absent; adding it via jQuery...");
-        // If not native HTML5 support, fallback to jQuery datePicker
-        $('input[type=date]').datepicker({
-                // Consistent format with the HTML5 picker
-                dateFormat : 'yy-mm-dd'
-            },
-            // Localization
-            $.datepicker.regional['uk']
-        );
-        console.log("... done");
-    }
-});
-    </script>
-    <script type="text/javascript">
-//noinspection JSUnusedLocalSymbols
-var DATABASE_STRUCTURE = {{ database_structure|safe }},
-    STARTING_VALUES = {{ starting_values|safe }},
-    SQL_DIALECT = "{{ sql_dialect }}";
-    </script>
+    {% include "querybuilder_extrahead.html" %}
 {% endblock %}
 {% block onload %}onload="populate()"{% endblock %}
 
@@ -59,7 +22,8 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
             Error was: {{ parse_error }}</div>
     {% endif %}
     {% if sql %}
-        <pre class="sql">{{ sql }}</pre>
+        <div class="sql">{{ sql|safe }}</div>
+
         <form action="{% url 'build_query' %}" method="post">
             {% csrf_token %}
             <input type="submit" name="global_clear" value="Clear" />
@@ -76,33 +40,8 @@ var DATABASE_STRUCTURE = {{ database_structure|safe }},
     {% endif %}
 
     <h2>Build your query!</h2>
-    <div>
-        <span id="id_current_column" class="titlecolour">Please choose a table and column:</span>
-        <span id="id_comment"></span>
-    </div>
-    <div id="id_coltype_info"></div>
-    <div id="id_warning" class="warning"></div>
-    <form action="{% url 'build_query' %}" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        <!-- name tags must match QueryBuilderForm -->
-        <select id="id_database" name="database" title="Database"></select>
-        <select id="id_schema" name="schema" title="Schema"></select>
-        <select id="id_table" name="table" title="Table"></select>
-        <select id="id_column" name="column" title="Column (field) within table"></select>
-        <input id="id_coltype" type="hidden" name="datatype" title="" value="">
-        <input id="id_offer_where" type="hidden" name="offer_where" title="" value="">
-        <select id="id_where_op" name="where_op" title="WHERE operation"></select>
-        <input id="id_where_value_date" type="date" name="date_value" title="Value (date)" value="">
-        <input id="id_where_value_float" type="number" name="float_value" title="Value (floating-point number)" step="any" value="">
-        <input id="id_where_value_integer" type="number" name="int_value" title="Value (integer)" step="1" value="">
-        <input id="id_where_value_text" type="text" name="string_value" title="Value (string)" value="">
-        <input id="id_file" type="file" name="file">
-        <br>
-        <input id="id_where_button" type="submit" name="submit_where" value="Set condition (WHERE)">
-        <br>
-        <br>
-        <input id="id_select_button" type="submit" name="submit_select" value="Add to output (SELECT)">
-    </form>
+
+    {% include "querybuilder_form.html" with form_submit_url='build_query' %}
 
     <h2>Tips</h2>
     <ul>

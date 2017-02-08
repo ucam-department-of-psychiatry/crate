@@ -25,6 +25,7 @@
 import argparse
 import datetime
 import functools
+import html
 import logging
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
@@ -188,16 +189,18 @@ class TableId(object):
 
     def __repr__(self) -> str:
         return (
-            "<TableId(db={db}, schema={schema}, table={table}) "
-            "at {id}>".format(
+            "<{qualname}(db={db}, schema={schema}, table={table}) "
+            "at {addr}>".format(
+                qualname=self.__class__.__qualname__,
                 db=repr(self._db),
                 schema=repr(self._schema),
                 table=repr(self._table),
-                id=hex(id(self)),
+                addr=hex(id(self)),
             )
         )
 
 
+@functools.total_ordering
 class ColumnId(object):
     def __init__(self, db: str = '', schema: str = '',
                  table: str = '', column: str = '') -> None:
@@ -254,8 +257,9 @@ class ColumnId(object):
 
     def __repr__(self) -> str:
         return (
-            "<ColumnId(db={db}, schema={schema}, table={table}, "
+            "<{qualname}(db={db}, schema={schema}, table={table}, "
             "column={column}) at {id}>".format(
+                qualname=self.__class__.__qualname__,
                 db=repr(self._db),
                 schema=repr(self._schema),
                 table=repr(self._table),
@@ -263,6 +267,17 @@ class ColumnId(object):
                 id=hex(id(self)),
             )
         )
+
+    # def html(self, grammar: SqlGrammar, bold_column: bool = True) -> str:
+    #     components = [
+    #         html.escape(grammar.quote_identifier_if_required(x))
+    #         for x in [self._db, self._schema, self._table, self._column]
+    #         if x]
+    #     if not components:
+    #         return ''
+    #     if bold_column:
+    #         components[-1] = "<b>{}</b>".format(components[-1])
+    #     return ".".join(components)
 
 
 def split_db_schema_table(db_schema_table: str) -> TableId:
@@ -433,6 +448,18 @@ def toggle_distinct(sql: str,
     return result
 
 
+def set_distinct(sql: str,
+                 formatted: bool = True,
+                 dialect: str = DIALECT_MYSQL) -> str:
+    grammar = make_grammar(dialect)
+    p = grammar.get_select_statement().parseString(sql)
+    if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
+        # already has DISTINCT
+        return sql
+    p.select_specifier.append('DISTINCT')
+    return text_from_parsed(p, formatted=formatted)
+
+
 # =============================================================================
 # SQLAlchemy reflection and DDL
 # =============================================================================
@@ -443,20 +470,6 @@ _print_not_execute = False
 def set_print_not_execute(print_not_execute: bool) -> None:
     global _print_not_execute
     _print_not_execute = print_not_execute
-
-
-def format_sql_for_print(sql: str) -> str:
-    # Remove blank lines and trailing spaces
-    lines = list(filter(None, [x.replace("\t", "    ").rstrip()
-                               for x in sql.splitlines()]))
-    # Shift all lines left if they're left-padded
-    firstleftpos = float('inf')
-    for line in lines:
-        leftpos = len(line) - len(line.lstrip())
-        firstleftpos = min(firstleftpos, leftpos)
-    if firstleftpos > 0:
-        lines = [x[firstleftpos:] for x in lines]
-    return "\n".join(lines)
 
 
 def execute(engine: Engine, sql: str) -> None:
@@ -958,6 +971,7 @@ def sql_fragment_cast_to_int(expr: str,
 # Abstracted SQL WHERE condition
 # =============================================================================
 
+@functools.total_ordering
 class WhereCondition(object):
     # Ancillary class for building SQL WHERE expressions from our web forms.
     def __init__(self, column_id: ColumnId, op: str, datatype: str,
@@ -977,6 +991,36 @@ class WhereCondition(object):
             assert isinstance(value_or_values, list), "Need list"
         else:
             assert not isinstance(value_or_values, list), "Need single value"
+
+    def __repr__(self) -> str:
+        return (
+            "<{qualname}("
+            "column_id={column_id}, "
+            "op={op}, "
+            "datatype={datatype}, "
+            "value_or_values={value_or_values}"
+            ") at {addr}>".format(
+                qualname=self.__class__.__qualname__,
+                column_id=repr(self._column_id),
+                op=repr(self._op),
+                datatype=repr(self._datatype),
+                value_or_values=repr(self._value),
+                addr=hex(id(self)),
+            )
+        )
+
+    def __eq__(self, other: 'WhereCondition') -> bool:
+        return (
+            self._column_id == other._column_id and
+            self._op == other._op and
+            self._value == other._value
+        )
+
+    def __lt__(self, other: 'WhereCondition') -> bool:
+        return (
+            (self._column_id, self._op, self._value) <
+            (other._column_id, other._op, other._value)
+        )
 
     def column_id(self) -> ColumnId:
         return self._column_id
@@ -1020,6 +1064,24 @@ class WhereCondition(object):
 
 
 # =============================================================================
+# SQL formatting
+# =============================================================================
+
+def format_sql_for_print(sql: str) -> str:
+    # Remove blank lines and trailing spaces
+    lines = list(filter(None, [x.replace("\t", "    ").rstrip()
+                               for x in sql.splitlines()]))
+    # Shift all lines left if they're left-padded
+    firstleftpos = float('inf')
+    for line in lines:
+        leftpos = len(line) - len(line.lstrip())
+        firstleftpos = min(firstleftpos, leftpos)
+    if firstleftpos > 0:
+        lines = [x[firstleftpos:] for x in lines]
+    return "\n".join(lines)
+
+
+# =============================================================================
 # More SQL
 # =============================================================================
 
@@ -1041,9 +1103,8 @@ def unit_tests():
     sql = "SELECT t1.c1, t2.c2 " \
           "FROM t1 INNER JOIN t2 ON t1.k = t2.k"
     parsed = grammar.get_select_statement().parseString(sql)
-    first_db, first_schema, first_table = get_first_from_table(parsed)  # noqa
-    log.info("db={}, schema={}, table={}".format(
-        first_db, first_schema, first_table))
+    table_id = get_first_from_table(parsed)  # noqa
+    log.info(repr(table_id))
 
 
 if __name__ == '__main__':

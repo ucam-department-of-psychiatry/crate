@@ -2,6 +2,13 @@
 To do
 ===============================================================================
 
+- Patient Explorer
+
+    - patient BRCID/TRID as header for each results page
+    - warn in builder + chooser if no patient criteria
+    - manual query override
+    - display details in chooser
+
 - For mapping:
   Population-weighted centroids
 
@@ -14,29 +21,6 @@ To do
 - Redo consent system if necessary as per ethics
 - Pull consent/discharge info from RiO
 - "After discharge" code
-
-- ?Patient-finding view, e.g. stored in JSON:
-    {
-        'select_fields': [field, field...],
-        'where_conditions': { field: value, ... }
-    }
-
-  mapping to something like:
-
-    SELECT
-        patient_id, 'XX' AS column, YY AS value
-        FROM ...
-        WHERE patient_id IN (
-            <patient_select_clause>
-        )
-    UNION
-    SELECT
-        patient_id, 'XX' AS column, YY AS value
-        FROM ...
-        WHERE patient_id IN (
-            <patient_select_clause>
-        )
-    ...
 
 
 ===============================================================================

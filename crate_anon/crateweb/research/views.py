@@ -24,6 +24,7 @@
 
 import datetime
 from functools import lru_cache
+import io
 import json
 import logging
 from typing import Any, Dict, List, Union
@@ -35,19 +36,21 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
-# from django.core.urlresolvers import reverse
 from django.db import DatabaseError
 from django.db.models import Q, QuerySet
 from django.http import HttpResponse
 from django.http.request import HttpRequest
-# from django.middleware import csrf
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.html import escape
-# from django.views.decorators.csrf import csrf_exempt
+from openpyxl import Workbook
 from pyparsing import ParseException
-# from sqlalchemy.sql import sqltypes
 
+from crate_anon.common.contenttypes import (
+    CONTENTTYPE_TSV,
+    CONTENTTYPE_XLSX,
+    CONTENTTYPE_ZIP,
+)
 from crate_anon.crateweb.core.dbfunc import (
     dictlist_to_tsv,
     escape_sql_string_literal,
@@ -66,14 +69,17 @@ from crate_anon.crateweb.research.html_functions import (
     highlight_text,
     HtmlElementCounter,
     make_result_element,
-    make_collapsible_query,
+    make_collapsible_sql_query,
     N_CSS_HIGHLIGHT_CLASSES,
     pre,
+    prettify_sql_css,
+    prettify_sql_html,
 )
 from crate_anon.crateweb.research.models import (
     Highlight,
     PidLookup,
     PatientExplorer,
+    PatientMultiQuery,
     Query,
 )
 from crate_anon.crateweb.research.research_db_info import (
@@ -199,7 +205,7 @@ def get_db_structure_json() -> str:
     return json.dumps(info)
 
 
-def build_query(request: HttpRequest) -> HttpResponse:
+def query_build(request: HttpRequest) -> HttpResponse:
     """
     Assisted query builder, based on the data dictionary.
     """
@@ -255,10 +261,10 @@ def build_query(request: HttpRequest) -> HttpResponse:
                 profile.save()
 
             elif 'global_save' in request.POST:
-                return submit_query(request, profile.sql_scratchpad, run=False)
+                return query_submit(request, profile.sql_scratchpad, run=False)
 
             elif 'global_run' in request.POST:
-                return submit_query(request, profile.sql_scratchpad, run=True)
+                return query_submit(request, profile.sql_scratchpad, run=True)
 
             else:
                 form = QueryBuilderForm(request.POST, request.FILES)
@@ -269,12 +275,8 @@ def build_query(request: HttpRequest) -> HttpResponse:
                     schema = form.cleaned_data['schema']
                     table = form.cleaned_data['table']
                     column = form.cleaned_data['column']
-                    column_id = ColumnId(
-                        db=database,
-                        schema=schema,
-                        table=table,
-                        column=column
-                    )
+                    column_id = ColumnId(db=database, schema=schema,
+                                         table=table, column=column)
                     table_id = column_id.table_id()
 
                     if 'submit_select' in request.POST:
@@ -343,16 +345,17 @@ def build_query(request: HttpRequest) -> HttpResponse:
     }
     context = {
         'nav_on_querybuilder': True,
-        'sql': profile.sql_scratchpad,
+        'sql': prettify_sql_html(profile.sql_scratchpad),
         'parse_error': parse_error,
         'database_structure': get_db_structure_json(),
         'starting_values': json.dumps(starting_values_dict),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
+        'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
-    return render(request, 'build_query.html', context)
+    return render(request, 'query_build.html', context)
 
 
 def get_all_queries(request: HttpRequest) -> QuerySet:
@@ -360,7 +363,7 @@ def get_all_queries(request: HttpRequest) -> QuerySet:
                         .order_by('-active', '-created')
 
 
-def submit_query(request: HttpRequest,
+def query_submit(request: HttpRequest,
                  sql: str,
                  run: bool = False) -> HttpResponse:
     """
@@ -399,7 +402,7 @@ def submit_query(request: HttpRequest,
         return redirect('query')
 
 
-def edit_select_query(request: HttpRequest) -> HttpResponse:
+def query_edit_select(request: HttpRequest) -> HttpResponse:
     """
     Edit or select SQL for current query.
     """
@@ -417,7 +420,7 @@ def edit_select_query(request: HttpRequest) -> HttpResponse:
             sql = form.cleaned_data['sql']
             if cmd_add or cmd_run:
                 run = 'submit_run' in request.POST
-                return submit_query(request, sql, run)
+                return query_submit(request, sql, run)
             elif cmd_builder:
                 profile = request.user.profile
                 profile.sql_scratchpad = sql
@@ -437,7 +440,7 @@ def edit_select_query(request: HttpRequest) -> HttpResponse:
     profile = request.user.profile
     element_counter = HtmlElementCounter()
     for q in queries:
-        q.formatted_query_safe = make_collapsible_query(
+        q.formatted_query_safe = make_collapsible_sql_query(
             q.get_original_sql(),
             element_counter=element_counter,
             collapse_at_n_lines=profile.collapse_at_n_lines,
@@ -449,89 +452,28 @@ def edit_select_query(request: HttpRequest) -> HttpResponse:
         'nav_on_query': True,
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
+        'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
-    return render(request, 'edit_select_query.html', context)
+    return render(request, 'query_edit_select.html', context)
 
 
-def activate_query(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_activate(request: HttpRequest, query_id: int) -> HttpResponse:
     validate_blank_form(request)
-    query = get_object_or_404(Query, id=query_id)
+    query = get_object_or_404(Query, id=query_id)  # type: Query
     query.activate()
     return redirect('query')
 
 
-def delete_query(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_delete(request: HttpRequest, query_id: int) -> HttpResponse:
     validate_blank_form(request)
-    query = get_object_or_404(Query, id=query_id)
+    query = get_object_or_404(Query, id=query_id)  # type: Query
     query.delete_if_permitted()
     return redirect('query')
 
 
-def edit_select_highlight(request: HttpRequest) -> HttpResponse:
-    """
-    Edit or select highlighting for current query.
-    """
-    all_highlights = Highlight.objects.filter(user=request.user)\
-                                      .order_by('text', 'colour')
-    if request.method == 'POST':
-        form = AddHighlightForm(request.POST)
-        if form.is_valid():
-            colour = form.cleaned_data['colour']
-            text = form.cleaned_data['text']
-            identicals = all_highlights.filter(colour=colour, text=text)
-            if identicals:
-                identicals[0].activate()
-            else:
-                highlight = Highlight(colour=colour, text=text,
-                                      user=request.user, active=True)
-                highlight.save()
-            return redirect('highlight')
-
-    values = {'colour': 0}
-    form = AddHighlightForm(values)
-    active_highlights = all_highlights.filter(active=True)
-    highlight_dict = Highlight.as_ordered_dict(active_highlights)
-    highlight_descriptions = get_highlight_descriptions(highlight_dict)
-    highlights = paginate(request, all_highlights)
-    context = {
-        'form': form,
-        'highlights': highlights,
-        'nav_on_highlight': True,
-        'N_CSS_HIGHLIGHT_CLASSES': N_CSS_HIGHLIGHT_CLASSES,
-        'highlight_descriptions': highlight_descriptions,
-        'colourlist': list(range(N_CSS_HIGHLIGHT_CLASSES)),
-    }
-    context.update(query_context(request))
-    return render(request, 'edit_select_highlight.html', context)
-
-
-def activate_highlight(request: HttpRequest,
-                       highlight_id: int) -> HttpResponse:
-    validate_blank_form(request)
-    highlight = get_object_or_404(Highlight, id=highlight_id)
-    highlight.activate()
-    return redirect('highlight')
-
-
-def deactivate_highlight(request: HttpRequest,
-                         highlight_id: int) -> HttpResponse:
-    validate_blank_form(request)
-    highlight = get_object_or_404(Highlight, id=highlight_id)
-    highlight.deactivate()
-    return redirect('highlight')
-
-
-def delete_highlight(request: HttpRequest,
-                     highlight_id: int) -> HttpResponse:
-    validate_blank_form(request)
-    highlight = get_object_or_404(Highlight, id=highlight_id)
-    highlight.delete()
-    return redirect('highlight')
-
-
 def no_query_selected(request: HttpRequest) -> HttpResponse:
-    return render(request, 'no_query_selected.html', query_context(request))
+    return render(request, 'query_none_selected.html', query_context(request))
 
 
 def query_count(request: HttpRequest, query_id: int) -> HttpResponse:
@@ -604,12 +546,38 @@ def query_results_recordwise(request: HttpRequest,
         line_length=profile.line_length)
 
 
-def query_tsv(request: HttpRequest) -> HttpResponse:
+def query_tsv(request: HttpRequest, query_id: int) -> HttpResponse:
     """
     Download TSV of current query.
     """
-    query = Query.get_active_query_or_none(request)
-    return render_tsv(request, query)
+    query = get_object_or_404(Query, id=query_id)  # type: Query
+    try:
+        tsv_result = query.make_tsv()
+        filename = "crate_results_{num}_{datetime}.tsv".format(
+            num=query.id,
+            datetime=datetime_iso_for_filename(),
+        )
+        return tsv_response(tsv_result, filename=filename)
+    except DatabaseError as exception:
+        return render_bad_query(request, query, exception)
+
+
+def query_excel(request: HttpRequest, query_id: int) -> HttpResponse:
+    query = get_object_or_404(Query, id=query_id)  # type: Query
+    wb = Workbook()
+    wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
+    sheetname = "query_{num}_{datetime}".format(
+        num=query.id,
+        datetime=datetime_iso_for_filename())
+    try:
+        query.add_excel_sheet(wb, title=sheetname)
+        sql_ws = wb.create_sheet(title="SQL")
+        sql_ws.append(query.get_original_sql())
+        memfile = io.BytesIO()
+        wb.save(memfile)
+        return HttpResponse(memfile.getvalue(), content_type=CONTENTTYPE_XLSX)
+    except DatabaseError as exception:
+        return render_bad_query(request, query, exception)
 
 
 # @user_passes_test(is_superuser)
@@ -623,19 +591,6 @@ def query_tsv(request: HttpRequest) -> HttpResponse:
 #     audits = paginate(request, all_audits)
 #     context = {'audits': audits}
 #     return render(request, 'audit.html', context)
-
-
-def pidlookup(request: HttpRequest) -> HttpResponse:
-    """
-    Look up PID information from RID information.
-    """
-    form = PidLookupForm(request.POST or None)
-    if form.is_valid():
-        trids = form.cleaned_data['trids']
-        rids = form.cleaned_data['rids']
-        mrids = form.cleaned_data['mrids']
-        return render_lookup(request, trids=trids, rids=rids, mrids=mrids)
-    return render(request, 'pid_lookup_form.html', {'form': form})
 
 
 # =============================================================================
@@ -689,21 +644,6 @@ def render_resultcount(request: HttpRequest, query: Query) -> HttpResponse:
         return render_bad_query(request, query, exception)
 
 
-def get_highlight_descriptions(
-        highlight_dict: Dict[int, List[Highlight]]) -> List[str]:
-    """
-    Returns a list of length up to N_CSS_HIGHLIGHT_CLASSES of HTML
-    elements illustrating the highlights.
-    """
-    desc = []
-    for n in range(N_CSS_HIGHLIGHT_CLASSES):
-        if n not in highlight_dict:
-            continue
-        desc.append(", ".join([highlight_text(h.text, n)
-                               for h in highlight_dict[n]]))
-    return desc
-
-
 def resultset_html_table(fieldnames: List[str],
                          rows: List[List[Any]],
                          element_counter: HtmlElementCounter,
@@ -737,16 +677,14 @@ def resultset_html_table(fieldnames: List[str],
                     value == rows[row_index - 1][col_index]):
                 html += ditto_cell
             else:
-                html += (
-                    '    <td class="queryresult">{}</td>\n'.format(
-                        make_result_element(
-                            value,
-                            element_counter=element_counter,
-                            highlight_dict=highlight_dict,
-                            collapse_at_len=collapse_at_len,
-                            collapse_at_n_lines=collapse_at_n_lines,
-                            line_length=line_length
-                        )
+                html += '    <td class="queryresult">{}</td>\n'.format(
+                    make_result_element(
+                        value,
+                        element_counter=element_counter,
+                        highlight_dict=highlight_dict,
+                        collapse_at_len=collapse_at_len,
+                        collapse_at_n_lines=collapse_at_n_lines,
+                        line_length=line_length
                     )
                 )
             element_counter.next()
@@ -838,8 +776,9 @@ def render_resultset(request: HttpRequest,
         'table_html': table_html,
         'page': page,
         'rowcount': rowcount,
-        'sql': query.get_original_sql(),
+        'sql': prettify_sql_html(query.get_original_sql()),
         'nav_on_results': True,
+        'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
     return render(request, 'query_result.html', context)
@@ -893,8 +832,9 @@ def render_resultset_recordwise(request: HttpRequest,
         'table_html': table_html,
         'page': page,
         'rowcount': rowcount,
-        'sql': query.get_original_sql(),
+        'sql': prettify_sql_html(query.get_original_sql()),
         'nav_on_results_recordwise': True,
+        'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
     return render(request, 'query_result.html', context)
@@ -903,21 +843,7 @@ def render_resultset_recordwise(request: HttpRequest,
 def tsv_response(data: str, filename: str = "download.tsv") -> HttpResponse:
     # http://stackoverflow.com/questions/264256/what-is-the-best-mime-type-and-extension-to-use-when-exporting-tab-delimited  # noqa
     # http://www.iana.org/assignments/media-types/text/tab-separated-values
-    return file_response(data, content_type='text/csv', filename=filename)
-
-
-def render_tsv(request: HttpRequest, query: Query) -> HttpResponse:
-    if query is None:
-        return render_missing_query(request)
-    try:
-        tsv_result = query.make_tsv()
-        filename = "crate_results_{num}_{datetime}.tsv".format(
-            num=query.id,
-            datetime=datetime_iso_for_filename(),
-        )
-        return tsv_response(tsv_result, filename=filename)
-    except DatabaseError as exception:
-        return render_bad_query(request, query, exception)
+    return file_response(data, content_type=CONTENTTYPE_TSV, filename=filename)
 
 
 def render_missing_query(request: HttpRequest) -> HttpResponse:
@@ -929,10 +855,11 @@ def render_bad_query(request: HttpRequest,
                      exception: Exception) -> HttpResponse:
     (final_sql, args) = query.get_sql_args_for_mysql()
     context = {
-        'original_sql': query.get_original_sql(),
-        'final_sql': final_sql,
+        'original_sql': prettify_sql_html(query.get_original_sql()),
+        'final_sql': prettify_sql_html(final_sql),
         'args': str(args),
         'exception': str(exception),
+        'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
     return render(request, 'query_bad.html', context)
@@ -941,13 +868,111 @@ def render_bad_query(request: HttpRequest,
 def render_bad_query_id(request: HttpRequest, query_id: int) -> HttpResponse:
     context = {'query_id': query_id}
     context.update(query_context(request))
-    return render(request, 'bad_query_id.html', context)
+    return render(request, 'query_bad_id.html', context)
+
+
+# =============================================================================
+# Highlights
+# =============================================================================
+
+def highlight_edit_select(request: HttpRequest) -> HttpResponse:
+    """
+    Edit or select highlighting for current query.
+    """
+    all_highlights = Highlight.objects.filter(user=request.user)\
+                                      .order_by('text', 'colour')
+    if request.method == 'POST':
+        form = AddHighlightForm(request.POST)
+        if form.is_valid():
+            colour = form.cleaned_data['colour']
+            text = form.cleaned_data['text']
+            identicals = all_highlights.filter(colour=colour, text=text)
+            if identicals:
+                identicals[0].activate()
+            else:
+                highlight = Highlight(colour=colour, text=text,
+                                      user=request.user, active=True)
+                highlight.save()
+            return redirect('highlight')
+
+    values = {'colour': 0}
+    form = AddHighlightForm(values)
+    active_highlights = all_highlights.filter(active=True)
+    highlight_dict = Highlight.as_ordered_dict(active_highlights)
+    highlight_descriptions = get_highlight_descriptions(highlight_dict)
+    highlights = paginate(request, all_highlights)
+    context = {
+        'form': form,
+        'highlights': highlights,
+        'nav_on_highlight': True,
+        'N_CSS_HIGHLIGHT_CLASSES': N_CSS_HIGHLIGHT_CLASSES,
+        'highlight_descriptions': highlight_descriptions,
+        'colourlist': list(range(N_CSS_HIGHLIGHT_CLASSES)),
+    }
+    context.update(query_context(request))
+    return render(request, 'highlight_edit_select.html', context)
+
+
+def highlight_activate(request: HttpRequest,
+                       highlight_id: int) -> HttpResponse:
+    validate_blank_form(request)
+    highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
+    highlight.activate()
+    return redirect('highlight')
+
+
+def highlight_deactivate(request: HttpRequest,
+                         highlight_id: int) -> HttpResponse:
+    validate_blank_form(request)
+    highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
+    highlight.deactivate()
+    return redirect('highlight')
+
+
+def highlight_delete(request: HttpRequest,
+                     highlight_id: int) -> HttpResponse:
+    validate_blank_form(request)
+    highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
+    highlight.delete()
+    return redirect('highlight')
 
 
 # def render_bad_highlight_id(request, highlight_id):
 #     context = {'highlight_id': highlight_id}
 #     context.update(query_context(request))
-#     return render(request, 'bad_highlight_id.html', context)
+#     return render(request, 'highlight_bad_id.html', context)
+
+
+def get_highlight_descriptions(
+        highlight_dict: Dict[int, List[Highlight]]) -> List[str]:
+    """
+    Returns a list of length up to N_CSS_HIGHLIGHT_CLASSES of HTML
+    elements illustrating the highlights.
+    """
+    desc = []
+    for n in range(N_CSS_HIGHLIGHT_CLASSES):
+        if n not in highlight_dict:
+            continue
+        desc.append(", ".join([highlight_text(h.text, n)
+                               for h in highlight_dict[n]]))
+    return desc
+
+
+# =============================================================================
+# PID lookup
+# =============================================================================
+
+def pidlookup(request: HttpRequest) -> HttpResponse:
+    """
+    Look up PID information from RID information.
+    """
+    form = PidLookupForm(request.POST or None)
+    if form.is_valid():
+        trids = form.cleaned_data['trids']
+        rids = form.cleaned_data['rids']
+        mrids = form.cleaned_data['mrids']
+        return render_lookup(request, trids=trids, rids=rids, mrids=mrids)
+    return render(request, 'pid_lookup_form.html', {'form': form})
 
 
 @user_passes_test(is_superuser)
@@ -1170,9 +1195,9 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
             if sql:
                 sql += "\nORDER BY {}".format(fkname)
         if 'submit_save' in request.POST:
-            return submit_query(request, sql, run=False)
+            return query_submit(request, sql, run=False)
         elif 'submit_run' in request.POST:
-            return submit_query(request, sql, run=True)
+            return query_submit(request, sql, run=True)
         else:
             return render(request, 'sql_fragment.html', {'sql': sql})
 
@@ -1184,41 +1209,172 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
 # =============================================================================
 
 def patient_explorer_build(request: HttpRequest) -> HttpResponse:
-    return HttpResponse()  # ***
+    profile = request.user.profile
+    default_database = get_default_database()
+    default_schema = get_default_schema()
+    with_database = research_database_info.uses_database_level()
+    form = None
+
+    def ensure_pmq() -> None:
+        if not profile.patient_multiquery_scratchpad:
+            profile.patient_multiquery_scratchpad = PatientMultiQuery()
+
+    if request.method == 'POST':
+        if 'global_clear' in request.POST:
+            profile.patient_multiquery_scratchpad = PatientMultiQuery()
+            profile.save()
+
+        elif 'global_save' in request.POST:
+            return pe_submit(
+                request, profile.patient_multiquery_scratchpad, run=False)
+
+        elif 'global_run' in request.POST:
+            return pe_submit(
+                request, profile.patient_multiquery_scratchpad, run=True)
+
+        else:
+            form = QueryBuilderForm(request.POST, request.FILES)
+            if form.is_valid():
+                # log.critical("is_valid")
+                database = (form.cleaned_data['database'] if with_database
+                            else '')
+                schema = form.cleaned_data['schema']
+                table = form.cleaned_data['table']
+                column = form.cleaned_data['column']
+                column_id = ColumnId(db=database, schema=schema,
+                                     table=table, column=column)
+
+                if 'submit_select' in request.POST:
+                    ensure_pmq()
+                    profile.patient_multiquery_scratchpad\
+                        .add_output_column(column_id)  # noqa
+
+                elif 'submit_where' in request.POST:
+                    datatype = form.cleaned_data['datatype']
+                    op = form.cleaned_data['where_op']
+                    # Value
+                    if op in SQL_OPS_MULTIPLE_VALUES:
+                        value = form.file_values_list
+                    elif op in SQL_OPS_VALUE_UNNECESSARY:
+                        value = None
+                    else:
+                        value = form.get_cleaned_where_value()
+                    # WHERE fragment
+                    wherecond = WhereCondition(column_id=column_id,
+                                               op=op,
+                                               datatype=datatype,
+                                               value_or_values=value)
+                    ensure_pmq()
+                    profile.patient_multiquery_scratchpad\
+                        .add_patient_condition(wherecond)
+
+                else:
+                    raise ValueError("Bad form command!")
+                profile.save()
+
+            else:
+                # log.critical("not is_valid")
+                pass
+
+    if form is None:
+        form = QueryBuilderForm()
+
+    starting_values_dict = {
+        'database': form.data.get('database', '') if with_database else '',
+        'schema': form.data.get('schema', ''),
+        'table': form.data.get('table', ''),
+        'column': form.data.get('column', ''),
+        'op': form.data.get('where_op', ''),
+        'date_value': form.data.get('date_value', ''),
+        # Impossible to set file_value programmatically. (See querybuilder.js.)
+        'float_value': form.data.get('float_value', ''),
+        'int_value': form.data.get('int_value', ''),
+        'string_value': form.data.get('string_value', ''),
+        'offer_where': bool(profile.sql_scratchpad),  # existing SELECT?
+        'form_errors': "<br>".join("{}: {}".format(k, v)
+                                   for k, v in form.errors.items()),
+        'default_database': default_database,
+        'default_schema': default_schema,
+        'with_database': with_database,
+    }
+
+    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    pmq = profile.patient_multiquery_scratchpad
+    pmq_output_columns = prettify_sql_html("\n".join(
+        [column_id.identifier(grammar)
+         for column_id in pmq.get_output_columns()]))
+    manual_query = pmq.get_manual_patient_id_query()
+    if manual_query:
+        pmq_patient_conditions = "<div>Overridden by manual query.</div>"
+        pmq_manual_patient_query = prettify_sql_html(
+            pmq.get_manual_patient_id_query())
+    else:
+        pmq_patient_conditions = prettify_sql_html("\nAND ".join([
+            wc.sql(grammar)
+            for wc in pmq.get_patient_conditions()]))
+        pmq_manual_patient_query = "<div><i>None</i></div>"
+    pmq_final_patient_query = prettify_sql_html(pmq.patient_id_query())
+
+    context = {
+        'nav_on_pe_build': True,
+        'pmq_output_columns': pmq_output_columns,
+        'pmq_patient_conditions': pmq_patient_conditions,
+        'pmq_manual_patient_query': pmq_manual_patient_query,
+        'pmq_final_patient_query': pmq_final_patient_query,
+        'database_structure': get_db_structure_json(),
+        'starting_values': json.dumps(starting_values_dict),
+        'sql_dialect': settings.RESEARCH_DB_DIALECT,
+        'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
+        'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
+        'sql_highlight_css': prettify_sql_css(),
+    }
+    context.update(query_context(request))
+    return render(request, 'pe_build.html', context)
 
 
 def patient_explorer_choose(request: HttpRequest) -> HttpResponse:
-    return HttpResponse()  # ***
+    all_pes = get_all_pes(request)
+    patient_explorers = paginate(request, all_pes)
+    profile = request.user.profile
+    element_counter = HtmlElementCounter()
+    context = {
+        'nav_on_pe_choose': True,
+        'patient_explorers': patient_explorers,
+        'sql_highlight_css': prettify_sql_css(),
+    }
+    context.update(query_context(request))
+    return render(request, 'pe_choose.html', context)
 
 
 def patient_explorer_activate(request: HttpRequest,
                               pe_id: int) -> HttpResponse:
     validate_blank_form(request)
-    pe = get_object_or_404(PatientExplorer, id=pe_id)
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.activate()
     return redirect('pe_choose')
 
 
 def patient_explorer_delete(request: HttpRequest, pe_id: int) -> HttpResponse:
     validate_blank_form(request)
-    pe = get_object_or_404(PatientExplorer, id=pe_id)
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.delete_if_permitted()
     return redirect('pe_choose')
 
 
 def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
-    pe = get_object_or_404(PatientExplorer, id=pe_id)
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
     profile = request.user.profile
     highlights = Highlight.get_active_highlights(request)
     highlight_dict = Highlight.as_ordered_dict(highlights)
+    element_counter = HtmlElementCounter()
+    patient_id_query_html = prettify_sql_html(pe.get_patient_id_query())
     try:
         trids = pe.get_patient_trids()
         page = paginate(request, trids,
                         per_page=get_patients_per_page(request))
         active_trids = list(page)
         results = []
-        element_counter = HtmlElementCounter()
         for table_id, sql in pe.all_queries(trids=active_trids):
             with pe.get_executed_cursor(sql) as cursor:
                 fieldnames = get_fieldnames_from_cursor(cursor)
@@ -1232,8 +1388,9 @@ def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
                     collapse_at_n_lines=profile.collapse_at_n_lines,
                     line_length=profile.line_length,
                 )
-                query_html = element_counter.collapsible_div_contentdiv(
-                    contents=pre(sql))
+                query_html = element_counter.collapsible_div_with_divbutton(
+                    contents=prettify_sql_html(sql),
+                    title_html="SQL")
                 results.append({
                     'tablename': table_id.identifier(grammar),
                     'table_html': table_html,
@@ -1244,28 +1401,12 @@ def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
             'results': results,
             'page': page,
             'rowcount': len(trids),
+            'patient_id_query_html': patient_id_query_html,
+            'sql_highlight_css': prettify_sql_css(),
         }
         context.update(query_context(request))
         return render(request, 'pe_result.html', context)
 
-    except DatabaseError as exception:
-        return render_bad_pe(request, pe, exception)
-
-
-def patient_explorer_tsv(request: HttpRequest) -> HttpResponse:
-    # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
-    pe = PatientExplorer.get_active_pe_or_none(request)
-    if pe is None:
-        return render_missing_pe(request)
-    try:
-        zipdata = pe.get_zipped_tsv_binary_data()
-        resp = HttpResponse(zipdata, mimetype="application/x-zip-compressed")
-        filename = "crate_patientexplorer_{num}_{datetime}.zip".format(
-            num=pe.id,
-            datetime=datetime_iso_for_filename(),
-        )
-        resp['Content-Disposition'] = "attachment;filename={}".format(filename)
-        return resp
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
 
@@ -1278,14 +1419,73 @@ def render_bad_pe(request: HttpRequest,
                   pe: PatientExplorer,
                   exception: Exception) -> HttpResponse:
     context = {
-        'queries': pe.all_full_queries(),
+        'queries': [prettify_sql_html(sql) for _, sql in pe.all_queries()],
         'exception': str(exception),
+        'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
     return render(request, 'pe_bad.html', context)
 
 
-def render_bad_pe_id(request: HttpRequest, pe_id: int) -> HttpResponse:
-    context = {'pe_id': pe_id}
-    context.update(query_context(request))
-    return render(request, 'bad_pe_id.html', context)
+# def render_bad_pe_id(request: HttpRequest, pe_id: int) -> HttpResponse:
+#     context = {'pe_id': pe_id}
+#     context.update(query_context(request))
+#     return render(request, 'pe_bad_id.html', context)
+
+
+def get_all_pes(request: HttpRequest) -> QuerySet:
+    return PatientExplorer.objects\
+        .filter(user=request.user, deleted=False)\
+        .order_by('-active', '-created')
+
+
+def pe_submit(request: HttpRequest,
+              pmq: PatientMultiQuery,
+              run: bool = False) -> HttpResponse:
+    all_pes = get_all_pes(request)
+    identical_pes = all_pes.filter(patient_multiquery=pmq) # *** Check: does this work?
+    if identical_pes:
+        identical_pes[0].activate()
+        pe_id = identical_pes[0].id
+    else:
+        pe = PatientExplorer(patient_multiquery=pmq,
+                             user=request.user,
+                             active=True)
+        pe.save()
+        pe_id = pe.id
+    # redirect to a new URL:
+    if run:
+        return redirect('pe_results', pe_id)
+    else:
+        return redirect('pe_choose')
+
+
+def patient_explorer_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
+    # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    try:
+        zipdata = pe.get_zipped_tsv_binary_data()
+        resp = HttpResponse(zipdata, content_type=CONTENTTYPE_ZIP)
+        filename = "crate_pe_{num}_{datetime}.zip".format(
+            num=pe.id,
+            datetime=datetime_iso_for_filename(),
+        )
+        resp['Content-Disposition'] = "attachment;filename={}".format(filename)
+        return resp
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)
+
+
+def patient_explorer_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    try:
+        xlsxdata = pe.get_xlsx_binary_data()
+        resp = HttpResponse(xlsxdata, content_type=CONTENTTYPE_XLSX)
+        filename = "crate_patientexplorer_{num}_{datetime}.xlsx".format(
+            num=pe.id,
+            datetime=datetime_iso_for_filename(),
+        )
+        resp['Content-Disposition'] = "attachment;filename={}".format(filename)
+        return resp
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)

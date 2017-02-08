@@ -15,9 +15,9 @@
     {% endif %}
     |
     {% if nav_on_highlight %}
-        <b>highlighting</b>
+        <b>Highlighting</b>
     {% else %}
-        <a href="{% url 'highlight' %}">highlighting</a>
+        <a href="{% url 'highlight' %}">Highlighting</a>
     {% endif %}
 {% comment %}
     |
@@ -29,21 +29,29 @@
 {% endcomment %}
     |
     {% if nav_on_results or not query_selected %}
-        <b>results (table)</b>
+        <b>Results table</b>
     {% else %}
-        <a href="{% url 'results' current_query_id %}">results (table)</a>
+        <a href="{% url 'results' current_query_id %}">Results table</a>
     {% endif %}
     |
     {% if nav_on_results_recordwise or not query_selected %}
-        <b>results (recordwise)</b>
+        <b>Results recordwise</b>
     {% else %}
-        <a href="{% url 'results_recordwise' current_query_id %}">results (recordwise)</a>
+        <a href="{% url 'results_recordwise' current_query_id %}">Results recordwise</a>
     {% endif %}
+{% comment %}
     |
     {% if not query_selected %}
-        <b>export as TSV</b>
+        <b>TSV</b>
     {% else %}
-        <a href="{% url 'tsv' %}">export as TSV</a>
+        <a href="{% url 'tsv' current_query_id %}">TSV</a>
+    {% endif %}
+{% endcomment %}
+    |
+    {% if not query_selected %}
+        <b>Excel</b>
+    {% else %}
+        <a href="{% url 'query_excel' current_query_id %}">Excel</a>
     {% endif %}
     ]
 </div>
@@ -51,33 +59,41 @@
 <div>
     [
     {% if nav_on_pe_build %}
-        <b>Patient Explorer: build</b>
+        <b>Build Patient Explorer (PE)</b>
     {% else %}
-        <a href="{% url 'pe_build' %}">Patient Explorer: build</a>
+        <a href="{% url 'pe_build' %}">Build Patient Explorer (PE)</a>
     {% endif %}
     |
     {% if nav_on_pe_choose %}
-        <b>Patient Explorer: view</b>
+        <b>Choose PE</b>
     {% else %}
-        <a href="{% url 'pe_choose' %}">Patient Explorer: choose</a>
+        <a href="{% url 'pe_choose' %}">Choose PE</a>
     {% endif %}
     |
     {% if nav_on_highlight %}
-        <b>highlighting</b>
+        <b>Highlighting</b>
     {% else %}
-        <a href="{% url 'highlight' %}">highlighting</a>
+        <a href="{% url 'highlight' %}">Highlighting</a>
     {% endif %}
     |
     {% if nav_on_pe_results or not pe_selected %}
-        <b>Patient Explorer: view results</b>
+        <b>PE results</b>
     {% else %}
-        <a href="{% url 'pe_results' %}">Patient Explorer: view results</a>
+        <a href="{% url 'pe_results' current_pe_id %}">PE: view results</a>
     {% endif %}
+{% comment %}
     |
     {% if not pe_selected %}
-        <b>Patient Explorer: export as TSV</b>
+        <b>PE: TSV</b>
     {% else %}
-        <a href="{% url 'pe_tsv' %}">Patient Explorer: export as TSV</a>
+        <a href="{% url 'pe_tsv_zip' current_pe_id %}">PE: TSV</a>
+    {% endif %}
+{% endcomment %}
+    |
+    {% if not pe_selected %}
+        <b>PE: Excel</b>
+    {% else %}
+        <a href="{% url 'pe_excel' current_pe_id %}">PE: Excel</a>
     {% endif %}
     ]
 </div>

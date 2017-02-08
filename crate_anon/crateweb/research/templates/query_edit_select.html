@@ -1,6 +1,10 @@
-{# edit_select_query.html #}
+{# query_edit_select.html #}
 
 {% extends "base.html" %}
+
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
 
 {% block content %}
 

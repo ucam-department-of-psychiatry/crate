@@ -2,6 +2,10 @@
 
 {% extends "base.html" %}
 
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
 {% block content %}
 
     {% include "query_nav.html" %}
@@ -15,7 +19,7 @@
 
     <h1>Queries in use</h1>
     {% for q in queries %}
-        <pre>{{ q }}</pre>
+        {{ q|safe }}
     {% endfor %}
 
 {% endblock %}

@@ -2,6 +2,10 @@
 
 {% extends "base.html" %}
 
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
 {% block content %}
 
     {% include "query_nav.html" %}
@@ -13,10 +17,10 @@
     <div class="code">{{ exception }}</div>
 
     <h1>SQL from you</h1>
-    <pre>{{ original_sql }}</pre>
+    {{ original_sql|safe }}
 
     <h1>SQL sent to database engine</h1>
-    <pre>{{ final_sql }}</pre>
+    {{ final_sql|safe }}
 
     <h2>Arguments (if applicable)</h2>
     <pre>{{ args }}</pre>

@@ -2,6 +2,10 @@
 
 {% extends "base.html" %}
 
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
 {% block content %}
 
     {% include "query_nav.html" %}
@@ -16,9 +20,9 @@
         {{ resultset.query_html|safe }}
     {% endfor %}
 
-    {% include "page_nav_results.html" with page=page %}
+    <h2>Common patient ID query</h2>
+    {{ patient_id_query_html|safe }}
 
-    <h1>SQL</h1>
-    <pre>{{ sql }}</pre>
+    {% include "page_nav_results.html" with page=page %}
 
 {% endblock %}

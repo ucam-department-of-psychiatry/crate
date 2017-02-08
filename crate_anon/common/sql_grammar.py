@@ -471,9 +471,13 @@ time_unit = make_words_regex(
 #     return first_statement
 
 
+def format_sql(sql: str, reindent: bool = True, indent_width: int = 4) -> str:
+    return sqlparse.format(sql, reindent=reindent, indent_width=indent_width)
+
+
 # def formatted_from_parsed(statement):
 #     sql = str(statement)
-#     return sqlparse.format(sql, reindent=True)
+#     return format_sql(sql)
 
 
 # =============================================================================
@@ -482,14 +486,20 @@ time_unit = make_words_regex(
 
 # See also: parser.runTests()
 
-def standardize_whitespace(text: str) -> str:
-    return " ".join(text.split())
+def standardize_for_testing(text: str) -> str:
+    text = " ".join(text.split())
+    text = text.replace("- ", "-")
+    text = text.replace("+ ", "+")
+    text = text.replace("~ ", "~")
+    text = text.replace("! ", "!")
+    text = text.replace(" (", "(")
+    return text
 
 
 def test_succeed(parser: ParserElement,
                  text: str,
                  target: str = None,
-                 skip_target: bool = True,
+                 skip_target: bool = False,
                  show_raw: bool = False,
                  verbose: bool = True) -> None:
     if target is None:
@@ -506,13 +516,15 @@ def test_succeed(parser: ParserElement,
         print(statement_and_failure_marker(text, exception))
         raise
     if not skip_target:
-        intended = standardize_whitespace(target)
-        actual = standardize_whitespace(text_from_parsed(p))
+        intended = standardize_for_testing(target)
+        log.critical(text_from_parsed(p))
+        actual = standardize_for_testing(text_from_parsed(p))
         if intended != actual:
             raise ValueError(
-                "Failure on: {} -> {} (should have been: {})"
+                "Failure on: {} ->\n{}\n... should have been:\n{}\n"
                 " [parser: {}] [as list: {}]".format(
-                    text, actual, intended, parser, repr(p.asList())))
+                    text, repr(actual), repr(intended),
+                    parser, repr(p.asList())))
 
 
 def test_fail(parser: ParserElement, text: str) -> None:
@@ -568,8 +580,7 @@ def text_from_parsed(parsetree: ParseResults,
         return plain_str
 
     # Forget my feeble efforts for now (below) and use sqlparse:
-    return sqlparse.format(plain_str, reindent=True,
-                           indent_width=indent_width)
+    return format_sql(plain_str, reindent=True, indent_width=indent_width)
 
     # result = ""
     # newline_before = ["SELECT", "FROM", "WHERE", "GROUP"]
@@ -868,6 +879,8 @@ class SqlGrammarMySQL(SqlGrammar):
     )
     UNARY_OP, BINARY_OP, TERNARY_OP = 1, 2, 3
     expr << infixNotation(expr_term, [
+        # https://pythonhosted.org/pyparsing/
+
         # Having lots of operations in the list here SLOWS IT DOWN A LOT.
         # Just combine them into an ordered list.
         (BINARY | COLLATE | oneOf('! - + ~'), UNARY_OP, opAssoc.RIGHT),
@@ -934,10 +947,11 @@ class SqlGrammarMySQL(SqlGrammar):
     #     when you name it later
 
     result_column = (
+        # AS expression must come first (to be greediest)
+        expr + Optional(Optional(AS) + column_alias) |
         '*' |
         Combine(table_name + '.' + '*') |
-        column_spec |
-        expr + Optional(Optional(AS) + column_alias)
+        column_spec
     ).setResultsName("select_columns", listAllMatches=True)
 
     # -------------------------------------------------------------------------
@@ -1071,7 +1085,7 @@ class SqlGrammarMySQL(SqlGrammar):
         return cls.expr
 
     @classmethod
-    def test(cls, test_expr: bool = False):
+    def test(cls, test_expr: bool = True):
         # ---------------------------------------------------------------------
         # Identifiers
         # ---------------------------------------------------------------------
@@ -1131,23 +1145,9 @@ class SqlGrammarMySQL(SqlGrammar):
         # Expressions
         # ---------------------------------------------------------------------
 
-        log.info("Testing case_expr")
-        test_succeed(cls.case_expr, """
-            CASE v
-              WHEN 2 THEN x
-              WHEN 3 THEN y
-              ELSE -99
-            END
-        """)
-
-        log.info("Testing match_expr")
-        test_succeed(cls.match_expr, """
-             MATCH (content_field)
-             AGAINST('+keyword1 +keyword2' IN BOOLEAN MODE)
-        """)
-
         log.info("Testing expr_term")
         test_succeed(cls.expr_term, "5")
+        test_succeed(cls.expr_term, "-5")
         test_succeed(cls.expr_term, "5.12")
         test_succeed(cls.expr_term, "'string'")
         test_succeed(cls.expr_term, "mycol")
@@ -1159,6 +1159,7 @@ class SqlGrammarMySQL(SqlGrammar):
         if test_expr:
             log.info("Testing expr")
             test_succeed(cls.expr, "5")
+            test_succeed(cls.expr, "-5")
             test_succeed(cls.expr, "a")
             test_succeed(cls.expr, "mycol1 || mycol2")
             test_succeed(cls.expr, "+mycol")
@@ -1186,6 +1187,21 @@ class SqlGrammarMySQL(SqlGrammar):
             test_fail(cls.expr, "IS NOT NULL")
             test_succeed(cls.expr, "(a * (b - 3)) > (d - 2)")
 
+        log.info("Testing case_expr")
+        test_succeed(cls.case_expr, """
+            CASE v
+              WHEN 2 THEN x
+              WHEN 3 THEN y
+              ELSE -99
+            END
+        """)
+
+        log.info("Testing match_expr")
+        test_succeed(cls.match_expr, """
+             MATCH (content_field)
+             AGAINST('+keyword1 +keyword2' IN BOOLEAN MODE)
+        """)
+
         log.info("Testing join_op")
         test_succeed(cls.join_op, ",")
         test_succeed(cls.join_op, "INNER JOIN")
@@ -1197,6 +1213,10 @@ class SqlGrammarMySQL(SqlGrammar):
 
         log.info("Testing result_column")
         test_succeed(cls.result_column, "t1.a")
+        test_succeed(cls.result_column, "col1")
+        test_succeed(cls.result_column, "t1.col1")
+        test_succeed(cls.result_column, "col1 AS alias")
+        test_succeed(cls.result_column, "t1.col1 AS alias")
 
         log.info("Testing select_statement")
         cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 IN (1, 2, 3)")
@@ -1204,6 +1224,10 @@ class SqlGrammarMySQL(SqlGrammar):
         cls.test_select("SELECT a, b FROM c WHERE d > 5 AND e = 4")
         cls.test_select("SELECT a, b FROM c INNER JOIN f WHERE d > 5 AND e = 4")
         cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5")
+
+        log.info("Testing SELECT something AS alias")
+        cls.test_select("SELECT col1 AS alias FROM t1")
+        cls.test_select("SELECT t1.col1 AS alias FROM t1")
 
     @classmethod
     def test_select(cls, text: str) -> None:
@@ -1406,10 +1430,11 @@ class SqlGrammarMSSQLServer(SqlGrammar):
     #     when you name it later
 
     result_column = (
+        # AS expression must come first (to be greediest)
+        expr + Optional(Optional(AS) + column_alias) |
         '*' |
         Combine(table_name + '.' + '*') |
-        column_spec |
-        expr + Optional(Optional(AS) + column_alias)
+        column_spec
     ).setResultsName("select_columns", listAllMatches=True)
 
     # -------------------------------------------------------------------------
@@ -1513,7 +1538,7 @@ class SqlGrammarMSSQLServer(SqlGrammar):
         return cls.expr
 
     @classmethod
-    def test(cls, test_expr: bool = False):
+    def test(cls, test_expr: bool = True):
         # ---------------------------------------------------------------------
         # Identifiers
         # ---------------------------------------------------------------------
@@ -1632,7 +1657,10 @@ class SqlGrammarMSSQLServer(SqlGrammar):
         test_succeed(cls.join_source, "a, b")
 
         log.info("Testing result_column")
+        test_succeed(cls.result_column, "a")
         test_succeed(cls.result_column, "t1.a")
+        test_succeed(cls.result_column, "a AS alias")
+        test_succeed(cls.result_column, "t1.a AS alias")
 
         log.info("Testing select_statement")
         cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 IN (1, 2, 3)")
@@ -1640,6 +1668,10 @@ class SqlGrammarMSSQLServer(SqlGrammar):
         cls.test_select("SELECT a, b FROM c WHERE d > 5 AND e = 4")
         cls.test_select("SELECT a, b FROM c INNER JOIN f WHERE d > 5 AND e = 4")
         cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5")
+
+        log.info("Testing SELECT something AS alias")
+        cls.test_select("SELECT col1 AS alias FROM t1")
+        cls.test_select("SELECT t1.col1 AS alias FROM t1")
 
     @classmethod
     def test_select(cls, text: str) -> None:
@@ -1709,6 +1741,10 @@ def test_base_elements() -> None:
     test_succeed(hexadecimal_literal, "x'12fac'")
     test_succeed(hexadecimal_literal, "0x12fac")
 
+    log.info("Testing integer")
+    test_succeed(integer, "99")
+    test_succeed(integer, "-99")
+
     log.info("Testing numeric_literal")
     test_succeed(numeric_literal, "45")
     test_succeed(numeric_literal, "+45")
@@ -1741,6 +1777,8 @@ def test_base_elements() -> None:
 
     log.info("Testing literal")
     test_succeed(literal_value, "NULL")
+    test_succeed(literal_value, "99")
+    test_succeed(literal_value, "-99")
 
     log.info("Testing time_unit")
     test_succeed(time_unit, "MICROSECOND")
@@ -1780,6 +1818,8 @@ def main() -> None:
     log.info("TESTING MICROSOFT SQL SERVER DIALECT")
     mssql = make_grammar(dialect="mssql")
     mssql.test()
+
+    log.info("ALL TESTS SUCCESSFUL")
 
 
 if __name__ == '__main__':

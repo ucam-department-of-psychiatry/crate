@@ -32,6 +32,10 @@ from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
 # from django.template import loader
 from django.template.defaultfilters import linebreaksbr
+from pygments import highlight
+from pygments.lexers.sql import SqlLexer
+from pygments.formatters.html import HtmlFormatter
+import sqlparse
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +54,7 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 
 def collapsible_div_with_divbutton(tag: str,
                                    contents: str,
+                                   title_html: str = '',
                                    extradivclasses: Iterable[str] = None,
                                    collapsed: bool = True) -> str:
     # The HTML pre-hides, rather than using an onload method
@@ -58,6 +63,7 @@ def collapsible_div_with_divbutton(tag: str,
     return """
         <div class="expandcollapse" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
             <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{img}">
+            {title_html}
         </div>
         <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" {hide_me}>
             {contents}
@@ -65,6 +71,7 @@ def collapsible_div_with_divbutton(tag: str,
     """.format(  # noqa
         tag=str(tag),
         img=static('plus.gif') if collapsed else static('minus.gif'),
+        title_html=title_html,
         extradivclasses=" ".join(extradivclasses),
         hide_me='style="display:none"' if collapsed else '',
         contents=contents,
@@ -145,10 +152,12 @@ class HtmlElementCounter(object):
 
     def collapsible_div_with_divbutton(self,
                                        contents: str,
+                                       title_html: str = '',
                                        extradivclasses: Iterable[str] = None,
                                        collapsed: bool = True) -> str:
         return collapsible_div_with_divbutton(tag=self.tag(),
                                               contents=contents,
+                                              title_html=title_html,
                                               extradivclasses=extradivclasses,
                                               collapsed=collapsed)
 
@@ -265,17 +274,38 @@ def pre(x: str = '') -> str:
     return "<pre>{}</pre>".format(x)
 
 
-def make_collapsible_query(x: Optional[str],
-                           element_counter: HtmlElementCounter,
-                           collapse_at_len: int = 400,
-                           collapse_at_n_lines: int = 5) -> str:
-    if x is None:
-        return pre()
+# =============================================================================
+# SQL formatting
+# =============================================================================
+
+SQL_BASE_CSS_CLASS = "sql_formatted"
+SQL_FORMATTER = HtmlFormatter(cssclass=SQL_BASE_CSS_CLASS)
+SQL_LEXER = SqlLexer()
+
+
+def prettify_sql_html(sql: str,
+                      reformat: bool = False,
+                      indent_width: int = 4) -> str:
+    if reformat:
+        sql = sqlparse.format(sql, reindent=True, indent_width=indent_width)
+    return highlight(sql, SQL_LEXER, SQL_FORMATTER)
+
+
+def prettify_sql_css() -> str:
+    return SQL_FORMATTER.get_style_defs()
+
+
+def make_collapsible_sql_query(x: Optional[str],
+                               element_counter: HtmlElementCounter,
+                               collapse_at_len: int = 400,
+                               collapse_at_n_lines: int = 5) -> str:
+    x = x or ''
+    formatted = prettify_sql_html(x, reformat=False)
     x = str(x)
     xlen = len(x)
     n_lines = len(x.split('\n'))
     x = linebreaksbr(escape(x))
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        return element_counter.overflow_div(contents=pre(x))
-    return pre(x)
+        return element_counter.overflow_div(contents=formatted)
+    return formatted
