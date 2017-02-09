@@ -176,7 +176,7 @@ class QueryBuilderForm(forms.Form):
 
     def clean(self) -> None:
         # Check the WHERE information is sufficient.
-        if 'submit_select' in self.data:
+        if 'submit_select' in self.data or 'submit_select_star' in self.data:
             # Form submitted via the "Add" method, so no checks required.
             # http://stackoverflow.com/questions/866272/how-can-i-build-multiple-submit-buttons-django-form  # noqa
             return
@@ -238,3 +238,10 @@ class QueryBuilderForm(forms.Form):
         if not self.file_values_list:
             self.add_error('file', forms.ValidationError(
                 "No values found in file"))
+
+
+class ManualPeQueryForm(forms.Form):
+    sql = CharField(
+        required=False,
+        widget=forms.Textarea(attrs={'rows': 20, 'cols': 80})
+    )

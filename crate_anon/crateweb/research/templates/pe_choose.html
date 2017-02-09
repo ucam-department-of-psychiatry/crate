@@ -22,8 +22,10 @@
                 <th>Created at</th>
                 <th>Delete PE</th>
                 <th>Details</th>
+                <th>OK?</th>
                 <th>Active?</th>
-                <th>Choose this one</th>
+                <th>Choose/activate</th>
+                <th>Edit</th>
             </tr>
             {% for pe in patient_explorers %}
                 <tr>
@@ -34,7 +36,18 @@
                             <input type="submit" value="Delete" />
                         </form>
                     </td>
-                    <td>PENDING</td>
+                    <td>{{ pe.summary_html|safe }}</td>
+                    <td>
+                        {% if pe.has_patient_id_query %}
+                            {% if pe.has_output_columns %}
+                                <div>OK</div>
+                            {% else %}
+                                <div class="warning">No output columns!</div>
+                            {% endif %}
+                        {% else %}
+                            <div class="warning">Missing patient criteria!</div>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if pe.active %}<b>{% endif %}
                         {{ pe.active|yesno }}
@@ -49,6 +62,12 @@
                                 <input type="submit" value="Choose" />
                             </form>
                         {% endif %}
+                    </td>
+                    <td>
+                        <form action="{% url 'pe_edit' pe.id %}" method="post">
+                            {% csrf_token %}
+                            <input type="submit" value="Edit" />
+                        </form>
                     </td>
                 </tr>
             {% endfor %}

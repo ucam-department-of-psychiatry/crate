@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/common/contenttypes.py
+# crate_anon/crateweb/extra/excel.py
 
 """
 ===============================================================================
@@ -20,26 +20,17 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 ===============================================================================
+"""
 
-Many of these can be extracted:
+import io
+import logging
 
-import mimetypes
-mimetypes.types_map['.zip']  # application/zip -- this is built in
-mimetypes.types_map['.xlsx']  # fails
-mimetypes.init()
-mimetypes.types_map['.xlsx']  # application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-# ... must read some local thing...
+from openpyxl import Workbook
 
-"""  # noqa
+log = logging.getLogger(__name__)
 
-CONTENTTYPE_PDF = "application/pdf"
 
-CONTENTTYPE_ZIP = "application/zip"
-# ... http://stackoverflow.com/questions/4411757/zip-mime-types-when-to-pick-which-one  # noqa
-
-CONTENTTYPE_TSV = "text/tab-separated-values"
-CONTENTTYPE_CSV = "text/csv"
-# http://stackoverflow.com/questions/264256/what-is-the-best-mime-type-and-extension-to-use-when-exporting-tab-delimited  # noqa
-# http://www.iana.org/assignments/media-types/text/tab-separated-values
-
-CONTENTTYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"  # noqa
+def excel_to_bytes(wb: Workbook) -> bytes:
+    memfile = io.BytesIO()
+    wb.save(memfile)
+    return memfile.getvalue()

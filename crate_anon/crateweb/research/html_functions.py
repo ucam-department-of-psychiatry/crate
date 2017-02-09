@@ -26,7 +26,7 @@ import logging
 import re
 import textwrap
 import typing
-from typing import Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
@@ -52,87 +52,82 @@ REGEX_METACHARS = ["\\", "^", "$", ".",
 # Collapsible div, etc.
 # =============================================================================
 
-def collapsible_div_with_divbutton(tag: str,
-                                   contents: str,
-                                   title_html: str = '',
-                                   extradivclasses: Iterable[str] = None,
-                                   collapsed: bool = True) -> str:
-    # The HTML pre-hides, rather than using an onload method
-    if extradivclasses is None:
-        extradivclasses = []
+def visibility_button(tag: str, small: bool = True,
+                      title_html: str = '', as_span: bool = False,
+                      as_visibility: bool = True) -> str:
+    eltype = "span" if as_span else "div"
+    togglefunc = "toggleVisible" if as_visibility else "toggleCollapsed"
     return """
-        <div class="expandcollapse" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
-            <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{img}">
-            {title_html}
-        </div>
-        <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" {hide_me}>
-            {contents}
-        </div>
+<{eltype} class="expandcollapse" onclick="{togglefunc}('collapsible_{tag}', 'collapse_img_{tag}');">
+    <img class="plusminus_image" id="collapse_img_{{ tag }}" alt="" src="{img}">
+    {title_html}
+</{eltype}>
     """.format(  # noqa
+        eltype=eltype,
+        togglefunc=togglefunc,
         tag=str(tag),
-        img=static('plus.gif') if collapsed else static('minus.gif'),
+        img=static('plus.gif') if small else static('minus.gif'),
         title_html=title_html,
-        extradivclasses=" ".join(extradivclasses),
-        hide_me='style="display:none"' if collapsed else '',
-        contents=contents,
     )
 
 
-def collapsible_div_spanbutton(tag: str, collapsed: bool = True) -> str:
+def visibility_contentdiv(tag: str,
+                          contents: str,
+                          extra_div_classes: Iterable[str] = None,
+                          small: bool = True,
+                          as_visibility: bool = True) -> str:
+    extra_div_classes = extra_div_classes or []
+    div_classes = ["collapsible"] + extra_div_classes
+    if as_visibility:
+        if small:
+            div_classes.append("collapse_invisible")
+        else:
+            div_classes.append("collapse_visible")
+    else:
+        if small:
+            div_classes.append("collapse_small")
+        else:
+            div_classes.append("collapse_big")
     return """
-        <span class="expandcollapse_span" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}');">
-            <img class="plusminus_image" id="collapse_img_{{ tag }}" alt="" src="{img}">
-        </span>
-    """.format(  # noqa
-        tag=str(tag),
-        img=static('plus.gif') if collapsed else static('minus.gif'),
-    )
-
-
-def collapsible_div_contentdiv(tag: str,
-                               contents: str,
-                               extradivclasses: Iterable[str] = None,
-                               collapsed: bool = True) -> str:
-    if extradivclasses is None:
-        extradivclasses = []
-    return """
-        <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" {hide_me}>
-            {contents}
-        </div>
-    """.format(  # noqa
-        extradivclasses=" ".join(extradivclasses),
+<div class="{div_classes}" id="collapsible_{tag}">
+    {contents}
+</div>
+    """.format(
+        div_classes=" ".join(div_classes),
         tag=str(tag),
         contents=contents,
-        hide_me='style="display:none"' if collapsed else '',
     )
+
+
+def visibility_div_with_divbutton(tag: str,
+                                  contents: str,
+                                  title_html: str = '',
+                                  extra_div_classes: Iterable[str] = None,
+                                  small: bool = True) -> str:
+    # The HTML pre-hides, rather than using an onload method
+    button = visibility_button(tag=tag, small=small,
+                               title_html=title_html, as_visibility=True)
+    contents = visibility_contentdiv(tag=tag, contents=contents,
+                                     extra_div_classes=extra_div_classes,
+                                     small=small, as_visibility=True)
+    return button + contents
 
 
 def overflow_div(tag: str,
                  contents: str,
-                 extradivclasses: Iterable[str] = None,
-                 collapsed: bool = True) -> str:
-    if extradivclasses is None:
-        extradivclasses = []
+                 extra_div_classes: Iterable[str] = None,
+                 small: bool = True) -> str:
+    button = visibility_button(tag=tag, small=small,
+                               as_visibility=False)
+    contentdiv = visibility_contentdiv(tag=tag, contents=contents,
+                                       extra_div_classes=extra_div_classes,
+                                       small=small, as_visibility=False)
     return """
-        <div class="expandcollapsewrapper">
-            <div class="expandcollapse" onclick="toggle('collapse_detail_{tag}', 'collapse_img_{tag}', 'collapse_summary_{tag}');">
-                <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{plus_img}">
-            </div>
-            <div class="collapse_detail {extradivclasses}" id="collapse_detail_{tag}" {hide_detail}>
-                {contents}
-            </div>
-            <div class="collapse_summary {extradivclasses}" id="collapse_summary_{tag}" {hide_summary}>
-                {contents}
-            </div>
-        </div>
-    """.format(  # noqa
-        extradivclasses=" ".join(extradivclasses),
-        tag=str(tag),
-        contents=contents,
-        plus_img=static('plus.gif'),
-        hide_detail='style="display:none"' if collapsed else '',
-        hide_summary='' if collapsed else 'style="display:none"',
-    )
+<div class="expandcollapsewrapper">
+    {button}
+    {contentdiv}
+</div>
+    """.format(button=button, contentdiv=contentdiv)
 
 
 # =============================================================================
@@ -141,46 +136,70 @@ def overflow_div(tag: str,
 # =============================================================================
 
 class HtmlElementCounter(object):
-    def __init__(self):
+    def __init__(self, prefix: str = ''):
         self.elementnum = 0
+        self.prefix = prefix
 
     def next(self):
         self.elementnum += 1
 
     def tag(self):
-        return str(self.elementnum)
+        return self.prefix + str(self.elementnum)
 
-    def collapsible_div_with_divbutton(self,
-                                       contents: str,
-                                       title_html: str = '',
-                                       extradivclasses: Iterable[str] = None,
-                                       collapsed: bool = True) -> str:
-        return collapsible_div_with_divbutton(tag=self.tag(),
-                                              contents=contents,
-                                              title_html=title_html,
-                                              extradivclasses=extradivclasses,
-                                              collapsed=collapsed)
+    def visibility_div_with_divbutton(self,
+                                      contents: str,
+                                      title_html: str = '',
+                                      extra_div_classes: Iterable[str] = None,
+                                      visible: bool = True) -> str:
+        result = visibility_div_with_divbutton(
+            tag=self.tag(),
+            contents=contents,
+            title_html=title_html,
+            extra_div_classes=extra_div_classes,
+            small=visible)
+        self.next()
+        return result
 
-    def collapsible_div_spanbutton(self, collapsed: bool = True) -> str:
-        return collapsible_div_spanbutton(tag=self.tag(), collapsed=collapsed)
+    def visibility_div_spanbutton(self, small: bool = True) -> str:
+        return visibility_button(tag=self.tag(), as_visibility=True,
+                                 small=small, as_span=True)
+
+    def visibility_div_contentdiv(self,
+                                  contents: str,
+                                  extra_div_classes: Iterable[str] = None,
+                                  small: bool = True) -> str:
+        result = visibility_contentdiv(
+            tag=self.tag(),
+            contents=contents,
+            extra_div_classes=extra_div_classes,
+            small=small,
+            as_visibility=True)
+        self.next()
+        return result
 
     def collapsible_div_contentdiv(self,
                                    contents: str,
-                                   extradivclasses: Iterable[str] = None,
-                                   collapsed: bool = True) -> str:
-        return collapsible_div_contentdiv(tag=self.tag(),
-                                          contents=contents,
-                                          extradivclasses=extradivclasses,
-                                          collapsed=collapsed)
+                                   extra_div_classes: Iterable[str] = None,
+                                   small: bool = True) -> str:
+        result = visibility_contentdiv(
+            tag=self.tag(),
+            contents=contents,
+            extra_div_classes=extra_div_classes,
+            small=small,
+            as_visibility=False)
+        self.next()
+        return result
 
     def overflow_div(self,
                      contents: str,
                      extradivclasses: Iterable[str] = None,
-                     collapsed: bool = True) -> str:
-        return overflow_div(tag=self.tag(),
-                            contents=contents,
-                            extradivclasses=extradivclasses,
-                            collapsed=collapsed)
+                     small: bool = True) -> str:
+        result = overflow_div(tag=self.tag(),
+                              contents=contents,
+                              extra_div_classes=extradivclasses,
+                              small=small)
+        self.next()
+        return result
 
 
 # =============================================================================
@@ -207,8 +226,8 @@ def get_regex_from_highlights(highlight_list: Iterable[HIGHLIGHT_FWD_REF],
         -> typing.re.Pattern:
     elements = []
     wb = r"\b"  # word boundary; escape the slash if not using a raw string
-    for highlight in highlight_list:
-        h = escape_literal_string_for_regex(highlight.text)
+    for hl in highlight_list:
+        h = escape_literal_string_for_regex(hl.text)
         if at_word_boundaries_only:
             elements.append(wb + h + wb)
         else:
@@ -234,10 +253,11 @@ def make_result_element(x: Optional[str],
                         collapse_at_n_lines: int = None,
                         line_length: int = None,
                         keep_existing_newlines: bool = True,
-                        collapsed: bool = True) -> str:
+                        collapsed: bool = True,
+                        null: str = '<i>NULL</i>') -> str:
     # return escape(repr(x))
     if x is None:
-        return ""
+        return null
     highlight_dict = highlight_dict or {}
     x = str(x)
     xlen = len(x)  # before we mess around with it
@@ -265,9 +285,12 @@ def make_result_element(x: Optional[str],
         output = find.sub(replace, output)
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
-        return element_counter.overflow_div(contents=output,
-                                            collapsed=collapsed)
-    return output
+        result = element_counter.overflow_div(contents=output,
+                                              small=collapsed)
+        element_counter.next()
+    else:
+        result = output
+    return result
 
 
 def pre(x: str = '') -> str:
@@ -278,7 +301,7 @@ def pre(x: str = '') -> str:
 # SQL formatting
 # =============================================================================
 
-SQL_BASE_CSS_CLASS = "sql_formatted"
+SQL_BASE_CSS_CLASS = "sq"  # brief is good
 SQL_FORMATTER = HtmlFormatter(cssclass=SQL_BASE_CSS_CLASS)
 SQL_LEXER = SqlLexer()
 
@@ -295,16 +318,28 @@ def prettify_sql_css() -> str:
     return SQL_FORMATTER.get_style_defs()
 
 
+def prettify_sql_and_args(sql: str, args: List[Any] = None,
+                          reformat: bool = False,
+                          indent_width: int = 4) -> str:
+    sql = prettify_sql_html(sql, reformat=reformat, indent_width=indent_width)
+    if args:
+        formatted_args = "\n".join(textwrap.wrap(repr(args)))
+        return sql + "<div>Args:</div><pre>{}</pre>".format(formatted_args)
+    else:
+        return sql
+
+
 def make_collapsible_sql_query(x: Optional[str],
                                element_counter: HtmlElementCounter,
+                               args: List[Any] = None,
                                collapse_at_len: int = 400,
                                collapse_at_n_lines: int = 5) -> str:
     x = x or ''
-    formatted = prettify_sql_html(x, reformat=False)
     x = str(x)
     xlen = len(x)
     n_lines = len(x.split('\n'))
-    x = linebreaksbr(escape(x))
+    formatted = prettify_sql_and_args(x, args, reformat=False)
+    # x = linebreaksbr(escape(x))
     if ((collapse_at_len and xlen >= collapse_at_len) or
             (collapse_at_n_lines and n_lines >= collapse_at_n_lines)):
         return element_counter.overflow_div(contents=formatted)

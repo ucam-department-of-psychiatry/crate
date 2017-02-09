@@ -103,7 +103,7 @@ class UserProfile(models.Model):
         verbose_name='SQL scratchpad for query builder')
     patient_multiquery_scratchpad = PickledObjectField(
         verbose_name='PatientMultiQuery scratchpad (pickled) for builder',
-        null=True)  # type: PatientMultiQuery
+        null=True)  # type: 'PatientMultiQuery'
 
     # -------------------------------------------------------------------------
     # Developer

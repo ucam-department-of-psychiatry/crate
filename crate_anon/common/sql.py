@@ -25,8 +25,8 @@
 import argparse
 import datetime
 import functools
-import html
 import logging
+import re
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
 from pyparsing import ParseResults
@@ -42,12 +42,8 @@ from crate_anon.common.lang import unique_list
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.stringfunc import get_spec_match_regex
-from crate_anon.common.sql_grammar import (
-    DIALECT_MYSQL,
-    make_grammar,
-    SqlGrammar,
-    text_from_parsed,
-)
+from crate_anon.common.sql_grammar import SqlGrammar, text_from_parsed
+from crate_anon.common.sql_grammar_factory import DIALECT_MYSQL, make_grammar
 from crate_anon.common.sqla import column_creation_ddl, count_star
 
 log = logging.getLogger(__name__)
@@ -88,6 +84,9 @@ QB_DATATYPE_STRING = "string"
 QB_DATATYPE_STRING_FULLTEXT = "string_fulltext"
 QB_DATATYPE_UNKNOWN = "unknown"
 QB_STRING_TYPES = [QB_DATATYPE_STRING, QB_DATATYPE_STRING_FULLTEXT]
+
+COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
+# ... start, group(alphabetical), literal (, group(digit), literal ), end
 
 
 # =============================================================================
@@ -1082,7 +1081,109 @@ def format_sql_for_print(sql: str) -> str:
 
 
 # =============================================================================
-# More SQL
+# Plain SQL types
+# =============================================================================
+
+def is_sql_column_type_textual(column_type: str,
+                               min_length: int = 1) -> bool:
+    column_type = column_type.upper()
+    if column_type == 'TEXT':
+        return True
+    try:
+        m = COLTYPE_WITH_ONE_INTEGER_REGEX.match(column_type)
+        basetype = m.group(1)
+        length = int(m.group(2))
+    except (AttributeError, ValueError):
+        return False
+    return length >= min_length and basetype in SQLTYPES_TEXT
+
+
+def escape_quote_in_literal(s: str) -> str:
+    """
+    Escape '. We could use '' or \'.
+    Let's use \. for consistency with percent escaping.
+    """
+    return s.replace("'", r"\'")
+
+
+def escape_percent_in_literal(sql: str) -> str:
+    """
+    Escapes % by converting it to \%.
+    Use this for LIKE clauses.
+    http://dev.mysql.com/doc/refman/5.7/en/string-literals.html
+    """
+    return sql.replace('%', r'\%')
+
+
+def escape_percent_for_python_dbapi(sql: str) -> str:
+    """
+    Escapes % by converting it to %%.
+    Use this for SQL within Python where % characters are used for argument
+    placeholders.
+    """
+    return sql.replace('%', '%%')
+
+
+def escape_sql_string_literal(s: str) -> str:
+    """
+    Escapes SQL string literal fragments against quotes and parameter
+    substitution.
+    """
+    return escape_percent_in_literal(escape_quote_in_literal(s))
+
+
+def translate_sql_qmark_to_percent(sql: str) -> str:
+    """
+    MySQL likes '?' as a placeholder.
+    - https://dev.mysql.com/doc/refman/5.7/en/sql-syntax-prepared-statements.html
+
+    Python DBAPI allows several: '%s', '?', ':1', ':name', '%(name)s'.
+    - https://www.python.org/dev/peps/pep-0249/#paramstyle
+
+    Django uses '%s'.
+    - https://docs.djangoproject.com/en/1.8/topics/db/sql/
+
+    Microsoft like '?', '@paramname', and ':paramname'.
+    - https://msdn.microsoft.com/en-us/library/yy6y35y8(v=vs.110).aspx
+
+    We need to parse SQL with argument placeholders.
+    - See SqlGrammar classes, particularly: bind_parameter
+
+    I prefer ?, because % is used in LIKE clauses, and the databases we're
+    using like it.
+
+    So:
+    - We use %s when using cursor.execute() directly, via Django.
+    - We use ? when talking to users, and SqlGrammar objects, so that the
+      visual appearance matches what they expect from their database.
+
+    This function translates SQL using ? placeholders to SQL using %s
+    placeholders, without breaking literal '?' or '%', e.g. inside string
+    literals.
+    """  # noqa
+    # 1. Escape % characters
+    sql = escape_percent_for_python_dbapi(sql)
+    # 2. Replace ? characters that are not within quotes with %s.
+    newsql = ""
+    in_quotes = False
+    for c in sql:
+        if c == "'":
+            in_quotes = not in_quotes
+        if c == '?' and not in_quotes:
+            newsql += '%s'
+        else:
+            newsql += c
+    return newsql
+
+
+if False:
+    _SQLTEST1 = "SELECT a FROM b WHERE c=? AND d LIKE 'blah%' AND e='?'"
+    _SQLTEST2 = "SELECT a FROM b WHERE c=%s AND d LIKE 'blah%%' AND e='?'"
+    _SQLTEST3 = translate_sql_qmark_to_percent(_SQLTEST1)
+
+
+# =============================================================================
+# Tests
 # =============================================================================
 
 def unit_tests():

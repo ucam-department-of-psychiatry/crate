@@ -29,9 +29,12 @@
     <h3>Final patient selection query</h3>
     <div>{{ pmq_final_patient_query|safe }}</div>
 
+    {{ warnings|safe }}
+
     <form action="{% url 'pe_build' %}" method="post">
         {% csrf_token %}
-        <input type="submit" name="global_clear" value="Clear" />
+        <input type="submit" name="global_clear_select" value="Clear SELECT" />
+        <input type="submit" name="global_clear_where" value="Clear WHERE" />
         <input type="submit" name="global_save" value="Save" />
         <input type="submit" name="global_run" value="Run" />
     </form>
@@ -39,6 +42,22 @@
     <h2>Build your Patient Explorer!</h2>
 
     {% include "querybuilder_form.html" with form_submit_url='pe_build' %}
+
+    <h2>Set a manual patient query</h2>
+
+    <div>This should select the master research ID (MRID); it should use the
+        DISTINCT keyword so each MRID is selected only once; and it should
+        (ideally) ORDER BY that MRID for consistency when you run it more than
+        once.</div>
+
+    <form action="{% url 'pe_build' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ manual_form }}
+        </table>
+        <input type="submit" name="global_manual_set" value="Set" />
+        <input type="submit" name="global_manual_clear" value="Clear manual query" />
+    </form>
 
     <h2>Explanation</h2>
     <ul>
@@ -53,6 +72,14 @@
             IDs, and then one or more other ones to fetch information on those
             patients. You can take the SQL and edit it yourself, if you
             wish.</li>
+
+        <li>The PE’s patient selection query can also be used for two other
+            purposes, to help you find data. There is a <b>data finder</b>,
+            which shows you a count of all records in every patient table,
+            for the patient(s) you have selected, where data is present for
+            that patient.
+            There is also a <b>Monster Data</b> view, which shows you
+            <i>all data</i> for each of those patients.</li>
     </ul>
 
 {% endblock %}

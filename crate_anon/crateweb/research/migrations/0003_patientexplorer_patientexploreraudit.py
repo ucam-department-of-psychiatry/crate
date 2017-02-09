@@ -20,12 +20,12 @@ class Migration(migrations.Migration):
             name='PatientExplorer',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('patient_multiquery', picklefield.fields.PickledObjectField(editable=False, null=True, verbose_name='Pickled PatientMultiQuery')),
+                ('patient_multiquery', picklefield.fields.PickledObjectField(editable=False, null=True, verbose_name='Pickled PatientMultiQuery')),  # noqa
                 ('active', models.BooleanField(default=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('deleted', models.BooleanField(default=False, verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.")),
+                ('deleted', models.BooleanField(default=False, verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.")),  # noqa
                 ('audited', models.BooleanField(default=False)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -37,7 +37,7 @@ class Migration(migrations.Migration):
                 ('n_records', models.IntegerField(default=0)),
                 ('failed', models.BooleanField(default=False)),
                 ('fail_msg', models.TextField()),
-                ('patient_explorer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='research.PatientExplorer')),
+                ('patient_explorer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='research.PatientExplorer')),  # noqa
             ],
         ),
     ]

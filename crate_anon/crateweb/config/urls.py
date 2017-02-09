@@ -110,7 +110,7 @@ urlpatterns = [
         research_views.query_results, name='results'),
     url(r'^results_recordwise/(?P<query_id>[0-9]+)/$',
         research_views.query_results_recordwise, name='results_recordwise'),
-    url(r'^tsv/(?P<query_id>[0-9]+)/$', research_views.query_tsv, name='tsv'),
+    # url(r'^tsv/(?P<query_id>[0-9]+)/$', research_views.query_tsv, name='tsv'),
     url(r'^query_excel/(?P<query_id>[0-9]+)/$',
         research_views.query_excel, name='query_excel'),
 
@@ -123,14 +123,23 @@ urlpatterns = [
         name='pe_choose'),
     url(r'^pe_activate/(?P<pe_id>[0-9]+)/$',
         research_views.patient_explorer_activate, name='pe_activate'),
+    url(r'^pe_edit/(?P<pe_id>[0-9]+)/$',
+        research_views.patient_explorer_edit, name='pe_edit'),
     url(r'^pe_delete/(?P<pe_id>[0-9]+)/$',
         research_views.patient_explorer_delete, name='pe_delete'),
     url(r'^pe_results/(?P<pe_id>[0-9]+)/$',
         research_views.patient_explorer_results, name='pe_results'),
-    url(r'^pe_tsv_zip/(?P<pe_id>[0-9]+)/$',
-        research_views.patient_explorer_tsv_zip, name='pe_tsv_zip'),
+    # url(r'^pe_tsv_zip/(?P<pe_id>[0-9]+)/$',
+    #     research_views.patient_explorer_tsv_zip, name='pe_tsv_zip'),
     url(r'^pe_excel/(?P<pe_id>[0-9]+)/$',
         research_views.patient_explorer_excel, name='pe_excel'),
+    url(r'^pe_df_results/(?P<pe_id>[0-9]+)/$',
+        research_views.pe_data_finder_results, name='pe_df_results'),
+    url(r'^pe_df_excel/(?P<pe_id>[0-9]+)/$',
+        research_views.pe_data_finder_excel, name='pe_df_excel'),
+    url(r'^pe_monster_results/(?P<pe_id>[0-9]+)/$',
+        research_views.pe_monster_results, name='pe_monster_results'),
+    # We don't offer the monster view in Excel; it'd be huge.
 
     # -------------------------------------------------------------------------
     # Research database structure
@@ -142,8 +151,10 @@ urlpatterns = [
         name='structure_table_paginated'),
     url(r'^structure_tree/$', research_views.structure_tree,
         name='structure_tree'),
-    url(r'^structure_tsv/$', research_views.structure_tsv,
-        name='structure_tsv'),
+    # url(r'^structure_tsv/$', research_views.structure_tsv,
+    #     name='structure_tsv'),
+    url(r'^structure_excel/$', research_views.structure_excel,
+        name='structure_excel'),
     url(r'^structure_help/$', research_views.local_structure_help,
         name='structure_help'),
 

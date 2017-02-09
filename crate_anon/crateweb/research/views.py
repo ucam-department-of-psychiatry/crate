@@ -24,7 +24,6 @@
 
 import datetime
 from functools import lru_cache
-import io
 import json
 import logging
 from typing import Any, Dict, List, Union
@@ -43,7 +42,6 @@ from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.html import escape
-from openpyxl import Workbook
 from pyparsing import ParseException
 
 from crate_anon.common.contenttypes import (
@@ -52,8 +50,6 @@ from crate_anon.common.contenttypes import (
     CONTENTTYPE_ZIP,
 )
 from crate_anon.crateweb.core.dbfunc import (
-    dictlist_to_tsv,
-    escape_sql_string_literal,
     get_fieldnames_from_cursor,
 )
 from crate_anon.crateweb.core.utils import is_superuser, paginate
@@ -61,6 +57,7 @@ from crate_anon.crateweb.extra.serve import file_response
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
+    ManualPeQueryForm,
     PidLookupForm,
     QueryBuilderForm,
     SQLHelperTextAnywhereForm,
@@ -71,9 +68,9 @@ from crate_anon.crateweb.research.html_functions import (
     make_result_element,
     make_collapsible_sql_query,
     N_CSS_HIGHLIGHT_CLASSES,
-    pre,
     prettify_sql_css,
     prettify_sql_html,
+    prettify_sql_and_args,
 )
 from crate_anon.crateweb.research.models import (
     Highlight,
@@ -94,12 +91,13 @@ from crate_anon.crateweb.research.research_db_info import (
 from crate_anon.crateweb.userprofile.models import get_patients_per_page
 from crate_anon.common.sql import (
     ColumnId,
+    escape_sql_string_literal,
     SQL_OPS_MULTIPLE_VALUES,
     SQL_OPS_VALUE_UNNECESSARY,
     toggle_distinct,
     WhereCondition,
 )
-from crate_anon.common.sql_grammar import (
+from crate_anon.common.sql_grammar_factory import (
     DIALECT_MYSQL,
     DIALECT_MSSQL,
     make_grammar,
@@ -282,7 +280,20 @@ def query_build(request: HttpRequest) -> HttpResponse:
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            select_column=column_id,
+                            select_columns=[column_id],
+                            magic_join=True,
+                            dialect=settings.RESEARCH_DB_DIALECT
+                        )
+
+                    elif 'submit_select_star' in request.POST:
+                        all_column_ids = [
+                            c.column_id() for c in
+                            research_database_info.all_columns(table_id)]
+                        # Doing a series of add_to_select() calls is slow,
+                        # so reworked to take a list.
+                        profile.sql_scratchpad = add_to_select(
+                            profile.sql_scratchpad,
+                            select_columns=all_column_ids,
                             magic_join=True,
                             dialect=settings.RESEARCH_DB_DIALECT
                         )
@@ -445,7 +456,6 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
             element_counter=element_counter,
             collapse_at_n_lines=profile.collapse_at_n_lines,
         )
-        element_counter.next()
     context = {
         'form': form,
         'queries': queries,
@@ -552,30 +562,27 @@ def query_tsv(request: HttpRequest, query_id: int) -> HttpResponse:
     """
     query = get_object_or_404(Query, id=query_id)  # type: Query
     try:
-        tsv_result = query.make_tsv()
-        filename = "crate_results_{num}_{datetime}.tsv".format(
-            num=query.id,
-            datetime=datetime_iso_for_filename(),
+        return file_response(
+            query.make_tsv(),
+            content_type=CONTENTTYPE_TSV,
+            filename="crate_results_{num}_{datetime}.tsv".format(
+                num=query.id,
+                datetime=datetime_iso_for_filename(),
+            )
         )
-        return tsv_response(tsv_result, filename=filename)
     except DatabaseError as exception:
         return render_bad_query(request, query, exception)
 
 
 def query_excel(request: HttpRequest, query_id: int) -> HttpResponse:
     query = get_object_or_404(Query, id=query_id)  # type: Query
-    wb = Workbook()
-    wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
-    sheetname = "query_{num}_{datetime}".format(
-        num=query.id,
-        datetime=datetime_iso_for_filename())
     try:
-        query.add_excel_sheet(wb, title=sheetname)
-        sql_ws = wb.create_sheet(title="SQL")
-        sql_ws.append(query.get_original_sql())
-        memfile = io.BytesIO()
-        wb.save(memfile)
-        return HttpResponse(memfile.getvalue(), content_type=CONTENTTYPE_XLSX)
+        return file_response(
+            query.make_excel(),
+            content_type=CONTENTTYPE_XLSX,
+            filename="crate_query_{}_{}.xlsx".format(
+                query_id, datetime_iso_for_filename())
+        )
     except DatabaseError as exception:
         return render_bad_query(request, query, exception)
 
@@ -653,10 +660,15 @@ def resultset_html_table(fieldnames: List[str],
                          collapse_at_n_lines: int = None,
                          line_length: int = None,
                          ditto: bool = True,
-                         ditto_html: str = '″') -> str:
+                         ditto_html: str = '″',
+                         no_ditto_cols: List[int] = None,
+                         null: str = '<i>NULL</i>') -> str:
+    # Considered but not implemented: hiding table columns
+    # ... see esp "tr > *:nth-child(n)" at
+    # http://stackoverflow.com/questions/5440657/how-to-hide-columns-in-html-table  # noqa
+    no_ditto_cols = no_ditto_cols or []
     ditto_cell = '    <td class="queryresult ditto">{}</td>\n'.format(
         ditto_html)
-
     html = '<table>\n'
     html += '  <tr>\n'
     html += '    <th><i>#</i></th>\n'
@@ -673,7 +685,7 @@ def resultset_html_table(fieldnames: List[str],
             row_index + start_index + 1)
         # Values
         for col_index, value in enumerate(row):
-            if (row_index > 0 and ditto and
+            if (row_index > 0 and ditto and col_index not in no_ditto_cols and
                     value == rows[row_index - 1][col_index]):
                 html += ditto_cell
             else:
@@ -684,10 +696,10 @@ def resultset_html_table(fieldnames: List[str],
                         highlight_dict=highlight_dict,
                         collapse_at_len=collapse_at_len,
                         collapse_at_n_lines=collapse_at_n_lines,
-                        line_length=line_length
+                        line_length=line_length,
+                        null=null
                     )
                 )
-            element_counter.next()
         html += '  </tr>\n'
     html += '</table>\n'
     return html
@@ -720,7 +732,6 @@ def single_record_html_table(fieldnames: List[str],
                 )
             )
         )
-        element_counter.next()
         table_html += '  </tr>\n'
     table_html += '</table>\n'
     return table_html
@@ -840,12 +851,6 @@ def render_resultset_recordwise(request: HttpRequest,
     return render(request, 'query_result.html', context)
 
 
-def tsv_response(data: str, filename: str = "download.tsv") -> HttpResponse:
-    # http://stackoverflow.com/questions/264256/what-is-the-best-mime-type-and-extension-to-use-when-exporting-tab-delimited  # noqa
-    # http://www.iana.org/assignments/media-types/text/tab-separated-values
-    return file_response(data, content_type=CONTENTTYPE_TSV, filename=filename)
-
-
 def render_missing_query(request: HttpRequest) -> HttpResponse:
     return render(request, 'query_missing.html', query_context(request))
 
@@ -853,11 +858,10 @@ def render_missing_query(request: HttpRequest) -> HttpResponse:
 def render_bad_query(request: HttpRequest,
                      query: Query,
                      exception: Exception) -> HttpResponse:
-    (final_sql, args) = query.get_sql_args_for_mysql()
+    (final_sql, args) = query.get_sql_args_for_django()
     context = {
         'original_sql': prettify_sql_html(query.get_original_sql()),
-        'final_sql': prettify_sql_html(final_sql),
-        'args': str(args),
+        'final_sql': prettify_sql_and_args(final_sql, args),
         'exception': str(exception),
         'sql_highlight_css': prettify_sql_css(),
     }
@@ -1043,7 +1047,7 @@ def get_structure_tree_html() -> str:
     content = ""
     element_counter = HtmlElementCounter()
     grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
-    for table_id, colinfolist in table_to_colinfolist:
+    for table_id, colinfolist in table_to_colinfolist.items():
         html_table = render_to_string(
             'database_structure_table.html', {
                 'colinfolist': colinfolist,
@@ -1051,11 +1055,11 @@ def get_structure_tree_html() -> str:
                 'default_schema': get_default_schema(),
                 'with_database': research_database_info.uses_database_level()
             })
-        cd_button = element_counter.collapsible_div_spanbutton()
-        cd_content = element_counter.collapsible_div_contentdiv(
+        cd_button = element_counter.visibility_div_spanbutton()
+        cd_content = element_counter.visibility_div_contentdiv(
             contents=html_table)
         content += (
-            '<div class="titlecolour">{button} {db_schema}.<b>{table}</b></div>'
+            '<div class="titlecolour">{db_schema}.<b>{table}</b>{button}</div>'
             '{cd}'.format(
                 db_schema=table_id.database_schema_part(grammar),
                 table=table_id.table_part(grammar),
@@ -1077,9 +1081,20 @@ def structure_tree(request: HttpRequest) -> HttpResponse:
 
 # noinspection PyUnusedLocal
 def structure_tsv(request: HttpRequest) -> HttpResponse:
-    infodictlist = research_database_info.get_infodictlist()
-    tsv_result = dictlist_to_tsv(infodictlist)
-    return tsv_response(tsv_result, filename="structure.tsv")
+    return file_response(
+        research_database_info.get_tsv(),
+        content_type=CONTENTTYPE_TSV,
+        filename="structure.tsv"
+    )
+
+
+# noinspection PyUnusedLocal
+def structure_excel(request: HttpRequest) -> HttpResponse:
+    return file_response(
+        research_database_info.get_excel(),
+        content_type=CONTENTTYPE_TSV,
+        filename="structure.xlsx"
+    )
 
 
 # =============================================================================
@@ -1213,29 +1228,44 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
     default_database = get_default_database()
     default_schema = get_default_schema()
     with_database = research_database_info.uses_database_level()
+    manual_form = None
     form = None
 
-    def ensure_pmq() -> None:
-        if not profile.patient_multiquery_scratchpad:
-            profile.patient_multiquery_scratchpad = PatientMultiQuery()
+    if not profile.patient_multiquery_scratchpad:
+        profile.patient_multiquery_scratchpad = PatientMultiQuery()
+    pmq = profile.patient_multiquery_scratchpad
 
     if request.method == 'POST':
-        if 'global_clear' in request.POST:
-            profile.patient_multiquery_scratchpad = PatientMultiQuery()
+        if 'global_clear_select' in request.POST:
+            profile.patient_multiquery_scratchpad.clear_output_columns()
+            profile.save()
+
+        elif 'global_clear_where' in request.POST:
+            profile.patient_multiquery_scratchpad.clear_patient_conditions()
             profile.save()
 
         elif 'global_save' in request.POST:
-            return pe_submit(
-                request, profile.patient_multiquery_scratchpad, run=False)
+            if pmq.ok_to_run():
+                return pe_submit(request, pmq, run=False)
 
         elif 'global_run' in request.POST:
-            return pe_submit(
-                request, profile.patient_multiquery_scratchpad, run=True)
+            if pmq.ok_to_run():
+                return pe_submit(request, pmq, run=True)
+
+        elif 'global_manual_set' in request.POST:
+            manual_form = ManualPeQueryForm(request.POST)
+            if manual_form.is_valid():
+                sql = manual_form.cleaned_data['sql']
+                pmq.set_override_query(sql)
+                profile.save()
+
+        elif 'global_manual_clear' in request.POST:
+            pmq.set_override_query('')
+            profile.save()
 
         else:
             form = QueryBuilderForm(request.POST, request.FILES)
             if form.is_valid():
-                # log.critical("is_valid")
                 database = (form.cleaned_data['database'] if with_database
                             else '')
                 schema = form.cleaned_data['schema']
@@ -1245,9 +1275,15 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
                                      table=table, column=column)
 
                 if 'submit_select' in request.POST:
-                    ensure_pmq()
-                    profile.patient_multiquery_scratchpad\
-                        .add_output_column(column_id)  # noqa
+                    pmq.add_output_column(column_id)  # noqa
+
+                elif 'submit_select_star' in request.POST:
+                    table_id = column_id.table_id()
+                    all_column_ids = [
+                        c.column_id() for c in
+                        research_database_info.all_columns(table_id)]
+                    for c in all_column_ids:
+                        pmq.add_output_column(c)
 
                 elif 'submit_where' in request.POST:
                     datatype = form.cleaned_data['datatype']
@@ -1264,9 +1300,7 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
                                                op=op,
                                                datatype=datatype,
                                                value_or_values=value)
-                    ensure_pmq()
-                    profile.patient_multiquery_scratchpad\
-                        .add_patient_condition(wherecond)
+                    pmq.add_patient_condition(wherecond)
 
                 else:
                     raise ValueError("Bad form command!")
@@ -1276,8 +1310,12 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
                 # log.critical("not is_valid")
                 pass
 
+    manual_query = pmq.get_manual_patient_id_query()
+
     if form is None:
         form = QueryBuilderForm()
+    if manual_form is None:
+        manual_form = ManualPeQueryForm({'sql': manual_query})
 
     starting_values_dict = {
         'database': form.data.get('database', '') if with_database else '',
@@ -1298,35 +1336,35 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
         'with_database': with_database,
     }
 
-    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
-    pmq = profile.patient_multiquery_scratchpad
-    pmq_output_columns = prettify_sql_html("\n".join(
-        [column_id.identifier(grammar)
-         for column_id in pmq.get_output_columns()]))
-    manual_query = pmq.get_manual_patient_id_query()
     if manual_query:
-        pmq_patient_conditions = "<div>Overridden by manual query.</div>"
+        pmq_patient_conditions = "<div><i>Overridden by manual query.</i></div>"  # noqa
         pmq_manual_patient_query = prettify_sql_html(
             pmq.get_manual_patient_id_query())
     else:
-        pmq_patient_conditions = prettify_sql_html("\nAND ".join([
-            wc.sql(grammar)
-            for wc in pmq.get_patient_conditions()]))
+        pmq_patient_conditions = pmq.pt_conditions_html()
         pmq_manual_patient_query = "<div><i>None</i></div>"
     pmq_final_patient_query = prettify_sql_html(pmq.patient_id_query())
 
+    warnings = ''
+    if not pmq.has_patient_id_query():
+        warnings += '<div class="warning">No patient criteria yet</div>'
+    if not pmq.has_output_columns():
+        warnings += '<div class="warning">No output columns yet</div>'
+
     context = {
         'nav_on_pe_build': True,
-        'pmq_output_columns': pmq_output_columns,
+        'pmq_output_columns': pmq.output_cols_html(),
         'pmq_patient_conditions': pmq_patient_conditions,
         'pmq_manual_patient_query': pmq_manual_patient_query,
         'pmq_final_patient_query': pmq_final_patient_query,
+        'warnings': warnings,
         'database_structure': get_db_structure_json(),
         'starting_values': json.dumps(starting_values_dict),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
         'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
         'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
         'sql_highlight_css': prettify_sql_css(),
+        'manual_form': manual_form,
     }
     context.update(query_context(request))
     return render(request, 'pe_build.html', context)
@@ -1335,8 +1373,6 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
 def patient_explorer_choose(request: HttpRequest) -> HttpResponse:
     all_pes = get_all_pes(request)
     patient_explorers = paginate(request, all_pes)
-    profile = request.user.profile
-    element_counter = HtmlElementCounter()
     context = {
         'nav_on_pe_choose': True,
         'patient_explorers': patient_explorers,
@@ -1361,6 +1397,15 @@ def patient_explorer_delete(request: HttpRequest, pe_id: int) -> HttpResponse:
     return redirect('pe_choose')
 
 
+def patient_explorer_edit(request: HttpRequest, pe_id: int) -> HttpResponse:
+    validate_blank_form(request)
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    profile = request.user.profile
+    profile.patient_multiquery_scratchpad = pe.patient_multiquery
+    profile.save()
+    return redirect('pe_build')
+
+
 def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
@@ -1369,14 +1414,14 @@ def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     highlight_dict = Highlight.as_ordered_dict(highlights)
     element_counter = HtmlElementCounter()
     patient_id_query_html = prettify_sql_html(pe.get_patient_id_query())
+    patients_per_page = get_patients_per_page(request)
     try:
-        trids = pe.get_patient_trids()
-        page = paginate(request, trids,
-                        per_page=get_patients_per_page(request))
-        active_trids = list(page)
+        rids = pe.get_patient_mrids()
+        page = paginate(request, rids, per_page=patients_per_page)
+        active_rids = list(page)
         results = []
-        for table_id, sql in pe.all_queries(trids=active_trids):
-            with pe.get_executed_cursor(sql) as cursor:
+        for table_id, sql, args in pe.all_queries(mrids=active_rids):
+            with pe.get_executed_cursor(sql, args) as cursor:
                 fieldnames = get_fieldnames_from_cursor(cursor)
                 rows = cursor.fetchall()
                 table_html = resultset_html_table(
@@ -1388,8 +1433,8 @@ def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
                     collapse_at_n_lines=profile.collapse_at_n_lines,
                     line_length=profile.line_length,
                 )
-                query_html = element_counter.collapsible_div_with_divbutton(
-                    contents=prettify_sql_html(sql),
+                query_html = element_counter.visibility_div_with_divbutton(
+                    contents=prettify_sql_and_args(sql, args),
                     title_html="SQL")
                 results.append({
                     'tablename': table_id.identifier(grammar),
@@ -1400,8 +1445,9 @@ def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
             'nav_on_pe_results': True,
             'results': results,
             'page': page,
-            'rowcount': len(trids),
+            'rowcount': len(rids),
             'patient_id_query_html': patient_id_query_html,
+            'patients_per_page': patients_per_page,
             'sql_highlight_css': prettify_sql_css(),
         }
         context.update(query_context(request))
@@ -1418,8 +1464,12 @@ def render_missing_pe(request: HttpRequest) -> HttpResponse:
 def render_bad_pe(request: HttpRequest,
                   pe: PatientExplorer,
                   exception: Exception) -> HttpResponse:
+    queries = []
+    for _, sql, args in pe.all_queries():
+        queries.append("<div><b>SQL:</b></div>" +
+                       prettify_sql_and_args(sql, args))
     context = {
-        'queries': [prettify_sql_html(sql) for _, sql in pe.all_queries()],
+        'queries': queries,
         'exception': str(exception),
         'sql_highlight_css': prettify_sql_css(),
     }
@@ -1443,7 +1493,7 @@ def pe_submit(request: HttpRequest,
               pmq: PatientMultiQuery,
               run: bool = False) -> HttpResponse:
     all_pes = get_all_pes(request)
-    identical_pes = all_pes.filter(patient_multiquery=pmq) # *** Check: does this work?
+    identical_pes = all_pes.filter(patient_multiquery=pmq)  # seems to work!
     if identical_pes:
         identical_pes[0].activate()
         pe_id = identical_pes[0].id
@@ -1464,14 +1514,14 @@ def patient_explorer_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
     # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
-        zipdata = pe.get_zipped_tsv_binary_data()
-        resp = HttpResponse(zipdata, content_type=CONTENTTYPE_ZIP)
-        filename = "crate_pe_{num}_{datetime}.zip".format(
-            num=pe.id,
-            datetime=datetime_iso_for_filename(),
+        return file_response(
+            pe.get_zipped_tsv_binary(),
+            content_type=CONTENTTYPE_ZIP,
+            filename="crate_pe_{num}_{datetime}.zip".format(
+                num=pe.id,
+                datetime=datetime_iso_for_filename(),
+            )
         )
-        resp['Content-Disposition'] = "attachment;filename={}".format(filename)
-        return resp
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
 
@@ -1479,13 +1529,128 @@ def patient_explorer_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
 def patient_explorer_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
-        xlsxdata = pe.get_xlsx_binary_data()
-        resp = HttpResponse(xlsxdata, content_type=CONTENTTYPE_XLSX)
-        filename = "crate_patientexplorer_{num}_{datetime}.xlsx".format(
-            num=pe.id,
-            datetime=datetime_iso_for_filename(),
+        return file_response(
+            pe.get_xlsx_binary(),
+            content_type=CONTENTTYPE_XLSX,
+            filename="crate_patientexplorer_{num}_{datetime}.xlsx".format(
+                num=pe.id,
+                datetime=datetime_iso_for_filename(),
+            )
         )
-        resp['Content-Disposition'] = "attachment;filename={}".format(filename)
-        return resp
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
+
+
+def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    profile = request.user.profile
+    patients_per_page = get_patients_per_page(request)
+    element_counter = HtmlElementCounter()
+    patient_id_query_html = prettify_sql_html(pe.get_patient_id_query())
+    try:
+        rids = pe.get_patient_mrids()
+        page = paginate(request, rids, per_page=patients_per_page)
+        active_rids = list(page)
+        sql, args = pe.patient_multiquery.data_finder_query(mrids=active_rids)
+        with pe.get_executed_cursor(sql, args) as cursor:
+            fieldnames = get_fieldnames_from_cursor(cursor)
+            rows = cursor.fetchall()
+            results_table_html = resultset_html_table(
+                fieldnames=fieldnames,
+                rows=rows,
+                element_counter=element_counter,
+                collapse_at_len=profile.collapse_at_len,
+                collapse_at_n_lines=profile.collapse_at_n_lines,
+                line_length=profile.line_length,
+                no_ditto_cols=[2, 3, 4],
+                null=''
+            )
+            query_html = element_counter.visibility_div_with_divbutton(
+                contents=prettify_sql_and_args(sql, args),
+                title_html="SQL")
+        context = {
+            'nav_on_pe_df_results': True,
+            'results_table_html': results_table_html,
+            'query_html': query_html,
+            'page': page,
+            'rowcount': len(rids),
+            'patient_id_query_html': patient_id_query_html,
+            'patients_per_page': patients_per_page,
+            'sql_highlight_css': prettify_sql_css(),
+        }
+        context.update(query_context(request))
+        return render(request, 'pe_df_result.html', context)
+
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)
+
+
+def pe_data_finder_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    try:
+        return file_response(
+            pe.data_finder_excel(),
+            content_type=CONTENTTYPE_XLSX,
+            filename="crate_patientexplorer_{num}_{datetime}.xlsx".format(
+                num=pe.id,
+                datetime=datetime_iso_for_filename(),
+            )
+        )
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)
+
+
+def pe_monster_results(request: HttpRequest, pe_id: int) -> HttpResponse:
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    profile = request.user.profile
+    highlights = Highlight.get_active_highlights(request)
+    highlight_dict = Highlight.as_ordered_dict(highlights)
+    element_counter = HtmlElementCounter()
+    patient_id_query_html = prettify_sql_html(pe.get_patient_id_query())
+    patients_per_page = get_patients_per_page(request)
+    try:
+        rids = pe.get_patient_mrids()
+        page = paginate(request, rids, per_page=patients_per_page)
+        active_rids = list(page)
+        results = []
+        pmq = pe.patient_multiquery
+        for table_id, sql, args in pmq.monster_queries(mrids=active_rids):
+            with pe.get_executed_cursor(sql, args) as cursor:
+                fieldnames = get_fieldnames_from_cursor(cursor)
+                rows = cursor.fetchall()
+                if rows:
+                    table_html = resultset_html_table(
+                        fieldnames=fieldnames,
+                        rows=rows,
+                        element_counter=element_counter,
+                        highlight_dict=highlight_dict,
+                        collapse_at_len=profile.collapse_at_len,
+                        collapse_at_n_lines=profile.collapse_at_n_lines,
+                        line_length=profile.line_length,
+                    )
+                else:
+                    table_html = "<div><i>No data</i></div>"
+                query_html = element_counter.visibility_div_with_divbutton(
+                    contents=prettify_sql_and_args(sql, args),
+                    title_html="SQL")
+                results.append({
+                    'tablename': table_id.identifier(grammar),
+                    'table_html': table_html,
+                    'query_html': query_html,
+                })
+        context = {
+            'nav_on_pe_monster_results': True,
+            'results': results,
+            'page': page,
+            'rowcount': len(rids),
+            'patient_id_query_html': patient_id_query_html,
+            'patients_per_page': patients_per_page,
+            'sql_highlight_css': prettify_sql_css(),
+        }
+        context.update(query_context(request))
+        return render(request, 'pe_monster_result.html', context)
+
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)
+

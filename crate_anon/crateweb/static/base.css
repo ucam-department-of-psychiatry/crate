@@ -61,14 +61,18 @@ ul {
 .action {
     color: rgb(0, 0, 150);
 }
-.collapse_detail {
+.collapsible {
     margin: 0;
 }
-.collapse_summary {
+.collapse_visible {}
+.collapse_invisible {
+    display: none;
+}
+.collapse_big {}
+.collapse_small {
     background-color: rgb(240, 240, 255);
-    height: 5em;
+    max-height: 5em;
     overflow: hidden;
-    margin: 0;
 }
 
 .consent {

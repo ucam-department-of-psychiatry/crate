@@ -183,7 +183,7 @@ def view_email_html(request: HttpRequest, email_id: int) -> HttpResponse:
 
 def view_email_attachment(request: HttpRequest,
                           attachment_id: int) -> HttpResponseBase:
-    attachment = get_object_or_404(EmailAttachment, pk=attachment_id)  # type: EmailAttachment
+    attachment = get_object_or_404(EmailAttachment, pk=attachment_id)  # type: EmailAttachment  # noqa
     validate_email_request(request.user, attachment.email)
     if not attachment.file:
         raise Http404("Attachment missing")

@@ -36,12 +36,11 @@ from crate_anon.common.sql import (
     TableId,
 )
 from crate_anon.common.sql_grammar import (
-    DIALECT_MYSQL,
     format_sql,
-    make_grammar,
     SqlGrammar,
     text_from_parsed,
 )
+from crate_anon.common.sql_grammar_factory import DIALECT_MYSQL, make_grammar
 from crate_anon.crateweb.research.research_db_info import (
     get_db_rid_family,
     get_trid_column,
@@ -175,8 +174,8 @@ def get_join_info(grammar: SqlGrammar,
 
 def add_to_select(sql: str,
                   # For SELECT:
-                  select_column: ColumnId = None,
-                  select_alias: str = '',
+                  select_columns: List[ColumnId] = None,
+                  select_aliases: List[str] = None,
                   # For WHERE:
                   where_expression: str = '',
                   where_type: str = "AND",
@@ -188,8 +187,8 @@ def add_to_select(sql: str,
                   join_condition: str = '',
                   # General:
                   formatted: bool = True,
-                  debug: bool = True,
-                  debug_verbose: bool = True,
+                  debug: bool = False,
+                  debug_verbose: bool = False,
                   # Dialect:
                   dialect: str = DIALECT_MYSQL) -> str:
     """
@@ -205,11 +204,14 @@ def add_to_select(sql: str,
     In this situation, you should also specify where_table; if the where_table
     isn't yet in the FROM clause, this will be added as well.
     """
+    select_columns = select_columns or []
+    select_aliases = select_aliases or []
+    assert (len(select_aliases) == 0 or
+            len(select_aliases) == len(select_columns))
     grammar = make_grammar(dialect)
-    select_table = select_column.table_id() if select_column else None
     if debug:
         log.info("START: {}".format(sql))
-        log.debug("select_column: {}".format(select_column))
+        log.debug("select_column: {}".format(select_columns))
         log.debug("join_type: {}".format(join_type))
         log.debug("join_condition: {}".format(join_condition))
         log.debug("where_type: {}".format(where_type))
@@ -222,15 +224,20 @@ def add_to_select(sql: str,
         # ---------------------------------------------------------------------
         if debug:
             log.debug("Starting SQL from scratch")
-        if select_table and select_column:
-            if select_alias:
-                alias_clause = ' AS {}'.format(select_alias)
-            else:
-                alias_clause = ''
-            result = "SELECT {col}{alias_clause} FROM {table}".format(
-                col=select_column.identifier(grammar),
-                alias_clause=alias_clause,
-                table=select_column.table_id().identifier(grammar)
+        if select_columns:
+            colspecs = []
+            first_table = select_columns[0].table_id()
+            for i, col in enumerate(select_columns):
+                if col.table_id() != first_table:
+                    raise ValueError("Add only columns from a single table in "
+                                     "one call to this function")
+                colspec = col.identifier(grammar)
+                if select_aliases:
+                    colspec += ' AS ' + select_aliases[i]
+                colspecs.append(colspec)
+            result = "SELECT {columns} FROM {table}".format(
+                columns=", ".join(colspecs),
+                table=first_table.identifier(grammar)
             )
             if where_expression:
                 result += " WHERE {}".format(where_expression)
@@ -245,14 +252,21 @@ def add_to_select(sql: str,
         # ---------------------------------------------------------------------
         # add SELECT... +/- FROM
         # ---------------------------------------------------------------------
-        if select_table and select_column:
-            colspec = select_column.identifier(grammar)
-            p = parser_add_result_column(p, colspec, grammar=grammar)
+        if select_columns:
+            first_table = select_columns[0].table_id()
+            for i, col in enumerate(select_columns):
+                if col.table_id() != first_table:
+                    raise ValueError("Add only columns from a single table in "
+                                     "one call to this function")
+                colspec = col.identifier(grammar)
+                if select_aliases:
+                    colspec += ' AS ' + select_aliases[i]
+                p = parser_add_result_column(p, colspec, grammar=grammar)
             p = parser_add_from_tables(
                 p,
                 get_join_info(grammar=grammar,
                               parsed=p,
-                              jointable=select_column.table_id(),
+                              jointable=first_table,
                               magic_join=magic_join),
                 grammar=grammar
             )
@@ -270,7 +284,8 @@ def add_to_select(sql: str,
                 p.where_clause.where_expr.extend(extra)
             else:
                 # No WHERE as yet
-                log.critical("No WHERE; where_clause is: " + repr(p.where_clause))
+                # log.debug("No WHERE; where_clause is: " +
+                #           repr(p.where_clause))
                 if bracket_where:
                     extra = ["WHERE", "(", cond, ")"]
                 else:
@@ -291,7 +306,7 @@ def add_to_select(sql: str,
             log.debug("end dump:\n" + p.dump())
         result = text_from_parsed(p, formatted=False)
     if formatted:
-        result = formatted(result)
+        result = format_sql(result)
     if debug:
         log.info("END: {}".format(result))
     return result
@@ -303,10 +318,10 @@ def add_to_select(sql: str,
 
 def unit_tests() -> None:
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-                  select_column=ColumnId(table="t2", column="c"))
+                  select_columns=[ColumnId(table="t2", column="c")])
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
-                  select_column=ColumnId(table="t1", column="a"))
-    add_to_select("", select_column=ColumnId(table="t2", column="c"))
+                  select_columns=[ColumnId(table="t1", column="a")])
+    add_to_select("", select_columns=[ColumnId(table="t2", column="c")])
     add_to_select("SELECT t1.a, t1.b FROM t1",
                   where_expression="t1.col2 < 3")
     add_to_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",

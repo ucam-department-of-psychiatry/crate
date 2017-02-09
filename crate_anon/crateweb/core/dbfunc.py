@@ -25,75 +25,7 @@
 from collections import OrderedDict
 # import logging
 # log = logging.getLogger(__name__)
-import re
 from typing import Any, Dict, Generator, List, Optional
-
-
-COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
-# ... start, group(alphabetical), literal (, group(digit), literal ), end
-
-
-def escape_quote_in_literal(s: str) -> str:
-    """
-    Escape '. We could use '' or \'.
-    Let's use \. for consistency with percent escaping.
-    """
-    return s.replace("'", r"\'")
-
-
-def escape_percent_in_literal(sql: str) -> str:
-    """
-    Escapes % by converting it to \%.
-    Use this for LIKE clauses.
-    http://dev.mysql.com/doc/refman/5.7/en/string-literals.html
-    """
-    return sql.replace('%', r'\%')
-
-
-def escape_percent_for_python_dbapi(sql: str) -> str:
-    """
-    Escapes % by converting it to %%.
-    Use this for SQL within Python where % characters are used for argument
-    placeholders.
-    """
-    return sql.replace('%', '%%')
-
-
-def escape_sql_string_literal(s: str) -> str:
-    """
-    Escapes SQL string literal fragments against quotes and parameter
-    substitution.
-    """
-    return escape_percent_in_literal(escape_quote_in_literal(s))
-
-
-def translate_sql_qmark_to_percent(sql: str) -> str:
-    """
-    Translate SQL using ? placeholders to SQL using %s placeholders,
-    for engines like MySQL.
-    """
-    # Django always uses the '%s' placeholder, not ?
-    # ... https://docs.djangoproject.com/en/1.8/topics/db/sql/
-    # I prefer ?, because % is used in LIKE clauses.
-    # 1. Escape % characters
-    sql = escape_percent_for_python_dbapi(sql)
-    # 2. Replace ? characters that are not within quotes with %s.
-    newsql = ""
-    in_quotes = False
-    for c in sql:
-        if c == "'":
-            in_quotes = not in_quotes
-        if c == '?' and not in_quotes:
-            newsql += '%s'
-        else:
-            newsql += c
-    return newsql
-
-
-if False:
-    _SQLTEST1 = "SELECT a FROM b WHERE c=? AND d LIKE 'blah%' AND e='?'"
-    _SQLTEST2 = "SELECT a FROM b WHERE c=%s AND d LIKE 'blah%%' AND e='?'"
-    _SQLTEST3 = translate_sql_qmark_to_percent(_SQLTEST1)
 
 
 def get_fieldnames_from_cursor(cursor) -> List[str]:
@@ -176,17 +108,3 @@ def dictlist_to_tsv(dictlist: List[Dict[str, Any]]) -> str:
     for d in dictlist:
         tsv += "\t".join([tsv_escape(v) for v in d.values()]) + "\n"
     return tsv
-
-
-def is_mysql_column_type_textual(column_type: str,
-                                 min_length: int = 1) -> bool:
-    column_type = column_type.upper()
-    if column_type == 'TEXT':
-        return True
-    try:
-        m = COLTYPE_WITH_ONE_INTEGER_REGEX.match(column_type)
-        basetype = m.group(1)
-        length = int(m.group(2))
-    except (AttributeError, ValueError):
-        return False
-    return length >= min_length and basetype in ['CHAR', 'VARCHAR']

@@ -2,7 +2,7 @@
 
 /* PLUS_IMAGE, MINUS_IMAGE are defined in the HTML, for static file URLS. */
 
-var getElementsByClassName = function (className, tag, elm){
+var getElementsByClassName = function (className, tag, elm) {
     // http://robertnyman.com/2008/05/27/
     //        the-ultimate-getelementsbyclassname-anno-2008/
     // Developed by Robert Nyman, http://www.robertnyman.com
@@ -102,56 +102,132 @@ var getElementsByClassName = function (className, tag, elm){
     return getElementsByClassName(className, tag, elm);
 };
 
-function hideAll() {
-    var elements = getElementsByClassName("collapse_detail"),
-        i;
-    for (i = 0; i < elements.length; ++i) {
-        elements[i].style.display = "none";
-    }
-    elements = getElementsByClassName("collapse_summary");
-    for (i = 0; i < elements.length; ++i) {
-        elements[i].style.display = "";
-    }
-    elements = getElementsByClassName("plusminus_image");
-    for (i = 0; i < elements.length; ++i) {
-        elements[i].src = PLUS_IMAGE;
-    }
+/*  There are two ways of doing this:
+    (1) Each thing has a collapse_detail and a collapse_summary div,
+        which are alternated;
+    (2) Different styles are applied to a single div.
+    Option (2) is much more efficient when the thing being collapsed is
+    lengthy, as option (1) duplicates it.
+*/
+
+function hasClass(div, className) {
+    return div.classList.contains(className);
+}
+
+function removeClass(div, className) {
+    div.classList.remove(className);
+}
+
+function addClass(div, className) {
+    div.classList.add(className);
+}
+
+/* Must match CSS: */
+var CLASS_COLLAPSIBLE = "collapsible",
+    CLASS_PLUSMINUS_IMAGE = "plusminus_image",
+    CLASS_VISIBLE = "collapse_visible",
+    CLASS_INVISIBLE = "collapse_invisible",
+    CLASS_BIG = "collapse_big",
+    CLASS_SMALL = "collapse_small";
+
+function setInvisible(div) {
+    removeClass(div, CLASS_VISIBLE);
+    removeClass(div, CLASS_BIG);
+    removeClass(div, CLASS_SMALL);
+    addClass(div, CLASS_INVISIBLE);
+}
+
+function setVisible(div) {
+    removeClass(div, CLASS_INVISIBLE);
+    removeClass(div, CLASS_BIG);
+    removeClass(div, CLASS_SMALL);
+    addClass(div, CLASS_VISIBLE);
+}
+
+function setBig(div) {
+    removeClass(div, CLASS_INVISIBLE);
+    removeClass(div, CLASS_VISIBLE);
+    removeClass(div, CLASS_SMALL);
+    addClass(div, CLASS_BIG);
+}
+
+function setSmall(div) {
+    removeClass(div, CLASS_INVISIBLE);
+    removeClass(div, CLASS_VISIBLE);
+    removeClass(div, CLASS_BIG);
+    addClass(div, CLASS_SMALL);
 }
 
 function showAll() {
-    var elements = getElementsByClassName("collapse_detail"),
+    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
         i;
     for (i = 0; i < elements.length; ++i) {
-        elements[i].style.display = "";
+        setVisible(elements[i]);
     }
-    elements = getElementsByClassName("collapse_summary");
-    for (i = 0; i < elements.length; ++i) {
-        elements[i].style.display = "none";
-    }
-    elements = getElementsByClassName("plusminus_image");
+    elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
     for (i = 0; i < elements.length; ++i) {
         elements[i].src = MINUS_IMAGE;
     }
 }
 
-function toggle(divId, imageId, summaryDivId) {
-    var div = document.getElementById(divId),
-        img = document.getElementById(imageId),
-        alt = (summaryDivId === undefined
-                ? null
-                : document.getElementById(summaryDivId));
+function hideAll() {
+    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
+        i;
+    for (i = 0; i < elements.length; ++i) {
+        setInvisible(elements[i]);
+    }
+    elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
+    for (i = 0; i < elements.length; ++i) {
+        elements[i].src = PLUS_IMAGE;
+    }
+}
 
-    if (div.style.display == "none") {
-        div.style.display = "";
-        img.src = MINUS_IMAGE;
-        if (alt) {
-            alt.style.display = "none";
-        }
-    } else {
-        div.style.display = "none";
+function expandAll() {
+    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
+        i;
+    for (i = 0; i < elements.length; ++i) {
+        setBig(elements[i]);
+    }
+    elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
+    for (i = 0; i < elements.length; ++i) {
+        elements[i].src = PLUS_IMAGE;
+    }
+}
+
+function collapseAll() {
+    var elements = getElementsByClassName(CLASS_COLLAPSIBLE),
+        i;
+    for (i = 0; i < elements.length; ++i) {
+        setSmall(elements[i]);
+    }
+    elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
+    for (i = 0; i < elements.length; ++i) {
+        elements[i].src = MINUS_IMAGE;
+    }
+}
+
+function toggleVisible(divId, imageId) {
+    var div = document.getElementById(divId),
+        img = document.getElementById(imageId);
+
+    if (hasClass(div, CLASS_VISIBLE)) {
+        setInvisible(div);
         img.src = PLUS_IMAGE;
-        if (alt) {
-            alt.style.display = "";
-        }
+    } else {
+        setVisible(div);
+        img.src = MINUS_IMAGE;
+    }
+}
+
+function toggleCollapsed(divId, imageId) {
+    var div = document.getElementById(divId),
+        img = document.getElementById(imageId);
+
+    if (hasClass(div, CLASS_BIG)) {
+        setSmall(div);
+        img.src = PLUS_IMAGE;
+    } else {
+        setBig(div);
+        img.src = MINUS_IMAGE;
     }
 }

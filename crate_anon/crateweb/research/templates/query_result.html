@@ -12,6 +12,8 @@
 
     <h1>Results</h1>
 
+    {% include "page_nav_results.html" with page=page %}
+
     {% include "expand_collapse_buttons.html" %}
 
     {{ table_html|safe }}

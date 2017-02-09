@@ -34,31 +34,37 @@ from django.db.models import QuerySet
 from django.conf import settings
 from django.http.request import HttpRequest
 from openpyxl import Workbook
+from openpyxl.worksheet import Worksheet
 from picklefield.fields import PickledObjectField
 
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
+    escape_percent_for_python_dbapi,
     make_grammar,
     set_distinct,
+    sql_string_literal,
     TableId,
+    translate_sql_qmark_to_percent,
     WhereCondition,
 )
-from crate_anon.common.sql_grammar import format_sql
+from crate_anon.common.sql_grammar import format_sql, SqlGrammar
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
-    escape_percent_for_python_dbapi,
     get_fieldnames_from_cursor,
     make_tsv_row,
-    translate_sql_qmark_to_percent,
 )
+from crate_anon.crateweb.extra.excel import excel_to_bytes
 from crate_anon.crateweb.research.html_functions import (
     highlight_text,
+    HtmlElementCounter,
     N_CSS_HIGHLIGHT_CLASSES,
+    prettify_sql_html,
 )
 from crate_anon.crateweb.research.research_db_info import (
-    get_trid_column,
-    get_rid_column,
+    get_default_date_column,
+    get_mrid_column,
+    research_database_info,
 )
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
@@ -275,9 +281,9 @@ class Query(models.Model):
         # noinspection PyTypeChecker
         return self.sql
 
-    def get_sql_args_for_mysql(self) -> Tuple[str, Optional[List[Any]]]:
+    def get_sql_args_for_django(self) -> Tuple[str, Optional[List[Any]]]:
         """
-        Get sql/args in a format suitable for MySQL, with %s placeholders,
+        Get sql/args in a format suitable for Django, with %s placeholders,
         or as escaped raw SQL.
         """
         if self.raw:
@@ -297,7 +303,7 @@ class Query(models.Model):
         """
         Get cursor with a query executed
         """
-        (sql, args) = self.get_sql_args_for_mysql()
+        (sql, args) = self.get_sql_args_for_django()
         if sql_append_raw:
             sql += sql_append_raw
         cursor = connections['research'].cursor()
@@ -338,8 +344,12 @@ class Query(models.Model):
                 row = cursor.fetchone()
         return tsv
 
-    def add_excel_sheet(self, workbook: Workbook, title: str = None) -> None:
-        ws = workbook.create_sheet(title)
+    def make_excel(self) -> bytes:
+        wb = Workbook()
+        wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
+        sheetname = "query_{}".format(self.id)
+        ws = wb.create_sheet(sheetname)
+        now = datetime.datetime.now()
         with self.get_executed_cursor() as cursor:
             fieldnames = get_fieldnames_from_cursor(cursor)
             ws.append(fieldnames)
@@ -347,6 +357,10 @@ class Query(models.Model):
             while row is not None:
                 ws.append(row)
                 row = cursor.fetchone()
+        sql_ws = wb.create_sheet(title="SQL")
+        sql_ws.append(["SQL", "Executed_at"])
+        sql_ws.append([self.get_original_sql(), now])
+        return excel_to_bytes(wb)
 
     def dictfetchall(self) -> List[Dict[str, Any]]:
         """Generates all results as a list of OrderedDicts."""
@@ -536,13 +550,17 @@ Options:
 """  # noqa
 
 
+# =============================================================================
+# PatientMultiQuery
+# =============================================================================
+
 class PatientMultiQuery(object):
     def __init__(self,
                  output_columns: List[ColumnId] = None,
                  patient_conditions: List[WhereCondition] = None,
                  manual_patient_id_query: str = ''):
         self._output_columns = output_columns or []  # type: List[ColumnId]
-        self._patient_conditions = patient_conditions or []  # type: List[WhereCondition]
+        self._patient_conditions = patient_conditions or []  # type: List[WhereCondition]  # noqa
         self._manual_patient_id_query = manual_patient_id_query
 
     def __repr__(self) -> str:
@@ -568,10 +586,16 @@ class PatientMultiQuery(object):
         )
 
     def get_output_columns(self) -> List[ColumnId]:
-        return sorted(self._output_columns)
+        return self._output_columns
+
+    def has_output_columns(self) -> bool:
+        return bool(self._output_columns)
+
+    def ok_to_run(self) -> bool:
+        return self.has_output_columns() and self.has_patient_id_query()
 
     def get_patient_conditions(self) -> List[WhereCondition]:
-        return sorted(self._patient_conditions)
+        return self._patient_conditions
 
     def get_manual_patient_id_query(self) -> str:
         return self._manual_patient_id_query
@@ -579,13 +603,24 @@ class PatientMultiQuery(object):
     def add_output_column(self, column_id: ColumnId) -> None:
         if column_id not in self._output_columns:
             self._output_columns.append(column_id)
+            self._output_columns.sort()
+
+    def clear_output_columns(self) -> None:
+        self._output_columns = []
 
     def add_patient_condition(self, where: WhereCondition) -> None:
         if where not in self._patient_conditions:
             self._patient_conditions.append(where)
+            self._patient_conditions.sort()
+
+    def clear_patient_conditions(self) -> None:
+        self._patient_conditions = []
 
     def set_override_query(self, query: str) -> None:
         self._manual_patient_id_query = query
+
+    def has_patient_id_query(self) -> bool:
+        return bool(self._manual_patient_id_query or self._patient_conditions)
 
     def patient_id_query(self) -> str:
         # Returns an SQL SELECT statement based on the list of WHERE conditions
@@ -600,18 +635,20 @@ class PatientMultiQuery(object):
 
         dialect = settings.RESEARCH_DB_DIALECT
         grammar = make_grammar(dialect)
-        select_trid_column = get_trid_column(
+        select_mrid_column = get_mrid_column(
             self._patient_conditions[0].table_id())
-        trid_alias = "_trid"
+        mrid_alias = "_mrid"
         sql = add_to_select(
             '',
-            select_column=select_trid_column,
-            select_alias=trid_alias,
+            select_columns=[select_mrid_column],
+            select_aliases=[mrid_alias],
             magic_join=True,
             dialect=dialect,
             formatted=False
         )
         sql = set_distinct(sql, dialect=dialect, formatted=False)
+        sql += " ORDER BY " + mrid_alias
+        # ... ORDER BY is important for consistency across runs
         # log.critical(sql)
         for where_condition in self._patient_conditions:
             sql = add_to_select(
@@ -627,60 +664,186 @@ class PatientMultiQuery(object):
         sql = format_sql(sql)
         return sql
 
-    def all_full_queries(self) -> List[Tuple[TableId, str]]:
-        return self.all_queries(trids=None)
+    def all_full_queries(self) -> List[Tuple[TableId, str, List[Any]]]:
+        return self.all_queries(mrids=None)
 
     def all_queries_specific_patients(
             self,
-            trids: List[int]) -> List[Tuple[TableId, str]]:
-        return self.all_queries(trids=trids)
+            mrids: List[int]) -> List[Tuple[TableId, str, List[Any]]]:
+        return self.all_queries(mrids=mrids)
 
     def all_queries(self,
-                    trids: List[int] = None) -> List[Tuple[TableId, str]]:
+                    mrids: List[Any] = None) -> List[Tuple[TableId, str,
+                                                           List[Any]]]:
         queries = []
         table_columns_map = columns_to_table_column_hierarchy(
             self._output_columns, sort=True)
         for table, columns in table_columns_map:
-            newquery = self.make_query(table_id=table,
-                                       columns=columns,
-                                       trids=trids)
-            queries.append(newquery)
+            table_sql_args = self.make_query(table_id=table,
+                                             columns=columns,
+                                             mrids=mrids)
+            queries.append(table_sql_args)
         return queries
 
-    def make_query(self,
-                   table_id: TableId,
-                   columns: List[ColumnId],
-                   trids: List[int] = None) -> Tuple[TableId, str]:
-        # TRUSTS THE "trids" PARAMETERS.
-        trids = trids or []
-        if not columns:
-            raise ValueError("No columns specified")
-
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
-        rid_column = get_rid_column(table_id)
-        trid_column = get_trid_column(table_id)
-        all_columns = [rid_column, trid_column]
-        for c in columns:
-            if c not in all_columns:
-                all_columns.append(c)
-
-        if trids:
-            in_clause = ",".join(str(t) for t in trids)
+    def where_patient_clause(self, table_id: TableId,
+                             grammar: SqlGrammar,
+                             mrids: List[Any] = None) -> Tuple[str, List[Any]]:
+        """Returns (sql, args)."""
+        mrid_column = get_mrid_column(table_id)
+        if mrids:
+            in_clause = ",".join(["?"] * len(mrids))
+            # ... see notes for translate_sql_qmark_to_percent()
+            args = mrids
         else:
             # If we haven't specified specific patients, use our patient-
             # finding query.
             in_clause = self.patient_id_query()
-        where_clause = "WHERE {trid} IN ({in_clause})".format(
-            trid=trid_column.identifier(grammar),
+            args = []
+        return "IN ({in_clause})".format(
+            mrid=mrid_column.identifier(grammar),
             in_clause=in_clause,
-        )
-        sql = "SELECT {all_columns} FROM {table} {where_clause}".format(
-            all_columns=", ".join(c.identifier(grammar) for c in all_columns),
-            table=table_id.identifier(grammar),
-            where_clause=where_clause,
-        )
-        return table_id, sql
+        ), args
 
+    def make_query(self,
+                   table_id: TableId,
+                   columns: List[ColumnId],
+                   mrids: List[Any] = None) -> Tuple[TableId, str, List[Any]]:
+        if not columns:
+            raise ValueError("No columns specified")
+        dialect = settings.RESEARCH_DB_DIALECT
+        grammar = make_grammar(dialect)
+        mrid_column = get_mrid_column(table_id)
+        all_columns = [mrid_column]
+        for c in columns:
+            if c not in all_columns:
+                all_columns.append(c)
+        where_clause, args = self.where_patient_clause(table_id, grammar, mrids)
+        sql = add_to_select(
+            '',
+            select_columns=all_columns,
+            magic_join=True,
+            dialect=dialect,
+            formatted=False,
+        )
+        sql = add_to_select(
+            sql,
+            where_expression=where_clause,
+            where_table=mrid_column.table_id(),
+            magic_join=True,
+            dialect=dialect,
+            formatted=False
+        )
+        sql = format_sql(sql)
+        return table_id, sql, args
+
+    # -------------------------------------------------------------------------
+    # Display
+    # -------------------------------------------------------------------------
+
+    def output_cols_html(self) -> str:
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        return prettify_sql_html("\n".join(
+            [column_id.identifier(grammar)
+             for column_id in self.get_output_columns()]))
+
+    def pt_conditions_html(self) -> str:
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        return prettify_sql_html("\nAND ".join([
+            wc.sql(grammar) for wc in self.get_patient_conditions()]))
+
+    def summary_html(self, element_counter: HtmlElementCounter) -> str:
+        def collapser(x: str) -> str:
+            return element_counter.overflow_div(contents=x)
+        outcols = self.output_cols_html()
+        manual_query = self.get_manual_patient_id_query()
+        if manual_query:
+            manual_or_auto = " (MANUAL)"
+            ptselect = prettify_sql_html(manual_query)
+        else:
+            manual_or_auto = ""
+            ptselect = self.pt_conditions_html()
+        return """
+            Output columns:<br>
+            {outcols}
+            Patient selection:<br>
+            {ptselect}
+        """.format(
+            outcols=collapser(outcols),
+            manual_or_auto=manual_or_auto,
+            ptselect=collapser(ptselect),
+        )
+
+    # -------------------------------------------------------------------------
+    # Data finder: COUNT(*) for all patient tables
+    # -------------------------------------------------------------------------
+
+    def data_finder_query(self,
+                          mrids: List[Any] = None) -> Tuple[str, List[Any]]:
+        """
+        Returns (sql, args).
+        When executed, query gives:
+            research_id, table_name, n_records, min_date, max_date
+        """
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        queries = []
+        args = []
+        for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
+            mrid_col = get_mrid_column(table=table_id)
+            date_col = get_default_date_column(table=table_id)
+            if research_database_info.table_contains(table_id, date_col):
+                min_date = "MIN({})".format(date_col.identifier(grammar))
+                max_date = "MAX({})".format(date_col.identifier(grammar))
+            else:
+                min_date = "NULL"
+                max_date = "NULL"
+                # ... OK (at least in MySQL) to do:
+                # SELECT col1, COUNT(*), NULL FROM table GROUP BY col1;
+            where_clause, new_args = self.where_patient_clause(
+                table_id, grammar, mrids)
+            args += new_args
+            table_identifier = table_id.identifier(grammar)
+            queries.append("""
+SELECT {rid} AS research_id, {table_name} AS table_name, COUNT(*) AS n_records,
+    {min_date} AS min_date, {max_date} AS max_date
+FROM {table}
+{where}
+GROUP BY {rid}
+            """.format(
+                rid=mrid_col.identifier(grammar),
+                min_date=min_date,
+                max_date=max_date,
+                table_name=sql_string_literal(table_identifier),
+                table=table_identifier,
+                where=where_clause,
+            ))
+        sql = "\nUNION\n".join(queries) + "\nORDER BY research_id, table_name"
+        return sql, args
+
+    # -------------------------------------------------------------------------
+    # Monster data: SELECT * for all patient tables
+    # -------------------------------------------------------------------------
+
+    def monster_queries(self,
+                        mrids: List[int] = None) -> List[Tuple[TableId, str,
+                                                               List[Any]]]:
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        table_sql_args_tuples = []
+        for table_id in research_database_info.get_mrid_linkable_patient_tables():
+            mrid_col = get_mrid_column(table=table_id)
+            where_clause, args = self.where_patient_clause(
+                table_id, grammar, mrids)
+            sql = "SELECT * FROM {table} {where} ORDER BY {mrid}".format(
+                table=table_id.identifier(grammar),
+                where=where_clause,
+                mrid=mrid_col.identifier(grammar),
+            )
+            table_sql_args_tuples.append((table_id, sql, args))
+        return table_sql_args_tuples
+
+
+# =============================================================================
+# PatientExplorer
+# =============================================================================
 
 PATIENT_EXPLORER_FWD_REF = "PatientExplorer"
 
@@ -822,14 +985,17 @@ class PatientExplorer(models.Model):
     # Using the internal PatientMultiQuery
     # -------------------------------------------------------------------------
 
-    def all_queries(self, trids: List[int] = None) -> List[Tuple[TableId, str]]:  # noqa
-        return self.patient_multiquery.all_queries(trids=trids)
+    def all_queries(self,
+                    mrids: List[Any] = None) -> List[Tuple[TableId, str,
+                                                           List[Any]]]:
+        return self.patient_multiquery.all_queries(mrids=mrids)
 
     @staticmethod
     def get_executed_cursor(sql: str, args: List[Any] = None) -> Any:
         """
         Get cursor with a query executed
         """
+        sql = translate_sql_qmark_to_percent(sql)
         args = args or []
         cursor = connections['research'].cursor()
         if args:
@@ -838,19 +1004,20 @@ class PatientExplorer(models.Model):
             cursor.execute(sql)
         return cursor
 
-    def get_patient_trids(self) -> List[int]:
+    def get_patient_mrids(self) -> List[int]:
         sql = self.patient_multiquery.patient_id_query()
+        # log.critical(sql)
         with self.get_executed_cursor(sql) as cursor:
             return [row[0] for row in cursor.fetchall()]
 
-    def get_zipped_tsv_binary_data(self) -> bytes:
+    def get_zipped_tsv_binary(self) -> bytes:
         # Don't pass giant result sets around beyond what's necessary.
         # Use cursor.fetchone()
         grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
         memfile = io.BytesIO()
         z = zipfile.ZipFile(memfile, "w")
-        for table_id, sql in self.patient_multiquery.all_queries():
-            with self.get_executed_cursor(sql) as cursor:
+        for table_id, sql, args in self.patient_multiquery.all_queries():
+            with self.get_executed_cursor(sql, args) as cursor:
                 fieldnames = get_fieldnames_from_cursor(cursor)
                 tsv = make_tsv_row(fieldnames)
                 row = cursor.fetchone()
@@ -862,14 +1029,22 @@ class PatientExplorer(models.Model):
         z.close()
         return memfile.getvalue()
 
-    def get_xlsx_binary_data(self) -> bytes:
+    def get_xlsx_binary(self) -> bytes:
+        """
+        Other notes:
+        - cell size
+          http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust
+          ... and the "auto_size" / "bestFit" options don't really do the job,
+              according to the interweb
+        """  # noqa
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
-        sqlsheet_rows = [["Table", "SQL", "Executed at"]]
-        for table_id, sql in self.patient_multiquery.all_queries():
-            sqlsheet_rows.append([str(table_id), sql, datetime.datetime.now()])
+        sqlsheet_rows = [["Table", "SQL", "Args", "Executed_at"]]
+        for table_id, sql, args in self.patient_multiquery.all_queries():
+            sqlsheet_rows.append([str(table_id), sql, repr(args),
+                                  datetime.datetime.now()])
             ws = wb.create_sheet(title=str(table_id))
-            with self.get_executed_cursor(sql) as cursor:
+            with self.get_executed_cursor(sql, args) as cursor:
                 fieldnames = get_fieldnames_from_cursor(cursor)
                 ws.append(fieldnames)
                 row = cursor.fetchone()
@@ -879,9 +1054,7 @@ class PatientExplorer(models.Model):
         sql_ws = wb.create_sheet(title="SQL")
         for r in sqlsheet_rows:
             sql_ws.append(r)
-        memfile = io.BytesIO()
-        wb.save(memfile)
-        return memfile.getvalue()
+        return excel_to_bytes(wb)
 
     # -------------------------------------------------------------------------
     # Using the internal PatientMultiQuery
@@ -889,6 +1062,58 @@ class PatientExplorer(models.Model):
 
     def get_patient_id_query(self) -> str:
         return self.patient_multiquery.patient_id_query()
+
+    # -------------------------------------------------------------------------
+    # Display
+    # -------------------------------------------------------------------------
+
+    def summary_html(self) -> str:
+        # Nasty hack. We want collapsing things, so we want HTML element IDs.
+        # We could build the HTML table in code for the Patient Explorer
+        # chooser, but I was trying to do it in Django templates.
+        # However, it's not easy to pass parameters (such as an
+        # HtmlElementCounter) back to Python from Django templates.
+        # So we can hack it a bit:
+        element_counter = HtmlElementCounter(prefix="pe_{}_".format(self.id))
+        return self.patient_multiquery.summary_html(
+            element_counter=element_counter)
+
+    def has_patient_id_query(self) -> bool:
+        return self.patient_multiquery.has_patient_id_query()
+
+    def has_output_columns(self) -> bool:
+        return self.patient_multiquery.has_output_columns()
+
+    # -------------------------------------------------------------------------
+    # Data finder
+    # -------------------------------------------------------------------------
+
+    def data_finder_excel(self) -> bytes:
+        """
+        Performs a SELECT COUNT(*)
+        Returns (fieldnames, rows).
+        """
+        sql, args = self.patient_multiquery.data_finder_query()
+        wb = Workbook()
+        wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
+        sql_ws = wb.create_sheet("SQL")
+        sql_ws.append(["SQL", "Args", "Executed_at"])
+        sql_ws.append([format_sql(sql), repr(args), datetime.datetime.now()])
+        all_ws = wb.create_sheet("All_patients")
+        with self.get_executed_cursor(sql, args) as cursor:
+            fieldnames = get_fieldnames_from_cursor(cursor)
+            all_ws.append(fieldnames)
+            row = cursor.fetchone()
+            ws = None  # type: Worksheet
+            while row is not None:
+                rid = row[0]
+                if rid not in wb:
+                    ws = wb.create_sheet(rid)
+                    ws.append(fieldnames)
+                ws.append(row)
+                all_ws.append(row)
+                row = cursor.fetchone()
+        return excel_to_bytes(wb)
 
 
 # =============================================================================

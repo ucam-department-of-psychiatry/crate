@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userprofile',
             name='patients_per_page',
-            field=models.PositiveSmallIntegerField(choices=[(1, '1'), (5, '5'), (10, '10'), (20, '20'), (50, '50'), (100, '100')], default=1, verbose_name='Number of patients to show per page (for Patient Explorer view)'),
+            field=models.PositiveSmallIntegerField(choices=[(1, '1'), (5, '5'), (10, '10'), (20, '20'), (50, '50'), (100, '100')], default=1, verbose_name='Number of patients to show per page (for Patient Explorer view)'),  # noqa
         ),
     ]

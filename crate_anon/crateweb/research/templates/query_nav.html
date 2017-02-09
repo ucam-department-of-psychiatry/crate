@@ -28,31 +28,33 @@
     {% endif %}
 {% endcomment %}
     |
-    {% if nav_on_results or not query_selected %}
-        <b>Results table</b>
-    {% else %}
-        <a href="{% url 'results' current_query_id %}">Results table</a>
-    {% endif %}
-    |
-    {% if nav_on_results_recordwise or not query_selected %}
-        <b>Results recordwise</b>
-    {% else %}
-        <a href="{% url 'results_recordwise' current_query_id %}">Results recordwise</a>
-    {% endif %}
-{% comment %}
-    |
-    {% if not query_selected %}
-        <b>TSV</b>
-    {% else %}
-        <a href="{% url 'tsv' current_query_id %}">TSV</a>
-    {% endif %}
-{% endcomment %}
-    |
-    {% if not query_selected %}
-        <b>Excel</b>
-    {% else %}
-        <a href="{% url 'query_excel' current_query_id %}">Excel</a>
-    {% endif %}
+    Results (
+        {% if nav_on_results or not query_selected %}
+            <b>table</b>
+        {% else %}
+            <a href="{% url 'results' current_query_id %}">table</a>
+        {% endif %}
+        |
+        {% if nav_on_results_recordwise or not query_selected %}
+            <b>recordwise</b>
+        {% else %}
+            <a href="{% url 'results_recordwise' current_query_id %}">recordwise</a>
+        {% endif %}
+    {% comment %}
+        |
+        {% if not query_selected %}
+            <b>TSV</b>
+        {% else %}
+            <a href="{% url 'tsv' current_query_id %}">TSV</a>
+        {% endif %}
+    {% endcomment %}
+        |
+        {% if not query_selected %}
+            <b>Excel</b>
+        {% else %}
+            <a href="{% url 'query_excel' current_query_id %}">Excel</a>
+        {% endif %}
+        )
     ]
 </div>
 
@@ -76,24 +78,46 @@
         <a href="{% url 'highlight' %}">Highlighting</a>
     {% endif %}
     |
-    {% if nav_on_pe_results or not pe_selected %}
-        <b>PE results</b>
-    {% else %}
-        <a href="{% url 'pe_results' current_pe_id %}">PE: view results</a>
-    {% endif %}
-{% comment %}
+    PE results (
+        {% if nav_on_pe_results or not pe_selected %}
+            <b>view</b>
+        {% else %}
+            <a href="{% url 'pe_results' current_pe_id %}">view</a>
+        {% endif %}
+    {% comment %}
+        |
+        {% if not pe_selected %}
+            <b>PE: TSV</b>
+        {% else %}
+            <a href="{% url 'pe_tsv_zip' current_pe_id %}">PE: TSV</a>
+        {% endif %}
+    {% endcomment %}
+        |
+        {% if not pe_selected %}
+            <b>Excel</b>
+        {% else %}
+            <a href="{% url 'pe_excel' current_pe_id %}">Excel</a>
+        {% endif %}
+    )
     |
-    {% if not pe_selected %}
-        <b>PE: TSV</b>
-    {% else %}
-        <a href="{% url 'pe_tsv_zip' current_pe_id %}">PE: TSV</a>
-    {% endif %}
-{% endcomment %}
+    PE data finder (
+        {% if nav_on_pe_df_results or not pe_selected %}
+            <b>view</b>
+        {% else %}
+            <a href="{% url 'pe_df_results' current_pe_id %}">view</a>
+        {% endif %}
+        |
+        {% if not pe_selected %}
+            <b>Excel</b>
+        {% else %}
+            <a href="{% url 'pe_df_excel' current_pe_id %}">Excel</a>
+        {% endif %}
+    )
     |
-    {% if not pe_selected %}
-        <b>PE: Excel</b>
+    {% if nav_on_pe_monster_results or not pe_selected %}
+        <b>PE Monster Data</b>
     {% else %}
-        <a href="{% url 'pe_excel' current_pe_id %}">PE: Excel</a>
+        <a href="{% url 'pe_monster_results' current_pe_id %}">PE Monster Data</a>
     {% endif %}
     ]
 </div>

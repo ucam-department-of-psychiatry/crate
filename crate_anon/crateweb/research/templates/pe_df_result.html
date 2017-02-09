@@ -1,4 +1,4 @@
-{# pe_result.html #}
+{# pe_df_result.html #}
 
 {% extends "base.html" %}
 
@@ -10,18 +10,19 @@
 
     {% include "query_nav.html" %}
 
-    <h1>Patient Explorer results (up to {{ patients_per_page }}
-        patient{{ patients_per_page|pluralize }} per page)</h1>
+    <h1>Patient Explorer: Data Finder results</h1>
+
+    <h2>Results (up to {{ patients_per_page }}
+        patient{{ patients_per_page|pluralize }} per page)</h2>
 
     {% include "page_nav_results.html" with page=page %}
 
-    {% include "expand_collapse_buttons.html" %}
+    {{ results_table_html|safe }}
 
-    {% for resultset in results %}
-        <h2>{{ resultset.tablename }}</h2>
-        {{ resultset.table_html|safe }}
-        {{ resultset.query_html|safe }}
-    {% endfor %}
+    {% include "page_nav_results.html" with page=page %}
+
+    <h2>Query</h2>
+    {{ query_html|safe }}
 
     <h2>Common patient ID query</h2>
     {{ patient_id_query_html|safe }}

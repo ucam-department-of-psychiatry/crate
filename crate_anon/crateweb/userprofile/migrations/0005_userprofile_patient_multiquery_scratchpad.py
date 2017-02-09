@@ -16,6 +16,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userprofile',
             name='patient_multiquery_scratchpad',
-            field=picklefield.fields.PickledObjectField(editable=False, null=True, verbose_name='PatientMultiQuery scratchpad (pickled) for builder'),
+            field=picklefield.fields.PickledObjectField(editable=False, null=True, verbose_name='PatientMultiQuery scratchpad (pickled) for builder'),  # noqa
         ),
     ]

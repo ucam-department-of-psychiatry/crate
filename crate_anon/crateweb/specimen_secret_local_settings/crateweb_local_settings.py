@@ -116,7 +116,7 @@ DATABASES = {
     # -------------------------------------------------------------------------
     'research': {
 
-        # *********************************************************************
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         # IT IS CRITICALLY IMPORTANT THAT THIS CONNECTION (i.e. its user's
         # access) IS READ-ONLY FOR THE RESEARCH DATABASES [1] AND HAS NO
         # ACCESS WHATSOEVER TO SECRET DATABASES (like the 'default' or
@@ -127,7 +127,7 @@ DATABASES = {
         #
         # [1] ... so researchers can't alter/delete research data
         # [2] ... so researchers can't see secrets
-        # *********************************************************************
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         'ENGINE': 'django.db.backends.mysql',
         'HOST': '127.0.0.1',
@@ -195,6 +195,10 @@ RESEARCH_DB_INFO = [
         'rid_family': 1,
         'mrid_table': 'patients',
         'mrid_field': 'nhshash',
+
+        # For the data finder: is there a standard date field for most patient
+        # tables?
+        'default_date_field': '',
     },
     # {
     #     'database': 'similar_database',
@@ -204,6 +208,7 @@ RESEARCH_DB_INFO = [
     #     'rid_family': 1,
     #     'mrid_table': None,
     #     'mrid_field': None,
+    #     'default_date_field': '',
     # },
     # {
     #     'database': 'different_database',
@@ -213,6 +218,7 @@ RESEARCH_DB_INFO = [
     #     'rid_family': 2,
     #     'mrid_table': 'hashed_nhs_numbers',
     #     'mrid_field': 'nhshash',
+    #     'default_date_field': '',
     # },
 ]
 

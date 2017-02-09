@@ -5,9 +5,7 @@ To do
 - Patient Explorer
 
     - patient BRCID/TRID as header for each results page
-    - warn in builder + chooser if no patient criteria
-    - manual query override
-    - display details in chooser
+        ... *** think if non-primary database used
 
 - For mapping:
   Population-weighted centroids
@@ -29,19 +27,21 @@ Consider
 
 - pulling research consent info from RiO at point of lookup
 
-- consider function to anonymise against a dictionary of human names (for data
-  without linkage to primary records/demographics)
-
 ===============================================================================
-Known bugs elsewhere affecting CRATE
+Resolved bugs elsewhere, previously affecting CRATE
 ===============================================================================
 
 - When mounted other than at /, using FORCE_SCRIPT_NAME, the "View site" link
   of Django admin sites points to / rather than the approriate site root.
-  This is fixed in Django 1.10 (not yet released 2015-11-23).
+  This is fixed in Django 1.10 (not yet released 2015-11-23, but out by
+  2017-02-09).
 
     https://github.com/stephenmcd/mezzanine/issues/389
     https://docs.djangoproject.com/en/dev/releases/1.10/
+
+===============================================================================
+Known bugs elsewhere affecting CRATE
+===============================================================================
 
 - wkhtmltopdf font size bug
 
@@ -53,4 +53,5 @@ Known bugs elsewhere affecting CRATE
   config file.
 
 - SQL Server returns a rowcount of -1; this is normal.
+
   https://code.google.com/p/pyodbc/wiki/Cursor

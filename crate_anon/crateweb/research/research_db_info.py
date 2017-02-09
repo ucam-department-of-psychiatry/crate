@@ -30,9 +30,12 @@ from typing import Any, Dict, List, Optional, Tuple
 from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.conf import settings
+from openpyxl import Workbook
 
 from crate_anon.common.sql import (
     ColumnId,
+    is_sql_column_type_textual,
+    make_grammar,
     QB_DATATYPE_DATE,
     QB_DATATYPE_FLOAT,
     QB_DATATYPE_INTEGER,
@@ -44,17 +47,18 @@ from crate_anon.common.sql import (
     SQLTYPES_TEXT,
     SQLTYPES_INTEGER,
     TableId,
+    translate_sql_qmark_to_percent,
 )
-from crate_anon.common.sql_grammar import (
+from crate_anon.common.sql_grammar_factory import (
     DIALECT_MSSQL,
     DIALECT_POSTGRES,
     DIALECT_MYSQL,
 )
 from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
-    is_mysql_column_type_textual,
-    translate_sql_qmark_to_percent,
+    dictlist_to_tsv,
 )
+from crate_anon.crateweb.extra.excel import excel_to_bytes
 
 log = logging.getLogger(__name__)
 
@@ -197,13 +201,21 @@ def get_db_mrid_field(db: str, schema: str) -> str:
     return db_info.get('mrid_field', '')
 
 
+@lru_cache(maxsize=None)
+def get_schema_date_field(db: str, schema: str) -> str:
+    db_info = get_db_info(db, schema)
+    if not db_info:
+        return ''
+    return db_info.get('default_date_field', '')
+
+
 def get_rid_column(table: TableId) -> ColumnId:
-    # RID column in the specified table
+    # RID column in the specified table (which may or may not exist)
     return table.column_id(get_schema_rid_field(table.db(), table.schema()))
 
 
 def get_trid_column(table: TableId) -> ColumnId:
-    # TRID column in the specified table
+    # TRID column in the specified table (which may or may not exist)
     return table.column_id(get_schema_trid_field(table.db(), table.schema()))
 
 
@@ -215,6 +227,22 @@ def get_mrid_column(table: TableId) -> ColumnId:
                     schema=schema,
                     table=get_db_mrid_table(db=db, schema=schema),
                     column=get_db_mrid_field(db=db, schema=schema))
+
+
+def get_default_date_column(table: TableId) -> ColumnId:
+    # Default date column (which may or may not exist)
+    return table.column_id(get_schema_date_field(table.db(), table.schema()))
+
+
+@lru_cache(maxsize=None)
+def does_db_schema_have_mrid(db: str, schema: str) -> bool:
+    this_dbs_info = get_db_info(db, schema)
+    if not this_dbs_info:
+        return False
+    return bool(
+        this_dbs_info.get('mrid_table', None) and
+        this_dbs_info.get('mrid_field', None)
+    )
 
 
 @lru_cache(maxsize=None)
@@ -232,10 +260,7 @@ def is_db_schema_eligible_for_query_builder(db: str, schema: str) -> bool:
         first_dbs_info.get('mrid_table', None) and
         first_dbs_info.get('mrid_field', None)
     )
-    this_db_talks_to_world = bool(
-        this_dbs_info.get('mrid_table', None) and
-        this_dbs_info.get('mrid_field', None)
-    )
+    this_db_talks_to_world = does_db_schema_have_mrid(db, schema)
     can_communicate_directly = bool(
         first_dbs_info.get('rid_field', None) and
         this_dbs_info.get('rid_field', None) and
@@ -610,9 +635,21 @@ ORDER BY
             table_id = c.table_id()
             if table_id not in table_to_colinfolist:
                 table_to_colinfolist[table_id] = []
-                table_to_colinfolist[table_id].append(c)
-        result = OrderedDict(sorted(table_to_colinfolist.items()))
-        return result
+            table_to_colinfolist[table_id].append(c)
+        return OrderedDict(sorted(table_to_colinfolist.items()))
+
+    @lru_cache(maxsize=None)
+    def get_colinfolist_by_schema(self) -> OrderedDict:
+        colinfolist = self.get_colinfolist()
+        schema_to_colinfolist = {}
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        for c in colinfolist:
+            table_id = c.table_id()
+            schema = table_id.database_schema_part(grammar=grammar)
+            if schema not in schema_to_colinfolist:
+                schema_to_colinfolist[schema] = []
+            schema_to_colinfolist[schema].append(c)
+        return OrderedDict(sorted(schema_to_colinfolist.items()))
 
     @lru_cache(maxsize=1000)
     def tables_containing_field(self,
@@ -638,12 +675,78 @@ ORDER BY
         for column in self.get_colinfolist():
             if column.table_id() != table_id:
                 continue
-            if not is_mysql_column_type_textual(column.column_type,
-                                                min_length):
-                # *** Change: make less dialect-specific
+            if not is_sql_column_type_textual(column.column_type,
+                                              min_length):
                 continue
             results.append(column)
         return results
+
+    @lru_cache(maxsize=1000)
+    def all_columns(self, table_id: TableId) -> List[ColumnInfo]:
+        results = []
+        for column in self.get_colinfolist():
+            if column.table_id() != table_id:
+                continue
+            results.append(column)
+        return results
+
+    def get_tsv(self) -> str:
+        return dictlist_to_tsv(self.get_infodictlist())
+
+    def get_excel(self) -> bytes:
+        wb = Workbook()
+        wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
+        schema_colinfolist_dict = self.get_colinfolist_by_schema()
+        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        for schema, colinfolist in schema_colinfolist_dict.items():
+            ws = wb.create_sheet(title=schema)
+            ws.append([
+                "table_catalog", "table_schema", "table_name", "column_name",
+                "is_nullable", "column_type", "column_comment",
+                "indexed", "indexed_fulltext",
+                "basetype", "full_identifier"
+            ])
+            for c in colinfolist:  # type: ColumnInfo
+                ws.append([
+                    c.table_catalog, c.table_schema, c.table_name,
+                    c.column_name, c.is_nullable, c.column_type,
+                    c.column_comment, c.indexed, c.indexed_fulltext,
+                    c.basetype(), c.column_id().identifier(grammar),
+                ])
+        return excel_to_bytes(wb)
+
+    @lru_cache(maxsize=None)
+    def get_tables(self) -> List[TableId]:
+        tables = set()
+        for column in self.get_colinfolist():
+            tables.add(column.table_id())
+        return sorted(list(tables))
+
+    @lru_cache(maxsize=1000)
+    def table_contains_rid(self, table: TableId):
+        target_rid_column = get_rid_column(table)
+        for column in self.get_colinfolist():
+            if column.column_id() == target_rid_column:
+                return True
+        return False
+
+    def table_contains(self, table: TableId, column: ColumnId):
+        for c in self.all_columns(table):
+            if c.column_id() == column:
+                return True
+        return False
+
+    @lru_cache(maxsize=None)
+    def get_mrid_linkable_patient_tables(self) -> List[TableId]:
+        eligible_tables = set()
+        for table in self.get_tables():
+            db = table.db()
+            schema = table.schema()
+            if not does_db_schema_have_mrid(db, schema):
+                continue
+            if self.table_contains_rid(table):
+                eligible_tables.add(table)
+        return sorted(list(eligible_tables))
 
 
 research_database_info = ResearchDatabaseInfo()

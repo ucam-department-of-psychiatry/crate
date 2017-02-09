@@ -18,26 +18,26 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='emailattachment',
             name='file',
-            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=''),
+            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=''),  # noqa
         ),
         migrations.AlterField(
             model_name='leaflet',
             name='pdf',
-            field=crate_anon.crateweb.extra.fields.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.leaflet_upload_to),
+            field=crate_anon.crateweb.extra.fields.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.leaflet_upload_to),  # noqa
         ),
         migrations.AlterField(
             model_name='letter',
             name='pdf',
-            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=''),
+            field=models.FileField(storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=''),  # noqa
         ),
         migrations.AlterField(
             model_name='study',
             name='study_details_pdf',
-            field=crate_anon.crateweb.extra.fields.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_details_upload_to),
+            field=crate_anon.crateweb.extra.fields.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_details_upload_to),  # noqa
         ),
         migrations.AlterField(
             model_name='study',
             name='subject_form_template_pdf',
-            field=crate_anon.crateweb.extra.fields.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_form_upload_to),
+            field=crate_anon.crateweb.extra.fields.ContentTypeRestrictedFileField(blank=True, storage=crate_anon.crateweb.consent.storage.CustomFileSystemStorage(base_url='download_privatestorage', location='/home/rudolf/Documents/code/crate/working/crateweb/crate_filestorage'), upload_to=crate_anon.crateweb.consent.models.study_form_upload_to),  # noqa
         ),
     ]

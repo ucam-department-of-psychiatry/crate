@@ -1,4 +1,4 @@
-{# pe_result.html #}
+{# pe_monster_result.html #}
 
 {% extends "base.html" %}
 
@@ -10,8 +10,10 @@
 
     {% include "query_nav.html" %}
 
-    <h1>Patient Explorer results (up to {{ patients_per_page }}
+    <h1>Patient Explorer: Monster results (up to {{ patients_per_page }}
         patient{{ patients_per_page|pluralize }} per page)</h1>
+
+    <div>This shows ALL data for each patient.</div>
 
     {% include "page_nav_results.html" with page=page %}
 

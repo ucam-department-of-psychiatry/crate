@@ -298,7 +298,7 @@ class Height(NumericalResultParser):
             self.target_unit: m_from_ft_in(feet=5, inches=11),
             FN_UNITS: "ft in",
         }], verbose=verbose)
-        # *** deal with "tall" and plain "is", e.g.
+        # *** Height NLP: deal with "tall" and plain "is", e.g.
         # she is 6'2"; she is 1.5m tall
 
 
