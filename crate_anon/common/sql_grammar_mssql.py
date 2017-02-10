@@ -52,36 +52,37 @@ from crate_anon.common.sql_grammar import (
     ansi_comment,
     AS,
     ASC,
+    AVG,
     BETWEEN,
     BY,
     CASE,
     COLLATE,
     COMMA,
     CROSS,
+    COUNT,
     delim_list,
     DESC,
     DISTINCT,
     ELSE,
     END,
     EXISTS,
-    FOR,
     FROM,
     GROUP,
     HAVING,
     IN,
-    INDEX,
     INNER,
     integer,
     INTERVAL,
     IS,
     JOIN,
-    KEY,
     LEFT,
     LIKE,
     literal_value,
     LPAR,
     make_regex_except_words,
     make_words_regex,
+    MAX,
+    MIN,
     NATURAL,
     NOT,
     ON,
@@ -91,6 +92,7 @@ from crate_anon.common.sql_grammar import (
     RIGHT,
     RPAR,
     SELECT,
+    SUM,
     sql_keyword,
     SqlGrammar,
     test_fail,
@@ -98,7 +100,6 @@ from crate_anon.common.sql_grammar import (
     THEN,
     time_unit,
     UNION,
-    USE,
     USING,
     WHEN,
     WHERE,
@@ -108,39 +109,26 @@ from crate_anon.common.sql_grammar import (
 log = logging.getLogger(__name__)
 
 
-# Some of these may be duff, i.e. taken from MySQL blindly:
-AGAINST = sql_keyword("AGAINST")
-BOOLEAN = sql_keyword("BOOLEAN")
-EXPANSION = sql_keyword("EXPANSION")
-MODE = sql_keyword("MODE")
-NULLS = sql_keyword("NULLS")
-QUERY = sql_keyword("QUERY")
-ROW = sql_keyword("ROW")
-TABLESPACE = sql_keyword("TABLESPACE")
-BINARY = sql_keyword("BINARY")
-DISTINCTROW = sql_keyword("DISTINCTROW")
-DIV = sql_keyword("DIV")
-FORCE = sql_keyword("FORCE")
-HIGH_PRIORITY = sql_keyword("HIGH_PRIORITY")
-IGNORE = sql_keyword("IGNORE")
-LIMIT = sql_keyword("LIMIT")
-MAX_STATEMENT_TIME = sql_keyword("MAX_STATEMENT_TIME")
-MOD = sql_keyword("MOD")
-OFFSET = sql_keyword("OFFSET")
-OJ = sql_keyword("OJ")
-PARTITION = sql_keyword("PARTITION")
-PROCEDURE = sql_keyword("PROCEDURE")
-REGEXP = sql_keyword("REGEXP")
+# Not in SQL Server (though in MySQL):
+#
+# don't think so: BINARY; http://gilfster.blogspot.co.uk/2005/08/case-sensitivity-in-mysql.html  # noqa
+# DISTINCTROW: no; http://stackoverflow.com/questions/8562136/distinctrow-equivalent-in-sql-server  # noqa
+# DIV/MOD: not in SQL Server; use / and % respectively; https://msdn.microsoft.com/en-us/library/ms190279.aspx  # noqa
+# PARTITION: not in SELECT? - https://msdn.microsoft.com/en-us/library/ms187802.aspx  # noqa
+# XOR: use ^ instead; http://stackoverflow.com/questions/5411619/t-sql-xor-operator  # noqa
+
+# Definitely part of SQL Server:
+CHECKSUM_AGG = sql_keyword("CHECKSUM_AGG")
+COUNT_BIG = sql_keyword("COUNT_BIG")
+GROUPING = sql_keyword("GROUPING")
+GROUPING_ID = sql_keyword("GROUPING_ID")
 ROLLUP = sql_keyword("ROLLUP")
-SOUNDS = sql_keyword("SOUNDS")
-SQL_BIG_RESULT = sql_keyword("SQL_BIG_RESULT")
-SQL_BUFFER_RESULT = sql_keyword("SQL_BUFFER_RESULT")
-SQL_CACHE = sql_keyword("SQL_CACHE")
-SQL_CALC_FOUND_ROWS = sql_keyword("SQL_CALC_FOUND_ROWS")
-SQL_NO_CACHE = sql_keyword("SQL_NO_CACHE")
-SQL_SMALL_RESULT = sql_keyword("SQL_SMALL_RESULT")
-STRAIGHT_JOIN = sql_keyword("STRAIGHT_JOIN")
-XOR = sql_keyword("XOR")
+SOUNDEX = sql_keyword("SOUNDEX")
+STDEV = sql_keyword("STDEV")
+STDEV_P = sql_keyword("STDEV_P")
+TOP = sql_keyword("TOP")
+VAR = sql_keyword("VAR")
+VARP = sql_keyword("VARP")
 
 
 # =============================================================================
@@ -157,7 +145,91 @@ class SqlGrammarMSSQLServer(SqlGrammar):
     # -------------------------------------------------------------------------
     # Keywords
     # -------------------------------------------------------------------------
-    keyword = make_words_regex(ANSI92_RESERVED_WORD_LIST, caseless=True,
+    # https://msdn.microsoft.com/en-us/library/ms189822.aspx
+    sql_server_reserved_words = """
+ADD ALL ALTER AND ANY AS ASC AUTHORIZATION
+BACKUP BEGIN BETWEEN BREAK BROWSE BULK BY
+CASCADE CASE CHECK CHECKPOINT CLOSE CLUSTERED COALESCE COLLATE COLUMN COMMIT
+    COMPUTE CONSTRAINT CONTAINS CONTAINSTABLE CONTINUE CONVERT CREATE CROSS
+    CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP CURRENT_USER CURSOR
+DATABASE DBCC DEALLOCATE DECLARE DEFAULT DELETE DENY DESC DISK DISTINCT
+    DISTRIBUTED DOUBLE DROP DUMP
+ELSE END ERRLVL ESCAPE EXCEPT EXEC EXECUTE EXISTS EXIT EXTERNAL
+FETCH FILE FILLFACTOR FOR FOREIGN FREETEXT FREETEXTTABLE FROM FULL FUNCTION
+GOTO GRANT GROUP
+HAVING HOLDLOCK
+IDENTITY IDENTITY_INSERT IDENTITYCOL IF IN INDEX INNER INSERT INTERSECT INTO IS
+JOIN
+KEY KILL
+LEFT LIKE LINENO LOAD
+MERGE
+NATIONAL NOCHECK NONCLUSTERED NOT NULL NULLIF
+OF OFF OFFSETS ON OPEN OPENDATASOURCE OPENQUERY OPENROWSET OPENXML OPTION OR
+    ORDER OUTER OVER
+PERCENT PIVOT PLAN PRECISION PRIMARY PRINT PROC PROCEDURE PUBLIC
+RAISERROR READ READTEXT RECONFIGURE REFERENCES REPLICATION RESTORE RESTRICT
+    RETURN REVERT REVOKE RIGHT ROLLBACK ROWCOUNT ROWGUIDCOL RULE
+SAVE SCHEMA SECURITYAUDIT SELECT SEMANTICKEYPHRASETABLE
+    SEMANTICSIMILARITYDETAILSTABLE SEMANTICSIMILARITYTABLE SESSION_USER SET
+    SETUSER SHUTDOWN SOME STATISTICS SYSTEM_USER
+TABLE TABLESAMPLE TEXTSIZE THEN TO TOP TRAN TRANSACTION TRIGGER TRUNCATE
+    TRY_CONVERT TSEQUAL
+UNION UNIQUE UNPIVOT UPDATE UPDATETEXT USE USER
+VALUES VARYING VIEW
+WAITFOR WHEN WHERE WHILE WITH WITHIN WRITETEXT
+    """
+    # ... "WITHIN GROUP" is listed, not "WITHIN", but
+    odbc_reserved_words = """
+ABSOLUTE ACTION ADA ADD ALL ALLOCATE ALTER AND ANY ARE AS ASC ASSERTION AT
+    AUTHORIZATION AVG BEGIN BETWEEN BIT BIT_LENGTH BOTH BY
+CASCADE CASCADED CASE CAST CATALOG CHAR CHAR_LENGTH CHARACTER CHARACTER_LENGTH
+    CHECK CLOSE COALESCE COLLATE COLLATION COLUMN COMMIT CONNECT CONNECTION
+    CONSTRAINT CONSTRAINTS CONTINUE CONVERT CORRESPONDING COUNT CREATE CROSS
+    CURRENT CURRENT_DATE CURRENT_TIME CURRENT_TIMESTAMP CURRENT_USER CURSOR
+DATE DAY DEALLOCATE DEC DECIMAL DECLARE DEFAULT DEFERRABLE DEFERRED DELETE DESC
+    DESCRIBE DESCRIPTOR DIAGNOSTICS DISCONNECT DISTINCT DOMAIN DOUBLE DROP
+ELSE END END-EXEC ESCAPE EXCEPT EXCEPTION EXEC EXECUTE EXISTS EXTERNAL EXTRACT
+FALSE FETCH FIRST FLOAT FOR FOREIGN FORTRAN FOUND FROM FULL
+GET GLOBAL GO GOTO GRANT GROUP
+HAVING HOUR
+IDENTITY IMMEDIATE IN INCLUDE INDEX INDICATOR INITIALLY INNER INPUT INSENSITIVE
+    INSERT INT INTEGER INTERSECT INTERVAL INTO IS ISOLATION
+JOIN
+KEY
+LANGUAGE LAST LEADING LEFT LEVEL LIKE LOCAL LOWER
+MATCH MAX MIN MINUTE MODULE MONTH
+NAMES NATIONAL NATURAL NCHAR NEXT NO NONE NOT NULL NULLIF NUMERIC
+OCTET_LENGTH OF ON ONLY OPEN OPTION OR ORDER OUTER OUTPUT OVERLAPS
+PAD PARTIAL PASCAL POSITION PRECISION PREPARE PRESERVE PRIMARY PRIOR PRIVILEGES
+    PROCEDURE PUBLIC
+READ REAL REFERENCES RELATIVE RESTRICT REVOKE RIGHT ROLLBACK ROWS
+SCHEMA SCROLL SECOND SECTION SELECT SESSION SESSION_USER SET SIZE SMALLINT SOME
+    SPACE SQL SQLCA SQLCODE SQLERROR SQLSTATE SQLWARNING SUBSTRING SUM
+    SYSTEM_USER
+TABLE TEMPORARY THEN TIME TIMESTAMP TIMEZONE_HOUR TIMEZONE_MINUTE TO TRAILING
+    TRANSACTION TRANSLATE TRANSLATION TRIM TRUE
+UNION UNIQUE UNKNOWN UPDATE UPPER USAGE USER USING
+VALUE VALUES VARCHAR VARYING VIEW
+WHEN WHENEVER WHERE WITH WORK WRITE
+YEAR
+ZONE
+    """
+    # ... who thought "END-EXEC" was a good one?
+
+    # Then some more:
+    # - WITH ROLLUP: https://technet.microsoft.com/en-us/library/ms189305(v=sql.90).aspx  # noqa
+    # - SOUNDEX: https://msdn.microsoft.com/en-us/library/ms187384.aspx
+    rnc_extra_sql_server_keywords = """
+ROLLUP
+SOUNDEX
+    """
+    sql_server_keywords = " ".join(sorted(list(set(
+        sql_server_reserved_words.split() +
+        odbc_reserved_words.split() +
+        ANSI92_RESERVED_WORD_LIST.split()
+    ))))
+    # log.critical(sql_server_keywords)
+    keyword = make_words_regex(sql_server_keywords, caseless=True,
                                name="keyword")
 
     # -------------------------------------------------------------------------
@@ -190,7 +262,6 @@ class SqlGrammarMSSQLServer(SqlGrammar):
     function_name = identifier.copy()
     parameter_name = identifier.copy()
     database_name = identifier.copy()
-    partition_name = identifier.copy()
 
     no_dot = NotAny('.')
     table_spec = (
@@ -205,6 +276,9 @@ class SqlGrammarMSSQLServer(SqlGrammar):
         Combine(table_name + '.' + column_name + no_dot) |
         column_name + no_dot
     ).setName("column_spec")
+    # I'm unsure if SQL Server allows keywords in the parts after dots, like
+    # MySQL does.
+    # - http://stackoverflow.com/questions/285775/how-to-deal-with-sql-column-names-that-look-like-sql-keywords  # noqa
 
     bind_parameter = Literal('?')
 
@@ -215,30 +289,8 @@ class SqlGrammarMSSQLServer(SqlGrammar):
     )
     function_call = Combine(function_name + LPAR) + argument_list + RPAR
 
-    partition_list = (
-        LPAR + delim_list(partition_name, combine=True) + RPAR
-    ).setName("partition_list")
-
-    index_list = delim_list(index_name, combine=False)
-    index_hint = (
-        (
-            USE + (INDEX | KEY) +
-            Optional(FOR + (JOIN | (ORDER + BY) | (GROUP + BY))) +
-            LPAR + Optional(index_list) + RPAR
-        ) |
-        (
-            IGNORE + (INDEX | KEY) +
-            Optional(FOR + (JOIN | (ORDER + BY) | (GROUP + BY))) +
-            LPAR + index_list + RPAR
-        ) |
-        (
-            FORCE + (INDEX | KEY) +
-            Optional(FOR + (JOIN | (ORDER + BY) | (GROUP + BY))) +
-            LPAR + index_list + RPAR
-        )
-    )
-    index_hint_list = delim_list(index_hint, combine=True).setName(
-        "index_hint_list")
+    # Not supported: index hints
+    # ... http://stackoverflow.com/questions/11016935/how-can-i-force-a-query-to-not-use-a-index-on-a-given-table  # noqa
 
     # -----------------------------------------------------------------------------
     # CASE
@@ -260,8 +312,31 @@ class SqlGrammarMSSQLServer(SqlGrammar):
     # -----------------------------------------------------------------------------
     # Expressions
     # -----------------------------------------------------------------------------
+    aggregate_function = (
+        # https://msdn.microsoft.com/en-us/library/ms173454.aspx
+        AVG |
+        CHECKSUM_AGG |
+        COUNT |
+        COUNT_BIG |
+        GROUPING |
+        GROUPING_ID |
+        MAX |
+        MIN |
+        STDEV |
+        STDEV_P |
+        SUM |
+        VAR |
+        VARP
+    )
     expr_term = (
         INTERVAL + expr + time_unit |
+
+        # Aggregate functions: e.g. "MAX(" allowed, "MAX (" not allowed
+        Combine(COUNT + LPAR) + '*' + RPAR |  # special aggregate function
+        Combine(
+            COUNT + LPAR) + DISTINCT + expr + RPAR |  # special aggregate function  # noqa
+        Combine(aggregate_function + LPAR) + expr + RPAR |
+
         # "{" + identifier + expr + "}" |  # see MySQL notes; antique ODBC syntax  # noqa
         Optional(EXISTS) + LPAR + select_statement + RPAR |
         # ... e.g. mycol = EXISTS(SELECT ...)
@@ -279,19 +354,21 @@ class SqlGrammarMSSQLServer(SqlGrammar):
     expr << infixNotation(expr_term, [
         # Having lots of operations in the list here SLOWS IT DOWN A LOT.
         # Just combine them into an ordered list.
-        (BINARY | COLLATE | oneOf('! - + ~'), UNARY_OP, opAssoc.RIGHT),
+        (COLLATE | oneOf('! - + ~'), UNARY_OP, opAssoc.RIGHT),
         (
-            oneOf('^ * / %') | DIV | MOD |
-            oneOf('+ - << >> & | = <=> >= > <= < <> !=') |
-            (IS + Optional(NOT)) | LIKE | REGEXP | (Optional(NOT) + IN) |
-            (SOUNDS + LIKE),  # RNC; presumably at same level as LIKE
+            (
+                oneOf('^ * / %') |
+                oneOf('+ - << >> & | = <=> >= > <= < <> !=') |
+                (IS + Optional(NOT)) | LIKE | (Optional(NOT) + IN) |
+                SOUNDEX  # RNC; presumably at same level as LIKE
+            ),
             BINARY_OP,
             opAssoc.LEFT
         ),
         ((BETWEEN, AND), TERNARY_OP, opAssoc.LEFT),
         # CASE handled above (hoping precedence is not too much of a problem)
         (NOT, UNARY_OP, opAssoc.RIGHT),
-        (AND | '&&' | XOR | OR | '||' | ':=', BINARY_OP, opAssoc.LEFT),
+        (AND | '&&' | OR | '||' | ':=', BINARY_OP, opAssoc.LEFT),
     ], lpar=LPAR, rpar=RPAR)
     # ignores LIKE [ESCAPE]
 
@@ -312,11 +389,9 @@ class SqlGrammarMSSQLServer(SqlGrammar):
 
     join_op = Group(
         COMMA |
-        STRAIGHT_JOIN |
         NATURAL + (Optional(LEFT | RIGHT) + Optional(OUTER)) + JOIN |
         (INNER | CROSS) + JOIN |
         Optional(LEFT | RIGHT) + Optional(OUTER) + JOIN
-        # ignores antique ODBC "{ OJ ... }" syntax
     )
 
     join_source = Forward()
@@ -324,9 +399,8 @@ class SqlGrammarMSSQLServer(SqlGrammar):
         (
             table_spec.copy().setResultsName("from_tables",
                                              listAllMatches=True) +
-            Optional(PARTITION + partition_list) +
-            Optional(Optional(AS) + table_alias) +
-            Optional(index_hint_list)
+            Optional(Optional(AS) + table_alias)
+            # Optional(index_hint_list)  # not supported yet
         ) |
         (select_statement + Optional(AS) + table_alias) +
         (LPAR + join_source + RPAR)
@@ -351,19 +425,11 @@ class SqlGrammarMSSQLServer(SqlGrammar):
     # -------------------------------------------------------------------------
     select_core = (
         SELECT +
-        Group(Optional(ALL | DISTINCT | DISTINCTROW))("select_specifier") +
-        Optional(HIGH_PRIORITY) +
-        Optional(MAX_STATEMENT_TIME + '=' + integer) +
-        Optional(STRAIGHT_JOIN) +
-        Optional(SQL_SMALL_RESULT) +
-        Optional(SQL_BIG_RESULT) +
-        Optional(SQL_BUFFER_RESULT) +
-        Optional(SQL_CACHE | SQL_NO_CACHE) +
-        Optional(SQL_CALC_FOUND_ROWS) +
+        Optional(TOP + integer) +
+        Group(Optional(ALL | DISTINCT))("select_specifier") +
         Group(delim_list(result_column))("select_expression") +
         Optional(
             FROM + join_source +
-            Optional(PARTITION + partition_list) +
             Group(Optional(WHERE + Group(expr)("where_expr")))("where_clause") +
             Optional(
                 GROUP + BY +
@@ -382,12 +448,9 @@ class SqlGrammarMSSQLServer(SqlGrammar):
             delim_list(ordering_term +
                        Optional(ASC | DESC))("order_by_terms")
         ) +
-        Optional(LIMIT + (
-            (Optional(integer("offset") + COMMA) + integer("row_count")) |
-            (integer("row_count") + OFFSET + integer("offset"))
-        ))
         # PROCEDURE ignored
         # rest ignored
+        Optional(';')
     )
     select_statement.ignore(comment)
 
@@ -447,36 +510,21 @@ class SqlGrammarMSSQLServer(SqlGrammar):
         return cls.expr
 
     @classmethod
-    def test(cls, test_expr: bool = True):
-        # ---------------------------------------------------------------------
-        # Identifiers
-        # ---------------------------------------------------------------------
-        log.info("Testing keyword")
-        # print(cls.keyword.pattern)
-        test_succeed(cls.keyword, "TABLE")
-        test_fail(cls.keyword, "thingfor")  # shouldn't match FOR
-        test_fail(cls.keyword, "forename")  # shouldn't match FOR
+    def test_dialect_specific_2(cls):
+        log.info("Testing Microsoft SQL Server-specific aspects...")
 
-        log.info("Testing bare_identifier_word")
-        test_succeed(cls.bare_identifier_word, "blah")
-        test_fail(cls.bare_identifier_word, "FROM")
-        test_succeed(cls.bare_identifier_word, "forename")
-
-        log.info("Testing identifier")
-        test_succeed(cls.identifier, "blah")
-        test_succeed(cls.identifier, "idx1")
-        test_succeed(cls.identifier, "idx2")
-        test_succeed(cls.identifier, "a")
+        log.info("Testing quoted identifiers")
         test_succeed(cls.identifier, "[FROM]")
         test_succeed(cls.identifier, "[SELECT FROM]")
-        log.info("... done")
 
         log.info("Testing table_spec")
+        # SQL Server uses up to: db.schema.table.column
         test_succeed(cls.table_spec, "mytable")
         test_succeed(cls.table_spec, "mydb.mytable")
         test_succeed(cls.table_spec, "mydb.[my silly table]")
+        test_succeed(cls.table_spec, "mydb.myschema.mytable")
         test_fail(cls.table_spec, "mydb . mytable")
-        test_succeed(cls.table_spec, "mydb.myschema.mycol")
+        test_fail(cls.table_spec, "mydb.myschema.mytable.mycol")
 
         log.info("Testing column_spec")
         test_succeed(cls.column_spec, "mycol")
@@ -497,12 +545,6 @@ class SqlGrammarMSSQLServer(SqlGrammar):
         log.info("Testing function_call")
         test_succeed(cls.function_call, "myfunc(@myvar, 5)")
 
-        log.info("Testing index_list")
-        test_succeed(cls.index_list, "idx1, idx2")
-
-        log.info("Testing index_hint")
-        test_succeed(cls.index_hint, "USE INDEX FOR JOIN (idx1, idx2)")
-
         # ---------------------------------------------------------------------
         # Expressions
         # ---------------------------------------------------------------------
@@ -515,79 +557,6 @@ class SqlGrammarMSSQLServer(SqlGrammar):
               ELSE -99
             END
         """)
-
-        log.info("Testing expr_term")
-        test_succeed(cls.expr_term, "5")
-        test_succeed(cls.expr_term, "5.12")
-        test_succeed(cls.expr_term, "'string'")
-        test_succeed(cls.expr_term, "mycol")
-        test_succeed(cls.expr_term, "myfunc(myvar, 8)")
-        test_succeed(cls.expr_term, "INTERVAL 5 MICROSECOND")
-        test_succeed(cls.expr_term, "(SELECT 1)")
-        test_succeed(cls.expr_term, "(1, 2, 3)")
-
-        if test_expr:
-            log.info("Testing expr")
-            test_succeed(cls.expr, "5")
-            test_succeed(cls.expr, "a")
-            test_succeed(cls.expr, "mycol1 || mycol2")
-            test_succeed(cls.expr, "+mycol")
-            test_succeed(cls.expr, "-mycol")
-            test_succeed(cls.expr, "~mycol")
-            test_succeed(cls.expr, "!mycol")
-            test_succeed(cls.expr, "a | b")
-            test_succeed(cls.expr, "a & b")
-            test_succeed(cls.expr, "a << b")
-            test_succeed(cls.expr, "a >> b")
-            test_succeed(cls.expr, "a + b")
-            test_succeed(cls.expr, "a - b")
-            test_succeed(cls.expr, "a * b")
-            test_succeed(cls.expr, "a / b")
-            test_succeed(cls.expr, "a DIV b")
-            test_succeed(cls.expr, "a MOD b")
-            test_succeed(cls.expr, "a % b")
-            test_succeed(cls.expr, "a ^ b")
-            test_succeed(cls.expr, "a ^ (b + (c - d) / e)")
-            test_succeed(cls.expr, "a NOT IN (SELECT 1)")
-            test_succeed(cls.expr, "a IN (1, 2, 3)")
-            test_succeed(cls.expr, "a IS NULL")
-            test_succeed(cls.expr, "a IS NOT NULL")
-            test_fail(cls.expr, "IS NULL")
-            test_fail(cls.expr, "IS NOT NULL")
-            test_succeed(cls.expr, "(a * (b - 3)) > (d - 2)")
-
-        log.info("Testing join_op")
-        test_succeed(cls.join_op, ",")
-        test_succeed(cls.join_op, "INNER JOIN")
-
-        log.info("Testing join_source")
-        test_succeed(cls.join_source, "a")
-        test_succeed(cls.join_source, "a INNER JOIN b")
-        test_succeed(cls.join_source, "a, b")
-
-        log.info("Testing result_column")
-        test_succeed(cls.result_column, "a")
-        test_succeed(cls.result_column, "t1.a")
-        test_succeed(cls.result_column, "a AS alias")
-        test_succeed(cls.result_column, "t1.a AS alias")
-
-        log.info("Testing select_statement")
-        cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 IN (1, 2, 3)")
-        cls.test_select("SELECT a, b FROM c")  # no WHERE
-        cls.test_select("SELECT a, b FROM c WHERE d > 5 AND e = 4")
-        cls.test_select("SELECT a, b FROM c INNER JOIN f WHERE d > 5 AND e = 4")
-        cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5")
-
-        log.info("Testing SELECT something AS alias")
-        cls.test_select("SELECT col1 AS alias FROM t1")
-        cls.test_select("SELECT t1.col1 AS alias FROM t1")
-
-        log.info("Testing nested query: IN")
-        cls.test_select("SELECT col1 FROM table1 WHERE col2 IN (SELECT col3 FROM table2)")  # noqa
-
-    @classmethod
-    def test_select(cls, text: str) -> None:
-        test_succeed(cls.select_statement, text, verbose=True)
 
 
 # =============================================================================
@@ -602,10 +571,10 @@ def pyparsing_bugtest_delimited_list_combine(fix_problem: bool = True) -> None:
     word = Word(alphanums)
     word_list_no_combine = delimitedList(word, combine=False)
     word_list_combine = delimitedList(word, combine=True)
-    print(word_list_no_combine.parseString('one, two'))  # ['one', 'two']
-    print(word_list_no_combine.parseString('one,two'))  # ['one', 'two']
-    print(word_list_combine.parseString('one, two'))  # ['one']: ODD ONE OUT
-    print(word_list_combine.parseString('one,two'))  # ['one,two']
+    print(word_list_no_combine.parseString('one, two', parseAll=True))  # ['one', 'two']  # noqa
+    print(word_list_no_combine.parseString('one,two', parseAll=True))  # ['one', 'two']  # noqa
+    print(word_list_combine.parseString('one, two', parseAll=True))  # ['one']: ODD ONE OUT  # noqa
+    print(word_list_combine.parseString('one,two', parseAll=True))  # ['one,two']  # noqa
 
 
 # =============================================================================

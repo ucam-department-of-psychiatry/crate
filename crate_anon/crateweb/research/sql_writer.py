@@ -245,7 +245,7 @@ def add_to_select(sql: str,
             raise ValueError("Blank starting SQL but no SELECT table/column")
 
     else:
-        p = grammar.get_select_statement().parseString(sql)
+        p = grammar.get_select_statement().parseString(sql, parseAll=True)
         if debug and debug_verbose:
             log.debug("start dump:\n" + p.dump())
 
@@ -275,7 +275,8 @@ def add_to_select(sql: str,
         # add WHERE... +/- FROM
         # ---------------------------------------------------------------------
         if where_expression:
-            cond = grammar.get_expr().parseString(where_expression)
+            cond = grammar.get_expr().parseString(where_expression,
+                                                  parseAll=True)
             if p.where_clause:
                 if bracket_where:
                     extra = [where_type, "(", cond, ")"]
@@ -286,11 +287,18 @@ def add_to_select(sql: str,
                 # No WHERE as yet
                 # log.debug("No WHERE; where_clause is: " +
                 #           repr(p.where_clause))
+                if isinstance(p.where_clause, str):
+                    raise ValueError(
+                        "SQL parser has failed (we know because p.where_clause"
+                        " is '' not []); SQL was {}; p is {}".format(
+                            repr(sql), repr(p)))
                 if bracket_where:
                     extra = ["WHERE", "(", cond, ")"]
                 else:
                     extra = ["WHERE", cond]
                 p.where_clause.extend(extra)  # can fail: AttributeError: 'str' object has no attribute 'extend'  # noqa
+                # ... usual reason is that you've passed duff SQL in
+                # ... other possibility is that the grammar is incomplete
             if where_table:
                 p = parser_add_from_tables(
                     p,

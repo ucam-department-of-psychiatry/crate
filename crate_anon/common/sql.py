@@ -358,7 +358,8 @@ def parser_add_result_column(parsed: ParseResults,
     # log.critical("adding column: {}".format(column))
     if column not in existing_columns:
         # log.critical("... doesn't exist; adding")
-        newcol = grammar.get_column_spec().parseString(column)[0]
+        newcol = grammar.get_column_spec().parseString(column,
+                                                       parseAll=True)[0]
         parsed.select_expression.extend([",", newcol])
     # else:
     #     log.critical("... skipping column; exists")
@@ -385,12 +386,15 @@ def parser_add_from_tables(parsed: ParseResults,
         if table in existing_tables:  # already there
             # log.critical("field already present")
             continue
-        parsed_join = grammar.get_join_op().parseString(join_type)[0]  # e.g. INNER JOIN  # noqa
-        parsed_table = grammar.get_table_spec().parseString(table)[0]
+        parsed_join = grammar.get_join_op().parseString(join_type,
+                                                        parseAll=True)[0]  # e.g. INNER JOIN  # noqa
+        parsed_table = grammar.get_table_spec().parseString(table,
+                                                            parseAll=True)[0]
         extrabits = [parsed_join, parsed_table]
         if join_condition:  # e.g. ON x = y
             extrabits.append(
-                grammar.get_join_constraint().parseString(join_condition)[0])
+                grammar.get_join_constraint().parseString(join_condition,
+                                                          parseAll=True)[0])
         parsed.join_source.extend(extrabits)
     # log.critical(parsed.dump())
     return parsed
@@ -427,7 +431,7 @@ def toggle_distinct(sql: str,
                     debug_verbose: bool = False,
                     dialect: str = DIALECT_MYSQL) -> str:
     grammar = make_grammar(dialect)
-    p = grammar.get_select_statement().parseString(sql)
+    p = grammar.get_select_statement().parseString(sql, parseAll=True)
     if debug:
         log.info("START: {}".format(sql))
         if debug_verbose:
@@ -451,7 +455,7 @@ def set_distinct(sql: str,
                  formatted: bool = True,
                  dialect: str = DIALECT_MYSQL) -> str:
     grammar = make_grammar(dialect)
-    p = grammar.get_select_statement().parseString(sql)
+    p = grammar.get_select_statement().parseString(sql, parseAll=True)
     if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
         # already has DISTINCT
         return sql
@@ -1203,7 +1207,7 @@ def unit_tests():
     grammar = make_grammar(dialect)
     sql = "SELECT t1.c1, t2.c2 " \
           "FROM t1 INNER JOIN t2 ON t1.k = t2.k"
-    parsed = grammar.get_select_statement().parseString(sql)
+    parsed = grammar.get_select_statement().parseString(sql, parseAll=True)
     table_id = get_first_from_table(parsed)  # noqa
     log.info(repr(table_id))
 

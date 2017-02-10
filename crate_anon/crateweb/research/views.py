@@ -49,6 +49,7 @@ from crate_anon.common.contenttypes import (
     CONTENTTYPE_XLSX,
     CONTENTTYPE_ZIP,
 )
+from crate_anon.common.lang import recover_info_from_exception
 from crate_anon.crateweb.core.dbfunc import (
     get_fieldnames_from_cursor,
 )
@@ -858,11 +859,13 @@ def render_missing_query(request: HttpRequest) -> HttpResponse:
 def render_bad_query(request: HttpRequest,
                      query: Query,
                      exception: Exception) -> HttpResponse:
-    (final_sql, args) = query.get_sql_args_for_django()
+    info = recover_info_from_exception(exception)
+    final_sql = info.get('sql', '')
+    args = info.get('args', [])
     context = {
         'original_sql': prettify_sql_html(query.get_original_sql()),
         'final_sql': prettify_sql_and_args(final_sql, args),
-        'exception': str(exception),
+        'exception': repr(exception),
         'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
@@ -1237,11 +1240,17 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
 
     if request.method == 'POST':
         if 'global_clear_select' in request.POST:
-            profile.patient_multiquery_scratchpad.clear_output_columns()
+            pmq.clear_output_columns()
             profile.save()
 
         elif 'global_clear_where' in request.POST:
-            profile.patient_multiquery_scratchpad.clear_patient_conditions()
+            pmq.clear_patient_conditions()
+            profile.save()
+
+        elif 'global_clear_everything' in request.POST:
+            pmq.clear_output_columns()
+            pmq.clear_patient_conditions()
+            pmq.set_override_query('')
             profile.save()
 
         elif 'global_save' in request.POST:
@@ -1420,27 +1429,28 @@ def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
         page = paginate(request, rids, per_page=patients_per_page)
         active_rids = list(page)
         results = []
-        for table_id, sql, args in pe.all_queries(mrids=active_rids):
-            with pe.get_executed_cursor(sql, args) as cursor:
-                fieldnames = get_fieldnames_from_cursor(cursor)
-                rows = cursor.fetchall()
-                table_html = resultset_html_table(
-                    fieldnames=fieldnames,
-                    rows=rows,
-                    element_counter=element_counter,
-                    highlight_dict=highlight_dict,
-                    collapse_at_len=profile.collapse_at_len,
-                    collapse_at_n_lines=profile.collapse_at_n_lines,
-                    line_length=profile.line_length,
-                )
-                query_html = element_counter.visibility_div_with_divbutton(
-                    contents=prettify_sql_and_args(sql, args),
-                    title_html="SQL")
-                results.append({
-                    'tablename': table_id.identifier(grammar),
-                    'table_html': table_html,
-                    'query_html': query_html,
-                })
+        if active_rids:
+            for table_id, sql, args in pe.all_queries(mrids=active_rids):
+                with pe.get_executed_cursor(sql, args) as cursor:
+                    fieldnames = get_fieldnames_from_cursor(cursor)
+                    rows = cursor.fetchall()
+                    table_html = resultset_html_table(
+                        fieldnames=fieldnames,
+                        rows=rows,
+                        element_counter=element_counter,
+                        highlight_dict=highlight_dict,
+                        collapse_at_len=profile.collapse_at_len,
+                        collapse_at_n_lines=profile.collapse_at_n_lines,
+                        line_length=profile.line_length,
+                    )
+                    query_html = element_counter.visibility_div_with_divbutton(
+                        contents=prettify_sql_and_args(sql, args),
+                        title_html="SQL")
+                    results.append({
+                        'tablename': table_id.identifier(grammar),
+                        'table_html': table_html,
+                        'query_html': query_html,
+                    })
         context = {
             'nav_on_pe_results': True,
             'results': results,
@@ -1461,16 +1471,16 @@ def render_missing_pe(request: HttpRequest) -> HttpResponse:
     return render(request, 'pe_missing.html', query_context(request))
 
 
+# noinspection PyUnusedLocal
 def render_bad_pe(request: HttpRequest,
                   pe: PatientExplorer,
                   exception: Exception) -> HttpResponse:
-    queries = []
-    for _, sql, args in pe.all_queries():
-        queries.append("<div><b>SQL:</b></div>" +
-                       prettify_sql_and_args(sql, args))
+    info = recover_info_from_exception(exception)
+    final_sql = info.get('sql', '')
+    args = info.get('args', [])
     context = {
-        'queries': queries,
-        'exception': str(exception),
+        'exception': repr(exception),
+        'query': prettify_sql_and_args(final_sql, args),
         'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
@@ -1551,25 +1561,30 @@ def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
         rids = pe.get_patient_mrids()
         page = paginate(request, rids, per_page=patients_per_page)
         active_rids = list(page)
-        sql, args = pe.patient_multiquery.data_finder_query(mrids=active_rids)
-        with pe.get_executed_cursor(sql, args) as cursor:
-            fieldnames = get_fieldnames_from_cursor(cursor)
-            rows = cursor.fetchall()
-            results_table_html = resultset_html_table(
-                fieldnames=fieldnames,
-                rows=rows,
-                element_counter=element_counter,
-                collapse_at_len=profile.collapse_at_len,
-                collapse_at_n_lines=profile.collapse_at_n_lines,
-                line_length=profile.line_length,
-                no_ditto_cols=[2, 3, 4],
-                null=''
-            )
-            query_html = element_counter.visibility_div_with_divbutton(
-                contents=prettify_sql_and_args(sql, args),
-                title_html="SQL")
+        results_table_html = ''
+        query_html = ''
+        if active_rids:
+            sql, args = pe.patient_multiquery.data_finder_query(
+                mrids=active_rids)
+            with pe.get_executed_cursor(sql, args) as cursor:
+                fieldnames = get_fieldnames_from_cursor(cursor)
+                rows = cursor.fetchall()
+                results_table_html = resultset_html_table(
+                    fieldnames=fieldnames,
+                    rows=rows,
+                    element_counter=element_counter,
+                    collapse_at_len=profile.collapse_at_len,
+                    collapse_at_n_lines=profile.collapse_at_n_lines,
+                    line_length=profile.line_length,
+                    no_ditto_cols=[2, 3, 4],
+                    null=''
+                )
+                query_html = element_counter.visibility_div_with_divbutton(
+                    contents=prettify_sql_and_args(sql, args),
+                    title_html="SQL")
         context = {
             'nav_on_pe_df_results': True,
+            'some_patients': len(active_rids) > 0,
             'results_table_html': results_table_html,
             'query_html': query_html,
             'page': page,
@@ -1615,30 +1630,31 @@ def pe_monster_results(request: HttpRequest, pe_id: int) -> HttpResponse:
         active_rids = list(page)
         results = []
         pmq = pe.patient_multiquery
-        for table_id, sql, args in pmq.monster_queries(mrids=active_rids):
-            with pe.get_executed_cursor(sql, args) as cursor:
-                fieldnames = get_fieldnames_from_cursor(cursor)
-                rows = cursor.fetchall()
-                if rows:
-                    table_html = resultset_html_table(
-                        fieldnames=fieldnames,
-                        rows=rows,
-                        element_counter=element_counter,
-                        highlight_dict=highlight_dict,
-                        collapse_at_len=profile.collapse_at_len,
-                        collapse_at_n_lines=profile.collapse_at_n_lines,
-                        line_length=profile.line_length,
-                    )
-                else:
-                    table_html = "<div><i>No data</i></div>"
-                query_html = element_counter.visibility_div_with_divbutton(
-                    contents=prettify_sql_and_args(sql, args),
-                    title_html="SQL")
-                results.append({
-                    'tablename': table_id.identifier(grammar),
-                    'table_html': table_html,
-                    'query_html': query_html,
-                })
+        if active_rids:
+            for table_id, sql, args in pmq.monster_queries(mrids=active_rids):
+                with pe.get_executed_cursor(sql, args) as cursor:
+                    fieldnames = get_fieldnames_from_cursor(cursor)
+                    rows = cursor.fetchall()
+                    if rows:
+                        table_html = resultset_html_table(
+                            fieldnames=fieldnames,
+                            rows=rows,
+                            element_counter=element_counter,
+                            highlight_dict=highlight_dict,
+                            collapse_at_len=profile.collapse_at_len,
+                            collapse_at_n_lines=profile.collapse_at_n_lines,
+                            line_length=profile.line_length,
+                        )
+                    else:
+                        table_html = "<div><i>No data</i></div>"
+                    query_html = element_counter.visibility_div_with_divbutton(
+                        contents=prettify_sql_and_args(sql, args),
+                        title_html="SQL")
+                    results.append({
+                        'tablename': table_id.identifier(grammar),
+                        'table_html': table_html,
+                        'query_html': query_html,
+                    })
         context = {
             'nav_on_pe_monster_results': True,
             'results': results,

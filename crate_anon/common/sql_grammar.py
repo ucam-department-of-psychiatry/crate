@@ -208,14 +208,14 @@ ANSI92_RESERVED_WORD_LIST = """
     ZONE
 """
 
-# Keywords, using regexed for speed
-# ... not all are used in all dialects
+# Keywords, using regexes for speed
 ALL = sql_keyword("ALL")
 ALTER = sql_keyword("ALTER")
 AND = sql_keyword("AND")
 ANY = sql_keyword("ANY")
 AS = sql_keyword("AS")
 ASC = sql_keyword("ASC")
+AVG = sql_keyword("AVG")
 BETWEEN = sql_keyword("BETWEEN")
 BY = sql_keyword("BY")
 CASE = sql_keyword("CASE")
@@ -223,6 +223,7 @@ CASCADE = sql_keyword("CASCADE")
 COLLATE = sql_keyword("COLLATE")
 CREATE = sql_keyword("CREATE")
 CROSS = sql_keyword("CROSS")
+COUNT = sql_keyword("COUNT")
 DATE = sql_keyword("DATE")
 DATETIME = sql_keyword("DATETIME")
 DELETE = sql_keyword("DELETE")
@@ -254,6 +255,8 @@ LAST = sql_keyword("LAST")
 LEFT = sql_keyword("LEFT")
 LIKE = sql_keyword("LIKE")
 MATCH = sql_keyword("MATCH")
+MAX = sql_keyword("MAX")
+MIN = sql_keyword("MIN")
 NATURAL = sql_keyword("NATURAL")
 NOT = sql_keyword("NOT")
 NULL = sql_keyword("NULL")
@@ -266,6 +269,7 @@ RESTRICT = sql_keyword("RESTRICT")
 RIGHT = sql_keyword("RIGHT")
 SELECT = sql_keyword("SELECT")
 SET = sql_keyword("SET")
+SUM = sql_keyword("SUM")
 TABLE = sql_keyword("TABLE")
 THEN = sql_keyword("THEN")
 TIME = sql_keyword("TIME")
@@ -428,6 +432,8 @@ def standardize_for_testing(text: str) -> str:
     text = text.replace("~ ", "~")
     text = text.replace("! ", "!")
     text = text.replace(" (", "(")
+    text = text.replace("( ", "(")
+    text = text.replace(" )", ")")
     return text
 
 
@@ -436,38 +442,55 @@ def test_succeed(parser: ParserElement,
                  target: str = None,
                  skip_target: bool = False,
                  show_raw: bool = False,
-                 verbose: bool = True) -> None:
+                 verbose: bool = False) -> None:
+    log.critical("Testing to succeed: " + text)
     if target is None:
         target = text
     try:
-        p = parser.parseString(text)
+        p = parser.parseString(text, parseAll=True)
         log.debug("Success: {} -> {}".format(text, text_from_parsed(p)))
         if show_raw:
             log.debug("... raw: {}".format(p))
         if verbose:
             log.debug("... dump:\n{}".format(p.dump()))
     except ParseException as exception:
-        log.debug("Failure on: {} [parser: {}]".format(text, parser))
+        log.debug("ParseException on: {}\n... parser: {}".format(text, parser))
         print(statement_and_failure_marker(text, exception))
         raise
     if not skip_target:
         intended = standardize_for_testing(target)
-        log.critical(text_from_parsed(p))
-        actual = standardize_for_testing(text_from_parsed(p))
+        raw = text_from_parsed(p)
+        actual = standardize_for_testing(raw)
         if intended != actual:
             raise ValueError(
-                "Failure on: {} ->\n{}\n... should have been:\n{}\n"
-                " [parser: {}] [as list: {}]".format(
-                    text, repr(actual), repr(intended),
-                    parser, repr(p.asList())))
+                "Failure on: {input}\n"
+                "-> Raw output:\n{raw}\n"
+                "-> Standardized output:\n{actual}\n"
+                "... should have been:\n{intended}\n"
+                "... parser: {parser}\n"
+                "... as list: {as_list}]".format(
+                    input=text,
+                    raw=repr(raw),
+                    actual=repr(actual),
+                    intended=repr(intended),
+                    parser=parser,
+                    as_list=repr(p.asList())))
 
 
-def test_fail(parser: ParserElement, text: str) -> None:
+def test_fail(parser: ParserElement, text: str, verbose: bool = True) -> None:
+    if verbose:
+        log.critical("Testing to fail: " + text)
     try:
-        p = parser.parseString(text)
+        p = parser.parseString(text, parseAll=True)
         raise ValueError(
-            "Succeeded erroneously: {} -> {} [raw: {}] [parser: {}]".format(
-                text, text_from_parsed(p), p, parser))
+            "Succeeded erroneously (no ParseException): {input}\n"
+            "-> structured format: {p}\n"
+            "-> Raw text output: {raw}\n"
+            "... parser: {parser}]".format(
+                input=text,
+                raw=text_from_parsed(p),
+                p=p,
+                parser=parser))
     except ParseException:
         log.debug("Correctly failed: {}".format(text))
 
@@ -480,7 +503,7 @@ def test(parser: ParserElement, text: str) -> None:
     #     print(start, end, tokens)
 
     try:
-        tokens = parser.parseString(text)
+        tokens = parser.parseString(text, parseAll=True)
         print(tokens.asXML())
         # print(tokens.dump())
         # print(text_from_parsed(tokens))
@@ -491,8 +514,8 @@ def test(parser: ParserElement, text: str) -> None:
         for c in tokens.columns:
             print("column: {}".format(c))
     except ParseException as err:
-        print(" "*err.loc + "^\n" + err.msg)
-        print(err)
+        print(statement_and_failure_marker(text, err))
+        raise
     print()
 
 
@@ -569,6 +592,19 @@ def statement_and_failure_marker(text: str,
 # =============================================================================
 
 class SqlGrammar(object):
+    # For type checker:
+    bare_identifier_word = None
+    column_spec = None
+    expr = None
+    expr_term = None
+    identifier = None
+    join_op = None
+    join_source = None
+    keyword = None
+    result_column = None
+    select_statement = None
+    table_spec = None
+
     def __init__(self):
         pass
 
@@ -623,7 +659,171 @@ class SqlGrammar(object):
     def get_expr(cls):
         raise NotImplementedError()
 
-    def test(self):
+    @classmethod
+    def test(cls, test_expr: bool = True):
+        cls.test_dialect_specific_1()
+        cls.test_identifiers()
+        if test_expr:
+            cls.test_expr()
+        cls.test_sql_core()
+        cls.test_dialect_specific_2()
+
+    @classmethod
+    def test_select(cls, text: str) -> None:
+        test_succeed(cls.select_statement, text)
+
+    @classmethod
+    def test_select_fail(cls, text: str) -> None:
+        test_fail(cls.select_statement, text)
+
+    @classmethod
+    def test_identifiers(cls):
+        # ---------------------------------------------------------------------
+        # Identifiers
+        # ---------------------------------------------------------------------
+        log.info("Testing keyword")
+        # print(cls.keyword.pattern)
+        test_succeed(cls.keyword, "TABLE")
+        test_fail(cls.keyword, "thingfor")  # shouldn't match FOR
+        test_fail(cls.keyword, "forename")  # shouldn't match FOR
+
+        log.info("Testing bare_identifier_word")
+        test_succeed(cls.bare_identifier_word, "blah")
+        test_fail(cls.bare_identifier_word, "FROM")
+        test_succeed(cls.bare_identifier_word, "forename")
+
+        log.info("Testing identifier")
+        test_succeed(cls.identifier, "blah")
+        test_succeed(cls.identifier, "idx1")
+        test_succeed(cls.identifier, "idx2")
+        test_succeed(cls.identifier, "a")
+        log.info("... done")
+
+        log.info("Testing table_spec")
+        test_succeed(cls.table_spec, "mytable")
+        test_succeed(cls.table_spec, "mydb.mytable")
+        test_fail(cls.table_spec, "mydb . mytable")
+
+        log.info("Testing column_spec")
+        test_succeed(cls.column_spec, "mycol")
+        test_succeed(cls.column_spec, "forename")
+        test_succeed(cls.column_spec, "mytable.mycol")
+        test_succeed(cls.column_spec, "t1.a")
+        test_succeed(cls.column_spec, "mydb.mytable.mycol")
+        test_fail(cls.column_spec, "mydb . mytable . mycol")
+
+    @classmethod
+    def test_expr(cls):
+        # ---------------------------------------------------------------------
+        # Expressions
+        # ---------------------------------------------------------------------
+
+        log.info("Testing expr_term")
+        test_succeed(cls.expr_term, "5")
+        test_succeed(cls.expr_term, "-5")
+        test_succeed(cls.expr_term, "5.12")
+        test_succeed(cls.expr_term, "'string'")
+        test_succeed(cls.expr_term, "mycol")
+        test_succeed(cls.expr_term, "myfunc(myvar, 8)")
+        test_succeed(cls.expr_term, "INTERVAL 5 MICROSECOND")
+        test_succeed(cls.expr_term, "(SELECT 1)")
+        test_succeed(cls.expr_term, "(1, 2, 3)")
+        # Concatenated rubbish shouldn't pass
+        # test_fail(cls.expr_term, "one two three four")  # matches "one"
+
+        log.info("Testing expr")
+        test_succeed(cls.expr, "5")
+        test_succeed(cls.expr, "-5")
+        test_succeed(cls.expr, "a")
+        test_succeed(cls.expr, "mycol1 || mycol2")
+        test_succeed(cls.expr, "+mycol")
+        test_succeed(cls.expr, "-mycol")
+        test_succeed(cls.expr, "~mycol")
+        test_succeed(cls.expr, "!mycol")
+        test_succeed(cls.expr, "a | b")
+        test_succeed(cls.expr, "a & b")
+        test_succeed(cls.expr, "a << b")
+        test_succeed(cls.expr, "a >> b")
+        test_succeed(cls.expr, "a + b")
+        test_succeed(cls.expr, "a - b")
+        test_succeed(cls.expr, "a * b")
+        test_succeed(cls.expr, "a / b")
+        test_succeed(cls.expr, "a % b")
+        test_succeed(cls.expr, "a ^ b")
+        test_succeed(cls.expr, "a ^ (b + (c - d) / e)")
+        test_succeed(cls.expr, "a NOT IN (SELECT 1)")
+        test_succeed(cls.expr, "a IN (1, 2, 3)")
+        test_succeed(cls.expr, "a IS NULL")
+        test_succeed(cls.expr, "a IS NOT NULL")
+        test_fail(cls.expr, "IS NULL")
+        test_fail(cls.expr, "IS NOT NULL")
+        test_succeed(cls.expr, "(a * (b - 3)) > (d - 2)")
+
+        # Bare keywords shouldn't pass:
+        test_fail(cls.expr, "COUNT")
+
+        # Concatenated rubbish shouldn't pass
+        test_fail(cls.expr, "one two three four")
+
+    @classmethod
+    def test_sql_core(cls):
+        log.info("Testing join_op")
+        test_succeed(cls.join_op, ",")
+        test_succeed(cls.join_op, "INNER JOIN")
+
+        log.info("Testing join_source")
+        test_succeed(cls.join_source, "a")
+        test_succeed(cls.join_source, "a INNER JOIN b")
+        test_succeed(cls.join_source, "a, b")
+
+        log.info("Testing result_column")
+        test_succeed(cls.result_column, "t1.a")
+        test_succeed(cls.result_column, "col1")
+        test_succeed(cls.result_column, "t1.col1")
+        test_succeed(cls.result_column, "col1 AS alias")
+        test_succeed(cls.result_column, "t1.col1 AS alias")
+        # test_succeed(cls.result_column, "*")
+        test_succeed(cls.result_column, "COUNT(*)")
+        test_succeed(cls.result_column, "COUNT(*) AS alias")
+        test_fail(cls.result_column, "COUNT")
+
+        test_succeed(Combine(COUNT + LPAR) + '*', "COUNT(*")
+        test_succeed(Combine(COUNT + LPAR) + '*', "COUNT( *")
+        test_fail(Combine(COUNT + LPAR) + '*', "COUNT (*")
+
+        test_fail(cls.result_column, "COUNT (*)")  # space disallowed
+        test_succeed(cls.result_column, "COUNT(DISTINCT col)")
+        test_succeed(cls.result_column, "MAX(col)")
+        test_fail(cls.result_column, "MAX (col)")
+
+        log.info("Testing select_statement")
+        cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 IN (1, 2, 3)")
+        cls.test_select("SELECT a, b FROM c")  # no WHERE
+        cls.test_select("SELECT a, b FROM c WHERE d > 5 AND e = 4")
+        cls.test_select("SELECT a, b FROM c INNER JOIN f WHERE d > 5 AND e = 4")
+        cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5")
+
+        log.info("Testing SELECT something AS alias")
+        cls.test_select("SELECT col1 AS alias FROM t1")
+        cls.test_select("SELECT t1.col1 AS alias FROM t1")
+
+        log.info("Testing nested query: IN")
+        cls.test_select("SELECT col1 FROM table1 WHERE col2 IN (SELECT col3 FROM table2)")  # noqa
+
+        log.info("Testing COUNT(*)")
+        cls.test_select("SELECT col1, COUNT(*) FROM table1 GROUP BY col1")
+
+        log.info("MySQL rejects COUNT (*) and other aggregate functions with "
+                 "a space between the function and the opening bracket")
+        cls.test_select_fail(
+            "SELECT col1, COUNT (*) FROM table1 GROUP BY col1")
+
+    @classmethod
+    def test_dialect_specific_1(cls):
+        pass
+
+    @classmethod
+    def test_dialect_specific_2(cls):
         pass
 
 

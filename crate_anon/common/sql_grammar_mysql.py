@@ -48,8 +48,10 @@ from crate_anon.common.sql_grammar import (
     ALL,
     AND,
     ansi_comment,
+    ANSI92_RESERVED_WORD_LIST,
     AS,
     ASC,
+    AVG,
     bash_comment,
     BETWEEN,
     BY,
@@ -57,6 +59,7 @@ from crate_anon.common.sql_grammar import (
     COLLATE,
     COMMA,
     CROSS,
+    COUNT,
     delim_list,
     DESC,
     DISTINCT,
@@ -80,9 +83,12 @@ from crate_anon.common.sql_grammar import (
     LIKE,
     literal_value,
     LPAR,
+    make_pyparsing_regex,
     make_regex_except_words,
     make_words_regex,
     MATCH,
+    MAX,
+    MIN,
     NATURAL,
     NOT,
     ON,
@@ -92,6 +98,8 @@ from crate_anon.common.sql_grammar import (
     RIGHT,
     RPAR,
     SELECT,
+    string_literal,
+    SUM,
     sql_keyword,
     SqlGrammar,
     test_fail,
@@ -109,8 +117,12 @@ from crate_anon.common.sql_grammar import (
 log = logging.getLogger(__name__)
 
 AGAINST = sql_keyword("AGAINST")
+BIT_AND = sql_keyword("BIT_AND")
+BIT_OR = sql_keyword("BIT_OR")
+BIT_XOR = sql_keyword("BIT_XOR")
 BOOLEAN = sql_keyword("BOOLEAN")
 EXPANSION = sql_keyword("EXPANSION")
+GROUP_CONCAT = sql_keyword("GROUP_CONCAT")
 MODE = sql_keyword("MODE")
 NULLS = sql_keyword("NULLS")
 QUERY = sql_keyword("QUERY")
@@ -132,6 +144,10 @@ PROCEDURE = sql_keyword("PROCEDURE")
 REGEXP = sql_keyword("REGEXP")
 ROLLUP = sql_keyword("ROLLUP")
 SOUNDS = sql_keyword("SOUNDS")
+STD = sql_keyword("STD")
+STDDEV = sql_keyword("STDDEV")
+STDDEV_POP = sql_keyword("STDDEV_POP")
+STDDEV_SAMP = sql_keyword("STDDEV_SAMP")
 SQL_BIG_RESULT = sql_keyword("SQL_BIG_RESULT")
 SQL_BUFFER_RESULT = sql_keyword("SQL_BUFFER_RESULT")
 SQL_CACHE = sql_keyword("SQL_CACHE")
@@ -139,6 +155,9 @@ SQL_CALC_FOUND_ROWS = sql_keyword("SQL_CALC_FOUND_ROWS")
 SQL_NO_CACHE = sql_keyword("SQL_NO_CACHE")
 SQL_SMALL_RESULT = sql_keyword("SQL_SMALL_RESULT")
 STRAIGHT_JOIN = sql_keyword("STRAIGHT_JOIN")
+VAR_POP = sql_keyword("VAR_POP")
+VAR_SAMP = sql_keyword("VAR_SAMP")
+VARIANCE = sql_keyword("VARIANCE")
 XOR = sql_keyword("XOR")
 
 
@@ -157,35 +176,120 @@ class SqlGrammarMySQL(SqlGrammar):
     # -------------------------------------------------------------------------
     # Keywords
     # -------------------------------------------------------------------------
-    all_keywords = """
-        AGAINST ALL ALTER AND ASC AS
-        BETWEEN BINARY BOOLEAN BY
-        CASE CASCADE COLLATE CREATE CROSS
-        DATETIME DATE DELETE DESC DISTINCTROW DISTINCT DIV DROP
-        ELSE END ESCAPE EXISTS EXPANSION
-        FALSE FIRST FORCE FOR FROM
-        GROUP
-        HAVING HIGH_PRIORITY
-        IGNORE INDEX INNER INSERT INTERVAL INTO IN IS
-        JOIN
-        KEY
-        LANGUAGE LAST LEFT LIKE LIMIT
-        MATCH MAX_STATEMENT_TIME MODE MOD
-        NATURAL NOT NULLS NULL
-        OFFSET OJ ONLY ON ORDER OR OUTER
-        PARTITION PROCEDURE
-        QUERY
-        REGEXP RESTRICT RIGHT ROLLUP ROW
-        SELECT SET SOUNDS SQL_BIG_RESULT SQL_BUFFER_RESULT
-            SQL_CACHE SQL_CALC_FOUND_ROWS SQL_NO_CACHE SQL_SMALL_RESULT
-            STRAIGHT_JOIN
-        TABLESPACE TABLE THEN TIMESTAMP TIME TRUE
-        UNION UPDATE USE USING UNKNOWN
-        VALUES
-        WITH WHEN WHERE
-        XOR
+    # https://dev.mysql.com/doc/refman/5.7/en/keywords.html
+    mysql_reserved_words = """
+ACCESSIBLE ADD ALL ALTER ANALYZE AND AS ASC ASENSITIVE
+BEFORE BETWEEN BIGINT BINARY BLOB BOTH BY
+CALL CASCADE CASE CHANGE CHAR CHARACTER CHECK COLLATE COLUMN CONDITION
+    CONSTRAINT CONTINUE CONVERT CREATE CROSS CURRENT_DATE CURRENT_TIME
+    CURRENT_TIMESTAMP CURRENT_USER CURSOR
+DATABASE DATABASES DAY_HOUR DAY_MICROSECOND DAY_MINUTE DAY_SECOND DEC DECIMAL
+    DECLARE DEFAULT DELAYED DELETE DESC DESCRIBE DETERMINISTIC DISTINCT
+    DISTINCTROW DIV DOUBLE DROP DUAL
+EACH ELSE ELSEIF ENCLOSED ESCAPED EXISTS EXIT EXPLAIN
+FALSE FETCH FLOAT FLOAT4 FLOAT8 FOR FORCE FOREIGN FROM FULLTEXT
+GENERATED GET GRANT GROUP
+HAVING HIGH_PRIORITY HOUR_MICROSECOND HOUR_MINUTE HOUR_SECOND
+IF IGNORE IN INDEX INFILE INNER INOUT INSENSITIVE INSERT INT INT1 INT2 INT3
+    INT4 INT8 INTEGER INTERVAL INTO IO_AFTER_GTIDS IO_BEFORE_GTIDS IS
+    ITERATE
+JOIN
+KEY KEYS KILL
+LEADING LEAVE LEFT LIKE LIMIT LINEAR LINES LOAD LOCALTIME LOCALTIMESTAMP
+    LOCK LONG LONGBLOB LONGTEXT LOOP LOW_PRIORITY
+MASTER_BIND MASTER_SSL_VERIFY_SERVER_CERT MATCH MAXVALUE MEDIUMBLOB
+    MEDIUMINT MEDIUMTEXT MIDDLEINT MINUTE_MICROSECOND MINUTE_SECOND MOD
+    MODIFIES
+NATURAL NOT NO_WRITE_TO_BINLOG NULL NUMERIC
+ON OPTIMIZE OPTIMIZER_COSTS OPTION OPTIONALLY OR ORDER OUT OUTER OUTFILE
+PARTITION PRECISION PRIMARY PROCEDURE PURGE
+RANGE READ READS READ_WRITE REAL REFERENCES REGEXP RELEASE RENAME REPEAT
+    REPLACE REQUIRE RESIGNAL RESTRICT RETURN REVOKE RIGHT RLIKE
+SCHEMA SCHEMAS SECOND_MICROSECOND SELECT SENSITIVE SEPARATOR SET SHOW SIGNAL
+    SMALLINT SPATIAL SPECIFIC SQL SQLEXCEPTION SQLSTATE SQLWARNING
+    SQL_BIG_RESULT SQL_CALC_FOUND_ROWS SQL_SMALL_RESULT SSL STARTING STORED
+    STRAIGHT_JOIN
+TABLE TERMINATED THEN TINYBLOB TINYINT TINYTEXT TO TRAILING TRIGGER TRUE
+UNDO UNION UNIQUE UNLOCK UNSIGNED UPDATE USAGE USE USING UTC_DATE UTC_TIME
+    UTC_TIMESTAMP
+VALUES VARBINARY VARCHAR VARCHARACTER VARYING VIRTUAL
+WHEN WHERE WHILE WITH WRITE
+XOR
+YEAR_MONTH
+ZEROFILL
     """
-    keyword = make_words_regex(all_keywords, caseless=True, name="keyword")
+    mysql_nonreserved_keywords = """
+ACCOUNT ACTION AFTER AGAINST AGGREGATE ALGORITHM ALWAYS ANALYSE ANY ASCII AT
+    AUTOEXTEND_SIZE AUTO_INCREMENT AVG AVG_ROW_LENGTH
+BACKUP BEGIN BINLOG BIT BLOCK BOOL BOOLEAN BTREE BYTE
+CACHE CASCADED CATALOG_NAME CHAIN CHANGED CHANNEL CHARSET CHECKSUM CIPHER
+    CLASS_ORIGIN CLIENT CLOSE COALESCE CODE COLLATION COLUMNS COLUMN_FORMAT
+    COLUMN_NAME COMMENT COMMIT COMMITTED COMPACT COMPLETION COMPRESSED
+    COMPRESSION CONCURRENT CONNECTION CONSISTENT CONSTRAINT_CATALOG
+    CONSTRAINT_NAME CONSTRAINT_SCHEMA CONTAINS CONTEXT CPU CUBE CURRENT
+    CURSOR_NAME
+DATA DATAFILE DATE DATETIME DAY DEALLOCATE DEFAULT_AUTH DEFINER DELAY_KEY_WRITE
+    DES_KEY_FILE DIAGNOSTICS DIRECTORY DISABLE DISCARD DISK DO DUMPFILE
+    DUPLICATE DYNAMIC
+ENABLE ENCRYPTION END ENDS ENGINE ENGINES ENUM ERROR ERRORS ESCAPE EVENT EVENTS
+    EVERY EXCHANGE EXECUTE EXPANSION EXPIRE EXPORT EXTENDED EXTENT_SIZE
+FAST FAULTS FIELDS FILE FILE_BLOCK_SIZE FILTER FIRST FIXED FLUSH FOLLOWS FORMAT
+    FOUND FULL FUNCTION
+GENERAL GEOMETRY GEOMETRYCOLLECTION GET_FORMAT GLOBAL GRANTS GROUP_REPLICATION
+HANDLER HASH HELP HOST HOSTS HOUR
+IDENTIFIED IGNORE_SERVER_IDS IMPORT INDEXES INITIAL_SIZE INSERT_METHOD INSTALL
+    INSTANCE INVOKER IO IO_THREAD IPC ISOLATION ISSUER
+JSON
+KEY_BLOCK_SIZE
+LANGUAGE LAST LEAVES LESS LEVEL LINESTRING LIST LOCAL LOCKS LOGFILE LOGS
+MASTER MASTER_AUTO_POSITION MASTER_CONNECT_RETRY MASTER_DELAY
+    MASTER_HEARTBEAT_PERIOD MASTER_HOST MASTER_LOG_FILE MASTER_LOG_POS
+    MASTER_PASSWORD MASTER_PORT MASTER_RETRY_COUNT MASTER_SERVER_ID MASTER_SSL
+    MASTER_SSL_CA MASTER_SSL_CAPATH MASTER_SSL_CERT MASTER_SSL_CIPHER
+    MASTER_SSL_CRL MASTER_SSL_CRLPATH MASTER_SSL_KEY MASTER_TLS_VERSION
+    MASTER_USER MAX_CONNECTIONS_PER_HOUR MAX_QUERIES_PER_HOUR MAX_ROWS MAX_SIZE
+    MAX_STATEMENT_TIME MAX_UPDATES_PER_HOUR MAX_USER_CONNECTIONS MEDIUM
+    MEMORY MERGE MESSAGE_TEXT MICROSECOND MIGRATE MINUTE MIN_ROWS MODE MODIFY
+    MONTH MULTILINESTRING MULTIPOINT MULTIPOLYGON MUTEX MYSQL_ERRNO
+NAME NAMES NATIONAL NCHAR NDB NDBCLUSTER NEVER NEW NEXT NO NODEGROUP
+    NONBLOCKING NONE NO_WAIT NUMBER NVARCHAR
+OFFSET OLD_PASSWORD ONE ONLY OPEN OPTIONS OWNER
+PACK_KEYS PAGE PARSER PARSE_GCOL_EXPR PARTIAL PARTITIONING PARTITIONS PASSWORD
+    PHASE PLUGIN PLUGINS PLUGIN_DIR POINT POLYGON PORT PRECEDES PREPARE
+    PRESERVE PREV PRIVILEGES PROCESSLIST PROFILE PROFILES PROXY
+QUARTER QUERY QUICK
+READ_ONLY REBUILD RECOVER REDOFILE REDO_BUFFER_SIZE REDUNDANT RELAY RELAYLOG
+    RELAY_LOG_FILE RELAY_LOG_POS RELAY_THREAD RELOAD REMOVE REORGANIZE REPAIR
+    REPEATABLE REPLICATE_DO_DB REPLICATE_DO_TABLE REPLICATE_IGNORE_DB
+    REPLICATE_IGNORE_TABLE REPLICATE_REWRITE_DB REPLICATE_WILD_DO_TABLE
+    REPLICATE_WILD_IGNORE_TABLE REPLICATION RESET RESTORE RESUME
+    RETURNED_SQLSTATE RETURNS REVERSE ROLLBACK ROLLUP ROTATE ROUTINE ROW ROWS
+    ROW_COUNT ROW_FORMAT RTREE
+SAVEPOINT SCHEDULE SCHEMA_NAME SECOND SECURITY SERIAL SERIALIZABLE SERVER
+    SESSION SHARE SHUTDOWN SIGNED SIMPLE SLAVE SLOW SNAPSHOT SOCKET SOME SONAME
+    SOUNDS SOURCE SQL_AFTER_GTIDS SQL_AFTER_MTS_GAPS SQL_BEFORE_GTIDS
+    SQL_BUFFER_RESULT SQL_CACHE SQL_NO_CACHE SQL_THREAD SQL_TSI_DAY
+    SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_MONTH SQL_TSI_QUARTER SQL_TSI_SECOND
+    SQL_TSI_WEEK SQL_TSI_YEAR STACKED START STARTS STATS_AUTO_RECALC
+    STATS_PERSISTENT STATS_SAMPLE_PAGES STATUS STOP STORAGE STRING
+    SUBCLASS_ORIGIN SUBJECT SUBPARTITION SUBPARTITIONS SUPER SUSPEND SWAPS
+    SWITCHES
+TABLES TABLESPACE TABLE_CHECKSUM TABLE_NAME TEMPORARY TEMPTABLE TEXT THAN TIME
+    TIMESTAMP TIMESTAMPADD TIMESTAMPDIFF TRANSACTION TRIGGERS TRUNCATE TYPE
+    TYPES
+UNCOMMITTED UNDEFINED UNDOFILE UNDO_BUFFER_SIZE UNICODE UNINSTALL UNKNOWN UNTIL
+    UPGRADE USER USER_RESOURCES USE_FRM
+VALIDATION VALUE VARIABLES VIEW WAIT
+WARNINGS WEEK WEIGHT_STRING WITHOUT WORK WRAPPER
+X509 XA XID XML
+YEAR
+    """
+    mysql_keywords = " ".join(sorted(list(set(
+        mysql_reserved_words.split() +
+        ANSI92_RESERVED_WORD_LIST.split()
+    ))))
+    # log.critical(mysql_keywords)
+    keyword = make_words_regex(mysql_keywords, caseless=True, name="keyword")
 
     # -------------------------------------------------------------------------
     # Comments
@@ -199,14 +303,23 @@ class SqlGrammarMySQL(SqlGrammar):
     # http://dev.mysql.com/doc/refman/5.7/en/identifiers.html
     bare_identifier_word = make_regex_except_words(
         r"\b[a-zA-Z0-9$_]*\b",
-        all_keywords,
+        mysql_keywords,
         caseless=True,
         name="bare_identifier_word"
+    )
+    liberal_identifier_word = make_pyparsing_regex(
+        r"\b[a-zA-Z0-9$_]*\b",
+        caseless=True,
+        name="liberal_identifier_word"
     )
     identifier = (
         bare_identifier_word |
         QuotedString(quoteChar="`", unquoteResults=False)
     ).setName("identifier")
+    liberal_identifier = (
+        liberal_identifier_word |
+        QuotedString(quoteChar="`", unquoteResults=False)
+    ).setName("liberal_identifier")
     # http://dev.mysql.com/doc/refman/5.7/en/charset-collate.html
     collation_name = identifier.copy()
     column_name = identifier.copy()
@@ -220,14 +333,18 @@ class SqlGrammarMySQL(SqlGrammar):
     partition_name = identifier.copy()
 
     no_dot = NotAny('.')
+    # MySQL allows keywords in the later parts of combined identifiers;
+    # therefore, for example, "count.thing.thing" is not OK, but
+    # "thing.thing.count" is.
     table_spec = (
-        Combine(database_name + '.' + table_name + no_dot) |
+        Combine(database_name + '.' + liberal_identifier + no_dot) |
         table_name + no_dot
     ).setName("table_spec")
     column_spec = (
-        Combine(database_name + '.' + table_name + '.' + column_name + no_dot) |
-        Combine(table_name + '.' + column_name + no_dot) |
-        column_name + no_dot
+        Combine(database_name + '.' + liberal_identifier + '.' +
+                liberal_identifier + no_dot) |
+        Combine(table_name + '.' + liberal_identifier + no_dot) |
+        Combine(column_name + no_dot)
     ).setName("column_spec")
 
     # http://dev.mysql.com/doc/refman/5.7/en/expressions.html
@@ -302,8 +419,11 @@ class SqlGrammarMySQL(SqlGrammar):
     )
     match_expr = (
         MATCH + LPAR + delim_list(column_spec) + RPAR +
-        AGAINST + LPAR + expr + Optional(search_modifier) + RPAR
+        AGAINST + LPAR + string_literal + Optional(search_modifier) + RPAR
     ).setName("match_expr")
+    # ... don't use "expr"; MATCH AGAINST uses restricted expressions, and we
+    # don't want it to think that "MATCH ... AGAINST ('+keyword' IN
+    # BOOLEAN MODE)" resembles the IN in "WHERE something IN (SELECT ...)"
 
     # -----------------------------------------------------------------------------
     # Expressions
@@ -318,7 +438,7 @@ class SqlGrammarMySQL(SqlGrammar):
         # ... e.g. mycol = EXISTS(SELECT ...)
         # ... e.g. mycol IN (SELECT ...)
         LPAR + delim_list(expr) + RPAR |
-        # ... e.g. mycol IN (1, 2, 3)
+        # ... e.g. mycol IN (1, 2, 3) -- "(1, 2, 3)" being a term here
         case_expr |
         match_expr |
         bind_parameter |
@@ -335,10 +455,12 @@ class SqlGrammarMySQL(SqlGrammar):
         # Just combine them into an ordered list.
         (BINARY | COLLATE | oneOf('! - + ~'), UNARY_OP, opAssoc.RIGHT),
         (
-            oneOf('^ * / %') | DIV | MOD |
-            oneOf('+ - << >> & | = <=> >= > <= < <> !=') |
-            (IS + Optional(NOT)) | LIKE | REGEXP | (Optional(NOT) + IN) |
-            (SOUNDS + LIKE),  # RNC; presumably at same level as LIKE
+            (
+                oneOf('^ * / %') | DIV | MOD |
+                oneOf('+ - << >> & | = <=> >= > <= < <> !=') |
+                (IS + Optional(NOT)) | LIKE | REGEXP | (Optional(NOT) + IN) |
+                (SOUNDS + LIKE)
+            ),  # RNC; presumably at same level as LIKE
             BINARY_OP,
             opAssoc.LEFT
         ),
@@ -396,9 +518,35 @@ class SqlGrammarMySQL(SqlGrammar):
     # ... but name it "join_source" here, or it gets enclosed in a further list
     #     when you name it later
 
+    aggregate_function = (
+        # https://dev.mysql.com/doc/refman/5.7/en/group-by-functions.html
+        AVG |
+        BIT_AND |
+        BIT_OR |
+        BIT_XOR |
+        COUNT |  # also: special handling for COUNT(DISTINCT ...), see below
+        GROUP_CONCAT |
+        MAX |
+        MIN |
+        STD |
+        STDDEV |
+        STDDEV_POP |
+        STDDEV_SAMP |
+        SUM |
+        VAR_POP |
+        VAR_SAMP |
+        VARIANCE
+    )
     result_column = (
-        # AS expression must come first (to be greediest)
-        expr + Optional(Optional(AS) + column_alias) |
+        # AS expression must come early (to be greediest)
+
+        # Aggregate functions: e.g. "MAX(" allowed, "MAX (" not allowed
+        (
+            Combine(COUNT + LPAR) + '*' + RPAR |  # special aggregate function
+            Combine(COUNT + LPAR) + DISTINCT + expr + RPAR |  # special aggregate function  # noqa
+            Combine(aggregate_function + LPAR) + expr + RPAR |
+            expr
+        ) + Optional(Optional(AS) + column_alias) |
         '*' |
         Combine(table_name + '.' + '*') |
         column_spec
@@ -473,9 +621,10 @@ class SqlGrammarMySQL(SqlGrammar):
         Optional(LIMIT + (
             (Optional(integer("offset") + COMMA) + integer("row_count")) |
             (integer("row_count") + OFFSET + integer("offset"))
-        ))
+        )) +
         # PROCEDURE ignored
         # rest ignored
+        Optional(';')
     )
     select_statement.ignore(comment)
 
@@ -535,46 +684,38 @@ class SqlGrammarMySQL(SqlGrammar):
         return cls.expr
 
     @classmethod
-    def test(cls, test_expr: bool = True):
-        # ---------------------------------------------------------------------
-        # Identifiers
-        # ---------------------------------------------------------------------
-        log.info("Testing keyword")
-        # print(cls.keyword.pattern)
-        test_succeed(cls.keyword, "TABLE")
-        test_fail(cls.keyword, "thingfor")  # shouldn't match FOR
-        test_fail(cls.keyword, "forename")  # shouldn't match FOR
+    def test_dialect_specific_1(cls):
+        log.info("Testing MySQL-specific aspects (1/2)...")
+        test_fail(cls.case_expr, "one two three four")
+        test_fail(cls.match_expr, "one two three four")
+        test_fail(cls.bind_parameter, "one two three four")
+        test_fail(cls.variable, "one two three four")
+        test_fail(cls.function_call, "one two three four")
+        test_fail(literal_value, "one two three four")
+        # test_fail(cls.column_spec, "one two three four")  # matches "one"
 
-        log.info("Testing bare_identifier_word")
-        test_succeed(cls.bare_identifier_word, "blah")
-        test_fail(cls.bare_identifier_word, "FROM")
-        test_succeed(cls.bare_identifier_word, "forename")
+    @classmethod
+    def test_dialect_specific_2(cls):
+        log.info("Testing MySQL-specific aspects (2/2)...")
 
-        log.info("Testing identifier")
-        test_succeed(cls.identifier, "blah")
-        test_succeed(cls.identifier, "idx1")
-        test_succeed(cls.identifier, "idx2")
-        test_succeed(cls.identifier, "a")
+        log.info("Testing expr")
+        test_succeed(cls.expr, "a DIV b")
+        test_succeed(cls.expr, "a MOD b")
+
+        log.info("Testing quoted identifiers")
         test_succeed(cls.identifier, "`a`")
         test_succeed(cls.identifier, "`FROM`")
         test_succeed(cls.identifier, "`SELECT FROM`")
-        log.info("... done")
-
-        log.info("Testing table_spec")
-        test_succeed(cls.table_spec, "mytable")
-        test_succeed(cls.table_spec, "mydb.mytable")
+        # MySQL uses up to: schema.table.column
         test_succeed(cls.table_spec, "mydb.`my silly table`")
-        test_fail(cls.table_spec, "mydb . mytable")
-        test_fail(cls.table_spec, "mydb.mytable.mycol")
-
-        log.info("Testing column_spec")
-        test_succeed(cls.column_spec, "mycol")
-        test_succeed(cls.column_spec, "forename")
-        test_succeed(cls.column_spec, "mytable.mycol")
-        test_succeed(cls.column_spec, "t1.a")
+        test_succeed(cls.table_spec, "myschema.mytable")
+        test_fail(cls.table_spec, "mydb.myschema.mytable")
+        # ... but not 4:
         test_succeed(cls.column_spec, "`my silly table`.`my silly column`")
-        test_succeed(cls.column_spec, "mydb.mytable.mycol")
-        test_fail(cls.column_spec, "mydb . mytable . mycol")
+        test_succeed(cls.column_spec, "myschema.mytable.mycol")
+        test_succeed(cls.column_spec, "starfeeder.mass_event.thing")
+        test_succeed(cls.column_spec, "starfeeder.mass_event.at")
+        test_fail(cls.column_spec, "mydb.myschema.mytable.mycol")
 
         log.info("Testing variable")
         test_succeed(cls.variable, "@myvar")
@@ -591,52 +732,6 @@ class SqlGrammarMySQL(SqlGrammar):
         log.info("Testing index_hint")
         test_succeed(cls.index_hint, "USE INDEX FOR JOIN (idx1, idx2)")
 
-        # ---------------------------------------------------------------------
-        # Expressions
-        # ---------------------------------------------------------------------
-
-        log.info("Testing expr_term")
-        test_succeed(cls.expr_term, "5")
-        test_succeed(cls.expr_term, "-5")
-        test_succeed(cls.expr_term, "5.12")
-        test_succeed(cls.expr_term, "'string'")
-        test_succeed(cls.expr_term, "mycol")
-        test_succeed(cls.expr_term, "myfunc(myvar, 8)")
-        test_succeed(cls.expr_term, "INTERVAL 5 MICROSECOND")
-        test_succeed(cls.expr_term, "(SELECT 1)")
-        test_succeed(cls.expr_term, "(1, 2, 3)")
-
-        if test_expr:
-            log.info("Testing expr")
-            test_succeed(cls.expr, "5")
-            test_succeed(cls.expr, "-5")
-            test_succeed(cls.expr, "a")
-            test_succeed(cls.expr, "mycol1 || mycol2")
-            test_succeed(cls.expr, "+mycol")
-            test_succeed(cls.expr, "-mycol")
-            test_succeed(cls.expr, "~mycol")
-            test_succeed(cls.expr, "!mycol")
-            test_succeed(cls.expr, "a | b")
-            test_succeed(cls.expr, "a & b")
-            test_succeed(cls.expr, "a << b")
-            test_succeed(cls.expr, "a >> b")
-            test_succeed(cls.expr, "a + b")
-            test_succeed(cls.expr, "a - b")
-            test_succeed(cls.expr, "a * b")
-            test_succeed(cls.expr, "a / b")
-            test_succeed(cls.expr, "a DIV b")
-            test_succeed(cls.expr, "a MOD b")
-            test_succeed(cls.expr, "a % b")
-            test_succeed(cls.expr, "a ^ b")
-            test_succeed(cls.expr, "a ^ (b + (c - d) / e)")
-            test_succeed(cls.expr, "a NOT IN (SELECT 1)")
-            test_succeed(cls.expr, "a IN (1, 2, 3)")
-            test_succeed(cls.expr, "a IS NULL")
-            test_succeed(cls.expr, "a IS NOT NULL")
-            test_fail(cls.expr, "IS NULL")
-            test_fail(cls.expr, "IS NOT NULL")
-            test_succeed(cls.expr, "(a * (b - 3)) > (d - 2)")
-
         log.info("Testing case_expr")
         test_succeed(cls.case_expr, """
             CASE v
@@ -649,42 +744,12 @@ class SqlGrammarMySQL(SqlGrammar):
         log.info("Testing match_expr")
         test_succeed(cls.match_expr, """
              MATCH (content_field)
+             AGAINST('+keyword1 +keyword2')
+        """)
+        test_succeed(cls.match_expr, """
+             MATCH (content_field)
              AGAINST('+keyword1 +keyword2' IN BOOLEAN MODE)
         """)
-
-        log.info("Testing join_op")
-        test_succeed(cls.join_op, ",")
-        test_succeed(cls.join_op, "INNER JOIN")
-
-        log.info("Testing join_source")
-        test_succeed(cls.join_source, "a")
-        test_succeed(cls.join_source, "a INNER JOIN b")
-        test_succeed(cls.join_source, "a, b")
-
-        log.info("Testing result_column")
-        test_succeed(cls.result_column, "t1.a")
-        test_succeed(cls.result_column, "col1")
-        test_succeed(cls.result_column, "t1.col1")
-        test_succeed(cls.result_column, "col1 AS alias")
-        test_succeed(cls.result_column, "t1.col1 AS alias")
-
-        log.info("Testing select_statement")
-        cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 IN (1, 2, 3)")
-        cls.test_select("SELECT a, b FROM c")  # no WHERE
-        cls.test_select("SELECT a, b FROM c WHERE d > 5 AND e = 4")
-        cls.test_select("SELECT a, b FROM c INNER JOIN f WHERE d > 5 AND e = 4")
-        cls.test_select("SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5")
-
-        log.info("Testing SELECT something AS alias")
-        cls.test_select("SELECT col1 AS alias FROM t1")
-        cls.test_select("SELECT t1.col1 AS alias FROM t1")
-
-        log.info("Testing nested query: IN")
-        cls.test_select("SELECT col1 FROM table1 WHERE col2 IN (SELECT col3 FROM table2)")  # noqa
-
-    @classmethod
-    def test_select(cls, text: str) -> None:
-        test_succeed(cls.select_statement, text, verbose=True)
 
 
 # =============================================================================

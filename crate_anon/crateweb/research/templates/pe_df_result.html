@@ -15,18 +15,26 @@
     <h2>Results (up to {{ patients_per_page }}
         patient{{ patients_per_page|pluralize }} per page)</h2>
 
-    {% include "page_nav_results.html" with page=page %}
+    {% if some_patients %}
 
-    {{ results_table_html|safe }}
+        {% include "page_nav_results.html" with page=page %}
 
-    {% include "page_nav_results.html" with page=page %}
+        {{ results_table_html|safe }}
 
-    <h2>Query</h2>
-    {{ query_html|safe }}
+        {% include "page_nav_results.html" with page=page %}
+
+        <h2>Query</h2>
+        {{ query_html|safe }}
+
+    {% else %}
+        <div class="warning">No patients found.</div>
+    {% endif %}
 
     <h2>Common patient ID query</h2>
     {{ patient_id_query_html|safe }}
 
-    {% include "page_nav_results.html" with page=page %}
+    {% if some_patients %}
+        {% include "page_nav_results.html" with page=page %}
+    {% endif %}
 
 {% endblock %}

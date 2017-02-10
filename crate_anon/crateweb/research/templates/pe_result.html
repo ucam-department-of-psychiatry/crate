@@ -13,19 +13,27 @@
     <h1>Patient Explorer results (up to {{ patients_per_page }}
         patient{{ patients_per_page|pluralize }} per page)</h1>
 
-    {% include "page_nav_results.html" with page=page %}
+    {% if results %}
 
-    {% include "expand_collapse_buttons.html" %}
+        {% include "page_nav_results.html" with page=page %}
 
-    {% for resultset in results %}
-        <h2>{{ resultset.tablename }}</h2>
-        {{ resultset.table_html|safe }}
-        {{ resultset.query_html|safe }}
-    {% endfor %}
+        {% include "expand_collapse_buttons.html" %}
+
+        {% for resultset in results %}
+            <h2>{{ resultset.tablename }}</h2>
+            {{ resultset.table_html|safe }}
+            {{ resultset.query_html|safe }}
+        {% endfor %}
+
+    {% else %}
+        <div class="warning">No patients found.</div>
+    {% endif %}
 
     <h2>Common patient ID query</h2>
     {{ patient_id_query_html|safe }}
 
-    {% include "page_nav_results.html" with page=page %}
+    {% if results %}
+        {% include "page_nav_results.html" with page=page %}
+    {% endif %}
 
 {% endblock %}

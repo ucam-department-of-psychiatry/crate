@@ -29,7 +29,7 @@ import logging
 from typing import Any, Dict, List, Iterable, Optional, Tuple, Type
 import zipfile
 
-from django.db import connections, models
+from django.db import connections, DatabaseError, models
 from django.db.models import QuerySet
 from django.conf import settings
 from django.http.request import HttpRequest
@@ -37,6 +37,7 @@ from openpyxl import Workbook
 from openpyxl.worksheet import Worksheet
 from picklefield.fields import PickledObjectField
 
+from crate_anon.common.lang import add_info_to_exception
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
@@ -307,10 +308,17 @@ class Query(models.Model):
         if sql_append_raw:
             sql += sql_append_raw
         cursor = connections['research'].cursor()
-        if args:
-            cursor.execute(sql, args)
-        else:
-            cursor.execute(sql)
+        try:
+            if args:
+                cursor.execute(sql, args)
+            else:
+                cursor.execute(sql)
+        except DatabaseError as exception:
+            add_info_to_exception(exception, {
+                'sql': sql,
+                'args': args,
+            })
+            raise
         return cursor
 
     # def gen_rows(self,
@@ -699,10 +707,10 @@ class PatientMultiQuery(object):
             # finding query.
             in_clause = self.patient_id_query()
             args = []
-        return "IN ({in_clause})".format(
+        sql = "{mrid} IN ({in_clause})".format(
             mrid=mrid_column.identifier(grammar),
-            in_clause=in_clause,
-        ), args
+            in_clause=in_clause)
+        return sql, args
 
     def make_query(self,
                    table_id: TableId,
@@ -718,21 +726,36 @@ class PatientMultiQuery(object):
             if c not in all_columns:
                 all_columns.append(c)
         where_clause, args = self.where_patient_clause(table_id, grammar, mrids)
-        sql = add_to_select(
-            '',
-            select_columns=all_columns,
-            magic_join=True,
-            dialect=dialect,
-            formatted=False,
-        )
-        sql = add_to_select(
-            sql,
-            where_expression=where_clause,
-            where_table=mrid_column.table_id(),
-            magic_join=True,
-            dialect=dialect,
-            formatted=False
-        )
+
+        # Process the columns table-wise:
+        current_table = all_columns[0].table_id()
+        current_columns = []
+        sql = ''
+        for col in all_columns:
+            if col.table_id() != current_table:
+                if current_columns:
+                    # We've finished with a previous table
+                    sql = add_to_select(sql,
+                                        select_columns=current_columns,
+                                        magic_join=True,
+                                        dialect=dialect,
+                                        formatted=False)
+                    current_columns = []
+                current_table = col.table_id()
+            current_columns.append(col)
+        # Now the leftovers:
+        sql = add_to_select(sql,
+                            select_columns=current_columns,
+                            magic_join=True,
+                            dialect=dialect,
+                            formatted=False)
+
+        sql = add_to_select(sql,
+                            where_expression=where_clause,
+                            where_table=mrid_column.table_id(),
+                            magic_join=True,
+                            dialect=dialect,
+                            formatted=False)
         sql = format_sql(sql)
         return table_id, sql, args
 
@@ -784,7 +807,8 @@ class PatientMultiQuery(object):
         When executed, query gives:
             research_id, table_name, n_records, min_date, max_date
         """
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        dialect = settings.RESEARCH_DB_DIALECT
+        grammar = make_grammar(dialect)
         queries = []
         args = []
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
@@ -802,21 +826,28 @@ class PatientMultiQuery(object):
                 table_id, grammar, mrids)
             args += new_args
             table_identifier = table_id.identifier(grammar)
-            queries.append("""
-SELECT {rid} AS research_id, {table_name} AS table_name, COUNT(*) AS n_records,
+            query = """
+SELECT {mrid} AS research_id, {table_name} AS table_name,
+    COUNT(*) AS n_records,
     {min_date} AS min_date, {max_date} AS max_date
 FROM {table}
-{where}
-GROUP BY {rid}
             """.format(
-                rid=mrid_col.identifier(grammar),
+                mrid=mrid_col.identifier(grammar),
                 min_date=min_date,
                 max_date=max_date,
                 table_name=sql_string_literal(table_identifier),
                 table=table_identifier,
-                where=where_clause,
-            ))
+            )
+            query = add_to_select(query,
+                                  where_expression=where_clause,
+                                  where_table=mrid_col.table_id(),
+                                  magic_join=True,
+                                  dialect=dialect,
+                                  formatted=False)
+            query += " GROUP BY " + mrid_col.identifier(grammar)
+            queries.append(query)
         sql = "\nUNION\n".join(queries) + "\nORDER BY research_id, table_name"
+        sql = format_sql(sql)
         return sql, args
 
     # -------------------------------------------------------------------------
@@ -826,17 +857,24 @@ GROUP BY {rid}
     def monster_queries(self,
                         mrids: List[int] = None) -> List[Tuple[TableId, str,
                                                                List[Any]]]:
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        dialect = settings.RESEARCH_DB_DIALECT
+        grammar = make_grammar(dialect)
         table_sql_args_tuples = []
-        for table_id in research_database_info.get_mrid_linkable_patient_tables():
+        for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
             mrid_col = get_mrid_column(table=table_id)
             where_clause, args = self.where_patient_clause(
                 table_id, grammar, mrids)
-            sql = "SELECT * FROM {table} {where} ORDER BY {mrid}".format(
-                table=table_id.identifier(grammar),
-                where=where_clause,
-                mrid=mrid_col.identifier(grammar),
-            )
+            # We add the WHERE using our magic query machine, to get the joins
+            # right:
+            sql = add_to_select(
+                "SELECT * FROM " + table_id.identifier(grammar),
+                where_expression=where_clause,
+                where_table=mrid_col.table_id(),
+                magic_join=True,
+                dialect=dialect,
+                formatted=False)
+            sql += " ORDER BY " + mrid_col.identifier(grammar)
+            sql = format_sql(sql)
             table_sql_args_tuples.append((table_id, sql, args))
         return table_sql_args_tuples
 
@@ -998,10 +1036,17 @@ class PatientExplorer(models.Model):
         sql = translate_sql_qmark_to_percent(sql)
         args = args or []
         cursor = connections['research'].cursor()
-        if args:
-            cursor.execute(sql, args)
-        else:
-            cursor.execute(sql)
+        try:
+            if args:
+                cursor.execute(sql, args)
+            else:
+                cursor.execute(sql)
+        except DatabaseError as exception:
+            add_info_to_exception(exception, {
+                'sql': sql,
+                'args': args,
+            })
+            raise
         return cursor
 
     def get_patient_mrids(self) -> List[int]:

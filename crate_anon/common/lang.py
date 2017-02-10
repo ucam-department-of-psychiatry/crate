@@ -41,3 +41,19 @@ def unique_list(seq: Iterable[Any]) -> List[Any]:
     seen = set()
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
+
+
+def add_info_to_exception(err: Exception, info: Dict) -> None:
+    # http://stackoverflow.com/questions/9157210/how-do-i-raise-the-same-exception-with-a-custom-message-in-python  # noqa
+    if not err.args:
+        err.args = ('', )
+    err.args += (info, )
+
+
+def recover_info_from_exception(err: Exception) -> Dict:
+    if len(err.args) < 1:
+        return {}
+    info = err.args[-1]
+    if not isinstance(info, dict):
+        return {}
+    return info
