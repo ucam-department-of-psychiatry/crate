@@ -36,6 +36,8 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import importlib.machinery
 import logging
 import os
+import sys
+
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
 # http://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
@@ -236,6 +238,14 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 
 DATABASE_ROUTERS = ['crate_anon.crateweb.research.models.PidLookupRouter']
 
+# PROBLEM 2017-02-12: Django 1.10.5:
+# - "Unable to create the django_migrations table..."
+#   ... it's trying to do this in the research database
+#   ... this suggests it's only a problem if databases appear in
+#       DATABASE_ROUTERS:
+#       https://code.djangoproject.com/ticket/27054
+#   ... fixed by adding allow_migrate() to PidLookupRouter
+
 # =============================================================================
 # Security; https://docs.djangoproject.com/en/1.8/topics/security/
 # =============================================================================
@@ -435,8 +445,8 @@ else:
     set {e}=C:/some/path/my_secret_crate_settings.py
         """.format(e=CRATEWEB_CONFIG_ENV_VAR))
     filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
-    log.debug("Loading local settings from {}".format(filename))
-    # ... but logger not yet enabled... You see nothing.
+    log.warning("Loading local settings from: {}".format(filename))
+    # ... NB logger not yet set to a reasonable priority; use warning level
     _loader = importlib.machinery.SourceFileLoader('local_settings',
                                                    filename)
     _local_module = _loader.load_module()

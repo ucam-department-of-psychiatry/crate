@@ -330,14 +330,6 @@ SOUNDEX
     )
     expr_term = (
         INTERVAL + expr + time_unit |
-
-        # Aggregate functions: e.g. "MAX(" allowed, "MAX (" not allowed
-        Combine(COUNT + LPAR) + '*' + RPAR |  # special aggregate function
-        Combine(
-            COUNT + LPAR) + DISTINCT + expr + RPAR |  # special aggregate function  # noqa
-        Combine(aggregate_function + LPAR) + expr + RPAR |
-
-        # "{" + identifier + expr + "}" |  # see MySQL notes; antique ODBC syntax  # noqa
         Optional(EXISTS) + LPAR + select_statement + RPAR |
         # ... e.g. mycol = EXISTS(SELECT ...)
         # ... e.g. mycol IN (SELECT ...)
@@ -412,12 +404,19 @@ SOUNDEX
     # ... but name it "join_source" here, or it gets enclosed in a further list
     #     when you name it later
 
-    result_column = (
-        # AS expression must come first (to be greediest)
-        expr + Optional(Optional(AS) + column_alias) |
+    result_base = (
+        # Aggregate functions: e.g. "MAX(" allowed, "MAX (" not allowed
+        Combine(COUNT + LPAR) + '*' + RPAR |  # special aggregate function
+        Combine(COUNT + LPAR) + DISTINCT + expr + RPAR |  # special aggregate function  # noqa
+        Combine(aggregate_function + LPAR) + expr + RPAR |
+        expr |
         '*' |
         Combine(table_name + '.' + '*') |
-        column_spec
+        column_spec |
+        literal_value
+    )
+    result_column = (
+        result_base + Optional(Optional(AS) + column_alias)
     ).setResultsName("select_columns", listAllMatches=True)
 
     # -------------------------------------------------------------------------
@@ -488,6 +487,10 @@ SOUNDEX
     @classmethod
     def get_column_spec(cls):
         return cls.column_spec
+
+    @classmethod
+    def get_result_column(cls):
+        return cls.result_column
 
     @classmethod
     def get_join_op(cls):

@@ -161,9 +161,9 @@ def modelrepr(instance) -> str:
             value = repr(getattr(instance, fieldname))
         except ObjectDoesNotExist:
             value = "<RelatedObjectDoesNotExist>"
-        elements.append("{}: {}".format(fieldname, value))
+        elements.append("{}={}".format(fieldname, value))
     return "<{} <{}>>".format(type(instance).__name__,
-                              "; ".join(elements))
+                              ", ".join(elements))
     # - type(instance).__name__ gives the Python class name from an instance
     # - ... as does ModelClass.__name__ but we don't have that directly here
     # - instance._meta.model_name gives a lower-case version

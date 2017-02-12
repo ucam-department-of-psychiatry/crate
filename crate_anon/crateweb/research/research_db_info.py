@@ -49,6 +49,7 @@ from crate_anon.common.sql import (
     TableId,
     translate_sql_qmark_to_percent,
 )
+from crate_anon.common.sql_grammar import SqlGrammar
 from crate_anon.common.sql_grammar_factory import (
     DIALECT_MSSQL,
     DIALECT_POSTGRES,
@@ -124,162 +125,30 @@ class ColumnInfo(object):
                        table=self.table_name)
 
 
-def get_researchdb_databases_schemas() -> List[Tuple[str, str]]:
-    return [(x['database'], x['schema']) for x in settings.RESEARCH_DB_INFO]
-
-
-def get_default_database() -> str:
-    if settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL:
-        return settings.DATABASES['research']['NAME']
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_POSTGRES:
-        return ''
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL:
-        return ''
-    else:
-        raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
-
-
-def get_default_schema() -> str:
-    if settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL:
-        return 'dbo'
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_POSTGRES:
-        return 'public'
-    elif settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL:
-        return settings.DATABASES['research']['NAME']
-    else:
-        raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
-
-
-def get_db_info(db: str, schema: str) -> Optional[Dict[str, Any]]:
-    db = db or get_default_database()
-    schema = schema or get_default_schema()
-    infolist = [x for x in settings.RESEARCH_DB_INFO
-                if x['database'] == db and x['schema'] == schema]
-    if not infolist:
-        log.warning("No such database/schema: {}.{}".format(db, schema))
-        return None
-    return infolist[0]
-
-
-@lru_cache(maxsize=None)
-def get_schema_trid_field(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('trid_field', '')
-
-
-@lru_cache(maxsize=None)
-def get_schema_rid_field(db: str, schema: str) -> str:
-    schema_info = get_db_info(db, schema)
-    if not schema_info:
-        return ''
-    return schema_info.get('rid_field', '')
-
-
-@lru_cache(maxsize=None)
-def get_db_rid_family(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('rid_family', '')
-
-
-@lru_cache(maxsize=None)
-def get_db_mrid_table(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('mrid_table', '')
-
-
-@lru_cache(maxsize=None)
-def get_db_mrid_field(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('mrid_field', '')
-
-
-@lru_cache(maxsize=None)
-def get_schema_date_field(db: str, schema: str) -> str:
-    db_info = get_db_info(db, schema)
-    if not db_info:
-        return ''
-    return db_info.get('default_date_field', '')
-
-
-def get_rid_column(table: TableId) -> ColumnId:
-    # RID column in the specified table (which may or may not exist)
-    return table.column_id(get_schema_rid_field(table.db(), table.schema()))
-
-
-def get_trid_column(table: TableId) -> ColumnId:
-    # TRID column in the specified table (which may or may not exist)
-    return table.column_id(get_schema_trid_field(table.db(), table.schema()))
-
-
-def get_mrid_column(table: TableId) -> ColumnId:
-    # MRID column in the MRID master table
-    db = table.db()
-    schema = table.schema()
-    return ColumnId(db=db,
-                    schema=schema,
-                    table=get_db_mrid_table(db=db, schema=schema),
-                    column=get_db_mrid_field(db=db, schema=schema))
-
-
-def get_default_date_column(table: TableId) -> ColumnId:
-    # Default date column (which may or may not exist)
-    return table.column_id(get_schema_date_field(table.db(), table.schema()))
-
-
-@lru_cache(maxsize=None)
-def does_db_schema_have_mrid(db: str, schema: str) -> bool:
-    this_dbs_info = get_db_info(db, schema)
-    if not this_dbs_info:
-        return False
-    return bool(
-        this_dbs_info.get('mrid_table', None) and
-        this_dbs_info.get('mrid_field', None)
-    )
-
-
-@lru_cache(maxsize=None)
-def is_db_schema_eligible_for_query_builder(db: str, schema: str) -> bool:
-    this_dbs_info = get_db_info(db, schema)
-    if not this_dbs_info:
-        return False
-    first_dbs_info = settings.RESEARCH_DB_INFO[0]
-    first_dbs_name = first_dbs_info['database']
-    first_dbs_schema = first_dbs_info['schema']
-    if db == first_dbs_name and schema == first_dbs_schema:
-        # First one: always eligible
-        return True
-    first_db_talks_to_world = bool(
-        first_dbs_info.get('mrid_table', None) and
-        first_dbs_info.get('mrid_field', None)
-    )
-    this_db_talks_to_world = does_db_schema_have_mrid(db, schema)
-    can_communicate_directly = bool(
-        first_dbs_info.get('rid_field', None) and
-        this_dbs_info.get('rid_field', None) and
-        this_dbs_info.get('rid_family', None) and
-        this_dbs_info.get('rid_family', None) ==
-        first_dbs_info.get('rid_family', None)
-    )
-    return (
-        (first_db_talks_to_world and this_db_talks_to_world) or
-        can_communicate_directly
-    )
-
-
 class ResearchDatabaseInfo(object):
     """
     Fetches schema information from the research database.
-    Class only exists to be able to use @cached_property.
+    Class primarily exists to be able to use @cached_property.
     ... replaced by lru_cache
     """
+    # We fetch the dialect at first request; this enables us to import the
+    # class without Django configured.
+
+    def __init__(self) -> None:
+        self._dialect = None
+        self._grammar = None
+
+    @property
+    def dialect(self) -> str:
+        if not self._dialect:
+            self._dialect = settings.RESEARCH_DB_DIALECT
+        return self._dialect
+
+    @property
+    def grammar(self) -> SqlGrammar:
+        if not self._grammar:
+            self._grammar = make_grammar(self.dialect)
+        return self._grammar
 
     @classmethod
     def _connection(cls) -> BaseDatabaseWrapper:
@@ -301,6 +170,148 @@ class ResearchDatabaseInfo(object):
         return connection.vendor in [VENDOR_MICROSOFT]
         # not MySQL ("database" concept = "schema" concept)
         # not PostgreSQL (only one database per connection)
+
+    @staticmethod
+    def get_researchdb_databases_schemas() -> List[Tuple[str, str]]:
+        return [(x['database'], x['schema'])
+                for x in settings.RESEARCH_DB_INFO]
+
+    def get_default_database(self) -> str:
+        dialect = self.dialect
+        if dialect == DIALECT_MSSQL:
+            return settings.DATABASES['research']['NAME']
+        elif dialect == DIALECT_POSTGRES:
+            return ''
+        elif dialect == DIALECT_MYSQL:
+            return ''
+        else:
+            raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
+
+    def get_default_schema(self) -> str:
+        dialect = self.dialect
+        if dialect == DIALECT_MSSQL:
+            return 'dbo'
+        elif dialect == DIALECT_POSTGRES:
+            return 'public'
+        elif dialect == DIALECT_MYSQL:
+            return settings.DATABASES['research']['NAME']
+        else:
+            raise ValueError("Bad settings.RESEARCH_DB_DIALECT")
+
+    def get_db_info(self, db: str, schema: str) -> Optional[Dict[str, Any]]:
+        db = db or self.get_default_database()
+        schema = schema or self.get_default_schema()
+        infolist = [x for x in settings.RESEARCH_DB_INFO
+                    if x['database'] == db and x['schema'] == schema]
+        if not infolist:
+            log.warning("No such database/schema: {}.{}".format(db, schema))
+            return None
+        return infolist[0]
+
+    @lru_cache(maxsize=None)
+    def get_schema_trid_field(self, db: str, schema: str) -> str:
+        db_info = self.get_db_info(db, schema)
+        if not db_info:
+            return ''
+        return db_info.get('trid_field', '')
+
+    @lru_cache(maxsize=None)
+    def get_schema_rid_field(self, db: str, schema: str) -> str:
+        schema_info = self.get_db_info(db, schema)
+        if not schema_info:
+            return ''
+        return schema_info.get('rid_field', '')
+
+    @lru_cache(maxsize=None)
+    def get_db_rid_family(self, db: str, schema: str) -> str:
+        db_info = self.get_db_info(db, schema)
+        if not db_info:
+            return ''
+        return db_info.get('rid_family', '')
+
+    @lru_cache(maxsize=None)
+    def get_db_mrid_table(self, db: str, schema: str) -> str:
+        db_info = self.get_db_info(db, schema)
+        if not db_info:
+            return ''
+        return db_info.get('mrid_table', '')
+
+    @lru_cache(maxsize=None)
+    def get_db_mrid_field(self, db: str, schema: str) -> str:
+        db_info = self.get_db_info(db, schema)
+        if not db_info:
+            return ''
+        return db_info.get('mrid_field', '')
+
+    @lru_cache(maxsize=None)
+    def get_schema_date_field(self, db: str, schema: str) -> str:
+        db_info = self.get_db_info(db, schema)
+        if not db_info:
+            return ''
+        return db_info.get('default_date_field', '')
+
+    def get_rid_column(self, table: TableId) -> ColumnId:
+        # RID column in the specified table (which may or may not exist)
+        return table.column_id(self.get_schema_rid_field(
+            table.db(), table.schema()))
+
+    def get_trid_column(self, table: TableId) -> ColumnId:
+        # TRID column in the specified table (which may or may not exist)
+        return table.column_id(
+            self.get_schema_trid_field(table.db(), table.schema()))
+
+    def get_mrid_column(self, table: TableId) -> ColumnId:
+        # MRID column in the MRID master table
+        db = table.db()
+        schema = table.schema()
+        return ColumnId(db=db,
+                        schema=schema,
+                        table=self.get_db_mrid_table(db=db, schema=schema),
+                        column=self.get_db_mrid_field(db=db, schema=schema))
+
+    def get_default_date_column(self, table: TableId) -> ColumnId:
+        # Default date column (which may or may not exist)
+        return table.column_id(
+            self.get_schema_date_field(table.db(), table.schema()))
+
+    @lru_cache(maxsize=None)
+    def does_db_schema_have_mrid(self, db: str, schema: str) -> bool:
+        this_dbs_info = self.get_db_info(db, schema)
+        if not this_dbs_info:
+            return False
+        return bool(
+            this_dbs_info.get('mrid_table', None) and
+            this_dbs_info.get('mrid_field', None)
+        )
+
+    @lru_cache(maxsize=None)
+    def is_db_schema_eligible_for_query_builder(self, db: str,
+                                                schema: str) -> bool:
+        this_dbs_info = self.get_db_info(db, schema)
+        if not this_dbs_info:
+            return False
+        first_dbs_info = settings.RESEARCH_DB_INFO[0]
+        first_dbs_name = first_dbs_info['database']
+        first_dbs_schema = first_dbs_info['schema']
+        if db == first_dbs_name and schema == first_dbs_schema:
+            # First one: always eligible
+            return True
+        first_db_talks_to_world = bool(
+            first_dbs_info.get('mrid_table', None) and
+            first_dbs_info.get('mrid_field', None)
+        )
+        this_db_talks_to_world = self.does_db_schema_have_mrid(db, schema)
+        can_communicate_directly = bool(
+            first_dbs_info.get('rid_field', None) and
+            this_dbs_info.get('rid_field', None) and
+            this_dbs_info.get('rid_family', None) and
+            this_dbs_info.get('rid_family', None) ==
+            first_dbs_info.get('rid_family', None)
+        )
+        return (
+            (first_db_talks_to_world and this_db_talks_to_world) or
+            can_communicate_directly
+        )
 
     @classmethod
     def _get_info_microsoft(cls, db_name: str,
@@ -642,10 +653,9 @@ ORDER BY
     def get_colinfolist_by_schema(self) -> OrderedDict:
         colinfolist = self.get_colinfolist()
         schema_to_colinfolist = {}
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
         for c in colinfolist:
             table_id = c.table_id()
-            schema = table_id.database_schema_part(grammar=grammar)
+            schema = table_id.database_schema_part(grammar=self.grammar)
             if schema not in schema_to_colinfolist:
                 schema_to_colinfolist[schema] = []
             schema_to_colinfolist[schema].append(c)
@@ -697,7 +707,6 @@ ORDER BY
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
         schema_colinfolist_dict = self.get_colinfolist_by_schema()
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
         for schema, colinfolist in schema_colinfolist_dict.items():
             ws = wb.create_sheet(title=schema)
             ws.append([
@@ -711,7 +720,7 @@ ORDER BY
                     c.table_catalog, c.table_schema, c.table_name,
                     c.column_name, c.is_nullable, c.column_type,
                     c.column_comment, c.indexed, c.indexed_fulltext,
-                    c.basetype(), c.column_id().identifier(grammar),
+                    c.basetype(), c.column_id().identifier(self.grammar),
                 ])
         return excel_to_bytes(wb)
 
@@ -724,7 +733,7 @@ ORDER BY
 
     @lru_cache(maxsize=1000)
     def table_contains_rid(self, table: TableId):
-        target_rid_column = get_rid_column(table)
+        target_rid_column = self.get_rid_column(table)
         for column in self.get_colinfolist():
             if column.column_id() == target_rid_column:
                 return True
@@ -742,7 +751,7 @@ ORDER BY
         for table in self.get_tables():
             db = table.db()
             schema = table.schema()
-            if not does_db_schema_have_mrid(db, schema):
+            if not self.does_db_schema_have_mrid(db, schema):
                 continue
             if self.table_contains_rid(table):
                 eligible_tables.add(table)

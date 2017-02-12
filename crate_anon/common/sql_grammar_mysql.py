@@ -537,19 +537,19 @@ YEAR
         VAR_SAMP |
         VARIANCE
     )
-    result_column = (
-        # AS expression must come early (to be greediest)
-
+    result_base = (
         # Aggregate functions: e.g. "MAX(" allowed, "MAX (" not allowed
-        (
-            Combine(COUNT + LPAR) + '*' + RPAR |  # special aggregate function
-            Combine(COUNT + LPAR) + DISTINCT + expr + RPAR |  # special aggregate function  # noqa
-            Combine(aggregate_function + LPAR) + expr + RPAR |
-            expr
-        ) + Optional(Optional(AS) + column_alias) |
+        Combine(COUNT + LPAR) + '*' + RPAR |  # special aggregate function
+        Combine(COUNT + LPAR) + DISTINCT + expr + RPAR |  # special aggregate function  # noqa
+        Combine(aggregate_function + LPAR) + expr + RPAR |
+        expr |
         '*' |
         Combine(table_name + '.' + '*') |
-        column_spec
+        column_spec |
+        literal_value
+    )
+    result_column = (
+        result_base + Optional(Optional(AS) + column_alias)
     ).setResultsName("select_columns", listAllMatches=True)
 
     # -------------------------------------------------------------------------
@@ -662,6 +662,10 @@ YEAR
     @classmethod
     def get_column_spec(cls):
         return cls.column_spec
+
+    @classmethod
+    def get_result_column(cls):
+        return cls.result_column
 
     @classmethod
     def get_join_op(cls):

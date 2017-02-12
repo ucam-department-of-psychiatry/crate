@@ -38,6 +38,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Table
 
 from crate_anon.common.formatting import sizeof_fmt
+from crate_anon.common.jsonfunc import register_for_json
 from crate_anon.common.lang import unique_list
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.timing import MultiTimerContext, timer
@@ -128,6 +129,7 @@ def sql_datetime_literal(dt: datetime.datetime,
 # SQL elements: identifiers
 # =============================================================================
 
+@register_for_json(method='strip_underscore')
 @functools.total_ordering
 class TableId(object):
     def __init__(self, db: str = '', schema: str = '',
@@ -199,6 +201,7 @@ class TableId(object):
         )
 
 
+@register_for_json(method='strip_underscore')
 @functools.total_ordering
 class ColumnId(object):
     def __init__(self, db: str = '', schema: str = '',
@@ -351,15 +354,16 @@ def parser_add_result_column(parsed: ParseResults,
                              column: str,
                              grammar: SqlGrammar) -> ParseResults:
     # Presupposes at least one column already in the SELECT statement.
-
+    # log.critical("Adding: " + repr(column))
     existing_columns = parsed.select_expression.select_columns.asList()
     # log.critical(parsed.dump())
     # log.critical("existing columns: {}".format(repr(existing_columns)))
     # log.critical("adding column: {}".format(column))
     if column not in existing_columns:
         # log.critical("... doesn't exist; adding")
-        newcol = grammar.get_column_spec().parseString(column,
-                                                       parseAll=True)[0]
+        newcol = grammar.get_result_column().parseString(column,
+                                                         parseAll=True)
+        # log.critical("... " + repr(newcol))
         parsed.select_expression.extend([",", newcol])
     # else:
     #     log.critical("... skipping column; exists")
@@ -367,8 +371,18 @@ def parser_add_result_column(parsed: ParseResults,
     return parsed
 
 
+class JoinInfo(object):
+    def __init__(self,
+                 table: str,
+                 join_type: str = 'INNER JOIN',
+                 join_condition: str = '') -> None:  # e.g. "ON x = y"
+        self.join_type = join_type
+        self.table = table
+        self.join_condition = join_condition
+
+
 def parser_add_from_tables(parsed: ParseResults,
-                           joininfo: List[Dict[str, str]],
+                           join_info_list: List[JoinInfo],
                            grammar: SqlGrammar) -> ParseResults:
     """
     joininfo: list of dictionaries with keys:
@@ -379,32 +393,28 @@ def parser_add_from_tables(parsed: ParseResults,
     existing_tables = parsed.join_source.from_tables.asList()
     # log.critical("existing tables: {}".format(existing_tables))
     # log.critical("adding table: {}".format(table))
-    for infodict in joininfo:
-        table = infodict['table']
-        join_type = infodict.get('join_type', 'INNER JOIN')
-        join_condition = infodict.get('join_condition', None)
-        if table in existing_tables:  # already there
+    for ji in join_info_list:
+        if ji.table in existing_tables:  # already there
             # log.critical("field already present")
             continue
-        parsed_join = grammar.get_join_op().parseString(join_type,
+        parsed_join = grammar.get_join_op().parseString(ji.join_type,
                                                         parseAll=True)[0]  # e.g. INNER JOIN  # noqa
-        parsed_table = grammar.get_table_spec().parseString(table,
+        parsed_table = grammar.get_table_spec().parseString(ji.table,
                                                             parseAll=True)[0]
         extrabits = [parsed_join, parsed_table]
-        if join_condition:  # e.g. ON x = y
+        if ji.join_condition:  # e.g. ON x = y
             extrabits.append(
-                grammar.get_join_constraint().parseString(join_condition,
+                grammar.get_join_constraint().parseString(ji.join_condition,
                                                           parseAll=True)[0])
         parsed.join_source.extend(extrabits)
     # log.critical(parsed.dump())
     return parsed
 
 
-def get_first_from_table(
-        parsed: ParseResults,
-        match_db: str = '',
-        match_schema: str = '',
-        match_table: str = '') -> TableId:
+def get_first_from_table(parsed: ParseResults,
+                         match_db: str = '',
+                         match_schema: str = '',
+                         match_table: str = '') -> TableId:
     """
     Given a set of parsed results from a SELECT statement,
     returns the (db, schema, table) tuple
@@ -425,24 +435,34 @@ def get_first_from_table(
     return TableId()
 
 
-def toggle_distinct(sql: str,
-                    formatted: bool = True,
-                    debug: bool = False,
-                    debug_verbose: bool = False,
-                    dialect: str = DIALECT_MYSQL) -> str:
-    grammar = make_grammar(dialect)
+def set_distinct_within_parsed(p: ParseResults, action: str = 'set') -> None:
+    if action == 'set':
+        if p.select_specifier and 'DISTINCT' not in p.select_specifier[0]:
+            p.select_specifier.append('DISTINCT')
+    elif action == 'clear':
+        if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
+            del p.select_specifier[:]
+    elif action == 'toggle':
+        if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
+            del p.select_specifier[:]
+        else:
+            p.select_specifier.append('DISTINCT')
+    else:
+        raise ValueError("action must be one of set/clear/toggle")
+
+
+def set_distinct(sql: str,
+                 grammar: SqlGrammar,
+                 action: str = 'set',
+                 formatted: bool = True,
+                 debug: bool = False,
+                 debug_verbose: bool = False) -> str:
     p = grammar.get_select_statement().parseString(sql, parseAll=True)
     if debug:
         log.info("START: {}".format(sql))
         if debug_verbose:
             log.debug("start dump:\n" + p.dump())
-    # log.critical(repr(p.select_specifier))
-    if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
-        # log.critical("Already has DISTINCT")
-        del p.select_specifier[:]
-    else:
-        # log.critical("Does not already have DISTINCT")
-        p.select_specifier.append('DISTINCT')
+    set_distinct_within_parsed(p, action=action)
     result = text_from_parsed(p, formatted=formatted)
     if debug:
         log.info("END: {}".format(result))
@@ -451,16 +471,17 @@ def toggle_distinct(sql: str,
     return result
 
 
-def set_distinct(sql: str,
-                 formatted: bool = True,
-                 dialect: str = DIALECT_MYSQL) -> str:
-    grammar = make_grammar(dialect)
-    p = grammar.get_select_statement().parseString(sql, parseAll=True)
-    if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
-        # already has DISTINCT
-        return sql
-    p.select_specifier.append('DISTINCT')
-    return text_from_parsed(p, formatted=formatted)
+def toggle_distinct(sql: str,
+                    grammar: SqlGrammar,
+                    formatted: bool = True,
+                    debug: bool = False,
+                    debug_verbose: bool = False) -> str:
+    return set_distinct(sql=sql,
+                        grammar=grammar,
+                        action='toggle',
+                        formatted=formatted,
+                        debug=debug,
+                        debug_verbose=debug_verbose)
 
 
 # =============================================================================
@@ -974,26 +995,45 @@ def sql_fragment_cast_to_int(expr: str,
 # Abstracted SQL WHERE condition
 # =============================================================================
 
+@register_for_json(method='provides_to_init_dict')
 @functools.total_ordering
 class WhereCondition(object):
     # Ancillary class for building SQL WHERE expressions from our web forms.
-    def __init__(self, column_id: ColumnId, op: str, datatype: str,
-                 value_or_values: Any) -> None:
+    def __init__(self,
+                 column_id: ColumnId = None,
+                 op: str = '',
+                 datatype: str = '',
+                 value_or_values: Any = None,
+                 raw_sql: str = '',
+                 from_table_for_raw_sql: TableId = None) -> None:
         self._column_id = column_id
         self._op = op.upper()
         self._datatype = datatype
         self._value = value_or_values
         self._no_value = False
         self._multivalue = False
+        self._raw_sql = raw_sql
+        self._from_table_for_raw_sql = from_table_for_raw_sql
 
-        if self._op in SQL_OPS_VALUE_UNNECESSARY:
-            self._no_value = True
-            assert value_or_values is None, "Superfluous value passed"
-        elif self._op in SQL_OPS_MULTIPLE_VALUES:
-            self._multivalue = True
-            assert isinstance(value_or_values, list), "Need list"
-        else:
-            assert not isinstance(value_or_values, list), "Need single value"
+        if not self._raw_sql:
+            if self._op in SQL_OPS_VALUE_UNNECESSARY:
+                self._no_value = True
+                assert value_or_values is None, "Superfluous value passed"
+            elif self._op in SQL_OPS_MULTIPLE_VALUES:
+                self._multivalue = True
+                assert isinstance(value_or_values, list), "Need list"
+            else:
+                assert not isinstance(value_or_values, list), "Need single value"  # noqa
+
+    def to_init_dict(self) -> Dict:
+        return {
+            'column_id': self._column_id,
+            'op': self._op,
+            'datatype': self._datatype,
+            'value_or_values': self._value,
+            'raw_sql': self._raw_sql,
+            'from_table_for_raw_sql': self._from_table_for_raw_sql,
+        }
 
     def __repr__(self) -> str:
         return (
@@ -1001,19 +1041,24 @@ class WhereCondition(object):
             "column_id={column_id}, "
             "op={op}, "
             "datatype={datatype}, "
-            "value_or_values={value_or_values}"
+            "value_or_values={value_or_values}, "
+            "raw_sql={raw_sql}, "
+            "from_table_for_raw_sql={from_table_for_raw_sql}"
             ") at {addr}>".format(
                 qualname=self.__class__.__qualname__,
                 column_id=repr(self._column_id),
                 op=repr(self._op),
                 datatype=repr(self._datatype),
                 value_or_values=repr(self._value),
+                raw_sql=repr(self._raw_sql),
+                from_table_for_raw_sql=repr(self._from_table_for_raw_sql),
                 addr=hex(id(self)),
             )
         )
 
     def __eq__(self, other: 'WhereCondition') -> bool:
         return (
+            self._raw_sql == other._raw_sql and
             self._column_id == other._column_id and
             self._op == other._op and
             self._value == other._value
@@ -1021,17 +1066,25 @@ class WhereCondition(object):
 
     def __lt__(self, other: 'WhereCondition') -> bool:
         return (
-            (self._column_id, self._op, self._value) <
-            (other._column_id, other._op, other._value)
+            (self._raw_sql, self._column_id, self._op, self._value) <
+            (other._raw_sql, other._column_id, other._op, other._value)
         )
 
     def column_id(self) -> ColumnId:
         return self._column_id
 
     def table_id(self) -> TableId:
+        if self._raw_sql:
+            return self._from_table_for_raw_sql
         return self.column_id().table_id()
 
+    def table_str(self, grammar: SqlGrammar) -> str:
+        return self.table_id().identifier(grammar)
+
     def sql(self, grammar: SqlGrammar) -> str:
+        if self._raw_sql:
+            return self._raw_sql
+
         if self._no_value:
             return "{col} {op}".format(
                 col=self._column_id.identifier(grammar),
@@ -1203,8 +1256,7 @@ def unit_tests():
     assert matches_fielddef("sometable", "somefield", "sometable.*")
     assert matches_fielddef("sometable", "somefield", "somefield")
 
-    dialect = DIALECT_MYSQL
-    grammar = make_grammar(dialect)
+    grammar = make_grammar(DIALECT_MYSQL)
     sql = "SELECT t1.c1, t2.c2 " \
           "FROM t1 INNER JOIN t2 ON t1.k = t2.k"
     parsed = grammar.get_select_statement().parseString(sql, parseAll=True)

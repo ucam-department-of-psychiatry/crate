@@ -35,15 +35,14 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from openpyxl import Workbook
 from openpyxl.worksheet import Worksheet
-from picklefield.fields import PickledObjectField
 
+from crate_anon.common.jsonfunc import CrateJsonField, register_for_json
 from crate_anon.common.lang import add_info_to_exception
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
     escape_percent_for_python_dbapi,
     make_grammar,
-    set_distinct,
     sql_string_literal,
     TableId,
     translate_sql_qmark_to_percent,
@@ -63,12 +62,11 @@ from crate_anon.crateweb.research.html_functions import (
     prettify_sql_html,
 )
 from crate_anon.crateweb.research.research_db_info import (
-    get_default_date_column,
-    get_mrid_column,
     research_database_info,
 )
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
+    SelectElement,
 )
 
 log = logging.getLogger(__name__)
@@ -149,8 +147,7 @@ class Query(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
 
     sql = models.TextField(verbose_name='SQL query')
-    args = PickledObjectField(verbose_name='Pickled arguments',
-                              null=True)
+    args = CrateJsonField(verbose_name='SQL arguments (as JSON)', null=True)
     # ... https://github.com/shrubberysoft/django-picklefield
     raw = models.BooleanField(
         default=False, verbose_name='SQL is raw, not parameter-substituted')
@@ -415,6 +412,14 @@ class PidLookupRouter(object):
             return 'secret'
         return None
 
+    @staticmethod
+    def allow_migrate(db, app_label, model_name=None, **hints):
+        # 2017-02-12, to address bug:
+        # - https://code.djangoproject.com/ticket/27054
+        # See also:
+        # - https://docs.djangoproject.com/en/1.10/topics/db/multi-db/#using-other-management-commands  # noqa
+        return db == 'default'
+
 
 class PidLookup(models.Model):
     """
@@ -562,6 +567,7 @@ Options:
 # PatientMultiQuery
 # =============================================================================
 
+@register_for_json(method='strip_underscore')
 class PatientMultiQuery(object):
     def __init__(self,
                  output_columns: List[ColumnId] = None,
@@ -569,7 +575,7 @@ class PatientMultiQuery(object):
                  manual_patient_id_query: str = ''):
         self._output_columns = output_columns or []  # type: List[ColumnId]
         self._patient_conditions = patient_conditions or []  # type: List[WhereCondition]  # noqa
-        self._manual_patient_id_query = manual_patient_id_query
+        self._manual_patient_id_query = manual_patient_id_query or ''
 
     def __repr__(self) -> str:
         return (
@@ -641,35 +647,24 @@ class PatientMultiQuery(object):
         if not self._patient_conditions:
             return ''
 
-        dialect = settings.RESEARCH_DB_DIALECT
-        grammar = make_grammar(dialect)
-        select_mrid_column = get_mrid_column(
+        grammar = research_database_info.grammar
+        select_mrid_column = research_database_info.get_mrid_column(
             self._patient_conditions[0].table_id())
         mrid_alias = "_mrid"
         sql = add_to_select(
             '',
-            select_columns=[select_mrid_column],
-            select_aliases=[mrid_alias],
+            grammar=grammar,
+            select_elements=[SelectElement(column_id=select_mrid_column,
+                                           alias=mrid_alias)],
+            distinct=True,
+            where_conditions=self._patient_conditions,
+            where_type="AND",
             magic_join=True,
-            dialect=dialect,
-            formatted=False
+            formatted=True
         )
-        sql = set_distinct(sql, dialect=dialect, formatted=False)
         sql += " ORDER BY " + mrid_alias
         # ... ORDER BY is important for consistency across runs
         # log.critical(sql)
-        for where_condition in self._patient_conditions:
-            sql = add_to_select(
-                sql,
-                where_type="AND",
-                where_expression=where_condition.sql(grammar),
-                where_table=where_condition.table_id(),
-                magic_join=True,
-                dialect=dialect,
-                formatted=False
-            )
-            # log.critical(sql)
-        sql = format_sql(sql)
         return sql
 
     def all_full_queries(self) -> List[Tuple[TableId, str, List[Any]]]:
@@ -697,7 +692,7 @@ class PatientMultiQuery(object):
                              grammar: SqlGrammar,
                              mrids: List[Any] = None) -> Tuple[str, List[Any]]:
         """Returns (sql, args)."""
-        mrid_column = get_mrid_column(table_id)
+        mrid_column = research_database_info.get_mrid_column(table_id)
         if mrids:
             in_clause = ",".join(["?"] * len(mrids))
             # ... see notes for translate_sql_qmark_to_percent()
@@ -718,45 +713,23 @@ class PatientMultiQuery(object):
                    mrids: List[Any] = None) -> Tuple[TableId, str, List[Any]]:
         if not columns:
             raise ValueError("No columns specified")
-        dialect = settings.RESEARCH_DB_DIALECT
-        grammar = make_grammar(dialect)
-        mrid_column = get_mrid_column(table_id)
+        grammar = research_database_info.grammar
+        mrid_column = research_database_info.get_mrid_column(table_id)
         all_columns = [mrid_column]
         for c in columns:
             if c not in all_columns:
                 all_columns.append(c)
-        where_clause, args = self.where_patient_clause(table_id, grammar, mrids)
-
-        # Process the columns table-wise:
-        current_table = all_columns[0].table_id()
-        current_columns = []
-        sql = ''
-        for col in all_columns:
-            if col.table_id() != current_table:
-                if current_columns:
-                    # We've finished with a previous table
-                    sql = add_to_select(sql,
-                                        select_columns=current_columns,
-                                        magic_join=True,
-                                        dialect=dialect,
-                                        formatted=False)
-                    current_columns = []
-                current_table = col.table_id()
-            current_columns.append(col)
-        # Now the leftovers:
-        sql = add_to_select(sql,
-                            select_columns=current_columns,
+        where_clause, args = self.where_patient_clause(table_id, grammar,
+                                                       mrids)
+        select_elements = [SelectElement(column_id=col)
+                           for col in all_columns]
+        where_conditions = [WhereCondition(raw_sql=where_clause)]
+        sql = add_to_select('',
+                            grammar=grammar,
+                            select_elements=select_elements,
+                            where_conditions=where_conditions,
                             magic_join=True,
-                            dialect=dialect,
-                            formatted=False)
-
-        sql = add_to_select(sql,
-                            where_expression=where_clause,
-                            where_table=mrid_column.table_id(),
-                            magic_join=True,
-                            dialect=dialect,
-                            formatted=False)
-        sql = format_sql(sql)
+                            formatted=True)
         return table_id, sql, args
 
     # -------------------------------------------------------------------------
@@ -764,13 +737,13 @@ class PatientMultiQuery(object):
     # -------------------------------------------------------------------------
 
     def output_cols_html(self) -> str:
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        grammar = research_database_info.grammar
         return prettify_sql_html("\n".join(
             [column_id.identifier(grammar)
              for column_id in self.get_output_columns()]))
 
     def pt_conditions_html(self) -> str:
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        grammar = research_database_info.grammar
         return prettify_sql_html("\nAND ".join([
             wc.sql(grammar) for wc in self.get_patient_conditions()]))
 
@@ -807,13 +780,13 @@ class PatientMultiQuery(object):
         When executed, query gives:
             research_id, table_name, n_records, min_date, max_date
         """
-        dialect = settings.RESEARCH_DB_DIALECT
-        grammar = make_grammar(dialect)
+        grammar = research_database_info.grammar
         queries = []
         args = []
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
-            mrid_col = get_mrid_column(table=table_id)
-            date_col = get_default_date_column(table=table_id)
+            mrid_col = research_database_info.get_mrid_column(table=table_id)
+            date_col = research_database_info.get_default_date_column(
+                table=table_id)
             if research_database_info.table_contains(table_id, date_col):
                 min_date = "MIN({})".format(date_col.identifier(grammar))
                 max_date = "MAX({})".format(date_col.identifier(grammar))
@@ -826,27 +799,41 @@ class PatientMultiQuery(object):
                 table_id, grammar, mrids)
             args += new_args
             table_identifier = table_id.identifier(grammar)
-            query = """
-SELECT {mrid} AS research_id, {table_name} AS table_name,
-    COUNT(*) AS n_records,
-    {min_date} AS min_date, {max_date} AS max_date
-FROM {table}
-            """.format(
-                mrid=mrid_col.identifier(grammar),
-                min_date=min_date,
-                max_date=max_date,
-                table_name=sql_string_literal(table_identifier),
-                table=table_identifier,
-            )
-            query = add_to_select(query,
-                                  where_expression=where_clause,
-                                  where_table=mrid_col.table_id(),
+            mrid_alias = 'master_research_id'
+            table_name_alias = 'table_name'
+            n_records_alias = 'n_records'
+            min_date_alias = 'min_date'
+            max_date_alias = 'max_date'
+            select_elements = [
+                SelectElement(column_id=mrid_col, alias=mrid_alias),
+                SelectElement(raw_select=sql_string_literal(table_identifier),
+                              alias='table_name'),
+                SelectElement(raw_select='COUNT(*)',
+                              from_table_for_raw_select=table_id,
+                              alias=n_records_alias),
+                SelectElement(raw_select=min_date,
+                              from_table_for_raw_select=table_id,
+                              alias=min_date_alias),
+                SelectElement(raw_select=max_date,
+                              from_table_for_raw_select=table_id,
+                              alias=max_date_alias),
+            ]
+            where_conditions = [WhereCondition(raw_sql=where_clause)]
+            query = add_to_select('',
+                                  grammar=grammar,
+                                  select_elements=select_elements,
+                                  where_conditions=where_conditions,
                                   magic_join=True,
-                                  dialect=dialect,
                                   formatted=False)
             query += " GROUP BY " + mrid_col.identifier(grammar)
             queries.append(query)
-        sql = "\nUNION\n".join(queries) + "\nORDER BY research_id, table_name"
+        sql = (
+            "\nUNION\n".join(queries) +
+            "\nORDER BY {mrid_alias}, {table_name_alias}".format(
+                mrid_alias=mrid_alias,
+                table_name_alias=table_name_alias,
+            )
+        )
         sql = format_sql(sql)
         return sql, args
 
@@ -857,21 +844,28 @@ FROM {table}
     def monster_queries(self,
                         mrids: List[int] = None) -> List[Tuple[TableId, str,
                                                                List[Any]]]:
-        dialect = settings.RESEARCH_DB_DIALECT
-        grammar = make_grammar(dialect)
+        grammar = research_database_info.grammar
         table_sql_args_tuples = []
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
-            mrid_col = get_mrid_column(table=table_id)
+            mrid_col = research_database_info.get_mrid_column(table=table_id)
             where_clause, args = self.where_patient_clause(
                 table_id, grammar, mrids)
             # We add the WHERE using our magic query machine, to get the joins
             # right:
+            select_elements = [
+                SelectElement(raw_select='*',
+                              from_table_for_raw_select=table_id),
+            ]
+            where_conditions = [
+                WhereCondition(raw_sql=where_clause,
+                               from_table_for_raw_sql=mrid_col.table_id()),
+            ]
             sql = add_to_select(
-                "SELECT * FROM " + table_id.identifier(grammar),
-                where_expression=where_clause,
-                where_table=mrid_col.table_id(),
+                '',
+                grammar=grammar,
+                select_elements=select_elements,
+                where_conditions=where_conditions,
                 magic_join=True,
-                dialect=dialect,
                 formatted=False)
             sql += " ORDER BY " + mrid_col.identifier(grammar)
             sql = format_sql(sql)
@@ -895,8 +889,8 @@ class PatientExplorer(models.Model):
 
     id = models.AutoField(primary_key=True)  # automatic
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    patient_multiquery = PickledObjectField(
-        verbose_name='Pickled PatientMultiQuery',
+    patient_multiquery = CrateJsonField(
+        verbose_name='PatientMultiQuery as JSON',
         null=True)  # type: PatientMultiQuery
     active = models.BooleanField(default=True)  # see save() below
     created = models.DateTimeField(auto_now_add=True)

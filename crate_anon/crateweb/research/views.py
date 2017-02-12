@@ -81,12 +81,6 @@ from crate_anon.crateweb.research.models import (
     Query,
 )
 from crate_anon.crateweb.research.research_db_info import (
-    get_default_database,
-    get_default_schema,
-    get_researchdb_databases_schemas,
-    is_db_schema_eligible_for_query_builder,
-    get_schema_trid_field,
-    get_schema_rid_field,
     research_database_info,
 )
 from crate_anon.crateweb.userprofile.models import get_patients_per_page
@@ -101,9 +95,11 @@ from crate_anon.common.sql import (
 from crate_anon.common.sql_grammar_factory import (
     DIALECT_MYSQL,
     DIALECT_MSSQL,
-    make_grammar,
 )
-from crate_anon.crateweb.research.sql_writer import add_to_select
+from crate_anon.crateweb.research.sql_writer import (
+    add_to_select,
+    SelectElement,
+)
 
 log = logging.getLogger(__name__)
 
@@ -154,17 +150,18 @@ def get_db_structure_json() -> str:
     if not colinfolist:
         log.warning("get_db_structure_json(): colinfolist is empty")
     info = []
-    for db, schema in get_researchdb_databases_schemas():  # preserve order  # noqa
+    for db, schema in research_database_info.get_researchdb_databases_schemas():  # preserve order  # noqa
         log.info("get_db_structure_json: db {}, schema {}".format(
             repr(db), repr(schema)))
-        if not is_db_schema_eligible_for_query_builder(db, schema):
+        if not research_database_info.is_db_schema_eligible_for_query_builder(
+                db, schema):
             log.debug("Skipping db={}, schema={}: not eligible for query "
                       "builder".format(repr(db), repr(schema)))
             continue
         schema_cil = [x for x in colinfolist
                       if x.table_catalog == db and x.table_schema == schema]
-        trid_field = get_schema_trid_field(db, schema)
-        rid_field = get_schema_rid_field(db, schema)
+        trid_field = research_database_info.get_schema_trid_field(db, schema)
+        rid_field = research_database_info.get_schema_rid_field(db, schema)
         table_info = []
         for table in sorted(set(x.table_name for x in schema_cil)):
             table_cil = [x for x in schema_cil if x.table_name == table]
@@ -241,13 +238,13 @@ def query_build(request: HttpRequest) -> HttpResponse:
 
     profile = request.user.profile
     parse_error = ''
-    default_database = get_default_database()
-    default_schema = get_default_schema()
+    default_database = research_database_info.get_default_database()
+    default_schema = research_database_info.get_default_schema()
     with_database = research_database_info.uses_database_level()
     form = None
 
     if request.method == 'POST':
-        grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+        grammar = research_database_info.grammar
         try:
             if 'global_clear' in request.POST:
                 profile.sql_scratchpad = ''
@@ -255,8 +252,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
 
             elif 'global_toggle_distinct' in request.POST:
                 profile.sql_scratchpad = toggle_distinct(
-                    profile.sql_scratchpad,
-                    dialect=settings.RESEARCH_DB_DIALECT)
+                    profile.sql_scratchpad, grammar=grammar)
                 profile.save()
 
             elif 'global_save' in request.POST:
@@ -281,22 +277,22 @@ def query_build(request: HttpRequest) -> HttpResponse:
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            select_columns=[column_id],
+                            select_elements=[
+                                SelectElement(column_id=column_id)
+                            ],
                             magic_join=True,
-                            dialect=settings.RESEARCH_DB_DIALECT
+                            grammar=grammar
                         )
 
                     elif 'submit_select_star' in request.POST:
-                        all_column_ids = [
-                            c.column_id() for c in
+                        select_elements = [
+                            SelectElement(column_id=c.column_id()) for c in
                             research_database_info.all_columns(table_id)]
-                        # Doing a series of add_to_select() calls is slow,
-                        # so reworked to take a list.
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
-                            select_columns=all_column_ids,
+                            select_elements=select_elements,
                             magic_join=True,
-                            dialect=settings.RESEARCH_DB_DIALECT
+                            grammar=grammar,
                         )
 
                     elif 'submit_where' in request.POST:
@@ -317,10 +313,9 @@ def query_build(request: HttpRequest) -> HttpResponse:
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
                             where_type="AND",
-                            where_expression=wherecond.sql(grammar),
-                            where_table=table_id,
+                            where_conditions=[wherecond],
                             magic_join=True,
-                            dialect=settings.RESEARCH_DB_DIALECT
+                            grammar=grammar
                         )
 
                     else:
@@ -1022,8 +1017,8 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
         'paginated': False,
         'colinfolist': colinfolist,
         'rowcount': rowcount,
-        'default_database': get_default_database(),
-        'default_schema': get_default_schema(),
+        'default_database': research_database_info.get_default_database(),
+        'default_schema': research_database_info.get_default_schema(),
         'with_database': research_database_info.uses_database_level(),
     }
     return render(request, 'database_structure.html', context)
@@ -1037,8 +1032,8 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
         'paginated': True,
         'colinfolist': colinfolist,
         'rowcount': rowcount,
-        'default_database': get_default_database(),
-        'default_schema': get_default_schema(),
+        'default_database': research_database_info.get_default_database(),
+        'default_schema': research_database_info.get_default_schema(),
         'with_database': research_database_info.uses_database_level(),
     }
     return render(request, 'database_structure.html', context)
@@ -1049,13 +1044,13 @@ def get_structure_tree_html() -> str:
     table_to_colinfolist = research_database_info.get_colinfolist_by_tables()
     content = ""
     element_counter = HtmlElementCounter()
-    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    grammar = research_database_info.grammar
     for table_id, colinfolist in table_to_colinfolist.items():
         html_table = render_to_string(
             'database_structure_table.html', {
                 'colinfolist': colinfolist,
-                'default_database': get_default_database(),
-                'default_schema': get_default_schema(),
+                'default_database': research_database_info.get_default_database(),  # noqa
+                'default_schema': research_database_info.get_default_schema(),
                 'with_database': research_database_info.uses_database_level()
             })
         cd_button = element_counter.visibility_div_spanbutton()
@@ -1076,8 +1071,8 @@ def get_structure_tree_html() -> str:
 def structure_tree(request: HttpRequest) -> HttpResponse:
     context = {
         'content': get_structure_tree_html(),
-        'default_database': get_default_database(),
-        'default_schema': get_default_schema(),
+        'default_database': research_database_info.get_default_database(),
+        'default_schema': research_database_info.get_default_schema(),
     }
     return render(request, 'database_structure_tree.html', context)
 
@@ -1144,7 +1139,7 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
         'include_content': False,
     }
     form = SQLHelperTextAnywhereForm(request.POST or default_values)
-    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    grammar = research_database_info.grammar
     if form.is_valid():
         fkname = form.cleaned_data['fkname']
         min_length = form.cleaned_data['min_length']
@@ -1228,8 +1223,8 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
 
 def patient_explorer_build(request: HttpRequest) -> HttpResponse:
     profile = request.user.profile
-    default_database = get_default_database()
-    default_schema = get_default_schema()
+    default_database = research_database_info.get_default_database()
+    default_schema = research_database_info.get_default_schema()
     with_database = research_database_info.uses_database_level()
     manual_form = None
     form = None
@@ -1417,7 +1412,7 @@ def patient_explorer_edit(request: HttpRequest, pe_id: int) -> HttpResponse:
 
 def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
-    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    grammar = research_database_info.grammar
     profile = request.user.profile
     highlights = Highlight.get_active_highlights(request)
     highlight_dict = Highlight.as_ordered_dict(highlights)
@@ -1617,7 +1612,7 @@ def pe_data_finder_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
 
 def pe_monster_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
-    grammar = make_grammar(settings.RESEARCH_DB_DIALECT)
+    grammar = research_database_info.grammar
     profile = request.user.profile
     highlights = Highlight.get_active_highlights(request)
     highlight_dict = Highlight.as_ordered_dict(highlights)

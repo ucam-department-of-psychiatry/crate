@@ -28,13 +28,13 @@ from django.conf import settings
 from django.db import models
 from django.dispatch import receiver
 from django.http.request import HttpRequest
-from picklefield.fields import PickledObjectField
 
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_PHONE,
     LEN_TITLE,
 )
+from crate_anon.common.jsonfunc import CrateJsonField
 from crate_anon.crateweb.extra.salutation import (
     forename_surname,
     salutation,
@@ -101,8 +101,8 @@ class UserProfile(models.Model):
                      "collapsed (0 for none)")
     sql_scratchpad = models.TextField(
         verbose_name='SQL scratchpad for query builder')
-    patient_multiquery_scratchpad = PickledObjectField(
-        verbose_name='PatientMultiQuery scratchpad (pickled) for builder',
+    patient_multiquery_scratchpad = CrateJsonField(
+        verbose_name='PatientMultiQuery scratchpad (in JSON) for builder',
         null=True)  # type: 'PatientMultiQuery'
 
     # -------------------------------------------------------------------------

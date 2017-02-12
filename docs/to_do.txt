@@ -4,6 +4,10 @@ To do
 
 - Patient Explorer
 
+    *** include MRID in all "main PE results" tables
+    *** rename "research_id" to "master_research_id" in Data Viewer
+    *** filename for data viewer: "crate_dv_..."?
+
     - patient BRCID/TRID as header for each results page
         ... *** think if non-primary database used
 

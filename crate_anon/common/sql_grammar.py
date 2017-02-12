@@ -640,6 +640,10 @@ class SqlGrammar(object):
         raise NotImplementedError()
 
     @classmethod
+    def get_result_column(cls):
+        raise NotImplementedError()
+
+    @classmethod
     def get_join_op(cls):
         raise NotImplementedError()
 
@@ -817,6 +821,19 @@ class SqlGrammar(object):
                  "a space between the function and the opening bracket")
         cls.test_select_fail(
             "SELECT col1, COUNT (*) FROM table1 GROUP BY col1")
+
+        log.info("Testing SELECT with literal")
+        cls.test_select("SELECT 'blah' AS some_literal")
+
+        log.info("Testing SELECT result columns")
+        test_succeed(cls.get_result_column(), "somecol")
+        test_succeed(cls.get_result_column(), "somecol AS alias")
+        test_succeed(cls.get_result_column(), "COUNT(*)")
+        test_succeed(cls.get_result_column(), "COUNT(*) AS alias")
+        test_succeed(cls.get_result_column(), "'blah'")
+        test_succeed(cls.get_result_column(), "'blah' AS alias")
+        test_succeed(cls.get_result_column(), "NULL")
+        test_succeed(cls.get_result_column(), "NULL AS alias")
 
     @classmethod
     def test_dialect_specific_1(cls):
