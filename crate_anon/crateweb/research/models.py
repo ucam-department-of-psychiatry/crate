@@ -36,7 +36,11 @@ from django.http.request import HttpRequest
 from openpyxl import Workbook
 from openpyxl.worksheet import Worksheet
 
-from crate_anon.common.jsonfunc import CrateJsonField, register_for_json
+from crate_anon.common.jsonfunc import (
+    JsonClassField,
+    METHOD_STRIP_UNDERSCORE,
+    register_for_json,
+)
 from crate_anon.common.lang import add_info_to_exception
 from crate_anon.common.sql import (
     ColumnId,
@@ -147,7 +151,7 @@ class Query(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
 
     sql = models.TextField(verbose_name='SQL query')
-    args = CrateJsonField(verbose_name='SQL arguments (as JSON)', null=True)
+    args = JsonClassField(verbose_name='SQL arguments (as JSON)', null=True)
     # ... https://github.com/shrubberysoft/django-picklefield
     raw = models.BooleanField(
         default=False, verbose_name='SQL is raw, not parameter-substituted')
@@ -412,6 +416,7 @@ class PidLookupRouter(object):
             return 'secret'
         return None
 
+    # noinspection PyUnusedLocal
     @staticmethod
     def allow_migrate(db, app_label, model_name=None, **hints):
         # 2017-02-12, to address bug:
@@ -567,7 +572,7 @@ Options:
 # PatientMultiQuery
 # =============================================================================
 
-@register_for_json(method='strip_underscore')
+@register_for_json(method=METHOD_STRIP_UNDERSCORE)
 class PatientMultiQuery(object):
     def __init__(self,
                  output_columns: List[ColumnId] = None,
@@ -783,6 +788,11 @@ class PatientMultiQuery(object):
         grammar = research_database_info.grammar
         queries = []
         args = []
+        mrid_alias = 'master_research_id'
+        table_name_alias = 'table_name'
+        n_records_alias = 'n_records'
+        min_date_alias = 'min_date'
+        max_date_alias = 'max_date'
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
             mrid_col = research_database_info.get_mrid_column(table=table_id)
             date_col = research_database_info.get_default_date_column(
@@ -799,11 +809,6 @@ class PatientMultiQuery(object):
                 table_id, grammar, mrids)
             args += new_args
             table_identifier = table_id.identifier(grammar)
-            mrid_alias = 'master_research_id'
-            table_name_alias = 'table_name'
-            n_records_alias = 'n_records'
-            min_date_alias = 'min_date'
-            max_date_alias = 'max_date'
             select_elements = [
                 SelectElement(column_id=mrid_col, alias=mrid_alias),
                 SelectElement(raw_select=sql_string_literal(table_identifier),
@@ -889,7 +894,7 @@ class PatientExplorer(models.Model):
 
     id = models.AutoField(primary_key=True)  # automatic
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
-    patient_multiquery = CrateJsonField(
+    patient_multiquery = JsonClassField(
         verbose_name='PatientMultiQuery as JSON',
         null=True)  # type: PatientMultiQuery
     active = models.BooleanField(default=True)  # see save() below

@@ -664,6 +664,14 @@ class SqlGrammar(object):
         raise NotImplementedError()
 
     @classmethod
+    def get_where_clause(cls):
+        raise NotImplementedError()
+
+    @classmethod
+    def get_where_expr(cls):
+        raise NotImplementedError()
+
+    @classmethod
     def test(cls, test_expr: bool = True):
         cls.test_dialect_specific_1()
         cls.test_identifiers()

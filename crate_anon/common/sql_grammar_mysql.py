@@ -585,6 +585,10 @@ YEAR
           | INTO var_name [, var_name]]
         [FOR UPDATE | LOCK IN SHARE MODE]]
     """
+    where_expr = Group(expr).setResultsName("where_expr")
+    where_clause = Group(
+        Optional(WHERE + where_expr)
+    ).setResultsName("where_clause")
     select_core = (
         SELECT +
         Group(Optional(ALL | DISTINCT | DISTINCTROW))("select_specifier") +
@@ -600,7 +604,7 @@ YEAR
         Optional(
             FROM + join_source +
             Optional(PARTITION + partition_list) +
-            Group(Optional(WHERE + Group(expr)("where_expr")))("where_clause") +
+            where_clause +
             Optional(
                 GROUP + BY +
                 delim_list(ordering_term +
@@ -686,6 +690,14 @@ YEAR
     @classmethod
     def get_expr(cls):
         return cls.expr
+
+    @classmethod
+    def get_where_clause(cls):
+        return cls.where_clause
+
+    @classmethod
+    def get_where_expr(cls):
+        return cls.where_expr
 
     @classmethod
     def test_dialect_specific_1(cls):

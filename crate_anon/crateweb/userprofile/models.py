@@ -34,7 +34,7 @@ from crate_anon.crateweb.core.constants import (
     LEN_PHONE,
     LEN_TITLE,
 )
-from crate_anon.common.jsonfunc import CrateJsonField
+from crate_anon.common.jsonfunc import JsonClassField
 from crate_anon.crateweb.extra.salutation import (
     forename_surname,
     salutation,
@@ -101,7 +101,7 @@ class UserProfile(models.Model):
                      "collapsed (0 for none)")
     sql_scratchpad = models.TextField(
         verbose_name='SQL scratchpad for query builder')
-    patient_multiquery_scratchpad = CrateJsonField(
+    patient_multiquery_scratchpad = JsonClassField(
         verbose_name='PatientMultiQuery scratchpad (in JSON) for builder',
         null=True)  # type: 'PatientMultiQuery'
 

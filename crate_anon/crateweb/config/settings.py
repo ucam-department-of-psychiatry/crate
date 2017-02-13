@@ -32,11 +32,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
 
-# import datetime
 import importlib.machinery
 import logging
 import os
-import sys
 
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 

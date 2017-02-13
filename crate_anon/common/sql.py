@@ -38,7 +38,11 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Table
 
 from crate_anon.common.formatting import sizeof_fmt
-from crate_anon.common.jsonfunc import register_for_json
+from crate_anon.common.jsonfunc import (
+    METHOD_PROVIDES_INIT_KWARGS,
+    METHOD_STRIP_UNDERSCORE,
+    register_for_json,
+)
 from crate_anon.common.lang import unique_list
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.timing import MultiTimerContext, timer
@@ -129,7 +133,7 @@ def sql_datetime_literal(dt: datetime.datetime,
 # SQL elements: identifiers
 # =============================================================================
 
-@register_for_json(method='strip_underscore')
+@register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering
 class TableId(object):
     def __init__(self, db: str = '', schema: str = '',
@@ -201,7 +205,7 @@ class TableId(object):
         )
 
 
-@register_for_json(method='strip_underscore')
+@register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering
 class ColumnId(object):
     def __init__(self, db: str = '', schema: str = '',
@@ -995,7 +999,7 @@ def sql_fragment_cast_to_int(expr: str,
 # Abstracted SQL WHERE condition
 # =============================================================================
 
-@register_for_json(method='provides_to_init_dict')
+@register_for_json(method=METHOD_PROVIDES_INIT_KWARGS)
 @functools.total_ordering
 class WhereCondition(object):
     # Ancillary class for building SQL WHERE expressions from our web forms.
@@ -1025,7 +1029,7 @@ class WhereCondition(object):
             else:
                 assert not isinstance(value_or_values, list), "Need single value"  # noqa
 
-    def to_init_dict(self) -> Dict:
+    def init_kwargs(self) -> Dict:
         return {
             'column_id': self._column_id,
             'op': self._op,

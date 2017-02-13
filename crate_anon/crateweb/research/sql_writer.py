@@ -330,26 +330,31 @@ def add_to_select(sql: str,
     # -------------------------------------------------------------------------
     for wc in where_conditions:
         where_expression = wc.sql(grammar)
-        cond = grammar.get_expr().parseString(where_expression, parseAll=True)
         if bracket_where:
-            where_elements = ['(', cond, ')']
-        else:
-            where_elements = [cond]
+            where_expression = '(' + where_expression + ')'
+
+        # The tricky bit: inserting it.
+        # We use the [0] to overcome the effects of defining these things
+        # as a pyparsing Group(), which encapsulates the results in a list.
         if p.where_clause:
-            extra = [where_type] + where_elements
+            cond = grammar.get_expr().parseString(where_expression,
+                                                  parseAll=True)[0]
+            extra = [where_type, cond]
             p.where_clause.where_expr.extend(extra)
         else:
             # No WHERE as yet
-            if isinstance(p.where_clause, str):
-                raise ValueError(
-                    "SQL parser has failed (we know because p.where_clause"
-                    " is '' not []); SQL was {}; p is {}".format(
-                        repr(sql), repr(p)))
-            extra = ['WHERE'] + where_elements
-            p.where_clause.extend(extra)  # can fail: AttributeError: 'str' object has no attribute 'extend'  # noqa
-            # ... usual reason is that you've passed duff SQL in
-            # ... other possibility is that the grammar is incomplete
-        # *** check this works with multiple WHERE conditions starting from nothing
+            # Doing this properly is a nightmare.
+            # It's hard to add a *named* ParseResults element to another.
+            # So it's very hard to alter p.where_clause.where_expr such that
+            # we can continue adding more WHERE clauses if we want.
+            # This is the inefficient, cop-out method:
+            # (1) Add as plain text
+            p.where_clause.append("WHERE " + where_expression)
+            # (2) Reparse...
+            p = grammar.get_select_statement().parseString(
+                text_from_parsed(p, formatted=False),
+                parseAll=True
+            )
 
         add_new_table(wc.table_id())
 
@@ -407,14 +412,27 @@ def unit_tests() -> None:
         )]
     ))
     log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1",
+        "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
         grammar=grammar,
         where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")]
     ))
     log.info(add_to_select(
-        "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
+        "SELECT t1.a, t1.b FROM t1",
+        grammar=grammar,
+        where_conditions=[WhereCondition(raw_sql="t1.col1 > 5")]
+    ))
+    log.info(add_to_select(
+        "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5 AND t3.col99 = 100",
         grammar=grammar,
         where_conditions=[WhereCondition(raw_sql="t1.col2 < 3")]
+    ))
+
+    # Multiple WHEREs where before there were none:
+    log.info(add_to_select(
+        "SELECT t1.a, t1.b FROM t1",
+        grammar=grammar,
+        where_conditions=[WhereCondition(raw_sql="t1.col1 > 99"),
+                          WhereCondition(raw_sql="t1.col2 < 999")]
     ))
 
 

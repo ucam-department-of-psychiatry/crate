@@ -1218,10 +1218,10 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
 
 
 # =============================================================================
-# Per-patient views
+# Per-patient views: Patient Explorer
 # =============================================================================
 
-def patient_explorer_build(request: HttpRequest) -> HttpResponse:
+def pe_build(request: HttpRequest) -> HttpResponse:
     profile = request.user.profile
     default_database = research_database_info.get_default_database()
     default_schema = research_database_info.get_default_schema()
@@ -1374,7 +1374,7 @@ def patient_explorer_build(request: HttpRequest) -> HttpResponse:
     return render(request, 'pe_build.html', context)
 
 
-def patient_explorer_choose(request: HttpRequest) -> HttpResponse:
+def pe_choose(request: HttpRequest) -> HttpResponse:
     all_pes = get_all_pes(request)
     patient_explorers = paginate(request, all_pes)
     context = {
@@ -1386,22 +1386,21 @@ def patient_explorer_choose(request: HttpRequest) -> HttpResponse:
     return render(request, 'pe_choose.html', context)
 
 
-def patient_explorer_activate(request: HttpRequest,
-                              pe_id: int) -> HttpResponse:
+def pe_activate(request: HttpRequest, pe_id: int) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.activate()
     return redirect('pe_choose')
 
 
-def patient_explorer_delete(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_delete(request: HttpRequest, pe_id: int) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.delete_if_permitted()
     return redirect('pe_choose')
 
 
-def patient_explorer_edit(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_edit(request: HttpRequest, pe_id: int) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     profile = request.user.profile
@@ -1410,7 +1409,7 @@ def patient_explorer_edit(request: HttpRequest, pe_id: int) -> HttpResponse:
     return redirect('pe_build')
 
 
-def patient_explorer_results(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = research_database_info.grammar
     profile = request.user.profile
@@ -1515,7 +1514,7 @@ def pe_submit(request: HttpRequest,
         return redirect('pe_choose')
 
 
-def patient_explorer_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
     # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
@@ -1531,13 +1530,13 @@ def patient_explorer_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
         return render_bad_pe(request, pe, exception)
 
 
-def patient_explorer_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         return file_response(
             pe.get_xlsx_binary(),
             content_type=CONTENTTYPE_XLSX,
-            filename="crate_patientexplorer_{num}_{datetime}.xlsx".format(
+            filename="crate_pe_{num}_{datetime}.xlsx".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
             )
@@ -1601,7 +1600,7 @@ def pe_data_finder_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
         return file_response(
             pe.data_finder_excel(),
             content_type=CONTENTTYPE_XLSX,
-            filename="crate_patientexplorer_{num}_{datetime}.xlsx".format(
+            filename="crate_pe_df_{num}_{datetime}.xlsx".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
             )

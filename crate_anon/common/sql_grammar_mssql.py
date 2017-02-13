@@ -422,6 +422,10 @@ SOUNDEX
     # -------------------------------------------------------------------------
     # SELECT
     # -------------------------------------------------------------------------
+    where_expr = Group(expr).setResultsName("where_expr")
+    where_clause = Group(
+        Optional(WHERE + where_expr)
+    ).setResultsName("where_clause")
     select_core = (
         SELECT +
         Optional(TOP + integer) +
@@ -429,7 +433,7 @@ SOUNDEX
         Group(delim_list(result_column))("select_expression") +
         Optional(
             FROM + join_source +
-            Group(Optional(WHERE + Group(expr)("where_expr")))("where_clause") +
+            where_clause +
             Optional(
                 GROUP + BY +
                 delim_list(ordering_term +
@@ -511,6 +515,14 @@ SOUNDEX
     @classmethod
     def get_expr(cls):
         return cls.expr
+
+    @classmethod
+    def get_where_clause(cls):
+        return cls.where_clause
+
+    @classmethod
+    def get_where_expr(cls):
+        return cls.where_expr
 
     @classmethod
     def test_dialect_specific_2(cls):
