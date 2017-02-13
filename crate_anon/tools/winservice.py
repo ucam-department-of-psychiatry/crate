@@ -489,15 +489,17 @@ class ProcessManager(object):
             return
         retcode = self.process.wait(timeout=timeout_s)
         # We won't get further unless the process has stopped.
-        if retcode > 0:
+        if retcode is None:
+            self.error("Subprocess finished, but return code was None")
+        elif retcode == 0:
+            self.info("Subprocess finished cleanly (return code 0).")
+        else:
             self.error(
                 "Subprocess finished, but FAILED (return code {}). "
                 "Logs were: {} (stdout), {} (stderr)".format(
                     retcode,
                     self.details.logfile_out,
                     self.details.logfile_err))
-        else:
-            self.info("Subprocess finished cleanly (return code 0).")
         self.running = False
 
 
@@ -714,7 +716,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
                         break
                     try:
                         retcode = pmgr.wait(timeout_s=subproc_run_timeout_sec)
-                        if retcode > 0:
+                        if retcode != 0:
                             subproc_failed = True
                     except subprocess.TimeoutExpired:
                         something_running = True
