@@ -114,6 +114,16 @@ def convert_int(kwargs: Dict[str, Any], field: str) -> None:
         kwargs[field] = int(value)
 
 
+def convert_float(kwargs: Dict[str, Any], field: str) -> None:
+    if field not in kwargs:
+        return
+    value = kwargs[field]
+    if value is None or (isinstance(value, str) and not value.strip()):
+        kwargs[field] = None
+    else:
+        kwargs[field] = float(value)
+
+
 def values_from_row(row: Iterable[Cell]) -> List[Any]:
     """For openpyxl interface to XLSX files."""
     values = []
@@ -1211,6 +1221,12 @@ class PopWeightedCentroidsLsoa2011(Base):
         rename_kwarg(kwargs, 'BNGNORTH', 'bng_north')
         rename_kwarg(kwargs, 'LONGITUDE', 'longitude')
         rename_kwarg(kwargs, 'LATITUDE', 'latitude')
+        # MySQL doesn't care if you pass a string to a numeric field, but
+        # SQL server does. So:
+        convert_int(kwargs, 'bng_east')
+        convert_int(kwargs, 'bng_north')
+        convert_float(kwargs, 'longitude')
+        convert_float(kwargs, 'latitude')
         super().__init__(**kwargs)
         if not self.lsoa_code:
             raise ValueError("Can't have a blank lsoa_code")
