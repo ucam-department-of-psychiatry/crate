@@ -3,9 +3,6 @@ To do
 ===============================================================================
 
 - For mapping:
-  Population-weighted centroids
-
-  http://webarchive.nationalarchives.gov.uk/20160105160709/http://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html
 
   Mapping in R:
   - https://www.students.ncl.ac.uk/keith.newman/r/maps-in-r#uk

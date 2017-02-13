@@ -475,8 +475,10 @@ class ProcessManager(object):
 
     def _kill(self) -> None:
         """Hard kill."""
+        msg = "Using a hard kill; will assume it worked"
         if WINDOWS:
-            self.warning("Using a hard kill; may leave orphans")
+            msg += "; may leave orphans"
+        self.warning(msg)
         self.process.kill()  # hard kill, Windows or POSIX
         # ... but will leave orphans under Windows
 
@@ -489,13 +491,13 @@ class ProcessManager(object):
         # We won't get further unless the process has stopped.
         if retcode > 0:
             self.error(
-                "FAILED (return code {}). "
+                "Subprocess finished, but FAILED (return code {}). "
                 "Logs were: {} (stdout), {} (stderr)".format(
                     retcode,
                     self.details.logfile_out,
                     self.details.logfile_err))
         else:
-            self.info("Finished.")
+            self.info("Subprocess finished cleanly (return code 0).")
         self.running = False
 
 

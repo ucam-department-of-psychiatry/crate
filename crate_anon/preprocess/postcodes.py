@@ -1203,8 +1203,8 @@ class PopWeightedCentroidsLsoa2011(Base):
 
     lsoa_code = Column(String(CODE_LEN), primary_key=True)
     lsoa_name = Column(String(NAME_LEN))
-    bng_east = Column(Integer, doc="British National Grid, East (m)")
     bng_north = Column(Integer, doc="British National Grid, North (m)")
+    bng_east = Column(Integer, doc="British National Grid, East (m)")
     # https://en.wikipedia.org/wiki/Ordnance_Survey_National_Grid#All-numeric_grid_references  # noqa
     latitude = Column(Numeric(precision=13, scale=10),
                       doc="Latitude (degrees, 10dp)")
@@ -1217,14 +1217,14 @@ class PopWeightedCentroidsLsoa2011(Base):
     def __init__(self, **kwargs: Any) -> None:
         rename_kwarg(kwargs, 'LSOA11CD', 'lsoa_code')
         rename_kwarg(kwargs, 'LSOA11NM', 'lsoa_name')
-        rename_kwarg(kwargs, 'BNGEAST', 'bng_east')
         rename_kwarg(kwargs, 'BNGNORTH', 'bng_north')
+        rename_kwarg(kwargs, 'BNGEAST', 'bng_east')
         rename_kwarg(kwargs, 'LONGITUDE', 'longitude')
         rename_kwarg(kwargs, 'LATITUDE', 'latitude')
         # MySQL doesn't care if you pass a string to a numeric field, but
         # SQL server does. So:
-        convert_int(kwargs, 'bng_east')
         convert_int(kwargs, 'bng_north')
+        convert_int(kwargs, 'bng_east')
         convert_float(kwargs, 'longitude')
         convert_float(kwargs, 'latitude')
         super().__init__(**kwargs)
