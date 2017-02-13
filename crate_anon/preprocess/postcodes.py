@@ -22,8 +22,8 @@
 ===============================================================================
 
 Code-Point Open, CSV, GB
-- https://www.ordnancesurvey.co.uk/business-and-government/products/opendata-products.html  # noqa
-- https://www.ordnancesurvey.co.uk/business-and-government/products/code-point-open.html  # noqa
+- https://www.ordnancesurvey.co.uk/business-and-government/products/opendata-products.html
+- https://www.ordnancesurvey.co.uk/business-and-government/products/code-point-open.html
 - https://www.ordnancesurvey.co.uk/opendatadownload/products.html
 - http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
 
@@ -32,7 +32,18 @@ Office for National Statistics Postcode Database (ONSPD):
 - e.g. ONSPD_MAY_2016_csv.zip
 - http://www.ons.gov.uk/methodology/geography/licences
 
-"""
+Background:
+- OA = Output Area
+    ... smallest: >=40 households, >=100 people
+    ... 181,408 OAs in England & Wales
+- LSOA = Lower Layer Super Output Area
+    ... 34,753 LSOAs in England & Wales
+- MSOA = Middle Layer Super Output Area
+    ... 7,201 MSOAs in England & Wales
+- WZ = Workplace Zone
+    - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#workplace-zone-wz
+- https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#output-area-oa
+"""  # noqa
 
 import argparse
 import csv
@@ -41,7 +52,7 @@ import logging
 import os
 import sys
 # import textwrap
-from typing import Any, Dict, Iterable, List  # Type, TypeVar
+from typing import Any, Dict, Generator, Iterable, List, TextIO
 
 import openpyxl
 from openpyxl.cell.cell import Cell
@@ -129,7 +140,7 @@ Base = declarative_base(metadata=metadata, cls=ExtendedBase)
 
 
 # =============================================================================
-# Models
+# Models: all postcodes
 # =============================================================================
 
 class Postcode(Base):
@@ -372,6 +383,10 @@ class Postcode(Base):
         kwargs['pcd_nospace'] = kwargs['pcd'].replace(" ", "")
         super().__init__(**kwargs)
 
+
+# =============================================================================
+# Models: core lookup tables
+# =============================================================================
 
 class OAClassification(Base):
     __filename__ = "2011 Census Output Area Classification Names and Codes " \
@@ -1160,6 +1175,48 @@ class WestminsterConstituency(Base):
 
 
 # =============================================================================
+# Models: centroids
+# =============================================================================
+# http://webarchive.nationalarchives.gov.uk/20160105160709/http://www.ons.gov.uk/ons/guide-method/geography/products/census/spatial/centroids/index.html
+#
+# Looking at lower_layer_super_output_areas_(e+w)_2011_population_weighted_centroids_v2.zip : # noqa
+# - LSOA_2011_EW_PWC.shp -- probably a Shape file;
+#   ... yes
+#   ... https://en.wikipedia.org/wiki/Shapefile
+#   ... ... describes most of the other files
+# - LSOA_2011_EW_PWC_COORD_V2.CSV  -- LSOA to centroid coordinates
+
+class PopWeightedCentroidsLsoa2011(Base):
+    __filename__ = "LSOA_2011_EW_PWC_COORD_V2.CSV"
+    __tablename__ = "pop_weighted_centroids_lsoa_2011"
+    # __debug_content__ = True
+
+    lsoa_code = Column(String(CODE_LEN), primary_key=True)
+    lsoa_name = Column(String(NAME_LEN))
+    bng_east = Column(Integer, doc="British National Grid, East (m)")
+    bng_north = Column(Integer, doc="British National Grid, North (m)")
+    # https://en.wikipedia.org/wiki/Ordnance_Survey_National_Grid#All-numeric_grid_references  # noqa
+    latitude = Column(Numeric(precision=13, scale=10),
+                      doc="Latitude (degrees, 10dp)")
+    longitude = Column(Numeric(precision=13, scale=10),
+                       doc="Longitude (degrees, 10dp)")
+    # ... there are some with 10dp, e.g. 0.0000570995
+    # ... (precision - scale) = number of digits before '.'
+    # ... which can't be more than 3 for any latitude/longitude
+
+    def __init__(self, **kwargs: Any) -> None:
+        rename_kwarg(kwargs, 'LSOA11CD', 'lsoa_code')
+        rename_kwarg(kwargs, 'LSOA11NM', 'lsoa_name')
+        rename_kwarg(kwargs, 'BNGEAST', 'bng_east')
+        rename_kwarg(kwargs, 'BNGNORTH', 'bng_north')
+        rename_kwarg(kwargs, 'LONGITUDE', 'longitude')
+        rename_kwarg(kwargs, 'LATITUDE', 'latitude')
+        super().__init__(**kwargs)
+        if not self.lsoa_code:
+            raise ValueError("Can't have a blank lsoa_code")
+
+
+# =============================================================================
 # Files -> table data
 # =============================================================================
 
@@ -1257,28 +1314,43 @@ def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] f
 
     log.info('Processing file "{}" -> table "{}"'.format(filename, tablename))
     ext = os.path.splitext(filename)[1].lower()
-    xlsx = ext in ['.xlsx']
-    if xlsx:
+    type_xlsx = ext in ['.xlsx']
+    type_csv = ext in ['.csv']
+    file = None  # type: TextIO
+
+    def dict_from_rows(row_iterator: Iterable[List]) \
+            -> Generator[Dict, None, None]:
+        local_headings = headings
+        first_row = True
+        for row in row_iterator:
+            values = values_from_row(row)
+            if first_row and not local_headings:
+                local_headings = values
+            else:
+                yield dict(zip(local_headings, values))
+            first_row = False
+
+    if type_xlsx:
         workbook = openpyxl.load_workbook(filename)  # read_only=True
         # openpyxl BUG: with read_only=True, cells can have None as their value
         # when they're fine if opened in non-read-only mode.
         # May be related to this:
         # https://bitbucket.org/openpyxl/openpyxl/issues/601/read_only-cell-row-column-attributes-are  # noqa
         sheet = workbook.active
-        iterfn = sheet.iter_rows
+        dict_iterator = dict_from_rows(sheet.iter_rows())
+    elif type_csv:
+        file = open(filename, 'r')
+        csv_reader = csv.DictReader(file)
+        dict_iterator = csv_reader
     else:
         workbook = xlrd.open_workbook(filename)
         sheet = workbook.sheet_by_index(0)
-        iterfn = sheet.get_rows
-    for row in iterfn():
+        dict_iterator = dict_from_rows(sheet.get_rows())
+    for datadict in dict_iterator:
         n += 1
-        values = values_from_row(row)
         if debug:
-            log.debug("{}: {}".format(n, values))
-        if n == 1 and not headings:
-            headings = values
-            continue
-        datadict = dict(zip(headings, values))
+            log.critical("{}: {}".format(n, datadict))
+        # filter out blanks:
         datadict = {k: v for k, v in datadict.items() if k}
         obj = sa_class(**datadict)
         session.add(obj)
@@ -1287,6 +1359,9 @@ def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] f
     if commit:
         commit_and_announce(session)
     log.info("... inserted {} rows".format(n))
+
+    if file:
+        file.close()
 
 
 # =============================================================================
@@ -1353,8 +1428,10 @@ def main() -> None:
         "--dir", default=DEFAULT_ONSPD_DIR,
         help="Root directory of unzipped ONSPD download (default: {})".format(
             DEFAULT_ONSPD_DIR))
-    parser.add_argument("--url", required=True, help="SQLAlchemy database URL")
-    parser.add_argument("--echo", action="store_true", help="Echo SQL")
+    parser.add_argument(
+        "--url", help="SQLAlchemy database URL")
+    parser.add_argument(
+        "--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--reportevery", type=int, default=DEFAULT_REPORT_EVERY,
         help="Report every n rows (default: {})".format(DEFAULT_REPORT_EVERY))
@@ -1372,13 +1449,23 @@ def main() -> None:
         "--replace", action="store_true",
         help="Replace tables even if they exist (default: skip existing "
              "tables)")
-    parser.add_argument("--skiplookup", action="store_true",
-                        help="Skip generation of code lookup tables")
-    parser.add_argument("--skippostcodes", action="store_true",
-                        help="Skip generation of main (large) postcode table")
-    parser.add_argument("--docsonly", action="store_true",
-                        help="Show help for postcode table then stop")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Verbose")
+    parser.add_argument(
+        "--skiplookup", action="store_true",
+        help="Skip generation of code lookup tables")
+    parser.add_argument(
+        "--specific_lookup_tables", nargs="*",
+        help="Within the lookup tables, process only specific named tables")
+    parser.add_argument(
+        "--list_lookup_tables", action="store_true",
+        help="List all possible lookup tables, then stop")
+    parser.add_argument(
+        "--skippostcodes", action="store_true",
+        help="Skip generation of main (large) postcode table")
+    parser.add_argument(
+        "--docsonly", action="store_true",
+        help="Show help for postcode table then stop")
+    parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Verbose")
     args = parser.parse_args()
     rootlogger = logging.getLogger()
     configure_logger_for_colour(
@@ -1389,15 +1476,8 @@ def main() -> None:
         show_docs()
         sys.exit(0)
 
-    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
-    metadata.bind = engine
-    session = sessionmaker(bind=engine)()
-
-    log.info("Using directory: {}".format(args.dir))
-    lookupdir = os.path.join(args.dir, "Documents")
-    datadir = os.path.join(args.dir, "Data")
-
     classlist = [
+        # Core lookup tables:
         # In alphabetical order of filename:
         OAClassification,
         BUA,
@@ -1453,9 +1533,39 @@ def main() -> None:
         Ward1998,
         Ward1991,
         WestminsterConstituency,
+        # Centroids:
+        PopWeightedCentroidsLsoa2011,
     ]
+
+    if args.list_lookup_tables:
+        tables_files = []
+        for sa_class in classlist:
+            tables_files.append((sa_class.__tablename__,
+                                 sa_class.__filename__))
+        tables_files.sort(key = lambda x: x[0])
+        for table, file in tables_files:
+            print("Table {} from file {}".format(table, repr(file)))
+        return
+
+    if not args.url:
+        print("Must specify URL")
+        return
+
+    engine = create_engine(args.url, echo=args.echo, encoding=CHARSET)
+    metadata.bind = engine
+    session = sessionmaker(bind=engine)()
+
+    log.info("Using directory: {}".format(args.dir))
+    # lookupdir = os.path.join(args.dir, "Documents")
+    lookupdir = args.dir
+    # datadir = os.path.join(args.dir, "Data")
+    datadir = args.dir
+
     if not args.skiplookup:
         for sa_class in classlist:
+            if (args.specific_lookup_tables and
+                    sa_class.__tablename__ not in args.specific_lookup_tables):
+                continue
             if (sa_class.__tablename__ ==
                     "ccg_clinical_commissioning_group_england_2015"):
                 log.warning("Ignore warning 'Discarded range with reserved "

@@ -56,9 +56,9 @@ def kill_child_processes() -> None:
         try:
             p.wait(timeout_sec)
         except TimeoutExpired:
-            p.terminate()  # please stop
+            p._terminate()  # please stop
             try:
-                p.wait(timeout=timeout_sec)
+                p.wait(timeout_s=timeout_sec)
             except TimeoutExpired:
                 # failed to close
                 p.kill()  # you're dead
@@ -133,7 +133,7 @@ def wait_for_processes(die_on_failure: bool = True,
         something_running = False
         for i, p in enumerate(processes):
             try:
-                retcode = p.wait(timeout=timeout_sec)
+                retcode = p.wait(timeout_s=timeout_sec)
                 if retcode != 0:
                     log.critical(
                         "Process #{} (of {}) exited with return code {} "

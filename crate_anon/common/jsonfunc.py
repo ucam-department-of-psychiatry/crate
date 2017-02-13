@@ -375,7 +375,7 @@ def register_class_for_json(
             cls=cls,
             default_factory=default_factory)
     else:
-        raise ValueError("Unknown method and functions not fully specified")
+        raise ValueError("Unknown method, and functions not fully specified")
     global TYPE_MAP
     TYPE_MAP[typename] = descriptor
 
@@ -624,11 +624,15 @@ def simple_repr(obj: Instance) -> str:
     elements = []
     for k, v in obj.__dict__.items():
         elements.append("{}={}".format(k, repr(v)))
-    return "<{qualname}({elements}) at {addr}".format(
+    return "<{qualname}({elements}) at {addr}>".format(
         qualname=obj.__class__.__qualname__,
         elements=", ".join(elements),
         addr=hex(id(obj)),
     )
+
+
+def simple_eq(one: Instance, two: Instance, attrs: List[str]) -> bool:
+    return all(getattr(one, a) == getattr(two, a) for a in attrs)
 
 
 def unit_tests():
@@ -649,10 +653,7 @@ def unit_tests():
             self.d = d or datetime.datetime.now()
 
         def __eq__(self, other: 'SimpleThing') -> bool:
-            return (
-                (self.a, self.b, self.c, self.d) ==
-                (other.a, other.b, other.c, other.d)
-            )
+            return simple_eq(self, other, ['a', 'b', 'c', 'd'])
 
     # If you comment out the decorator for this derived class, serialization
     # will fail, and that is a good thing (derived classes shouldn't be
@@ -667,10 +668,7 @@ def unit_tests():
             self.e = e
 
         def __eq__(self, other: 'SimpleThing') -> bool:
-            return (
-                (self.a, self.b, self.c, self.d, self.e) ==
-                (other.a, other.b, other.c, other.d, other.e)
-            )
+            return simple_eq(self, other, ['a', 'b', 'c', 'd', 'e'])
 
     @register_for_json(method=METHOD_STRIP_UNDERSCORE)
     class UnderscoreThing(BaseTestClass):
@@ -681,8 +679,7 @@ def unit_tests():
 
         # noinspection PyProtectedMember
         def __eq__(self, other: 'UnderscoreThing') -> bool:
-            return ((self._a, self._b, self._c) ==
-                    (other._a, other._b, other._c))
+            return simple_eq(self, other, ['_a', '_b', '_c'])
 
     @register_for_json(method=METHOD_PROVIDES_INIT_ARGS_KWARGS)
     class InitDictThing(BaseTestClass):
@@ -692,14 +689,11 @@ def unit_tests():
             self.r = c
 
         def __eq__(self, other: 'InitDictThing') -> bool:
-            return ((self.p, self.q, self.r) ==
-                    (other.p, other.q, other.r))
+            return simple_eq(self, other, ['p', 'q', 'r'])
 
         def init_args_kwargs(self) -> ArgsKwargsTuple:
             args = []
-            kwargs = {'a': self.p,
-                      'b': self.q,
-                      'c': self.r}
+            kwargs = {'a': self.p, 'b': self.q, 'c': self.r}
             return args, kwargs
 
     @register_for_json(method=METHOD_PROVIDES_INIT_KWARGS)
@@ -710,13 +704,10 @@ def unit_tests():
             self.r = c
 
         def __eq__(self, other):
-            return ((self.p, self.q, self.r) ==
-                    (other.p, other.q, other.r))
+            return simple_eq(self, other, ['p', 'q', 'r'])
 
         def init_kwargs(self) -> KwargsDict:
-            return {'a': self.p,
-                    'b': self.q,
-                    'c': self.r}
+            return {'a': self.p, 'b': self.q, 'c': self.r}
 
     def check_json(start: Any) -> None:
         print(repr(start))

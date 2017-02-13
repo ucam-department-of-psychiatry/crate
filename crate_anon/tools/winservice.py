@@ -205,6 +205,7 @@ import platform
 import subprocess
 import sys
 import traceback
+from typing import Any, List, TextIO
 
 try:
     from subprocess import CREATE_NEW_PROCESS_GROUP
@@ -212,8 +213,8 @@ try:
     from signal import CTRL_BREAK_EVENT
 except ImportError:
     CREATE_NEW_PROCESS_GROUP = None
-    CTRL_C_EVENT = None
-    CTRL_BREAK_EVENT = None
+    CTRL_C_EVENT = 0  # wincon.h
+    CTRL_BREAK_EVENT = 1  # wincon.h
 
 import arrow
 import servicemanager  # part of pypiwin32
@@ -226,45 +227,75 @@ log = logging.getLogger(__name__)
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 ENVVAR = 'CRATE_WINSERVICE_LOGDIR'
-KEY_NAME = 'name'
-KEY_PROCARGS = 'procargs'
-KEY_LOG_OUT = 'logfile_out'
-KEY_LOG_ERR = 'logfile_err'
 TEST_FILENAME = r'C:\test_win_svc.txt'
 TEST_PERIOD_MS = 5000
 WINDOWS = platform.system() == 'Windows'
 
 
+# =============================================================================
+# Subprocess management
+# =============================================================================
+
+class ProcessDetails(object):
+    def __init__(self,
+                 name: str,
+                 procargs: List[str],
+                 logfile_out: str = '',
+                 logfile_err: str = '') -> None:
+        self.name = name
+        self.procargs = procargs
+        self.logfile_out = logfile_out
+        self.logfile_err = logfile_err
+
+
 class ProcessManager(object):
-    def __init__(self, details, procnum, nprocs, kill_timeout_sec=5,
-                 debugging=False):
-        self.name = details[KEY_NAME]
-        self.procargs = details[KEY_PROCARGS]
-        self.logfile_out = details.get(KEY_LOG_OUT, None) or None
-        self.logfile_err = details.get(KEY_LOG_ERR, None) or None
+    KILL_LEVEL_CTRL_C_OR_SOFT_KILL = 0
+    KILL_LEVEL_CTRL_BREAK = 1
+    KILL_LEVEL_TASKKILL = 2
+    KILL_LEVEL_TASKKILL_FORCE = 3
+    KILL_LEVEL_HARD_KILL = 4
+    ALL_KILL_LEVELS = [
+        KILL_LEVEL_CTRL_C_OR_SOFT_KILL,
+        KILL_LEVEL_CTRL_BREAK,
+        KILL_LEVEL_TASKKILL,
+        KILL_LEVEL_TASKKILL_FORCE,
+        KILL_LEVEL_HARD_KILL,
+    ]
+
+    def __init__(self,
+                 details: ProcessDetails,
+                 procnum: int,
+                 nprocs: int,
+                 kill_timeout_sec: float = 5,
+                 debugging: bool = False):
+        self.details = details
         self.procnum = procnum
         self.nprocs = nprocs
         self.kill_timeout_sec = kill_timeout_sec
-        self.process = None
+        self.process = None  # type: subprocess.Popen
         self.running = False
-        self.stdout = None
-        self.stderr = None
+        self.stdout = None  # type: TextIO
+        self.stderr = None  # type: TextIO
         self.debugging = debugging
 
     @property
-    def fullname(self):
+    def fullname(self) -> str:
         fullname = "Process {}/{} ({})".format(self.procnum, self.nprocs,
-                                               self.name)
+                                               self.details.name)
         if self.running:
             fullname += " (PID={})".format(self.process.pid)
         return fullname
-    
-    def debug(self, msg):
+
+    # -------------------------------------------------------------------------
+    # Logging
+    # -------------------------------------------------------------------------
+
+    def debug(self, msg: str) -> None:
         if self.debugging:
             s = "{}: {}".format(self.fullname, msg)
             log.debug(s)
 
-    def info(self, msg):
+    def info(self, msg: str) -> None:
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
         s = "{}: {}".format(self.fullname, msg)
@@ -272,7 +303,7 @@ class ProcessManager(object):
         if self.debugging:
             log.info(s)
 
-    def warning(self, msg):
+    def warning(self, msg: str) -> None:
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
         s = "{}: {}".format(self.fullname, msg)
@@ -280,7 +311,7 @@ class ProcessManager(object):
         if self.debugging:
             log.warning(s)
 
-    def error(self, msg):
+    def error(self, msg: str) -> None:
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
         s = "{}: {}".format(self.fullname, msg)
@@ -288,20 +319,20 @@ class ProcessManager(object):
         if self.debugging:
             log.warning(s)
 
-    def open_logs(self):
-        if self.logfile_out:
-            self.stdout = open(self.logfile_out, 'a')
+    def open_logs(self) -> None:
+        if self.details.logfile_out:
+            self.stdout = open(self.details.logfile_out, 'a')
         else:
             self.stdout = None
-        if self.logfile_err:
-            if self.logfile_err == self.logfile_out:
+        if self.details.logfile_err:
+            if self.details.logfile_err == self.details.logfile_out:
                 self.stderr = subprocess.STDOUT
             else:
-                self.stderr = open(self.logfile_err, 'a')
+                self.stderr = open(self.details.logfile_err, 'a')
         else:
             self.stderr = None
 
-    def close_logs(self):
+    def close_logs(self) -> None:
         if self.stdout is not None:
             self.stdout.close()
             self.stdout = None
@@ -309,75 +340,113 @@ class ProcessManager(object):
             self.stderr.close()
             self.stderr = None
 
-    def start(self):
+    # -------------------------------------------------------------------------
+    # Starting, stopping
+    # -------------------------------------------------------------------------
+
+    def start(self) -> None:
+        """
+        Starts a subprocess.
+        """
         if self.running:
             return
         self.info("Starting: {} (with logs stdout={}, stderr={})".format(
-            self.procargs, self.logfile_out, self.logfile_err))
+            self.details.procargs,
+            self.details.logfile_out,
+            self.details.logfile_err))
         self.open_logs()
         creationflags = CREATE_NEW_PROCESS_GROUP if WINDOWS else 0
         # self.warning("creationflags: {}".format(creationflags))
-        self.process = subprocess.Popen(self.procargs, stdin=None,
+        self.process = subprocess.Popen(self.details.procargs, stdin=None,
                                         stdout=self.stdout, stderr=self.stderr,
                                         creationflags=creationflags)
         self.running = True
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stops a subprocess.
+        Asks nicely. Waits. Asks less nicely. Repeat until subprocess is dead.
+        """
         if not self.running:
             return
         try:
-            self.process.wait(timeout=0)
+            self.wait(timeout_s=0)
             # If we get here: stopped already
-        except subprocess.TimeoutExpired:
-            self.terminate()  # please stop
-            try:
-                self.process.wait(timeout=self.kill_timeout_sec)
-            except subprocess.TimeoutExpired:  # failed to close
-                self._kill()
+        except subprocess.TimeoutExpired:  # still running
+            for kill_level in self.ALL_KILL_LEVELS:
+                tried_to_kill = self._terminate(level=kill_level)  # please stop
+                if tried_to_kill:
+                    try:
+                        self.wait(timeout_s=self.kill_timeout_sec)
+                        break
+                    except subprocess.TimeoutExpired:  # failed to close
+                        self.warning("Subprocess didn't stop when asked")
+                        pass  # carry on escalating
         self.close_logs()
         self.running = False
 
-    def terminate(self):
+    def _terminate(self, level: int) -> bool:
+        """Returns: succeeded in *attempting* a kill?"""
         if not self.running:
-            return
+            return True
 
-        # --- Already closed by itself?
+        # Already closed by itself?
         try:
             self.wait(0)
-            return
+            return True
         except subprocess.TimeoutExpired:  # failed to close
             pass
 
-        if not WINDOWS:
-            self.warning("Asking process to stop (SIGTERM)")
-            self.process.terminate()  # soft kill under POSIX
-            return
-
         # SEE NOTES ABOVE. This is tricky under Windows.
 
-        # --- CTRL-C
-        success = 0 != ctypes.windll.kernel32.GenerateConsoleCtrlEvent(
-                0, self.process.pid)  # 0 => Ctrl-C
-        if success:
-            self.info("Sent CTRL-C to request stop")
-            return
+        suffix = " [to child process {}]".format(self.process.pid)
+        if level == self.KILL_LEVEL_CTRL_C_OR_SOFT_KILL:
+            if WINDOWS:
+                success = 0 != ctypes.windll.kernel32.GenerateConsoleCtrlEvent(
+                    CTRL_C_EVENT, self.process.pid)
+                if success:
+                    self.info("Sent CTRL-C to request stop" + suffix)
+                    # ... but that doesn't mean it'll stop...
+                else:
+                    self.info("Failed to send CTRL-C" + suffix)
+                return success
+            else:
+                self.warning("Asking process to stop (SIGTERM)" + suffix)
+                self.process.terminate()  # soft kill under POSIX
+                return True
 
-        # --- CTRL-BREAK
-        success = 0 != ctypes.windll.kernel32.GenerateConsoleCtrlEvent(
-            1, self.process.pid)  # 1 => Ctrl-Break
-        if success:
-            self.info("Sent CTRL-BREAK to request stop")
-            return
+        elif level == self.KILL_LEVEL_CTRL_BREAK:
+            if not WINDOWS:
+                return False
+            success = 0 != ctypes.windll.kernel32.GenerateConsoleCtrlEvent(
+                CTRL_BREAK_EVENT, self.process.pid)
+            if success:
+                self.info("Sent CTRL-BREAK to request stop" + suffix)
+            else:
+                self.info("Failed to send CTRL-BREAK" + suffix)
+            return success
 
-        # --- TASKKILL
-        retcode = self._taskkill(force=False)
-        if retcode == winerror.ERROR_SUCCESS:  # 0
-            return
+        elif level == self.KILL_LEVEL_TASKKILL:
+            if not WINDOWS:
+                return False
+            retcode = self._taskkill(force=False)  # does its own info messages
+            return retcode == winerror.ERROR_SUCCESS
 
-        # --- Last resort
-        self._kill()
+        elif level == self.KILL_LEVEL_TASKKILL_FORCE:
+            if not WINDOWS:
+                return False
+            retcode = self._taskkill(force=True)  # does its own info messages
+            return retcode == winerror.ERROR_SUCCESS
 
-    def _taskkill(self, force=False):
+        elif level == self.KILL_LEVEL_HARD_KILL:
+            # Last resort
+            self._kill()  # may do TASKKILL /F or some other method
+            return True
+
+        else:
+            raise ValueError("Bad kill level requested")
+
+    def _taskkill(self, force: bool = False) -> int:
         args = [
             "taskkill",  # built in to Windows XP and higher
             "/pid", str(self.process.pid),
@@ -385,19 +454,18 @@ class ProcessManager(object):
         ]
         if force:
             args.append("/f")  # forcefully
-            callname = "TASKKILL /T /F"
-        else:
-            callname = "TASKKILL /T"
+        callname = " ".join(args)
         retcode = subprocess.call(args)
         # http://stackoverflow.com/questions/18682681/what-are-exit-codes-from-the-taskkill-utility  # noqa
         if retcode == winerror.ERROR_SUCCESS:  # 0
             # You also get errorlevel 0 (try: echo %ERRORLEVEL%) if a forceful
             # kill is required but you didn't specify it. So we always specify
             # a forceful kill, as above.
-            self.info("Killed with " + callname)
+            self.info("Killed with " + repr(callname))
         elif retcode == winerror.ERROR_WAIT_NO_CHILDREN:  # 128
             self.warning(
-                callname + " failed (error code 128 = ERROR_WAIT_NO_CHILDREN "
+                repr(callname) +
+                " failed (error code 128 = ERROR_WAIT_NO_CHILDREN "
                 "= 'There are no child processes to wait for', but also "
                 "occurs when the process doesn't exist, and when processes "
                 "require a forceful [/F] termination)")
@@ -405,44 +473,35 @@ class ProcessManager(object):
             self.warning(callname + " failed: error code {}".format(retcode))
         return retcode
 
-    def _kill(self):
+    def _kill(self) -> None:
         """Hard kill."""
-        if not self.running:
-            return
-        if not WINDOWS:
-            self.process.kill()  # hard kill
-            return
-        retcode = self._taskkill(force=True)  # won't leave orphans
-        if retcode != winerror.ERROR_SUCCESS:
-            self.warning("Requires a hard kill; may leave orphans")
-            self.process.kill()  # will leave orphans
+        if WINDOWS:
+            self.warning("Using a hard kill; may leave orphans")
+        self.process.kill()  # hard kill, Windows or POSIX
+        # ... but will leave orphans under Windows
 
-    def stop_having_terminated(self):
-        if not self.running:
-            return
-        try:
-            self.process.wait(timeout=self.kill_timeout_sec)
-        except subprocess.TimeoutExpired:  # failed to close
-            self.warning("Subprocess didn't stop when asked: killing")
-            self._kill()
-        self.close_logs()
-        self.running = False
-
-    def wait(self, timeout=None):
+    def wait(self, timeout_s: float = None) -> None:
         """Will raise subprocess.TimeoutExpired if the process continues to
         run."""
-        retcode = self.process.wait(timeout=timeout)
+        if not self.running:
+            return
+        retcode = self.process.wait(timeout=timeout_s)
         # We won't get further unless the process has stopped.
         if retcode > 0:
             self.error(
                 "FAILED (return code {}). "
                 "Logs were: {} (stdout), {} (stderr)".format(
-                    retcode, self.logfile_out, self.logfile_err))
+                    retcode,
+                    self.details.logfile_out,
+                    self.details.logfile_err))
         else:
             self.info("Finished.")
         self.running = False
-        return retcode
 
+
+# =============================================================================
+# Windows service framework
+# =============================================================================
 
 class CratewebService(win32serviceutil.ServiceFramework):
     # you can NET START/STOP the service by the following name
@@ -456,7 +515,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
     _exe_name_ = sys.executable  # python.exe in the virtualenv
     _exe_args_ = '"{}"'.format(os.path.realpath(__file__))  # this script
 
-    def __init__(self, args=None):
+    def __init__(self, args: List[Any] = None) -> None:
         if args is not None:
             super().__init__(args)
         # create an event to listen for stop requests on
@@ -464,27 +523,35 @@ class CratewebService(win32serviceutil.ServiceFramework):
         self.process_managers = []
         self.debugging = False
         
-    def debug(self, msg):
+    # -------------------------------------------------------------------------
+    # Logging
+    # -------------------------------------------------------------------------
+
+    def debug(self, msg: str) -> None:
         if self.debugging:
             log.debug(msg)    
 
-    def info(self, msg):
+    def info(self, msg: str) -> None:
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
         servicemanager.LogInfoMsg(str(msg))
         if self.debugging:
             log.info(msg)
 
-    def error(self, msg):
+    def error(self, msg: str) -> None:
         # Log messages go to the Windows APPLICATION log.
         # noinspection PyUnresolvedReferences
         servicemanager.LogErrorMsg(str(msg))
         if self.debugging:
             log.error(msg)
 
+    # -------------------------------------------------------------------------
+    # Windows service calls
+    # -------------------------------------------------------------------------
+
     # called when we're being shut down
     # noinspection PyPep8Naming
-    def SvcStop(self):
+    def SvcStop(self) -> None:
         # tell the SCM we're shutting down
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         # fire the stop event
@@ -492,7 +559,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
         
     # called when service is started
     # noinspection PyPep8Naming
-    def SvcDoRun(self):
+    def SvcDoRun(self) -> None:
         # No need to self.ReportServiceStatus(win32service.SERVICE_RUNNING);
         # that is done by the framework (see win32serviceutil.py).
         # Similarly, no need to report a SERVICE_STOP_PENDING on exit.
@@ -504,7 +571,13 @@ class CratewebService(win32serviceutil.ServiceFramework):
         # self.test_service()  # test service
         self.main()  # real service
 
-    def test_service(self, filename=TEST_FILENAME, period_ms=TEST_PERIOD_MS):
+    # -------------------------------------------------------------------------
+    # Testing
+    # -------------------------------------------------------------------------
+
+    def test_service(self,
+                     filename: str = TEST_FILENAME,
+                     period_ms: int = TEST_PERIOD_MS):
         # A test service. This works! (As long as you can write to the file.)
         def write(msg):
             f.write('{}: {}\n'.format(arrow.now(), msg))
@@ -525,11 +598,15 @@ class CratewebService(win32serviceutil.ServiceFramework):
         f.close()
         self.info("Test service FINISHED.")
 
-    def run_debug(self):
+    def run_debug(self) -> None:
         self.debugging = True
         self.main()
 
-    def main(self):
+    # -------------------------------------------------------------------------
+    # Main service
+    # -------------------------------------------------------------------------
+
+    def main(self) -> None:
         # Actual main service code.
         try:
             self.service()
@@ -537,7 +614,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
             self.error("Unexpected exception: {e}\n{t}".format(
                 e=e, t=traceback.format_exc()))
 
-    def service(self):
+    def service(self) -> None:
         # Read from environment
         # self.info(repr(os.environ))
         try:
@@ -550,41 +627,34 @@ class CratewebService(win32serviceutil.ServiceFramework):
         djangolog = os.path.join(logdir, 'crate_log_django.txt')
         celerylog = os.path.join(logdir, 'crate_log_celery.txt')
         procdetails = [
-            {
-                KEY_NAME: 'Django/CherryPy',
-                KEY_PROCARGS: [
+            ProcessDetails(
+                name='Django/CherryPy',
+                procargs=[
                     sys.executable,
                     os.path.join(CURRENT_DIR, 'launch_cherrypy_server.py'),
                 ],
-                KEY_LOG_OUT: djangolog,
-                KEY_LOG_ERR: djangolog,
-            },
-
-            {
-                KEY_NAME: 'Celery',
-                KEY_PROCARGS: [
+                logfile_out=djangolog,
+                logfile_err=djangolog,
+            ),
+            ProcessDetails(
+                name='Celery',
+                procargs=[
                     sys.executable,
                     os.path.join(CURRENT_DIR, 'launch_celery.py'),
                 ],
-                KEY_LOG_OUT: celerylog,
-                KEY_LOG_ERR: celerylog,
-            },
-
-            # {
-            #     KEY_NAME: 'TextPad',
-            #     KEY_PROCARGS: [
-            #         r"C:\Program Files\TextPad 4\TextPad.exe",
-            #     ],
-            #     KEY_LOG_OUT: os.path.join(logdir, "textpadlog.txt"),
-            #     KEY_LOG_ERR: os.path.join(logdir, "textpadlog.txt"),
-            # },
+                logfile_out=celerylog,
+                logfile_err=celerylog,
+            ),
         ]
 
         # Run processes
         self.run_processes(procdetails)
 
-    def run_processes(self, procdetails, subproc_run_timeout_sec=1,
-                      stop_event_timeout_ms=1000, kill_timeout_sec=5):
+    def run_processes(self,
+                      procdetails: List[ProcessDetails],
+                      subproc_run_timeout_sec: float = 1,
+                      stop_event_timeout_ms: int = 1000,
+                      kill_timeout_sec: float = 5) -> None:
         """
         Run multiple child processes.
         Args:
@@ -641,25 +711,37 @@ class CratewebService(win32serviceutil.ServiceFramework):
                     if subproc_failed:
                         break
                     try:
-                        retcode = pmgr.wait(timeout=subproc_run_timeout_sec)
+                        retcode = pmgr.wait(timeout_s=subproc_run_timeout_sec)
                         if retcode > 0:
                             subproc_failed = True
                     except subprocess.TimeoutExpired:
                         something_running = True
 
         # Kill any outstanding processes
+        #
         # (a) Slow way
-        # for pinfo in self.pinfolist:
-        #     pinfo.stop()
+        # for pmgr in self.process_managers:
+        #     pmgr.stop()
+        #
         # (b) Faster (slightly more parallel) way
+        # for pmgr in self.process_managers:
+        #     pmgr.terminate()
+        # for pmgr in self.process_managers:
+        #     pmgr.stop_having_terminated()
+        #
+        # ... No, it's bad if we leave things orphaned.
+        # Let's go for slow, clean code.
+
         for pmgr in self.process_managers:
-            pmgr.terminate()
-        for pmgr in self.process_managers:
-            pmgr.stop_having_terminated()
+            pmgr.stop()
         self.info("All stopped")
 
 
-def generic_service_main(cls, name):
+# =============================================================================
+# Main
+# =============================================================================
+
+def generic_service_main(cls, name: str) -> None:
     # https://mail.python.org/pipermail/python-win32/2008-April/007299.html
     argc = len(sys.argv)
     if argc == 1:
