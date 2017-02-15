@@ -26,6 +26,7 @@ import logging
 import os
 import shlex
 import subprocess
+import sys
 from typing import Any, Dict, Generator, List, Tuple
 
 from cardinal_pythonlib.rnc_lang import chunks
@@ -85,15 +86,28 @@ class Gate(BaseNlpParser):
                  commit: bool = False) -> None:
         super().__init__(nlpdef=nlpdef, cfgsection=cfgsection, commit=commit)
 
-        self._max_external_prog_uses = nlpdef.opt_int(
-            cfgsection, 'max_external_prog_uses', default=0)
-        self._input_terminator = nlpdef.opt_str(
-            cfgsection, 'input_terminator', required=True)
-        self._output_terminator = nlpdef.opt_str(
-            cfgsection, 'output_terminator', required=True)
+        if not nlpdef and not cfgsection:
+            # Debugging only
+            self._max_external_prog_uses = 0
+            self._input_terminator = 'input_terminator'
+            self._output_terminator = 'output_terminator'
+            typepairs = []
+            self._progenvsection = ''
+            progargs = ''
+            logtag = ''
+        else:
+            self._max_external_prog_uses = nlpdef.opt_int(
+                cfgsection, 'max_external_prog_uses', default=0)
+            self._input_terminator = nlpdef.opt_str(
+                cfgsection, 'input_terminator', required=True)
+            self._output_terminator = nlpdef.opt_str(
+                cfgsection, 'output_terminator', required=True)
+            typepairs = nlpdef.opt_strlist(cfgsection, 'outputtypemap',
+                                           required=True, lower=False)
+            self._progenvsection = nlpdef.opt_str(cfgsection, 'progenvsection')
+            progargs = nlpdef.opt_str(cfgsection, 'progargs', required=True)
+            logtag = nlpdef.get_logtag() or '.'
 
-        typepairs = nlpdef.opt_strlist(cfgsection, 'outputtypemap',
-                                       required=True, lower=False)
         self._outputtypemap = {}
         self._type_to_tablename = {}
         for c in chunks(typepairs, 2):
@@ -108,16 +122,14 @@ class Gate(BaseNlpParser):
             self._outputtypemap[annottype] = c
             self._type_to_tablename[annottype] = c.get_tablename()
 
-        self._progenvsection = nlpdef.opt_str(cfgsection, 'progenvsection')
         if self._progenvsection:
             self._env = nlpdef.get_env_dict(self._progenvsection, os.environ)
         else:
             self._env = os.environ.copy()
-        self._env["NLPLOGTAG"] = nlpdef.get_logtag() or '.'
+        self._env["NLPLOGTAG"] = logtag
         # ... because passing a "-lt" switch with no parameter will make
         # CrateGatePipeline.java complain and stop
 
-        progargs = nlpdef.opt_str(cfgsection, 'progargs', required=True)
         formatted_progargs = progargs.format(**self._env)
         self._progargs = shlex.split(formatted_progargs)
 
@@ -131,6 +143,11 @@ class Gate(BaseNlpParser):
             assert len(tn) <= MAX_SQL_FIELD_LEN, (
                 "Table name too long (max {} characters)".format(
                     MAX_SQL_FIELD_LEN))
+
+    @classmethod
+    def print_info(cls, file=sys.stdout):
+        print("NLP class to talk to GATE apps (https://www.gate.ac.uk/).",
+              file=file)
 
     # -------------------------------------------------------------------------
     # External process control

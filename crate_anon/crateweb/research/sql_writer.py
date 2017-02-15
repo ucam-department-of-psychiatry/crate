@@ -234,6 +234,17 @@ class SelectElement(object):
         return sql
 
 
+def reparse_select(p: ParseResults, grammar: SqlGrammar) -> ParseResults:
+    """
+    Internal function for when we get desperate trying to hack around
+    the results of pyparsing's efforts.
+    """
+    return grammar.get_select_statement().parseString(
+        text_from_parsed(p, formatted=False),
+        parseAll=True
+    )
+
+
 def add_to_select(sql: str,
                   grammar: SqlGrammar,
                   select_elements: List[SelectElement] = None,
@@ -300,6 +311,7 @@ def add_to_select(sql: str,
     if debug and debug_verbose:
         log.debug("start dump:\n" + p.dump())
 
+    # *** problem emerging here from patient explorer:
     existing_tables = p.join_source.from_tables.asList()  # type: List[str]
     new_tables = []  # type: List[TableId]
 
@@ -351,10 +363,7 @@ def add_to_select(sql: str,
             # (1) Add as plain text
             p.where_clause.append("WHERE " + where_expression)
             # (2) Reparse...
-            p = grammar.get_select_statement().parseString(
-                text_from_parsed(p, formatted=False),
-                parseAll=True
-            )
+            p = reparse_select(p, grammar=grammar)
 
         add_new_table(wc.table_id())
 

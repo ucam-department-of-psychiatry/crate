@@ -326,6 +326,7 @@ import logging
 import os
 import shlex
 import subprocess
+import sys
 import tempfile
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
@@ -417,6 +418,11 @@ class Medex(BaseNlpParser):
         self._encoding = 'utf8'
         self._p = None  # the subprocess
         self._started = False
+
+    @classmethod
+    def print_info(cls, file=sys.stdout):
+        print("NLP class to talk to MedEx-UIMA, a medication-finding tool "
+              "(https://www.ncbi.nlm.nih.gov/pubmed/25954575).", file=file)
 
     # -------------------------------------------------------------------------
     # External process control

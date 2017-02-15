@@ -22,24 +22,26 @@
 ===============================================================================
 """
 
-# import logging
+import logging
 from operator import attrgetter
 # noinspection PyUnresolvedReferences
-from typing import Generic, List
+from typing import List, Type
 
 import prettytable
 
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
-
 from crate_anon.nlp_manager.parse_gate import Gate
 from crate_anon.nlp_manager.parse_medex import Medex
 from crate_anon.nlp_manager.parse_biochemistry import *
 from crate_anon.nlp_manager.parse_clinical import *
 from crate_anon.nlp_manager.parse_cognitive import *
 from crate_anon.nlp_manager.parse_haematology import *
+# noinspection PyUnresolvedReferences
+from crate_anon.nlp_manager.regex_parser import NumericalResultParser
 
-# log = logging.getLogger(__name__)
+ClassType = Type[object]
+log = logging.getLogger(__name__)
 
 
 # noinspection PyUnusedLocal
@@ -76,15 +78,14 @@ ignore(Eosinophils)
 # T = TypeVar('T', bound=NlpParser)
 
 
-# noinspection PyUnresolvedReferences
-def get_all_subclasses(cls: Generic) -> List[Generic]:
+def get_all_subclasses(cls: ClassType) -> List[ClassType]:
     # Type hinting, but not quite:
     #   http://stackoverflow.com/questions/35655257
     # Getting derived subclasses: http://stackoverflow.com/questions/3862310
     all_subclasses = []
     for subclass in cls.__subclasses__():
         all_subclasses.append(subclass)
-        all_subclasses.extend(get_all_subclasses(subclass))
+        all_subclasses.extend(get_all_subclasses(subclass))  # recursive
     all_subclasses.sort(key=attrgetter('__name__'))
     lower_case_names = set()
     for cls in all_subclasses:
@@ -97,12 +98,11 @@ def get_all_subclasses(cls: Generic) -> List[Generic]:
     return all_subclasses
 
 
-# noinspection PyTypeChecker
-def all_parser_classes() -> List[Generic]:
-    return get_all_subclasses(BaseNlpParser)
+def all_parser_classes() -> List[Type[BaseNlpParser]]:
+    # noinspection PyTypeChecker
+    return get_all_subclasses(BaseNlpParser)  # type: List[Type[BaseNlpParser]]
 
 
-# noinspection PyTypeChecker,PyCallingNonCallable
 def make_processor(processor_type: str,
                    nlpdef: NlpDefinition,
                    section: str) -> BaseNlpParser:
@@ -115,18 +115,29 @@ def make_processor(processor_type: str,
     raise ValueError("Unknown NLP processor type: {}".format(processor_type))
 
 
-# noinspection PyTypeChecker
+def get_nlp_parser_class(classname: str):  # -> Optional[Type[BaseNlpParser]]:
+    classes = all_parser_classes()
+    for cls in classes:
+        if cls.__name__ == classname:
+            return cls
+    return None
+
+
+def get_nlp_parser_debug_instance(classname: str):  # -> Optional[BaseNlpParser]:  # noqa
+    cls = get_nlp_parser_class(classname)
+    if cls:
+        return cls(None, None)
+    return None
+
+
 def possible_processor_names() -> List[str]:
     return [cls.__name__ for cls in all_parser_classes()]
 
 
-# noinspection PyTypeChecker
 def possible_processor_table() -> str:
-    pt = prettytable.PrettyTable(
-        ["NLP name", "Description"],
-        header=True,
-        border=True,
-    )
+    pt = prettytable.PrettyTable(["NLP name", "Description"],
+                                 header=True,
+                                 border=True)
     pt.align = 'l'
     pt.valign = 't'
     pt.max_width = 80
@@ -151,7 +162,6 @@ def test_all_processors(verbose: bool = False) -> None:
         # if cls.__name__.endswith('Validator'):
         #     continue
         print("Testing parser class: {}".format(cls.__name__))
-        # noinspection PyCallingNonCallable
         instance = cls(None, None)
         print("... instantiated OK")
         instance.test(verbose=verbose)

@@ -76,6 +76,10 @@ class BaseNlpParser(object):
                                                required=True)
             self._destdb = nlpdef.get_database(self._destdb_name)
 
+    @classmethod
+    def print_info(cls, file=sys.stdout):
+        print("Base class for all CRATE NLP parsers", file=file)
+
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         """
         Returns a dictionary of {tablename: destination_columns}.

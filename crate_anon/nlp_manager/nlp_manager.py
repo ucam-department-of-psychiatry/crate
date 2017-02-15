@@ -80,6 +80,7 @@ from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sqla import count_star
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.nlp_manager.all_processors import (
+    get_nlp_parser_debug_instance,
     possible_processor_names,
     possible_processor_table,
 )
@@ -532,6 +533,9 @@ def main() -> None:
                         help="Show possible built-in NLP processor names")
     parser.add_argument("--describeprocessors", action="store_true",
                         help="Show details of built-in NLP processors")
+    parser.add_argument("--showinfo", required=False, nargs='?',
+                        metavar="NLP_CLASS_NAME",
+                        help="Show detailed information for a parser")
     parser.add_argument("--count", action="store_true",
                         help="Count records in source/destination databases, "
                              "then stop")
@@ -591,6 +595,14 @@ def main() -> None:
         return
     if args.describeprocessors:
         print(possible_processor_table())
+        return
+    if args.showinfo:
+        parser = get_nlp_parser_debug_instance(args.showinfo)
+        if parser:
+            print("Info for class {}:\n".format(args.showinfo))
+            parser.print_info()
+        else:
+            print("No such processor class: {}".format(args.showinfo))
         return
 
     # Otherwise, we need a valid NLP definition.

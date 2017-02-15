@@ -378,14 +378,16 @@ def query_submit(request: HttpRequest,
     run page.
     """
     all_queries = get_all_queries(request)
+
     identical_queries = all_queries.filter(sql=sql)
     # - 2017-02-03: we had a problem here, in which the parameter was sent to
     #   SQL Server as type NTEXT, but the field "sql" is NVARCHAR(MAX), leading
     #   to "The data types nvarchar(max) and ntext are incompatible in the
     #   equal to operator."
     # - The Django field type TextField is converted to NVARCHAR(MAX) by
-    #   django-pyodbc-azure, in sql_server/pyodbc/base.py, also at
-    #   https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa
+    #   django-pyodbc-azure, in sql_server/pyodbc/base.py, also at [1].
+    # - That seems fine; NVARCHAR(MAX) seems more capable than NTEXT.
+    #   NTEXT is deprecated.
     # - Error is reproducible with
     #       ... WHERE sql = CAST('hello' AS NTEXT) ...
     # - The order of the types in the error message matches the order in the
@@ -394,6 +396,53 @@ def query_submit(request: HttpRequest,
     #   CAST(some_parameter AS NVARCHAR(MAX))
     # - Fixed by upgrading pyodbc from 3.1.1 to 4.0.3
     # - Added to FAQ
+    # - WARNING: the problem came back with pyodbc==4.0.6, but not fixed again
+    #   by downgrading to 4.0.3
+    # - See also [2].
+    # - An alternative solution would not be to compare on the long text, but
+    #   store and compare on a hash of it.
+    # - The problem is that either pyodbc or ODBC itself, somehow, is sending
+    #   the string parameter as NTEXT.
+    #   Similar Perl problem: [3].
+    #
+    # - In pyodbc, the key functions are:
+    #       cursor.cpp: static PyObject* execute(...)
+    #       -> params.cpp: bool PrepareAndBind(...)
+    #           -> GetParameterInfo  // THIS ONE
+    #               Parameter will be of type str.
+    #               This will fail for PyBytes_Check [4].
+    #               This will match for PyUnicode_Check [5].
+    #               Thus:
+    #                   -> GetUnicodeInfo
+    #                   ... and depending on the string length of the
+    #                       parameter, this returns either
+    #                   SQL_WVARCHAR -> NVARCHAR on SQL Server [6], for short strings  # noqa
+    #                   SQL_WLONGVARCHAR -> NTEXT on SQL Server [6], for long strings  # noqa
+    #                   ... and the length depends on
+    #                       -> connection.h: cur->cnxn->GetMaxLength(info.ValueType);  # noqa
+    #           -> BindParameter
+    #   in cursor.cpp
+    #
+    # - Now we also have pyodbc docs: [7].
+    #
+    # - Anyway, the upshot is that there is some unpredictabilty in sending
+    #   very long parameters... the intermittency would be explained by some
+    #   dependency on string length.
+    #
+    # - Could switch away from pyodbc, e.g. to Django-mssql [8, 9].
+    #   But, as per the CRATE manual, there were version incompatibilities
+    #   here.
+    #
+    # [1] https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa
+    # [2] https://github.com/mkleehammer/pyodbc/blob/master/tests2/informixtests.py  # noqa
+    # [3] http://stackoverflow.com/questions/13090907
+    # [4] https://docs.python.org/3/c-api/bytes.html
+    # [5] https://docs.python.org/3/c-api/unicode.html
+    # [6] https://documentation.progress.com/output/DataDirect/DataDirectCloud/index.html#page/queries/microsoft-sql-server-data-types.html  # noqa
+    # [7] https://github.com/mkleehammer/pyodbc/wiki/Data-Types
+    # [8] https://docs.djangoproject.com/en/1.10/ref/databases/#using-a-3rd-party-database-backend  # noqa
+    # [9] https://django-mssql.readthedocs.io/en/latest/
+
     if identical_queries:
         identical_queries[0].activate()
         query_id = identical_queries[0].id

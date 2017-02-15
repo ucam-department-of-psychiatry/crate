@@ -192,7 +192,7 @@ setup(
         'django-debug-toolbar==1.6',
         # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
         'django-extensions==1.7.6',
-        # 'django-picklefield==0.3.2',  # dangerous to use pickle
+        'django-picklefield==0.3.2',  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
         # 'django-silk==0.5.7',
         'django-sslserver==0.19',
         'flower==0.9.1',  # debug Celery; web server; only runs explicitly

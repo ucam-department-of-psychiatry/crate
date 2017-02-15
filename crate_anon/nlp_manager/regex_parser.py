@@ -25,6 +25,7 @@
 # Shared elements for regex-based NLP work.
 
 import logging
+import sys
 import typing
 from typing import Any, Dict, Generator, List, Tuple
 
@@ -251,6 +252,14 @@ class NumericalResultParser(BaseNlpParser):
         assert len(self.variable) <= MAX_SQL_FIELD_LEN, (
             "Variable name too long (max {} characters)".format(
                 MAX_SQL_FIELD_LEN))
+
+    def print_info(self, file=sys.stdout):
+        print(
+            "NLP class to find numerical results. Regular expression: "
+            "\n\n{}".format(self.regex_str_for_debugging), file=file)
+
+    def get_regex_str_for_debugging(self) -> str:
+        return self.regex_str_for_debugging
 
     def set_tablename(self, tablename: str) -> None:
         """In case a friend class wants to override."""
@@ -534,6 +543,11 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
         self.regex_str = regex_str
         self.compiled_regex = compile_regex(regex_str)
 
+    def print_info(self, file=sys.stdout):
+        print(
+            "NLP class to find X-out-of-Y results. Regular expression: "
+            "\n\n{}".format(self.regex_str), file=file)
+
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         return {self.tablename: [
             Column(FN_VARIABLE_NAME, SqlTypeDbIdentifier,
@@ -760,6 +774,11 @@ class ValidatorBase(BaseNlpParser):
         else:
             self.tablename = nlpdef.opt_str(
                 cfgsection, 'desttable', required=True)
+
+    def print_info(self, file=sys.stdout):
+        print("NLP class to validate other NLP processors. Regular "
+              "expressions:\n\n", file=file)
+        print("\n\n".join(self.regex_str_list), file=file)
 
     def set_tablename(self, tablename: str) -> None:
         """In case a friend class wants to override."""

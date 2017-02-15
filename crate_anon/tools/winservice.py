@@ -520,8 +520,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
     _exe_args_ = '"{}"'.format(os.path.realpath(__file__))  # this script
 
     def __init__(self, args: List[Any] = None) -> None:
-        if args is not None:
-            super().__init__(args)
+        super().__init__(args)
         # create an event to listen for stop requests on
         self.h_stop_event = win32event.CreateEvent(None, 0, 0, None)
         self.process_managers = []
@@ -572,8 +571,14 @@ class CratewebService(win32serviceutil.ServiceFramework):
         servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
                               servicemanager.PYS_SERVICE_STARTED,
                               (self._svc_name_, ''))
+
         # self.test_service()  # test service
         self.main()  # real service
+
+        servicemanager.LogMsg(servicemanager.EVENTLOG_INFORMATION_TYPE,
+                              servicemanager.PYS_SERVICE_STOPPED,
+                              (self._svc_name_, ''))
+        self.ReportServiceStatus(win32service.SERVICE_STOPPED)
 
     # -------------------------------------------------------------------------
     # Testing
@@ -753,7 +758,7 @@ def generic_service_main(cls, name: str) -> None:
             print("Trying to start service directly...")
             evtsrc_dll = os.path.abspath(servicemanager.__file__)
             # noinspection PyUnresolvedReferences
-            servicemanager.PrepareToHostSingle(cls)
+            servicemanager.PrepareToHostSingle(cls)  # <-- sets up the service
             # noinspection PyUnresolvedReferences
             servicemanager.Initialize(name, evtsrc_dll)
             # noinspection PyUnresolvedReferences

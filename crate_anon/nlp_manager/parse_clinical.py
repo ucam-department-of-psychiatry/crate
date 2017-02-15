@@ -23,6 +23,7 @@
 """
 
 import logging
+import sys
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
@@ -678,6 +679,11 @@ class Bp(BaseNlpParser):
         else:
             self.tablename = nlpdef.opt_str(
                 cfgsection, 'desttable', required=True)
+
+    @classmethod
+    def print_info(cls, file=sys.stdout):
+        print("Blood pressure finder. Regular expression: \n{}".format(
+            cls.REGEX), file=file)
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
         return {self.tablename: [
