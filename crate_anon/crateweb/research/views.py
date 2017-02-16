@@ -49,6 +49,7 @@ from crate_anon.common.contenttypes import (
     CONTENTTYPE_XLSX,
     CONTENTTYPE_ZIP,
 )
+from crate_anon.common.hash import hash64
 from crate_anon.common.lang import recover_info_from_exception
 from crate_anon.crateweb.core.dbfunc import (
     get_fieldnames_from_cursor,
@@ -379,7 +380,8 @@ def query_submit(request: HttpRequest,
     """
     all_queries = get_all_queries(request)
 
-    identical_queries = all_queries.filter(sql=sql)
+    # identical_queries = all_queries.filter(sql=sql)
+    #
     # - 2017-02-03: we had a problem here, in which the parameter was sent to
     #   SQL Server as type NTEXT, but the field "sql" is NVARCHAR(MAX), leading
     #   to "The data types nvarchar(max) and ntext are incompatible in the
@@ -428,10 +430,13 @@ def query_submit(request: HttpRequest,
     # - Anyway, the upshot is that there is some unpredictabilty in sending
     #   very long parameters... the intermittency would be explained by some
     #   dependency on string length.
+    # - Empirically, it fails somewhere around 1,900 characters.
     #
     # - Could switch away from pyodbc, e.g. to Django-mssql [8, 9].
     #   But, as per the CRATE manual, there were version incompatibilities
-    #   here.
+    #   here. Tried again with v1.8, but it gave configuration errors
+    #   (ADODB.Connection; Provider cannot be found. It may not be properly
+    #   installed.) Anyway, pyodbc is good enough for SQLAlchemy.
     #
     # [1] https://github.com/michiya/django-pyodbc-azure/blob/azure-1.10/sql_server/pyodbc/base.py  # noqa
     # [2] https://github.com/mkleehammer/pyodbc/blob/master/tests2/informixtests.py  # noqa
@@ -442,6 +447,11 @@ def query_submit(request: HttpRequest,
     # [7] https://github.com/mkleehammer/pyodbc/wiki/Data-Types
     # [8] https://docs.djangoproject.com/en/1.10/ref/databases/#using-a-3rd-party-database-backend  # noqa
     # [9] https://django-mssql.readthedocs.io/en/latest/
+
+    # Screw it, let's use a hash. We can use our hash64() function and
+    # a Django BigIntegerField.
+
+    identical_queries = all_queries.filter(sql_hash=hash64(sql))
 
     if identical_queries:
         identical_queries[0].activate()

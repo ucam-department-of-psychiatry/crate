@@ -36,6 +36,7 @@ from django.http.request import HttpRequest
 from openpyxl import Workbook
 from openpyxl.worksheet import Worksheet
 
+from crate_anon.common.hash import hash64
 from crate_anon.common.jsonfunc import (
     JsonClassField,
     METHOD_STRIP_UNDERSCORE,
@@ -151,6 +152,8 @@ class Query(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
 
     sql = models.TextField(verbose_name='SQL query')
+    sql_hash = models.BigIntegerField(
+        verbose_name='64-bit non-cryptographic hash of SQL query')
     args = JsonClassField(verbose_name='SQL arguments (as JSON)', null=True)
     # ... https://github.com/shrubberysoft/django-picklefield
     raw = models.BooleanField(
@@ -174,11 +177,13 @@ class Query(models.Model):
         """
         Custom save method.
         Ensures that only one Query has active == True for a given user.
+        Also sets the hash.
         """
         # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
         if self.active:
             Query.objects.filter(user=self.user, active=True)\
                          .update(active=False)
+        self.sql_hash = hash64(self.sql)
         super().save(*args, **kwargs)
 
     # -------------------------------------------------------------------------
