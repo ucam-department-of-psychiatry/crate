@@ -609,11 +609,19 @@ class JsonClassField(TextField):
 # =============================================================================
 
 register_class_for_json(
+    cls=datetime.date,
+    obj_to_dict_fn=make_instance_to_initdict(['year', 'month', 'day'])
+)
+register_class_for_json(
     cls=datetime.datetime,
     obj_to_dict_fn=make_instance_to_initdict([
         'year', 'month', 'day', 'hour', 'minute', 'second', 'microsecond'
     ])
 )
+# Note in passing: the repr() of datetime.date and datetime.datetime look like
+# 'datetime.date(...)' only because their repr() function explicitly does
+# 'datetime.' + self.__class__.__name__; there's no way, it seems, to get
+# that or __qualname__ to add the prefix automatically.
 
 
 # =============================================================================
@@ -660,12 +668,14 @@ def unit_tests():
     # serialized on a "have a try" basis).
     @register_for_json
     class DerivedThing(BaseTestClass):
-        def __init__(self, a, b, c, d: datetime.datetime = None, e: int = 5):
+        def __init__(self, a, b, c, d: datetime.datetime = None, e: int = 5,
+                     f: datetime.date = None):
             self.a = a
             self.b = b
             self.c = c
             self.d = d or datetime.datetime.now()
             self.e = e
+            self.f = f or datetime.date.today()
 
         def __eq__(self, other: 'SimpleThing') -> bool:
             return simple_eq(self, other, ['a', 'b', 'c', 'd', 'e'])
@@ -726,6 +736,8 @@ def unit_tests():
     check_json(KwargsDictThing(1, 2, 3))
 
     dump_map()
+
+    print("\nAll OK.\n")
 
 
 if __name__ == '__main__':

@@ -63,9 +63,9 @@
             <tr>
                 <th>Created at</th>
                 <th>Delete query</th>
-                <th>SQL</th>
                 <th>Active?</th>
                 <th>Choose this one</th>
+                <th>SQL</th>
             </tr>
             {% for query in queries %}
                 <tr>
@@ -76,7 +76,6 @@
                             <input type="submit" value="Delete" />
                         </form>
                     </td>
-                    <td>{{ query.formatted_query_safe|safe }}</td>
                     <td>
                         {% if query.active %}<b>{% endif %}
                         {{ query.active|yesno }}
@@ -92,6 +91,8 @@
                             </form>
                         {% endif %}
                     </td>
+                    {% comment %}Widest, so last:{% endcomment %}
+                    <td>{{ query.formatted_query_safe|safe }}</td>
                 </tr>
             {% endfor %}
         </table>

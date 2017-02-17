@@ -2,22 +2,15 @@
 To do
 ===============================================================================
 
-- For mapping:
-
-  Mapping in R:
-  - https://www.students.ncl.ac.uk/keith.newman/r/maps-in-r#uk
-  - www.londonr.org/download/?id=80
-
-- Redo consent system if necessary as per ethics
-- Pull consent/discharge info from RiO
+- Fix parsing bug under SQL Server.
+- Redo consent system as per ethics
+- Pull consent/discharge info from (1) RiO new, (2) RiO old, (3) CRATE
 - "After discharge" code
 
 
 ===============================================================================
 Consider
 ===============================================================================
-
-- pulling research consent info from RiO at point of lookup
 
 ===============================================================================
 Resolved bugs elsewhere, previously affecting CRATE

@@ -39,6 +39,7 @@ from openpyxl.worksheet import Worksheet
 from crate_anon.common.hash import hash64
 from crate_anon.common.jsonfunc import (
     JsonClassField,
+    json_encode,
     METHOD_STRIP_UNDERSCORE,
     register_for_json,
 )
@@ -609,6 +610,9 @@ class PatientMultiQuery(object):
             self._manual_patient_id_query == other._manual_patient_id_query
         )
 
+    def __hash__(self) -> int:
+        return hash64(json_encode(self))
+
     def get_output_columns(self) -> List[ColumnId]:
         return self._output_columns
 
@@ -902,6 +906,9 @@ class PatientExplorer(models.Model):
     patient_multiquery = JsonClassField(
         verbose_name='PatientMultiQuery as JSON',
         null=True)  # type: PatientMultiQuery
+    pmq_hash = models.BigIntegerField(
+        verbose_name='64-bit non-cryptographic hash of JSON of '
+                     'patient_multiquery')
     active = models.BooleanField(default=True)  # see save() below
     created = models.DateTimeField(auto_now_add=True)
     deleted = models.BooleanField(
@@ -922,11 +929,13 @@ class PatientExplorer(models.Model):
         """
         Custom save method. Ensures that only one PatientExplorer has
         active == True for a given user.
+        Also sets the hash.
         """
         if self.active:
             PatientExplorer.objects\
                 .filter(user=self.user, active=True)\
                 .update(active=False)
+        self.pmq_hash = hash(self.patient_multiquery)  # it implements __hash__
         super().save(*args, **kwargs)
 
     # -------------------------------------------------------------------------

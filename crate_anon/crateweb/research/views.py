@@ -26,6 +26,7 @@ import datetime
 from functools import lru_cache
 import json
 import logging
+# import pprint
 from typing import Any, Dict, List, Union
 
 from django import forms
@@ -35,6 +36,7 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
+# from django.db import connection
 from django.db import DatabaseError
 from django.db.models import Q, QuerySet
 from django.http import HttpResponse
@@ -1556,7 +1558,16 @@ def pe_submit(request: HttpRequest,
               pmq: PatientMultiQuery,
               run: bool = False) -> HttpResponse:
     all_pes = get_all_pes(request)
-    identical_pes = all_pes.filter(patient_multiquery=pmq)  # seems to work!
+
+    # identical_pes = all_pes.filter(patient_multiquery=pmq)
+    #
+    # ... this works, but does so by converting the parameter (pmq) to its
+    # JSON representation, presumably via JsonClassField.get_prep_value().
+    # Accordingly, we can predict problems under SQL Server with very long
+    # strings; see the problem in query_submit().
+    # So, we should similarly hash:
+    identical_pes = all_pes.filter(pmq_hash=hash(pmq))
+
     if identical_pes:
         identical_pes[0].activate()
         pe_id = identical_pes[0].id
@@ -1566,6 +1577,7 @@ def pe_submit(request: HttpRequest,
                              active=True)
         pe.save()
         pe_id = pe.id
+    # log.critical(pprint.pformat(connection.queries))  # show all queries
     # redirect to a new URL:
     if run:
         return redirect('pe_results', pe_id)

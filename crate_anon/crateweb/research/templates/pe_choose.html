@@ -21,11 +21,11 @@
             <tr>
                 <th>Created at</th>
                 <th>Delete PE</th>
-                <th>Details</th>
                 <th>OK?</th>
                 <th>Active?</th>
                 <th>Choose/activate</th>
                 <th>Edit</th>
+                <th>Details</th>
             </tr>
             {% for pe in patient_explorers %}
                 <tr>
@@ -36,7 +36,6 @@
                             <input type="submit" value="Delete" />
                         </form>
                     </td>
-                    <td>{{ pe.summary_html|safe }}</td>
                     <td>
                         {% if pe.has_patient_id_query %}
                             {% if pe.has_output_columns %}
@@ -69,6 +68,8 @@
                             <input type="submit" value="Edit" />
                         </form>
                     </td>
+                    {% comment %}Widest, so last:{% endcomment %}
+                    <td>{{ pe.summary_html|safe }}</td>
                 </tr>
             {% endfor %}
         </table>
