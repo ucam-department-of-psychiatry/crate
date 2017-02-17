@@ -232,6 +232,9 @@ class ColumnId(object):
             (other._db, other._schema, other._table, other._column)
         )
 
+    def is_valid(self) -> bool:
+        return bool(self._table and self._column)  # the minimum
+
     def identifier(self, grammar: SqlGrammar) -> str:
         return make_identifier(grammar,
                                database=self._db,

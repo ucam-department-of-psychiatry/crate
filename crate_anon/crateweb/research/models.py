@@ -647,8 +647,20 @@ class PatientMultiQuery(object):
     def set_override_query(self, query: str) -> None:
         self._manual_patient_id_query = query
 
+    def _get_select_mrid_column(self) -> Optional[ColumnId]:
+        if not self._patient_conditions:
+            return None
+        return research_database_info.get_mrid_column(
+            self._patient_conditions[0].table_id())
+
     def has_patient_id_query(self) -> bool:
-        return bool(self._manual_patient_id_query or self._patient_conditions)
+        if self._manual_patient_id_query:
+            return True
+        if self._patient_conditions:
+            mrid_col = self._get_select_mrid_column()
+            if mrid_col and mrid_col.is_valid():
+                return True
+        return False
 
     def patient_id_query(self) -> str:
         # Returns an SQL SELECT statement based on the list of WHERE conditions
@@ -662,8 +674,12 @@ class PatientMultiQuery(object):
             return ''
 
         grammar = research_database_info.grammar
-        select_mrid_column = research_database_info.get_mrid_column(
-            self._patient_conditions[0].table_id())
+        select_mrid_column = self._get_select_mrid_column()
+        if not select_mrid_column.is_valid():
+            log.warning(
+                "PatientMultiQuery.patient_id_query(): invalid "
+                "select_mrid_column: {}".format(repr(select_mrid_column)))
+            return ''
         mrid_alias = "_mrid"
         sql = add_to_select(
             '',
