@@ -411,7 +411,13 @@ time_unit = make_words_regex(
 
 
 def format_sql(sql: str, reindent: bool = True, indent_width: int = 4) -> str:
-    return sqlparse.format(sql, reindent=reindent, indent_width=indent_width)
+    # https://media.readthedocs.org/pdf/sqlparse/latest/sqlparse.pdf
+    return sqlparse.format(
+        sql,
+        reindent=reindent,
+        indent_width=indent_width,
+        keyword_case='upper',
+    )
 
 
 # def formatted_from_parsed(statement):
