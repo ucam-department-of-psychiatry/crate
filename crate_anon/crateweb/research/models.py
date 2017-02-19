@@ -368,16 +368,20 @@ class Query(models.Model):
         now = datetime.datetime.now()
         with self.get_executed_cursor() as cursor:
             fieldnames = get_fieldnames_from_cursor(cursor)
+            log.critical("FETCHED FIELDNAMES")
             ws.append(fieldnames)
             row = cursor.fetchone()
+            log.critical("FIRST FETCH")
             while row is not None:
                 ws.append(tuple(row))
+                log.critical("APPENDED")
                 # - openpyxl doesn't believe in duck-typing; see
                 #   openpyxl/worksheet/worksheet.py
                 # - Sometimes this works (e.g. from MySQL), but sometimes it
                 #   fails, e.g. when the row is of type pyodbc.Row
                 # - So we must coerce to list or tuple
                 row = cursor.fetchone()
+                log.critical("NEXT FETCH")
         sql_ws = wb.create_sheet(title="SQL")
         sql_ws.append(["SQL", "Executed_at"])
         sql_ws.append([self.get_original_sql(), now])
