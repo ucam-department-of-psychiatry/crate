@@ -59,7 +59,7 @@ def visibility_button(tag: str, small: bool = True,
     togglefunc = "toggleVisible" if as_visibility else "toggleCollapsed"
     return """
 <{eltype} class="expandcollapse" onclick="{togglefunc}('collapsible_{tag}', 'collapse_img_{tag}');">
-    <img class="plusminus_image" id="collapse_img_{{ tag }}" alt="" src="{img}">
+    <img class="plusminus_image" id="collapse_img_{tag}" alt="" src="{img}">
     {title_html}
 </{eltype}>
     """.format(  # noqa
