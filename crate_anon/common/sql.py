@@ -508,17 +508,18 @@ def get_first_from_table(parsed: ParseResults,
 
 
 def set_distinct_within_parsed(p: ParseResults, action: str = 'set') -> None:
+    ss = p.select_specifier  # type: ParseResults
     if action == 'set':
-        if p.select_specifier and 'DISTINCT' not in p.select_specifier[0]:
-            p.select_specifier.append('DISTINCT')
+        if 'DISTINCT' not in ss.asList():
+            ss.append('DISTINCT')
     elif action == 'clear':
-        if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
-            del p.select_specifier[:]
+        if 'DISTINCT' in ss.asList():
+            del ss[:]
     elif action == 'toggle':
-        if p.select_specifier and 'DISTINCT' in p.select_specifier[0]:
-            del p.select_specifier[:]
+        if 'DISTINCT' in ss.asList():
+            del ss[:]
         else:
-            p.select_specifier.append('DISTINCT')
+            ss.append('DISTINCT')
     else:
         raise ValueError("action must be one of set/clear/toggle")
 

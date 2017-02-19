@@ -310,7 +310,6 @@ def add_to_select(sql: str,
     if debug and debug_verbose:
         log.debug("start dump:\n" + p.dump())
 
-    # *** problem emerging here from patient explorer:
     existing_tables = p.join_source.from_tables.asList()  # type: List[str]
     new_tables = []  # type: List[TableId]
 
