@@ -110,11 +110,9 @@ def get_join_info(grammar: SqlGrammar,
 
     # OK. So now we're building a cross-database join.
     existing_family = research_database_info.get_db_rid_family(
-        db=first_from_table.db(),
-        schema=first_from_table.schema())
+        first_from_table.schema_id())
     new_family = research_database_info.get_db_rid_family(
-        db=jointable.db(),
-        schema=jointable.schema())
+        jointable.schema_id())
     # log.critical("existing_family={}, new_family={}".format(
     #     existing_family, new_family))
     if existing_family and existing_family == new_family:
