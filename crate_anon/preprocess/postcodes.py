@@ -1558,7 +1558,7 @@ def main() -> None:
         for sa_class in classlist:
             tables_files.append((sa_class.__tablename__,
                                  sa_class.__filename__))
-        tables_files.sort(key = lambda x: x[0])
+        tables_files.sort(key=lambda x: x[0])
         for table, file in tables_files:
             print("Table {} from file {}".format(table, repr(file)))
         return

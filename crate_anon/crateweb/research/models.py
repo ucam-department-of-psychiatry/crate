@@ -370,7 +370,12 @@ class Query(models.Model):
             ws.append(fieldnames)
             row = cursor.fetchone()
             while row is not None:
-                ws.append(row)
+                ws.append(tuple(row))
+                # - openpyxl doesn't believe in duck-typing; see
+                #   openpyxl/worksheet/worksheet.py
+                # - Sometimes this works (e.g. from MySQL), but sometimes it
+                #   fails, e.g. when the row is of type pyodbc.Row
+                # - So we must coerce to list or tuple
                 row = cursor.fetchone()
         sql_ws = wb.create_sheet(title="SQL")
         sql_ws.append(["SQL", "Executed_at"])
@@ -611,6 +616,15 @@ class PatientMultiQuery(object):
         )
 
     def __hash__(self) -> int:
+        """
+        WARNING: Python's hash() function converts the result of __hash__()
+        to the integer width of the host machine, so 64-bit results can get
+        down-converted to 32 bits. Use hash64() directly if you want a 64-bit
+        result.
+        """
+        return self.hash64()
+
+    def hash64(self) -> int:
         return hash64(json_encode(self))
 
     def get_output_columns(self) -> List[ColumnId]:
@@ -650,7 +664,7 @@ class PatientMultiQuery(object):
     def _get_select_mrid_column(self) -> Optional[ColumnId]:
         if not self._patient_conditions:
             return None
-        return research_database_info.get_mrid_column(
+        return research_database_info.get_linked_mrid_column(
             self._patient_conditions[0].table_id())
 
     def has_patient_id_query(self) -> bool:
@@ -679,6 +693,8 @@ class PatientMultiQuery(object):
             log.warning(
                 "PatientMultiQuery.patient_id_query(): invalid "
                 "select_mrid_column: {}".format(repr(select_mrid_column)))
+            # One way this can happen: (1) a user saves a PMQ; (2) the
+            # administrator removes one of the databases!
             return ''
         mrid_alias = "_mrid"
         sql = add_to_select(
@@ -722,7 +738,8 @@ class PatientMultiQuery(object):
                              grammar: SqlGrammar,
                              mrids: List[Any] = None) -> Tuple[str, List[Any]]:
         """Returns (sql, args)."""
-        mrid_column = research_database_info.get_mrid_column(table_id)
+        mrid_column = research_database_info.get_mrid_column_from_table(
+            table_id)
         if mrids:
             in_clause = ",".join(["?"] * len(mrids))
             # ... see notes for translate_sql_qmark_to_percent()
@@ -744,7 +761,8 @@ class PatientMultiQuery(object):
         if not columns:
             raise ValueError("No columns specified")
         grammar = research_database_info.grammar
-        mrid_column = research_database_info.get_mrid_column(table_id)
+        mrid_column = research_database_info.get_mrid_column_from_table(
+            table_id)
         all_columns = [mrid_column]
         for c in columns:
             if c not in all_columns:
@@ -819,7 +837,8 @@ class PatientMultiQuery(object):
         min_date_alias = 'min_date'
         max_date_alias = 'max_date'
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
-            mrid_col = research_database_info.get_mrid_column(table=table_id)
+            mrid_col = research_database_info.get_mrid_column_from_table(
+                table=table_id)
             date_col = research_database_info.get_default_date_column(
                 table=table_id)
             if research_database_info.table_contains(table_id, date_col):
@@ -877,7 +896,8 @@ class PatientMultiQuery(object):
         grammar = research_database_info.grammar
         table_sql_args_tuples = []
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
-            mrid_col = research_database_info.get_mrid_column(table=table_id)
+            mrid_col = research_database_info.get_mrid_column_from_table(
+                table=table_id)
             where_clause, args = self.where_patient_clause(
                 table_id, grammar, mrids)
             # We add the WHERE using our magic query machine, to get the joins
@@ -951,7 +971,9 @@ class PatientExplorer(models.Model):
             PatientExplorer.objects\
                 .filter(user=self.user, active=True)\
                 .update(active=False)
-        self.pmq_hash = hash(self.patient_multiquery)  # it implements __hash__
+        self.pmq_hash = self.patient_multiquery.hash64()
+        # Beware: Python's hash() function will downconvert to 32 bits on 32-bit
+        # machines; use pmq.hash64() directly, not hash(pmq).
         super().save(*args, **kwargs)
 
     # -------------------------------------------------------------------------
@@ -1123,7 +1145,7 @@ class PatientExplorer(models.Model):
                 ws.append(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:
-                    ws.append(row)
+                    ws.append(tuple(row))
                     row = cursor.fetchone()
         sql_ws = wb.create_sheet(title="SQL")
         for r in sqlsheet_rows:
@@ -1184,8 +1206,9 @@ class PatientExplorer(models.Model):
                 if rid not in wb:
                     ws = wb.create_sheet(rid)
                     ws.append(fieldnames)
-                ws.append(row)
-                all_ws.append(row)
+                rowtuple = tuple(row)
+                ws.append(rowtuple)
+                all_ws.append(rowtuple)
                 row = cursor.fetchone()
         return excel_to_bytes(wb)
 

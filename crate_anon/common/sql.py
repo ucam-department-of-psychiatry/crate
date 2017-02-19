@@ -135,6 +135,65 @@ def sql_datetime_literal(dt: datetime.datetime,
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
 @functools.total_ordering
+class SchemaId(object):
+    def __init__(self, db: str = '', schema: str = '') -> None:
+        self._db = db
+        self._schema = schema
+
+    def __bool__(self) -> bool:
+        return bool(self._schema)
+
+    def __eq__(self, other: 'SchemaId') -> bool:
+        return (  # ordering is for speed
+            self._schema == other._schema and
+            self._db == other._db
+        )
+
+    def __lt__(self, other: 'SchemaId') -> bool:
+        return (
+            (self._db, self._schema) <
+            (other._db, other._schema)
+        )
+
+    def __hash__(self) -> int:
+        return hash(str(self))
+
+    def identifier(self, grammar: SqlGrammar) -> str:
+        return make_identifier(grammar,
+                               database=self._db,
+                               schema=self._schema)
+
+    def table_id(self, table: str) -> 'TableId':
+        return TableId(db=self._db, schema=self._schema, table=table)
+
+    def column_id(self, table: str, column: str) -> 'ColumnId':
+        return ColumnId(db=self._db, schema=self._schema,
+                        table=table, column=column)
+
+    def db(self) -> str:
+        return self._db
+
+    def schema(self) -> str:
+        return self._schema
+
+    def __str__(self) -> str:
+        grammar = make_grammar(DIALECT_MYSQL)  # specific one unimportant
+        return self.identifier(grammar)
+
+    def __repr__(self) -> str:
+        return (
+            "<{qualname}(db={db}, schema={schema}) "
+            "at {addr}>".format(
+                qualname=self.__class__.__qualname__,
+                db=repr(self._db),
+                schema=repr(self._schema),
+                addr=hex(id(self)),
+            )
+        )
+
+
+@register_for_json(method=METHOD_STRIP_UNDERSCORE)
+@functools.total_ordering
 class TableId(object):
     def __init__(self, db: str = '', schema: str = '',
                  table: str = '') -> None:
@@ -166,6 +225,9 @@ class TableId(object):
                                database=self._db,
                                schema=self._schema,
                                table=self._table)
+
+    def schema_id(self) -> SchemaId:
+        return SchemaId(db=self._db, schema=self._schema)
 
     def column_id(self, column: str) -> 'ColumnId':
         return ColumnId(db=self._db, schema=self._schema,
@@ -253,6 +315,9 @@ class ColumnId(object):
 
     def column(self) -> str:
         return self._column
+
+    def schema_id(self) -> SchemaId:
+        return SchemaId(db=self._db, schema=self._schema)
 
     def table_id(self) -> TableId:
         return TableId(db=self._db, schema=self._schema, table=self._table)

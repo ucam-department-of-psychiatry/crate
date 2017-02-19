@@ -56,12 +56,7 @@ def kill_child_processes() -> None:
         try:
             p.wait(timeout_sec)
         except TimeoutExpired:
-            p._terminate()  # please stop
-            try:
-                p.wait(timeout_s=timeout_sec)
-            except TimeoutExpired:
-                # failed to close
-                p.kill()  # you're dead
+            p.stop()  # please stop, escalating to a hard kill
 
 
 def fail() -> None:

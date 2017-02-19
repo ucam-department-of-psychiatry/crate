@@ -132,14 +132,15 @@ def get_join_info(grammar: SqlGrammar,
 
     # If we get here, we have to do a complicated join via the MRID.
     # log.critical("get_join_info: new DB, different RID family, using MRID")
-    existing_mrid_column = research_database_info.get_mrid_column(
+    existing_mrid_column = research_database_info.get_mrid_column_from_table(
         first_from_table)
     existing_mrid_table = existing_mrid_column.table_id()
     if not existing_mrid_table:
         raise ValueError(
             "No MRID table available (in the same database as table {}; "
             "cannot link)".format(first_from_table))
-    new_mrid_column = research_database_info.get_mrid_column(jointable)
+    new_mrid_column = research_database_info.get_mrid_column_from_table(
+        jointable)
     new_mrid_table = new_mrid_column.table_id()
     existing_mrid_table_in_query = bool(get_first_from_table(
         parsed,

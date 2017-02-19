@@ -153,18 +153,20 @@ def get_db_structure_json() -> str:
     if not colinfolist:
         log.warning("get_db_structure_json(): colinfolist is empty")
     info = []
-    for db, schema in research_database_info.get_researchdb_databases_schemas():  # preserve order  # noqa
-        log.info("get_db_structure_json: db {}, schema {}".format(
-            repr(db), repr(schema)))
+    grammar = research_database_info.grammar
+    for schema in research_database_info.get_researchdb_schemas():  # preserve order  # noqa
+        log.info("get_db_structure_json: schema {}".format(
+            schema.identifier(grammar)))
         if not research_database_info.is_db_schema_eligible_for_query_builder(
-                db, schema):
-            log.debug("Skipping db={}, schema={}: not eligible for query "
-                      "builder".format(repr(db), repr(schema)))
+                schema):
+            log.debug("Skipping schema={}: not eligible for query "
+                      "builder".format(schema.identifier(grammar)))
             continue
         schema_cil = [x for x in colinfolist
-                      if x.table_catalog == db and x.table_schema == schema]
-        trid_field = research_database_info.get_schema_trid_field(db, schema)
-        rid_field = research_database_info.get_schema_rid_field(db, schema)
+                      if x.table_catalog == schema.db() and
+                      x.table_schema == schema.schema()]
+        trid_field = research_database_info.get_schema_trid_field(schema)
+        rid_field = research_database_info.get_schema_rid_field(schema)
         table_info = []
         for table in sorted(set(x.table_name for x in schema_cil)):
             table_cil = [x for x in schema_cil if x.table_name == table]
@@ -197,8 +199,8 @@ def get_db_structure_json() -> str:
                 table, len(column_info)))
         if table_info:
             info.append({
-                'database': db,
-                'schema': schema,
+                'database': schema.db(),
+                'schema': schema.schema(),
                 'tables': table_info,
             })
     return json.dumps(info)
@@ -241,8 +243,8 @@ def query_build(request: HttpRequest) -> HttpResponse:
 
     profile = request.user.profile
     parse_error = ''
-    default_database = research_database_info.get_default_database()
-    default_schema = research_database_info.get_default_schema()
+    default_database = research_database_info.get_default_database_name()
+    default_schema = research_database_info.get_default_schema_name()
     with_database = research_database_info.uses_database_level()
     form = None
 
@@ -1078,8 +1080,8 @@ def structure_table_long(request: HttpRequest) -> HttpResponse:
         'paginated': False,
         'colinfolist': colinfolist,
         'rowcount': rowcount,
-        'default_database': research_database_info.get_default_database(),
-        'default_schema': research_database_info.get_default_schema(),
+        'default_database': research_database_info.get_default_database_name(),
+        'default_schema': research_database_info.get_default_schema_name(),
         'with_database': research_database_info.uses_database_level(),
     }
     return render(request, 'database_structure.html', context)
@@ -1093,8 +1095,8 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
         'paginated': True,
         'colinfolist': colinfolist,
         'rowcount': rowcount,
-        'default_database': research_database_info.get_default_database(),
-        'default_schema': research_database_info.get_default_schema(),
+        'default_database': research_database_info.get_default_database_name(),
+        'default_schema': research_database_info.get_default_schema_name(),
         'with_database': research_database_info.uses_database_level(),
     }
     return render(request, 'database_structure.html', context)
@@ -1110,8 +1112,8 @@ def get_structure_tree_html() -> str:
         html_table = render_to_string(
             'database_structure_table.html', {
                 'colinfolist': colinfolist,
-                'default_database': research_database_info.get_default_database(),  # noqa
-                'default_schema': research_database_info.get_default_schema(),
+                'default_database': research_database_info.get_default_database_name(),  # noqa
+                'default_schema': research_database_info.get_default_schema_name(),  # noqa
                 'with_database': research_database_info.uses_database_level()
             })
         cd_button = element_counter.visibility_div_spanbutton()
@@ -1132,8 +1134,8 @@ def get_structure_tree_html() -> str:
 def structure_tree(request: HttpRequest) -> HttpResponse:
     context = {
         'content': get_structure_tree_html(),
-        'default_database': research_database_info.get_default_database(),
-        'default_schema': research_database_info.get_default_schema(),
+        'default_database': research_database_info.get_default_database_name(),
+        'default_schema': research_database_info.get_default_schema_name(),
     }
     return render(request, 'database_structure_tree.html', context)
 
@@ -1284,8 +1286,8 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
 
 def pe_build(request: HttpRequest) -> HttpResponse:
     profile = request.user.profile
-    default_database = research_database_info.get_default_database()
-    default_schema = research_database_info.get_default_schema()
+    default_database = research_database_info.get_default_database_name()
+    default_schema = research_database_info.get_default_schema_name()
     with_database = research_database_info.uses_database_level()
     manual_form = None
     form = None
@@ -1566,7 +1568,9 @@ def pe_submit(request: HttpRequest,
     # Accordingly, we can predict problems under SQL Server with very long
     # strings; see the problem in query_submit().
     # So, we should similarly hash:
-    identical_pes = all_pes.filter(pmq_hash=hash(pmq))
+    identical_pes = all_pes.filter(pmq_hash=pmq.hash64())
+    # Beware: Python's hash() function will downconvert to 32 bits on 32-bit
+    # machines; use pmq.hash64() directly, not hash(pmq).
 
     if identical_pes:
         identical_pes[0].activate()
