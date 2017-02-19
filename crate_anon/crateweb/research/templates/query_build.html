@@ -155,10 +155,10 @@
             large queries by accident. If you want to do something more
             sophisticated, like “show me the progress notes THAT mention
             depression for patients WHO HAVE a CRP of >20 at some point”,
-            you want a query more like “SELECT trid, progress_note FROM
+            you want a query more like “SELECT rid, progress_note FROM
             my_progress_note_table
-            WHERE CONTAINS(progress_note, 'depression') AND trid IN
-            (SELECT DISTINCT trid FROM my_crp_table WHERE crp > 20)”.
+            WHERE CONTAINS(progress_note, 'depression') AND rid IN
+            (SELECT DISTINCT rid FROM my_crp_table WHERE crp > 20)”.
             Use the SQL editor to create such queries.</li>
 
     </ul>

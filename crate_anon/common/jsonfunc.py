@@ -59,6 +59,8 @@ from typing import Any, Callable, Dict, List, TextIO, Tuple, Type
 from django.core.exceptions import ValidationError
 from django.db.models import TextField
 
+from crate_anon.common.lang import auto_repr
+
 Instance = Any
 ClassType = Type[object]
 
@@ -628,17 +630,6 @@ register_class_for_json(
 # Testing
 # =============================================================================
 
-def simple_repr(obj: Instance) -> str:
-    elements = []
-    for k, v in obj.__dict__.items():
-        elements.append("{}={}".format(k, repr(v)))
-    return "<{qualname}({elements}) at {addr}>".format(
-        qualname=obj.__class__.__qualname__,
-        elements=", ".join(elements),
-        addr=hex(id(obj)),
-    )
-
-
 def simple_eq(one: Instance, two: Instance, attrs: List[str]) -> bool:
     return all(getattr(one, a) == getattr(two, a) for a in attrs)
 
@@ -647,7 +638,7 @@ def unit_tests():
 
     class BaseTestClass(object):
         def __repr__(self) -> str:
-            return simple_repr(self)
+            return auto_repr(self)
 
         def __str__(self) -> str:
             return repr(self)

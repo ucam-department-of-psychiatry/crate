@@ -43,7 +43,7 @@ from crate_anon.common.jsonfunc import (
     METHOD_STRIP_UNDERSCORE,
     register_for_json,
 )
-from crate_anon.common.lang import add_info_to_exception
+from crate_anon.common.lang import add_info_to_exception, simple_repr
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
@@ -171,8 +171,9 @@ class Query(models.Model):
                      "Audited queries are never properly deleted.")
     audited = models.BooleanField(default=False)
 
-    def __str__(self) -> str:
-        return "<Query id={}>".format(self.id)
+    def __repr__(self) -> str:
+        return simple_repr(self, ['id', 'user', 'sql', 'args', 'raw', 'qmark',
+                                  'active', 'created', 'deleted', 'audited'])
 
     def save(self, *args, **kwargs) -> None:
         """

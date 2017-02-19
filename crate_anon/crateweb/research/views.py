@@ -643,6 +643,7 @@ def query_excel(request: HttpRequest, query_id: int) -> HttpResponse:
                 query_id, datetime_iso_for_filename())
         )
     except DatabaseError as exception:
+        raise # ***
         return render_bad_query(request, query, exception)
 
 

@@ -15,6 +15,10 @@
     {% endif %}
     <p>Default schema: {{ default_schema }}</p>
 
+    {% if paginated %}
+        {% include "page_nav_results.html" with page=colinfolist %}
+    {% endif %}
+
     {% include "database_structure_table.html" %}
 
     {% if paginated %}

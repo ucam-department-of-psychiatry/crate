@@ -57,3 +57,25 @@ def recover_info_from_exception(err: Exception) -> Dict:
     if not isinstance(info, dict):
         return {}
     return info
+
+
+def auto_repr(obj: Any) -> str:
+    elements = []
+    for k, v in obj.__dict__.items():
+        elements.append("{}={}".format(k, repr(v)))
+    return "<{qualname}({elements}) at {addr}>".format(
+        qualname=obj.__class__.__qualname__,
+        elements=", ".join(elements),
+        addr=hex(id(obj)),
+    )
+
+
+def simple_repr(obj: Any, attrnames = List[str]) -> str:
+    elements = []
+    for name in attrnames:
+        elements.append("{}={}".format(name, repr(getattr(obj, name))))
+    return "<{qualname}({elements}) at {addr}>".format(
+        qualname=obj.__class__.__qualname__,
+        elements=", ".join(elements),
+        addr=hex(id(obj)),
+    )
