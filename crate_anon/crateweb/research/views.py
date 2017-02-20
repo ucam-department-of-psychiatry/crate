@@ -1411,7 +1411,8 @@ def pe_build(request: HttpRequest) -> HttpResponse:
     else:
         pmq_patient_conditions = pmq.pt_conditions_html()
         pmq_manual_patient_query = "<div><i>None</i></div>"
-    pmq_final_patient_query = prettify_sql_html(pmq.patient_id_query())
+    pmq_final_patient_query = prettify_sql_html(pmq.patient_id_query(
+        with_order_by=True))
 
     warnings = ''
     if not pmq.has_patient_id_query():

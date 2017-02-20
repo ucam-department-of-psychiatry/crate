@@ -322,10 +322,7 @@ class Query(models.Model):
             else:
                 cursor.execute(sql)
         except DatabaseError as exception:
-            add_info_to_exception(exception, {
-                'sql': sql,
-                'args': args,
-            })
+            add_info_to_exception(exception, {'sql': sql, 'args': args})
             raise
         return cursor
 
@@ -367,7 +364,8 @@ class Query(models.Model):
         ws = wb.create_sheet(sheetname)
         now = datetime.datetime.now()
         with self.get_executed_cursor() as cursor:
-            fieldnames = get_fieldnames_from_cursor(cursor)
+            # fieldnames = get_fieldnames_from_cursor(cursor)
+            fieldnames = ["blah", "blah", "blah"]
             log.critical("FETCHED FIELDNAMES")
             ws.append(fieldnames)
             row = cursor.fetchone()
@@ -681,7 +679,7 @@ class PatientMultiQuery(object):
                 return True
         return False
 
-    def patient_id_query(self) -> str:
+    def patient_id_query(self, with_order_by: bool = True) -> str:
         # Returns an SQL SELECT statement based on the list of WHERE conditions
         # already stored, joined with AND by default.
 
@@ -713,8 +711,9 @@ class PatientMultiQuery(object):
             magic_join=True,
             formatted=True
         )
-        sql += " ORDER BY " + mrid_alias
-        # ... ORDER BY is important for consistency across runs
+        if with_order_by:
+            sql += " ORDER BY " + mrid_alias
+            # ... ORDER BY is important for consistency across runs
         # log.critical(sql)
         return sql
 
@@ -752,7 +751,11 @@ class PatientMultiQuery(object):
         else:
             # If we haven't specified specific patients, use our patient-
             # finding query.
-            in_clause = self.patient_id_query()
+            in_clause = self.patient_id_query(with_order_by=False)
+            # ... SQL Server moans if you use use ORDER BY in a subquery:
+            # "The ORDER BY clause is invalid in views, inline functions,
+            # derived tables, subqueries, ... unless TOP, OFFSET or FOR XML
+            # is specified."
             args = []
         sql = "{mrid} IN ({in_clause})".format(
             mrid=mrid_column.identifier(grammar),
@@ -1098,15 +1101,12 @@ class PatientExplorer(models.Model):
             else:
                 cursor.execute(sql)
         except DatabaseError as exception:
-            add_info_to_exception(exception, {
-                'sql': sql,
-                'args': args,
-            })
+            add_info_to_exception(exception, {'sql': sql, 'args': args})
             raise
         return cursor
 
     def get_patient_mrids(self) -> List[int]:
-        sql = self.patient_multiquery.patient_id_query()
+        sql = self.patient_multiquery.patient_id_query(with_order_by=True)
         # log.critical(sql)
         with self.get_executed_cursor(sql) as cursor:
             return [row[0] for row in cursor.fetchall()]
@@ -1161,8 +1161,9 @@ class PatientExplorer(models.Model):
     # Using the internal PatientMultiQuery
     # -------------------------------------------------------------------------
 
-    def get_patient_id_query(self) -> str:
-        return self.patient_multiquery.patient_id_query()
+    def get_patient_id_query(self, with_order_by: bool = True) -> str:
+        return self.patient_multiquery.patient_id_query(
+            with_order_by=with_order_by)
 
     # -------------------------------------------------------------------------
     # Display
