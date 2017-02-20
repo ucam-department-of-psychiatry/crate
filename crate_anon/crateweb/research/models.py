@@ -98,7 +98,8 @@ DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
 
 def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self):
     # To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py
-    log.critical("Using monkeypatched fetchone()")
+    log.critical("Using monkeypatched fetchone(); self: {}; self.cursor: "
+                 "{}".format(repr(self), repr(self.cursor)))
     row = self.cursor.fetchone()
     if row is not None:
         row = self.format_row(row)
@@ -113,7 +114,8 @@ def hack_django_pyodbc_azure_cursorwrapper(cursorwrapper):
     #       SomeClass.method = newmethod
     # But to modify an instance, we use
     #       instance.method = types.MethodType(newmethod, instance)
-    log.critical("Applying monkeypatch to cursor")
+    log.critical("Applying monkeypatch to cursor: {}".format(
+        repr(cursorwrapper)))
     cursorwrapper.fetchone = types.MethodType(
         replacement_sqlserver_pyodbc_cursorwrapper_fetchone, cursorwrapper)
 
@@ -128,10 +130,7 @@ def get_executed_researchdb_cursor(
             DJANGO_PYODBC_AZURE_ENGINE):
         hack_django_pyodbc_azure_cursorwrapper(cursor)
     try:
-        if args:
-            cursor.execute(sql, args)
-        else:
-            cursor.execute(sql)
+        cursor.execute(sql, args or None)
     except DatabaseError as exception:
         add_info_to_exception(exception, {'sql': sql, 'args': args})
         raise
