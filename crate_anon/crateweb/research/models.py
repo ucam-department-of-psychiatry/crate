@@ -98,6 +98,7 @@ DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
 
 def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self):
     # To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py
+    log.critical("Using monkeypatched fetchone()")
     row = self.cursor.fetchone()
     if row is not None:
         row = self.format_row(row)
