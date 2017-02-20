@@ -113,6 +113,7 @@ def hack_django_pyodbc_azure_cursorwrapper(cursorwrapper):
     #       SomeClass.method = newmethod
     # But to modify an instance, we use
     #       instance.method = types.MethodType(newmethod, instance)
+    log.critical("Applying monkeypatch to cursor")
     cursorwrapper.fetchone = types.MethodType(
         replacement_sqlserver_pyodbc_cursorwrapper_fetchone, cursorwrapper)
 
