@@ -26,7 +26,6 @@ from collections import OrderedDict
 import datetime
 import io
 import logging
-import types
 from typing import Any, Dict, List, Iterable, Optional, Tuple, Type
 import zipfile
 
@@ -80,15 +79,6 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Debugging SQL
-# =============================================================================
-
-def debug_query() -> None:
-    cursor = connections['research'].cursor()
-    cursor.execute("SELECT 'debug'")
-
-
-# =============================================================================
 # Hacking django-pyodbc-azure, to stop it calling cursor.nextset() every time
 # you ask it to do cursor.fetchone()
 # =============================================================================
@@ -107,28 +97,46 @@ def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self):
     return row
 
 
-def hack_django_pyodbc_azure_cursorwrapper(cursorwrapper):
-    # We want to modify an INSTANCE, not a CLASS.
-    # https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
+def hack_django_pyodbc_azure_cursorwrapper():
+    # I thought I wanted to modify an INSTANCE, not a CLASS.
+    # - https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
     # To modify a class, we do
     #       SomeClass.method = newmethod
     # But to modify an instance, we use
     #       instance.method = types.MethodType(newmethod, instance)
-    log.critical("Applying monkeypatch to cursor: {}".format(
-        repr(cursorwrapper)))
-    cursorwrapper.fetchone = types.MethodType(
-        replacement_sqlserver_pyodbc_cursorwrapper_fetchone, cursorwrapper)
+    # However, it turned out the instance was actually part of a long chain
+    # of cursor wrappers, including the Django debug toolbar; classes included
+    #       debug_toolbar.panels.sql.tracking.NormalCursorWrapper
+    #       django.db.backends.utils.CursorDebugWrapper
+    # and actually, modifying the class is a sensible thing.
+    try:
+        # noinspection PyUnresolvedReferences
+        from sql_server.pyodbc.base import CursorWrapper
+        log.info("Monkey-patching sql_server.pyodbc.base.CursorWrapper."
+                 "fetchone to disable automatic call to cursor.nextset()")
+        CursorWrapper.fetchone = replacement_sqlserver_pyodbc_cursorwrapper_fetchone  # noqa
+    except ImportError:
+        return
 
 
-def get_executed_researchdb_cursor(
-        sql, args: List[Any] = None,
-        hack_django_pyodbc_azure: bool = True) -> Any:
+if getattr(settings, 'DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET',
+           True):
+    # http://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa
+    hack_django_pyodbc_azure_cursorwrapper()
+
+
+# =============================================================================
+# Cursors
+# =============================================================================
+
+def debug_query() -> None:
+    cursor = connections['research'].cursor()
+    cursor.execute("SELECT 'debug'")
+
+
+def get_executed_researchdb_cursor(sql, args: List[Any] = None) -> Any:
     args = args or []
     cursor = connections['research'].cursor()
-    if (hack_django_pyodbc_azure and
-            settings.DATABASES['research']['ENGINE'] ==
-            DJANGO_PYODBC_AZURE_ENGINE):
-        hack_django_pyodbc_azure_cursorwrapper(cursor)
     try:
         cursor.execute(sql, args or None)
     except DatabaseError as exception:
@@ -358,17 +366,14 @@ class Query(models.Model):
             args = self.args
         return sql, args
 
-    def get_executed_cursor(self, sql_append_raw: str = None,
-                            hack_django_pyodbc_azure: bool = True) -> Any:
+    def get_executed_cursor(self, sql_append_raw: str = None) -> Any:
         """
         Get cursor with a query executed
         """
         (sql, args) = self.get_sql_args_for_django()
         if sql_append_raw:
             sql += sql_append_raw
-        return get_executed_researchdb_cursor(
-            sql, args,
-            hack_django_pyodbc_azure=hack_django_pyodbc_azure)
+        return get_executed_researchdb_cursor(sql, args)
 
     # def gen_rows(self,
     #              firstrow: int = 0,
@@ -1136,16 +1141,12 @@ class PatientExplorer(models.Model):
         return self.patient_multiquery.all_queries(mrids=mrids)
 
     @staticmethod
-    def get_executed_cursor(sql: str, args: List[Any] = None,
-                            hack_django_pyodbc_azure: bool = True) -> Any:
+    def get_executed_cursor(sql: str, args: List[Any] = None) -> Any:
         """
         Get cursor with a query executed
         """
         sql = translate_sql_qmark_to_percent(sql)
-        return get_executed_researchdb_cursor(
-            sql, args,
-            hack_django_pyodbc_azure=hack_django_pyodbc_azure
-        )
+        return get_executed_researchdb_cursor(sql, args)
 
     def get_patient_mrids(self) -> List[int]:
         sql = self.patient_multiquery.patient_id_query(with_order_by=True)

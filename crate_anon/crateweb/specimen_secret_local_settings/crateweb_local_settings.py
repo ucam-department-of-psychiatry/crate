@@ -228,6 +228,8 @@ RESEARCH_DB_INFO = [
 # - 'mssql' => Microsoft SQL Server
 RESEARCH_DB_DIALECT = 'mysql'
 
+DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
+
 # Configuration of the secret mapping database (as set during initial
 # anonymisation)
 SECRET_MAP = {
