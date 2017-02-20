@@ -26,6 +26,7 @@ from collections import OrderedDict
 import datetime
 import io
 import logging
+import types
 from typing import Any, Dict, List, Iterable, Optional, Tuple, Type
 import zipfile
 
@@ -88,21 +89,51 @@ def debug_query() -> None:
 
 
 # =============================================================================
-# Hacking PyODBC
+# Hacking django-pyodbc-azure, to stop it calling cursor.nextset() every time
+# you ask it to do cursor.fetchone()
 # =============================================================================
 
-PYODBC_ENGINE = 'sql_server.pyodbc'
+DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
 
 
-def hack_pyodbc_cursor(cursor):
-    def new_fetchone(self):
-        row = self.cursor.fetchone()
-        if row is not None:
-            row = self.format_row(row)
-        # BUT DO NOT CALL self.cursor.nextset()
-        return row
+def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self):
+    # To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py
+    row = self.cursor.fetchone()
+    if row is not None:
+        row = self.format_row(row)
+    # BUT DO NOT CALL self.cursor.nextset()
+    return row
 
-    cursor.fetchone = new_fetchone
+
+def hack_django_pyodbc_azure_cursorwrapper(cursorwrapper):
+    # We want to modify an INSTANCE, not a CLASS.
+    # https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
+    # To modify a class, we do
+    #       SomeClass.method = newmethod
+    # But to modify an instance, we use
+    #       instance.method = types.MethodType(instance, newmethod)
+    cursorwrapper.fetchone = types.MethodType(
+        cursorwrapper, replacement_sqlserver_pyodbc_cursorwrapper_fetchone)
+
+
+def get_executed_researchdb_cursor(
+        sql, args: List[Any] = None,
+        hack_django_pyodbc_azure: bool = True) -> Any:
+    args = args or []
+    cursor = connections['research'].cursor()
+    if (hack_django_pyodbc_azure and
+            settings.DATABASES['research']['ENGINE'] ==
+            DJANGO_PYODBC_AZURE_ENGINE):
+        hack_django_pyodbc_azure_cursorwrapper(cursor)
+    try:
+        if args:
+            cursor.execute(sql, args)
+        else:
+            cursor.execute(sql)
+    except DatabaseError as exception:
+        add_info_to_exception(exception, {'sql': sql, 'args': args})
+        raise
+    return cursor
 
 
 # =============================================================================
@@ -327,26 +358,16 @@ class Query(models.Model):
         return sql, args
 
     def get_executed_cursor(self, sql_append_raw: str = None,
-                            hack_pyodbc: bool = True) -> Any:
+                            hack_django_pyodbc_azure: bool = True) -> Any:
         """
         Get cursor with a query executed
         """
         (sql, args) = self.get_sql_args_for_django()
         if sql_append_raw:
             sql += sql_append_raw
-        cursor = connections['research'].cursor()
-        if (hack_pyodbc and
-                settings.DATABASES['research']['ENGINE'] == PYODBC_ENGINE):
-            hack_pyodbc_cursor(cursor)
-        try:
-            if args:
-                cursor.execute(sql, args)
-            else:
-                cursor.execute(sql)
-        except DatabaseError as exception:
-            add_info_to_exception(exception, {'sql': sql, 'args': args})
-            raise
-        return cursor
+        return get_executed_researchdb_cursor(
+            sql, args,
+            hack_django_pyodbc_azure=hack_django_pyodbc_azure)
 
     # def gen_rows(self,
     #              firstrow: int = 0,
@@ -1115,25 +1136,15 @@ class PatientExplorer(models.Model):
 
     @staticmethod
     def get_executed_cursor(sql: str, args: List[Any] = None,
-                            hack_pyodbc: bool = True) -> Any:
+                            hack_django_pyodbc_azure: bool = True) -> Any:
         """
         Get cursor with a query executed
         """
         sql = translate_sql_qmark_to_percent(sql)
-        args = args or []
-        cursor = connections['research'].cursor()
-        if (hack_pyodbc and
-                settings.DATABASES['research']['ENGINE'] == PYODBC_ENGINE):
-            hack_pyodbc_cursor(cursor)
-        try:
-            if args:
-                cursor.execute(sql, args)
-            else:
-                cursor.execute(sql)
-        except DatabaseError as exception:
-            add_info_to_exception(exception, {'sql': sql, 'args': args})
-            raise
-        return cursor
+        return get_executed_researchdb_cursor(
+            sql, args,
+            hack_django_pyodbc_azure=hack_django_pyodbc_azure
+        )
 
     def get_patient_mrids(self) -> List[int]:
         sql = self.patient_multiquery.patient_id_query(with_order_by=True)

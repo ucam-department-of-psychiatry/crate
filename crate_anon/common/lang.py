@@ -70,7 +70,7 @@ def auto_repr(obj: Any) -> str:
     )
 
 
-def simple_repr(obj: Any, attrnames = List[str]) -> str:
+def simple_repr(obj: Any, attrnames: List[str]) -> str:
     elements = []
     for name in attrnames:
         elements.append("{}={}".format(name, repr(getattr(obj, name))))
