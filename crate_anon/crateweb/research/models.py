@@ -88,6 +88,24 @@ def debug_query() -> None:
 
 
 # =============================================================================
+# Hacking PyODBC
+# =============================================================================
+
+PYODBC_ENGINE = 'sql_server.pyodbc'
+
+
+def hack_pyodbc_cursor(cursor):
+    def new_fetchone(self):
+        row = self.cursor.fetchone()
+        if row is not None:
+            row = self.format_row(row)
+        # BUT DO NOT CALL self.cursor.nextset()
+        return row
+
+    cursor.fetchone = new_fetchone
+
+
+# =============================================================================
 # Query highlighting class
 # =============================================================================
 
@@ -308,7 +326,8 @@ class Query(models.Model):
             args = self.args
         return sql, args
 
-    def get_executed_cursor(self, sql_append_raw: str = None) -> Any:
+    def get_executed_cursor(self, sql_append_raw: str = None,
+                            hack_pyodbc: bool = True) -> Any:
         """
         Get cursor with a query executed
         """
@@ -316,6 +335,9 @@ class Query(models.Model):
         if sql_append_raw:
             sql += sql_append_raw
         cursor = connections['research'].cursor()
+        if (hack_pyodbc and
+                settings.DATABASES['research']['engine'] == PYODBC_ENGINE):
+            hack_pyodbc_cursor(cursor)
         try:
             if args:
                 cursor.execute(sql, args)
@@ -375,6 +397,15 @@ class Query(models.Model):
                 #   fails, e.g. when the row is of type pyodbc.Row
                 # - So we must coerce to list or tuple
                 row = cursor.fetchone()
+                # BUG in django-pyodbc-azure==1.10.4.0 (providing
+                # sql_server/*), 2017-02-17: this causes
+                # ProgrammingError "No results. Previous SQL was not a query."
+                # The problem relates to sql_server/pyodbc/base.py
+                # CursorWrapper.fetchone() calling self.cursor.nextset(); if
+                # you comment this out, it works fine.
+                # Related:
+                # - https://github.com/pymssql/pymssql/issues/98
+
         sql_ws = wb.create_sheet(title="SQL")
         sql_ws.append(["SQL", "Executed_at"])
         sql_ws.append([self.get_original_sql(), now])
@@ -1083,13 +1114,17 @@ class PatientExplorer(models.Model):
         return self.patient_multiquery.all_queries(mrids=mrids)
 
     @staticmethod
-    def get_executed_cursor(sql: str, args: List[Any] = None) -> Any:
+    def get_executed_cursor(sql: str, args: List[Any] = None,
+                            hack_pyodbc: bool = True) -> Any:
         """
         Get cursor with a query executed
         """
         sql = translate_sql_qmark_to_percent(sql)
         args = args or []
         cursor = connections['research'].cursor()
+        if (hack_pyodbc and
+                settings.DATABASES['research']['engine'] == PYODBC_ENGINE):
+            hack_pyodbc_cursor(cursor)
         try:
             if args:
                 cursor.execute(sql, args)
