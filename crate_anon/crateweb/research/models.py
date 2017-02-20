@@ -371,7 +371,8 @@ class Query(models.Model):
             row = cursor.fetchone()
             log.critical("FIRST FETCH")
             while row is not None:
-                ws.append(tuple(row))
+                # ws.append(tuple(row))
+                ws.append(("hello", "hello", "hello"))
                 log.critical("APPENDED")
                 # - openpyxl doesn't believe in duck-typing; see
                 #   openpyxl/worksheet/worksheet.py
