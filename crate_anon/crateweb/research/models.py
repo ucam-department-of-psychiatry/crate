@@ -111,9 +111,9 @@ def hack_django_pyodbc_azure_cursorwrapper(cursorwrapper):
     # To modify a class, we do
     #       SomeClass.method = newmethod
     # But to modify an instance, we use
-    #       instance.method = types.MethodType(instance, newmethod)
+    #       instance.method = types.MethodType(newmethod, instance)
     cursorwrapper.fetchone = types.MethodType(
-        cursorwrapper, replacement_sqlserver_pyodbc_cursorwrapper_fetchone)
+        replacement_sqlserver_pyodbc_cursorwrapper_fetchone, cursorwrapper)
 
 
 def get_executed_researchdb_cursor(
