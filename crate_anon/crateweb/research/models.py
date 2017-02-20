@@ -336,7 +336,7 @@ class Query(models.Model):
             sql += sql_append_raw
         cursor = connections['research'].cursor()
         if (hack_pyodbc and
-                settings.DATABASES['research']['engine'] == PYODBC_ENGINE):
+                settings.DATABASES['research']['ENGINE'] == PYODBC_ENGINE):
             hack_pyodbc_cursor(cursor)
         try:
             if args:
@@ -1123,7 +1123,7 @@ class PatientExplorer(models.Model):
         args = args or []
         cursor = connections['research'].cursor()
         if (hack_pyodbc and
-                settings.DATABASES['research']['engine'] == PYODBC_ENGINE):
+                settings.DATABASES['research']['ENGINE'] == PYODBC_ENGINE):
             hack_pyodbc_cursor(cursor)
         try:
             if args:
