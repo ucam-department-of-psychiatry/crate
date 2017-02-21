@@ -22,13 +22,14 @@
 ===============================================================================
 """
 
-from functools import lru_cache
+# from functools import lru_cache
 import os
 from typing import Any, Dict
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
+from django_cache_decorator import django_cache_decorator
 
 
 def read_static_file_contents(filename: str) -> str:
@@ -46,7 +47,8 @@ def pdf_css(patient: bool = True) -> str:
     return contents
 
 
-@lru_cache(maxsize=None)
+@django_cache_decorator(time=None)
+# @lru_cache(maxsize=None)
 def pdf_template_dict(patient: bool = True) -> Dict[str, str]:
     return {
         'css': pdf_css(patient),
@@ -69,7 +71,8 @@ def email_css() -> str:
     return contents
 
 
-@lru_cache(maxsize=None)
+@django_cache_decorator(time=None)
+# @lru_cache(maxsize=None)
 def email_template_dict() -> Dict[str, str]:
     return {
         'css': email_css(),

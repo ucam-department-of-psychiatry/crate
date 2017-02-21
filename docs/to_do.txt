@@ -9,6 +9,38 @@ To do
 
 
 ===============================================================================
+functools.lru_cache is not thread-safe
+===============================================================================
+
+- Symptom:
+    KeyError at /pe_df_results/4/
+    (<crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo object at ...>,
+    <TableId<db='RiO', schema='dbo', table='GenSENFunctionTest') at ...>)
+
+    at get_mrid_linkable_patient_pables():
+
+        if self.table_contains_rid(table):
+
+    which is defined as:
+
+        @lru_cache(maxsize=1000)
+        def table_contains_rid(self, table: TableId):
+
+- https://bugs.python.org/issue28969
+
+- Thus:
+  https://noamkremen.github.io/a-simple-threadsafe-caching-decorator.html
+  http://codereview.stackexchange.com/questions/91656/thread-safe-memoizer
+  https://pythonhosted.org/cachetools/#
+  http://stackoverflow.com/questions/213455/python-threadsafe-object-cache
+  http://codereview.stackexchange.com/questions/91656/thread-safe-memoizer
+
+- Then, also, the Django cache system:
+  https://docs.djangoproject.com/en/1.10/topics/cache/
+  https://github.com/rchrd2/django-cache-decorator
+  https://gist.github.com/tuttle/9190308
+
+===============================================================================
 Consider
 ===============================================================================
 

@@ -40,8 +40,8 @@ from crate_anon.nlp_manager.parse_haematology import *
 # noinspection PyUnresolvedReferences
 from crate_anon.nlp_manager.regex_parser import NumericalResultParser
 
-ClassType = Type[object]
 log = logging.getLogger(__name__)
+ClassType = Type[object]
 
 
 # noinspection PyUnusedLocal

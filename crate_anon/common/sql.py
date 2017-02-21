@@ -43,12 +43,16 @@ from crate_anon.common.jsonfunc import (
     METHOD_STRIP_UNDERSCORE,
     register_for_json,
 )
-from crate_anon.common.lang import unique_list
+from crate_anon.common.lang import simple_repr, unique_list
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.stringfunc import get_spec_match_regex
 from crate_anon.common.sql_grammar import SqlGrammar, text_from_parsed
-from crate_anon.common.sql_grammar_factory import DIALECT_MYSQL, make_grammar
+from crate_anon.common.sql_grammar_factory import (
+    DIALECT_MYSQL,
+    make_grammar,
+    mysql_grammar,
+)
 from crate_anon.common.sqla import column_creation_ddl, count_star
 
 log = logging.getLogger(__name__)
@@ -177,19 +181,10 @@ class SchemaId(object):
         return self._schema
 
     def __str__(self) -> str:
-        grammar = make_grammar(DIALECT_MYSQL)  # specific one unimportant
-        return self.identifier(grammar)
+        return self.identifier(mysql_grammar)  # specific one unimportant
 
     def __repr__(self) -> str:
-        return (
-            "<{qualname}(db={db}, schema={schema}) "
-            "at {addr}>".format(
-                qualname=self.__class__.__qualname__,
-                db=repr(self._db),
-                schema=repr(self._schema),
-                addr=hex(id(self)),
-            )
-        )
+        return simple_repr(self, ['db', 'schema'])
 
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
@@ -251,20 +246,10 @@ class TableId(object):
         return self._table
 
     def __str__(self) -> str:
-        grammar = make_grammar(DIALECT_MYSQL)  # specific one unimportant
-        return self.identifier(grammar)
+        return self.identifier(mysql_grammar)  # specific one unimportant
 
     def __repr__(self) -> str:
-        return (
-            "<{qualname}(db={db}, schema={schema}, table={table}) "
-            "at {addr}>".format(
-                qualname=self.__class__.__qualname__,
-                db=repr(self._db),
-                schema=repr(self._schema),
-                table=repr(self._table),
-                addr=hex(id(self)),
-            )
-        )
+        return simple_repr(self, ['db', 'schema', 'table'])
 
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
@@ -326,21 +311,10 @@ class ColumnId(object):
         return bool(self._table and self._column)
 
     def __str__(self) -> str:
-        return dumb_make_identifier(self._db, self._schema,
-                                    self._table, self._column)
+        return self.identifier(mysql_grammar)  # specific one unimportant
 
     def __repr__(self) -> str:
-        return (
-            "<{qualname}(db={db}, schema={schema}, table={table}, "
-            "column={column}) at {id}>".format(
-                qualname=self.__class__.__qualname__,
-                db=repr(self._db),
-                schema=repr(self._schema),
-                table=repr(self._table),
-                column=repr(self._column),
-                id=hex(id(self)),
-            )
-        )
+        return simple_repr(self, ['db', 'schema', 'table', 'column'])
 
     # def html(self, grammar: SqlGrammar, bold_column: bool = True) -> str:
     #     components = [

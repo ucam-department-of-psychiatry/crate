@@ -23,7 +23,7 @@
 """
 
 import datetime
-from functools import lru_cache
+# from functools import lru_cache
 import json
 import logging
 # import pprint
@@ -44,6 +44,7 @@ from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.html import escape
+from django_cache_decorator import django_cache_decorator
 from pyparsing import ParseException
 
 from crate_anon.common.contenttypes import (
@@ -147,7 +148,8 @@ def datetime_iso_for_filename() -> str:
 # Queries
 # =============================================================================
 
-@lru_cache(maxsize=None)
+@django_cache_decorator(time=None)
+# @lru_cache(maxsize=None)
 def get_db_structure_json() -> str:
     colinfolist = research_database_info.get_colinfolist()
     if not colinfolist:
@@ -1102,7 +1104,8 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
     return render(request, 'database_structure.html', context)
 
 
-@lru_cache(maxsize=None)
+@django_cache_decorator(time=None)
+# @lru_cache(maxsize=None)
 def get_structure_tree_html() -> str:
     table_to_colinfolist = research_database_info.get_colinfolist_by_tables()
     content = ""
