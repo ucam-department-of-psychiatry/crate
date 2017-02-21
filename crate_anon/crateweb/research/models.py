@@ -26,7 +26,7 @@ from collections import OrderedDict
 import datetime
 import io
 import logging
-from typing import Any, Dict, List, Iterable, Optional, Tuple, Type
+from typing import Any, Dict, Generator, List, Iterable, Optional, Tuple, Type
 import zipfile
 
 from django.db import connections, DatabaseError, models
@@ -50,6 +50,7 @@ from crate_anon.common.sql import (
     escape_percent_for_python_dbapi,
     make_grammar,
     sql_string_literal,
+    SqlArgsTupleType,
     TableId,
     translate_sql_qmark_to_percent,
     WhereCondition,
@@ -88,8 +89,9 @@ DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
 
 def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self):
     # To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py
-    log.critical("Using monkeypatched fetchone(); self: {}; self.cursor: "
-                 "{}".format(repr(self), repr(self.cursor)))
+    #
+    # log.critical("Using monkeypatched fetchone(); self: {}; self.cursor: "
+    #              "{}".format(repr(self), repr(self.cursor)))
     row = self.cursor.fetchone()
     if row is not None:
         row = self.format_row(row)
@@ -793,7 +795,7 @@ class PatientMultiQuery(object):
 
     def where_patient_clause(self, table_id: TableId,
                              grammar: SqlGrammar,
-                             mrids: List[Any] = None) -> Tuple[str, List[Any]]:
+                             mrids: List[Any] = None) -> SqlArgsTupleType:
         """Returns (sql, args)."""
         mrid_column = research_database_info.get_mrid_column_from_table(
             table_id)
@@ -882,16 +884,14 @@ class PatientMultiQuery(object):
     # Data finder: COUNT(*) for all patient tables
     # -------------------------------------------------------------------------
 
-    def data_finder_query(self,
-                          mrids: List[Any] = None) -> Tuple[str, List[Any]]:
+    def gen_data_finder_queries(self, mrids: List[Any] = None) \
+            -> Generator[Tuple[str, str, List[Any]], None, None]:
         """
-        Returns (sql, args).
+        Generates (table_identifier, sql, args).
         When executed, query gives:
             research_id, table_name, n_records, min_date, max_date
         """
         grammar = research_database_info.grammar
-        queries = []
-        args = []
         mrid_alias = 'master_research_id'
         table_name_alias = 'table_name'
         n_records_alias = 'n_records'
@@ -910,14 +910,13 @@ class PatientMultiQuery(object):
                 max_date = "NULL"
                 # ... OK (at least in MySQL) to do:
                 # SELECT col1, COUNT(*), NULL FROM table GROUP BY col1;
-            where_clause, new_args = self.where_patient_clause(
+            where_clause, args = self.where_patient_clause(
                 table_id, grammar, mrids)
-            args += new_args
             table_identifier = table_id.identifier(grammar)
             select_elements = [
                 SelectElement(column_id=mrid_col, alias=mrid_alias),
                 SelectElement(raw_select=sql_string_literal(table_identifier),
-                              alias='table_name'),
+                              alias=table_name_alias),
                 SelectElement(raw_select='COUNT(*)',
                               from_table_for_raw_select=table_id,
                               alias=n_records_alias),
@@ -929,33 +928,24 @@ class PatientMultiQuery(object):
                               alias=max_date_alias),
             ]
             where_conditions = [WhereCondition(raw_sql=where_clause)]
-            query = add_to_select('',
-                                  grammar=grammar,
-                                  select_elements=select_elements,
-                                  where_conditions=where_conditions,
-                                  magic_join=True,
-                                  formatted=False)
-            query += " GROUP BY " + mrid_col.identifier(grammar)
-            queries.append(query)
-        sql = (
-            "\nUNION\n".join(queries) +
-            "\nORDER BY {mrid_alias}, {table_name_alias}".format(
-                mrid_alias=mrid_alias,
-                table_name_alias=table_name_alias,
-            )
-        )
-        sql = format_sql(sql)
-        return sql, args
+            sql = add_to_select('',
+                                grammar=grammar,
+                                select_elements=select_elements,
+                                where_conditions=where_conditions,
+                                magic_join=True,
+                                formatted=False)
+            sql += "\nGROUP BY " + mrid_col.identifier(grammar)
+            sql += "\nORDER BY " + mrid_alias
+            sql = format_sql(sql)
+            yield table_identifier, sql, args
 
     # -------------------------------------------------------------------------
     # Monster data: SELECT * for all patient tables
     # -------------------------------------------------------------------------
 
-    def monster_queries(self,
-                        mrids: List[int] = None) -> List[Tuple[TableId, str,
-                                                               List[Any]]]:
+    def gen_monster_queries(self, mrids: List[int] = None) \
+            -> Generator[List[Tuple[TableId, str, List[Any]]], None, None]:
         grammar = research_database_info.grammar
-        table_sql_args_tuples = []
         for table_id in research_database_info.get_mrid_linkable_patient_tables():  # noqa
             mrid_col = research_database_info.get_mrid_column_from_table(
                 table=table_id)
@@ -980,8 +970,7 @@ class PatientMultiQuery(object):
                 formatted=False)
             sql += " ORDER BY " + mrid_col.identifier(grammar)
             sql = format_sql(sql)
-            table_sql_args_tuples.append((table_id, sql, args))
-        return table_sql_args_tuples
+            yield table_id, sql, args
 
 
 # =============================================================================
@@ -1238,27 +1227,36 @@ class PatientExplorer(models.Model):
         Performs a SELECT COUNT(*)
         Returns (fieldnames, rows).
         """
-        sql, args = self.patient_multiquery.data_finder_query()
+        fieldnames = []
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet
-        sql_ws = wb.create_sheet("SQL")
-        sql_ws.append(["SQL", "Args", "Executed_at"])
-        sql_ws.append([format_sql(sql), repr(args), datetime.datetime.now()])
         all_ws = wb.create_sheet("All_patients")
-        with self.get_executed_cursor(sql, args) as cursor:
-            fieldnames = get_fieldnames_from_cursor(cursor)
-            all_ws.append(fieldnames)
-            row = cursor.fetchone()
-            ws = None  # type: Worksheet
-            while row is not None:
-                rid = row[0]
-                if rid not in wb:
-                    ws = wb.create_sheet(rid)
-                    ws.append(fieldnames)
-                rowtuple = tuple(row)
-                ws.append(rowtuple)
-                all_ws.append(rowtuple)
+        sql_ws = wb.create_sheet("SQL")
+        sql_ws.append(["Table", "SQL", "Args", "Executed_at"])
+        ws = None  # type: Worksheet
+
+        for table_identifier, sql, args in \
+                self.patient_multiquery.gen_data_finder_queries():
+            sql_ws.append([table_identifier,
+                           format_sql(sql),
+                           repr(args),
+                           datetime.datetime.now()])
+            with self.get_executed_cursor(sql, args) as cursor:
+                if not fieldnames:
+                    fieldnames = get_fieldnames_from_cursor(cursor)
+                    all_ws.append(fieldnames)
                 row = cursor.fetchone()
+                while row is not None:
+                    mrid = str(row[0])
+                    if mrid in wb:
+                        ws = wb[mrid]
+                    else:
+                        ws = wb.create_sheet(mrid)
+                        ws.append(fieldnames)
+                    rowtuple = tuple(row)
+                    ws.append(rowtuple)
+                    all_ws.append(rowtuple)
+                    row = cursor.fetchone()
         return excel_to_bytes(wb)
 
 

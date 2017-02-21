@@ -1643,6 +1643,9 @@ def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     patients_per_page = get_patients_per_page(request)
     element_counter = HtmlElementCounter()
     patient_id_query_html = prettify_sql_html(pe.get_patient_id_query())
+    # If this query is done as a UNION, it's massive, e.g. ~410 characters
+    # * number of tables (e.g. 1448 in one RiO database), for 0.5 Mb of query.
+    # So do it more sensibly:
     try:
         rids = pe.get_patient_mrids()
         page = paginate(request, rids, per_page=patients_per_page)
@@ -1650,24 +1653,27 @@ def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
         results_table_html = ''
         query_html = ''
         if active_rids:
-            sql, args = pe.patient_multiquery.data_finder_query(
-                mrids=active_rids)
-            with pe.get_executed_cursor(sql, args) as cursor:
-                fieldnames = get_fieldnames_from_cursor(cursor)
-                rows = cursor.fetchall()
-                results_table_html = resultset_html_table(
-                    fieldnames=fieldnames,
-                    rows=rows,
-                    element_counter=element_counter,
-                    collapse_at_len=profile.collapse_at_len,
-                    collapse_at_n_lines=profile.collapse_at_n_lines,
-                    line_length=profile.line_length,
-                    no_ditto_cols=[2, 3, 4],
-                    null=''
-                )
-                query_html = element_counter.visibility_div_with_divbutton(
-                    contents=prettify_sql_and_args(sql, args),
-                    title_html="SQL")
+            fieldnames = []
+            for table_identifier, sql, args in \
+                    pe.patient_multiquery.gen_data_finder_queries(
+                        mrids=active_rids):
+                with pe.get_executed_cursor(sql, args) as cursor:
+                    if not fieldnames:
+                        fieldnames = get_fieldnames_from_cursor(cursor)
+                    rows = cursor.fetchall()
+                    query_html += element_counter.visibility_div_with_divbutton(  # noqa
+                        contents=prettify_sql_and_args(sql, args),
+                        title_html="SQL for " + table_identifier)
+            results_table_html = resultset_html_table(
+                fieldnames=fieldnames,
+                rows=rows,
+                element_counter=element_counter,
+                collapse_at_len=profile.collapse_at_len,
+                collapse_at_n_lines=profile.collapse_at_n_lines,
+                line_length=profile.line_length,
+                no_ditto_cols=[2, 3, 4],
+                null=''
+            )
         context = {
             'nav_on_pe_df_results': True,
             'some_patients': len(active_rids) > 0,
@@ -1717,7 +1723,7 @@ def pe_monster_results(request: HttpRequest, pe_id: int) -> HttpResponse:
         results = []
         pmq = pe.patient_multiquery
         if active_rids:
-            for table_id, sql, args in pmq.monster_queries(mrids=active_rids):
+            for table_id, sql, args in pmq.gen_monster_queries(mrids=active_rids):  # noqa
                 with pe.get_executed_cursor(sql, args) as cursor:
                     fieldnames = get_fieldnames_from_cursor(cursor)
                     rows = cursor.fetchall()

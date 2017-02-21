@@ -416,8 +416,10 @@ def format_sql(sql: str, reindent: bool = True, indent_width: int = 4) -> str:
         sql,
         reindent=reindent,
         indent_width=indent_width,
-        keyword_case='upper',
+        # keyword_case='upper',
     )
+    # DON'T use keyword_case='upper'. It converts things like
+    # "SELECT ... AS table_name" to "SELECT ... AS TABLE_NAME".
 
 
 # def formatted_from_parsed(statement):

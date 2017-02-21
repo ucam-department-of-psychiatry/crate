@@ -112,7 +112,7 @@ def visibility_div_with_divbutton(tag: str,
     contents = visibility_contentdiv(tag=tag, contents=contents,
                                      extra_div_classes=extra_div_classes,
                                      small=small, as_visibility=True)
-    return button + contents
+    return "<div>" + button + contents + "</div>"
 
 
 def overflow_div(tag: str,

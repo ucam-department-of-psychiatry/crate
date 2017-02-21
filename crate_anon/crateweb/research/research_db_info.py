@@ -44,6 +44,7 @@ from crate_anon.common.sql import (
     QB_DATATYPE_STRING_FULLTEXT,
     QB_DATATYPE_UNKNOWN,
     SchemaId,
+    SqlArgsTupleType,
     SQLTYPES_FLOAT,
     SQLTYPES_WITH_DATE,
     SQLTYPES_TEXT,
@@ -341,7 +342,7 @@ class ResearchDatabaseInfo(object):
 
     @classmethod
     def _get_info_microsoft(cls, db_name: str,
-                            schema_names: List[str]) -> Tuple[str, List[Any]]:
+                            schema_names: List[str]) -> SqlArgsTupleType:
         if not schema_names:
             raise ValueError("No schema_names specified (for SQL Server "
                              "database)")
@@ -410,7 +411,7 @@ ORDER BY
         return sql, args
 
     @classmethod
-    def _get_info_mysql(cls, db_and_schema_name: str) -> Tuple[str, List[Any]]:
+    def _get_info_mysql(cls, db_and_schema_name: str) -> SqlArgsTupleType:
         # ---------------------------------------------------------------------
         # Method A. Stupidly slow, e.g. 47s for the query.
         # ---------------------------------------------------------------------
@@ -518,7 +519,7 @@ ORDER BY
         return sql, args
 
     @classmethod
-    def _get_info_postgres(cls, schema_names: List[str]) -> Tuple[str, List[Any]]:  # noqa
+    def _get_info_postgres(cls, schema_names: List[str]) -> SqlArgsTupleType:
         # A PostgreSQL connection is always to a single database.
         # http://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql  # noqa
         if not schema_names:
