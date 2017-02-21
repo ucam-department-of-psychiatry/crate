@@ -57,7 +57,7 @@ from crate_anon.crateweb.core.dbfunc import (
     get_fieldnames_from_cursor,
 )
 from crate_anon.crateweb.core.utils import is_superuser, paginate
-from crate_anon.crateweb.extra.django_cache_decorator import django_cache_function  # noqa
+from crate_anon.crateweb.extra.django_cache_fn import django_cache_function
 from crate_anon.crateweb.extra.serve import file_response
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,

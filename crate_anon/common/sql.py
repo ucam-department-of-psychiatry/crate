@@ -43,7 +43,10 @@ from crate_anon.common.jsonfunc import (
     METHOD_STRIP_UNDERSCORE,
     register_for_json,
 )
-from crate_anon.common.lang import simple_repr, unique_list
+from crate_anon.common.lang import (
+    mapped_repr_stripping_underscores,
+    unique_list,
+)
 from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.stringfunc import get_spec_match_regex
@@ -184,7 +187,8 @@ class SchemaId(object):
         return self.identifier(mysql_grammar)  # specific one unimportant
 
     def __repr__(self) -> str:
-        return simple_repr(self, ['db', 'schema'])
+        return mapped_repr_stripping_underscores(
+            self, ['_db', '_schema'])
 
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
@@ -249,7 +253,8 @@ class TableId(object):
         return self.identifier(mysql_grammar)  # specific one unimportant
 
     def __repr__(self) -> str:
-        return simple_repr(self, ['db', 'schema', 'table'])
+        return mapped_repr_stripping_underscores(
+            self, ['_db', '_schema', '_table'])
 
 
 @register_for_json(method=METHOD_STRIP_UNDERSCORE)
@@ -314,7 +319,8 @@ class ColumnId(object):
         return self.identifier(mysql_grammar)  # specific one unimportant
 
     def __repr__(self) -> str:
-        return simple_repr(self, ['db', 'schema', 'table', 'column'])
+        return mapped_repr_stripping_underscores(
+            self, ['_db', '_schema', '_table', '_column'])
 
     # def html(self, grammar: SqlGrammar, bold_column: bool = True) -> str:
     #     components = [

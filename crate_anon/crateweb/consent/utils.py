@@ -30,7 +30,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 
-from crate_anon.crateweb.extra.django_cache_decorator import django_cache_function  # noqa
+from crate_anon.crateweb.extra.django_cache_fn import django_cache_function
 
 
 def read_static_file_contents(filename: str) -> str:

@@ -22,7 +22,11 @@
 ===============================================================================
 """
 
-from typing import Any, Dict, Iterable, List, Optional
+import logging
+from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+
+log = logging.getLogger(__name__)
 
 
 def get_case_insensitive_dict_key(d: Dict, k: str) -> Optional[str]:
@@ -82,12 +86,49 @@ def _repr_result(obj: Any, elements: List[str],
 
 
 def auto_repr(obj: Any, with_addr: bool = False) -> str:
+    """
+    Convenience function for repr().
+    Works its way through the object's __dict__ and reports accordingly.
+    """
     elements = ["{}={}".format(k, repr(v)) for k, v in obj.__dict__.items()]
     return _repr_result(obj, elements, with_addr=with_addr)
 
 
 def simple_repr(obj: Any, attrnames: List[str],
                 with_addr: bool = False) -> str:
+    """
+    Convenience function for repr().
+    Works its way through a list of attribute names, and creates a repr()
+    assuming that parameters to the constructor have the same names.
+    """
     elements = ["{}={}".format(name, repr(getattr(obj, name)))
                 for name in attrnames]
     return _repr_result(obj, elements, with_addr=with_addr)
+
+
+def mapped_repr(obj: Any, attributes: List[Tuple[str, str]],
+                with_addr: bool = False) -> str:
+    """
+    Convenience function for repr().
+    Takes a list of tuples: (attr_name, init_param_name).
+    """
+    elements = ["{}={}".format(init_param_name, repr(getattr(obj, attr_name)))
+                for attr_name, init_param_name in attributes]
+    return _repr_result(obj, elements, with_addr=with_addr)
+
+
+def mapped_repr_stripping_underscores(obj: Any, attrnames: List[str],
+                                      with_addr: bool = False) -> str:
+    """
+    Convenience function for repr().
+    Here, you pass a list of internal attributes, and it assumes that the
+    __init__() parameter names have the leading underscore dropped.
+    """
+    attributes = []
+    for attr_name in attrnames:
+        if attr_name.startswith('_'):
+            init_param_name = attr_name[1:]
+        else:
+            init_param_name = attr_name
+        attributes.append((attr_name, init_param_name))
+    return mapped_repr(obj, attributes, with_addr=with_addr)

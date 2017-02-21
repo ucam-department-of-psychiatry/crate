@@ -32,6 +32,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.conf import settings
 from openpyxl import Workbook
 
+from crate_anon.common.jsonfunc import METHOD_NO_ARGS, register_for_json
 from crate_anon.common.sql import (
     ColumnId,
     is_sql_column_type_textual,
@@ -60,7 +61,7 @@ from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     dictlist_to_tsv,
 )
-from crate_anon.crateweb.extra.django_cache_decorator import django_cache_function  # noqa
+from crate_anon.crateweb.extra.django_cache_fn import django_cache_function
 from crate_anon.crateweb.extra.excel import excel_to_bytes
 
 log = logging.getLogger(__name__)
@@ -127,6 +128,7 @@ class ColumnInfo(object):
                        table=self.table_name)
 
 
+@register_for_json(method=METHOD_NO_ARGS)
 class ResearchDatabaseInfo(object):
     """
     Fetches schema information from the research database.
@@ -203,56 +205,43 @@ class ResearchDatabaseInfo(object):
     def get_db_info(self, schema: SchemaId) -> Optional[Dict[str, Any]]:
         db_name = schema.db() or self.get_default_database_name()
         schema_name = schema.schema() or self.get_default_schema_name()
-        infolist = [x for x in settings.RESEARCH_DB_INFO
-                    if x['database'] == db_name and x['schema'] == schema_name]
-        if not infolist:
-            log.warning("No such database/schema: {}".format(
-                schema.identifier(self.grammar)))
-            return None
-        return infolist[0]
+        for x in settings.RESEARCH_DB_INFO:
+            if x['database'] == db_name and x['schema'] == schema_name:
+                return x
+        log.warning("No such database/schema: {}".format(
+            schema.identifier(self.grammar)))
+        return None
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_schema_trid_field(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
         if not db_info:
             return ''
         return db_info.get('trid_field', '')
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_schema_rid_field(self, schema: SchemaId) -> str:
         schema_info = self.get_db_info(schema)
         if not schema_info:
             return ''
         return schema_info.get('rid_field', '')
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_db_rid_family(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
         if not db_info:
             return ''
         return db_info.get('rid_family', '')
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_db_mrid_table(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
         if not db_info:
             return ''
         return db_info.get('mrid_table', '')
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_db_mrid_field(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
         if not db_info:
             return ''
         return db_info.get('mrid_field', '')
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def get_schema_date_field(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
         if not db_info:
@@ -301,8 +290,6 @@ class ResearchDatabaseInfo(object):
         return table.column_id(
             self.get_schema_date_field(table.schema_id()))
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def does_db_schema_have_mrid(self, schema: SchemaId) -> bool:
         this_dbs_info = self.get_db_info(schema)
         if not this_dbs_info:
@@ -338,8 +325,6 @@ class ResearchDatabaseInfo(object):
             info2.get('rid_family', None) == info1.get('rid_family', None)
         )
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=None)
     def is_db_schema_eligible_for_query_builder(self,
                                                 schema: SchemaId) -> bool:
         first_schema = self.get_first_schema()
@@ -706,8 +691,6 @@ ORDER BY
             schema_to_colinfolist[schema].append(c)
         return OrderedDict(sorted(schema_to_colinfolist.items()))
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=1000)
     def tables_containing_field(self,
                                 fieldname: str) -> List[TableId]:
         """
@@ -724,8 +707,6 @@ ORDER BY
                     results.append(table_id)
         return results
 
-    @django_cache_function(timeout=None)
-    # @lru_cache(maxsize=1000)
     def text_columns(self, table_id: TableId,
                      min_length: int = 1) -> List[ColumnInfo]:
         results = []

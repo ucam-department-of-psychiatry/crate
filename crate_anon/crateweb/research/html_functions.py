@@ -37,6 +37,8 @@ from pygments.lexers.sql import SqlLexer
 from pygments.formatters.html import HtmlFormatter
 import sqlparse
 
+from crate_anon.crateweb.extra.django_cache_fn import django_cache_function
+
 log = logging.getLogger(__name__)
 
 
@@ -314,6 +316,7 @@ def prettify_sql_html(sql: str,
     return highlight(sql, SQL_LEXER, SQL_FORMATTER)
 
 
+@django_cache_function(timeout=None)
 def prettify_sql_css() -> str:
     return SQL_FORMATTER.get_style_defs()
 

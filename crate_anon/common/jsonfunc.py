@@ -83,6 +83,7 @@ log = logging.getLogger(__name__)
 # Constants for external use
 # =============================================================================
 
+METHOD_NO_ARGS = 'no_args'
 METHOD_SIMPLE = 'simple'
 METHOD_STRIP_UNDERSCORE = 'strip_underscore'
 METHOD_PROVIDES_INIT_ARGS_KWARGS = 'provides_init_args_kwargs'
@@ -114,6 +115,12 @@ def args_kwargs_to_initdict(args: ArgsList, kwargs: KwargsDict) -> InitDict:
 def kwargs_to_initdict(kwargs: KwargsDict) -> InitDict:
     return {ARGS_LABEL: [],
             KWARGS_LABEL: kwargs}
+
+
+# noinspection PyUnusedLocal
+def obj_with_no_args_to_init_dict(obj: Any) -> InitDict:
+    return {ARGS_LABEL: [],
+            KWARGS_LABEL: {}}
 
 
 def strip_leading_underscores_from_keys(d: Dict) -> Dict:
@@ -486,6 +493,8 @@ def register_for_json(*args, **kwargs) -> Any:
                 raise ValueError(
                     "Class type {} does not provide function {}".format(
                         cls_, INIT_KWARGS_FN_NAME))
+        elif method == METHOD_NO_ARGS:
+            odf = obj_with_no_args_to_init_dict
         register_class_for_json(cls_,
                                 method=method,
                                 obj_to_dict_fn=odf,
