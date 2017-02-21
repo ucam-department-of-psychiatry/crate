@@ -59,23 +59,35 @@ def recover_info_from_exception(err: Exception) -> Dict:
     return info
 
 
-def auto_repr(obj: Any) -> str:
-    elements = []
-    for k, v in obj.__dict__.items():
-        elements.append("{}={}".format(k, repr(v)))
-    return "<{qualname}({elements}) at {addr}>".format(
-        qualname=obj.__class__.__qualname__,
-        elements=", ".join(elements),
-        addr=hex(id(obj)),
-    )
+# =============================================================================
+# __repr__ aids
+# =============================================================================
+# The repr() function often attempts to return something suitable for eval();
+# failing that, it usually shows an address.
+# https://docs.python.org/3/library/functions.html#repr
+
+def _repr_result(obj: Any, elements: List[str],
+                 with_addr: bool = False) -> str:
+    if with_addr:
+        return "<{qualname}({elements}) at {addr}>".format(
+            qualname=obj.__class__.__qualname__,
+            elements=", ".join(elements),
+            addr=hex(id(obj)),
+        )
+    else:
+        return "{qualname}({elements})".format(
+            qualname=obj.__class__.__qualname__,
+            elements=", ".join(elements),
+        )
 
 
-def simple_repr(obj: Any, attrnames: List[str]) -> str:
-    elements = []
-    for name in attrnames:
-        elements.append("{}={}".format(name, repr(getattr(obj, name))))
-    return "<{qualname}({elements}) at {addr}>".format(
-        qualname=obj.__class__.__qualname__,
-        elements=", ".join(elements),
-        addr=hex(id(obj)),
-    )
+def auto_repr(obj: Any, with_addr: bool = False) -> str:
+    elements = ["{}={}".format(k, repr(v)) for k, v in obj.__dict__.items()]
+    return _repr_result(obj, elements, with_addr=with_addr)
+
+
+def simple_repr(obj: Any, attrnames: List[str],
+                with_addr: bool = False) -> str:
+    elements = ["{}={}".format(name, repr(getattr(obj, name)))
+                for name in attrnames]
+    return _repr_result(obj, elements, with_addr=with_addr)

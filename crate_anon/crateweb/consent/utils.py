@@ -29,7 +29,8 @@ from typing import Any, Dict
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
-from django_cache_decorator import django_cache_decorator
+
+from crate_anon.crateweb.extra.django_cache_decorator import django_cache_function  # noqa
 
 
 def read_static_file_contents(filename: str) -> str:
@@ -47,7 +48,7 @@ def pdf_css(patient: bool = True) -> str:
     return contents
 
 
-@django_cache_decorator(time=None)
+@django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def pdf_template_dict(patient: bool = True) -> Dict[str, str]:
     return {
@@ -71,7 +72,7 @@ def email_css() -> str:
     return contents
 
 
-@django_cache_decorator(time=None)
+@django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def email_template_dict() -> Dict[str, str]:
     return {

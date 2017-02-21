@@ -30,7 +30,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.conf import settings
-from django_cache_decorator import django_cache_decorator
 from openpyxl import Workbook
 
 from crate_anon.common.sql import (
@@ -61,6 +60,7 @@ from crate_anon.crateweb.core.dbfunc import (
     dictfetchall,
     dictlist_to_tsv,
 )
+from crate_anon.crateweb.extra.django_cache_decorator import django_cache_function  # noqa
 from crate_anon.crateweb.extra.excel import excel_to_bytes
 
 log = logging.getLogger(__name__)
@@ -211,7 +211,7 @@ class ResearchDatabaseInfo(object):
             return None
         return infolist[0]
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_schema_trid_field(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
@@ -219,7 +219,7 @@ class ResearchDatabaseInfo(object):
             return ''
         return db_info.get('trid_field', '')
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_schema_rid_field(self, schema: SchemaId) -> str:
         schema_info = self.get_db_info(schema)
@@ -227,7 +227,7 @@ class ResearchDatabaseInfo(object):
             return ''
         return schema_info.get('rid_field', '')
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_db_rid_family(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
@@ -235,7 +235,7 @@ class ResearchDatabaseInfo(object):
             return ''
         return db_info.get('rid_family', '')
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_db_mrid_table(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
@@ -243,7 +243,7 @@ class ResearchDatabaseInfo(object):
             return ''
         return db_info.get('mrid_table', '')
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_db_mrid_field(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
@@ -251,7 +251,7 @@ class ResearchDatabaseInfo(object):
             return ''
         return db_info.get('mrid_field', '')
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_schema_date_field(self, schema: SchemaId) -> str:
         db_info = self.get_db_info(schema)
@@ -301,7 +301,7 @@ class ResearchDatabaseInfo(object):
         return table.column_id(
             self.get_schema_date_field(table.schema_id()))
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def does_db_schema_have_mrid(self, schema: SchemaId) -> bool:
         this_dbs_info = self.get_db_info(schema)
@@ -338,7 +338,7 @@ class ResearchDatabaseInfo(object):
             info2.get('rid_family', None) == info1.get('rid_family', None)
         )
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def is_db_schema_eligible_for_query_builder(self,
                                                 schema: SchemaId) -> bool:
@@ -659,7 +659,7 @@ ORDER BY
         # - http://stackoverflow.com/questions/907806
         # - Similarly via SQLAlchemy reflection/inspection.
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_infodictlist(self) -> List[Dict[str, Any]]:
         connection = self._connection()
@@ -675,13 +675,13 @@ ORDER BY
                         "for 'research' database - misconfigured?")
         return results
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_colinfolist(self) -> List[ColumnInfo]:
         infodictlist = self.get_infodictlist()
         return [ColumnInfo(**d) for d in infodictlist]
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_colinfolist_by_tables(self) -> OrderedDict:
         colinfolist = self.get_colinfolist()
@@ -693,7 +693,7 @@ ORDER BY
             table_to_colinfolist[table_id].append(c)
         return OrderedDict(sorted(table_to_colinfolist.items()))
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_colinfolist_by_schema(self) -> Dict[SchemaId, List[ColumnInfo]]:
         colinfolist = self.get_colinfolist()
@@ -706,7 +706,7 @@ ORDER BY
             schema_to_colinfolist[schema].append(c)
         return OrderedDict(sorted(schema_to_colinfolist.items()))
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=1000)
     def tables_containing_field(self,
                                 fieldname: str) -> List[TableId]:
@@ -724,7 +724,7 @@ ORDER BY
                     results.append(table_id)
         return results
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=1000)
     def text_columns(self, table_id: TableId,
                      min_length: int = 1) -> List[ColumnInfo]:
@@ -738,7 +738,7 @@ ORDER BY
             results.append(column)
         return results
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=1000)
     def all_columns(self, table_id: TableId) -> List[ColumnInfo]:
         results = []
@@ -772,7 +772,7 @@ ORDER BY
                 ])
         return excel_to_bytes(wb)
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_tables(self) -> List[TableId]:
         tables = set()
@@ -780,7 +780,7 @@ ORDER BY
             tables.add(column.table_id())
         return sorted(list(tables))
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=1000)
     def table_contains_rid(self, table: TableId):
         target_rid_column = self.get_rid_column(table)
@@ -795,7 +795,7 @@ ORDER BY
                 return True
         return False
 
-    @django_cache_decorator(time=None)
+    @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_mrid_linkable_patient_tables(self) -> List[TableId]:
         eligible_tables = set()

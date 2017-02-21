@@ -638,7 +638,7 @@ def unit_tests():
 
     class BaseTestClass(object):
         def __repr__(self) -> str:
-            return auto_repr(self)
+            return auto_repr(self, with_addr=True)
 
         def __str__(self) -> str:
             return repr(self)

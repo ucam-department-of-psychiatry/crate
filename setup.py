@@ -189,7 +189,6 @@ setup(
         # Web app:
         'celery==4.0.2',
         'Django==1.10.5',  # "django" versus "Django": neither helps pycharm checking  # noqa
-        'django-cache-decorator==0.4.1',
         'django-debug-toolbar==1.6',
         # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
         'django-extensions==1.7.6',

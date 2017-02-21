@@ -44,7 +44,6 @@ from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils.html import escape
-from django_cache_decorator import django_cache_decorator
 from pyparsing import ParseException
 
 from crate_anon.common.contenttypes import (
@@ -58,6 +57,7 @@ from crate_anon.crateweb.core.dbfunc import (
     get_fieldnames_from_cursor,
 )
 from crate_anon.crateweb.core.utils import is_superuser, paginate
+from crate_anon.crateweb.extra.django_cache_decorator import django_cache_function  # noqa
 from crate_anon.crateweb.extra.serve import file_response
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
@@ -148,7 +148,7 @@ def datetime_iso_for_filename() -> str:
 # Queries
 # =============================================================================
 
-@django_cache_decorator(time=None)
+@django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def get_db_structure_json() -> str:
     colinfolist = research_database_info.get_colinfolist()
@@ -377,13 +377,7 @@ def get_all_queries(request: HttpRequest) -> QuerySet:
                         .order_by('-active', '-created')
 
 
-def query_submit(request: HttpRequest,
-                 sql: str,
-                 run: bool = False) -> HttpResponse:
-    """
-    Ancillary function to add a query, and redirect to the editing or
-    run page.
-    """
+def get_identical_queries(request: HttpRequest, sql: str) -> List[Query]:
     all_queries = get_all_queries(request)
 
     # identical_queries = all_queries.filter(sql=sql)
@@ -458,7 +452,19 @@ def query_submit(request: HttpRequest,
     # a Django BigIntegerField.
 
     identical_queries = all_queries.filter(sql_hash=hash64(sql))
+    # Now eliminate any chance of errors via hash collisions by double-checking
+    # the Python objects:
+    return [q for q in identical_queries if q.sql == sql]
 
+
+def query_submit(request: HttpRequest,
+                 sql: str,
+                 run: bool = False) -> HttpResponse:
+    """
+    Ancillary function to add a query, and redirect to the editing or
+    run page.
+    """
+    identical_queries = get_identical_queries(request, sql)
     if identical_queries:
         identical_queries[0].activate()
         query_id = identical_queries[0].id
@@ -1104,7 +1110,7 @@ def structure_table_paginated(request: HttpRequest) -> HttpResponse:
     return render(request, 'database_structure.html', context)
 
 
-@django_cache_decorator(time=None)
+@django_cache_function(timeout=None)
 # @lru_cache(maxsize=None)
 def get_structure_tree_html() -> str:
     table_to_colinfolist = research_database_info.get_colinfolist_by_tables()
@@ -1560,9 +1566,8 @@ def get_all_pes(request: HttpRequest) -> QuerySet:
         .order_by('-active', '-created')
 
 
-def pe_submit(request: HttpRequest,
-              pmq: PatientMultiQuery,
-              run: bool = False) -> HttpResponse:
+def get_identical_pes(request: HttpRequest,
+                      pmq: PatientMultiQuery) -> List[PatientMultiQuery]:
     all_pes = get_all_pes(request)
 
     # identical_pes = all_pes.filter(patient_multiquery=pmq)
@@ -1576,6 +1581,14 @@ def pe_submit(request: HttpRequest,
     # Beware: Python's hash() function will downconvert to 32 bits on 32-bit
     # machines; use pmq.hash64() directly, not hash(pmq).
 
+    # Double-check in Python in case of hash collision:
+    return [pe for pe in identical_pes if pe.patient_multiquery == pmq]
+
+
+def pe_submit(request: HttpRequest,
+              pmq: PatientMultiQuery,
+              run: bool = False) -> HttpResponse:
+    identical_pes = get_identical_pes(request, pmq)
     if identical_pes:
         identical_pes[0].activate()
         pe_id = identical_pes[0].id
