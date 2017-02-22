@@ -23,11 +23,12 @@
 """
 
 import ast
+import contextlib
 import copy
 from functools import lru_cache
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
 
 from sqlalchemy.dialects import mssql, mysql
 from sqlalchemy.engine import Connection, Engine, ResultProxy
@@ -378,11 +379,16 @@ WHERE
         tablename=tablename,
         schemaname=schemaname,
     )
-    result = engine.execute(query)  # type: ResultProxy
-    row = result.fetchone()
-    index_name = row[0] if row else ''
-    result.close()
-    return index_name
+    with contextlib.closing(engine.execute(query)) as result:  # type: ResultProxy  # noqa
+        row = result.fetchone()
+        return row[0] if row else ''
+
+
+def mssql_transaction_count(engine: Engine) -> int:
+    query = text("SELECT @@TRANCOUNT")\
+    with contextlib.closing(engine.execute(query)) as result:  # type: ResultProxy  # noqa
+        row = result.fetchone()
+        return row[0] if row else None
 
 
 def add_index(engine: Engine,
@@ -456,6 +462,8 @@ def add_index(engine: Engine,
             # run the SQL in a raw way:
             # engine.execute(sql).execution_options(autocommit=False)
             # http://docs.sqlalchemy.org/en/latest/core/connections.html#understanding-autocommit
+            log.critical("SQL Server transaction count (should be 0): "
+                         "{}".format(mssql_transaction_count()))
             DDL(sql, bind=engine).execute().execution_options(autocommit=False)
             # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
         else:
