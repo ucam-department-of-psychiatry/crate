@@ -52,6 +52,10 @@ from crate_anon.common.sql import (
     TableId,
     translate_sql_qmark_to_percent,
 )
+from crate_anon.common.sqla import (
+    MSSQL_DEFAULT_SCHEMA,
+    POSTGRES_DEFAULT_SCHEMA,
+)
 from crate_anon.common.sql_grammar import SqlGrammar
 from crate_anon.common.sql_grammar_factory import (
     DIALECT_MSSQL,
@@ -195,9 +199,9 @@ class ResearchDatabaseInfo(object):
     def get_default_schema_name(self) -> str:
         dialect = self.dialect
         if dialect == DIALECT_MSSQL:
-            return 'dbo'
+            return MSSQL_DEFAULT_SCHEMA
         elif dialect == DIALECT_POSTGRES:
-            return 'public'
+            return POSTGRES_DEFAULT_SCHEMA
         elif dialect == DIALECT_MYSQL:
             return settings.DATABASES['research']['NAME']
         else:

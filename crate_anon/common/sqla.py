@@ -51,6 +51,13 @@ log = logging.getLogger(__name__)
 
 
 # =============================================================================
+# Constants
+# =============================================================================
+
+MSSQL_DEFAULT_SCHEMA = 'dbo'
+POSTGRES_DEFAULT_SCHEMA = 'public'
+
+# =============================================================================
 # SQL - SQLAlchemy ORM
 # =============================================================================
 
@@ -351,7 +358,7 @@ def index_exists(engine: Engine, tablename: str, indexname: str) -> bool:
 
 def get_mssql_pk_index_name(engine: Engine,
                             tablename: str,
-                            schemaname: str = 'dbo') -> str:
+                            schemaname: str = MSSQL_DEFAULT_SCHEMA) -> str:
     # http://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.Connection.execute  # noqa
     # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.expression.text  # noqa
     # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.expression.TextClause.bindparams  # noqa
@@ -422,7 +429,7 @@ def add_index(engine: Engine,
             #   CREATE FULLTEXT CATALOG somename AS DEFAULT;
             # statement executed on it beforehand.
             sqla_table = sqla_column.table
-            schemaname = engine.schema_for_object(sqla_table)
+            schemaname = engine.schema_for_object(sqla_table) or MSSQL_DEFAULT_SCHEMA  # noqa
             pk_index_name = get_mssql_pk_index_name(
                 engine=engine, tablename=tablename, schemaname=schemaname)
             if not pk_index_name:
