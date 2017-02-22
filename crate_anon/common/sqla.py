@@ -28,9 +28,10 @@ import copy
 from functools import lru_cache
 import logging
 import re
-from typing import Any, Dict, Generator, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from sqlalchemy.dialects import mssql, mysql
+# noinspection PyUnresolvedReferences
 from sqlalchemy.engine import Connection, Engine, ResultProxy
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
@@ -385,7 +386,7 @@ WHERE
 
 
 def mssql_transaction_count(engine: Engine) -> int:
-    query = text("SELECT @@TRANCOUNT")\
+    query = text("SELECT @@TRANCOUNT")
     with contextlib.closing(engine.execute(query)) as result:  # type: ResultProxy  # noqa
         row = result.fetchone()
         return row[0] if row else None
@@ -463,7 +464,7 @@ def add_index(engine: Engine,
             # engine.execute(sql).execution_options(autocommit=False)
             # http://docs.sqlalchemy.org/en/latest/core/connections.html#understanding-autocommit
             log.critical("SQL Server transaction count (should be 0): "
-                         "{}".format(mssql_transaction_count()))
+                         "{}".format(mssql_transaction_count(engine)))
             DDL(sql, bind=engine).execute().execution_options(autocommit=False)
             # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
         else:
