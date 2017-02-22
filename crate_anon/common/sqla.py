@@ -467,6 +467,7 @@ def add_index(engine: Engine,
                                         schemaname=schemaname):
                 log.debug("skipping creation of full-text index on table "
                           "{}".format(tablename))
+                return
             pk_index_name = mssql_get_pk_index_name(
                 engine=engine, tablename=tablename, schemaname=schemaname)
             if not pk_index_name:
