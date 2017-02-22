@@ -30,7 +30,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from sqlalchemy.dialects import mssql, mysql
-from sqlalchemy.engine import Connection, Engine
+from sqlalchemy.engine import Connection, Engine, ResultProxy
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.ext.compiler import compiles
@@ -39,7 +39,7 @@ from sqlalchemy.schema import (Column, CreateColumn, DDL, MetaData, Index,
                                Sequence, Table)
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import (column, exists, func, literal, select, sqltypes,
-                            table)
+                            text, table)
 from sqlalchemy.sql.expression import (
     ClauseElement,
     Insert,
@@ -349,6 +349,35 @@ def index_exists(engine: Engine, tablename: str, indexname: str) -> bool:
     return any(i['name'] == indexname for i in insp.get_indexes(tablename))
 
 
+def get_mssql_pk_index_name(engine: Engine,
+                            tablename: str,
+                            schemaname: str = 'dbo') -> str:
+    # http://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.Connection.execute  # noqa
+    # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.expression.text  # noqa
+    # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.expression.TextClause.bindparams  # noqa
+    # http://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.ResultProxy  # noqa
+    query = text("""
+SELECT
+    kc.name AS index_name
+FROM
+    sys.key_constraints AS kc
+    INNER JOIN sys.tables AS ta ON ta.object_id = kc.parent_object_id
+    INNER JOIN sys.schemas AS s ON ta.schema_id = s.schema_id
+WHERE
+    kc.[type] = 'PK'
+    AND ta.name = :tablename
+    AND s.name = :schemaname
+    """).bindparams(
+        tablename=tablename,
+        schemaname=schemaname,
+    )
+    result = engine.execute(query)  # type: ResultProxy
+    row = result.fetchone()
+    index_name = row[0] if row else ''
+    result.close()
+    return index_name
+
+
 def add_index(engine: Engine,
               sqla_column: Column,
               unique: bool = False,
@@ -388,19 +417,37 @@ def add_index(engine: Engine,
             DDL(sql, bind=engine).execute()
         elif engine.dialect.name == 'mssql':  # Microsoft SQL Server
             # https://msdn.microsoft.com/library/ms187317(SQL.130).aspx
+            # Argh! Complex.
+            # Note that the database must also have had a
+            #   CREATE FULLTEXT CATALOG somename AS DEFAULT;
+            # statement executed on it beforehand.
+            sqla_table = sqla_column.table
+            schemaname = engine.schema_for_object(sqla_table)
+            pk_index_name = get_mssql_pk_index_name(
+                engine=engine, tablename=tablename, schemaname=schemaname)
+            if not pk_index_name:
+                raise ValueError(
+                    "To make a FULLTEXT index under SQL Server, we need to "
+                    "know the name of the PK index, but couldn't find one "
+                    "from get_pk_index_name() for table {}".format(
+                        repr(tablename)))
+            # We don't name the FULLTEXT index itself, but it has to relate
+            # to an existing unique index.
             sql = (
                 "CREATE FULLTEXT INDEX ON {tablename} ({colname}) "
-                "KEY INDEX {idxname} ".format(
+                "KEY INDEX {keyidxname} ".format(
                     tablename=tablename,
-                    idxname=idxname,
+                    keyidxname=pk_index_name,
                     colname=colname,
                 )
             )
             # SQL Server won't let you do this inside a transaction:
             # "CREATE FULLTEXT INDEX statement cannot be used inside a user
             # transaction."
+            # https://msdn.microsoft.com/nl-nl/library/ms191544(v=sql.105).aspx
             # So let's ensure any preceding transactions are completed, and
             # run the SQL in a raw way:
+            engine.execute("ROLLBACK") # *** unsafe, stupid -- but is a transaction active?
             engine.execute(sql)
             # DDL(sql, bind=engine).execute()
         else:
