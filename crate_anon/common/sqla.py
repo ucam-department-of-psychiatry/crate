@@ -493,14 +493,17 @@ def add_index(engine: Engine,
             # run the SQL in a raw way:
             # engine.execute(sql).execution_options(autocommit=False)
             # http://docs.sqlalchemy.org/en/latest/core/connections.html#understanding-autocommit
-            raw_conn = engine.raw_connection()
-            transaction_count = mssql_transaction_count(raw_conn)
+            #
+            # ... lots of faff with this (see test code in no_transactions.py)
+            # ... ended up using explicit "autocommit=True" parameter (for
+            #     pyodbc); see create_indexes()
+            transaction_count = mssql_transaction_count(engine)
             if transaction_count != 0:
                 log.critical("SQL Server transaction count (should be 0): "
                              "{}".format(transaction_count))
                 # Executing serial COMMITs or a ROLLBACK won't help here if
                 # this transaction is due to Python DBAPI default behaviour.
-            DDL(sql, bind=raw_conn).execute().execution_options()
+            DDL(sql, bind=engine).execute()
 
             # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
 
