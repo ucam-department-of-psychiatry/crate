@@ -78,9 +78,10 @@ from cardinal_pythonlib.rnc_db import (
     ensure_valid_table_name,
 )
 from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
-from sqlalchemy import String
+from sqlalchemy import create_engine, String
 from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
+from sqlalchemy.engine import Engine
 
 from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
@@ -393,6 +394,8 @@ class Config(object):
 
         # Databases
         destination_database_cfg_section = opt_str('destination_database')
+        self._destination_database_url = parser.get_str(
+            destination_database_cfg_section, 'url', required=True)
         admin_database_cfg_section = opt_str('admin_database')
         if destination_database_cfg_section == admin_database_cfg_section:
             raise ValueError(
@@ -528,6 +531,13 @@ class Config(object):
         
         self._src_bytes_read = 0
         self._dest_bytes_written = 0
+
+    def get_destdb_engine_no_autocommit(self,
+                                        encoding: str = 'utf-8') -> Engine:
+        url = self._destination_database_url
+        return create_engine(url,
+                             encoding=encoding,
+                             autocommit=False)
 
     def overall_progress(self) -> str:
         return "{} read, {} written".format(
