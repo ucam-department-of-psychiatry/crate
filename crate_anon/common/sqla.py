@@ -59,6 +59,7 @@ log = logging.getLogger(__name__)
 MSSQL_DEFAULT_SCHEMA = 'dbo'
 POSTGRES_DEFAULT_SCHEMA = 'public'
 
+
 # =============================================================================
 # SQL - SQLAlchemy ORM
 # =============================================================================
@@ -358,7 +359,7 @@ def index_exists(engine: Engine, tablename: str, indexname: str) -> bool:
     return any(i['name'] == indexname for i in insp.get_indexes(tablename))
 
 
-def get_mssql_pk_index_name(engine: Engine,
+def mssql_get_pk_index_name(engine: Engine,
                             tablename: str,
                             schemaname: str = MSSQL_DEFAULT_SCHEMA) -> str:
     # http://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.Connection.execute  # noqa
@@ -385,9 +386,32 @@ WHERE
         return row[0] if row else ''
 
 
-def mssql_transaction_count(engine: Engine) -> int:
-    query = text("SELECT @@TRANCOUNT")
+def mssql_table_has_ft_index(engine: Engine,
+                             tablename: str,
+                             schemaname: str = MSSQL_DEFAULT_SCHEMA) -> bool:
+    query = text("""
+SELECT
+    COUNT(*)
+FROM
+    sys.key_constraints AS kc
+    INNER JOIN sys.tables AS ta ON ta.object_id = kc.parent_object_id
+    INNER JOIN sys.schemas AS s ON ta.schema_id = s.schema_id
+    INNER JOIN sys.fulltext_indexes AS fi ON fi.object_id = ta.object_id
+WHERE
+    ta.name = :tablename
+    AND s.name = :schemaname
+    """).bindparams(
+        tablename=tablename,
+        schemaname=schemaname,
+    )
     with contextlib.closing(engine.execute(query)) as result:  # type: ResultProxy  # noqa
+        row = result.fetchone()
+        return row[0] > 0
+
+
+def mssql_transaction_count(engine_or_conn: Union[Connection, Engine]) -> int:
+    query = text("SELECT @@TRANCOUNT")
+    with contextlib.closing(engine_or_conn.execute(query)) as result:  # type: ResultProxy  # noqa
         row = result.fetchone()
         return row[0] if row else None
 
@@ -429,6 +453,7 @@ def add_index(engine: Engine,
             )
             # DDL(sql, bind=engine).execute_if(dialect='mysql')
             DDL(sql, bind=engine).execute()
+
         elif engine.dialect.name == 'mssql':  # Microsoft SQL Server
             # https://msdn.microsoft.com/library/ms187317(SQL.130).aspx
             # Argh! Complex.
@@ -437,7 +462,12 @@ def add_index(engine: Engine,
             # statement executed on it beforehand.
             sqla_table = sqla_column.table
             schemaname = engine.schema_for_object(sqla_table) or MSSQL_DEFAULT_SCHEMA  # noqa
-            pk_index_name = get_mssql_pk_index_name(
+            if mssql_table_has_ft_index(engine=engine,
+                                        tablename=tablename,
+                                        schemaname=schemaname):
+                log.debug("skipping creation of full-text index on table "
+                          "{}".format(tablename))
+            pk_index_name = mssql_get_pk_index_name(
                 engine=engine, tablename=tablename, schemaname=schemaname)
             if not pk_index_name:
                 raise ValueError(
@@ -463,13 +493,18 @@ def add_index(engine: Engine,
             # run the SQL in a raw way:
             # engine.execute(sql).execution_options(autocommit=False)
             # http://docs.sqlalchemy.org/en/latest/core/connections.html#understanding-autocommit
-            log.critical("SQL Server transaction count (should be 0): "
-                         "{}".format(mssql_transaction_count(engine)))
-            DDL(sql, bind=engine).execute().execution_options(autocommit=False)
+            raw_conn = engine.raw_connection()
+            transaction_count = mssql_transaction_count(raw_conn)
+            if transaction_count != 0:
+                log.critical("SQL Server transaction count (should be 0): "
+                             "{}".format(transaction_count))
+            DDL(sql, bind=raw_conn).execute().execution_options()
             # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
+
         else:
             log.error("Don't know how to make full text index on dialect "
                       "{}".format(engine.dialect.name))
+
     else:
         index = Index(idxname, sqla_column, unique=unique, mysql_length=length)
         index.create(engine)
