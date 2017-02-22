@@ -410,8 +410,8 @@ WHERE
 
 
 def mssql_transaction_count(engine_or_conn: Union[Connection, Engine]) -> int:
-    query = text("SELECT @@TRANCOUNT")
-    with contextlib.closing(engine_or_conn.execute(query)) as result:  # type: ResultProxy  # noqa
+    sql = "SELECT @@TRANCOUNT"
+    with contextlib.closing(engine_or_conn.execute(sql)) as result:  # type: ResultProxy  # noqa
         row = result.fetchone()
         return row[0] if row else None
 
