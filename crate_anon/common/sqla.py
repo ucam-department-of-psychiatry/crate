@@ -497,7 +497,12 @@ def add_index(engine: Engine,
             if transaction_count != 0:
                 log.critical("SQL Server transaction count (should be 0): "
                              "{}".format(transaction_count))
+            for _ in range(transaction_count):
+                engine.execute("COMMIT")  # ugly!
             DDL(sql, bind=engine).execute().execution_options()
+            for _ in range(transaction_count):
+                engine.execute("BEGIN TRANSACTION")  # ugly!
+
             # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
 
         else:
