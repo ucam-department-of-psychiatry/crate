@@ -499,6 +499,8 @@ def add_index(engine: Engine,
                              "{}".format(transaction_count))
             for _ in range(transaction_count):
                 engine.execute("COMMIT")  # ugly!
+                log.critical("New transaction count: {}".format(
+                    mssql_transaction_count(engine))
             DDL(sql, bind=engine).execute().execution_options()
             for _ in range(transaction_count):
                 engine.execute("BEGIN TRANSACTION")  # ugly!
