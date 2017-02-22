@@ -435,7 +435,7 @@ def add_index(engine: Engine,
     else:
         idxname = "_idx_{}".format(colname)
     if idxname and index_exists(engine, tablename, idxname):
-        log.debug("skipping creation of index {} on table {}".format(
+        log.info("Skipping creation of index {} on table {}".format(
             idxname, tablename))
         return
         # because it will crash if you add it again!
@@ -472,8 +472,10 @@ def add_index(engine: Engine,
             if mssql_table_has_ft_index(engine=engine,
                                         tablename=tablename,
                                         schemaname=schemaname):
-                log.debug("skipping creation of full-text index on table "
-                          "{}".format(tablename))
+                log.info(
+                    "... skipping creation of full-text index on table {}; a "
+                    "full-text index already exists for that table".format(
+                        tablename))
                 return
             pk_index_name = mssql_get_pk_index_name(
                 engine=engine, tablename=tablename, schemaname=schemaname)
