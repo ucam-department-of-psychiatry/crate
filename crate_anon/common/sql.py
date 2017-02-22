@@ -1172,6 +1172,10 @@ class WhereCondition(object):
             return "MATCH ({col}) AGAINST ({val})".format(
                 col=self._column_id.identifier(grammar),
                 val=literal)
+        elif self.op == 'CONTAINS':  # SQL Server
+            return "CONTAINS({col}, {val})".format(
+                col=self._column_id.identifier(grammar),
+                val=literal)
         else:
             return "{col} {op} {val}".format(
                 col=self._column_id.identifier(grammar),

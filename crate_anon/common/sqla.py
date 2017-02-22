@@ -435,8 +435,8 @@ def add_index(engine: Engine,
     else:
         idxname = "_idx_{}".format(colname)
     if idxname and index_exists(engine, tablename, idxname):
-        log.info("Skipping creation of index {} on table {}".format(
-            idxname, tablename))
+        log.info("Skipping creation of index {} on table {}; already "
+                 "exists".format(idxname, tablename))
         return
         # because it will crash if you add it again!
     log.info("Creating{ft} index {i} on {t}.{c}".format(
