@@ -533,14 +533,14 @@ class Config(object):
         self._dest_bytes_written = 0
         self._echo = False
 
-    def get_destdb_engine_no_autocommit(self,
-                                        encoding: str = 'utf-8') -> Engine:
+    def get_destdb_engine_outside_transaction(
+            self, encoding: str = 'utf-8') -> Engine:
         url = self._destination_database_url
         return create_engine(
             url,
             encoding=encoding,
             echo=self._echo,
-            connect_args={'autocommit': False})  # for pyodbc
+            connect_args={'autocommit': True})  # for pyodbc
         # https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management  # noqa
 
     def overall_progress(self) -> str:

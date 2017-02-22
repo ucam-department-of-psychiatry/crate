@@ -498,13 +498,9 @@ def add_index(engine: Engine,
             if transaction_count != 0:
                 log.critical("SQL Server transaction count (should be 0): "
                              "{}".format(transaction_count))
-            for _ in range(transaction_count):
-                raw_conn.execute("COMMIT")  # ugly!
-                log.critical("New transaction count: {}".format(
-                    mssql_transaction_count(raw_conn)))
+                # Executing serial COMMITs or a ROLLBACK won't help here if
+                # this transaction is due to Python DBAPI default behaviour.
             DDL(sql, bind=raw_conn).execute().execution_options()
-            for _ in range(transaction_count):
-                raw_conn.execute("BEGIN TRANSACTION")  # ugly!
 
             # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
 

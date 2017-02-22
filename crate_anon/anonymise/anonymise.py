@@ -797,7 +797,7 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     Create indexes for the destination tables.
     """
     log.info(SEP + "Create indexes")
-    engine = config.get_destdb_engine_no_autocommit()
+    engine = config.get_destdb_engine_outside_transaction()
     # engine = config.destdb.engine
     for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                               ntasks=ntasks):
