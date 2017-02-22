@@ -396,7 +396,14 @@ def add_index(engine: Engine,
                     colname=colname,
                 )
             )
-            DDL(sql, bind=engine).execute()
+            # SQL Server won't let you do this inside a transaction:
+            # "CREATE FULLTEXT INDEX statement cannot be used inside a user
+            # transaction."
+            # So let's ensure any preceding transactions are completed, and
+            # run the SQL in a raw way:
+            engine.execute("COMMIT")
+            engine.execute(sql)
+            # DDL(sql, bind=engine).execute()
         else:
             log.error("Don't know how to make full text index on dialect "
                       "{}".format(engine.dialect.name))

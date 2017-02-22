@@ -769,7 +769,7 @@ def extract_text(value: Any,
                                  width=config.extract_text_width)
     except Exception as e:
         # Runtime error
-        log.error("Exception from document_to_text: {}".format(e))
+        log.error("Caught exception from document_to_text: {}".format(e))
         return None, False
     return value, True
 
