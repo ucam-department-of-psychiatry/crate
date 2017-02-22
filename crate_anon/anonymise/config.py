@@ -538,6 +538,7 @@ class Config(object):
         return create_engine(
             url,
             encoding=encoding,
+            echo=self.echo,
             connect_args={'autocommit': False})  # for pyodbc
         # https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management  # noqa
 
@@ -671,6 +672,7 @@ class Config(object):
         return self.source_db_names
 
     def set_echo(self, echo: bool) -> None:
+        self.echo = echo
         self.admindb.engine.echo = echo
         self.destdb.engine.echo = echo
         for db in self.sources.values():
