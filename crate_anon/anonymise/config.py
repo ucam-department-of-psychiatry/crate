@@ -531,6 +531,7 @@ class Config(object):
         
         self._src_bytes_read = 0
         self._dest_bytes_written = 0
+        self._echo = False
 
     def get_destdb_engine_no_autocommit(self,
                                         encoding: str = 'utf-8') -> Engine:
@@ -538,7 +539,7 @@ class Config(object):
         return create_engine(
             url,
             encoding=encoding,
-            echo=self.echo,
+            echo=self._echo,
             connect_args={'autocommit': False})  # for pyodbc
         # https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management  # noqa
 
@@ -672,7 +673,7 @@ class Config(object):
         return self.source_db_names
 
     def set_echo(self, echo: bool) -> None:
-        self.echo = echo
+        self._echo = echo
         self.admindb.engine.echo = echo
         self.destdb.engine.echo = echo
         for db in self.sources.values():
