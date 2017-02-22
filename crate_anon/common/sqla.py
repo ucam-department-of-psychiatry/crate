@@ -454,9 +454,10 @@ def add_index(engine: Engine,
             # https://msdn.microsoft.com/nl-nl/library/ms191544(v=sql.105).aspx
             # So let's ensure any preceding transactions are completed, and
             # run the SQL in a raw way:
-            engine.execute("ROLLBACK") # *** unsafe, stupid -- but is a transaction active?
-            engine.execute(sql)
-            # DDL(sql, bind=engine).execute()
+            # engine.execute(sql).execution_options(autocommit=False)
+            # http://docs.sqlalchemy.org/en/latest/core/connections.html#understanding-autocommit
+            DDL(sql, bind=engine).execute().execution_options(autocommit=False)
+            # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
         else:
             log.error("Don't know how to make full text index on dialect "
                       "{}".format(engine.dialect.name))
