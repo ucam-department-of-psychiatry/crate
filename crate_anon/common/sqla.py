@@ -401,7 +401,6 @@ def add_index(engine: Engine,
             # transaction."
             # So let's ensure any preceding transactions are completed, and
             # run the SQL in a raw way:
-            engine.execute("COMMIT")
             engine.execute(sql)
             # DDL(sql, bind=engine).execute()
         else:
