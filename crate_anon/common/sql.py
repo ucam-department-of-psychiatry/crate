@@ -1145,10 +1145,11 @@ class WhereCondition(object):
         if self._raw_sql:
             return self._raw_sql
 
+        col = self._column_id.identifier(grammar)
+        op = self._op
+
         if self._no_value:
-            return "{col} {op}".format(
-                col=self._column_id.identifier(grammar),
-                op=self._op)
+            return "{col} {op}".format(col=col, op=op)
 
         if self._datatype in QB_STRING_TYPES:
             element_converter = sql_string_literal
@@ -1169,18 +1170,11 @@ class WhereCondition(object):
             literal = element_converter(self._value)
 
         if self._op == 'MATCH':  # MySQL
-            return "MATCH ({col}) AGAINST ({val})".format(
-                col=self._column_id.identifier(grammar),
-                val=literal)
-        elif self.op == 'CONTAINS':  # SQL Server
-            return "CONTAINS({col}, {val})".format(
-                col=self._column_id.identifier(grammar),
-                val=literal)
+            return "MATCH ({col}) AGAINST ({val})".format(col=col, val=literal)
+        elif self._op == 'CONTAINS':  # SQL Server
+            return "CONTAINS({col}, {val})".format(col=col, val=literal)
         else:
-            return "{col} {op} {val}".format(
-                col=self._column_id.identifier(grammar),
-                op=self._op,
-                val=literal)
+            return "{col} {op} {val}".format(col=col, op=op, val=literal)
 
 
 # =============================================================================
