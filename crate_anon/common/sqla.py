@@ -493,12 +493,11 @@ def add_index(engine: Engine,
             # run the SQL in a raw way:
             # engine.execute(sql).execution_options(autocommit=False)
             # http://docs.sqlalchemy.org/en/latest/core/connections.html#understanding-autocommit
-            raw_conn = engine.raw_connection()
-            transaction_count = mssql_transaction_count(raw_conn)
+            transaction_count = mssql_transaction_count(engine)
             if transaction_count != 0:
                 log.critical("SQL Server transaction count (should be 0): "
                              "{}".format(transaction_count))
-            DDL(sql, bind=raw_conn).execute().execution_options()
+            DDL(sql, bind=engine).execute().execution_options()
             # The reversal procedure is DROP FULLTEXT INDEX ON tablename;
 
         else:
