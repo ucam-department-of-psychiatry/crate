@@ -428,16 +428,23 @@ def add_index(engine: Engine,
     colname = sqla_column.name
     tablename = sqla_column.table.name
     if fulltext:
-        idxname = "_idxft_{}".format(colname)
+        if engine.dialect.name == 'mssql':
+            idxname = ''  # they are unnamed
+        else:
+            idxname = "_idxft_{}".format(colname)
     else:
         idxname = "_idx_{}".format(colname)
-    if index_exists(engine, tablename, idxname):
+    if idxname and index_exists(engine, tablename, idxname):
         log.debug("skipping creation of index {} on table {}".format(
             idxname, tablename))
         return
         # because it will crash if you add it again!
-    log.info("Creating index {i} on {t}.{c}".format(i=idxname, t=tablename,
-                                                    c=colname))
+    log.info("Creating{ft} index {i} on {t}.{c}".format(
+        ft=" full-text" if fulltext else "",
+        i=idxname or "<unnamed>",
+        t=tablename,
+        c=colname))
+
     if fulltext:
         if engine.dialect.name == 'mysql':
             log.warning('OK to ignore this warning: '

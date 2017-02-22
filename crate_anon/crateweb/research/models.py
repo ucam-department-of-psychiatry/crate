@@ -1233,7 +1233,6 @@ class PatientExplorer(models.Model):
         all_ws = wb.create_sheet("All_patients")
         sql_ws = wb.create_sheet("SQL")
         sql_ws.append(["Table", "SQL", "Args", "Executed_at"])
-        ws = None  # type: Worksheet
 
         for table_identifier, sql, args in \
                 self.patient_multiquery.gen_data_finder_queries():

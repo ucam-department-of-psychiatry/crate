@@ -1654,6 +1654,7 @@ def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
         query_html = ''
         if active_rids:
             fieldnames = []
+            rows = []
             for table_identifier, sql, args in \
                     pe.patient_multiquery.gen_data_finder_queries(
                         mrids=active_rids):

@@ -25,7 +25,7 @@
 from collections import OrderedDict
 # from functools import lru_cache
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from django.db import connections
 from django.db.backends.base.base import BaseDatabaseWrapper
