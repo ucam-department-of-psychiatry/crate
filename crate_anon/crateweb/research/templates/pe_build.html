@@ -47,7 +47,8 @@
     <h2>Set a manual patient query</h2>
 
     <div>This should select the master research ID (MRID); it should use the
-        DISTINCT keyword so each MRID is selected only once; and it should
+        DISTINCT keyword so each MRID is selected only once; it should pick
+        them WHERE mrid IS NOT NULL, and it should
         (ideally) ORDER BY that MRID for consistency when you run it more than
         once.</div>
 

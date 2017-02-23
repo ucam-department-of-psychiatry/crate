@@ -761,7 +761,8 @@ class PatientMultiQuery(object):
             select_elements=[SelectElement(column_id=select_mrid_column,
                                            alias=mrid_alias)],
             distinct=True,
-            where_conditions=self._patient_conditions,
+            where_conditions=(self._patient_conditions + [WhereCondition(
+                column_id=select_mrid_column, op="IS NOT NULL")]),
             where_type="AND",
             magic_join=True,
             formatted=True
