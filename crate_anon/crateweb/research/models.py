@@ -23,6 +23,7 @@
 """
 
 from collections import OrderedDict
+import contextlib
 import datetime
 import io
 import logging
@@ -144,7 +145,7 @@ def get_executed_researchdb_cursor(sql, args: List[Any] = None) -> Any:
     except DatabaseError as exception:
         add_info_to_exception(exception, {'sql': sql, 'args': args})
         raise
-    return cursor
+    return contextlib.closing(cursor)
 
 
 # =============================================================================

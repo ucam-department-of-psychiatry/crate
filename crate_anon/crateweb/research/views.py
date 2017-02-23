@@ -1647,17 +1647,17 @@ def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     # * number of tables (e.g. 1448 in one RiO database), for 0.5 Mb of query.
     # So do it more sensibly:
     try:
-        rids = pe.get_patient_mrids()
-        page = paginate(request, rids, per_page=patients_per_page)
-        active_rids = list(page)
+        mrids = pe.get_patient_mrids()
+        page = paginate(request, mrids, per_page=patients_per_page)
+        active_mrids = list(page)
         results_table_html = ''
         query_html = ''
-        if active_rids:
+        if active_mrids:
             fieldnames = []
             rows = []
             for table_identifier, sql, args in \
                     pe.patient_multiquery.gen_data_finder_queries(
-                        mrids=active_rids):
+                        mrids=active_mrids):
                 with pe.get_executed_cursor(sql, args) as cursor:
                     if not fieldnames:
                         fieldnames = get_fieldnames_from_cursor(cursor)
@@ -1677,11 +1677,11 @@ def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
             )
         context = {
             'nav_on_pe_df_results': True,
-            'some_patients': len(active_rids) > 0,
+            'some_patients': len(active_mrids) > 0,
             'results_table_html': results_table_html,
             'query_html': query_html,
             'page': page,
-            'rowcount': len(rids),
+            'rowcount': len(mrids),
             'patient_id_query_html': patient_id_query_html,
             'patients_per_page': patients_per_page,
             'sql_highlight_css': prettify_sql_css(),
