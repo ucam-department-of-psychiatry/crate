@@ -138,7 +138,8 @@ class ResearchDatabaseInfo(object):
     """
     Fetches schema information from the research database.
     Class primarily exists to be able to use @cached_property.
-    ... replaced by lru_cache
+    ... replaced by @lru_cache
+    ... replaced by @django_cache_function
     """
     # We fetch the dialect at first request; this enables us to import the
     # class without Django configured.

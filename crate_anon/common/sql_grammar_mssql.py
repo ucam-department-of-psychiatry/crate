@@ -223,11 +223,11 @@ ZONE
 ROLLUP
 SOUNDEX
     """
-    sql_server_keywords = " ".join(sorted(list(set(
+    sql_server_keywords = sorted(list(set(
         sql_server_reserved_words.split() +
         odbc_reserved_words.split() +
         ANSI92_RESERVED_WORD_LIST.split()
-    ))))
+    )))
     # log.critical(sql_server_keywords)
     keyword = make_words_regex(sql_server_keywords, caseless=True,
                                name="keyword")
@@ -480,6 +480,8 @@ SOUNDEX
             return True
         firstchar = identifier[0]
         if cls.MSSQL_INVALID_FIRST_IF_UNQUOTED.search(firstchar):
+            return True
+        if identifier.upper() in cls.sql_server_keywords:
             return True
         return False
 

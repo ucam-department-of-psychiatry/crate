@@ -37,7 +37,7 @@ def f_score(precision: float, recall: float, beta: float = 1) -> float:
 
 def get_compiled_regex_results(compiled_regex: typing.re.Pattern,
                                text: str) -> List[str]:
-    results = []
+    results = []  # type: List[str]
     for m in compiled_regex.finditer(text):
         results.append(m.group(0))
     return results

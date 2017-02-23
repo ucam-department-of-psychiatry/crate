@@ -67,8 +67,8 @@ class OutputUserConfig(object):
         self._desttable = opt_str('desttable', required=True)
         ensure_valid_table_name(self._desttable)
 
-        self._destfields = []
-        self._dest_datatypes = []
+        self._destfields = []  # type: List[str]
+        self._dest_datatypes = []  # type: List[str]
         dest_fields_datatypes = opt_strlist('destfields', required=True)
         # log.critical(dest_fields_datatypes)
         for c in chunks(dest_fields_datatypes, 2):
@@ -93,8 +93,8 @@ class OutputUserConfig(object):
             raise ValueError("Duplicate fields exist in destination fields: "
                              "{}".format(self._destfields))
 
-        self._indexfields = []
-        self._indexlengths = []
+        self._indexfields = []  # type: List[str]
+        self._indexlengths = []  # type: List[int]
         indexdefs = opt_strlist('indexdefs')
         if indexdefs:
             for c in chunks(indexdefs, 2):  # pairs: field, length
@@ -118,7 +118,7 @@ class OutputUserConfig(object):
         return self._desttable
 
     def get_columns(self, engine) -> List[Column]:
-        columns = []
+        columns = []  # type: List[Column]
         for i, field in enumerate(self._destfields):
             datatype = self._dest_datatypes[i]
             columns.append(Column(
@@ -128,7 +128,7 @@ class OutputUserConfig(object):
         return columns
 
     def get_indexes(self) -> List[Index]:
-        indexes = []
+        indexes = []  # type: List[Index]
         for i, field in enumerate(self._indexfields):
             index_name = '_idx_{}'.format(field)
             length = self._indexlengths[i]

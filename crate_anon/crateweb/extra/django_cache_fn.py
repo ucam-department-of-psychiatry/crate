@@ -128,7 +128,7 @@ def django_cache_function(timeout: int = 5 * 60,
                 check_stored_call_sig = True
             if DEBUG_CACHE:
                 log.critical("Checking cache for key: " + _cache_key)
-            cache_result_tuple = cache.get(_cache_key)
+            cache_result_tuple = cache.get(_cache_key)  # TALKS TO CACHE HERE
             if cache_result_tuple is None:
                 if DEBUG_CACHE:
                     log.critical("Cache miss")
@@ -148,7 +148,7 @@ def django_cache_function(timeout: int = 5 * 60,
             func_result = fn(*args, **kwargs)
             cache_result_tuple = (call_sig, func_result)
             cache.set(key=_cache_key, value=cache_result_tuple,
-                      timeout=timeout)
+                      timeout=timeout)  # TALKS TO CACHE HERE
             return func_result
 
         return wrapper

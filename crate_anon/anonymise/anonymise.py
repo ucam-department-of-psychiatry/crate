@@ -33,7 +33,7 @@ import html
 import logging
 import random
 import sys
-from typing import Any, Iterable, Generator, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Generator, List, Optional, Tuple
 
 import regex
 
@@ -211,7 +211,7 @@ def delete_dest_rows_with_no_src_row(
         destsession.execute(temptable.insert(), records_)
 
     i = 0
-    records = []
+    records = []  # type: List[Dict[str: Any]]
     for pk in gen_pks(srcdbname, src_table, pkddr.src_field):
         i += 1
         if report_every and i % report_every == 0:
@@ -223,7 +223,7 @@ def delete_dest_rows_with_no_src_row(
         records.append({pkfield: pk})
         if i % chunksize == 0:
             insert(records)
-            records = []
+            records = []  # type: List[Dict[str: Any]]
     if records:  # remainder
         insert(records)
     commit_destdb()
@@ -592,7 +592,7 @@ def process_table(sourcedbname: str,
         # No columns to process at all.
         return
     dest_table = ddrows[0].dest_table
-    sourcefields = []
+    sourcefields = []  # type: List[str]
     pkfield_index = None
     src_pk_name = None
     dest_pk_name = None
@@ -917,7 +917,7 @@ def wipe_opt_out_patients(report_every: int = 1000,
         destsession.execute(temptable.insert(), records_)
 
     i = 0
-    records = []
+    records = []  # type: List[Dict[str: Any]]
     for rid in gen_optout_rids():
         i += 1
         if report_every and i % report_every == 0:
@@ -925,7 +925,7 @@ def wipe_opt_out_patients(report_every: int = 1000,
         records.append({pkfield: rid})  # a row is a dict of values
         if i % chunksize == 0:
             insert(records)
-            records = []
+            records = []  # type: List[Dict[str: Any]]
     if records:  # remainder
         insert(records)
     commit_destdb()
@@ -1135,7 +1135,7 @@ def show_source_counts() -> None:
     Show the number of records in all source tables.
     """
     print("SOURCE TABLE RECORD COUNTS:")
-    counts = []
+    counts = []  # type: List[Tuple[str, int]]
     for d in config.dd.get_source_databases():
         session = config.sources[d].session
         for t in config.dd.get_src_tables(d):
@@ -1149,7 +1149,7 @@ def show_dest_counts() -> None:
     Show the number of records in all destination tables.
     """
     print("DESTINATION TABLE RECORD COUNTS:")
-    counts = []
+    counts = []  # type: List[Tuple[str, int]]
     session = config.destdb.session
     for t in config.dd.get_dest_tables():
         n = count_star(session, t)

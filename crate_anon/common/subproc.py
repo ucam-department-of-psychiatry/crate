@@ -41,8 +41,9 @@ log = logging.getLogger(__name__)
 # Processes that we're running
 # =============================================================================
 
-processes = []
-proc_args_list = []  # to report back which process failed, if any did
+processes = []  # type: List[Popen]
+proc_args_list = []  # type: List[List[str]]
+# ... to report back which process failed, if any did
 
 
 # =============================================================================
@@ -56,7 +57,8 @@ def kill_child_processes() -> None:
         try:
             p.wait(timeout_sec)
         except TimeoutExpired:
-            p.stop()  # please stop, escalating to a hard kill
+            # failed to close
+            p.kill()  # you're dead
 
 
 def fail() -> None:
@@ -128,7 +130,7 @@ def wait_for_processes(die_on_failure: bool = True,
         something_running = False
         for i, p in enumerate(processes):
             try:
-                retcode = p.wait(timeout_s=timeout_sec)
+                retcode = p.wait(timeout=timeout_sec)
                 if retcode == 0:
                     log.info("Process #{} (of {}) exited cleanly".format(i, n))
                 if retcode != 0:

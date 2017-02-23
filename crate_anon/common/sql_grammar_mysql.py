@@ -284,10 +284,10 @@ WARNINGS WEEK WEIGHT_STRING WITHOUT WORK WRAPPER
 X509 XA XID XML
 YEAR
     """
-    mysql_keywords = " ".join(sorted(list(set(
+    mysql_keywords = sorted(list(set(
         mysql_reserved_words.split() +
         ANSI92_RESERVED_WORD_LIST.split()
-    ))))
+    )))
     # log.critical(mysql_keywords)
     keyword = make_words_regex(mysql_keywords, caseless=True, name="keyword")
 
@@ -655,6 +655,8 @@ YEAR
             return True
         firstchar = identifier[0]
         if cls.MYSQL_INVALID_FIRST_IF_UNQUOTED.search(firstchar):
+            return True
+        if identifier.upper() in cls.mysql_keywords:
             return True
         return False
 

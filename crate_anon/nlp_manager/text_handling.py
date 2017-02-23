@@ -38,7 +38,7 @@ def tsv_pairs_to_dict(line: str, key_lower: bool = True) -> Dict[str, str]:
     Converts a TSV line into sequential key/value pairs as a dictionary.
     """
     items = line.split("\t")
-    d = {}
+    d = {}  # type: Dict[str, str]
     for chunk in chunks(items, 2):
         if len(chunk) < 2:
             log.warning("Bad chunk, not of length 2: {}".format(repr(chunk)))

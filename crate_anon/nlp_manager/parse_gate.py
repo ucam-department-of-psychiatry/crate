@@ -91,7 +91,7 @@ class Gate(BaseNlpParser):
             self._max_external_prog_uses = 0
             self._input_terminator = 'input_terminator'
             self._output_terminator = 'output_terminator'
-            typepairs = []
+            typepairs = []  # type: List[str]
             self._progenvsection = ''
             progargs = ''
             logtag = ''
@@ -108,8 +108,8 @@ class Gate(BaseNlpParser):
             progargs = nlpdef.opt_str(cfgsection, 'progargs', required=True)
             logtag = nlpdef.get_logtag() or '.'
 
-        self._outputtypemap = {}
-        self._type_to_tablename = {}
+        self._outputtypemap = {}  # type: Dict[str, OutputUserConfig]
+        self._type_to_tablename = {}  # type: Dict[str, str]
         for c in chunks(typepairs, 2):
             annottype = c[0]
             outputsection = c[1]
@@ -285,7 +285,7 @@ class Gate(BaseNlpParser):
         ]
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
-        tables = {}
+        tables = {}  # type: Dict[str, List[Column]]
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = (
                 self._standard_columns() +
@@ -294,7 +294,7 @@ class Gate(BaseNlpParser):
         return tables
 
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
-        tables = {}
+        tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
             tables[otconfig.get_tablename()] = otconfig.get_indexes()
         return tables

@@ -45,6 +45,7 @@ import logging
 import multiprocessing
 import sys
 import time
+from typing import List
 
 from crate_anon.common.subproc import (
     check_call_process,
@@ -126,7 +127,7 @@ def main() -> None:
     # Now run lots of things simultaneously:
     # -------------------------------------------------------------------------
     # (a) patient tables
-    args_list = []
+    args_list = []  # type: List[List[str]]
     for procnum in range(nprocesses_main):
         procargs = [
             sys.executable, '-m', NLP_MANAGER,

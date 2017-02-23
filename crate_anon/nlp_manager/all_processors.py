@@ -83,7 +83,7 @@ def get_all_subclasses(cls: ClassType) -> List[ClassType]:
     # Type hinting, but not quite:
     #   http://stackoverflow.com/questions/35655257
     # Getting derived subclasses: http://stackoverflow.com/questions/3862310
-    all_subclasses = []
+    all_subclasses = []  # List[ClassType]
     for subclass in cls.__subclasses__():
         all_subclasses.append(subclass)
         all_subclasses.extend(get_all_subclasses(subclass))  # recursive

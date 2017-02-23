@@ -521,10 +521,10 @@ class TestAnonRegexes(unittest.TestCase):
 def examples_for_paper():
     testwords = "John Al'Rahem"
     min_string_length_to_scrub_with = 4
-    scrub_string_suffixes = []
+    scrub_string_suffixes = []  # type: List[str]
     max_errors = 0
     at_word_boundaries_only = True
-    words_regexes = []
+    words_regexes = []  # type: List[str]
     for s in get_anon_fragments_from_string(testwords):
         l = len(s)
         if l < min_string_length_to_scrub_with:

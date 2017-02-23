@@ -27,6 +27,7 @@
 import argparse
 import logging
 import os
+from typing import List
 
 from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
 
@@ -140,7 +141,7 @@ def main() -> None:
     # -------------------------------------------------------------------------
 
     # Verbosity
-    mynames = []
+    mynames = []  # type: List[str]
     if args.processcluster:
         mynames.append(args.processcluster)
     if args.nprocesses > 1:

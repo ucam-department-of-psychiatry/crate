@@ -56,6 +56,7 @@ ANSI SQL syntax:
 
 import logging
 import re
+from typing import List, Union
 
 from pyparsing import (
     Combine,
@@ -109,8 +110,14 @@ def word_regex_element(word: str) -> str:
     return WORD_BOUNDARY + word + WORD_BOUNDARY
 
 
-def multiple_words_regex_element(words_as_string: str) -> str:
-    wordlist = words_as_string.split()
+def multiple_words_regex_element(
+        words_as_string_or_list: Union[str, List[str]]) -> str:
+    if isinstance(words_as_string_or_list, list):
+        wordlist = words_as_string_or_list
+    elif isinstance(words_as_string_or_list, str):
+        wordlist = words_as_string_or_list.split()
+    else:
+        raise ValueError("Bad wordlist to multiple_words_regex_element")
     return WORD_BOUNDARY + "(" + "|".join(wordlist) + ")" + WORD_BOUNDARY
 
 
@@ -124,24 +131,24 @@ def make_pyparsing_regex(regex_str: str,
     return result
 
 
-def make_words_regex(words_as_string: str,
+def make_words_regex(words_as_string_or_list: Union[str, List[str]],
                      caseless: bool = False,
                      name: str = None,
                      debug: bool = False) -> Regex:
-    regex_str = multiple_words_regex_element(words_as_string)
+    regex_str = multiple_words_regex_element(words_as_string_or_list)
     if debug:
         log.debug(regex_str)
     return make_pyparsing_regex(regex_str, caseless=caseless, name=name)
 
 
 def make_regex_except_words(word_pattern: str,
-                            negative_words_str: str,
+                            negative_words_str_or_list: Union[str, List[str]],
                             caseless: bool = False,
                             name: str = None,
                             debug: bool = False) -> Regex:
     # http://regexr.com/
     regex_str = r"(?!{negative}){positive}".format(
-        negative=multiple_words_regex_element(negative_words_str),
+        negative=multiple_words_regex_element(negative_words_str_or_list),
         positive=(WORD_BOUNDARY + word_pattern + WORD_BOUNDARY),
     )
     if debug:

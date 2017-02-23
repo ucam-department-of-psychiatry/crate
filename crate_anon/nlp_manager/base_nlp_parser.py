@@ -202,7 +202,7 @@ class BaseNlpParser(object):
 
         # Create one or more tables
         meta = self.get_metadata()
-        tables = {}
+        tables = {}  # Dict[str, Table]
         t_columns = self.dest_tables_columns()
         for tablename, extra_dest_cols in t_columns.items():
             self._assert_no_overlap("copy", copy_columns,
@@ -217,7 +217,7 @@ class BaseNlpParser(object):
             copy_of_cols = [c.copy() for c in columns]
 
             t_indexes = self.dest_tables_indexes()
-            extra_dest_indexes = []
+            extra_dest_indexes = []  # type: List[Index]
             if tablename in t_indexes:
                 extra_dest_indexes = t_indexes[tablename]
             copyindexes_list = [i.get_copy_indexes() for i in ifconfigs]
@@ -255,7 +255,7 @@ class BaseNlpParser(object):
         assert self._destdb, "Cannot use tables() call without a database"
         engine = self.get_engine()
         tables = self.tables()
-        pretty_names = []
+        pretty_names = []  # type: List[str]
         for t in tables.values():
             pretty_name = "{}.{}".format(self._destdb.name, t.name)
             if drop_first:

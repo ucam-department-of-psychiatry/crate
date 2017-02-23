@@ -72,7 +72,7 @@ class DataDictionary(object):
         Set defaults.
         """
         self.config = config
-        self.rows = []
+        self.rows = []  # type: List[DataDictionaryRow]
         self.cached_srcdb_table_pairs = SortedSet()
         self.n_definers = 0
 
@@ -80,7 +80,7 @@ class DataDictionary(object):
         """
         Read DD from file.
         """
-        self.rows = []
+        self.rows = []  # type: List[DataDictionaryRow]
         log.debug("Opening data dictionary: {}".format(filename))
         with open(filename, 'r') as tsvfile:
             tsv = csv.reader(tsvfile, delimiter='\t')
@@ -124,7 +124,7 @@ class DataDictionary(object):
             for t in meta.sorted_tables:
                 tablename = t.name
                 log.info("... ... table: {}".format(tablename))
-                new_rows = []
+                new_rows = []  # type: List[DataDictionaryRow]
                 is_patient_table = False
 
                 # Skip table?
@@ -325,7 +325,7 @@ class DataDictionary(object):
         Check DD validity, internally +/- against the source database.
         """
         if prohibited_fieldnames is None:
-            prohibited_fieldnames = []
+            prohibited_fieldnames = []  # type: List[str]
         log.info("Checking data dictionary...")
         if not self.rows:
             raise ValueError("Empty data dictionary")
@@ -380,8 +380,8 @@ class DataDictionary(object):
                     ))
 
         log.debug("Checking DD: duplicate source/destination rows?")
-        src_sigs = []
-        dst_sigs = []
+        src_sigs = []  # type: List[str]
+        dst_sigs = []  # type: List[str]
         for r in self.rows:
             src_sigs.append(r.get_signature())
             if not r.omit:
@@ -754,7 +754,7 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_dest_sqla_table(self, tablename: str) -> Table:
         metadata = self.config.destdb.metadata
-        columns = []
+        columns = []  # type: List[Column]
         for ddr in self.get_rows_for_dest_table(tablename):
             columns.append(ddr.get_dest_sqla_column(self.config))
             if ddr.add_src_hash:

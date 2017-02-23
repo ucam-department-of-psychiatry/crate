@@ -34,8 +34,8 @@ from django.db import connections, DatabaseError, models
 from django.db.models import QuerySet
 from django.conf import settings
 from django.http.request import HttpRequest
+from django.db.backends.utils import CursorWrapper
 from openpyxl import Workbook
-from openpyxl.worksheet import Worksheet
 
 from crate_anon.common.hash import hash64
 from crate_anon.common.jsonfunc import (
@@ -88,7 +88,7 @@ log = logging.getLogger(__name__)
 DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
 
 
-def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self):
+def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self) -> List[Any]:
     # To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py
     #
     # log.critical("Using monkeypatched fetchone(); self: {}; self.cursor: "
@@ -100,7 +100,7 @@ def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self):
     return row
 
 
-def hack_django_pyodbc_azure_cursorwrapper():
+def hack_django_pyodbc_azure_cursorwrapper() -> None:
     # I thought I wanted to modify an INSTANCE, not a CLASS.
     # - https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
     # To modify a class, we do
@@ -137,7 +137,7 @@ def debug_query() -> None:
     cursor.execute("SELECT 'debug'")
 
 
-def get_executed_researchdb_cursor(sql, args: List[Any] = None) -> Any:
+def get_executed_researchdb_cursor(sql, args: List[Any] = None) -> CursorWrapper:  # noqa
     args = args or []
     cursor = connections['research'].cursor()
     try:
@@ -145,6 +145,7 @@ def get_executed_researchdb_cursor(sql, args: List[Any] = None) -> Any:
     except DatabaseError as exception:
         add_info_to_exception(exception, {'sql': sql, 'args': args})
         raise
+    # noinspection PyTypeChecker
     return contextlib.closing(cursor)
 
 
@@ -369,7 +370,7 @@ class Query(models.Model):
             args = self.args
         return sql, args
 
-    def get_executed_cursor(self, sql_append_raw: str = None) -> Any:
+    def get_executed_cursor(self, sql_append_raw: str = None) -> CursorWrapper:
         """
         Get cursor with a query executed
         """
@@ -766,11 +767,12 @@ class PatientMultiQuery(object):
                 column_id=select_mrid_column, op="IS NOT NULL")]),
             where_type="AND",
             magic_join=True,
-            formatted=True
+            formatted=False
         )
         if with_order_by:
             sql += " ORDER BY " + mrid_alias
             # ... ORDER BY is important for consistency across runs
+        sql = format_sql(sql)
         # log.critical(sql)
         return sql
 
@@ -1132,7 +1134,7 @@ class PatientExplorer(models.Model):
         return self.patient_multiquery.all_queries(mrids=mrids)
 
     @staticmethod
-    def get_executed_cursor(sql: str, args: List[Any] = None) -> Any:
+    def get_executed_cursor(sql: str, args: List[Any] = None) -> CursorWrapper:
         """
         Get cursor with a query executed
         """

@@ -23,6 +23,7 @@
 """
 
 import logging
+from typing import List
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -56,7 +57,7 @@ class DatabaseHolder(object):
         self.session = None
         self._reflect_on_request = reflect
         self._reflected = False
-        self._table_names = []
+        self._table_names = []  # type: List[str]
         self._metadata = MetaData(bind=self.engine)
         log.debug(self.engine)  # obscures password
 

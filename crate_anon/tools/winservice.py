@@ -482,15 +482,16 @@ class ProcessManager(object):
         self.process.kill()  # hard kill, Windows or POSIX
         # ... but will leave orphans under Windows
 
-    def wait(self, timeout_s: float = None) -> None:
+    def wait(self, timeout_s: float = None) -> int:
         """Will raise subprocess.TimeoutExpired if the process continues to
         run."""
         if not self.running:
-            return
+            return 0
         retcode = self.process.wait(timeout=timeout_s)
         # We won't get further unless the process has stopped.
         if retcode is None:
             self.error("Subprocess finished, but return code was None")
+            retcode = 1  # we're promising to return an int
         elif retcode == 0:
             self.info("Subprocess finished cleanly (return code 0).")
         else:
@@ -501,6 +502,7 @@ class ProcessManager(object):
                     self.details.logfile_out,
                     self.details.logfile_err))
         self.running = False
+        return retcode
 
 
 # =============================================================================
@@ -691,7 +693,7 @@ class CratewebService(win32serviceutil.ServiceFramework):
         atexit.register(cleanup)
             
         # Set up process info
-        self.process_managers = []
+        self.process_managers = []  # type: List[ProcessManager]
         n = len(procdetails)
         for i, details in enumerate(procdetails):
             pmgr = ProcessManager(details, i + 1, n,

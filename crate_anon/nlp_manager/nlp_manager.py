@@ -65,6 +65,7 @@ import argparse
 import logging
 import os
 import sys
+from typing import Any, Dict, List, Tuple
 
 from cardinal_pythonlib.rnc_datetime import get_now_utc
 from sqlalchemy.schema import Column, Index, Table
@@ -244,7 +245,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     log.info("... populating temporary table(s): {} records to go; working in "
              "chunks of {}".format(n, chunksize))
     i = 0
-    records = []
+    records = []  # type: List[Dict[str, Any]]
     for pkval, pkstr in ifconfig.gen_src_pks():
         i += 1
         if report_every and i % report_every == 0:
@@ -252,7 +253,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         records.append({FN_SRCPKVAL: pkval, FN_SRCPKSTR: pkstr})
         if i % chunksize == 0:
             insert(records)
-            records = []
+            records = []  # type: List[Dict[str, Any]]
     if records:  # remainder
         insert(records)
 
@@ -422,7 +423,7 @@ def drop_remake(progargs,
     # -------------------------------------------------------------------------
     # 2. Output database(s)
     # -------------------------------------------------------------------------
-    pretty_names = []
+    pretty_names = []  # type: List[str]
     for processor in nlpdef.get_processors():
         new_pretty_names = processor.make_tables(drop_first=not incremental)
         for npn in new_pretty_names:
@@ -456,7 +457,7 @@ def show_source_counts(nlpdef: NlpDefinition) -> None:
     Show the number of records in all source tables.
     """
     print("SOURCE TABLE RECORD COUNTS:")
-    counts = []
+    counts = []  # type: List[Tuple[str, int]]
     for ifconfig in nlpdef.get_ifconfigs():
         session = ifconfig.get_source_session()
         dbname = ifconfig.get_srcdb()
@@ -471,7 +472,7 @@ def show_dest_counts(nlpdef: NlpDefinition) -> None:
     Show the number of records in all destination tables.
     """
     print("DESTINATION TABLE RECORD COUNTS:")
-    counts = []
+    counts = []  # type: List[Tuple[str, int]]
     for processor in nlpdef.get_processors():
         session = processor.get_session()
         dbname = processor.get_dbname()
@@ -573,7 +574,7 @@ def main() -> None:
         os.environ[NLP_CONFIG_ENV_VAR] = args.config
 
     # Verbosity and logging
-    mynames = []
+    mynames = []  # type: List[str]
     if args.processcluster:
         mynames.append(args.processcluster)
     if args.nprocesses > 1:

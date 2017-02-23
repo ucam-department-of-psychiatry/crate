@@ -222,8 +222,8 @@ class InputFieldConfig(object):
         self._require_table_exists()
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
-        copy_columns = []
-        processed_copy_column_names = []
+        copy_columns = []  # type: List[Column]
+        processed_copy_column_names = []  # type: List[str]
         for c in t.columns:
             # if c.name.lower() in self._copyfields:
             if c.name in self._copyfields:
@@ -251,8 +251,8 @@ class InputFieldConfig(object):
         self._require_table_exists()
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
-        copy_indexes = []
-        processed_copy_index_col_names = []
+        copy_indexes = []  # type: List[Index]
+        processed_copy_index_col_names = []  # type: List[str]
         for c in t.columns:
             # if c.name.lower() in self._indexed_copyfields:
             if c.name in self._indexed_copyfields:

@@ -127,6 +127,12 @@ def main() -> None:
     # -------------------------------------------------------------------------
     # Now run lots of things simultaneously:
     # -------------------------------------------------------------------------
+    # It'd be less confusing if we have a single numbering system across all,
+    # rather than numbering separately for patient and non-patient processes.
+    # However, each group divides its work by its process number, so that
+    # won't fly (for n processes it wants to see processes numbered from 0 to
+    # n - 1 inclusive).
+
     # (a) patient tables
     args_list = []
     for procnum in range(nprocesses_patient):

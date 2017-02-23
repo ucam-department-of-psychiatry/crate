@@ -126,7 +126,7 @@ class NlpDefinition(object):
         # ---------------------------------------------------------------------
         # Our own stuff
         # ---------------------------------------------------------------------
-        self._databases = {}
+        self._databases = {}  # type: Dict[str, DatabaseHolder]
         self._progressdb_name = self.opt_str(nlpname, 'progressdb',
                                              required=True)
         self._progdb = self.get_database(self._progressdb_name)
@@ -147,7 +147,7 @@ class NlpDefinition(object):
         # ---------------------------------------------------------------------
         self._inputfielddefs = self.opt_strlist(nlpname, 'inputfielddefs',
                                                 required=True, lower=False)
-        self._inputfieldmap = {}
+        self._inputfieldmap = {}  # type: Dict[str, InputFieldConfig]
         for x in self._inputfielddefs:
             if x in self._inputfieldmap:
                 continue
@@ -156,7 +156,7 @@ class NlpDefinition(object):
         # ---------------------------------------------------------------------
         # NLP processors
         # ---------------------------------------------------------------------
-        self._processors = []
+        self._processors = []  # type: List[BaseNlpParser]
         processorpairs = self.opt_strlist(nlpname, 'processors', required=True,
                                           lower=False)
         try:
@@ -171,7 +171,7 @@ class NlpDefinition(object):
         # ---------------------------------------------------------------------
         # Transaction sizes, for early commit
         # ---------------------------------------------------------------------
-        self._transaction_limiters = {}
+        self._transaction_limiters = {}  # type: Dict[Session, TransactionSizeLimiter]  # noqa
         # dictionary of session -> TransactionSizeLimiter
 
     def get_name(self) -> str:
@@ -198,7 +198,7 @@ class NlpDefinition(object):
         for logname in ['sqlalchemy.engine.base.Engine',
                         'sqlalchemy.engine.base.OptionEngine']:
             logger = logging.getLogger(logname)
-            logger.handlers = []
+            logger.handlers = []  # type: List[logging.Handler]
 
     def require_section(self, section: str) -> None:
         if not self._parser.has_section(section):

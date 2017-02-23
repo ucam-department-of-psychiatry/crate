@@ -143,10 +143,10 @@ class DataDictionaryRow(object):
         self._opt_out_info = False
         self._required_scrubber = False
 
-        self._inclusion_values = []
-        self._exclusion_values = []
+        self._inclusion_values = []  # type: List[Any]
+        self._exclusion_values = []  # type: List[Any]
 
-        self._alter_methods = []
+        self._alter_methods = []  # type: List[AlterMethod]
 
     # -------------------------------------------------------------------------
     # Properties
