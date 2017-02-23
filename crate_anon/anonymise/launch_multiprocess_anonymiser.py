@@ -171,7 +171,7 @@ def main() -> None:
             '--nprocesses={}'.format(nprocesses_index),
             '--process={}'.format(procnum),
             '--skip_dd_check'
-        ] for procnum in range(nprocesses_index)
+        ] + common_options for procnum in range(nprocesses_index)
     ]
     run_multiple_processes(args_list)
 

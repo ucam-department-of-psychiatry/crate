@@ -182,7 +182,7 @@ setup(
         # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
         'psutil==5.0.1',  # process management
         'pyhashxx==0.1.3',  # fast non-cryptographic hashing
-        'semver==2.4.1',  # comparing semantic versions
+        'semver==2.7.5',  # comparing semantic versions
         'SQLAlchemy==1.1.5',  # database access
         'typing==3.5.3.0',  # part of stdlib in Python 3.5, but not 3.4
 
@@ -218,7 +218,7 @@ setup(
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==0.2.4',
+        'cardinal_pythonlib==0.2.6',
 
         'beautifulsoup4==4.5.3',
         'prettytable==0.7.2',
