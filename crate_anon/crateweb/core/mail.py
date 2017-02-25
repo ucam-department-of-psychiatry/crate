@@ -22,10 +22,13 @@
 ===============================================================================
 """
 
+import logging
 import smtplib
 import ssl
 from django.core.mail.backends.smtp import EmailBackend
 from django.core.mail.utils import DNS_NAME
+
+log = logging.getLogger(__name__)
 
 
 class SmtpEmailBackendTls1(EmailBackend):
@@ -52,6 +55,10 @@ class SmtpEmailBackendTls1(EmailBackend):
         c = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         s.ehlo()
         s.starttls(context=c)  # works
+
+    then to send a simple message:
+        s.login(user, password)
+        s.sendmail(sender, recipient, message)
     """
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -90,7 +97,11 @@ class SmtpEmailBackendTls1(EmailBackend):
             self.connection.ehlo()
             if self.username and self.password:
                 self.connection.login(self.username, self.password)
+                log.debug("Successful SMTP connection/login")
+            else:
+                log.debug("Successful SMTP connection (without login)")
             return True
         except smtplib.SMTPException:
+            log.debug("SMTP connection and/or login failed")
             if not self.fail_silently:
                 raise

@@ -17,3 +17,16 @@ Transaction count always >0 for SQL Server, prohibiting CREATE FULLTEXT INDEX
 
 - SQLAlchemy and the Python DBAPI transaction rule even without "BEGIN"
   https://news.ycombinator.com/item?id=4269241
+
+===============================================================================
+Celery: test_email_rdbm_task() missing 1 required positional argument: 'self'
+===============================================================================
+
+Change decorators from:
+
+    @shared_task
+    @task(ignore_result=True)
+
+to
+
+    @shared_task(ignore_result=True)

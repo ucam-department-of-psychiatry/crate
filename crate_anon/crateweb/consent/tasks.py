@@ -20,14 +20,7 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 ===============================================================================
-"""
 
-from celery import shared_task, task
-from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.core.urlresolvers import set_script_prefix
-
-"""
 ===============================================================================
 See also celery.py, which defines the app
 ===============================================================================
@@ -83,19 +76,26 @@ Race condition:
     from django.db import transaction
     transaction.on_commit(lambda: blah.delay(blah))
   Requires Django 1.9. As of 2015-11-21, that means 1.9rc1
+
 """
+
+import logging
+from celery import shared_task
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core.urlresolvers import set_script_prefix
+
+log = logging.getLogger(__name__)
 
 
 # noinspection PyCallingNonCallable
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def add(x: float, y: float) -> float:
     return x + y
 
 
 # noinspection PyCallingNonCallable,PyPep8Naming
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def resend_email(email_id: int, user_id: int) -> None:
     User = get_user_model()
     from crate_anon.crateweb.consent.models import Email  # delayed import
@@ -105,8 +105,7 @@ def resend_email(email_id: int, user_id: int) -> None:
 
 
 # noinspection PyCallingNonCallable
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def process_contact_request(contact_request_id: int) -> None:
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
@@ -115,8 +114,7 @@ def process_contact_request(contact_request_id: int) -> None:
 
 
 # noinspection PyCallingNonCallable
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def finalize_clinician_response(clinician_response_id: int) -> None:
     from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
     clinician_response = ClinicianResponse.objects.get(
@@ -125,8 +123,7 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
 
 
 # noinspection PyCallingNonCallable
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def process_consent_change(consent_mode_id: int) -> None:
     from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
@@ -134,8 +131,7 @@ def process_consent_change(consent_mode_id: int) -> None:
 
 
 # noinspection PyCallingNonCallable
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def process_patient_response(patient_response_id: int) -> None:
     from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
@@ -143,8 +139,7 @@ def process_patient_response(patient_response_id: int) -> None:
 
 
 # noinspection PyCallingNonCallable
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def test_email_rdbm_task() -> None:
     subject = "TEST MESSAGE FROM RESEARCH DATABASE COMPUTER"
     text = (
@@ -156,9 +151,15 @@ def test_email_rdbm_task() -> None:
 
 
 # noinspection PyCallingNonCallable
-@shared_task
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def email_rdbm_task(subject: str, text: str) -> None:
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)
-    email.send()
+    et = email.send()
+    if et is None:
+        log.error("Failed to send e-mail")
+        return
+    if et.sent:
+        log.info(str(et))
+    else:
+        log.error(str(et))

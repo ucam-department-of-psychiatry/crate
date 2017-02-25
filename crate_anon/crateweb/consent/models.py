@@ -3236,7 +3236,7 @@ class EmailTransmission(models.Model):
     failure_reason = models.TextField(verbose_name="Reason sending failed")
 
     def __str__(self):
-        return "{} by {}: {}".format(
+        return "Email transmission at {} by {}: {}".format(
             self.at,
             self.by or "(system)",
             "success" if self.sent
