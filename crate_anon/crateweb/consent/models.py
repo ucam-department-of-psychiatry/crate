@@ -1297,8 +1297,8 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     lookup.pt_local_id_description = "CPFT RiO number"
     lookup.pt_local_id_number = rio_client_id
     secret_decisions.append("RiO number: {}.".format(rio_client_id))
-    lookup.pt_dob = row['Date_of_Birth']
-    lookup.pt_dod = row['Date_of_Death']
+    lookup.pt_dob = to_date(row['Date_of_Birth'])
+    lookup.pt_dod = to_date(row['Date_of_Death'])
     lookup.pt_dead = bool(lookup.pt_dod or row['Death_Flag'])
     lookup.pt_sex = "?" if row['Gender_Code'] == "U" else row['Gender_Code']
 
@@ -1679,6 +1679,10 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
         )
         # We know a team - do we have a team representative?
         team_description = row['Team_Description']
+        team_summary = "{status} team {desc}".format(
+            status="active" if team_info.end_date is None else "previous",
+            desc=repr(team_description),
+        )
         try:
             teamrep = TeamRep.objects.get(team=team_description)
             decisions.append("Clinical team representative found.")
@@ -1690,16 +1694,14 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             team_info.signatory_title = profile.signatory_title
             team_info.is_consultant = profile.is_consultant
         except ObjectDoesNotExist:
-            decisions.append("No team representative found for team "
-                             "{}.".format(repr(team_description)))
+            decisions.append("No team representative found for " +
+                             team_summary)
         except MultipleObjectsReturned:
-            decisions.append("Confused: >1 team representative found for team "
-                             "{}".format(repr(team_description)))
+            decisions.append("Confused: >1 team representative found for " +
+                             team_summary)
         clinicians.append(team_info)
         # We append it even if we can't find a representative, because it still
         # carries information about whether the patient is discharged or not.
-    else:
-        decisions.append("No active named team referral.")
 
     # Re CLINICIAN ADDRESSES:
     # Candidate tables in RiO:
