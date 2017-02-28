@@ -51,6 +51,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 
+from crate_anon.common.lang import simple_repr
 from crate_anon.common.contenttypes import CONTENTTYPE_PDF
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,
@@ -462,6 +463,20 @@ class ClinicianInfoHolder(object):
             self.clinician_preference_order = 4
         else:
             self.clinician_preference_order = 99999  # worst
+
+    def __repr__(self) -> str:
+        return simple_repr(self, [
+            'clinician_type',
+            'title',
+            'first_name',
+            'surname',
+            'email',
+            'signatory_title',
+            'is_consultant',
+            'start_date',
+            'end_date',
+            'address_components',
+        ])
 
     def current(self) -> bool:
         return self.end_date is None or self.end_date >= datetime.date.today()
@@ -1694,11 +1709,11 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             team_info.signatory_title = profile.signatory_title
             team_info.is_consultant = profile.is_consultant
         except ObjectDoesNotExist:
-            decisions.append("No team representative found for " +
-                             team_summary)
+            decisions.append("No team representative found for "
+                             "{}.".format(team_summary))
         except MultipleObjectsReturned:
-            decisions.append("Confused: >1 team representative found for " +
-                             team_summary)
+            decisions.append("Confused: >1 team representative found for "
+                             "{}.".format(team_summary))
         clinicians.append(team_info)
         # We append it even if we can't find a representative, because it still
         # carries information about whether the patient is discharged or not.
@@ -1729,8 +1744,8 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     decisions.append(
-        "{} total past/present clinician(s)/team(s) found.".format(
-            len(clinicians)))
+        "{} total past/present clinician(s)/team(s) found: {}.".format(
+            len(clinicians), repr(clinicians)))
     current_clinicians = [c for c in clinicians if c.current()]
     if current_clinicians:
         lookup.pt_discharged = False
