@@ -1482,14 +1482,14 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 Care_Coordinator_User_Consultant_Flag,
                 Start_Date,
                 End_Date
-            FROM CPA_CareCoordinator
+            FROM {care_co_table}
             WHERE
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
         """.format(
-            rio_number_field=rio_number_field,
             care_co_table=('CPA_Care_Coordinator' if as_crate_not_rcep
                            else 'CPA_CareCoordinator'),
+            rio_number_field=rio_number_field,
         ),
         [rio_client_id]
     )
