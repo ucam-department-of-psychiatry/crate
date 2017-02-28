@@ -1396,37 +1396,75 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # -------------------------------------------------------------------------
     # RiO/RCEP: 4. GP
     # -------------------------------------------------------------------------
-    cursor.execute(
-        """
-            SELECT
-                GP_Name,
-                GP_Practice_Address_Line1,
-                GP_Practice_Address_Line2,
-                GP_Practice_Address_Line3,
-                GP_Practice_Address_Line4,
-                GP_Practice_Address_Line5,
-                GP_Practice_Post_code
-            FROM Client_GP_History
-            WHERE
-                {rio_number_field} = %s
-                AND GP_From_Date <= GETDATE()
-                AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
-        """.format(rio_number_field=rio_number_field),
-        [rio_client_id]
-    )
-    row = dictfetchone(cursor)
-    if not row:
-        decisions.append("No GP found in Client_GP_History table.")
+    if as_crate_not_rcep:
+        cursor.execute(
+            """
+                SELECT
+                    GP_Title,
+                    GP_Forename,
+                    GP_Surname,
+                    GP_Practice_Address_Line_1,
+                    GP_Practice_Address_Line_2,
+                    GP_Practice_Address_Line_3,
+                    GP_Practice_Address_Line_4,
+                    GP_Practice_Address_Line_5,
+                    GP_Practice_Post_Code
+                FROM Client_GP_History
+                WHERE
+                    {rio_number_field} = %s
+                    AND GP_From_Date <= GETDATE()
+                    AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
+            """.format(rio_number_field=rio_number_field),
+            [rio_client_id]
+        )
+        row = dictfetchone(cursor)
+        if not row:
+            decisions.append("No GP found in Client_GP_History table.")
+        else:
+            lookup.gp_found = True
+            lookup.gp_title = row['GP_Title'] or 'Dr'
+            lookup.gp_first_name = row['GP_Forename'] or ''
+            lookup.gp_last_name = row['GP_Surname'] or ''
+            lookup.set_gp_name_components(row['GP_Name'] or '',
+                                          decisions, secret_decisions)
+            lookup.gp_address_1 = row['GP_Practice_Address_Line_1'] or ''
+            lookup.gp_address_2 = row['GP_Practice_Address_Line_2'] or ''
+            lookup.gp_address_3 = row['GP_Practice_Address_Line_3'] or ''
+            lookup.gp_address_4 = row['GP_Practice_Address_Line_4'] or ''
+            lookup.gp_address_5 = row['GP_Practice_Address_Line_5'] or ''
+            lookup.gp_address_6 = row['GP_Practice_Post_Code']
     else:
-        lookup.gp_found = True
-        lookup.set_gp_name_components(row['GP_Name'] or '',
-                                      decisions, secret_decisions)
-        lookup.gp_address_1 = row['GP_Practice_Address_Line1'] or ''
-        lookup.gp_address_2 = row['GP_Practice_Address_Line2'] or ''
-        lookup.gp_address_3 = row['GP_Practice_Address_Line3'] or ''
-        lookup.gp_address_4 = row['GP_Practice_Address_Line4'] or ''
-        lookup.gp_address_5 = row['GP_Practice_Address_Line5'] or ''
-        lookup.gp_address_6 = row['GP_Practice_Post_code']
+        cursor.execute(
+            """
+                SELECT
+                    GP_Name,
+                    GP_Practice_Address_Line1,
+                    GP_Practice_Address_Line2,
+                    GP_Practice_Address_Line3,
+                    GP_Practice_Address_Line4,
+                    GP_Practice_Address_Line5,
+                    GP_Practice_Post_code
+                FROM Client_GP_History
+                WHERE
+                    {rio_number_field} = %s
+                    AND GP_From_Date <= GETDATE()
+                    AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
+            """.format(rio_number_field=rio_number_field),
+            [rio_client_id]
+        )
+        row = dictfetchone(cursor)
+        if not row:
+            decisions.append("No GP found in Client_GP_History table.")
+        else:
+            lookup.gp_found = True
+            lookup.set_gp_name_components(row['GP_Name'] or '',
+                                          decisions, secret_decisions)
+            lookup.gp_address_1 = row['GP_Practice_Address_Line1'] or ''
+            lookup.gp_address_2 = row['GP_Practice_Address_Line2'] or ''
+            lookup.gp_address_3 = row['GP_Practice_Address_Line3'] or ''
+            lookup.gp_address_4 = row['GP_Practice_Address_Line4'] or ''
+            lookup.gp_address_5 = row['GP_Practice_Address_Line5'] or ''
+            lookup.gp_address_6 = row['GP_Practice_Post_code']
 
     # -------------------------------------------------------------------------
     # RiO/RCEP: 5. Clinician, active v. discharged
