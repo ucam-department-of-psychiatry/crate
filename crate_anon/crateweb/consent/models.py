@@ -933,6 +933,13 @@ def make_forename_surname_email_address(forename: str,
     if len(forename) == 1:
         # Initial only; that won't do.
         return default
+    # Other duff things we see: John Smith (CALT), where "Smith (CALT)" is the
+    # surname and CALT is Cambridge Adult Locality Team. This can map to
+    # something unpredictable, like JohnSmithOT@cpft.nhs.uk, so we can't use
+    # it.
+    prohibited_chars = "()"
+    if any(c in forename or c in surname for c in prohibited_chars):
+        return default
     return "{}.{}@{}".format(forename, surname, domain)
 
 
@@ -1675,7 +1682,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             first_name='',
             surname='',
             email='',
-            signatory_title='',
+            signatory_title="Clinical team member",
             is_consultant=False,
             start_date=row['Start_Date'],
             end_date=row['End_Date'],
