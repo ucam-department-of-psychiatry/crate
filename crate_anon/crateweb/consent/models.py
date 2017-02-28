@@ -1486,7 +1486,11 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """.format(rio_number_field=rio_number_field),
+        """.format(
+            rio_number_field=rio_number_field,
+            care_co_table=('CPA_Care_Coordinator' if as_crate_not_rcep
+                           else 'CPA_CareCoordinator'),
+        ),
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
