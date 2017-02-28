@@ -1728,6 +1728,9 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     # from which the patient has been discharged, and ones that are active.
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    decisions.append(
+        "{} total past/present clinician(s)/team(s) found.".format(
+            len(clinicians)))
     current_clinicians = [c for c in clinicians if c.current()]
     if current_clinicians:
         lookup.pt_discharged = False
