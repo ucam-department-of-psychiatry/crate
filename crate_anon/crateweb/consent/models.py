@@ -27,6 +27,7 @@ from dateutil.relativedelta import relativedelta
 import logging
 from operator import attrgetter
 import os
+import re
 from typing import Any, List, Optional, Tuple, Type, Union
 
 # from audit_log.models import AuthStampedModel  # django-audit-log
@@ -920,6 +921,10 @@ class PatientLookup(PatientLookupBase):
         self.clinician_address_7 = info.address_components[6:7] or ''
 
 
+APPROX_EMAIL_REGEX = re.compile(  # http://emailregex.com/
+    r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
+
+
 def make_forename_surname_email_address(forename: str,
                                         surname: str,
                                         domain: str,
@@ -937,10 +942,13 @@ def make_forename_surname_email_address(forename: str,
     # surname and CALT is Cambridge Adult Locality Team. This can map to
     # something unpredictable, like JohnSmithOT@cpft.nhs.uk, so we can't use
     # it.
-    prohibited_chars = "()"
-    if any(c in forename or c in surname for c in prohibited_chars):
+    # Formal definition is at http://stackoverflow.com/questions/2049502/what-characters-are-allowed-in-email-address  # noqa
+    # See also: http://emailregex.com/
+    attempt = "{}.{}@{}".format(forename, surname, domain)
+    if APPROX_EMAIL_REGEX.match(attempt):
+        return attempt
+    else:
         return default
-    return "{}.{}@{}".format(forename, surname, domain)
 
 
 def make_cpft_email_address(forename: str, surname: str,
