@@ -27,7 +27,7 @@ from dateutil.relativedelta import relativedelta
 import logging
 from operator import attrgetter
 import os
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type, Union
 
 # from audit_log.models import AuthStampedModel  # django-audit-log
 from django import forms
@@ -422,6 +422,13 @@ class Decision(models.Model):
 # Information about patient captured from clinical database
 # =============================================================================
 
+def to_date(d: Optional[Union[datetime.date,
+                              datetime.datetime]]) -> Optional[datetime.date]:
+    if isinstance(d, datetime.datetime):
+        return d.date()
+    return d  # datetime.date, or None
+
+
 class ClinicianInfoHolder(object):
     CARE_COORDINATOR = 'care_coordinator'
     CONSULTANT = 'consultant'
@@ -431,7 +438,8 @@ class ClinicianInfoHolder(object):
     def __init__(self, clinician_type: str,
                  title: str, first_name: str, surname: str, email: str,
                  signatory_title: str, is_consultant: bool,
-                 start_date: datetime.date, end_date: datetime.date,
+                 start_date: Union[datetime.date, datetime.datetime],
+                 end_date: Union[datetime.date, datetime.datetime],
                  address_components: List[str] = None) -> None:
         self.clinician_type = clinician_type
         self.title = title
@@ -440,8 +448,8 @@ class ClinicianInfoHolder(object):
         self.email = email
         self.signatory_title = signatory_title
         self.is_consultant = is_consultant
-        self.start_date = start_date
-        self.end_date = end_date
+        self.start_date = to_date(start_date)
+        self.end_date = to_date(end_date)
         self.address_components = address_components or []  # type: List[str]
 
         if clinician_type == self.CARE_COORDINATOR:
