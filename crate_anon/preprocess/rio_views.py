@@ -1407,7 +1407,7 @@ RIO_VIEWS = OrderedDict([
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'IssuedBy',
-                    'column_prefix': 'HCP_User',  # RCEP
+                    'column_prefix': 'HCP',  # RCEP uses HCP_User_*
                     'internal_alias_prefix': 'ib',
                 },
             },
@@ -2673,7 +2673,7 @@ RIO_VIEWS = OrderedDict([
                 'function': rio_add_user_lookup,
                 'kwargs': {
                     'basecolumn': 'HCPCode',
-                    'column_prefix': 'HCP_User',  # RCEP
+                    'column_prefix': 'HCP',  # RCEP uses HCP_User_*
                     'internal_alias_prefix': 'hu',
                 },
             },

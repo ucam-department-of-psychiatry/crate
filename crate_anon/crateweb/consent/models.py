@@ -1472,14 +1472,28 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     #
     # (a) Care coordinator?
     #
+    if as_crate_not_rcep:
+        care_co_title_field = 'Care_Coordinator_Title'
+        care_co_forename_field = 'Care_Coordinator_First_Name'
+        care_co_surname_field = 'Care_Coordinator_Surname'
+        care_co_email_field = 'Care_Coordinator_Email'
+        care_co_consultant_flag_field = 'Care_Coordinator_Consultant_Flag'
+        care_co_table = 'CPA_Care_Coordinator'
+    else:
+        care_co_title_field = 'Care_Coordinator_User_title'
+        care_co_forename_field = 'Care_Coordinator_User_first_name'
+        care_co_surname_field = 'Care_Coordinator_User_surname'
+        care_co_email_field = 'Care_Coordinator_User_email'
+        care_co_consultant_flag_field = 'Care_Coordinator_User_Consultant_Flag'
+        care_co_table = 'CPA_CareCoordinator'
     cursor.execute(
         """
             SELECT
-                Care_Coordinator_User_title,
-                Care_Coordinator_User_first_name,
-                Care_Coordinator_User_surname,
-                Care_Coordinator_User_email,
-                Care_Coordinator_User_Consultant_Flag,
+                {care_co_title_field},
+                {care_co_forename_field},
+                {care_co_surname_field},
+                {care_co_email_field},
+                {care_co_consultant_flag_field},
                 Start_Date,
                 End_Date
             FROM {care_co_table}
@@ -1487,8 +1501,12 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
         """.format(
-            care_co_table=('CPA_Care_Coordinator' if as_crate_not_rcep
-                           else 'CPA_CareCoordinator'),
+            care_co_title_field=care_co_title_field,
+            care_co_forename_field=care_co_forename_field,
+            care_co_surname_field=care_co_surname_field,
+            care_co_email_field=care_co_email_field,
+            care_co_consultant_flag_field=care_co_consultant_flag_field,
+            care_co_table=care_co_table,
             rio_number_field=rio_number_field,
         ),
         [rio_client_id]
@@ -1496,30 +1514,44 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     for row in dictfetchall(cursor):
         clinicians.append(ClinicianInfoHolder(
             clinician_type=ClinicianInfoHolder.CARE_COORDINATOR,
-            title=row['Care_Coordinator_User_title'] or '',
-            first_name=row['Care_Coordinator_User_first_name'] or '',
-            surname=row['Care_Coordinator_User_surname'] or '',
+            title=row[care_co_title_field] or '',
+            first_name=row[care_co_forename_field] or '',
+            surname=row[care_co_surname_field] or '',
             email=(
-                row['Care_Coordinator_User_email'] or
+                row[care_co_email_field] or
                 make_cpft_email_address(lookup.clinician_first_name,
                                         lookup.clinician_last_name)
             ),
             signatory_title="Care coordinator",
-            is_consultant=bool(row['Care_Coordinator_User_Consultant_Flag']),
+            is_consultant=bool(row[care_co_consultant_flag_field]),
             start_date=row['Start_Date'],
             end_date=row['End_Date'],
         ))
     #
     # (b) Active named consultant referral?
     #
+    if as_crate_not_rcep:
+        cons_title_field = 'Referred_Consultant_Title'
+        cons_forename_field = 'Referred_Consultant_First_Name'
+        cons_surname_field = 'Referred_Consultant_Surname'
+        cons_email_field = 'Referred_Consultant_Email'
+        cons_consultant_flag_field = 'Referred_Consultant_Consultant_Flag'
+        referral_table = 'Referral'
+    else:
+        cons_title_field = 'Referred_Consultant_User_title'
+        cons_forename_field = 'Referred_Consultant_User_first_name'
+        cons_surname_field = 'Referred_Consultant_User_surname'
+        cons_email_field = 'Referred_Consultant_User_email'
+        cons_consultant_flag_field = 'Referred_Consultant_User_Consultant_Flag'
+        referral_table = 'Main_Referral_Data'
     cursor.execute(
         """
             SELECT
-                Referred_Consultant_User_title,
-                Referred_Consultant_User_first_name,
-                Referred_Consultant_User_surname,
-                Referred_Consultant_User_email,
-                Referred_Consultant_User_Consultant_Flag,
+                {cons_title_field},
+                {cons_forename_field},
+                {cons_surname_field},
+                {cons_email_field},
+                {cons_consultant_flag_field},
                 Referral_Received_Date,
                 Removal_DateTime
             FROM {referral_table}
@@ -1527,25 +1559,29 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 {rio_number_field} = %s
                 AND Referral_Received_Date <= GETDATE()
         """.format(
+            cons_title_field=cons_title_field,
+            cons_forename_field=cons_forename_field,
+            cons_surname_field=cons_surname_field,
+            cons_email_field=cons_email_field,
+            cons_consultant_flag_field=cons_consultant_flag_field,
+            referral_table=referral_table,
             rio_number_field=rio_number_field,
-            referral_table=('Referral' if as_crate_not_rcep
-                            else 'Main_Referral_Data')
         ),
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
         clinicians.append(ClinicianInfoHolder(
             clinician_type=ClinicianInfoHolder.CONSULTANT,
-            title=row['Referred_Consultant_User_title'] or '',
-            first_name=row['Referred_Consultant_User_first_name'] or '',
-            surname=row['Referred_Consultant_User_surname'] or '',
+            title=row[cons_title_field] or '',
+            first_name=row[cons_forename_field] or '',
+            surname=row[cons_surname_field] or '',
             email=(
-                row['Referred_Consultant_User_email'] or
+                row[cons_email_field] or
                 make_cpft_email_address(lookup.clinician_first_name,
                                         lookup.clinician_last_name)
             ),
             signatory_title="Consultant psychiatrist",
-            is_consultant=bool(row['Referred_Consultant_User_Consultant_Flag']),  # noqa
+            is_consultant=bool(row[cons_consultant_flag_field]),
             # ... would be odd if this were not true!
             start_date=row['Referral_Received_Date'],
             end_date=row['Removal_DateTime'],
@@ -1553,36 +1589,55 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     #
     # (c) Active other named staff referral?
     #
+    if as_crate_not_rcep:
+        hcp_title_field = 'HCP_Title'
+        hcp_forename_field = 'HCP_First_Name'
+        hcp_surname_field = 'HCP_Surname'
+        hcp_email_field = 'HCP_Email'
+        hcp_consultant_flag_field = 'HCP_Consultant_Flag'
+    else:
+        hcp_title_field = 'HCP_User_title'
+        hcp_forename_field = 'HCP_User_first_name'
+        hcp_surname_field = 'HCP_User_surname'
+        hcp_email_field = 'HCP_User_email'
+        hcp_consultant_flag_field = 'HCP_User_Consultant_Flag'
     cursor.execute(
         """
             SELECT
-                HCP_User_title,
-                HCP_User_first_name,
-                HCP_User_surname,
-                HCP_User_email,
-                HCP_User_Consultant_Flag,
+                {hcp_title_field},
+                {hcp_forename_field},
+                {hcp_surname_field},
+                {hcp_email_field},
+                {hcp_consultant_flag_field},
                 Start_Date,
                 End_Date
             FROM Referral_Staff_History
             WHERE
                 {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """.format(rio_number_field=rio_number_field),
+        """.format(
+            hcp_title_field=hcp_title_field,
+            hcp_forename_field=hcp_forename_field,
+            hcp_surname_field=hcp_surname_field,
+            hcp_email_field=hcp_email_field,
+            hcp_consultant_flag_field=hcp_consultant_flag_field,
+            rio_number_field=rio_number_field,
+        ),
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
         clinicians.append(ClinicianInfoHolder(
             clinician_type=ClinicianInfoHolder.HCP,
-            title=row['HCP_User_title'] or '',
-            first_name=row['HCP_User_first_name'] or '',
-            surname=row['HCP_User_surname'] or '',
+            title=row[hcp_title_field] or '',
+            first_name=row[hcp_forename_field] or '',
+            surname=row[hcp_surname_field] or '',
             email=(
-                row['HCP_User_email'] or
+                row[hcp_email_field] or
                 make_cpft_email_address(lookup.clinician_first_name,
                                         lookup.clinician_last_name)
             ),
             signatory_title="Clinician",
-            is_consultant=bool(row['HCP_User_Consultant_Flag']),
+            is_consultant=bool(row[hcp_consultant_flag_field]),
             start_date=row['Start_Date'],
             end_date=row['End_Date'],
         ))
