@@ -446,7 +446,7 @@ class ClinicianInfoHolder(object):
         self.title = title
         self.first_name = first_name
         self.surname = surname
-        self.email = email
+        self.email = email or make_cpft_email_address(first_name, surname)
         self.signatory_title = signatory_title
         self.is_consultant = is_consultant
         self.start_date = to_date(start_date)
@@ -1540,11 +1540,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             title=row[care_co_title_field] or '',
             first_name=row[care_co_forename_field] or '',
             surname=row[care_co_surname_field] or '',
-            email=(
-                row[care_co_email_field] or
-                make_cpft_email_address(lookup.clinician_first_name,
-                                        lookup.clinician_last_name)
-            ),
+            email=row[care_co_email_field] or '',
             signatory_title="Care coordinator",
             is_consultant=bool(row[care_co_consultant_flag_field]),
             start_date=row['Start_Date'],
@@ -1598,11 +1594,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             title=row[cons_title_field] or '',
             first_name=row[cons_forename_field] or '',
             surname=row[cons_surname_field] or '',
-            email=(
-                row[cons_email_field] or
-                make_cpft_email_address(lookup.clinician_first_name,
-                                        lookup.clinician_last_name)
-            ),
+            email=row[cons_email_field] or '',
             signatory_title="Consultant psychiatrist",
             is_consultant=bool(row[cons_consultant_flag_field]),
             # ... would be odd if this were not true!
@@ -1654,11 +1646,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             title=row[hcp_title_field] or '',
             first_name=row[hcp_forename_field] or '',
             surname=row[hcp_surname_field] or '',
-            email=(
-                row[hcp_email_field] or
-                make_cpft_email_address(lookup.clinician_first_name,
-                                        lookup.clinician_last_name)
-            ),
+            email=row[hcp_email_field] or '',
             signatory_title="Clinician",
             is_consultant=bool(row[hcp_consultant_flag_field]),
             start_date=row['Start_Date'],
