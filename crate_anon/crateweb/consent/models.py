@@ -1385,8 +1385,6 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 -- 4 = Office address
                 -- 6 = Emergency contact
                 -- 8 = Mobile device
-            CASE WHEN Address_Type_Code = 'PRIMARY' THEN '1'
-                          ELSE Address_Type_Code END ASC
         """.format(rio_number_field=rio_number_field),
         [rio_client_id]
     )
