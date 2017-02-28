@@ -1425,8 +1425,6 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             lookup.gp_title = row['GP_Title'] or 'Dr'
             lookup.gp_first_name = row['GP_Forename'] or ''
             lookup.gp_last_name = row['GP_Surname'] or ''
-            lookup.set_gp_name_components(row['GP_Name'] or '',
-                                          decisions, secret_decisions)
             lookup.gp_address_1 = row['GP_Practice_Address_Line_1'] or ''
             lookup.gp_address_2 = row['GP_Practice_Address_Line_2'] or ''
             lookup.gp_address_3 = row['GP_Practice_Address_Line_3'] or ''
