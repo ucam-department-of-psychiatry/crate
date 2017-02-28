@@ -156,7 +156,7 @@ DATABASES = {
     # Optional: 'cpft_iapt'
     # Optional: 'cpft_crs'
     # Optional: 'cpft_rio_rcep'
-    # Optional: 'cpft_rio_crate_preprocessed'
+    # Optional: 'cpft_rio_crate'
     # ... see attributes of PatientLookup in crate_anon/consent/models.py
 }
 

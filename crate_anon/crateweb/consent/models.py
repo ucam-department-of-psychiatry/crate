@@ -103,6 +103,10 @@ from crate_anon.crateweb.consent.utils import (
     render_pdf_html_to_string,
     validate_researcher_email_domain,
 )
+from crate_anon.preprocess.rio_constants import (
+    CRATE_COL_RIO_NUMBER,
+    RCEP_COL_PATIENT_ID,
+)
 
 log = logging.getLogger(__name__)
 
@@ -1012,7 +1016,7 @@ def lookup_cpft_rio_crate_preprocessed(lookup: PatientLookup,
     CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  -- ignored
     CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  -- ignored
 
-    CREATE INDEX _idx_cch_id ON ClientTelecom (Client_ID);  -- already in RiO source as part of composite index  # noqa
+    CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  -- already in RiO source as part of composite index  # noqa
 
     CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source  # noqa
     CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored  # noqa
@@ -1030,9 +1034,11 @@ def lookup_cpft_rio_crate_preprocessed(lookup: PatientLookup,
     CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  -- ignored
     CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  -- ignored
 
-    CREATE INDEX _idx_rth_id ON AmsReferralTeam (Client_ID);  -- already in RiO source as part of composite index  # noqa
+    CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  -- already in RiO source as part of composite index  # noqa
     CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  -- ignored
     CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  -- ignored
+
+    ... or alternative RiO number indexes on CRATE_COL_RIO_NUMBER field.
 
     Then, the only field name differences from RCEP are:
 
@@ -1241,6 +1247,8 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
 
     """
     cursor = connections[lookup.source_db].cursor()
+    rio_number_field = (CRATE_COL_RIO_NUMBER if as_crate_not_rcep
+                        else RCEP_COL_PATIENT_ID)
 
     # -------------------------------------------------------------------------
     # RiO/RCEP: 1. Get RiO PK
@@ -1248,7 +1256,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
     cursor.execute(
         """
             SELECT
-                Client_ID, -- RiO number (PK)
+                {rio_number_field}, -- RiO number (PK)
                 -- NHS_Number,
                 Date_of_Birth,
                 Date_of_Death,
@@ -1260,7 +1268,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
             WHERE
                 NHS_Number = %s -- CHAR comparison
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
-        """,
+        """.format(rio_number_field=rio_number_field),
         [str(lookup.nhs_number)]
     )
     # Can't use "NOT Deleted_Flag" with SQL Server; you get
@@ -1277,7 +1285,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
         decisions.append("Two patients found with that NHS number; aborting.")
         return
     row = rows[0]
-    rio_client_id = row['Client_ID']
+    rio_client_id = row[rio_number_field]
     lookup.pt_local_id_description = "CPFT RiO number"
     lookup.pt_local_id_number = rio_client_id
     secret_decisions.append("RiO number: {}.".format(rio_client_id))
@@ -1297,12 +1305,13 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 Family_Name
             FROM Client_Name_History
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND Effective_Date <= GETDATE()
                 AND ({end_date_field} IS NULL OR {end_date_field} > GETDATE())
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
             ORDER BY Name_Type_Code
         """.format(
+            rio_number_field=rio_number_field,
             end_date_field='End_Date' if as_crate_not_rcep else 'End_Date_',
         ),
         [rio_client_id]
@@ -1335,13 +1344,13 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 Post_Code
             FROM Client_Address_History
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND Address_From_Date <= GETDATE()
                 AND (Address_To_Date IS NULL
                      OR Address_To_Date > GETDATE())
             ORDER BY CASE WHEN Address_Type_Code = 'PRIMARY' THEN '1'
                           ELSE Address_Type_Code END ASC
-        """,
+        """.format(rio_number_field=rio_number_field),
         [rio_client_id]
     )
     row = dictfetchone(cursor)
@@ -1364,7 +1373,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 Contact_Details  -- an e-mail address if Method_Code = 3
             FROM Client_Communications_History
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND Method_Code = 3  -- e-mail address
                 AND Valid_From <= GETDATE()
                 AND (Valid_To IS NULL
@@ -1378,7 +1387,7 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 -- 8 = Mobile device
             CASE WHEN Address_Type_Code = 'PRIMARY' THEN '1'
                           ELSE Address_Type_Code END ASC
-        """,
+        """.format(rio_number_field=rio_number_field),
         [rio_client_id]
     )
     rows = dictfetchall(cursor)
@@ -1401,10 +1410,10 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 GP_Practice_Post_code
             FROM Client_GP_History
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND GP_From_Date <= GETDATE()
                 AND (GP_To_Date IS NULL OR GP_To_Date > GETDATE())
-        """,
+        """.format(rio_number_field=rio_number_field),
         [rio_client_id]
     )
     row = dictfetchone(cursor)
@@ -1441,9 +1450,9 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 End_Date
             FROM CPA_CareCoordinator
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """,
+        """.format(rio_number_field=rio_number_field),
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
@@ -1477,9 +1486,10 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 Removal_DateTime
             FROM {referral_table}
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND Referral_Received_Date <= GETDATE()
         """.format(
+            rio_number_field=rio_number_field,
             referral_table=('Referral' if as_crate_not_rcep
                             else 'Main_Referral_Data')
         ),
@@ -1517,9 +1527,9 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 End_Date
             FROM Referral_Staff_History
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """,
+        """.format(rio_number_field=rio_number_field),
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
@@ -1549,9 +1559,9 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                 End_Date
             FROM Referral_Team_History
             WHERE
-                Client_ID = %s
+                {rio_number_field} = %s
                 AND Start_Date <= GETDATE()
-        """,
+        """.format(rio_number_field=rio_number_field),
         [rio_client_id]
     )
     for row in dictfetchall(cursor):
@@ -2041,7 +2051,8 @@ class ConsentMode(Decision):
             consent_mode.save()
         return consent_mode
 
-    # noinspection PyUnusedLocal # *** remove when we do something here
+    #*** remove when we do something here:
+    # noinspection PyUnusedLocal
     @classmethod
     def refresh_from_primary_clinical_record(
             cls,
