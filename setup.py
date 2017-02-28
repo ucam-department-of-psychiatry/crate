@@ -187,7 +187,8 @@ setup(
         'typing==3.5.3.0',  # part of stdlib in Python 3.5, but not 3.4
 
         # Web app:
-        'celery==4.0.2',
+        'amqp==2.1.3',  # because 2.1.4 has a bug; see CRATE manual; amqp is used by Celery  # noqa
+        'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
         'Django==1.10.5',  # "django" versus "Django": neither helps pycharm checking  # noqa
         'django-debug-toolbar==1.6',
         # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
@@ -196,6 +197,7 @@ setup(
         # 'django-silk==0.5.7',
         'django-sslserver==0.19',
         'flower==0.9.1',  # debug Celery; web server; only runs explicitly
+        'kombu==4.0.1',  # see above re amqp/celery
         'pdfkit==0.6.1',
         'pygments==2.2.0',  # syntax highlighting
         # 'pygraphviz==1.3.1',  # not used

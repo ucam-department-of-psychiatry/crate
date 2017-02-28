@@ -198,7 +198,7 @@ class DataDictionaryRow(object):
 
     @property
     def src_flags(self) -> str:
-        return ''.join(str(x) for x in [
+        return ''.join(str(x) for x in (
             SRCFLAG.PK if self._pk else '',
             SRCFLAG.ADD_SRC_HASH if self._add_src_hash else '',
             SRCFLAG.PRIMARY_PID if self._primary_pid else '',
@@ -208,7 +208,7 @@ class DataDictionaryRow(object):
             SRCFLAG.ADDITION_ONLY if self._addition_only else '',
             SRCFLAG.OPT_OUT if self._opt_out_info else '',
             SRCFLAG.REQUIRED_SCRUBBER if self._required_scrubber else '',
-        ])
+        ))
 
     @src_flags.setter
     def src_flags(self, value: str) -> None:
@@ -648,7 +648,7 @@ class DataDictionaryRow(object):
                         SRCFLAG.MASTER_PID,
                         config.sqltype_encrypted_pid_as_sql))
 
-            if (self.index in [INDEX.NORMAL, INDEX.UNIQUE] and
+            if (self.index in (INDEX.NORMAL, INDEX.UNIQUE) and
                     self.indexlen is None and
                     does_sqlatype_require_index_len(dest_sqla_coltype)):
                 raise ValueError(

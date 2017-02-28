@@ -22,9 +22,10 @@
 ===============================================================================
 """
 
+import datetime
 # from functools import lru_cache
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -104,3 +105,31 @@ def validate_researcher_email_domain(email: str) -> None:
         if domain.lower() == valid_domain.lower():
             return
     raise ValidationError("Invalid researcher e-mail domain")
+
+
+def days_to_years(days: int, dp: int = 1) -> str:
+    """
+    For "consent after discharge", primarily.
+    Returns the number of years to specified number of dp.
+    Assumes 365 days/year, not 365.24.
+    """
+    try:
+        years = days / 365
+        if years % 1:  # needs decimals
+            return "{:.{precision}f}".format(years, precision=dp)
+        else:
+            return str(int(years))
+    except (TypeError, ValueError):
+        return "?"
+
+
+def latest_date(*args) -> Optional[datetime.date]:
+    latest = None
+    for d in args:
+        if d is None:
+            continue
+        if latest is None:
+            latest = d
+        else:
+            latest = max(d, latest)
+    return latest

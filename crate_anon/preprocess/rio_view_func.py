@@ -22,7 +22,7 @@
 ===============================================================================
 """
 
-from typing import Dict, Iterable
+from typing import Dict, Iterable, Union
 
 from crate_anon.common.sql import (
     sql_string_literal,
@@ -263,6 +263,12 @@ def simple_view_where(viewmaker: ViewMaker,
     # noinspection PyTypeChecker
     for col in index_cols:
         viewmaker.record_lookup_table_keyfield(viewmaker.basetable, col)
+
+
+def add_index_only(viewmaker: ViewMaker,
+                   table: str,
+                   column_or_columns: Union[str, Iterable[str]]) -> None:
+    viewmaker.record_lookup_table_keyfield(table, column_or_columns)
 
 
 # =============================================================================

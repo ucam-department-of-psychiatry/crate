@@ -661,11 +661,11 @@ def main():
     if args.command == 'run':
         app = App(args)
         app.run()
-    elif UNIX and args.command in ['start', 'stop', 'restart', 'status']:
+    elif UNIX and args.command in ('start', 'stop', 'restart', 'status'):
         app = App(args)
         daemon_runner = DaemonRunner(app, action=args.command)
         daemon_runner.do_action()
-    elif WINDOWS and args.command in ['start', 'stop', 'restart']:
+    elif WINDOWS and args.command in ('start', 'stop', 'restart'):
         pass
     elif WINDOWS and args.command == 'status':
         pass

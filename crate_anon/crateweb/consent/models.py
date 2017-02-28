@@ -25,6 +25,7 @@
 import datetime
 from dateutil.relativedelta import relativedelta
 import logging
+from operator import attrgetter
 import os
 from typing import Any, List, Optional, Tuple, Type
 
@@ -65,7 +66,6 @@ from crate_anon.crateweb.core.dbfunc import (
     fetchallfirstvalues,
 )
 from crate_anon.crateweb.core.utils import (
-    get_friendly_date,
     modelrepr,
     site_absolute_url,
     string_time_now,
@@ -97,6 +97,8 @@ from crate_anon.crateweb.consent.tasks import (
     process_contact_request,
 )
 from crate_anon.crateweb.consent.utils import (
+    days_to_years,
+    latest_date,
     render_email_html_to_string,
     render_pdf_html_to_string,
     validate_researcher_email_domain,
@@ -112,6 +114,8 @@ EMAIL_TRANSMISSION_FWD_REF = "EmailTransmission"
 LEAFLET_FWD_REF = "Leaflet"
 LETTER_FWD_REF = "Letter"
 STUDY_FWD_REF = "Study"
+
+SOURCE_DB_NAME_MAX_LENGTH = 20
 
 
 # =============================================================================
@@ -414,6 +418,46 @@ class Decision(models.Model):
 # Information about patient captured from clinical database
 # =============================================================================
 
+class ClinicianInfoHolder(object):
+    CARE_COORDINATOR = 'care_coordinator'
+    CONSULTANT = 'consultant'
+    HCP = 'HCP'
+    TEAM = 'team'
+
+    def __init__(self, clinician_type: str,
+                 title: str, first_name: str, surname: str, email: str,
+                 signatory_title: str, is_consultant: bool,
+                 start_date: datetime.date, end_date: datetime.date,
+                 address_components: List[str] = None) -> None:
+        self.clinician_type = clinician_type
+        self.title = title
+        self.first_name = first_name
+        self.surname = surname
+        self.email = email
+        self.signatory_title = signatory_title
+        self.is_consultant = is_consultant
+        self.start_date = start_date
+        self.end_date = end_date
+        self.address_components = address_components or []  # type: List[str]
+
+        if clinician_type == self.CARE_COORDINATOR:
+            self.clinician_preference_order = 1  # best
+        elif clinician_type == self.CONSULTANT:
+            self.clinician_preference_order = 2
+        elif clinician_type == self.HCP:
+            self.clinician_preference_order = 3
+        elif clinician_type == self.TEAM:
+            self.clinician_preference_order = 4
+        else:
+            self.clinician_preference_order = 99999  # worst
+
+    def current(self) -> bool:
+        return self.end_date is None or self.end_date >= datetime.date.today()
+
+    def contactable(self) -> bool:
+        return bool(self.surname and self.email)
+
+
 class PatientLookupBase(models.Model):
     """
     Base class for PatientLookup and DummyPatientSourceInfo.
@@ -451,7 +495,7 @@ class PatientLookupBase(models.Model):
     pt_discharged = models.NullBooleanField(verbose_name="Patient discharged")
     pt_discharge_date = models.DateField(
         null=True, blank=True,
-        verbose_name="Patient date of discharge") # TODO: Not yet implemented
+        verbose_name="Patient date of discharge")
     pt_sex = models.CharField(max_length=1, blank=True, choices=SEX_CHOICES,
                               verbose_name="Patient sex")
     pt_title = models.CharField(max_length=LEN_TITLE, blank=True,
@@ -562,9 +606,7 @@ class PatientLookupBase(models.Model):
     class Meta:
         abstract = True
 
-    # -------------------------------------------------------------------------
-    # Generic title stuff
-    # -------------------------------------------------------------------------
+    # Generic title stuff:
 
     # -------------------------------------------------------------------------
     # Patient
@@ -624,6 +666,21 @@ class PatientLookupBase(models.Model):
     def is_under_15(self) -> bool:
         age = self.get_pt_age_years()
         return age is not None and age < 15
+
+    def days_since_discharge(self) -> Optional[int]:
+        """
+        Returns days since discharge, or None if the patient is not
+        discharged (or unknown).
+        """
+        if not self.pt_discharged or not self.pt_discharge_date:
+            return None
+        try:
+            today = datetime.date.today()
+            discharged = self.pt_discharge_date  # type: datetime.date
+            diff = today - discharged
+            return diff.days
+        except (AttributeError, TypeError, ValueError):
+            return None
 
     # -------------------------------------------------------------------------
     # GP
@@ -696,7 +753,9 @@ class PatientLookupBase(models.Model):
                                       self.clinician_last_name)
 
     def clinician_address_components(self) -> List[str]:
-        return list(filter(None, [
+        # We're going to put the clinician's postal address into letters to
+        # patients. Therefore, we need a sensible fallback, i.e. the RDBM's.
+        address_components = [
             self.clinician_address_1,
             self.clinician_address_2,
             self.clinician_address_3,
@@ -704,7 +763,12 @@ class PatientLookupBase(models.Model):
             self.clinician_address_5,
             self.clinician_address_6,
             self.clinician_address_7,
-        ]))
+        ]
+        if not any(x for x in address_components):
+            address_components = settings.RDBM_ADDRESS.copy()
+            if address_components:
+                address_components[0] = "c/o " + address_components[0]
+        return list(filter(None, address_components))
 
     def clinician_address_components_str(self) -> str:
         return ", ".join(self.clinician_address_components())
@@ -740,15 +804,17 @@ class PatientLookup(PatientLookupBase):
     """
 
     DUMMY_CLINICAL = 'dummy_clinical'
-    CPFT_IAPT = 'cpft_iapt'
+    CPFT_PCMIS = 'cpft_pcmis'
     CPFT_CRS = 'cpft_crs'
-    CPFT_RIO = 'cpft_rio'
+    CPFT_RIO_RCEP = 'cpft_rio_rcep'
+    CPFT_RIO_CRATE_PREPROCESSED = 'cpft_rio_crate'  # NB SOURCE_DB_NAME_MAX_LENGTH  # noqa
     DATABASE_CHOICES = (
         # First key must match a database entry in Django local settings.
         (DUMMY_CLINICAL, 'Dummy clinical database for testing'),
-        # (CPFT_IAPT, 'CPFT IAPT'),
+        # (CPFT_PCMIS, 'CPFT Psychological Wellbeing Service (IAPT) PC-MIS'),
         (CPFT_CRS, 'CPFT Care Records System (CRS) 2005-2012'),
-        (CPFT_RIO, 'CPFT RiO 2013-'),
+        (CPFT_RIO_RCEP, 'CPFT RiO 2013- (preprocessed by Servelec RCEP tool)'),
+        (CPFT_RIO_CRATE_PREPROCESSED, 'CPFT RiO 2013- (raw)'),
     )
 
     nhs_number = models.BigIntegerField(
@@ -759,7 +825,7 @@ class PatientLookup(PatientLookupBase):
 
     # Information going in
     source_db = models.CharField(
-        max_length=20, choices=DATABASE_CHOICES,
+        max_length=SOURCE_DB_NAME_MAX_LENGTH, choices=DATABASE_CHOICES,
         verbose_name="Source database used for lookup")
 
     # Information coming out: general
@@ -807,6 +873,25 @@ class PatientLookup(PatientLookupBase):
         return render_pdf_html_to_string(
             'letter_patient_first_traffic_light.html', context, patient=True)
 
+    def set_from_clinician_info_holder(
+            self, info: ClinicianInfoHolder) -> None:
+        self.clinician_found = True
+        self.clinician_title = info.title
+        self.clinician_first_name = info.first_name
+        self.clinician_last_name = info.surname
+        self.clinician_email = info.email
+        self.clinician_is_consultant = info.is_consultant
+        self.clinician_signatory_title = info.signatory_title
+        # Slice notation returns an empty list, rather than an exception,
+        # if the index is out of range
+        self.clinician_address_1 = info.address_components[0:1] or ''
+        self.clinician_address_2 = info.address_components[1:2] or ''
+        self.clinician_address_3 = info.address_components[2:3] or ''
+        self.clinician_address_4 = info.address_components[3:4] or ''
+        self.clinician_address_5 = info.address_components[4:5] or ''
+        self.clinician_address_6 = info.address_components[5:6] or ''
+        self.clinician_address_7 = info.address_components[6:7] or ''
+
 
 def make_forename_surname_email_address(forename: str,
                                         surname: str,
@@ -830,12 +915,15 @@ def make_cpft_email_address(forename: str, surname: str,
                                                "cpft.nhs.uk", default)
 
 
+# =============================================================================
+# Functions to do the patient lookups
+# =============================================================================
+
 def lookup_patient(nhs_number: int,
                    source_db: str = None,
                    save: bool = True,
                    existing_ok: bool = False) -> PatientLookup:
-    if source_db is None:
-        source_db = settings.CLINICAL_LOOKUP_DB
+    source_db = source_db or settings.CLINICAL_LOOKUP_DB
     if source_db not in [x[0] for x in PatientLookup.DATABASE_CHOICES]:
         raise ValueError("Bad source_db: {}".format(source_db))
     if existing_ok:
@@ -851,14 +939,17 @@ def lookup_patient(nhs_number: int,
                            source_db=source_db)
     decisions = []
     secret_decisions = []
-    if source_db == "dummy_clinical":
+    if source_db == PatientLookup.DUMMY_CLINICAL:
         lookup_dummy_clinical(lookup, decisions, secret_decisions)
-    # elif source_db == "cpft_iapt":
-    #     lookup_cpft_iapt(lookup, decisions, secret_decisions)
-    elif source_db == "cpft_crs":
+    elif source_db == PatientLookup.CPFT_PCMIS:
+        raise AssertionError("Don't know how to look up from PCMIS yet")
+        # lookup_cpft_iapt(lookup, decisions, secret_decisions)
+    elif source_db == PatientLookup.CPFT_CRS:
         lookup_cpft_crs(lookup, decisions, secret_decisions)
-    elif source_db == "cpft_rio":
-        lookup_cpft_rio(lookup, decisions, secret_decisions)
+    elif source_db == PatientLookup.CPFT_RIO_RCEP:
+        lookup_cpft_rio_rcep(lookup, decisions, secret_decisions)
+    elif source_db == PatientLookup.CPFT_RIO_CRATE_PREPROCESSED:
+        lookup_cpft_rio_crate_preprocessed(lookup, decisions, secret_decisions)
     else:
         raise AssertionError("Bug in lookup_patient")
     lookup.decisions = " ".join(decisions)
@@ -867,6 +958,10 @@ def lookup_patient(nhs_number: int,
         lookup.save()
     return lookup
 
+
+# -----------------------------------------------------------------------------
+# Dummy clinical database (part of CRATE)
+# -----------------------------------------------------------------------------
 
 # noinspection PyUnusedLocal
 def lookup_dummy_clinical(lookup: PatientLookup,
@@ -888,41 +983,130 @@ def lookup_dummy_clinical(lookup: PatientLookup,
     decisions.append("Copying all information from dummy lookup")
 
 
-def lookup_cpft_rio(lookup: PatientLookup,
-                    decisions: List[str],
-                    secret_decisions: List[str]) -> None:
+# -----------------------------------------------------------------------------
+# CPFT RiO (raw)
+# -----------------------------------------------------------------------------
+
+def lookup_cpft_rio_crate_preprocessed(lookup: PatientLookup,
+                                       decisions: List[str],
+                                       secret_decisions: List[str]) -> None:
+    """
+    Here, we use the version of RiO preprocessed by the CRATE preprocessor.
+    This is almost identical to the RCEP version, saving us some thought and
+    lots of repetition of complex JOIN code to deal with the raw RiO database.
+
+    However, the CRATE preprocessor does this with views.
+    We would need to index the underlying tables; however, the CRATE
+    processor has also done this for us for the lookup tables, so we
+    don't need so many.
+
+    USE my_database_name;
+
+    CREATE INDEX _idx_cdd_nhs ON ClientIndex (NNN);  -- already in RiO source
+
+    CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  -- already in RiO source  # noqa
+    CREATE INDEX _idx_cnh_eff ON ClientName (EffectiveDate);  -- ignored
+    CREATE INDEX _idx_cnh_end ON ClientName (EndDate);  -- ignored
+
+    CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  -- already in RiO source as part of composite index  # noqa
+    CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  -- ignored
+    CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  -- ignored
+
+    CREATE INDEX _idx_cch_id ON ClientTelecom (Client_ID);  -- already in RiO source as part of composite index  # noqa
+
+    CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source  # noqa
+    CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored  # noqa
+    CREATE INDEX _idx_cgh_to ON ClientHealthCareProvider (ToDate);  -- ignored
+
+    CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  -- preprocessor adds this  # noqa
+    CREATE INDEX _idx_cc_start ON CPACareCoordinator (StartDate);  -- ignored
+    CREATE INDEX _idx_cc_end ON CPACareCoordinator (EndDate);  -- ignored
+
+    CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  -- already in RiO source as part of composite index  # noqa
+    CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  -- ignored  # noqa
+    CREATE INDEX _idx_ref_removal ON AmsReferral (RemovalDateTime);  -- ignored
+
+    CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  -- already in RiO source as part of composite index  # noqa
+    CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  -- ignored
+    CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  -- ignored
+
+    CREATE INDEX _idx_rth_id ON AmsReferralTeam (Client_ID);  -- already in RiO source as part of composite index  # noqa
+    CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  -- ignored
+    CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  -- ignored
+
+    Then, the only field name differences from RCEP are:
+
+        Client_Name_History.End_Date  -- not End_Date_
+    """
+    lookup_cpft_rio_generic(lookup, decisions, secret_decisions,
+                            as_crate_not_rcep=True)
+
+
+# -----------------------------------------------------------------------------
+# CPFT RiO as preprocessed by Servelec RCEP tool
+# -----------------------------------------------------------------------------
+
+def lookup_cpft_rio_rcep(lookup: PatientLookup,
+                         decisions: List[str],
+                         secret_decisions: List[str]) -> None:
     """
     ---------------------------------------------------------------------------
     RiO notes, 2015-05-19
+    ... ADDENDUM 2017-02-27: this is the RiO database as modified by Servelec's
+        RiO CRIS Extraction Program (RCEP). See also lookup_cpft_rio_raw().
     ---------------------------------------------------------------------------
-    For speed, RiO needs these indexes:
+    For speed, RiO-RCEP needs these indexes:
 
     USE my_database_name;
 
     CREATE INDEX _idx_cdd_nhs ON Client_Demographic_Details (NHS_Number);
+
     CREATE INDEX _idx_cnh_id ON Client_Name_History (Client_ID);
     CREATE INDEX _idx_cnh_eff ON Client_Name_History (Effective_Date);
     CREATE INDEX _idx_cnh_end ON Client_Name_History (End_Date_);
+
     CREATE INDEX _idx_cah_id ON Client_Address_History (Client_ID);
     CREATE INDEX _idx_cah_from ON Client_Address_History (Address_From_Date);
     CREATE INDEX _idx_cah_to ON Client_Address_History (Address_To_Date);
+
+    CREATE INDEX _idx_cch_id ON Client_Communications_History (Client_ID);
+
     CREATE INDEX _idx_cgh_id ON Client_GP_History (Client_ID);
     CREATE INDEX _idx_cgh_from ON Client_GP_History (GP_From_Date);
     CREATE INDEX _idx_cgh_to ON Client_GP_History (GP_To_Date);
+
     CREATE INDEX _idx_cc_id ON CPA_CareCoordinator (Client_ID);
     CREATE INDEX _idx_cc_start ON CPA_CareCoordinator (Start_Date);
     CREATE INDEX _idx_cc_end ON CPA_CareCoordinator (End_Date);
+
     CREATE INDEX _idx_ref_id ON Main_Referral_Data (Client_ID);
     CREATE INDEX _idx_ref_recv ON Main_Referral_Data (Referral_Received_Date);
     CREATE INDEX _idx_ref_removal ON Main_Referral_Data (Removal_DateTime);
+
     CREATE INDEX _idx_rsh_id ON Referral_Staff_History (Client_ID);
     CREATE INDEX _idx_rsh_start ON Referral_Staff_History (Start_Date);
     CREATE INDEX _idx_rsh_end ON Referral_Staff_History (End_Date);
+
     CREATE INDEX _idx_rth_id ON Referral_Team_History (Client_ID);
     CREATE INDEX _idx_rth_start ON Referral_Team_History (Start_Date);
     CREATE INDEX _idx_rth_end ON Referral_Team_History (End_Date);
-    CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);
 
+    -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa
+    """
+    lookup_cpft_rio_generic(lookup, decisions, secret_decisions,
+                            as_crate_not_rcep=False)
+
+
+# -----------------------------------------------------------------------------
+# CPFT RiO: function that copes with either the RCEP or the CRATE version,
+# which are extremely similar.
+# -----------------------------------------------------------------------------
+
+def lookup_cpft_rio_generic(lookup: PatientLookup,
+                            decisions: List[str],
+                            secret_decisions: List[str],
+                            as_crate_not_rcep: bool) -> None:
+    """
     Main:
       Client_Demographic_Details
           Client_ID -- PK; RiO number; integer in VARCHAR(15) field
@@ -940,6 +1124,7 @@ def lookup_cpft_rio(lookup: PatientLookup,
           Client_ID -- integer in VARCHAR(15)
           Effective_Date -- DATETIME
           End_Date_  -- DATETIME, typically NULL
+                -- in the CRATE version, this is End_Date instead
           Name_Type_Code  -- '1' for 'usual name', '2' for 'Alias', '3'
               for 'Preferred name', '4' for 'Birth name', '5' for
               'Maiden name', '7' for 'Other', 'CM' for 'Client Merge';
@@ -1042,7 +1227,7 @@ def lookup_cpft_rio(lookup: PatientLookup,
       Client_CPA -- records CPA start/end, etc.
       Client_Professional_Contacts -- empty table!
 
-    Note in passing, but not used:
+    Added 2017-02-27:
 
       Client_Communications_History -- email/phone
           Client_ID -- integer in VARCHAR(15)
@@ -1056,8 +1241,9 @@ def lookup_cpft_rio(lookup: PatientLookup,
 
     """
     cursor = connections[lookup.source_db].cursor()
+
     # -------------------------------------------------------------------------
-    # RiO 1. Get RiO PK
+    # RiO/RCEP: 1. Get RiO PK
     # -------------------------------------------------------------------------
     cursor.execute(
         """
@@ -1099,8 +1285,9 @@ def lookup_cpft_rio(lookup: PatientLookup,
     lookup.pt_dod = row['Date_of_Death']
     lookup.pt_dead = bool(lookup.pt_dod or row['Death_Flag'])
     lookup.pt_sex = "?" if row['Gender_Code'] == "U" else row['Gender_Code']
+
     # -------------------------------------------------------------------------
-    # RiO 2. Name
+    # RiO/RCEP: 2. Name
     # -------------------------------------------------------------------------
     cursor.execute(
         """
@@ -1112,10 +1299,12 @@ def lookup_cpft_rio(lookup: PatientLookup,
             WHERE
                 Client_ID = %s
                 AND Effective_Date <= GETDATE()
-                AND (End_Date_ IS NULL OR End_Date_ > GETDATE())
+                AND ({end_date_field} IS NULL OR {end_date_field} > GETDATE())
                 AND (Deleted_Flag IS NULL OR Deleted_Flag = 0)
             ORDER BY Name_Type_Code
-        """,
+        """.format(
+            end_date_field='End_Date' if as_crate_not_rcep else 'End_Date_',
+        ),
         [rio_client_id]
     )
     row = dictfetchone(cursor)
@@ -1131,8 +1320,9 @@ def lookup_cpft_rio(lookup: PatientLookup,
     lookup.pt_title = lookup.pt_title.title()
     lookup.pt_first_name = lookup.pt_first_name.title()
     lookup.pt_last_name = lookup.pt_last_name.title()
+
     # -------------------------------------------------------------------------
-    # RiO 3. Address
+    # RiO/RCEP: 3. Address
     # -------------------------------------------------------------------------
     cursor.execute(
         """
@@ -1164,8 +1354,40 @@ def lookup_cpft_rio(lookup: PatientLookup,
         lookup.pt_address_4 = row['Address_Line_4'] or ''
         lookup.pt_address_5 = row['Address_Line_5'] or ''
         lookup.pt_address_6 = row['Post_Code'] or ''
+
     # -------------------------------------------------------------------------
-    # RiO 4. GP
+    # RiO/RCEP: 3b. Patient's e-mail address
+    # -------------------------------------------------------------------------
+    cursor.execute(
+        """
+            SELECT
+                Contact_Details  -- an e-mail address if Method_Code = 3
+            FROM Client_Communications_History
+            WHERE
+                Client_ID = %s
+                AND Method_Code = 3  -- e-mail address
+                AND Valid_From <= GETDATE()
+                AND (Valid_To IS NULL
+                     OR Valid_To > GETDATE())
+            ORDER BY Context_Code ASC
+                -- 1 = Communication address at home
+                -- 2 = Primary home (after business hours)
+                -- 3 = Vacation home (when person on holiday)
+                -- 4 = Office address
+                -- 6 = Emergency contact
+                -- 8 = Mobile device
+            CASE WHEN Address_Type_Code = 'PRIMARY' THEN '1'
+                          ELSE Address_Type_Code END ASC
+        """,
+        [rio_client_id]
+    )
+    rows = dictfetchall(cursor)
+    if rows:
+        row = rows[0]
+        lookup.pt_email = row['Contact_Details']
+
+    # -------------------------------------------------------------------------
+    # RiO/RCEP: 4. GP
     # -------------------------------------------------------------------------
     cursor.execute(
         """
@@ -1198,13 +1420,14 @@ def lookup_cpft_rio(lookup: PatientLookup,
         lookup.gp_address_4 = row['GP_Practice_Address_Line4'] or ''
         lookup.gp_address_5 = row['GP_Practice_Address_Line5'] or ''
         lookup.gp_address_6 = row['GP_Practice_Post_code']
+
     # -------------------------------------------------------------------------
-    # RiO 5. Clinician.
+    # RiO/RCEP: 5. Clinician, active v. discharged
     # -------------------------------------------------------------------------
     # This bit is complicated! We do it last, so we can return upon success.
-    lookup.pt_discharged = True  # assume this; may change
+    clinicians = []  # type: List[ClinicianInfoHolder]
     #
-    # (a) Active care coordinator?
+    # (a) Care coordinator?
     #
     cursor.execute(
         """
@@ -1214,42 +1437,31 @@ def lookup_cpft_rio(lookup: PatientLookup,
                 Care_Coordinator_User_surname,
                 Care_Coordinator_User_email,
                 Care_Coordinator_User_Consultant_Flag,
-                Start_Date
+                Start_Date,
+                End_Date
             FROM CPA_CareCoordinator
             WHERE
                 Client_ID = %s
                 AND Start_Date <= GETDATE()
-                AND (End_Date IS NULL OR End_Date > GETDATE())
-            ORDER BY Start_Date ASC
         """,
         [rio_client_id]
     )
-    row = dictfetchone(cursor)
-    if row:
-        lookup.pt_discharged = False
-        decisions.append("Active care coordinator.")
-    if row and row['Care_Coordinator_User_surname']:
-        decisions.append(
-            "Active care coordinator ({}).".format(
-                get_friendly_date(row['Start_Date'])
-            )
-        )
-        lookup.clinician_found = True
-        lookup.clinician_title = row['Care_Coordinator_User_title'] or ''
-        lookup.clinician_first_name = \
-            row['Care_Coordinator_User_first_name'] or ''
-        lookup.clinician_last_name = row['Care_Coordinator_User_surname'] or ''
-        # noinspection PyTypeChecker
-        lookup.clinician_email = (
-            row['Care_Coordinator_User_email'] or
-            make_cpft_email_address(lookup.clinician_first_name,
-                                    lookup.clinician_last_name)
-        )
-        lookup.clinician_is_consultant = bool(
-            row['Care_Coordinator_User_Consultant_Flag'])
-        lookup.clinician_signatory_title = "Care coordinator"
-        return
-    decisions.append("No active named care coordinator.")
+    for row in dictfetchall(cursor):
+        clinicians.append(ClinicianInfoHolder(
+            clinician_type=ClinicianInfoHolder.CARE_COORDINATOR,
+            title=row['Care_Coordinator_User_title'] or '',
+            first_name=row['Care_Coordinator_User_first_name'] or '',
+            surname=row['Care_Coordinator_User_surname'] or '',
+            email=(
+                row['Care_Coordinator_User_email'] or
+                make_cpft_email_address(lookup.clinician_first_name,
+                                        lookup.clinician_last_name)
+            ),
+            signatory_title="Care coordinator",
+            is_consultant=bool(row['Care_Coordinator_User_Consultant_Flag']),
+            start_date=row['Start_Date'],
+            end_date=row['End_Date'],
+        ))
     #
     # (b) Active named consultant referral?
     #
@@ -1261,45 +1473,35 @@ def lookup_cpft_rio(lookup: PatientLookup,
                 Referred_Consultant_User_surname,
                 Referred_Consultant_User_email,
                 Referred_Consultant_User_Consultant_Flag,
-                Referral_Received_Date
-            FROM Main_Referral_Data
+                Referral_Received_Date,
+                Removal_DateTime
+            FROM {referral_table}
             WHERE
                 Client_ID = %s
                 AND Referral_Received_Date <= GETDATE()
-                AND (Removal_DateTime IS NULL
-                     OR Removal_DateTime > GETDATE())
-            ORDER BY Referral_Received_Date ASC
-        """,
+        """.format(
+            referral_table=('Referral' if as_crate_not_rcep
+                            else 'Main_Referral_Data')
+        ),
         [rio_client_id]
     )
-    row = dictfetchone(cursor)
-    if row:
-        lookup.pt_discharged = False
-        decisions.append("Active consultant referral.")
-    if row and row['Referred_Consultant_User_surname']:
-        decisions.append(
-            "Active named consultant referral ({}).".format(
-                get_friendly_date(row['Referral_Received_Date'])
-            )
-        )
-        lookup.clinician_found = True
-        lookup.clinician_title = row['Referred_Consultant_User_title'] or ''
-        lookup.clinician_first_name = \
-            row['Referred_Consultant_User_first_name'] or ''
-        lookup.clinician_last_name = \
-            row['Referred_Consultant_User_surname'] or ''
-        # noinspection PyTypeChecker
-        lookup.clinician_email = (
-            row['Referred_Consultant_User_email'] or
-            make_cpft_email_address(lookup.clinician_first_name,
-                                    lookup.clinician_last_name)
-        )
-        lookup.clinician_is_consultant = \
-            bool(row['Referred_Consultant_User_Consultant_Flag'])
-        # ... would be odd if this were not true!
-        lookup.clinician_signatory_title = "Consultant psychiatrist"
-        return
-    decisions.append("No active named consultant referral.")
+    for row in dictfetchall(cursor):
+        clinicians.append(ClinicianInfoHolder(
+            clinician_type=ClinicianInfoHolder.CONSULTANT,
+            title=row['Referred_Consultant_User_title'] or '',
+            first_name=row['Referred_Consultant_User_first_name'] or '',
+            surname=row['Referred_Consultant_User_surname'] or '',
+            email=(
+                row['Referred_Consultant_User_email'] or
+                make_cpft_email_address(lookup.clinician_first_name,
+                                        lookup.clinician_last_name)
+            ),
+            signatory_title="Consultant psychiatrist",
+            is_consultant=bool(row['Referred_Consultant_User_Consultant_Flag']),  # noqa
+            # ... would be odd if this were not true!
+            start_date=row['Referral_Received_Date'],
+            end_date=row['Removal_DateTime'],
+        ))
     #
     # (c) Active other named staff referral?
     #
@@ -1311,40 +1513,31 @@ def lookup_cpft_rio(lookup: PatientLookup,
                 HCP_User_surname,
                 HCP_User_email,
                 HCP_User_Consultant_Flag,
-                Start_Date
+                Start_Date,
+                End_Date
             FROM Referral_Staff_History
             WHERE
                 Client_ID = %s
                 AND Start_Date <= GETDATE()
-                AND (End_Date IS NULL OR End_Date > GETDATE())
-            ORDER BY Start_Date ASC
         """,
         [rio_client_id]
     )
-    row = dictfetchone(cursor)
-    if row:
-        lookup.pt_discharged = False
-        decisions.append("Active HCP referral.")
-    if row and row['Referred_Consultant_User_surname']:
-        decisions.append(
-            "Active named HCP referral ({}).".format(
-                get_friendly_date(row['Start_Date'])
-            )
-        )
-        lookup.clinician_found = True
-        lookup.clinician_title = row['HCP_User_title'] or ''
-        lookup.clinician_first_name = row['HCP_User_first_name'] or ''
-        lookup.clinician_last_name = row['HCP_User_surname'] or ''
-        # noinspection PyTypeChecker
-        lookup.clinician_email = (
-            row['HCP_User_email'] or
-            make_cpft_email_address(lookup.clinician_first_name,
-                                    lookup.clinician_last_name)
-        )
-        lookup.clinician_is_consultant = bool(row['HCP_User_Consultant_Flag'])
-        lookup.clinician_signatory_title = "Clinician"
-        return
-    decisions.append("No active named HCP referral.")
+    for row in dictfetchall(cursor):
+        clinicians.append(ClinicianInfoHolder(
+            clinician_type=ClinicianInfoHolder.HCP,
+            title=row['HCP_User_title'] or '',
+            first_name=row['HCP_User_first_name'] or '',
+            surname=row['HCP_User_surname'] or '',
+            email=(
+                row['HCP_User_email'] or
+                make_cpft_email_address(lookup.clinician_first_name,
+                                        lookup.clinician_last_name)
+            ),
+            signatory_title="Clinician",
+            is_consultant=bool(row['HCP_User_Consultant_Flag']),
+            start_date=row['Start_Date'],
+            end_date=row['End_Date'],
+        ))
     #
     # (d) Active team referral?
     #
@@ -1352,227 +1545,129 @@ def lookup_cpft_rio(lookup: PatientLookup,
         """
             SELECT
                 Team_Description,
-                Start_Date
+                Start_Date,
+                End_Date
             FROM Referral_Team_History
             WHERE
                 Client_ID = %s
                 AND Start_Date <= GETDATE()
-                AND (End_Date IS NULL OR End_Date > GETDATE())
-            ORDER BY Start_Date ASC
         """,
         [rio_client_id]
     )
-    row = dictfetchone(cursor)
-    if row:
-        lookup.pt_discharged = False
+    for row in dictfetchall(cursor):
+        team_info = ClinicianInfoHolder(
+            clinician_type=ClinicianInfoHolder.TEAM,
+            title='',
+            first_name='',
+            surname='',
+            email='',
+            signatory_title='',
+            is_consultant=False,
+            start_date=row['Start_Date'],
+            end_date=row['End_Date'],
+        )
         # We know a team - do we have a team representative?
         team_description = row['Team_Description']
-        startdate = row['Start_Date']
-        decisions.append(
-            "Active named team referral ({}, {}).".format(
-                team_description,
-                get_friendly_date(startdate)
-            )
-        )
         try:
             teamrep = TeamRep.objects.get(team=team_description)
             decisions.append("Clinical team representative found.")
             profile = teamrep.user.profile
-            lookup.clinician_found = True
-            lookup.clinician_title = profile.title
-            lookup.clinician_first_name = teamrep.user.first_name
-            lookup.clinician_last_name = teamrep.user.last_name
-            lookup.clinician_email = teamrep.user.email
-            lookup.clinician_is_consultant = profile.is_consultant
-            lookup.clinician_signatory_title = profile.signatory_title
+            team_info.title = profile.title
+            team_info.first_name = teamrep.user.first_name
+            team_info.surname = teamrep.user.last_name
+            team_info.email = teamrep.user.email
+            team_info.signatory_title = profile.signatory_title
+            team_info.is_consultant = profile.is_consultant
         except ObjectDoesNotExist:
-            decisions.append("No team representative found.")
+            decisions.append("No team representative found for team "
+                             "{}.".format(repr(team_description)))
         except MultipleObjectsReturned:
-            decisions.append("Confused: >1 team representative found")
+            decisions.append("Confused: >1 team representative found for team "
+                             "{}".format(repr(team_description)))
+        clinicians.append(team_info)
+        # We append it even if we can't find a representative, because it still
+        # carries information about whether the patient is discharged or not.
     else:
         decisions.append("No active named team referral.")
-    #
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # Below here, the patient is discharged, but we still may have a contact.
-    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    #
-    # (e) Previous care coordinator?
-    #
-    cursor.execute(
-        """
-            SELECT
-                Care_Coordinator_User_title,
-                Care_Coordinator_User_first_name,
-                Care_Coordinator_User_surname,
-                Care_Coordinator_User_email,
-                Care_Coordinator_User_Consultant_Flag,
-                Start_Date
-            FROM CPA_CareCoordinator
-            WHERE
-                Client_ID = %s
-                AND Start_Date <= GETDATE()
-            ORDER BY End_Date DESC
-        """,
-        [rio_client_id]
-    )
-    row = dictfetchone(cursor)
-    if row and row['Care_Coordinator_User_surname']:
-        decisions.append(
-            "Previous care coordinator ({}).".format(
-                get_friendly_date(row['Start_Date'])
-            )
-        )
-        lookup.clinician_found = True
-        lookup.clinician_title = row['Care_Coordinator_User_title'] or ''
-        lookup.clinician_first_name = \
-            row['Care_Coordinator_User_first_name'] or ''
-        lookup.clinician_last_name = row['Care_Coordinator_User_surname'] or ''
-        # noinspection PyTypeChecker
-        lookup.clinician_email = (
-            row['Care_Coordinator_User_email'] or
-            make_cpft_email_address(lookup.clinician_first_name,
-                                    lookup.clinician_last_name)
-        )
-        lookup.clinician_is_consultant = bool(
-            row['Care_Coordinator_User_Consultant_Flag'])
-        lookup.clinician_signatory_title = "Care coordinator"
-        return
-    decisions.append("No previous care coordinator.")
-    #
-    # (f) Previous named consultant referral?
-    #
-    cursor.execute(
-        """
-            SELECT
-                Referred_Consultant_User_title,
-                Referred_Consultant_User_first_name,
-                Referred_Consultant_User_surname,
-                Referred_Consultant_User_email,
-                Referred_Consultant_User_Consultant_Flag,
-                Referral_Received_Date
-            FROM Main_Referral_Data
-            WHERE
-                Client_ID = %s
-                AND Referral_Received_Date <= GETDATE()
-            ORDER BY Removal_DateTime DESC
-        """,
-        [rio_client_id]
-    )
-    row = dictfetchone(cursor)
-    if row and row['Referred_Consultant_User_surname']:
-        decisions.append(
-            "Previous named consultant referral ({}).".format(
-                get_friendly_date(row['Referral_Received_Date'])
-            )
-        )
-        lookup.clinician_found = True
-        lookup.clinician_title = row['Referred_Consultant_User_title'] or ''
-        lookup.clinician_first_name = \
-            row['Referred_Consultant_User_first_name'] or ''
-        lookup.clinician_last_name = \
-            row['Referred_Consultant_User_surname'] or ''
-        # noinspection PyTypeChecker
-        lookup.clinician_email = (
-            row['Referred_Consultant_User_email'] or
-            make_cpft_email_address(lookup.clinician_first_name,
-                                    lookup.clinician_last_name)
-        )
-        lookup.clinician_is_consultant = \
-            bool(row['Referred_Consultant_User_Consultant_Flag'])
-        # ... would be odd if this were not true!
-        lookup.clinician_signatory_title = "Consultant psychiatrist"
-        return
-    decisions.append("No previous named consultant referral.")
-    #
-    # (g) Previous other named staff referral?
-    #
-    cursor.execute(
-        """
-            SELECT
-                HCP_User_title,
-                HCP_User_first_name,
-                HCP_User_surname,
-                HCP_User_email,
-                HCP_User_Consultant_Flag,
-                Start_Date
-            FROM Referral_Staff_History
-            WHERE
-                Client_ID = %s
-                AND Start_Date <= GETDATE()
-            ORDER BY End_Date DESC
-        """,
-        [rio_client_id]
-    )
-    row = dictfetchone(cursor)
-    if row and row['Referred_Consultant_User_surname']:
-        decisions.append(
-            "Previous named HCP referral ({}).".format(
-                get_friendly_date(row['Start_Date'])
-            )
-        )
-        lookup.clinician_found = True
-        lookup.clinician_title = row['HCP_User_title'] or ''
-        lookup.clinician_first_name = row['HCP_User_first_name'] or ''
-        lookup.clinician_last_name = row['HCP_User_surname'] or ''
-        # noinspection PyTypeChecker
-        lookup.clinician_email = (
-            row['HCP_User_email'] or
-            make_cpft_email_address(lookup.clinician_first_name,
-                                    lookup.clinician_last_name)
-        )
-        lookup.clinician_is_consultant = bool(row['HCP_User_Consultant_Flag'])
-        lookup.clinician_signatory_title = "Clinician"
-        return
-    decisions.append("No previous named HCP referral.")
-    #
-    # (h) Previous team referral?
-    #
-    cursor.execute(
-        """
-            SELECT
-                Team_Description,
-                Start_Date
-            FROM Referral_Team_History
-            WHERE
-                Client_ID = %s
-                AND Start_Date <= GETDATE()
-            ORDER BY End_Date DESC
-        """,
-        [rio_client_id]
-    )
-    row = dictfetchone(cursor)
-    if row:
-        # We know a team - do we have a team representative?
-        team_description = row['Team_Description']
-        startdate = row['Start_Date']
-        decisions.append(
-            "Previous named team referral ({}, {}).".format(
-                team_description,
-                get_friendly_date(startdate)
-            )
-        )
-        try:
-            teamrep = TeamRep.objects.get(team=team_description)
-            decisions.append("Clinical team representative found.")
-            profile = teamrep.user.profile
-            lookup.clinician_found = True
-            lookup.clinician_title = profile.title
-            lookup.clinician_first_name = teamrep.user.first_name
-            lookup.clinician_last_name = teamrep.user.last_name
-            lookup.clinician_email = teamrep.user.email
-            lookup.clinician_is_consultant = profile.is_consultant
-            lookup.clinician_signatory_title = profile.signatory_title
-        except ObjectDoesNotExist:
-            decisions.append("No team representative found.")
-        except MultipleObjectsReturned:
-            decisions.append("Confused: >1 team representative found")
-    else:
-        decisions.append("No previous named team referral.")
-    #
-    # (i) no idea
-    #
-    decisions.append("Failed to establish clinician.")
 
+    # Re CLINICIAN ADDRESSES:
+    # Candidate tables in RiO:
+    # - OrgContactAddress +/- OrgContactAddressHistory
+    # - OrgOrganisation
+    # - GenPerson <-- THIS. From GenHCP: "This table contains about all HCPs
+    #   registered in RiO. HCP’s personal details (name, address etc.) are
+    #   stored in GenPerson.
+    # - ??GenLocation; ??GenNHSLocation
+    #
+    # So, GenPerson is correct. However, in CPFT, when we
+    #       SELECT * FROM GenPerson WHERE AddressLine2 IS NOT NULL
+    # we get lots of things saying "Agency Staff", "leaves Trust 17/02/15",
+    # "changed name from Smith", "Medical student", and so on.
+    #
+    # Therefore, our source is simply duff; people are using the fields for
+    # a different purpose.
+    # Therefore, the set_from_clinician_info_holder() function will default
+    # to the RDBM's address.
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # OK.
+    # Now we know all relevant recent clinicians, including (potentially) ones
+    # from which the patient has been discharged, and ones that are active.
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    current_clinicians = [c for c in clinicians if c.current()]
+    if current_clinicians:
+        lookup.pt_discharged = False
+        lookup.pt_discharge_date = None
+        decisions.append("Patient not discharged.")
+        contactable_curr_clin = [c for c in current_clinicians
+                                 if c.contactable()]
+        # Sorting by two keys: http://stackoverflow.com/questions/11206884
+        # LOW priority: most recent clinician. (Goes first in sort.)
+        # HIGH priority: preferred type of clinician. (Goes last in sort.)
+        # Sort order is: most preferred first.
+        contactable_curr_clin.sort(key=attrgetter('start_date'), reverse=True)
+        contactable_curr_clin.sort(key=attrgetter('clinician_preference_order'))  # noqa
+        decisions.append("{} contactable active clinician(s) found.".format(
+            len(contactable_curr_clin)))
+        if contactable_curr_clin:
+            chosen_clinician = contactable_curr_clin[0]
+            lookup.set_from_clinician_info_holder(chosen_clinician)
+            decisions.append("Found active clinician of type: {}".format(
+                chosen_clinician.clinician_type))
+            return  # All done!
+        # If we get here, the patient is not discharged, but we haven't found
+        # a contactable active clinician.
+        # We'll fall through and check older clinicians for contactability.
+    else:
+        end_dates = [c.end_date for c in clinicians]
+        lookup.pt_discharged = True
+        lookup.pt_discharge_date = latest_date(*end_dates)
+        decisions.append("Patient discharged.")
+
+    # We get here either if the patient is discharged, or they're current but
+    # we can't contact a current clinician.
+    contactable_old_clin = [c for c in clinicians if c.contactable()]
+    # LOW priority: preferred type of clinician. (Goes first in sort.)
+    # HIGH priority: most recent end date. (Goes last in sort.)
+    # Sort order is: most preferred first.
+    contactable_old_clin.sort(key=attrgetter('clinician_preference_order'))
+    contactable_old_clin.sort(key=attrgetter('end_date'), reverse=True)
+    decisions.append("{} contactable previous clinician(s) found.".format(
+        len(contactable_old_clin)))
+    if contactable_old_clin:
+        chosen_clinician = contactable_old_clin[0]
+        lookup.set_from_clinician_info_holder(chosen_clinician)
+        decisions.append("Found previous clinician of type: {}".format(
+            chosen_clinician.clinician_type))
+
+    if not lookup.clinician_found:
+        decisions.append("Failed to establish contactable clinician.")
+
+
+# -----------------------------------------------------------------------------
+# CPFT Care Records System (CRS)
+# -----------------------------------------------------------------------------
 
 def lookup_cpft_crs(lookup, decisions, secret_decisions):
     cursor = connections[lookup.source_db].cursor()
@@ -1789,7 +1884,8 @@ class TeamInfo(object):
     @cached_property
     def teams(self):
         log.debug("Fetching/caching clinical teams")
-        if settings.CLINICAL_LOOKUP_DB == 'cpft_rio':
+        if settings.CLINICAL_LOOKUP_DB in (PatientLookup.CPFT_RIO_RCEP,
+                                           PatientLookup.CPFT_RIO_CRATE_PREPROCESSED):  # noqa
             cursor = connections[settings.CLINICAL_LOOKUP_DB].cursor()
             cursor.execute("""
                 SELECT DISTINCT Team_Description
@@ -1807,12 +1903,12 @@ class TeamInfo(object):
         return [(team, team) for team in teams]
 
 
-team_info = TeamInfo()
+all_teams_info = TeamInfo()
 
 
 class TeamRep(models.Model):
     team = models.CharField(max_length=LEN_NAME, unique=True,
-                            choices=team_info.team_choices,
+                            choices=all_teams_info.team_choices,
                             verbose_name="Team description")
     user = models.ForeignKey(settings.AUTH_USER_MODEL)
 
@@ -1850,6 +1946,10 @@ class ConsentMode(Decision):
     )
     # ... http://stackoverflow.com/questions/12822847/best-practice-for-python-django-constants  # noqa
 
+    SOURCE_USER_ENTRY = "crate_user_entry"
+    SOURCE_AUTOCREATED = "crate_auto_created"
+    SOURCE_LEGACY = "legacy"  # default, for old versions
+
     nhs_number = models.BigIntegerField(verbose_name="NHS number")
     current = models.BooleanField(default=False)
     # see save() and process_change() below
@@ -1863,7 +1963,7 @@ class ConsentMode(Decision):
         verbose_name="Exclude patient from Research Database entirely?")
     consent_mode = models.CharField(
         max_length=10, default="", choices=CONSENT_MODE_CHOICES,
-        verbose_name="Consent mode ('red', 'yellow', 'green')")
+        verbose_name="Consent mode (red/yellow/green)")
     consent_after_discharge = models.BooleanField(
         default=False,
         verbose_name="Consent given to contact patient after discharge?")
@@ -1880,6 +1980,11 @@ class ConsentMode(Decision):
     changed_by_clinician_override = models.BooleanField(
         default=False,
         verbose_name="Consent mode changed by clinician's override?")
+
+    source = models.CharField(
+        max_length=SOURCE_DB_NAME_MAX_LENGTH,
+        default=SOURCE_USER_ENTRY,
+        verbose_name="Source of information")
 
     # class Meta:
     #     get_latest_by = "created_at"
@@ -1913,20 +2018,63 @@ class ConsentMode(Decision):
             cls,
             nhs_number: int,
             created_by: settings.AUTH_USER_MODEL) -> CONSENT_MODE_FWD_REF:
+        """
+        Fetches the current ConsentMode for this patient.
+        If there isn't one, creates a default one and returns that.
+        """
         try:
             consent_mode = cls.objects.get(nhs_number=nhs_number,
                                            current=True)
         except cls.DoesNotExist:
             consent_mode = cls(nhs_number=nhs_number,
                                created_by=created_by,
+                               source=cls.SOURCE_AUTOCREATED,
+                               current=True)
+            consent_mode.save()
+        except cls.MultipleObjectsReturned:
+            log.warning("bug: ConsentMode.get_or_create() received "
+                        "exception ConsentMode.MultipleObjectsReturned")
+            consent_mode = cls(nhs_number=nhs_number,
+                               created_by=created_by,
+                               source=cls.SOURCE_AUTOCREATED,
                                current=True)
             consent_mode.save()
         return consent_mode
+
+    # noinspection PyUnusedLocal # *** remove when we do something here
+    @classmethod
+    def refresh_from_primary_clinical_record(
+            cls,
+            nhs_number: int,
+            created_by: settings.AUTH_USER_MODEL,
+            source_db: str = None) -> None:
+        """
+        Checks the primary clinical record and CRATE's own records for consent
+        modes for this patient. If the most recent one is in the external
+        database, copies it to CRATE's database and marks that one as current.
+
+        This has the effect that external primary clinical records (e.g. RiO)
+        take priority, but if there's no record in RiO, we can still proceed.
+        """
+        source_db = source_db or settings.CLINICAL_LOOKUP_DB
+        if source_db not in [x[0] for x in PatientLookup.DATABASE_CHOICES]:
+            raise ValueError("Bad source_db: {}".format(source_db))
+        if source_db != PatientLookup.CPFT_RIO_CRATE_PREPROCESSED:
+            # Don't know how to look up consent modes from other sources
+            return
+        pass # *** implement consent-mode lookup when RiO updated
+        # Will need to:
+        # - Fetch the most recent record.
+        # - If its date is later than the most recent CRATE record:
+        #   - create a new ConsentMode with (..., source=source_db)
+        #   - save it
 
     def consider_withdrawal(self) -> None:
         """
         If required, withdraw consent for other studies.
         Call this before setting current=True and calling save().
+        Note that as per Major Amendment 1 to 12/EE/0407, this happens
+        automatically, rather than having a special flag to control it.
         """
         try:
             previous = ConsentMode.objects.get(
@@ -1946,10 +2094,12 @@ class ConsentMode(Decision):
                      email_succeeded) = contact_request.withdraw_consent()
                     if not email_succeeded:
                         self.notify_rdbm_of_work(letter, to_researcher=True)
-        except ContactRequest.DoesNotExist:
+        except ConsentMode.DoesNotExist:
             pass  # no previous ConsentMode; nothing to do.
-        except ContactRequest.MultipleObjectsReturned:
-            pass  # but this is a bug
+        except ConsentMode.MultipleObjectsReturned:
+            log.warning("bug: ConsentMode.consider_withdrawal() received "
+                        "exception ConsentMode.MultipleObjectsReturned")
+            # do nothing else
 
     def get_latest_patient_lookup(self) -> PatientLookup:
         # noinspection PyTypeChecker
@@ -2003,6 +2153,9 @@ class ConsentMode(Decision):
         Called upon saving.
         Will create a letter to patient.
         May create a withdrawal-of-consent letter to researcher.
+        -- Major Amendment 1 (Oct 2014) to 12/EE/0407: always withdraw consent
+           and tell researchers, i.e. "active cancellation" of ongoing
+           permission, where the researchers have not yet made contact.
         """
         # noinspection PyTypeChecker
         letter = Letter.create_consent_confirmation_to_patient(self)
@@ -2106,14 +2259,19 @@ class ContactRequest(models.Model):
 
     def process_request(self) -> None:
         self.decisionlist = []
-        self.process_request_inner()
+        self.process_request_main()
         self.decisions = " ".join(self.decisionlist)
         self.processed = True
         self.save()
 
-    def process_request_inner(self) -> None:
-        """Act on a contact request and store the decisions made.
-        The decisions parameter is a list that's appended to."""
+    def process_request_main(self) -> None:
+        """
+        =======================================================================
+        Act on a contact request and store the decisions made.
+        CORE DECISION-MAKING FUNCTION FOR THE CONSENT-TO-CONTACT PROCESS.
+        =======================================================================
+        The decisions parameter is a list that's appended to.
+        """
         # Translate to an NHS number
         if self.lookup_nhs_number is not None:
             self.nhs_number = self.lookup_nhs_number
@@ -2128,13 +2286,19 @@ class ContactRequest(models.Model):
         # Look up patient details (afresh)
         self.patient_lookup = lookup_patient(self.nhs_number, save=True)
         # Establish consent mode (always do this to avoid NULL problem)
-        self.consent_mode = ConsentMode.get_or_create(self.nhs_number,
-                                                      self.request_by)
+        ConsentMode.refresh_from_primary_clinical_record(
+            nhs_number=self.nhs_number,
+            created_by=self.request_by)
+        self.consent_mode = ConsentMode.get_or_create(
+            nhs_number=self.nhs_number,
+            created_by=self.request_by)
         # Rest of processing
         self.calc_approaches_in_past_year()
+
         # ---------------------------------------------------------------------
         # Main decision process
         # ---------------------------------------------------------------------
+
         # Simple failures
         if not self.patient_lookup.pt_found:
             self.stop("no patient found")
@@ -2151,6 +2315,7 @@ class ContactRequest(models.Model):
         if self.consent_mode.consent_mode == ConsentMode.RED:
             self.stop("patient's consent mode is RED")
             return
+
         # Age?
         if self.patient_lookup.pt_dob is None:
             self.stop("patient DOB unknown")
@@ -2159,21 +2324,37 @@ class ContactRequest(models.Model):
                 self.patient_lookup.is_under_16()):
             self.stop("patient is under 16 and study not approved for that")
             return
-        # Discharged?
+
+        # Discharged/outside discharge criteria?
         if self.patient_lookup.pt_discharged:
             if not self.study.include_discharged:
                 self.stop(
                     "patient is discharged and study not approved for that")
                 return
-            if self.consent_mode.consent_mode not in [ConsentMode.GREEN,
-                                                      ConsentMode.YELLOW]:
-                self.stop("patient is discharged and consent mode is not GREEN"
-                          " or YELLOW")
-                return
+            # if self.consent_mode.consent_mode not in (ConsentMode.GREEN,
+            #                                           ConsentMode.YELLOW):
+            #     self.stop("patient is discharged and consent mode is not "
+            #               "GREEN or YELLOW")
+            #     return
+            days_since_discharge = self.patient_lookup.days_since_discharge()
+            permitted_n_days = settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS  # noqa
             if not self.consent_mode.consent_after_discharge:
-                self.stop("patient is discharged and patient did not consent "
-                          "to contact after discharge")
-                return
+                if days_since_discharge is None:
+                    self.stop("patient is discharged; patient did not consent "
+                              "to contact after discharge; unable to "
+                              "determine days since discharge")
+                    return
+                if days_since_discharge > permitted_n_days:
+                    self.stop(
+                        "patient was discharged {} days ago; "
+                        "permission exists only for up to {} days; "
+                        "patient did not consent to contact after "
+                        "discharge".format(
+                            days_since_discharge,
+                            permitted_n_days,
+                        ))
+                    return
+
         # Maximum number of approaches exceeded?
         if self.consent_mode.max_approaches_per_year > 0:
             if (self.approaches_in_past_year >=
@@ -2258,6 +2439,7 @@ class ContactRequest(models.Model):
                     clinician_emailaddr))
             return
 
+        # Warnings
         if (ContactRequest.objects
                 .filter(nhs_number=self.nhs_number)
                 .filter(study=self.study)
@@ -2280,6 +2462,7 @@ class ContactRequest(models.Model):
             self.decide("WARNING: clinician has already rejected a request "
                         "about this patient/study.")
 
+        # Send e-mail to clinician
         # noinspection PyTypeChecker
         email = Email.create_clinician_email(self)
         # ... will also create a ClinicianResponse
@@ -2414,6 +2597,11 @@ class ContactRequest(models.Model):
             'url_yes': clinician_response.get_abs_url_yes(),
             'url_no': clinician_response.get_abs_url_no(),
             'url_maybe': clinician_response.get_abs_url_maybe(),
+            'permitted_to_contact_discharged_patients_for_n_days':
+                settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
+            'permitted_to_contact_discharged_patients_for_n_years':
+                days_to_years(
+                    settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS),  # noqa
         }
         return render_email_html_to_string('email_clinician.html', context)
 
@@ -2437,6 +2625,14 @@ class ContactRequest(models.Model):
             'study': self.study,
             'patient_lookup': self.patient_lookup,
             'consent_mode': self.consent_mode,
+
+            'permitted_to_contact_discharged_patients_for_n_days':
+                settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
+            'permitted_to_contact_discharged_patients_for_n_years':
+                days_to_years(
+                    settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS),  # noqa
+
+            'RDBM_ADDRESS': settings.RDBM_ADDRESS,
         }
         return render_pdf_html_to_string('letter_researcher_approve.html',
                                          context, patient=False)
@@ -2767,9 +2963,9 @@ class ClinicianResponse(models.Model):
             # noinspection PyTypeChecker
             PatientResponse.create(self.contact_request)
             self.contact_request.notify_rdbm_of_good_progress()
-        elif self.response in [ClinicianResponse.RESPONSE_B,
+        elif self.response in (ClinicianResponse.RESPONSE_B,
                                ClinicianResponse.RESPONSE_C,
-                               ClinicianResponse.RESPONSE_D]:
+                               ClinicianResponse.RESPONSE_D):
             self.contact_request.notify_rdbm_of_bad_progress()
         self.save()
 

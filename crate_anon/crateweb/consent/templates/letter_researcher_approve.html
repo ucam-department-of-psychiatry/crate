@@ -1,6 +1,16 @@
 {# letter_researcher_approve.html #}
-
 {% extends 'base_pdf_letter.html' %}
+
+{% comment %}
+    template parameters:
+        consent_mode (object)
+        contact_request (object)
+        patient_lookup (object)
+        study (object)
+        permitted_to_contact_discharged_patients_for_n_days (int)
+        permitted_to_contact_discharged_patients_for_n_years (str)
+        RDBM_ADDRESS (List[str])
+{% endcomment %}
 
 {% block letter_body %}
 
@@ -16,7 +26,7 @@ to be passed to you. You may write to this patient, providing
 details of your study, and seeking further contact. You also have
 their permission to access their CPFT medical records.</p>
 
-{% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode include_prefers_email=True include_sex=True include_researcher_detail=True %}
+{% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode include_prefers_email=True include_sex=True include_researcher_detail=True permitted_to_contact_discharged_patients_for_n_days=permitted_to_contact_discharged_patients_for_n_days permitted_to_contact_discharged_patients_for_n_years=permitted_to_contact_discharged_patients_for_n_years %}
 
 <p>If you indicated in your application that you preferred the
 request to be passed on to the patient’s clinician and enclosed a
@@ -97,7 +107,7 @@ about your study.</b> It’s up to you to judge this.</p>
         your mind about researchers contacting you directly, please
         write to the CPFT Research Database Manager, who will help you
         to do this. The address is:
-        {{ settings.RDBM_ADDRESS|join:", " }}.</em></p>
+        {{ RDBM_ADDRESS|join:", " }}.</em></p>
     </li>
 
     <li>If the patient tells you that they wish to change their

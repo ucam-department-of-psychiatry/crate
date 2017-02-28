@@ -3,29 +3,37 @@
     template parameters:
         patient_lookup (object)
         consent_mode (object)
+        permitted_to_contact_discharged_patients_for_n_days (int)
+        permitted_to_contact_discharged_patients_for_n_years (str)
 {% endcomment %}
 
 {% if patient_lookup.pt_discharged == None %}
     {# operating in ignorance #}
+
     {% if consent_mode.consent_after_discharge %}
 
         <div>The electronic records don’t know whether this patient has
         been discharged, but they have specifically consented to being
-        contacted by their former clinicians, so you may proceed as
+        contacted by their former clinicians.
+        (Also: {% include "contact_after_discharge_permission_phrase.html" %} )
+        So you may proceed as
         long as you are a former clinician of theirs.</div>
 
     {% else %}
 
         <div><b>Discharged?</b>
         The electronic records don’t know whether this patient has
-        been discharged. If you know the patient has been
-        discharged, please say no to this request (giving “discharged”
-        as your reason), because this patient has not given their
-        specific consent to be contacted after discharge.</div>
+        been discharged.
+        {% include "contact_after_discharge_permission_phrase.html" %}
+        If you know the patient has been discharged longer ago than this,
+        please say no to this request (giving “discharged long ago” as your
+        reason).</div>
 
     {% endif %}
+
 {% elif patient_lookup.pt_discharged %}
     {# discharged #}
+
     {% if consent_mode.consent_after_discharge %}
 
         <div>The patient is listed as having been discharged, but they
@@ -33,20 +41,38 @@
         former clinicians, so you may proceed as long as you are a
         former clinician of theirs.</div>
 
+    {% elif patient_lookup.days_since_discharge != None and patient_lookup.days_since_discharge <= permitted_to_contact_discharged_patients_for_n_days %}
+
+        <div>
+            The patient is listed as having been discharged
+            {{ patient_lookup.days_since_discharge }} days ago.
+            {% include "contact_after_discharge_permission_phrase.html" %}
+            So this is OK.
+            You may proceed as long as you are a former clinician of theirs.
+        </div>
+
     {% else %}
 
-        <div><b>Bug.</b>
-        The patient is listed as having been discharged, and has
-        not given their consent to be contacted after discharge.
-        This e-mail should not have come to you; we are sorry. This is
-        a bug. <b>Please say no to the request and tell the Research
-        Database Manager (details below) of the bug.</b></div>
+        <div>
+            <b>Bug.</b>
+            The patient is listed as having been discharged
+            {{ patient_lookup.days_since_discharge }} days ago.
+            {% include "contact_after_discharge_permission_phrase.html" %}
+            So, the patient was discharged too long ago.
+            They have not given their specific consent to contact after discharge.
+            This e-mail should not have come to you; we are sorry. This is
+            a bug. <b>Please say no to the request and tell the Research
+            Database Manager (details below) of the bug.</b>
+        </div>
 
     {% endif %}
+
 {% else %}
     {# not discharged #}
+
     {# clinician always has the right to contact patient #}
+
 {% endif %}
 
 <div><b>Dead?</b> The electronic records won’t know if the patient has
-recently died, so please veto any such inadvertent requests.</div>
+died very recently, so please veto any such inadvertent requests.</div>

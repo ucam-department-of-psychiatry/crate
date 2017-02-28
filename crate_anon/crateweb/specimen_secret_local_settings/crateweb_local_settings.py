@@ -155,8 +155,9 @@ DATABASES = {
 
     # Optional: 'cpft_iapt'
     # Optional: 'cpft_crs'
-    # Optional: 'cpft_rio'
-    # ... see keys of PATIENT_LOOKUP_DATABASES_CHOICES in core/constants.py
+    # Optional: 'cpft_rio_rcep'
+    # Optional: 'cpft_rio_crate_preprocessed'
+    # ... see attributes of PatientLookup in crate_anon/consent/models.py
 }
 
 # Database title
@@ -347,6 +348,8 @@ MANAGERS = (
 #   xvfb-run --auto-servernum --server-args="-screen 0 640x480x16" \
 #       /usr/bin/wkhtmltopdf "$@"
 
+# For a recent version, fetch one from http://wkhtmltopdf.org/, e.g.
+# v0.12.4 for your OS.
 WKHTMLTOPDF_FILENAME = ''
 # WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
 
@@ -362,10 +365,79 @@ PDF_LOGO_WIDTH = "75%"
 # ... tune this to your logo file (see PDF_LOGO_ABS_URL)
 
 # =============================================================================
-# Donations to charity
+# Consent-for-contact settings
 # =============================================================================
 
+# For how long may we contact discharged patients without specific permission?
+# Use 0 for "not at all".
+PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS = 3 * 365
+
+# Donation to charity for clinician response (regardless of the decision):
 CHARITY_AMOUNT_CLINICIAN_RESPONSE = 1.0  # in local currency, e.g. GBP
+
+# Note that using headers/footers requires a version of wkhtmltopdf built using
+# "patched Qt". See above.
+# Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.
+PDF_LETTER_HEADER_HTML = ''
+# PDF_LETTER_HEADER_HTML = '''
+# <!DOCTYPE html>
+# <head>
+#     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+# </head>
+# <html>
+#     <body>
+#         <div>boo! header</div>
+#     </body>
+# </html>
+# '''
+
+PDF_LETTER_FOOTER_HTML = ''
+# http://stackoverflow.com/questions/11948158/wkhtmltopdf-how-to-disable-header-on-the-first-page  # noqa
+# PDF_LETTER_FOOTER_HTML = '''
+# <!DOCTYPE html>
+# <html>
+#     <head>
+#         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+#         <script>
+# function restrict_page_display() {
+#     var vars = {},
+#         kvp_list = document.location.search.substring(1).split('&'),
+#         key_value_pair,
+#         debug_element = document.getElementById("debug"),
+#         i;
+#     for (i = 0; i < kvp_list.length; ++i) {
+#         key_value_pair = kvp_list[i].split('=', 2);
+#         vars[key_value_pair[0]] = unescape(key_value_pair[1]);
+#     }
+#     // debug_element.textContent = kvp_list;
+#
+#     // Turn off footer except on first page
+#     if (vars['page'] != 1) {
+#         document.getElementById("footer").style.display = 'none';
+#     }
+# }
+#         </script>
+#         <style>
+# body {
+#     color: #005EB8;  /* NHS Blue */
+#     font-family: Arial, Helvetica, sans-serif;
+#     font-size: small;
+#     text-align: right;
+# }
+#         </style>
+#     </head>
+#     <!-- <body onload="restrict_page_display()"> -->
+#     <body>
+#         <div id="footer">
+#             CPFT
+#             | HQ: Elizabeth House, Fulbourn Hospital, Fulbourn,
+#               Cambridge CB21 5EF
+#             | www.cpft.nhs.uk
+#         </div>
+#         <div id="debug"></div>
+#     </body>
+# </html>
+# '''
 
 # =============================================================================
 # Local information links

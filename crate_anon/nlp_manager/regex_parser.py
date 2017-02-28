@@ -861,7 +861,7 @@ def learning_alternative_regex_groups():
         )
     """
     compiled_regex = compile_regex(regex_str)
-    for test_str in ["a", "b", "a c", "d", "e", "a fish", "c c c"]:
+    for test_str in ("a", "b", "a c", "d", "e", "a fish", "c c c"):
         m = compiled_regex.match(test_str)
         print("Match: {}; groups: {}".format(m, m.groups()))
     """

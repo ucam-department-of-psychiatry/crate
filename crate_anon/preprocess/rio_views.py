@@ -31,6 +31,7 @@ from crate_anon.preprocess.rio_constants import (
     VIEW_ADDRESS_WITH_GEOGRAPHY,
 )
 from crate_anon.preprocess.rio_view_func import (
+    add_index_only,
     rio_add_bay_lookup,
     rio_add_carespell_lookup,
     rio_add_consultant_lookup,
@@ -227,6 +228,13 @@ RIO_VIEWS = OrderedDict([
     #             'kwargs': {
     #                 'where_clause': 'XXX',
     #                 'index_cols': [],
+    #             },
+    #         },
+    #         {
+    #             'function': add_index_only,
+    #             'kwargs': {
+    #                 'table': 'XXX',
+    #                 'column_or_columns': 'XXX',  # or ['aaa', 'bbb', ...]
     #             },
     #         },
     #     ],
@@ -1525,6 +1533,13 @@ RIO_VIEWS = OrderedDict([
                     'column_prefix': 'End_Reason',  # RCEP
                     'internal_alias_prefix': 'er',
                 }
+            },
+            {
+                'function': add_index_only,
+                'kwargs': {
+                    'table': 'CPACareCoordinator',
+                    'column_or_columns': 'ClientID',
+                },
             },
         ],
     }),

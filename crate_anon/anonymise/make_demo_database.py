@@ -350,7 +350,7 @@ basophils 0.6.
         """
     )
     session.add(n1)
-    for filename in [DOCTEST_DOC, DOCTEST_DOCX, DOCTEST_ODT, DOCTEST_PDF]:
+    for filename in (DOCTEST_DOC, DOCTEST_DOCX, DOCTEST_ODT, DOCTEST_PDF):
         bd = BlobDoc(patient=p1, filename=filename)
         session.add(bd)
         fd = FilenameDoc(patient=p1, filename=filename)

@@ -185,7 +185,8 @@ def delete_where_no_source(nlpdef: NlpDefinition,
         log.debug("... inserting {} records".format(n_rows))
         for db in databases:
             session_ = db['session']
-            session_.execute(db['temptable'].insert(), records_)
+            temptable_ = db['temptable']  # type: Table
+            session_.execute(temptable_.insert(), records_)
             nlpdef.notify_transaction(session_, n_rows=n_rows,
                                       n_bytes=sys.getsizeof(records_))
 
@@ -263,7 +264,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     # Index, for speed
     log.info("... creating index(es) on temporary table(s)")
     for database in databases:
-        temptable = database['temptable']
+        temptable = database['temptable']  # type: Table
         index = Index('_temptable_idx', temptable.columns[FN_SRCPKVAL])
         index.create(database['engine'])
 

@@ -109,7 +109,7 @@ def resend_email(email_id: int, user_id: int) -> None:
 def process_contact_request(contact_request_id: int) -> None:
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
-    contact_request = ContactRequest.objects.get(pk=contact_request_id)
+    contact_request = ContactRequest.objects.get(pk=contact_request_id)  # type: ContactRequest  # noqa
     contact_request.process_request()
 
 

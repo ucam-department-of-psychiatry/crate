@@ -195,8 +195,8 @@ class NlpDefinition(object):
             db.engine.echo = echo
         # Now, SQLAlchemy will mess things up by adding an additional handler.
         # So, bye-bye:
-        for logname in ['sqlalchemy.engine.base.Engine',
-                        'sqlalchemy.engine.base.OptionEngine']:
+        for logname in ('sqlalchemy.engine.base.Engine',
+                        'sqlalchemy.engine.base.OptionEngine'):
             logger = logging.getLogger(logname)
             logger.handlers = []  # type: List[logging.Handler]
 

@@ -712,7 +712,7 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
             else:
                 pass
         else:
-            args = [x for x in [size, dp] if x is not None]
+            args = [x for x in (size, dp) if x is not None]
 
         try:
             return cls(*args, **kwargs)

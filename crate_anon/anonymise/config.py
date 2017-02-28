@@ -455,7 +455,7 @@ class Config(object):
                 self.src_dialects[sourcedb_name] = mssql_dialect
 
         # Load encryption keys and create hashers
-        assert self.hash_method not in ["MD5", "SHA256", "SHA512"], (
+        assert self.hash_method not in ("MD5", "SHA256", "SHA512"), (
             # old options; removed
             "Non-HMAC hashers are deprecated for security reasons. You have: "
             "{}".format(self.hash_method))
@@ -686,8 +686,8 @@ class Config(object):
             db.engine.echo = echo
         # Now, SQLAlchemy will mess things up by adding an additional handler.
         # So, bye-bye:
-        for logname in ['sqlalchemy.engine.base.Engine',
-                        'sqlalchemy.engine.base.OptionEngine']:
+        for logname in ('sqlalchemy.engine.base.Engine',
+                        'sqlalchemy.engine.base.OptionEngine'):
             logger = logging.getLogger(logname)
             # log.critical(logger.__dict__)
             remove_all_logger_handlers(logger)

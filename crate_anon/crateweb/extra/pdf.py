@@ -275,6 +275,7 @@ def serve_pdf_from_html(html: str,
                         offered_filename: str = "test.pdf",
                         **kwargs) -> HttpResponse:
     """Same args as pdf_from_html."""
+    log.critical("kwargs: " + repr(kwargs))
     pdf = pdf_from_html(html, **kwargs)
     return serve_buffer(pdf,
                         offered_filename=offered_filename,
@@ -291,7 +292,10 @@ def serve_html_or_pdf(html: str, viewtype: str) -> HttpResponse:
     viewtype = "pdf" or "html"
     """
     if viewtype == "pdf":
-        return serve_pdf_from_html(html)
+        return serve_pdf_from_html(
+            html,
+            header_html=settings.PDF_LETTER_HEADER_HTML,
+            footer_html=settings.PDF_LETTER_FOOTER_HTML)
     elif viewtype == "html":
         return HttpResponse(html)
     else:

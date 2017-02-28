@@ -82,6 +82,7 @@
                     {% endif %}
                 </th>
             </tr>
+
             {% if consent_mode.consent_mode == "red" %}
                 <tr>
                     <td>Do you wish to opt out of the use of your information
@@ -90,11 +91,13 @@
                     <td>{{ consent_mode.exclude_entirely|yesno }}</td>
                 </tr>
             {% else %}
+{% comment %} <!-- Removed as per Major Amendment 2, 12/EE/0407 -->
                 <tr>
                     <td>Are you still willing to be contacted
                     about research even after being discharged from CPFT entirely?</td>
                     <td>{{ consent_mode.consent_after_discharge|yesno }}</td>
                 </tr>
+{% endcomment %}
                 <tr>
                     <td>Do you prefer to hear about research
                     by e-mail?</td>
@@ -107,6 +110,8 @@
                         <td>{{ patient_lookup.pt_email|default:"?" }}</td>
                     </tr>
                 {% endif %}
+
+{% comment %} <!-- Removed as per Major Amendment 2, 12/EE/0407 -->
                 <tr>
                     <td>Do you wish to limit your consent in
                     some way...</td>
@@ -120,6 +125,7 @@
                     <td>... or in some other way?</td>
                     <td>{{ consent_mode.other_requests|default:"–" }}</td>
                 </tr>
+{% endcomment %}
             {% endif %}
         </tbody>
     </table>

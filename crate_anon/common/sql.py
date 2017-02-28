@@ -395,7 +395,7 @@ def make_identifier(grammar: SqlGrammar,
                     table: str = None,
                     column: str = None) -> str:
     elements = [grammar.quote_identifier_if_required(x)
-                for x in [database, schema, table, column] if x]
+                for x in (database, schema, table, column) if x]
     assert elements, "make_identifier(): No elements passed!"
     return ".".join(elements)
 

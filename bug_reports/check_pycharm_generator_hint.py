@@ -11,7 +11,7 @@ from typing import Generator
 
 
 def generate_int() -> Generator[int, None, None]:
-    for x in [1, 2, 3, 4, 5]:
+    for x in (1, 2, 3, 4, 5):
         yield x
 
 

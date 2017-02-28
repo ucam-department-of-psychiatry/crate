@@ -74,12 +74,12 @@ LINUX_DIST = LINUX_DIST.lower()
 
 BITS_64 = platform.architecture()[0] == '64bit'
 
-if LINUX_DIST in ['ubuntu', 'debian']:
+if LINUX_DIST in ('ubuntu', 'debian'):
     if not shutil.which('gdebi'):
         raise AssertionError("Need gdebi (try: sudo apt-get install gdebi)")
     installer = ['sudo', 'gdebi']
     extension = 'deb'
-elif LINUX_DIST in ['fedora', 'rhel', 'centos']:
+elif LINUX_DIST in ('fedora', 'rhel', 'centos'):
     if not shutil.which('yum'):
         raise AssertionError("Need yum")
     # installer = ['sudo', 'rpm', '-U']  # -U upgrade, equivalent to -i install

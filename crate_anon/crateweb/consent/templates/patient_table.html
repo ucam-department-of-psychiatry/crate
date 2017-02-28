@@ -9,6 +9,10 @@
         include_prefers_email (Boolean)
         include_email (Boolean)
         include_researcher_detail (Boolean)
+
+        if include_researcher_detail, also:
+            permitted_to_contact_discharged_patients_for_n_days (int)
+            permitted_to_contact_discharged_patients_for_n_years (str)
 {% endcomment %}
 
 <table {% if withdrawal %} class="patient_withdrawal" {% else %} class="patient" {% endif %}>
@@ -79,6 +83,7 @@
                 <td>Patient discharged?</td>
                 <td>
                     <b>{{ patient_lookup.pt_discharged|yesno:"yes,no,?" }}</b>
+{% comment %} <!-- Removed as per Major Amendment 2, 12/EE/0407 -->
                     {% if patient_lookup.pt_discharged != False %}
                         {% if consent_mode.consent_after_discharge %}
                             (and: patient specifically consented to contact after discharge)
@@ -86,14 +91,24 @@
                             (note: patient has NOT consented to contact after discharge)
                         {% endif %}
                     {% endif %}
+{% endcomment %}
+<!-- Added as per Major Amendment 2, 12/EE/0407: -->
+                    {% if patient_lookup.pt_discharged == True %}
+                        [Discharge date: {{ patient_lookup.pt_discharge_date|date }}.]
+                    {% endif %}
+                    {% if include_researcher_detail and patient_lookup.pt_discharged != False %}
+                        {% include "contact_after_discharge_permission_phrase.html" %}
+                    {% endif %}
                 </td>
             </tr>
         {% endif %}
         {% if include_researcher_detail %}
+{% comment %} <!-- Removed as per Major Amendment 2, 12/EE/0407 -->
             <tr>
                 <td>Patient’s previous special requests</td>
                 <td><b>{{ consent_mode.other_requests }}</b></td>
             </tr>
+{% endcomment %}
             <tr>
                 <td>Was the patient specifically asked about your
                 study?</td>

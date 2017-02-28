@@ -152,13 +152,13 @@ def possible_processor_table() -> str:
 
 def test_all_processors(verbose: bool = False) -> None:
     for cls in all_parser_classes():
-        if cls.__name__ in ['Gate',
+        if cls.__name__ in ('Gate',
                             'Medex',
                             'NumericalResultParser',
                             'SimpleNumericalResultParser',
                             'NumeratorOutOfDenominatorParser',
                             'ValidatorBase',
-                            'WbcBase']:
+                            'WbcBase'):
             continue
         # if cls.__name__.endswith('Validator'):
         #     continue

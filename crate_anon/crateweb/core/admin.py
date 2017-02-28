@@ -529,21 +529,32 @@ class ConsentModeMgrAdmin(AddOnlyModelAdmin):
     form = ConsentModeAdminForm
     fields = [
         'nhs_number',
-        'exclude_entirely', 'consent_mode', 'consent_after_discharge',
-        'max_approaches_per_year', 'other_requests', 'prefers_email',
+        'exclude_entirely',
+        'consent_mode',
+        # 'consent_after_discharge',
+        # 'max_approaches_per_year',
+        # 'other_requests',
+        'prefers_email',
         'changed_by_clinician_override',
     ] + Decision.FIELDS
-    list_display = ('id', 'nhs_number', 'consent_mode',
-                    'consent_after_discharge')
+    list_display = (
+        'id', 'nhs_number', 'consent_mode',
+        # 'consent_after_discharge'
+        'source',
+    )
     list_display_links = ('id', 'nhs_number')
     search_fields = ('nhs_number', )
-    list_filter = ('consent_mode', 'consent_after_discharge',
-                   'exclude_entirely', 'prefers_email')
+    list_filter = (
+        'consent_mode',
+        # 'consent_after_discharge',
+        'exclude_entirely',
+        'prefers_email'
+    )
     date_hierarchy = 'created_at'
 
     fields_for_viewing = replace_in_list(fields, {
         'exclude_entirely': 'exclude_entirely2',
-        'consent_after_discharge': 'consent_after_discharge2',
+        # 'consent_after_discharge': 'consent_after_discharge2',
         'prefers_email': 'prefers_email2',
         'changed_by_clinician_override': 'changed_by_clinician_override2',
     })
@@ -597,15 +608,27 @@ class ConsentModeDevAdmin(ReadOnlyModelAdmin):
         'exclude_entirely', 'consent_mode', 'consent_after_discharge',
         'max_approaches_per_year', 'other_requests', 'prefers_email',
         'changed_by_clinician_override',
+        'source',
     ] + Decision.FIELDS + [
         'get_test_views',
     ]
     fields = readonly_fields
-    list_display = ('id', 'current', 'nhs_number', 'consent_mode',
-                    'consent_after_discharge')
+    list_display = (
+        'id',
+        'current',
+        'nhs_number',
+        'consent_mode',
+        # 'consent_after_discharge'
+        'source',
+    )
     search_fields = ('nhs_number', )
-    list_filter = ('current', 'consent_mode', 'consent_after_discharge',
-                   'exclude_entirely', 'prefers_email')
+    list_filter = (
+        'current',
+        'consent_mode',
+        # 'consent_after_discharge',
+        'exclude_entirely',
+        'prefers_email'
+    )
 
     def get_test_views(self, obj: ConsentMode) -> str:
         return '''
@@ -834,7 +857,7 @@ class ContactRequestDevAdmin(ContactRequestMgrAdmin):
             <a href="{}">Draft approval letter to researcher (PDF)</a><br>
             <a href="{}">Draft approval covering e-mail to researcher</a><br>
             <a href="{}">Draft withdrawal letter to researcher (HTML)</a><br>
-            <a href="{}">Draft withdrawal letter to researcher (PDF</a><br>
+            <a href="{}">Draft withdrawal letter to researcher (PDF)</a><br>
             <a href="{}">Draft withdrawal covering e-mail to researcher</a>
         '''.format(
             reverse('draft_clinician_email', args=[obj.id]),

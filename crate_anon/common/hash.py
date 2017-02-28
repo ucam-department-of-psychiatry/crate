@@ -215,10 +215,10 @@ def murmur3_x86_32(data: Union[bytes, bytearray], seed: int = 0) -> int:
     if val == 3:
         k1 = (data[rounded_end + 2] & 0xff) << 16
     # fallthrough
-    if val in [2, 3]:
+    if val in (2, 3):
         k1 |= (data[rounded_end + 1] & 0xff) << 8
     # fallthrough
-    if val in [1, 2, 3]:
+    if val in (1, 2, 3):
         k1 |= data[rounded_end] & 0xff
         k1 *= c1
         k1 = (k1 << 15) | ((k1 & 0xffffffff) >> 17)  # ROTL32(k1, 15)

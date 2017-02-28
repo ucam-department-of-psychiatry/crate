@@ -71,6 +71,7 @@ from crate_anon.crateweb.consent.tasks import (
     finalize_clinician_response,
     test_email_rdbm_task,
 )
+from crate_anon.crateweb.consent.utils import days_to_years
 
 log = logging.getLogger(__name__)
 
@@ -339,9 +340,9 @@ def clinician_response_view(request: HttpRequest,
         })
 
     # Is the clinician saying yes or no (direct from e-mail)?
-    if (from_email and form.data['email_choice'] in [
+    if (from_email and form.data['email_choice'] in (
             ClinicianResponse.EMAIL_CHOICE_Y,
-            ClinicianResponse.EMAIL_CHOICE_N]):
+            ClinicianResponse.EMAIL_CHOICE_N)):
         # We can't use form.save() as the data may not validate.
         # It won't validate because the response/clinician name is blank.
         # We can't write to the form directly. So...
@@ -394,6 +395,12 @@ def clinician_response_view(request: HttpRequest,
         'option_r_available': not extra_form,
         'extra_form': extra_form,
         'unknown_consent_mode': contact_request.is_consent_mode_unknown(),
+
+        'permitted_to_contact_discharged_patients_for_n_days':
+            settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS,
+        'permitted_to_contact_discharged_patients_for_n_years':
+            days_to_years(
+                settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS),
     })
 
 clinician_response_view.login_required = False
