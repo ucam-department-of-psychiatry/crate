@@ -2024,6 +2024,7 @@ class TeamInfo(object):
             cursor.execute("""
                 SELECT DISTINCT Team_Description
                 FROM Referral_Team_History
+                ORDER BY Team_Description
             """)
             return fetchallfirstvalues(cursor)
         elif settings.CLINICAL_LOOKUP_DB == 'dummy_clinical':
