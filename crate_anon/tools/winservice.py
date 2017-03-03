@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # crate_anon/tools/winservice.py
 
-"""
+r"""
 ===============================================================================
     Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
 
