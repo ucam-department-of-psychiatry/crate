@@ -737,6 +737,10 @@ class DataDictionaryRow(object):
         if self.matches_fielddef(dbconf.ddgen_pid_defining_fieldnames):
             self._defines_primary_pids = True
 
+        # Does it indicate the patient wishes to opt out entirely?
+        if self.matches_fielddef(dbconf.ddgen_patient_opt_out_fields):
+            self._opt_out_info = True
+
         # Does the field contain sensitive data?
         if (self._master_pid or
                 self._defines_primary_pids or

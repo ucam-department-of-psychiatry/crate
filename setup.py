@@ -265,6 +265,7 @@ setup(
 
             'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_django_secret_key:main',  # noqa
             'crate_estimate_mysql_memory_usage=crate_anon.tools.estimate_mysql_memory_usage:main',  # noqa
+            'crate_merge_csv=crate_anon.tools.crate_merge_csv:main',
 
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_launch_django_server=crate_anon.crateweb.manage:runserver',

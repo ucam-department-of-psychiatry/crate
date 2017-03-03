@@ -275,7 +275,7 @@ DEMO_CONFIG = """# Configuration file for CRATE anonymiser (crate_anonymise).
 #     {SRCFLAG.OPT_OUT}
 #         OPT OUT
 #         This field is used to mark that the patient wishes to opt out
-#         entirely. It must be in a field that also has a primary patient ID
+#         entirely. It must be in a table that also has a primary patient ID
 #         field (because that's the ID that will be omitted). If the opt-out
 #         field contains a value that's defined in the optout_col_values
 #         setting (see below), that patient will be opted out entirely from
@@ -707,9 +707,10 @@ debug_max_n_patients =
     # the data dictionary, and overriding debug_max_n_patients).
 debug_pid_list =
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # Opting out entirely
-# =============================================================================
+# -----------------------------------------------------------------------------
+
 # Patients who elect to opt out entirely have their PIDs stored in the OptOut
 # table of the admin database. ENTRIES ARE NEVER REMOVED FROM THIS LIST BY
 # CRATE. It can be populated in three ways:
@@ -731,7 +732,7 @@ optout_mpid_filenames =
     # above), that says "the field tells you whether the patient opts out or
     # not". But is it "opt out" or "not"? If the actual value matches one
     # below, then it's "opt out". Specify a LIST OF PYTHON VALUES; for example:
-    #       optout_col_values = [True, 'Yes', 'Y']
+    #       optout_col_values = [True, 1, '1', 'Yes', 'yes', 'Y', 'y']
 optout_col_values =
 
 # =============================================================================
@@ -904,6 +905,9 @@ ddgen_binary_to_text_field_pairs =
     # Specify any text-extraction rows for which you also want to set the flag
     # "{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS}":
 ddgen_skip_row_if_extract_text_fails_fields =
+
+    # Fields that are used as patient opt-out fields:
+ddgen_patient_opt_out_fields =
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # DESTINATION INDEXING

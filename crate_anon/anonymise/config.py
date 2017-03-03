@@ -234,6 +234,9 @@ class DatabaseSafeConfig(object):
         self.debug_row_limit = opt_int('debug_row_limit', 0)
         self.debug_limited_tables = opt_multiline('debug_limited_tables')
 
+        self.ddgen_patient_opt_out_fields = opt_multiline(
+            'ddgen_patient_opt_out_fields')
+
     def is_table_blacklisted(self, table: str) -> bool:
         for white in self.ddgen_table_whitelist:
             r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)

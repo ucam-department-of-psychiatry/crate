@@ -1,11 +1,33 @@
 #!/usr/bin/env python
 # crate_anon/tools/estimate_mysql_memory_usage.py
-#
-# Script to check the memory usage (approximately) of a running MySQL instance.
-#
-# From: https://dev.mysql.com/doc/refman/5.0/en/memory-use.html
-# - However, innodb_additional_mem_pool_size deprecated in 5.6.3 and removed in
-#   5.7.4; http://dev.mysql.com/doc/refman/5.7/en/innodb-parameters.html
+
+"""
+===============================================================================
+    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+===============================================================================
+
+Script to check the memory usage (approximately) of a running MySQL instance.
+
+From: https://dev.mysql.com/doc/refman/5.0/en/memory-use.html
+- However, innodb_additional_mem_pool_size deprecated in 5.6.3 and removed in
+  5.7.4; http://dev.mysql.com/doc/refman/5.7/en/innodb-parameters.html
+"""
+
 
 import argparse
 import subprocess
