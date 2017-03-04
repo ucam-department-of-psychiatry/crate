@@ -1,0 +1,187 @@
+{# traffic_light_decision_form.html #}
+{% extends 'base_pdf.html' %}
+
+{% comment %}
+    template parameters:
+        patient_lookup: PatientLookup
+        settings: (object)
+{% endcomment %}
+
+{% block content %}
+
+    {% block logo %}
+    <div class="logo">
+        <img src="{{ PDF_LOGO_ABS_URL }}" width="{{ PDF_LOGO_WIDTH }}">
+        {# CONSIDER "float:right" now we're using wkhtmltopdf #}
+    </div>
+    {% endblock %}
+
+    <div class="formtitle"><b>Would you like to be contacted about research?</b></div>
+
+    <p>Cambridgeshire & Peterborough NHS Foundation Trust (CPFT) is involved in
+        health research for the benefit of patients. We’d like to know your
+        view on being contacted about research studies that may be relevant to
+        you, and being invited to take part.</p>
+
+    {% include "phrase_never_affect.html" %}
+
+    <p><b>Please read the accompanying leaflet, “Taking part in research”.</b>
+        We’ll never give researchers information that can identify you without
+        your permission.</p>
+
+    <p><br></p>
+
+    <p><b>If our researchers wish to write to you about relevant research
+        projects, which of these three options would you prefer?</b></p>
+
+    <table class="options">
+        <colgroup>
+            <col style="width:5%">
+            <col style="width:10%">
+            <col style="width:85%">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="tickbox"><b>( )</b></td>
+                <td><img src="{{ TRAFFIC_LIGHT_RED_ABS_URL }}" width="60"></td>
+                <td>
+                    <em><b>RED. I am not interested in being contacted about
+                        research. Don’t pass my details on to any researchers
+                        outside my clinical team.</b></em>
+                </td>
+            </tr>
+            <tr>
+                <td class="tickbox"><b>( )</b></td>
+                <td><img src="{{ TRAFFIC_LIGHT_YELLOW_ABS_URL }}" width="60"></td>
+                <td>
+                    <em><b>YELLOW. I’m not sure yet. Please ask my CPFT
+                        clinicians to consider any requests from research teams
+                        and pass them on to me if appropriate.</b>
+                        I will choose each time whether researchers can have
+                        access to my CPFT records and write to me.</em>
+                    <br>
+
+                    <i>If you do not express a preference, this is the
+                        option that we will assume.</i>
+                </td>
+            </tr>
+            <tr>
+                <td class="tickbox"><b>( )</b></td>
+                <td><img src="{{ TRAFFIC_LIGHT_GREEN_ABS_URL }}" width="60"></td>
+                <td>
+                    <em><b>GREEN. I am happy to hear directly from approved
+                        CPFT researchers inside or outside my clinical team.
+                        Please allow these researchers access to my full CPFT
+                        records and allow them to write to me about projects
+                        that might be suited to me.</b>
+                        I understand that there’s no commitment to take part in
+                        any particular project.</b></em>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><br></p>
+
+    <p>If you’ve chosen Yellow or Green, we will normally contact you by
+        letter. Would you prefer us to e-mail you instead?</p>
+
+    <table class="options">
+        <colgroup>
+            <col style="width:15%">
+            <col style="width:85%">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="tickbox"><b>[ ]</b></td>
+                <td>
+                    Please use e-mail where possible.
+                    <table>
+                        <colgroup>
+                            <col style="width:20%">
+                            <col style="width:80%">
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <td class="email_label">E-mail address:</td>
+                                <td class="email_box"><br></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><br></p>
+
+    <p>CPFT routinely anonymises information for use in improving health care
+        and for research. You can opt out from the use of your information for
+        research even after all details that could identify you have been
+        removed. Tick below if you want to opt out entirely. This is completely
+        separate from being contacted about research.</p>
+
+    <table class="options">
+        <colgroup>
+            <col style="width:15%">
+            <col style="width:85%">
+        </colgroup>
+        <tbody>
+            <tr>
+                <td class="tickbox"><b>[ ]</b></td>
+                <td>Opt out: don’t use my information for medical research,
+                    even after all the information that could identify me
+                    has been removed.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><br></p>
+
+    <p><b>Please turn over.</b></p>
+
+    <p class="page_break_before"><em>Please fill in your details and sign below.</em></p>
+
+    <p>By signing you also agree that the CPFT Research Database Manager (who
+        is independent of any research team) can see the information you
+        provide on this form (but not your medical details), so that they can
+        record your choice and send you a letter of confirmation.</p>
+
+    <p>You can tell us at any time if you want to change your preference.</p>
+
+    {% include "signature_box_patient.html" with patient_lookup=patient_lookup %}
+
+    <p>If any of your details are incorrect, we apologize; please correct them
+        above.</p>
+
+    {% if patient_lookup.is_under_15 %}
+        <p><span class="underline">As you are under 16, please also fill in the
+        box below.</span></p>
+    {% elif patient_lookup.is_under_16 %}
+        {# Might have been sent out with 16th birthday approaching, etc. #}
+        <p><span class="underline">If you are under 16, or another adult is
+        making decisions on your behalf</span>, please also fill in the
+        relevant box below.</p>
+    {% else %}
+        <p><span class="underline">If another adult is making decisions on your
+        behalf</span>, please also fill in the box below.</p>
+    {% endif %}
+
+    <p><br></p>
+
+    <p><em>Please return this form to The CPFT Research Database Manager,
+        FREEPOST CPFT RESEARCH DATABASE MANAGER. Postage is free, and an
+        envelope is enclosed. You can also give this form to a member of staff
+        at CPFT.</em> If you would like more information from your health
+        care professional before completing this form, please feel free to
+        ask.</p>
+
+    <p><br></p>
+
+    <p>Thank you!</p>
+
+    <p><br></p>
+
+    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT with_page_break=False %}
+
+{% endblock content %}

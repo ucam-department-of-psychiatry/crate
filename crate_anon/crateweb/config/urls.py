@@ -236,34 +236,37 @@ urlpatterns = [
     url(r'^test_patient_lookup/$', consent_views.test_patient_lookup,
         name='test_patient_lookup'),
 
-    url(r'^draft_clinician_email/(?P<contact_request_id>[0-9]+)/$',
+    url(r'^draft_clinician_email/(?P<contact_request_id>-?[0-9]+)/$',
         consent_views.draft_clinician_email,
         name='draft_clinician_email'),
-    url(r'^draft_approval_email/(?P<contact_request_id>[0-9]+)/$',
+    url(r'^draft_approval_email/(?P<contact_request_id>-?[0-9]+)/$',
         consent_views.draft_approval_email,
         name='draft_approval_email'),
-    url(r'^draft_withdrawal_email/(?P<contact_request_id>[0-9]+)/$',
+    url(r'^draft_withdrawal_email/(?P<contact_request_id>-?[0-9]+)/$',
         consent_views.draft_withdrawal_email,
         name='draft_withdrawal_email'),
 
-    url(r'^draft_approval_letter/(?P<contact_request_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
+    url(r'^draft_approval_letter/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_approval_letter,
         name='draft_approval_letter'),
-    url(r'^draft_withdrawal_letter/(?P<contact_request_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
+    url(r'^draft_withdrawal_letter/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_withdrawal_letter,
         name='draft_withdrawal_letter'),
     url(r'^draft_first_traffic_light_letter/(?P<patient_lookup_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_first_traffic_light_letter,
         name='draft_first_traffic_light_letter'),
-    url(r'^draft_letter_clinician_to_pt_re_study/(?P<contact_request_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
+    url(r'^draft_letter_clinician_to_pt_re_study/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_letter_clinician_to_pt_re_study,
         name='draft_letter_clinician_to_pt_re_study'),
-    url(r'^decision_form_to_pt_re_study/(?P<contact_request_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
+    url(r'^decision_form_to_pt_re_study/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.decision_form_to_pt_re_study,
         name='decision_form_to_pt_re_study'),
     url(r'^draft_confirm_traffic_light_letter/(?P<consent_mode_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_confirm_traffic_light_letter,
         name='draft_confirm_traffic_light_letter'),
+    url(r'^draft_traffic_light_decision_form/(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
+        consent_views.draft_traffic_light_decision_form,
+        name='draft_traffic_light_decision_form'),
 
     # -------------------------------------------------------------------------
     # Other test views

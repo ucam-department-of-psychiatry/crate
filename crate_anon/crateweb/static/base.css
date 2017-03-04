@@ -1,8 +1,6 @@
 /* base.css */
 
 body {
-    /* font-family: Georgia, "Times New Roman", Times, serif; */
-    /* font-family: "Roboto", Corbel, Avenir, "Lucida Grande", "Lucida Sans", sans-serif; */
     font-family: Arial, Helvetica, sans-serif;
     text-align: left;
     line-height: 1.2em;
@@ -11,11 +9,7 @@ div {
     margin: 0.5em 0;
 }
 em {
-    color: rgb(0, 114, 198);
-    /*
-    NHS Blue is rgb(0, 114, 198); see
-    http://www.nhsidentity.nhs.uk/page/11951/tools-and-resources/nhs-brand-basics/nhs-colours/nhs-colours
-    */
+    color: rgb(0, 94, 184); /* NHS Blue; https://www.england.nhs.uk/nhsidentity/identity-guidelines/colours/ */
     font-style: normal;
 }
 pre {
@@ -76,7 +70,6 @@ ul {
 }
 
 .consent {
-    page-break-before: always;
     background-color: rgb(230, 230, 230);
     border: 0.5mm solid black;
     padding: 0.5em;
@@ -126,13 +119,7 @@ ul {
 .formtable, .formtable th, .formtable tr, .formtable td {
     border: none;
 }
-/*
-.formtable tr:nth-child(odd) {
-    background-color: rgb(240, 240, 240);
-}
-*/
 .formtitle {
-    /* page-break-before: right; */
     font-size: 1.6em;
     line-height: 1.2em;
     color: rgb(0, 114, 198);
@@ -179,6 +166,11 @@ ul {
 .options {
     border: none;
     width: 100%;
+    vertical-align: top;
+}
+table.options, .options table {
+    border-collapse: separate;
+    border-spacing: 0.5em;
 }
 .options tr, .options th, .options td {
     border: none;
@@ -230,6 +222,15 @@ ul {
     padding-top: 3em;
     border-bottom: 0.5mm solid black;
 }
+.email_label {
+    text-align: left;
+    vertical-align: bottom;
+}
+.email_box, .options .email_box {
+    /* Increase CSS specificity to have this override ".options td" etc. */
+    padding-top: 1em;
+    border-bottom: 0.5mm solid black;
+}
 
 .study {
     background-color: rgb(200, 200, 255);
@@ -258,10 +259,18 @@ ul {
 .sql {
     background-color: rgb(230, 230, 255);
 }
+.tickbox {
+    font-family: 'Consolas', 'Monaco', 'Bitstream Vera Sans Mono', monospace;
+    text-align: right;
+}
 .warning {
     font-weight: bold;
     color: rgb(255, 0, 0);
 }
 .code {
     font-family: monospace;
+}
+
+.page_break_before {
+    page-break-before: always;
 }

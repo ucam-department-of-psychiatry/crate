@@ -1,12 +1,17 @@
 {# consent_table.html #}
 {% comment %}
     parameters:
-        LEAFLET_URL_CPFTRD_CLINRES_SHORT
-        patient_lookup
-        settings
+        LEAFLET_URL_CPFTRD_CLINRES_SHORT: str
+        patient_lookup: PatientLookup
+        settings: (object)
+        with_page_break: bool
 {% endcomment %}
 
+{% if with_page_break %}
+<table class="consent page_break_before">
+{% else %}
 <table class="consent">
+{% endif %}
     <colgroup>
         <col style="width:19%">
         <col style="width:10%">

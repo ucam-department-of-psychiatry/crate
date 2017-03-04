@@ -36,17 +36,6 @@ from django.shortcuts import get_object_or_404, render
 
 from crate_anon.common.contenttypes import CONTENTTYPE_PDF
 from crate_anon.common.nhs import generate_random_nhs_number
-from crate_anon.crateweb.core.utils import (
-    is_developer,
-    is_superuser,
-)
-from crate_anon.crateweb.extra.pdf import (
-    serve_concatenated_pdf_from_disk,
-    serve_html_or_pdf,
-)
-from crate_anon.crateweb.extra.serve import serve_buffer, serve_file
-
-# from research.models import PidLookup
 from crate_anon.crateweb.consent.forms import (
     ClinicianResponseForm,
     SingleNhsNumberForm,
@@ -63,8 +52,10 @@ from crate_anon.crateweb.consent.models import (
     Leaflet,
     Letter,
     lookup_patient,
+    make_dummy_objects,
     PatientLookup,
     Study,
+    TEST_ID_STR,
 )
 from crate_anon.crateweb.consent.storage import privatestorage
 from crate_anon.crateweb.consent.tasks import (
@@ -72,6 +63,15 @@ from crate_anon.crateweb.consent.tasks import (
     test_email_rdbm_task,
 )
 from crate_anon.crateweb.consent.utils import days_to_years
+from crate_anon.crateweb.core.utils import (
+    is_developer,
+    is_superuser,
+)
+from crate_anon.crateweb.extra.pdf import (
+    serve_concatenated_pdf_from_disk,
+    serve_html_or_pdf,
+)
+from crate_anon.crateweb.extra.serve import serve_buffer, serve_file
 
 log = logging.getLogger(__name__)
 
@@ -113,11 +113,39 @@ def validate_letter_request(user: settings.AUTH_USER_MODEL,
 
 
 # =============================================================================
+# Fetchers
+# =============================================================================
+
+def get_contact_request(request: HttpRequest,
+                        contact_request_id: str) -> ContactRequest:
+    if contact_request_id == TEST_ID_STR:
+        return make_dummy_objects(request).contact_request
+    return get_object_or_404(
+        ContactRequest, id=contact_request_id)  # type: ContactRequest
+
+
+def get_patient_lookup(request: HttpRequest,
+                       patient_lookup_id: str) -> PatientLookup:
+    if patient_lookup_id == TEST_ID_STR:
+        return make_dummy_objects(request).patient_lookup
+    return get_object_or_404(
+        PatientLookup, id=patient_lookup_id)  # type: PatientLookup
+
+
+def get_consent_mode(request: HttpRequest,
+                     consent_mode_id: str) -> ConsentMode:
+    if consent_mode_id == TEST_ID_STR:
+        return make_dummy_objects(request).consent_mode
+    return get_object_or_404(
+        ConsentMode, id=consent_mode_id)  # type: ConsentMode
+
+
+# =============================================================================
 # Views
 # =============================================================================
 
 # noinspection PyUnusedLocal
-def study_details(request: HttpRequest, study_id: int) -> HttpResponseBase:
+def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
     study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.study_details_pdf:
         raise Http404("No details")
@@ -128,7 +156,7 @@ study_details.login_required = False
 
 
 # noinspection PyUnusedLocal
-def study_form(request: HttpRequest, study_id: int) -> HttpResponseBase:
+def study_form(request: HttpRequest, study_id: str) -> HttpResponseBase:
     study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.subject_form_template_pdf:
         raise Http404("No study form for clinicians to complete")
@@ -139,7 +167,7 @@ study_form.login_required = False
 
 
 # noinspection PyUnusedLocal
-def study_pack(request: HttpRequest, study_id: int) -> HttpResponseBase:
+def study_pack(request: HttpRequest, study_id: str) -> HttpResponseBase:
     study = get_object_or_404(Study, pk=study_id)  # type: Study
     filenames = filter(None, [
         study.study_details_pdf.path
@@ -168,22 +196,22 @@ def download_privatestorage(request: HttpRequest,
 
 
 @user_passes_test(is_developer)
-def generate_fake_nhs(request: HttpRequest, n: int = 10) -> HttpResponse:
+def generate_fake_nhs(request: HttpRequest, n: str = 10) -> HttpResponse:
     nhs_numbers = [generate_random_nhs_number()
-                   for _ in range(n)]
+                   for _ in range(int(n))]
     return render(request, 'generate_fake_nhs.html', {
         'nhs_numbers': nhs_numbers
     })
 
 
-def view_email_html(request: HttpRequest, email_id: int) -> HttpResponse:
+def view_email_html(request: HttpRequest, email_id: str) -> HttpResponse:
     email = get_object_or_404(Email, pk=email_id)  # type: Email
     validate_email_request(request.user, email)
     return HttpResponse(email.msg_html)
 
 
 def view_email_attachment(request: HttpRequest,
-                          attachment_id: int) -> HttpResponseBase:
+                          attachment_id: str) -> HttpResponseBase:
     attachment = get_object_or_404(EmailAttachment, pk=attachment_id)  # type: EmailAttachment  # noqa
     validate_email_request(request.user, attachment.email)
     if not attachment.file:
@@ -217,7 +245,7 @@ def view_leaflet(request: HttpRequest, leaflet_name: str) -> HttpResponseBase:
 view_leaflet.login_required = False
 
 
-def view_letter(request: HttpRequest, letter_id: int) -> HttpResponseBase:
+def view_letter(request: HttpRequest, letter_id: str) -> HttpResponseBase:
     letter = get_object_or_404(Letter, pk=letter_id)  # type: Letter
     validate_letter_request(request.user, letter)
     if not letter.pdf:
@@ -288,7 +316,7 @@ def finalize_clinician_response_in_background(
 
 
 def clinician_response_view(request: HttpRequest,
-                            clinician_response_id: int) -> HttpResponse:
+                            clinician_response_id: str) -> HttpResponse:
     """
     REC DOCUMENTS 09, 11, 13 (B): Web form for clinicians to respond with
     """
@@ -408,7 +436,7 @@ clinician_response_view.login_required = False
 
 # noinspection PyUnusedLocal
 def clinician_pack(request: HttpRequest,
-                   clinician_response_id: int,
+                   clinician_response_id: str,
                    token: str) -> HttpResponse:
     clinician_response = get_object_or_404(
         ClinicianResponse, pk=clinician_response_id)  # type: ClinicianResponse
@@ -434,32 +462,26 @@ clinician_pack.login_required = False
 # Draft e-mails
 # -----------------------------------------------------------------------------
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def draft_clinician_email(request: HttpRequest,
-                          contact_request_id: int) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, id=contact_request_id)  # type: ContactRequest
+                          contact_request_id: str) -> HttpResponse:
+    contact_request = get_contact_request(request, contact_request_id)
     return HttpResponse(
         contact_request.get_clinician_email_html(save=False)
     )
 
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def draft_approval_email(request: HttpRequest,
-                         contact_request_id: int) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, id=contact_request_id)  # type: ContactRequest
+                         contact_request_id: str) -> HttpResponse:
+    contact_request = get_contact_request(request, contact_request_id)
     return HttpResponse(contact_request.get_approval_email_html())
 
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def draft_withdrawal_email(request: HttpRequest,
-                           contact_request_id: int) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, id=contact_request_id)  # type: ContactRequest
+                           contact_request_id: str) -> HttpResponse:
+    contact_request = get_contact_request(request, contact_request_id)
     return HttpResponse(contact_request.get_withdrawal_email_html())
 
 
@@ -467,68 +489,65 @@ def draft_withdrawal_email(request: HttpRequest,
 # Draft letters
 # -----------------------------------------------------------------------------
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def draft_approval_letter(request: HttpRequest,
-                          contact_request_id: int,
+                          contact_request_id: str,
                           viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, id=contact_request_id)  # type: ContactRequest
+    contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_approval_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def draft_withdrawal_letter(request: HttpRequest,
-                            contact_request_id: int,
+                            contact_request_id: str,
                             viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, id=contact_request_id)  # type: ContactRequest
+    contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_withdrawal_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def draft_first_traffic_light_letter(request: HttpRequest,
-                                     patient_lookup_id: int,
+                                     patient_lookup_id: str,
                                      viewtype: str) -> HttpResponse:
-    patient_lookup = get_object_or_404(
-        PatientLookup, id=patient_lookup_id)  # type: PatientLookup
+    patient_lookup = get_patient_lookup(request, patient_lookup_id)
     html = patient_lookup.get_first_traffic_light_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def draft_confirm_traffic_light_letter(request: HttpRequest,
-                                       consent_mode_id: int,
+                                       consent_mode_id: str,
                                        viewtype: str) -> HttpResponse:
-    consent_mode = get_object_or_404(
-        ConsentMode, id=consent_mode_id)  # type: ConsentMode
+    consent_mode = get_consent_mode(request, consent_mode_id)
     html = consent_mode.get_confirm_traffic_to_patient_letter_html()
     return serve_html_or_pdf(html, viewtype)
 
 
-# noinspection PyUnusedLocal
+@user_passes_test(is_developer)
+def draft_traffic_light_decision_form(request: HttpRequest,
+                                      patient_lookup_id: str,
+                                      viewtype: str) -> HttpResponse:
+    patient_lookup = get_patient_lookup(request, patient_lookup_id)
+    html = patient_lookup.get_traffic_light_decision_form()
+    return serve_html_or_pdf(html, viewtype)
+
+
 @user_passes_test(is_developer)
 def draft_letter_clinician_to_pt_re_study(request: HttpRequest,
-                                          contact_request_id: int,
+                                          contact_request_id: str,
                                           viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, id=contact_request_id)  # type: ContactRequest
+    contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_letter_clinician_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
 
 
-# noinspection PyUnusedLocal
 @user_passes_test(is_developer)
 def decision_form_to_pt_re_study(request: HttpRequest,
-                                 contact_request_id: int,
+                                 contact_request_id: str,
                                  viewtype: str) -> HttpResponse:
-    contact_request = get_object_or_404(
-        ContactRequest, id=contact_request_id)  # type: ContactRequest
+    contact_request = get_contact_request(request, contact_request_id)
     html = contact_request.get_decision_form_to_pt_re_study()
     return serve_html_or_pdf(html, viewtype)
 

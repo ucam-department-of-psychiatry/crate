@@ -123,6 +123,9 @@ STUDY_FWD_REF = "Study"
 
 SOURCE_DB_NAME_MAX_LENGTH = 20
 
+TEST_ID = -1
+TEST_ID_STR = str(TEST_ID)
+
 
 # =============================================================================
 # Study
@@ -290,16 +293,18 @@ def leaflet_upload_to(instance: LEAFLET_FWD_REF, filename: str) -> str:
 
 
 class Leaflet(models.Model):
-    CPFT_TPIR = 'cpft_tpir'
-    NIHR_YHRSL = 'nihr_yhrsl'
+    CPFT_TPIR = 'cpft_tpir'  # mandatory
+    NIHR_YHRSL = 'nihr_yhrsl'  # not used automatically
     CPFT_TRAFFICLIGHT_CHOICE = 'cpft_trafficlight_choice'
     CPFT_CLINRES = 'cpft_clinres'
 
     LEAFLET_CHOICES = (
-        (CPFT_TPIR, 'CPFT: Taking part in research'),
-        (NIHR_YHRSL, 'NIHR: Your health records save lives'),
-        (CPFT_TRAFFICLIGHT_CHOICE, 'CPFT: traffic-light choice'),
-        (CPFT_CLINRES, 'CPFT: clinical research'),
+        (CPFT_TPIR, 'CPFT: Taking part in research [mandatory]'),
+        (NIHR_YHRSL, 'NIHR: Your health records save lives [not currently used]'),
+        (CPFT_TRAFFICLIGHT_CHOICE,
+         'CPFT: traffic-light choice decision form [not currently used: '
+         'personalized version created instead]'),
+        (CPFT_CLINRES, 'CPFT: clinical research [not currently used]'),
     )
     # https://docs.djangoproject.com/en/dev/ref/models/fields/#django.db.models.Field.choices  # noqa
 
@@ -805,6 +810,19 @@ class PatientLookupBase(models.Model):
         return ", ".join(filter(None, [
             self.clinician_title_forename_surname(),
             self.clinician_address_components_str()]))
+
+    # -------------------------------------------------------------------------
+    # Paperwork
+    # -------------------------------------------------------------------------
+
+    def get_traffic_light_decision_form(self) -> str:
+        context = {
+            'patient_lookup': self,
+            'settings': settings,
+        }
+        return render_pdf_html_to_string(
+            'traffic_light_decision_form.html', context, patient=True)
+
 
 
 class DummyPatientSourceInfo(PatientLookupBase):
@@ -2327,7 +2345,7 @@ class ContactRequest(models.Model):
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
     request_by = models.ForeignKey(settings.AUTH_USER_MODEL)
-    study = models.ForeignKey(Study)
+    study = models.ForeignKey(Study)  # type: Study
     request_direct_approach = models.BooleanField(
         verbose_name="Request direct contact with patient if available"
                      " (not contact with clinician first)")
@@ -2916,21 +2934,28 @@ class ContactRequest(models.Model):
                 ))
         # Traffic-light decision form, if consent mode unknown
         if self.is_consent_mode_unknown():
-            try:
-                leaflet = Leaflet.objects.get(
-                    name=Leaflet.CPFT_TRAFFICLIGHT_CHOICE)
-                pdf_plans.append(PdfPlan(is_filename=True,
-                                         filename=leaflet.pdf.path))
-            except ObjectDoesNotExist:
-                log.warning("Missing traffic-light leaflet!")
-                email_rdbm_task.delay(
-                    subject="ERROR FROM RESEARCH DATABASE COMPUTER",
-                    text=(
-                        "Missing traffic-light leaflet! Incomplete clinician "
-                        "pack accessed for contact request {}.".format(
-                            self.id)
-                    )
-                )
+            # 2017-03-03: changed to a personalized version
+
+            # try:
+            #     leaflet = Leaflet.objects.get(
+            #         name=Leaflet.CPFT_TRAFFICLIGHT_CHOICE)
+            #     pdf_plans.append(PdfPlan(is_filename=True,
+            #                              filename=leaflet.pdf.path))
+            # except ObjectDoesNotExist:
+            #     log.warning("Missing traffic-light leaflet!")
+            #     email_rdbm_task.delay(
+            #         subject="ERROR FROM RESEARCH DATABASE COMPUTER",
+            #         text=(
+            #             "Missing traffic-light leaflet! Incomplete clinician "
+            #             "pack accessed for contact request {}.".format(
+            #                 self.id)
+            #         )
+            #     )
+
+            pdf_plans.append(PdfPlan(
+                is_html=True,
+                html=self.patient_lookup.get_traffic_light_decision_form()
+            ))
         # General info leaflet
         try:
             leaflet = Leaflet.objects.get(name=Leaflet.CPFT_TPIR)
@@ -3574,6 +3599,147 @@ class EmailTransmission(models.Model):
             "success" if self.sent
             else "failure: {}".format(self.failure_reason)
         )
+
+
+# =============================================================================
+# A dummy set of objects, for template testing.
+# Linked, so cross-references work.
+# Don't save() them!
+# =============================================================================
+
+class DummyObjectCollection(object):
+    def __init__(self,
+                 contact_request: ContactRequest,
+                 consent_mode: ConsentMode,
+                 patient_lookup: PatientLookup,
+                 study: Study):
+        self.contact_request = contact_request
+        self.consent_mode = consent_mode
+        self.patient_lookup = patient_lookup
+        self.study = study
+
+
+def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
+    nhs_number = 1234567890
+    study = Study(
+        id=TEST_ID,
+        institutional_id=9999999999999,
+        title="Investigation of the psychokinetic ability of mussels",
+        lead_researcher=request.user,
+        researchers=[request.user],
+        registered_at=datetime.datetime.now(),
+        summary="Double-blind comparion of filter feeders’ ability to "
+                "move water",
+        search_methods_planned="Generalized trawl",
+        patient_contact=True,
+        include_under_16s=True,
+        include_lack_capacity=True,
+        clinical_trial=True,
+        request_direct_approach=True,
+        approved_by_rec=True,
+        rec_reference="blah/999",
+        approved_locally=True,
+        local_approval_at=True,
+        study_details_pdf=None,
+        subject_form_template_pdf=None,
+    )
+    consent_mode = ConsentMode(
+        id=TEST_ID,
+        nhs_number=nhs_number,
+        current=True,
+        created_by=request.user,
+        exclude_entirely=False,
+        consent_mode=ConsentMode.YELLOW,
+        consent_after_discharge=True,
+        max_approaches_per_year=0,
+        other_requests="",
+        prefers_email=False,
+        changed_by_clinician_override=False,
+        source="Fictional",
+    )
+    patient_lookup = PatientLookup(
+        # PatientLookupBase
+        pt_local_id_description="MyEMR#",
+        pt_local_id_number=987654,
+        pt_dob=datetime.date(1950, 12, 31),
+        pt_dod=None,
+        pt_dead=False,
+        pt_discharged=False,
+        pt_discharge_date=None,
+        pt_sex=PatientLookupBase.MALE,
+        pt_title="Mr",
+        pt_first_name="John",
+        pt_last_name="Smith",
+        pt_address_1="The Farthings",
+        pt_address_2="1 Penny Lane",
+        pt_address_3="Mordenville",
+        pt_address_4="Slowtown",
+        pt_address_5="Pembrokeshire",
+        pt_address_6="CB1 0ZZ",
+        pt_address_7="UK",
+        pt_telephone="01223 000000",
+        pt_email="john@smith.com",
+        gp_title="Dr",
+        gp_first_name="Gordon",
+        gp_last_name="Generalist",
+        gp_address_1="Honeysuckle Medical Practice",
+        gp_address_2="99 Bloom Street",
+        gp_address_3="Mordenville",
+        gp_address_4="Slowtown",
+        gp_address_5="Pembrokeshire",
+        gp_address_6="CB1 9QQ",
+        gp_address_7="UK",
+        gp_telephone="01223 111111",
+        gp_email="g.generalist@honeysuckle.nhs.uk",
+        clinician_title="Dr",
+        clinician_first_name="Petra",
+        clinician_last_name="Psychiatrist",
+        clinician_address_1="Union House",
+        clinician_address_2="37 Union Lane",
+        clinician_address_3="Chesterton",
+        clinician_address_4="Cambridge",
+        clinician_address_5="Cambridgeshire",
+        clinician_address_6="CB4 1PR",
+        clinician_address_7="UK",
+        clinician_telephone="01223 222222",
+        clinician_email="p.psychiatrist@cpft_or_similar.nhs.uk",
+        clinician_is_consultant=True,
+        clinician_signatory_title="Consultant psychiatrist",
+        # PatientLookup
+        nhs_number=nhs_number,
+        source_db="Fictional database",
+        decisions="No real decisions",
+        secret_decisions="No real secret decisions",
+        pt_found=True,
+        gp_found=True,
+        clinician_found=True,
+    )
+    contact_request = ContactRequest(
+        id=TEST_ID,
+        request_by=request.user,
+        study=study,
+        lookup_rid=9999999,
+        processed=True,
+        nhs_number=nhs_number,
+        patient_lookup=patient_lookup,
+        consent_mode=consent_mode,
+        approaches_in_past_year=0,
+        decisions="No decisions required",
+        decided_no_action=False,
+        decided_send_to_researcher=False,
+        decided_send_to_clinician=True,
+        clinician_involvement=ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW,  # noqa
+        consent_withdrawn=False,
+        consent_withdrawn_at=None,
+
+    )
+
+    return DummyObjectCollection(
+        contact_request=contact_request,
+        consent_mode=consent_mode,
+        patient_lookup=patient_lookup,
+        study=study,
+    )
 
 
 # =============================================================================

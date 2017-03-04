@@ -56,6 +56,9 @@ def pdf_template_dict(patient: bool = True) -> Dict[str, str]:
         'css': pdf_css(patient),
         'PDF_LOGO_ABS_URL': settings.PDF_LOGO_ABS_URL,
         'PDF_LOGO_WIDTH': settings.PDF_LOGO_WIDTH,
+        'TRAFFIC_LIGHT_RED_ABS_URL': settings.TRAFFIC_LIGHT_RED_ABS_URL,
+        'TRAFFIC_LIGHT_YELLOW_ABS_URL': settings.TRAFFIC_LIGHT_YELLOW_ABS_URL,
+        'TRAFFIC_LIGHT_GREEN_ABS_URL': settings.TRAFFIC_LIGHT_GREEN_ABS_URL,
     }
 
 

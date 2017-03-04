@@ -1,5 +1,4 @@
 {# decision_form_to_patient_re_study.html #}
-
 {% extends 'base_pdf.html' %}
 
 {% block content %}
@@ -23,9 +22,9 @@
         </colgroup>
         <tbody>
             <tr>
-                <td class="rjust"><b>( )</b></td>
-                <td>
-                    <p class="hangingindent"><em><b>1.
+                <td class="tickbox"><b>( )</b></td>
+                <td class="hangingindent">
+                    <em><b>1.
                     {% if extra_form %}
                         Yes, please allow this research team to write to me. Please
                         pass on the information requested by the researchers on the
@@ -38,16 +37,16 @@
                     </b>
                     I understand that they will write to me about this
                     study, but that there’s no commitment to take part.
-                    </em></p>
+                    </em>
                 </td>
             </tr>
             <tr>
-                <td class="rjust"><b>( )</b></td>
-                <td>
-                    <p class="hangingindent"><em><b>2. No, do not pass on
+                <td class="tickbox"><b>( )</b></td>
+                <td class="hangingindent">
+                    <em><b>2. No, do not pass on
                     my details to this research team about this study, and
                     do not allow them access to my full CPFT records.
-                    </b></em></p>
+                    </b></em>
                 </td>
             </tr>
         </tbody>
@@ -76,6 +75,8 @@
         behalf</span>, please also fill in the box on the next page.</p>
     {% endif %}
 
+    <p><br></p>
+
     <p><em>Please return
     {% if n_forms == 3 %}
         all forms
@@ -97,9 +98,11 @@
 
     <p>Thank you!</p>
 
+    <p><br></p>
+
     {% include "office_div.html" with study=study contact_request=contact_request %}
 
-    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT %}
+    {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT with_page_break=True %}
 
     {% include "office_div.html" with study=study contact_request=contact_request %}
 

@@ -108,6 +108,51 @@
 
                 <li><a href="{% url 'test_patient_lookup' %}">Test patient
                 lookup without saving data</a></li>
+
+                <li>Test templates:
+                    <ul>
+                        {# Constants to match TEST_CONTACT_REQUEST_ID_1, etc., but little point in making them flexible. #}
+                        <li><a href="{% url 'draft_traffic_light_decision_form' -1 'pdf' %}">
+                            Traffic-light decision form (PDF)</a></li>
+
+                        <li><a href="{% url 'draft_traffic_light_decision_form' -1 'html' %}">
+                            Traffic-light decision form (HTML)</a></li>
+
+                        <li><a href="{% url 'draft_clinician_email' -1 %}">
+                            E-mail to clinician</a></li>
+
+                        <li><a href="{% url 'draft_letter_clinician_to_pt_re_study' -1 'html' %}">
+                            Letter from clinician to patient re study (HTML)</a></li>
+
+                        <li><a href="{% url 'draft_letter_clinician_to_pt_re_study' -1 'pdf' %}">
+                            Letter from clinician to patient re study (PDF)</a></li>
+
+                        <li><a href="{% url 'decision_form_to_pt_re_study' -1 'html' %}">
+                            Decision form to patient re study (HTML)</a></li>
+
+                        <li><a href="{% url 'decision_form_to_pt_re_study' -1 'pdf' %}">
+                            Decision form to patient re study (PDF)</a></li>
+
+                        <li><a href="{% url 'draft_approval_letter' -1 'html' %}">
+                            Approval letter to researcher (HTML)</a></li>
+
+                        <li><a href="{% url 'draft_approval_letter' -1 'pdf' %}">
+                            Approval letter to researcher (PDF)</a></li>
+
+                        <li><a href="{% url 'draft_approval_email' -1 %}">
+                            Approval covering e-mail to researcher</a></li>
+
+                        <li><a href="{% url 'draft_withdrawal_letter' -1 'html' %}">
+                            Withdrawal letter to researcher (HTML)</a></li>
+
+                        <li><a href="{% url 'draft_withdrawal_letter' -1 'pdf' %}">
+                            Withdrawal letter to researcher (PDF)</a></li>
+
+                        <li><a href="{% url 'draft_withdrawal_email' -1 %}">
+                            Withdrawal covering e-mail to researcher</a></li>
+
+                    </ul>
+                </li>
             </ul>
         {% endif %}
 

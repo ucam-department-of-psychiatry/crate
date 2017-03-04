@@ -132,8 +132,8 @@ class PdfPlan(object):
                  # HTML mode
                  is_html: bool = False,
                  html: str = None,
-                 header_html: str = None,
-                 footer_html: str = None,
+                 header_html: str = settings.PDF_LETTER_HEADER_HTML,
+                 footer_html: str = settings.PDF_LETTER_FOOTER_HTML,
                  wkhtmltopdf_filename: str = None,
                  wkhtmltopdf_options: Dict[str, Any] = None,
                  # Filename mode
@@ -141,12 +141,15 @@ class PdfPlan(object):
                  filename: str = None):
         assert is_html != is_filename, "Specify is_html XOR is_filename"
         self.is_html = is_html
+        # is_html options:
         self.html = html
         self.header_html = header_html
         self.footer_html = footer_html
         self.wkhtmltopdf_filename = wkhtmltopdf_filename
         self.wkhtmltopdf_options = wkhtmltopdf_options
+
         self.is_filename = is_filename
+        # is_filename options
         self.filename = filename
 
     def add_to_writer(self,
