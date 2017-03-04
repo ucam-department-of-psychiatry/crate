@@ -25,7 +25,7 @@
     {% include "patient_table.html" with patient_lookup=patient_lookup consent_mode=consent_mode verbose=True %}
     
     <p>The study is:</p>
-    {% include "study_table.html" with study=study contact_request=contact_request to_clinician=True include_details=False include_clinician_form=False %}
+    {% include "study_table.html" with study=study contact_request=contact_request to_clinician=True include_details=False include_clinician_form=False include_sex=True %}
 
     {% include "discharged_phrase.html" %}
 

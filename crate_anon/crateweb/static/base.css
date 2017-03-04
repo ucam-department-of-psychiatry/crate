@@ -9,7 +9,7 @@ div {
     margin: 0.5em 0;
 }
 em {
-    color: rgb(0, 94, 184); /* NHS Blue; https://www.england.nhs.uk/nhsidentity/identity-guidelines/colours/ */
+    color: rgb(0, 94, 184); /* NHS Blue; rgb(0, 94, 184) = #005EB8; https://www.england.nhs.uk/nhsidentity/identity-guidelines/colours/ */
     font-style: normal;
 }
 pre {
@@ -22,7 +22,7 @@ table {
     display: table;  /* with table-cell, auto-resizing goes wrong */
     border-collapse: collapse;
     vertical-align: top;
-    margin: 0.5em 0;
+    margin: 0.25em 0;
     /* width: 100%; */
 }
 tr {
@@ -32,11 +32,11 @@ th, td {
     display: table-cell;
     vertical-align: top;
     border: 1px solid black;
-    margin: 0.5em;
+    margin: 0.25em;
     padding: 0.1em 0.3em;
 }
 p {
-    margin: 0.5em 0;
+    margin: 0.4em 0;
 }
 ul {
     margin: 0.25em 0;
@@ -73,10 +73,11 @@ ul {
     background-color: rgb(230, 230, 230);
     border: 0.5mm solid black;
     padding: 0.5em;
-    margin: 0.5em 0;
+    margin: 0.25em 0;
 }
 .consent tr, .consent th, .consent td {
     border-style: none;
+    font-size: 0.9em;
 }
 .consent .persontype {
     vertical-align: bottom;
@@ -170,7 +171,7 @@ ul {
 }
 table.options, .options table {
     border-collapse: separate;
-    border-spacing: 0.5em;
+    border-spacing: 0 0.5em;  /* horizontal, vertical */
 }
 .options tr, .options th, .options td {
     border: none;
@@ -219,7 +220,7 @@ table.options, .options table {
 }
 .signature_box, .consent .signature_box, .signature .signature_box {
     /* Increase CSS specificity to have this override ".signature td" etc. */
-    padding-top: 3em;
+    padding-top: 2.5em;
     border-bottom: 0.5mm solid black;
 }
 .email_label {
@@ -228,7 +229,7 @@ table.options, .options table {
 }
 .email_box, .options .email_box {
     /* Increase CSS specificity to have this override ".options td" etc. */
-    padding-top: 1em;
+    padding-top: 0.5em;
     border-bottom: 0.5mm solid black;
 }
 

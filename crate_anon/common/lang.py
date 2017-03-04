@@ -25,9 +25,12 @@
 import logging
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
-
 log = logging.getLogger(__name__)
 
+
+# =============================================================================
+# Dictionary handling
+# =============================================================================
 
 def get_case_insensitive_dict_key(d: Dict, k: str) -> Optional[str]:
     for key in d.keys():
@@ -40,12 +43,33 @@ def rename_kwarg(kwargs: Dict[str, Any], old: str, new: str) -> None:
     kwargs[new] = kwargs.pop(old)
 
 
+def merge_two_dicts(x: Dict, y: Dict) -> Dict:
+    """
+    Given two dicts, merge them into a new dict as a shallow copy, e.g.
+        z = merge_two_dicts(x, y)
+    If you can guarantee Python 3.5, then a simpler syntax is:
+        z = {**x, **y}
+    See http://stackoverflow.com/questions/38987
+    """
+    z = x.copy()
+    z.update(y)
+    return z
+
+
+# =============================================================================
+# List handling
+# =============================================================================
+
 def unique_list(seq: Iterable[Any]) -> List[Any]:
     # http://stackoverflow.com/questions/480214/how-do-you-remove-duplicates-from-a-list-in-whilst-preserving-order  # noqa
     seen = set()
     seen_add = seen.add
     return [x for x in seq if not (x in seen or seen_add(x))]
 
+
+# =============================================================================
+# Exception handling
+# =============================================================================
 
 def add_info_to_exception(err: Exception, info: Dict) -> None:
     # http://stackoverflow.com/questions/9157210/how-do-i-raise-the-same-exception-with-a-custom-message-in-python  # noqa

@@ -299,8 +299,9 @@ class Leaflet(models.Model):
     CPFT_CLINRES = 'cpft_clinres'
 
     LEAFLET_CHOICES = (
-        (CPFT_TPIR, 'CPFT: Taking part in research [mandatory]'),
-        (NIHR_YHRSL, 'NIHR: Your health records save lives [not currently used]'),
+        (CPFT_TPIR, 'CPFT: Taking part in research [MANDATORY]'),
+        (NIHR_YHRSL,
+         'NIHR: Your health records save lives [not currently used]'),
         (CPFT_TRAFFICLIGHT_CHOICE,
          'CPFT: traffic-light choice decision form [not currently used: '
          'personalized version created instead]'),
@@ -822,7 +823,6 @@ class PatientLookupBase(models.Model):
         }
         return render_pdf_html_to_string(
             'traffic_light_decision_form.html', context, patient=True)
-
 
 
 class DummyPatientSourceInfo(PatientLookupBase):
@@ -3608,6 +3608,11 @@ class EmailTransmission(models.Model):
 # =============================================================================
 
 class DummyObjectCollection(object):
+    AGE_ADULT = 0
+    AGE_14 = 14
+    AGE_15 = 15
+    AGE_16 = 16
+
     def __init__(self,
                  contact_request: ContactRequest,
                  consent_mode: ConsentMode,
@@ -3619,17 +3624,60 @@ class DummyObjectCollection(object):
         self.study = study
 
 
-def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
+def make_dummy_objects(request: HttpRequest,
+                       age_category: int = DummyObjectCollection.AGE_15) \
+        -> DummyObjectCollection:
+    """
+    We want to create these objects in memory, without saving to the DB.
+    However, Django  is less good at SQLAlchemy for this, and saves.
+
+    - http://stackoverflow.com/questions/7908349/django-making-relationships-in-memory-without-saving-to-db  # noqa
+    - https://code.djangoproject.com/ticket/17253
+    - http://stackoverflow.com/questions/23372786/django-models-assigning-foreignkey-object-without-saving-to-database  # noqa
+    - http://stackoverflow.com/questions/7121341/django-adding-objects-to-a-related-set-without-saving-to-db  # noqa
+
+    A simple method works for an SQLite backend database but fails with
+    an IntegrityError for MySQL/SQL Server. For example:
+
+        IntegrityError at /draft_traffic_light_decision_form/-1/html/
+        (1452, 'Cannot add or update a child row: a foreign key constraint
+        fails (`crate_django`.`consent_study_researchers`, CONSTRAINT
+        `consent_study_researchers_study_id_19bb255f_fk_consent_study_id`
+        FOREIGN KEY (`study_id`) REFERENCES `consent_study` (`id`))')
+
+    This occurs in the first creation, of a Study, and only if you specify
+    'researchers'.
+
+    The reason for the crash is that 'researchers' is a ManyToManyField, and
+    Django is trying to set the user.studies_as_researcher back-reference, but
+    can't do so because the Study doesn't have a PK yet.
+
+    Since this is a minor thing, and templates are unaffected, and this is only
+    for debugging, let's ignore it.
+    """
+    today = datetime.date.today()
+    if age_category == DummyObjectCollection.AGE_14:
+        dob = today - relativedelta(years=14, months=2)
+    elif age_category == DummyObjectCollection.AGE_15:
+        dob = today - relativedelta(years=15, months=2)
+    elif age_category == DummyObjectCollection.AGE_16:
+        dob = today - relativedelta(years=16, months=2)
+    else:
+        dob = today - relativedelta(years=40)
     nhs_number = 1234567890
     study = Study(
         id=TEST_ID,
         institutional_id=9999999999999,
         title="Investigation of the psychokinetic ability of mussels",
         lead_researcher=request.user,
-        researchers=[request.user],
+        # researchers=[request.user],  # THIS BREAKS IT.
+        # ... actual crash is in
+        #   django/db/models/fields/related_descriptors.py:500, in
+        #   ReverseManyToOneDescriptor.__set__(), calling
+        #   manager.set(value)
         registered_at=datetime.datetime.now(),
-        summary="Double-blind comparion of filter feeders’ ability to "
-                "move water",
+        summary="Double-blind comparison of filter feeders’ ability to "
+                "move water unobstructed versus through a rigid barrier",
         search_methods_planned="Generalized trawl",
         patient_contact=True,
         include_under_16s=True,
@@ -3643,6 +3691,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         study_details_pdf=None,
         subject_form_template_pdf=None,
     )
+    # import pdb; pdb.set_trace()
     consent_mode = ConsentMode(
         id=TEST_ID,
         nhs_number=nhs_number,
@@ -3658,10 +3707,11 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         source="Fictional",
     )
     patient_lookup = PatientLookup(
+        id=TEST_ID,
         # PatientLookupBase
         pt_local_id_description="MyEMR#",
         pt_local_id_number=987654,
-        pt_dob=datetime.date(1950, 12, 31),
+        pt_dob=dob,
         pt_dod=None,
         pt_dead=False,
         pt_discharged=False,

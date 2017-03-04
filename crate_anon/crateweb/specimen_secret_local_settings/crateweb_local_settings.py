@@ -364,6 +364,12 @@ PDF_LOGO_WIDTH = "75%"
 # ... must be suitable for an <img> tag, but "150mm" isn't working; "75%" is.
 # ... tune this to your logo file (see PDF_LOGO_ABS_URL)
 
+# The PDF generator also needs to be able to find the traffic-light pictures,
+# on disk (not via your web site):
+TRAFFIC_LIGHT_RED_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/red.png'  # noqa
+TRAFFIC_LIGHT_YELLOW_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/yellow.png'  # noqa
+TRAFFIC_LIGHT_GREEN_ABS_URL = 'file:///somewhere/crate_anon/crateweb/static/green.png'  # noqa
+
 # =============================================================================
 # Consent-for-contact settings
 # =============================================================================

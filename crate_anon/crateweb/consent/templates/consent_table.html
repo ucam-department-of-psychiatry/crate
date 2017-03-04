@@ -25,14 +25,14 @@
         {% if patient_lookup.is_under_16 %}
             <tr>
                 <td colspan=7>
-                    <p><b>
+                    <b>
                         {% if patient_lookup.is_under_15 %}
                             As
                         {% else %}
                             If
                         {% endif %}
                         you are under 16:
-                    </b></p>
+                    </b>
                     <ol>
                         <li>We would like to know your wishes. Please fill in
                             the form above and sign it.</li>
@@ -53,7 +53,7 @@
                             clinician.
                         </li>
                     </ol>
-                    <p>Thank you!</p>
+                    Thank you!
                 </td>
             </tr>
             <tr class="persontype">
@@ -75,16 +75,19 @@
                 <td class="signature_box"></td>
             </tr>
         {% endif %}
+        {% if patient_lookup.is_under_16 and not patient_lookup.is_under_15 %}
+            <tr><td colspan="7"><br></td></tr>  <!-- two boxes; extra space -->
+        {% endif %}
         {% if not patient_lookup.is_under_15 %}
             {# MCA doesn't apply to under-16s, but this form may go out shortly before 16th birthday #}
             <tr>
                 <td colspan=7>
-                    <p><b>If
+                    <b>If
                         {# let's not offend adults! #}
                         {% if patient_lookup.is_under_16 %}
                             you are an adult and
                         {% endif %}
-                        another adult is making decisions on your behalf:</b></p>
+                        another adult is making decisions on your behalf:</b>
 
                     <ol>
                         <li>We would like the person responsible for making
@@ -97,7 +100,7 @@
                             question(s) being asked above, and that someone is
                             making decisions on your behalf.*</li>
                     </ol>
-                    <p>Thank you!</p>
+                    Thank you!
                 </td>
             </tr>
             <tr class="persontype">

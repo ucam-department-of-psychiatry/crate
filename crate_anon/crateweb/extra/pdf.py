@@ -32,6 +32,7 @@ import pdfkit  # sudo apt-get install wkhtmltopdf; sudo pip install pdfkit
 from PyPDF2 import PdfFileMerger, PdfFileReader, PdfFileWriter
 from django.conf import settings
 from django.http import HttpResponse
+from crate_anon.common.lang import merge_two_dicts
 from crate_anon.crateweb.extra.serve import serve_buffer
 
 log = logging.getLogger(__name__)
@@ -211,7 +212,8 @@ def pdf_from_html(html: str,
                   footer_html: str = None,
                   wkhtmltopdf_filename: str = None,
                   wkhtmltopdf_options: Dict[str, Any] = None,
-                  output_path: str = None) -> Union[bytes, bool]:
+                  output_path: str = None,
+                  debug: bool = False) -> Union[bytes, bool]:
     """
     Takes HTML and either:
         - returns a PDF (as a binary object in memory), if output_path is None
@@ -225,12 +227,12 @@ def pdf_from_html(html: str,
           within the main HTML).
     """
     # Customized for this Django site
-    if wkhtmltopdf_filename is None:
-        wkhtmltopdf_filename = settings.WKHTMLTOPDF_FILENAME
+    wkhtmltopdf_filename = wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME  # noqa
     if wkhtmltopdf_options is None:
         wkhtmltopdf_options = settings.WKHTMLTOPDF_OPTIONS
-    if not wkhtmltopdf_options:
-        wkhtmltopdf_options = {}
+    else:
+        wkhtmltopdf_options = merge_two_dicts(settings.WKHTMLTOPDF_OPTIONS,
+                                              wkhtmltopdf_options)
 
     # Generic
     if not wkhtmltopdf_filename:
@@ -261,6 +263,8 @@ def pdf_from_html(html: str,
             os.write(f_fd, footer_html.encode('utf8'))
             os.close(f_fd)
             wkhtmltopdf_options["footer-html"] = f_filename
+        if debug:
+            log.critical("wkhtmltopdf_options: " + repr(wkhtmltopdf_options))
         kit = pdfkit.pdfkit.PDFKit(html, 'string', configuration=config,
                                    options=wkhtmltopdf_options)
         return kit.to_pdf(path=output_path)

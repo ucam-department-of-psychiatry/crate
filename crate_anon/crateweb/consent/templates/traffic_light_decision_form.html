@@ -29,15 +29,14 @@
         We’ll never give researchers information that can identify you without
         your permission.</p>
 
-    <p><br></p>
-
     <p><b>If our researchers wish to write to you about relevant research
-        projects, which of these three options would you prefer?</b></p>
+        projects, which of these three options would you prefer?</b>
+        Please tick one.</p>
 
     <table class="options">
         <colgroup>
-            <col style="width:5%">
-            <col style="width:10%">
+            <col style="width:7%">
+            <col style="width:8%">
             <col style="width:85%">
         </colgroup>
         <tbody>
@@ -84,31 +83,24 @@
     <p><br></p>
 
     <p>If you’ve chosen Yellow or Green, we will normally contact you by
-        letter. Would you prefer us to e-mail you instead?</p>
+        letter. Would you prefer us to e-mail you instead?
+        Tick below if you would.</p>
 
     <table class="options">
         <colgroup>
             <col style="width:15%">
-            <col style="width:85%">
+            <col style="width:25%">
+            <col style="width:60%">
         </colgroup>
         <tbody>
             <tr>
                 <td class="tickbox"><b>[ ]</b></td>
-                <td>
-                    Please use e-mail where possible.
-                    <table>
-                        <colgroup>
-                            <col style="width:20%">
-                            <col style="width:80%">
-                        </colgroup>
-                        <tbody>
-                            <tr>
-                                <td class="email_label">E-mail address:</td>
-                                <td class="email_box"><br></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
+                <td colspan="2">Please use e-mail where possible.</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td class="email_label">E-mail address:</td>
+                <td class="email_box"><br></td>
             </tr>
         </tbody>
     </table>
@@ -135,8 +127,6 @@
             </tr>
         </tbody>
     </table>
-
-    <p><br></p>
 
     <p><b>Please turn over.</b></p>
 
@@ -167,8 +157,6 @@
         behalf</span>, please also fill in the box below.</p>
     {% endif %}
 
-    <p><br></p>
-
     <p><em>Please return this form to The CPFT Research Database Manager,
         FREEPOST CPFT RESEARCH DATABASE MANAGER. Postage is free, and an
         envelope is enclosed. You can also give this form to a member of staff
@@ -176,11 +164,7 @@
         care professional before completing this form, please feel free to
         ask.</p>
 
-    <p><br></p>
-
     <p>Thank you!</p>
-
-    <p><br></p>
 
     {% include "consent_table.html" with settings=settings patient_lookup=patient_lookup LEAFLET_URL_CPFTRD_CLINRES_SHORT=LEAFLET_URL_CPFTRD_CLINRES_SHORT with_page_break=False %}
 

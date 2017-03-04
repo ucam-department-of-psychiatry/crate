@@ -384,10 +384,15 @@ WKHTMLTOPDF_OPTIONS = {
     'margin-bottom': '20mm',
     'margin-left': '20mm',
     'encoding': 'UTF-8',
-    # 'disable-smart-shrinking': None,
+    'disable-smart-shrinking': '',
+    # ... --disable-smart-shrinking
+    #     http://blog.gluga.com/2012/05/wkhtmltopdf-font-and-sizing-issues.html
+    #     Stops the fonts from being shrunk.
     # 'print-media-type': None,
 }
-PATIENT_FONTSIZE = "11.5pt"  # "12.4pt"
+PATIENT_FONTSIZE = "11pt"
+# "12.4pt" fails, see below; 11.5pt is pretty big; 11pt is fairly common
+# for NHS letters.
 """
     NB strange wkhtmltopdf bug: word wrap goes awry with font sizes of
       11.6pt to 12.3pt inclusive
