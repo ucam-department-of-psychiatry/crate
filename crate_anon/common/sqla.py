@@ -433,7 +433,7 @@ def add_index(engine: Engine,
     if multiple_sqla_columns and not (fulltext and is_mssql):
         raise ValueError("add_index: Use multiple_sqla_columns only for mssql "
                          "(Microsoft SQL Server) full-text indexing")
-    if bool(multiple_sqla_columns) != (sqla_column is not None):
+    if bool(multiple_sqla_columns) == (sqla_column is not None):
         raise ValueError(
             "add_index: Use either sqla_column or multiple_sqla_columns, not "
             "both (sqla_column = {}, multiple_sqla_columns = {}".format(
