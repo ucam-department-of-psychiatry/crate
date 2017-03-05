@@ -438,7 +438,7 @@ def add_index(engine: Engine,
             "add_index: Use either sqla_column or multiple_sqla_columns, not "
             "both (sqla_column = {}, multiple_sqla_columns = {}".format(
                 repr(sqla_column), repr(multiple_sqla_columns)))
-    if sqla_column:
+    if sqla_column is not None:
         colname = sqla_column.name
         tablename = sqla_column.table.name
     else:
