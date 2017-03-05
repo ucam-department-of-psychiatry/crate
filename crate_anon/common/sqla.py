@@ -440,15 +440,16 @@ def add_index(engine: Engine,
                 repr(sqla_column), repr(multiple_sqla_columns)))
     if sqla_column is not None:
         colname = sqla_column.name
-        tablename = sqla_column.table.name
+        sqla_table = sqla_column.table
     else:
         colname = ", ".join(c.name for c in multiple_sqla_columns)
-        tablename = multiple_sqla_columns[0].table.name
+        sqla_table = multiple_sqla_columns[0].table
         if any(c.table.name != tablename for c in multiple_sqla_columns[1:]):
             raise ValueError(
                 "add_index: tablenames are inconsistent in "
                 "multiple_sqla_columns = {}".format(
                     repr(multiple_sqla_columns)))
+    tablename = sqla_table.name
 
     if fulltext:
         if is_mssql:
@@ -490,7 +491,6 @@ def add_index(engine: Engine,
             # Note that the database must also have had a
             #   CREATE FULLTEXT CATALOG somename AS DEFAULT;
             # statement executed on it beforehand.
-            sqla_table = sqla_column.table
             schemaname = engine.schema_for_object(sqla_table) or MSSQL_DEFAULT_SCHEMA  # noqa
             if mssql_table_has_ft_index(engine=engine,
                                         tablename=tablename,
