@@ -441,15 +441,16 @@ def add_index(engine: Engine,
     if sqla_column is not None:
         colname = sqla_column.name
         sqla_table = sqla_column.table
+        tablename = sqla_table.name
     else:
         colname = ", ".join(c.name for c in multiple_sqla_columns)
         sqla_table = multiple_sqla_columns[0].table
+        tablename = sqla_table.name
         if any(c.table.name != tablename for c in multiple_sqla_columns[1:]):
             raise ValueError(
                 "add_index: tablenames are inconsistent in "
                 "multiple_sqla_columns = {}".format(
                     repr(multiple_sqla_columns)))
-    tablename = sqla_table.name
 
     if fulltext:
         if is_mssql:
