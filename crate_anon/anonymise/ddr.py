@@ -872,13 +872,15 @@ class DataDictionaryRow(object):
 
         # Should we omit it (at least until a human has looked at the DD)?
         # In descending order of priority:
-        if self._pk or self._primary_pid or self._master_pid:
+        if self.matches_fielddef(dbconf.ddgen_omit_fields):  # explicit
+            # Explicit omission trumps everything else
+            # (There are rare occasions with "additional" databases where we
+            # may want to omit a PK/PID/MPID field.)
+            self.omit = True
+        elif self._pk or self._primary_pid or self._master_pid:
             # We always want PKs, and the translated PID/MPID (RID+TRID or
             # MRID respectively).
             self.omit = False
-        elif self.matches_fielddef(dbconf.ddgen_omit_fields):  # explicit
-            # Otherwise, explicit omission trumps everything else
-            self.omit = True
         elif bool(self.scrub_src):
             # Scrub-source fields are generally sensitive and therefore worthy
             # of omission, EXCEPT that if a date is marked for truncation, the
