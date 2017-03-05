@@ -1,6 +1,24 @@
 {# letter_patient_confirm_traffic.html #}
 {% extends 'base_pdf_letter.html' %}
 
+{% comment %}
+    template parameters:
+        # Letter bits
+        address_from: List[str]
+        address_to: List[str]
+        salutation: str
+        signatory_name: str
+        signatory_title: str
+        # Specific bits
+        consent_mode: ConsentMode
+        patient_lookup: PatientLookup
+        settings: Django settings object
+        # URLs
+        red_img_url: str
+        yellow_img_url: str
+        green_img_url: str
+{% endcomment %}
+
 {% block letter_body %}
 
     <p class="titlecolour"><b>Confirming your choice about

@@ -3,21 +3,20 @@
 
 {% comment %}
     template parameters:
-        consent_mode (object)
-        contact_request (object)
-        Leaflet (object)
-        patient_lookup (object)
-        settings (object)
-        study (object)
-
-        clinician_involvement_requested (Boolean)
-        clinician_involvement_required_yellow (Boolean)
-        clinician_involvement_required_unknown (Boolean)
-        option_r_available (Boolean)
-        option_c_available (Boolean)
-        extra_form (Boolean)
-        unknown_consent_mode (Boolean)
-        permitted_to_contact_discharged_patients_for_n_days (int)
+        clinician_involvement_requested: bool
+        clinician_involvement_required_unknown: bool
+        clinician_involvement_required_yellow: bool
+        consent_mode: ConsentMode
+        contact_request: ContactRequest
+        extra_form: bool
+        Leaflet: Leaflet class
+        option_c_available: bool
+        option_r_available: bool
+        patient_lookup: PatientLookup
+        permitted_to_contact_discharged_patients_for_n_days: int
+        settings: Django settings object
+        study: Study
+        unknown_consent_mode: bool
 {% endcomment %}
 
 {% block extrahead %}

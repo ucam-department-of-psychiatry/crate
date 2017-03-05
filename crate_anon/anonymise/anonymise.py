@@ -798,20 +798,37 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     """
     log.info(SEP + "Create indexes")
     engine = config.get_destdb_engine_outside_transaction()
-    # engine = config.destdb.engine
+    mssql = engine.dialect.name == 'mssql'
+    mssql_fulltext_columns_by_table = []  # type: List[List[Column]]
     for (tablename, tablerows) in gen_index_row_sets_by_table(tasknum=tasknum,
                                                               ntasks=ntasks):
         sqla_table = config.dd.get_dest_sqla_table(tablename)
+        mssql_fulltext_columns = []  # type: List[Column]
         for tr in tablerows:
             sqla_column = sqla_table.columns[tr.dest_field]
-            add_index(engine, sqla_column,
-                      unique=(tr.index is INDEX.UNIQUE),
-                      fulltext=(tr.index is INDEX.FULLTEXT),
-                      length=tr.indexlen)
+            fulltext = (tr.index is INDEX.FULLTEXT)
+            if fulltext and mssql:
+                # Special processing: we can only create one full-text index
+                # per table under SQL Server, but it can cover multiple
+                # columns; see below
+                mssql_fulltext_columns.append(sqla_column)
+            else:
+                add_index(engine=engine,
+                          sqla_column=sqla_column,
+                          unique=(tr.index is INDEX.UNIQUE),
+                          fulltext=fulltext,
+                          length=tr.indexlen)
             # Extra index for TRID?
             if tr.primary_pid:
                 add_index(engine, sqla_table.columns[config.trid_fieldname],
                           unique=(tr.index is INDEX.UNIQUE))
+        if mssql_fulltext_columns:
+            mssql_fulltext_columns_by_table.append(mssql_fulltext_columns)
+    # Special processing for SQL Server FULLTEXT indexes, if any:
+    for multiple_sqla_columns in mssql_fulltext_columns_by_table:
+        add_index(engine=engine,
+                  multiple_sqla_columns=multiple_sqla_columns,
+                  fulltext=True)
 
 
 def patient_processing_fn(tasknum: int = 0,

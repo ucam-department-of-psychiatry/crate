@@ -1,6 +1,15 @@
 {# letter_researcher_withdraw.html #}
-
 {% extends 'base_pdf_letter.html' %}
+
+{% comment %}
+    template parameters:
+        contact_request: ContactRequest
+        patient_lookup: PatientLookup
+        study: Study
+        permitted_to_contact_discharged_patients_for_n_days: int
+        permitted_to_contact_discharged_patients_for_n_years: str
+        RDBM_ADDRESS: List[str]
+{% endcomment %}
 
 {% block letter_body %}
 

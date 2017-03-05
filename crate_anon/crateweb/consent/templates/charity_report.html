@@ -1,6 +1,15 @@
 {# charity_report.html #}
 {% extends "base.html" %}
 
+{% comment %}
+    template parameters:
+        outstanding: float
+        payments: List[CharityPaymentRecord]
+        responses: List[ClinicianResponse]
+        total_due: float
+        total_paid: float
+{% endcomment %}
+
 {% block content %}
 
     <h1>Charity report</h1>

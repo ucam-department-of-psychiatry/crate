@@ -1,6 +1,11 @@
 {# patient_lookup_result.html #}
-
 {% extends "base.html" %}
+
+{% comment %}
+    template parameters:
+        request: HttpRequest
+        contact_requests: List[ContactRequest]
+{% endcomment %}
 
 {% block content %}
 

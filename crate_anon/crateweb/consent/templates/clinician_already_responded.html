@@ -3,15 +3,14 @@
 
 {% comment %}
     template parameters:
-        ClinicianResponse (object)
-        clinician_response (object)
-        consent_mode (object)
-        contact_request (object)
-        Leaflet (object)
-        patient_lookup (object)
-        settings (object)
-        study (object)
-
+        clinician_response: ClinicianResponse
+        consent_mode: ConsentMode
+        contact_request: ContactRequest
+        Leaflet: Leaflet class
+        passed_to_pt: bool
+        patient_lookup: PatientLookup
+        settings: Django settings object
+        study: Study
 {% endcomment %}
 
 {% block mainsiteheader %}{% endblock %}

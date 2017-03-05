@@ -1,5 +1,9 @@
 {# patient_p.html #}
-{# parameters: patient_lookup #}
+
+{% comment %}
+    template parameters:
+        patient_lookup: PatientLookup
+{% endcomment %}
 
 <p class="patient_details">
     Date of birth: {{ patient_lookup.pt_dob|date }}<br>

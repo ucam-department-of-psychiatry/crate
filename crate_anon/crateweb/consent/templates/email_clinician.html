@@ -3,15 +3,16 @@
 
 {% comment %}
     template parameters:
-        consent_mode (object)
-        contact_request (object)
-        patient_lookup (object)
-        settings (object)
-        study (object)
-        url_yes (string)
-        url_no (string)
-        url_maybe (string)
-        permitted_to_contact_discharged_patients_for_n_days (int)
+        consent_mode: ConsentMode
+        contact_request: ContactRequest
+        patient_lookup: PatientLookup
+        settings: Django settings object
+        study: Study
+        url_yes: str
+        url_no: str
+        url_maybe: str
+        permitted_to_contact_discharged_patients_for_n_days: int
+        permitted_to_contact_discharged_patients_for_n_years: str
 {% endcomment %}
 
 {% block content %}

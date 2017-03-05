@@ -417,7 +417,8 @@ def mssql_transaction_count(engine_or_conn: Union[Connection, Engine]) -> int:
 
 
 def add_index(engine: Engine,
-              sqla_column: Column,
+              sqla_column: Column = None,
+              multiple_sqla_columns: List[Column] = None,
               unique: bool = False,
               fulltext: bool = False,
               length: int = None) -> None:
@@ -425,10 +426,30 @@ def add_index(engine: Engine,
     # (using ALTER TABLE).
     # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
     # ... ignored in transition to SQLAlchemy
-    colname = sqla_column.name
-    tablename = sqla_column.table.name
+    is_mssql = engine.dialect.name == 'mssql'
+    is_mysql = engine.dialect.name == 'mysql'
+
+    multiple_sqla_columns = multiple_sqla_columns or []
+    if multiple_sqla_columns and not (fulltext and is_mssql):
+        raise ValueError("add_index: Use multiple_sqla_columns only for mssql "
+                         "(Microsoft SQL Server) full-text indexing")
+    if bool(multiple_sqla_columns) != bool(sqla_column):
+        raise ValueError("add_index: Use either sqla_column or "
+                         "multiple_sqla_columns, not both")
+    if sqla_column:
+        colname = sqla_column.name
+        tablename = sqla_column.table.name
+    else:
+        colname = ", ".join(c.name for c in multiple_sqla_columns)
+        tablename = multiple_sqla_columns[0].table.name
+        if any(c.table.name != tablename for c in multiple_sqla_columns[1:]):
+            raise ValueError(
+                "add_index: tablenames are inconsistent in "
+                "multiple_sqla_columns = {}".format(
+                    repr(multiple_sqla_columns)))
+
     if fulltext:
-        if engine.dialect.name == 'mssql':
+        if is_mssql:
             idxname = ''  # they are unnamed
         else:
             idxname = "_idxft_{}".format(colname)
@@ -439,14 +460,14 @@ def add_index(engine: Engine,
                  "exists".format(idxname, tablename))
         return
         # because it will crash if you add it again!
-    log.info("Creating{ft} index {i} on {t}.{c}".format(
+    log.info("Creating{ft} index {i} on table {t}, column {c}".format(
         ft=" full-text" if fulltext else "",
         i=idxname or "<unnamed>",
         t=tablename,
         c=colname))
 
     if fulltext:
-        if engine.dialect.name == 'mysql':
+        if is_mysql:
             log.warning('OK to ignore this warning: '
                         '"InnoDB rebuilding table to add column FTS_DOC_ID"')
             # https://dev.mysql.com/doc/refman/5.6/en/innodb-fulltext-index.html
@@ -461,7 +482,7 @@ def add_index(engine: Engine,
             # DDL(sql, bind=engine).execute_if(dialect='mysql')
             DDL(sql, bind=engine).execute()
 
-        elif engine.dialect.name == 'mssql':  # Microsoft SQL Server
+        elif is_mssql:  # Microsoft SQL Server
             # https://msdn.microsoft.com/library/ms187317(SQL.130).aspx
             # Argh! Complex.
             # Note that the database must also have had a
@@ -474,8 +495,9 @@ def add_index(engine: Engine,
                                         schemaname=schemaname):
                 log.info(
                     "... skipping creation of full-text index on table {}; a "
-                    "full-text index already exists for that table".format(
-                        tablename))
+                    "full-text index already exists for that table; you can "
+                    "have only one full-text index per table, though it can "
+                    "be on multiple columns".format(tablename))
                 return
             pk_index_name = mssql_get_pk_index_name(
                 engine=engine, tablename=tablename, schemaname=schemaname)

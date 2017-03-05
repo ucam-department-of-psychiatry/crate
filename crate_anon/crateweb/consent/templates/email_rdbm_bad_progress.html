@@ -1,6 +1,13 @@
 {# email_rdbm_bad_progress.html #}
 {% extends 'base_email.html' %}
 
+{% comment %}
+    template parameters:
+        id: int
+        response: str
+        explanation: str
+{% endcomment %}
+
 {% block content %}
 
     <p>A clinician refused a request from the CPFT Research Database

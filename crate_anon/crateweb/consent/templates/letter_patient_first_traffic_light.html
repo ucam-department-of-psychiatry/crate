@@ -1,6 +1,18 @@
 {# letter_patient_first_traffic_light.html #}
-
 {% extends 'base_pdf_letter.html' %}
+
+{% comment %}
+    template parameters:
+        # Letter bits
+        address_from: List[str]
+        address_to: List[str]
+        salutation: str
+        signatory_name: str
+        signatory_title: str
+        # Specific bits
+        settings: Django settings object
+        patient_lookup: PatientLookup
+{% endcomment %}
 
 {% block letter_body %}
 

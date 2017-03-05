@@ -1,6 +1,17 @@
 {# decision_form_to_patient_re_study.html #}
 {% extends 'base_pdf.html' %}
 
+{% comment %}
+    template parameters:
+        contact_request: ContactRequest
+        study: Study
+        patient_lookup: PatientLookup
+        settings: Django settings object
+        extra_form: bool
+        n_forms: int
+        yellow: bool
+{% endcomment %}
+
 {% block content %}
 
     <div class="formtitle"><b>Deciding whether to be contacted about a

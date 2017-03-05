@@ -1,6 +1,11 @@
 {# exclusion_report.html #}
 {% extends "base.html" %}
 
+{% comment %}
+    template parameters:
+        consent_modes: List[ConsentMode]
+{% endcomment %}
+
 {% block content %}
 
     <h1>NHS numbers of patients to exclude from anonymised database

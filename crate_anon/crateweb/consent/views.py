@@ -356,7 +356,6 @@ def clinician_response_view(request: HttpRequest,
         passed_to_pt = (clinician_response.response ==
                         ClinicianResponse.RESPONSE_A)
         return render(request, 'clinician_already_responded.html', {
-            'ClinicianResponse': ClinicianResponse,
             'clinician_response': clinician_response,
             'consent_mode': consent_mode,
             'contact_request': contact_request,

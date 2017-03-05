@@ -1,10 +1,11 @@
 {# discharged_phrase.html #}
+
 {% comment %}
     template parameters:
-        patient_lookup (object)
-        consent_mode (object)
-        permitted_to_contact_discharged_patients_for_n_days (int)
-        permitted_to_contact_discharged_patients_for_n_years (str)
+        patient_lookup: PatientLookup
+        consent_mode: ConsentMode
+        permitted_to_contact_discharged_patients_for_n_days: int
+        permitted_to_contact_discharged_patients_for_n_years: str
 {% endcomment %}
 
 {% if patient_lookup.pt_discharged == None %}

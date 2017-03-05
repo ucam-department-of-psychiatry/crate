@@ -109,9 +109,17 @@
                 <li><a href="{% url 'test_patient_lookup' %}">Test patient
                 lookup without saving data</a></li>
 
-                <li>Test templates:
+                <li>Test templates.
+
+
+
                     <ul>
-                        {# Constants to match TEST_CONTACT_REQUEST_ID_1, etc., but little point in making them flexible. #}
+                        <li>You can use URL query parameters like
+                            <b>?age=40;age_months=2;consent_mode=yellow;request_direct_approach=1;consent_after_discharge=0</b>.
+                            For consent_mode, use 'red', 'yellow', 'green', or
+                            anything else for None.
+                            The flag consent_after_discharge is now irrelevant.</li>
+
                         <li><a href="{% url 'draft_traffic_light_decision_form' -1 'pdf' %}">
                             Traffic-light decision form (PDF)</a></li>
 

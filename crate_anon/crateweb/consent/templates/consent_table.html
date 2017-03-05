@@ -1,9 +1,10 @@
 {# consent_table.html #}
+
 {% comment %}
-    parameters:
+    template parameters:
         LEAFLET_URL_CPFTRD_CLINRES_SHORT: str
         patient_lookup: PatientLookup
-        settings: (object)
+        settings: Django settings object
         with_page_break: bool
 {% endcomment %}
 
@@ -47,10 +48,12 @@
                         <li>If you sign to indicate your consent, but refuse to
                             allow your parent or guardian to see and sign, then we
                             must ask your clinician to sign below to confirm that
-                            you understand fully what you’re signing. We’re afraid we
-                            can only accept your consent via this form if it’s
-                            signed by you and your parent/guardian, or you and your
-                            clinician.
+                            you understand fully what you’re signing.
+                            (If you’re returning this form by post, we can
+                            ask your clinician for their signature.)
+                            We’re afraid we can only accept your consent via
+                            this form if it’s signed by you and your
+                            parent/guardian, or you and your clinician.
                         </li>
                     </ol>
                     Thank you!
@@ -98,7 +101,10 @@
                         <li>We need your clinician’s signature to confirm that you
                             currently lack the capacity to decide about the
                             question(s) being asked above, and that someone is
-                            making decisions on your behalf.*</li>
+                            making decisions on your behalf.*
+                            (If you’re returning this form by post, we can
+                            ask your clinician for their signature.)
+                        </li>
                     </ol>
                     Thank you!
                 </td>

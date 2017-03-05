@@ -51,6 +51,4 @@
 - Licensed under the GNU GPL v3: see LICENSE file.
 - Third-party code/libraries included:
   - aspects of CamAnonGatePipeline.java are based on demonstration GATE code,
-    copyright &copy; University of Sheffield, and licensed under the GNU LGPL
-    (which license is therefore used for npl_manager/CrateGatePipeline.java;
-    q.v.).
+    copyright &copy; University of Sheffield, and licensed under the GNU LGPL.

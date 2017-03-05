@@ -1,16 +1,17 @@
 {# study_table.html #}
+
 {% comment %}
-    pass in:
-        study (object)
-        contact_request (object) -- or None
-        omit_id (Boolean)
-        include_summary (Boolean)
-        include_capacity (Boolean)
-        include_details (Boolean)
-        to_clinician (Boolean)
-        include_clinician_form (Boolean)
-        include_clinician_pack (Boolean)
-        clinician_response -- or None
+    template parameters:
+        study: Study
+        contact_request: Optional[ContactRequest]
+        omit_id: bool
+        include_summary: bool
+        include_capacity: bool
+        include_details: bool
+        to_clinician: bool
+        include_clinician_form: bool
+        include_clinician_pack: bool
+        clinician_response: Optional[ClinicianResponse]
 {% endcomment %}
 
 <table class="study">

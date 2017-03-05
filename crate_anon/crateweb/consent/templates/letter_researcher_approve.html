@@ -3,13 +3,13 @@
 
 {% comment %}
     template parameters:
-        consent_mode (object)
-        contact_request (object)
-        patient_lookup (object)
-        study (object)
-        permitted_to_contact_discharged_patients_for_n_days (int)
-        permitted_to_contact_discharged_patients_for_n_years (str)
-        RDBM_ADDRESS (List[str])
+        consent_mode: ConsentMode
+        contact_request: ContactRequest
+        patient_lookup: PatientLookup
+        study: Study
+        permitted_to_contact_discharged_patients_for_n_days: int
+        permitted_to_contact_discharged_patients_for_n_years: str
+        RDBM_ADDRESS: List[str]
 {% endcomment %}
 
 {% block letter_body %}

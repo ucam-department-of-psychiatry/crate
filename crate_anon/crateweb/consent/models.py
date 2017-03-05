@@ -2561,17 +2561,10 @@ class ContactRequest(models.Model):
 
         # All other routes are via clinician.
 
-        # Let's be precise about why the clinician is involved.
-        if not self.request_direct_approach:
-            self.clinician_involvement = (
-                ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED)
-        elif self.consent_mode.consent_mode == ConsentMode.YELLOW:
-            self.clinician_involvement = (
-                ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW)
-        else:
-            # Only other possibility
-            self.clinician_involvement = (
-                ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN)
+        # noinspection PyTypeChecker
+        self.clinician_involvement = self.get_clinician_involvement(
+            consent_mode_str=self.consent_mode.consent_mode,
+            request_direct_approach=self.request_direct_approach)
 
         # Do we have a clinician?
         if not self.patient_lookup.clinician_found:
@@ -2632,6 +2625,18 @@ class ContactRequest(models.Model):
         self.decided_send_to_clinician = True
         self.decide(
             "Sent request to clinician at {}".format(clinician_emailaddr))
+
+    @staticmethod
+    def get_clinician_involvement(consent_mode_str: str,
+                                  request_direct_approach: bool) -> int:
+        # Let's be precise about why the clinician is involved.
+        if not request_direct_approach:
+            return ContactRequest.CLINICIAN_INVOLVEMENT_REQUESTED
+        elif consent_mode_str == ConsentMode.YELLOW:
+            return ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW
+        else:
+            # Only other possibility
+            return ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_UNKNOWN
 
     def decide(self, msg: str) -> None:
         self.decisionlist.append(msg)
@@ -3042,7 +3047,7 @@ class ClinicianResponse(models.Model):
                                              default=0)
     # ... set to settings.CHARITY_AMOUNT_CLINICIAN_RESPONSE upon response
 
-    def get_response_explanation(self):
+    def get_response_explanation(self) -> str:
         # log.debug("get_response_explanation: {}".format(self.response))
         # noinspection PyTypeChecker
         return choice_explanation(self.response, ClinicianResponse.RESPONSES)
@@ -3608,11 +3613,6 @@ class EmailTransmission(models.Model):
 # =============================================================================
 
 class DummyObjectCollection(object):
-    AGE_ADULT = 0
-    AGE_14 = 14
-    AGE_15 = 15
-    AGE_16 = 16
-
     def __init__(self,
                  contact_request: ContactRequest,
                  consent_mode: ConsentMode,
@@ -3624,9 +3624,7 @@ class DummyObjectCollection(object):
         self.study = study
 
 
-def make_dummy_objects(request: HttpRequest,
-                       age_category: int = DummyObjectCollection.AGE_15) \
-        -> DummyObjectCollection:
+def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     """
     We want to create these objects in memory, without saving to the DB.
     However, Django  is less good at SQLAlchemy for this, and saves.
@@ -3655,15 +3653,32 @@ def make_dummy_objects(request: HttpRequest,
     Since this is a minor thing, and templates are unaffected, and this is only
     for debugging, let's ignore it.
     """
+    def get_int(query_param_name: str, default: Optional[int]) -> int:
+        try:
+            return int(request.GET.get(query_param_name, default))
+        except (TypeError, ValueError):
+            return default
+
+    def get_str(query_param_name: str, default: Optional[str]) -> str:
+        return request.GET.get(query_param_name, default)
+
+    age = get_int('age', 40)
+    age_months = get_int('age_months', 2)
     today = datetime.date.today()
-    if age_category == DummyObjectCollection.AGE_14:
-        dob = today - relativedelta(years=14, months=2)
-    elif age_category == DummyObjectCollection.AGE_15:
-        dob = today - relativedelta(years=15, months=2)
-    elif age_category == DummyObjectCollection.AGE_16:
-        dob = today - relativedelta(years=16, months=2)
-    else:
-        dob = today - relativedelta(years=40)
+    dob = today - relativedelta(years=age, months=age_months)
+
+    consent_mode_str = get_str('consent_mode', None)
+    if consent_mode_str not in (None, ConsentMode.RED, ConsentMode.YELLOW,
+                                ConsentMode.GREEN):
+        consent_mode_str = None
+
+    request_direct_approach = bool(get_int('request_direct_approach', 1))
+    clinician_involvement = ContactRequest.get_clinician_involvement(
+        consent_mode_str=consent_mode_str,
+        request_direct_approach=request_direct_approach)
+
+    consent_after_discharge = bool(get_int('consent_after_discharge', 0))
+
     nhs_number = 1234567890
     study = Study(
         id=TEST_ID,
@@ -3683,7 +3698,7 @@ def make_dummy_objects(request: HttpRequest,
         include_under_16s=True,
         include_lack_capacity=True,
         clinical_trial=True,
-        request_direct_approach=True,
+        request_direct_approach=clinician_involvement,
         approved_by_rec=True,
         rec_reference="blah/999",
         approved_locally=True,
@@ -3698,8 +3713,8 @@ def make_dummy_objects(request: HttpRequest,
         current=True,
         created_by=request.user,
         exclude_entirely=False,
-        consent_mode=ConsentMode.YELLOW,
-        consent_after_discharge=True,
+        consent_mode=consent_mode_str,
+        consent_after_discharge=consent_after_discharge,
         max_approaches_per_year=0,
         other_requests="",
         prefers_email=False,
@@ -3778,7 +3793,7 @@ def make_dummy_objects(request: HttpRequest,
         decided_no_action=False,
         decided_send_to_researcher=False,
         decided_send_to_clinician=True,
-        clinician_involvement=ContactRequest.CLINICIAN_INVOLVEMENT_REQUIRED_YELLOW,  # noqa
+        clinician_involvement=clinician_involvement,
         consent_withdrawn=False,
         consent_withdrawn_at=None,
 
