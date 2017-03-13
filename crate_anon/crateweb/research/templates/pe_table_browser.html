@@ -1,0 +1,29 @@
+{# pe_table_browser.html #}
+{% extends "base.html" %}
+
+{% block content %}
+
+    {% include "query_nav.html" %}
+
+    <h1>Patient Explorer table browser</h1>
+
+    <table>
+        <tr>
+            {% if with_database %}
+                <th>Database</th>
+            {%  endif %}
+            <th>Schema</th>
+            <th>Table</th>
+        </tr>
+        {% for t in tables %}
+            <tr>
+                {% if with_database %}
+                    <td>{{ t.db }}</td>
+                {% endif %}
+                <td>{{ t.schema }}</td>
+                <td><b><a href="{% url 'pe_one_table' pe_id t.db t.schema t.table %}">{{ t.table }}</a></b></td>
+            </tr>
+        {% endfor %}
+    </table>
+
+{% endblock %}

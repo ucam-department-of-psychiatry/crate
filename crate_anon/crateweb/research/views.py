@@ -53,6 +53,19 @@ from crate_anon.common.contenttypes import (
 )
 from crate_anon.common.hash import hash64
 from crate_anon.common.lang import recover_info_from_exception
+from crate_anon.common.sql import (
+    ColumnId,
+    escape_sql_string_literal,
+    SQL_OPS_MULTIPLE_VALUES,
+    SQL_OPS_VALUE_UNNECESSARY,
+    TableId,
+    toggle_distinct,
+    WhereCondition,
+)
+from crate_anon.common.sql_grammar_factory import (
+    DIALECT_MYSQL,
+    DIALECT_MSSQL,
+)
 from crate_anon.crateweb.core.dbfunc import (
     get_fieldnames_from_cursor,
 )
@@ -88,18 +101,6 @@ from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
 )
 from crate_anon.crateweb.userprofile.models import get_patients_per_page
-from crate_anon.common.sql import (
-    ColumnId,
-    escape_sql_string_literal,
-    SQL_OPS_MULTIPLE_VALUES,
-    SQL_OPS_VALUE_UNNECESSARY,
-    toggle_distinct,
-    WhereCondition,
-)
-from crate_anon.common.sql_grammar_factory import (
-    DIALECT_MYSQL,
-    DIALECT_MSSQL,
-)
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
     SelectElement,
@@ -535,14 +536,14 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
     return render(request, 'query_edit_select.html', context)
 
 
-def query_activate(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_activate(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)  # type: Query
     query.activate()
     return redirect('query')
 
 
-def query_delete(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)  # type: Query
     query.delete_if_permitted()
@@ -553,7 +554,7 @@ def no_query_selected(request: HttpRequest) -> HttpResponse:
     return render(request, 'query_none_selected.html', query_context(request))
 
 
-def query_count(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_count(request: HttpRequest, query_id: str) -> HttpResponse:
     """
     View COUNT(*) from specific query.
     """
@@ -583,7 +584,7 @@ def query_count_current(request: HttpRequest) -> HttpResponse:
     return render_resultcount(request, query)
 
 
-def query_results(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_results(request: HttpRequest, query_id: str) -> HttpResponse:
     """
     View results of chosen query, in tabular format
     """
@@ -603,7 +604,7 @@ def query_results(request: HttpRequest, query_id: int) -> HttpResponse:
 
 
 def query_results_recordwise(request: HttpRequest,
-                             query_id: int) -> HttpResponse:
+                             query_id: str) -> HttpResponse:
     """
     View results of chosen query, in tabular format
     """
@@ -623,7 +624,7 @@ def query_results_recordwise(request: HttpRequest,
         line_length=profile.line_length)
 
 
-def query_tsv(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_tsv(request: HttpRequest, query_id: str) -> HttpResponse:
     """
     Download TSV of current query.
     """
@@ -641,7 +642,7 @@ def query_tsv(request: HttpRequest, query_id: int) -> HttpResponse:
         return render_bad_query(request, query, exception)
 
 
-def query_excel(request: HttpRequest, query_id: int) -> HttpResponse:
+def query_excel(request: HttpRequest, query_id: str) -> HttpResponse:
     query = get_object_or_404(Query, id=query_id)  # type: Query
     try:
         return file_response(
@@ -817,10 +818,10 @@ def render_resultset(request: HttpRequest,
         return render_missing_query(request)
     try:
         with query.get_executed_cursor() as cursor:
-            rowcount = cursor.rowcount
-            query.audit(n_records=rowcount)
             fieldnames = get_fieldnames_from_cursor(cursor)
             rows = cursor.fetchall()
+            rowcount = cursor.rowcount
+            query.audit(n_records=rowcount)
     except DatabaseError as exception:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
@@ -832,7 +833,6 @@ def render_resultset(request: HttpRequest,
     display_rows = rows[start_index:end_index + 1]
     # Highlights
     highlight_dict = Highlight.as_ordered_dict(highlights)
-    highlight_descriptions = get_highlight_descriptions(highlight_dict)
     # Table
     element_counter = HtmlElementCounter()
     table_html = resultset_html_table(
@@ -849,8 +849,6 @@ def render_resultset(request: HttpRequest,
     )
     # Render
     context = {
-        'fieldnames': fieldnames,
-        'highlight_descriptions': highlight_descriptions,
         'table_html': table_html,
         'page': page,
         'rowcount': rowcount,
@@ -873,10 +871,10 @@ def render_resultset_recordwise(request: HttpRequest,
         return render_missing_query(request)
     try:
         with query.get_executed_cursor() as cursor:
-            rowcount = cursor.rowcount
-            query.audit(n_records=rowcount)
             fieldnames = get_fieldnames_from_cursor(cursor)
             rows = cursor.fetchall()
+            rowcount = cursor.rowcount
+            query.audit(n_records=rowcount)
     except DatabaseError as exception:
         query.audit(failed=True, fail_msg=str(exception))
         return render_bad_query(request, query, exception)
@@ -885,7 +883,6 @@ def render_resultset_recordwise(request: HttpRequest,
     page = paginate(request, row_indexes, per_page=1)
     # Highlights
     highlight_dict = Highlight.as_ordered_dict(highlights)
-    highlight_descriptions = get_highlight_descriptions(highlight_dict)
     if rows:
         record_index = page.start_index() - 1
         record = rows[record_index]
@@ -905,8 +902,6 @@ def render_resultset_recordwise(request: HttpRequest,
         table_html = "<b>No rows returned.</b>"
     # Render
     context = {
-        'fieldnames': fieldnames,
-        'highlight_descriptions': highlight_descriptions,
         'table_html': table_html,
         'page': page,
         'rowcount': rowcount,
@@ -938,7 +933,7 @@ def render_bad_query(request: HttpRequest,
     return render(request, 'query_bad.html', context)
 
 
-def render_bad_query_id(request: HttpRequest, query_id: int) -> HttpResponse:
+def render_bad_query_id(request: HttpRequest, query_id: str) -> HttpResponse:
     context = {'query_id': query_id}
     context.update(query_context(request))
     return render(request, 'query_bad_id.html', context)
@@ -987,7 +982,7 @@ def highlight_edit_select(request: HttpRequest) -> HttpResponse:
 
 
 def highlight_activate(request: HttpRequest,
-                       highlight_id: int) -> HttpResponse:
+                       highlight_id: str) -> HttpResponse:
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.activate()
@@ -995,7 +990,7 @@ def highlight_activate(request: HttpRequest,
 
 
 def highlight_deactivate(request: HttpRequest,
-                         highlight_id: int) -> HttpResponse:
+                         highlight_id: str) -> HttpResponse:
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.deactivate()
@@ -1003,7 +998,7 @@ def highlight_deactivate(request: HttpRequest,
 
 
 def highlight_delete(request: HttpRequest,
-                     highlight_id: int) -> HttpResponse:
+                     highlight_id: str) -> HttpResponse:
     validate_blank_form(request)
     highlight = get_object_or_404(Highlight, id=highlight_id)  # type: Highlight
     highlight.delete()
@@ -1192,6 +1187,9 @@ def textmatch(column_name: str,
               dialect: str = 'mysql') -> str:
     if as_fulltext and dialect == 'mysql':
         return "MATCH({column}) AGAINST ('{fragment}')".format(
+            column=column_name, fragment=fragment)
+    elif as_fulltext and dialect == 'mssql':
+        return "CONTAINS({column}, '{fragment}')".format(
             column=column_name, fragment=fragment)
     else:
         return "{column} LIKE '%{fragment}%'".format(
@@ -1404,7 +1402,7 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         'float_value': form.data.get('float_value', ''),
         'int_value': form.data.get('int_value', ''),
         'string_value': form.data.get('string_value', ''),
-        'offer_where': bool(profile.sql_scratchpad),  # existing SELECT?
+        'offer_where': bool(True),
         'form_errors': "<br>".join("{}: {}".format(k, v)
                                    for k, v in form.errors.items()),
         'default_database': default_database,
@@ -1459,21 +1457,21 @@ def pe_choose(request: HttpRequest) -> HttpResponse:
     return render(request, 'pe_choose.html', context)
 
 
-def pe_activate(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_activate(request: HttpRequest, pe_id: str) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.activate()
     return redirect('pe_choose')
 
 
-def pe_delete(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_delete(request: HttpRequest, pe_id: str) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     pe.delete_if_permitted()
     return redirect('pe_choose')
 
 
-def pe_edit(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_edit(request: HttpRequest, pe_id: str) -> HttpResponse:
     validate_blank_form(request)
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     profile = request.user.profile
@@ -1482,7 +1480,7 @@ def pe_edit(request: HttpRequest, pe_id: int) -> HttpResponse:
     return redirect('pe_build')
 
 
-def pe_results(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_results(request: HttpRequest, pe_id: str) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = research_database_info.grammar
     profile = request.user.profile
@@ -1492,12 +1490,12 @@ def pe_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     patient_id_query_html = prettify_sql_html(pe.get_patient_id_query())
     patients_per_page = get_patients_per_page(request)
     try:
-        rids = pe.get_patient_mrids()
-        page = paginate(request, rids, per_page=patients_per_page)
-        active_rids = list(page)
+        mrids = pe.get_patient_mrids()
+        page = paginate(request, mrids, per_page=patients_per_page)
+        active_mrids = list(page)
         results = []
-        if active_rids:
-            for table_id, sql, args in pe.all_queries(mrids=active_rids):
+        if active_mrids:
+            for table_id, sql, args in pe.all_queries(mrids=active_mrids):
                 with pe.get_executed_cursor(sql, args) as cursor:
                     fieldnames = get_fieldnames_from_cursor(cursor)
                     rows = cursor.fetchall()
@@ -1522,7 +1520,7 @@ def pe_results(request: HttpRequest, pe_id: int) -> HttpResponse:
             'nav_on_pe_results': True,
             'results': results,
             'page': page,
-            'rowcount': len(rids),
+            'rowcount': len(mrids),
             'patient_id_query_html': patient_id_query_html,
             'patients_per_page': patients_per_page,
             'sql_highlight_css': prettify_sql_css(),
@@ -1606,7 +1604,7 @@ def pe_submit(request: HttpRequest,
         return redirect('pe_choose')
 
 
-def pe_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
     # http://stackoverflow.com/questions/12881294/django-create-a-zip-of-multiple-files-and-make-it-downloadable  # noqa
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
@@ -1622,7 +1620,7 @@ def pe_tsv_zip(request: HttpRequest, pe_id: int) -> HttpResponse:
         return render_bad_pe(request, pe, exception)
 
 
-def pe_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         return file_response(
@@ -1637,7 +1635,7 @@ def pe_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
         return render_bad_pe(request, pe, exception)
 
 
-def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_data_finder_results(request: HttpRequest, pe_id: str) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     profile = request.user.profile
     patients_per_page = get_patients_per_page(request)
@@ -1693,7 +1691,7 @@ def pe_data_finder_results(request: HttpRequest, pe_id: int) -> HttpResponse:
         return render_bad_pe(request, pe, exception)
 
 
-def pe_data_finder_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_data_finder_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         return file_response(
@@ -1708,7 +1706,7 @@ def pe_data_finder_excel(request: HttpRequest, pe_id: int) -> HttpResponse:
         return render_bad_pe(request, pe, exception)
 
 
-def pe_monster_results(request: HttpRequest, pe_id: int) -> HttpResponse:
+def pe_monster_results(request: HttpRequest, pe_id: str) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     grammar = research_database_info.grammar
     profile = request.user.profile
@@ -1763,3 +1761,88 @@ def pe_monster_results(request: HttpRequest, pe_id: int) -> HttpResponse:
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
 
+
+def pe_table_browser(request: HttpRequest, pe_id: str) -> HttpResponse:
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    tables = research_database_info.get_tables()
+    with_database = research_database_info.uses_database_level()
+    try:
+        context = {
+            'nav_on_pe_table_browser': True,
+            'pe_id': pe_id,
+            'tables': tables,
+            'with_database': with_database,
+        }
+        context.update(query_context(request))
+        return render(request, 'pe_table_browser.html', context)
+
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)
+
+
+def pe_one_table(request: HttpRequest, pe_id: str,
+                 schema: str, table: str, db: str = '') -> HttpResponse:
+    pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
+    table_id = TableId(db=db, schema=schema, table=table)
+    grammar = research_database_info.grammar
+    highlights = Highlight.get_active_highlights(request)
+    highlight_dict = Highlight.as_ordered_dict(highlights)
+    element_counter = HtmlElementCounter()
+    profile = request.user.profile
+    patients_per_page = get_patients_per_page(request)
+    try:
+        mrids = pe.get_patient_mrids()
+        page = paginate(request, mrids, per_page=patients_per_page)
+        active_mrids = list(page)
+        table_html = "<div><i>No data</i></div>"
+        sql = ""
+        args = []
+        rowcount = 0
+        if active_mrids:
+            mrid_column = research_database_info.get_mrid_column_from_table(
+                table_id)
+            where_clause = "{mrid} IN ({in_clause})".format(
+                mrid=mrid_column.identifier(grammar),
+                in_clause=",".join(["?"] * len(active_mrids)),
+            )  # ... see notes for translate_sql_qmark_to_percent()
+            args = active_mrids
+            sql = add_to_select(
+                sql='',
+                select_elements=[SelectElement(
+                    raw_select='*',
+                    from_table_for_raw_select=table_id
+                )],
+                grammar=grammar,
+                where_conditions=[WhereCondition(
+                    raw_sql=where_clause,
+                    from_table_for_raw_sql=mrid_column.table_id()
+                )],
+                magic_join=True,
+                formatted=True)
+            with pe.get_executed_cursor(sql, args) as cursor:
+                fieldnames = get_fieldnames_from_cursor(cursor)
+                rows = cursor.fetchall()
+                rowcount = cursor.rowcount
+                if rows:
+                    table_html = resultset_html_table(
+                        fieldnames=fieldnames,
+                        rows=rows,
+                        element_counter=element_counter,
+                        highlight_dict=highlight_dict,
+                        collapse_at_len=profile.collapse_at_len,
+                        collapse_at_n_lines=profile.collapse_at_n_lines,
+                        line_length=profile.line_length,
+                    )
+        # Render
+        context = {
+            'table_html': table_html,
+            'page': page,
+            'rowcount': rowcount,
+            'sql': prettify_sql_and_args(sql=sql, args=args),
+            'sql_highlight_css': prettify_sql_css(),
+        }
+        context.update(query_context(request))
+        return render(request, 'query_result.html', context)
+
+    except DatabaseError as exception:
+        return render_bad_pe(request, pe, exception)

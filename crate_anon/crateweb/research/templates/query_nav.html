@@ -1,24 +1,49 @@
 {# query_nav.html #}
 
+{% comment %}
+    template parameters:
+        current_pe_id: Optional[int]
+        current_query_id: Optional[int]
+        nav_on_highlight: bool
+        nav_on_pe_build: bool
+        nav_on_pe_choose: bool
+        nav_on_pe_df_results: bool
+        nav_on_pe_monster_results: bool
+        nav_on_pe_results: bool
+        nav_on_pe_table_browser: bool
+        nav_on_query: bool
+        nav_on_querybuilder: bool
+        nav_on_results: bool
+        nav_on_results_recordwise: bool
+        pe_selected: bool
+        query_selected: bool
+{% endcomment %}
+
 <div>
     [
+
     {% if nav_on_querybuilder %}
         <b>Query builder</b>
     {% else %}
         <a href="{% url 'build_query' %}">Query builder</a>
     {% endif %}
+
     |
+
     {% if nav_on_query %}
         <b>SQL</b>
     {% else %}
         <a href="{% url 'query' %}">SQL</a>
     {% endif %}
+
     |
+
     {% if nav_on_highlight %}
         <b>Highlighting</b>
     {% else %}
         <a href="{% url 'highlight' %}">Highlighting</a>
     {% endif %}
+
 {% comment %}
     |
     {% if nav_on_count or not query_selected %}
@@ -27,19 +52,24 @@
         <a href="{% url 'count' current_query_id %}">preview count</a>
     {% endif %}
 {% endcomment %}
+
     |
+
     Results (
         {% if nav_on_results or not query_selected %}
             <b>table</b>
         {% else %}
             <a href="{% url 'results' current_query_id %}">table</a>
         {% endif %}
+
         |
+
         {% if nav_on_results_recordwise or not query_selected %}
             <b>recordwise</b>
         {% else %}
             <a href="{% url 'results_recordwise' current_query_id %}">recordwise</a>
         {% endif %}
+
     {% comment %}
         |
         {% if not query_selected %}
@@ -48,7 +78,9 @@
             <a href="{% url 'tsv' current_query_id %}">TSV</a>
         {% endif %}
     {% endcomment %}
+
         |
+
         {% if not query_selected %}
             <b>Excel</b>
         {% else %}
@@ -65,19 +97,25 @@
     {% else %}
         <a href="{% url 'pe_build' %}">Build Patient Explorer (PE)</a>
     {% endif %}
+
     |
+
     {% if nav_on_pe_choose %}
         <b>Choose PE</b>
     {% else %}
         <a href="{% url 'pe_choose' %}">Choose PE</a>
     {% endif %}
+
     |
+
     {% if nav_on_highlight %}
         <b>Highlighting</b>
     {% else %}
         <a href="{% url 'highlight' %}">Highlighting</a>
     {% endif %}
+
     |
+
     PE results (
         {% if nav_on_pe_results or not pe_selected %}
             <b>view</b>
@@ -99,7 +137,9 @@
             <a href="{% url 'pe_excel' current_pe_id %}">Excel</a>
         {% endif %}
     )
+
     |
+
     PE data finder (
         {% if nav_on_pe_df_results or not pe_selected %}
             <b>view</b>
@@ -113,11 +153,22 @@
             <a href="{% url 'pe_df_excel' current_pe_id %}">Excel</a>
         {% endif %}
     )
+
     |
+
+    {% if nav_on_pe_table_browser or not pe_selected %}
+        <b>PE table browser</b>
+    {% else %}
+        <a href="{% url 'pe_table_browser' current_pe_id %}">PE table browser</a>
+    {% endif %}
+
+    |
+
     {% if nav_on_pe_monster_results or not pe_selected %}
         <b>PE Monster Data</b>
     {% else %}
         <a href="{% url 'pe_monster_results' current_pe_id %}">PE Monster Data</a>
     {% endif %}
+
     ]
 </div>

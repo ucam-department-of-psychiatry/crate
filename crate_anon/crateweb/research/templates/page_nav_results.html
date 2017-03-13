@@ -1,6 +1,12 @@
 {# page_nav_results.html #}
-
 {% extends "page_nav.html" %}
+
+{% comment %}
+    template parameters:
+        page: Page
+        rowcount: int
+{% endcomment %}
+
 {% load humanize %}
 
 {% block current %}

@@ -140,6 +140,12 @@ urlpatterns = [
     url(r'^pe_monster_results/(?P<pe_id>[0-9]+)/$',
         research_views.pe_monster_results, name='pe_monster_results'),
     # We don't offer the monster view in Excel; it'd be huge.
+    url(r'^pe_table_browser/(?P<pe_id>[0-9]+)/$',
+        research_views.pe_table_browser, name='pe_table_browser'),
+    url(r'^pe_one_table/(?P<pe_id>[0-9]+)/(?P<db>.+)/(?P<schema>.+)/(?P<table>.+)/$',  # noqa
+        research_views.pe_one_table, name='pe_one_table'),
+    url(r'^pe_one_table/(?P<pe_id>[0-9]+)/(?P<schema>.+)/(?P<table>.+)/$',  # noqa
+        research_views.pe_one_table, name='pe_one_table'),
 
     # -------------------------------------------------------------------------
     # Research database structure

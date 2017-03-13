@@ -274,10 +274,11 @@ def start_server(opts: Namespace) -> None:
     cherrypy.tree.mount(Missing(), '', config=static_config)
     cherrypy.tree.graft(wsgi_application, opts.root_path)
 
+    # noinspection PyBroadException
     try:
         cherrypy.engine.start()
         cherrypy.engine.block()
-    except KeyboardInterrupt:
+    except:  # 2017-03-13: shouldn't restrict to KeyboardInterrupt!
         cherrypy.engine.stop()
 
 

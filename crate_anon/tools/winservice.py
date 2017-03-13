@@ -488,6 +488,11 @@ class ProcessManager(object):
                 "= 'There are no child processes to wait for', but also "
                 "occurs when the process doesn't exist, and when processes "
                 "require a forceful [/F] termination)")
+        elif retcode == winerror.ERROR_EA_LIST_INCONSISTENT:  # 255
+            self.warning(
+                repr(callname) +
+                " failed (error code 255 = ERROR_EA_LIST_INCONSISTENT "
+                "= 'The extended attributes are inconsistent.'")
         else:
             self.warning(callname + " failed: error code {}".format(retcode))
         return retcode

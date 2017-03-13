@@ -1,6 +1,15 @@
 {# query_result.html #}
-
 {% extends "base.html" %}
+
+{% comment %}
+    template parameters:
+        sql_highlight_css: str
+        table_html: str
+
+    ... and as per
+        query_nav.html
+        page_nav_results.html
+{% endcomment %}
 
 {% block extrahead %}
     <style type="text/css">{{ sql_highlight_css }}</style>
