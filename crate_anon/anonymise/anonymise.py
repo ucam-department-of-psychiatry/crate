@@ -33,6 +33,7 @@ import html
 import logging
 import random
 import sys
+import traceback
 from typing import Any, Dict, Iterable, Generator, List, Optional, Tuple
 
 import regex
@@ -749,7 +750,8 @@ def extract_text(value: Any,
     if alter_method.extract_from_filename:
         # The database contains a plain and full filename.
         filename = value
-        log.debug("extract_text: disk file, filename={}".format(filename))
+        log.info("extract_text: disk file, filename={}".format(filename))
+
     elif alter_method.extract_from_file_format:
         # The database contains a filename. However, it may not be a full
         # path. For example, in RiO, we have fields like
@@ -772,7 +774,8 @@ def extract_text(value: Any,
         log.debug("extract_text: file_format_str={}, ffdict={}".format(
             repr(alter_method.file_format_str), repr(ffdict)))
         filename = alter_method.file_format_str.format(**ffdict)
-        log.debug("extract_text: disk file, filename={}".format(filename))
+        log.info("extract_text: disk file, filename={}".format(filename))
+
     else:
         # The database contains the BLOB itself. However, we'd also like to
         # know the file type, here from its extension. We look for another
@@ -789,7 +792,7 @@ def extract_text(value: Any,
                 "Bug: missing extension field for "
                 "alter_method={}".format(alter_method.get_text()))
         extension = row[extindex]
-        log.debug("extract_text: database BLOB, extension={}".format(
+        log.info("extract_text: database BLOB, extension={}".format(
             extension))
 
     # Extract text from the file (given its filename), or from a BLOB.
@@ -801,6 +804,7 @@ def extract_text(value: Any,
                                  width=config.extract_text_width)
     except Exception as e:
         # Runtime error
+        traceback.print_exc()  # full details, please
         log.error("Caught exception from document_to_text: {}".format(e))
         return None, False
     return value, True
