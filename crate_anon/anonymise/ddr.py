@@ -267,7 +267,7 @@ class DataDictionaryRow(object):
         elements = [x.strip() for x in value.split(",") if x]
         methods = []
         for e in elements:
-            methods.append(AlterMethod(e))
+            methods.append(AlterMethod(text_value=e))
         # Now establish order. Text extraction first; everything else in order.
         text_extraction_indices = []
         for i, am in enumerate(methods):
@@ -619,16 +619,16 @@ class DataDictionaryRow(object):
                 if am.extract_from_filename:
                     if not is_sqlatype_text_over_one_char(src_sqla_coltype):
                         raise ValueError(
-                            "For alter_method = {ALTERMETHOD.FILENAME2TEXT}, "
-                            "source field must contain filename and therefore "
+                            "For alter_method = "
+                            "{ALTERMETHOD.FILENAME_TO_TEXT}, source field "
+                            "must contain a filename and therefore "
                             "must be text type of >1 character".format(
                                 ALTERMETHOD=ALTERMETHOD))
                 if am.extract_from_blob:
                     if not is_sqlatype_binary(src_sqla_coltype):
                         raise ValueError(
-                            "For alter_method = {ALTERMETHOD.BIN2TEXT} or "
-                            "{ALTERMETHOD.BIN2TEXT_SCRUB}, source field "
-                            "must be of binary type".format(
+                            "For alter_method = {ALTERMETHOD.BINARY_TO_TEXT}, "
+                            "source field must be of binary type".format(
                                 ALTERMETHOD=ALTERMETHOD))
 
             # This error/warning too hard to be sure of with SQL Server odd

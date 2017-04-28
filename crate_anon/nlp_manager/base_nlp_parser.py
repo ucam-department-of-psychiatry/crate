@@ -313,7 +313,7 @@ class BaseNlpParser(object):
         log.debug("NLP processor {}/{}: found {} values".format(
             self.get_nlpdef_name(), self.get_parser_name(), n_values))
 
-    def test(self):
+    def test(self, verbose: bool=False):
         pass
 
     def test_parser(self, test_strings: List[str]) -> None:

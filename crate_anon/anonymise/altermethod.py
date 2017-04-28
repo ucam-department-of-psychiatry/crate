@@ -40,6 +40,8 @@ class AlterMethod(object):
                  scrub: bool = False,
                  truncate_date: bool = False,
                  extract_from_filename: bool = False,
+                 extract_from_file_format: bool = False,  # new in v0.18.18
+                 file_format_str: str = "",  # new in v0.18.18
                  extract_from_blob: bool = False,
                  skip_if_text_extract_fails: bool = False,
                  extract_ext_field: str = "",
@@ -48,14 +50,20 @@ class AlterMethod(object):
                  html_untag: bool = False) -> None:
         self.scrub = scrub
         self.truncate_date = truncate_date
-        self.extract_text = (extract_from_filename or extract_from_blob)
         self.extract_from_blob = extract_from_blob
         self.extract_from_filename = extract_from_filename
+        self.extract_from_file_format = extract_from_file_format
+        self.file_format_str = file_format_str
         self.skip_if_text_extract_fails = skip_if_text_extract_fails
         self.extract_ext_field = extract_ext_field
         # self.html_escape = html_escape
         self.html_unescape = html_unescape
         self.html_untag = html_untag
+
+        self.extract_text = (extract_from_filename or
+                             extract_from_file_format or
+                             extract_from_blob)
+
         if text_value is not None:
             self.set_from_text(text_value)
 
@@ -68,14 +76,17 @@ class AlterMethod(object):
         self.truncate_date = False
         self.extract_text = False
         self.extract_from_blob = False
+        self.extract_from_file_format = False
+        self.file_format_str = ""
         self.extract_from_filename = False
         self.skip_if_text_extract_fails = False
         self.extract_ext_field = ""
+
         if value == ALTERMETHOD.TRUNCATEDATE.value:
             self.truncate_date = True
         elif value == ALTERMETHOD.SCRUBIN.value:
             self.scrub = True
-        elif value.startswith(ALTERMETHOD.BIN2TEXT.value):
+        elif value.startswith(ALTERMETHOD.BINARY_TO_TEXT.value):
             if "=" not in value:
                 raise ValueError(
                     "Bad format for alter method: {}".format(value))
@@ -87,7 +98,19 @@ class AlterMethod(object):
             self.extract_text = True
             self.extract_from_blob = True
             self.extract_ext_field = secondhalf
-        elif value == ALTERMETHOD.FILENAME2TEXT.value:
+        elif value.startswith(ALTERMETHOD.FILENAME_FORMAT_TO_TEXT.value):
+            if "=" not in value:
+                raise ValueError(
+                    "Bad format for alter method: {}".format(value))
+            secondhalf = value[value.index("=") + 1:]
+            if not secondhalf:
+                raise ValueError(
+                    "Missing filename format field in alter method: "
+                    "{}".format(value))
+            self.extract_text = True
+            self.extract_from_file_format = True
+            self.file_format_str = secondhalf
+        elif value == ALTERMETHOD.FILENAME_TO_TEXT.value:
             self.extract_text = True
             self.extract_from_filename = True
         elif value == ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS.value:
@@ -111,10 +134,13 @@ class AlterMethod(object):
             return ALTERMETHOD.SCRUBIN.value
         if self.extract_text:
             if self.extract_from_blob:
-                return (ALTERMETHOD.BIN2TEXT.value + "=" +
+                return (ALTERMETHOD.BINARY_TO_TEXT.value + "=" +
                         self.extract_ext_field)
-            else:
-                return ALTERMETHOD.FILENAME2TEXT.value
+            elif self.extract_from_file_format:
+                return (ALTERMETHOD.FILENAME_FORMAT_TO_TEXT.value + "=" +
+                        self.file_format_str)
+            else:  # plain filename
+                return ALTERMETHOD.FILENAME_TO_TEXT.value
         if self.skip_if_text_extract_fails:
             return ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS.value
         # if self.html_escape:

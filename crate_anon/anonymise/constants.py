@@ -106,8 +106,9 @@ MAX_TRID = 2 ** 31 - 1
 class ALTERMETHOD(StrEnum):
     TRUNCATEDATE = "truncate_date"
     SCRUBIN = "scrub"
-    BIN2TEXT = "binary_to_text"
-    FILENAME2TEXT = "filename_to_text"
+    BINARY_TO_TEXT = "binary_to_text"
+    FILENAME_TO_TEXT = "filename_to_text"
+    FILENAME_FORMAT_TO_TEXT = "filename_format_to_text"  # new in v0.18.18
     SKIP_IF_TEXT_EXTRACT_FAILS = "skip_if_extract_fails"
     # HTML_ESCAPE = "html_escape"
     HTML_UNESCAPE = "html_unescape"
@@ -175,7 +176,7 @@ MAX_IDENTIFIER_LENGTH = 64
 # =============================================================================
 
 # noinspection PyPep8
-DEMO_CONFIG = """# Configuration file for CRATE anonymiser (crate_anonymise).
+DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
 # Version {VERSION} ({VERSION_DATE}).
 #
 # Boolean values can be 0/1, Y/N, T/F, True/False.
@@ -375,7 +376,7 @@ DEMO_CONFIG = """# Configuration file for CRATE anonymiser (crate_anonymise).
 #       Truncate this date to the first of the month. Applicable to text or
 #       date-as-text fields.
 #
-#     - "{ALTERMETHOD.BIN2TEXT}=EXTFIELDNAME"
+#     - "{ALTERMETHOD.BINARY_TO_TEXT}=EXTFIELDNAME"
 #       Convert a binary field (e.g. VARBINARY, BLOB) to text (e.g. LONGTEXT).
 #       The binary data is taken to be the representation of a document.
 #       The field EXTFIELDNAME, which must be in the same source table, must
@@ -383,10 +384,27 @@ DEMO_CONFIG = """# Configuration file for CRATE anonymiser (crate_anonymise).
 #       extension (e.g. "/some/path/mything.pdf"), so that the anonymiser knows
 #       how to treat the binary data to extract text from it.
 #
-#     - "{ALTERMETHOD.FILENAME2TEXT}"
+#     - "{ALTERMETHOD.FILENAME_TO_TEXT}"
 #       As for the binary-to-text option, but the field contains a filename
 #       (the contents of which is converted to text), rather than containing
 #       binary data directly.
+#
+#     - "{ALTERMETHOD.FILENAME_FORMAT_TO_TEXT}=SOMEFORMAT"
+#       A more powerful way of specifying a filename that can be created using
+#       data from this table. The SOMEFORMAT parameter is an unquoted Python 
+#       str.format() string; see 
+#       https://docs.python.org/3.4/library/stdtypes.html#str.format .
+#       The dictionary passed in to format() is created from all fields in the 
+#       row.
+#
+#       Using an example from RiO: if your ClientDocuments table contains a 
+#       ClientID column (e.g. '999999') and a Path column (e.g. 
+#       'appointment_letter.pdf'), and you know that the actual file will then
+#       be found at 'C:\some\path\999999\docs\appointment_letter.pdf', then you
+#       can specify this with
+#           {ALTERMETHOD.FILENAME_FORMAT_TO_TEXT}=C:\some\path\{{ClientID}}\docs\{{Path}}
+#       You probably want to apply this alter_method to the Path column in this
+#       example, though that's not mandatory.
 #
 #     - "{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS}"
 #       If one of the text extraction methods is specified, and this flag is
@@ -413,7 +431,7 @@ DEMO_CONFIG = """# Configuration file for CRATE anonymiser (crate_anonymise).
 #     first. After that, they are executed in sequence. (The position of the
 #     skip-if-text-extraction-fails flag is immaterial.)
 #     A typical combination might be:
-#           {ALTERMETHOD.FILENAME2TEXT},{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS},{ALTERMETHOD.SCRUBIN}
+#           {ALTERMETHOD.FILENAME_TO_TEXT},{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS},{ALTERMETHOD.SCRUBIN}
 #     or:
 #           {ALTERMETHOD.HTML_UNTAG},{ALTERMETHOD.HTML_UNESCAPE},{ALTERMETHOD.SCRUBIN}
 #

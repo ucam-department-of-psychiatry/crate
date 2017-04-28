@@ -534,8 +534,6 @@ class Medex(BaseNlpParser):
           eventually by the output_terminator, at which point this set is
           complete.
         """
-        text = "Start fluphenazine decanoate 50mg 2 weekly. Something " \
-               "haloperidol 5mg on." + text
         self._n_uses += 1
         self._start()  # ensure started
         if USE_TEMP_DIRS:
@@ -552,9 +550,13 @@ class Medex(BaseNlpParser):
 
         if (not self._signal_data_ready() or  # send
                 not self._await_results_ready()):  # receive
-            log.warning("Subprocess terminated unexpectedly")
+            log.critical("Subprocess terminated unexpectedly")
             os.remove(inputfilename)
-            return
+            # We were using "log.critical()" and "return", but if the Medex
+            # processor is misconfigured, the failed processor can be run over
+            # thousands of records over many hours before the failure is
+            # obvious. Changed 2017-03-17.
+            raise ValueError("Java interface to Medex failed - miconfigured?")
 
         with open(outputfilename, mode='r') as infile:
             resultlines = infile.readlines()

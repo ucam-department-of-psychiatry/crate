@@ -516,10 +516,10 @@ def get_rio_views(engine: Engine,
             enforce_same_n_rows_as_base=enforce_same_n_rows_as_base)
         if 'add' in viewdetails:
             for addition in viewdetails['add']:
-                function = addition['function']
+                func = addition['function']
                 kwargs = addition.get('kwargs', {})
                 kwargs['viewmaker'] = viewmaker
-                function(**kwargs)  # will alter viewmaker
+                func(**kwargs)  # will alter viewmaker
         if progargs.audit_info:
             rio_add_audit_info(viewmaker)  # will alter viewmaker
         if suppress_lookup:
