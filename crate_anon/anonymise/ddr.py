@@ -424,9 +424,8 @@ class DataDictionaryRow(object):
     def skip_row_if_extract_text_fails(self) -> bool:
         return any(x.skip_if_text_extract_fails for x in self._alter_methods)
 
-    def get_extracting_text_altermethods(self):
-        return [am.extract_text for am in self._alter_methods
-                if am.extract_text]
+    def get_extracting_text_altermethods(self) -> List[AlterMethod]:
+        return [am for am in self._alter_methods if am.extract_text]
 
     def remove_scrub_from_alter_methods(self) -> None:
         for sm in self._alter_methods:

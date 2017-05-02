@@ -30,7 +30,7 @@ import calendar
 import datetime
 import dateutil.parser  # for unit tests
 import logging
-import typing
+import typing.re
 from typing import List, Optional, Union
 import unittest
 

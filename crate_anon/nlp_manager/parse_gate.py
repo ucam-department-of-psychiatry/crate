@@ -256,7 +256,7 @@ class Gate(BaseNlpParser):
     # Test
     # -------------------------------------------------------------------------
 
-    def test(self) -> None:
+    def test(self, verbose: bool=False) -> None:
         """
         Test the send function.
         """

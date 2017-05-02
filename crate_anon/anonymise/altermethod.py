@@ -22,12 +22,36 @@
 ===============================================================================
 """
 
+import datetime
+import html
 import logging
+import os
+import traceback
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+
+from cardinal_pythonlib.rnc_datetime import (
+    coerce_to_date,
+    truncate_date_to_first_of_month,
+)
+from cardinal_pythonlib.rnc_extract_text import document_to_text
+import regex
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import ALTERMETHOD
 
+if TYPE_CHECKING:
+    from crate_anon.anonymise.config import Config
+    from crate_anon.anonymise.ddr import DataDictionaryRow
+    from crate_anon.anonymise.patient import Patient
+
 log = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+HTML_TAG_RE = regex.compile('<[^>]*>')
 
 
 # =============================================================================
@@ -150,3 +174,161 @@ class AlterMethod(object):
         if self.html_untag:
             return ALTERMETHOD.HTML_UNTAG.value
         return ""
+
+    def alter(self,
+              config: "Config",
+              value: Any,  # value of interest
+              ddr: "DataDictionaryRow",  # corresponding DataDictionaryRow
+              row: List[Any],  # all values in row
+              ddrows: List["DataDictionaryRow"],  # all of them
+              patient: "Patient" = None) -> Tuple[Any, bool]:
+        """
+        Performs the alteration.
+        Returns:
+            Tuple[newvalue: Any, skiprow: bool]
+        """
+
+        if self.scrub:
+            return self._scrub_func(value, patient), False
+
+        if self.truncate_date:
+            return self._truncate_date_func(value), False
+
+        if self.extract_text:
+            value, extracted = self._extract_text_func(
+                config, value, row, ddrows)
+            if not extracted and ddr.skip_row_if_extract_text_fails():
+                log.debug("Skipping row as text extraction failed")
+                return None, True
+            return value, False
+
+        # if alter_method.html_escape:
+        #     return html.escape(value), False
+
+        if self.html_unescape:
+            return html.unescape(value), False
+
+        if self.html_untag:
+            return self._html_untag_func(value), False
+
+        if self.skip_if_text_extract_fails:
+            # Modifies other alter methods; doesn't do anything itself
+            return value, True
+
+    @staticmethod
+    def _scrub_func(value: Any, patient: "Patient") -> Any:
+        if value is None:
+            return None
+        # Main point of anonymisation!
+        return patient.scrub(value)
+
+    @staticmethod
+    def _truncate_date_func(value: Any) -> Optional[datetime.datetime]:
+        try:
+            value = coerce_to_date(value)
+            return truncate_date_to_first_of_month(value)
+        except (ValueError, OverflowError):
+            log.warning(
+                "Invalid date received to "
+                "{ALTERMETHOD.TRUNCATEDATE} method: {v}".format(
+                    ALTERMETHOD=ALTERMETHOD, v=value))
+            return None
+
+    @staticmethod
+    def _html_untag_func(text: str) -> str:
+        # Lots of ways...
+        # -- xml.etree, for well-formed XML
+        #    http://stackoverflow.com/questions/9662346
+        # return ''.join(xml.etree.ElementTree.fromstring(text).itertext())
+        # -- html.parser
+        #    http://stackoverflow.com/questions/753052
+        # -- lxml (but needs source build on Windows):
+        #    http://www.neuraladvance.com/removing-html-from-python-strings.html
+        #    http://lxml.de/
+        # -- regex/re
+        #    http://stackoverflow.com/questions/3662142
+        return HTML_TAG_RE.sub('', text)
+
+    def _extract_text_func(
+            self, config: "Config", value: Any, row: List[Any],
+            ddrows: List["DataDictionaryRow"]) -> Tuple[Optional[str], bool]:
+        """
+        Take a field's value and return extracted text, for file-related 
+        fields, where the DD row indicates that this field contains a filename 
+        or a BLOB.
+    
+        Returns tuple: value, extracted
+        """
+        filename = None
+        blob = None
+
+        # Work out either a full filename, or a BLOB.
+        if self.extract_from_filename:
+            # The database contains a plain and full filename.
+            filename = value
+            _, extension = os.path.split(filename)
+            log.info("extract_text: disk file, filename={}".format(filename))
+
+        elif self.extract_from_file_format:
+            # The database contains a filename. However, it may not be a full
+            # path. For example, in RiO, we have fields like
+            #   dbo.ClientDocument.Path, e.g. '1-1-20121023-1000001-LET.pdf'
+            #   dbo.ClientDocument.ClientID, e.g. '1000001-LET.pdf'
+            # and the disk file might be
+            #   C:\some_base_directory\1000001\Docs\1-1-20121023-1000001-LET.pdf
+            # We could specify this as a file spec:
+            #   "C:\some_base_directory\{ClientID}\{Path}".
+            # In principle, this might need to be field-specific, so it could
+            # go in the data dictionary (rather than as a setting that's
+            # constant across an entire anonymisation run).
+            # Let's introduce ALTERMETHOD.FILENAME_FORMAT_TO_TEXT, in v0.18.18.
+            #
+            # Create a dictionary of column name -> value
+            ffdict = {}  # type: Dict[str, Any]
+            for i, ddr in enumerate(ddrows):
+                ffdict[ddr.src_field] = row[i]
+            # Use that dictionary with the format string to make the filename
+            log.debug("extract_text: file_format_str={}, ffdict={}".format(
+                repr(self.file_format_str), repr(ffdict)))
+            filename = self.file_format_str.format(**ffdict)
+            _, extension = os.path.split(filename)
+            log.info("extract_text: disk file, filename={}".format(filename))
+
+        else:
+            # The database contains the BLOB itself. However, we'd also like to
+            # know the file type, here from its extension. We look for another
+            # field that contains the extension, marked as such using
+            # alter_method.extract_ext_field in the data dictionary.
+            blob = value
+            extindex = next(
+                (i for i, ddr in enumerate(ddrows)
+                    if ddr.src_field == self.extract_ext_field),
+                None)
+            if extindex is None:
+                # Configuration error
+                raise ValueError(
+                    "Bug: missing extension field for "
+                    "alter_method={}".format(self.get_text()))
+            extension = row[extindex]
+            log.info("extract_text: database BLOB, extension={}".format(
+                extension))
+
+        # Is it a permissible filename?
+        if not config.extract_text_extension_permissible(extension):
+            log.info("Extension {} not permissible; skipping".format(
+                repr(extension)))
+            return None, False
+
+        # Extract text from the file (given its filename), or from a BLOB.
+        try:
+            value = document_to_text(filename=filename,
+                                     blob=blob,
+                                     extension=extension,
+                                     plain=config.extract_text_plain,
+                                     width=config.extract_text_width)
+        except Exception as e:
+            # Runtime error
+            traceback.print_exc()  # full details, please
+            log.error("Caught exception from document_to_text: {}".format(e))
+            return None, False
+        return value, True

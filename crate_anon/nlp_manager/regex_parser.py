@@ -26,7 +26,7 @@
 
 import logging
 import sys
-import typing
+import typing.re
 from typing import Any, Dict, Generator, List, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
@@ -277,8 +277,7 @@ class NumericalResultParser(BaseNlpParser):
                    doc=HELP_RELATION_TEXT),
             Column(FN_RELATION, String(MAX_RELATION_LENGTH),
                    doc=HELP_RELATION),
-            Column(FN_VALUE_TEXT, String(MAX_VALUE_TEXT_LENGTH),
-                   doc=HELP_VALUE_TEXT),
+            Column(FN_VALUE_TEXT, Text, doc=HELP_VALUE_TEXT),
             Column(FN_UNITS, String(MAX_UNITS_LENGTH), doc=HELP_UNITS),
             Column(self.target_unit, Float, doc=HELP_TARGET_UNIT),
             Column(FN_TENSE_TEXT, String(MAX_TENSE_TEXT_LENGTH),

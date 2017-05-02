@@ -86,7 +86,7 @@ def units_times(*args: str) -> str:
     return r"(?: {} )".format(joined)
 
 
-def units_by_dimension(*args: List[Tuple[str, int]],
+def units_by_dimension(*args: Tuple[Tuple[str, int], ...],
                        allow_no_operator: bool=False) -> str:
     multiply = " " + MULTIPLY_OR_SPACE + " "
     power_elements = []  # type: List[str]

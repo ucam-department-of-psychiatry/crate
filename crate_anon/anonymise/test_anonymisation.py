@@ -55,7 +55,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
-from crate_anon.anonymise.anonymise import config, extract_text
+from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.patient import Patient
 from crate_anon.common.fileops import mkdir_p
 from crate_anon.common.logsupport import configure_logger_for_colour
@@ -141,9 +141,9 @@ def get_patientnum_rawtext(docid: int,
         return None, None
     pid = row[idx_pidfield]
     text = row[idx_textfield]
+    ddr = src_ddrows[idx_textfield]
     for altermethod in fieldinfo.text_ddrow.get_extracting_text_altermethods():
-        text, extracted = extract_text(text, row, altermethod,
-                                       src_ddrows)
+        text, _ = altermethod.alter(config, text, ddr, row, src_ddrows)
     return pid, text
 
 

@@ -70,7 +70,7 @@ import fnmatch
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import regex
 from cardinal_pythonlib.rnc_db import (
@@ -92,7 +92,6 @@ from crate_anon.anonymise.constants import (
     MAX_PID_STR,
     SEP,
 )
-from crate_anon.anonymise.dbholder import DatabaseHolder
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
@@ -113,6 +112,9 @@ from crate_anon.common.sqla import (
     hack_in_mssql_xml_type,
     monkeypatch_TableClause,
 )
+
+if TYPE_CHECKING:
+    from crate_anon.anonymise.dbholder import DatabaseHolder
 
 log = logging.getLogger(__name__)
 
@@ -324,7 +326,7 @@ class Config(object):
                          srccfg_: DatabaseSafeConfig = None,
                          with_session: bool = False,
                          with_conn: bool = True,
-                         reflect: bool = True) -> DatabaseHolder:
+                         reflect: bool = True) -> "DatabaseHolder":
             return parser.get_database(section_,
                                        dbname=name,
                                        srccfg=srccfg_,
@@ -389,11 +391,23 @@ class Config(object):
         self.scrub_all_numbers_of_n_digits = opt_multiline_int(
             'scrub_all_numbers_of_n_digits', minimum=1)
         self.debug_pid_list = opt_multiline_int('debug_pid_list')
+        self.extract_text_extensions_case_sensitive = opt_bool(
+            'extract_text_extensions_case_sensitive', False)
+        self.extract_text_extensions_permitted = opt_multiline(
+            'extract_text_extensions_permitted')
+        self.extract_text_extensions_prohibited = opt_multiline(
+            'extract_text_extensions_prohibited')
         self.extract_text_plain = opt_bool('extract_text_plain', False)
         self.extract_text_width = opt_int('extract_text_width', 80)
         self.optout_pid_filenames = opt_multiline('optout_pid_filenames')
         self.optout_mpid_filenames = opt_multiline('optout_mpid_filenames')
         self.optout_col_values = opt_pyvalue_list('optout_col_values')
+
+        if not self.extract_text_extensions_case_sensitive:
+            self.extract_text_extensions_permitted = [
+                x.upper() for x in self.extract_text_extensions_permitted]
+            self.extract_text_extensions_permitted = [
+                x.upper() for x in self.extract_text_extensions_permitted]
 
         # Databases
         destination_database_cfg_section = opt_str('destination_database')
@@ -711,3 +725,10 @@ class Config(object):
         self._destdb_transaction_limiter.notify(n_rows=n_rows, n_bytes=n_bytes)
         # ... may trigger a commit
         self._dest_bytes_written += n_bytes
+
+    def extract_text_extension_permissible(self, extension: str) -> bool:
+        if not self.extract_text_extensions_case_sensitive:
+            extension = extension.upper()
+        if self.extract_text_extensions_permitted:
+            return extension in self.extract_text_extensions_permitted
+        return extension not in self.extract_text_extensions_prohibited

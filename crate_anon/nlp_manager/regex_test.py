@@ -22,7 +22,7 @@
 ===============================================================================
 """
 
-import typing
+import typing.re
 from typing import List, Tuple
 from crate_anon.nlp_manager.regex_func import compile_regex
 

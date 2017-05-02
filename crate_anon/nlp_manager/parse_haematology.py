@@ -23,7 +23,7 @@
 """
 
 import logging
-import typing
+import typing.re
 from typing import Optional
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition

@@ -32,6 +32,7 @@ To create a SQLAlchemy ORM programmatically:
 
 import logging
 import random
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Column,
@@ -50,8 +51,10 @@ from crate_anon.anonymise.constants import (
     PidType,
     TridType,
 )
-from crate_anon.anonymise.scrub import PersonalizedScrubber
 from crate_anon.common.sqla import exists_orm
+
+if TYPE_CHECKING:
+    from crate_anon.anonymise.scrub import PersonalizedScrubber
 
 log = logging.getLogger(__name__)
 admin_meta = MetaData()
@@ -107,7 +110,7 @@ class PatientInfo(AdminBase):
         self.mpid = mpid
         self.mrid = config.encrypt_master_pid(self.mpid)
 
-    def set_scrubber_info(self, scrubber: PersonalizedScrubber) -> None:
+    def set_scrubber_info(self, scrubber: "PersonalizedScrubber") -> None:
         self.scrubber_hash = scrubber.get_hash()
         if config.save_scrubbers:
             self.patient_scrubber_text = scrubber.get_patient_regex_string()

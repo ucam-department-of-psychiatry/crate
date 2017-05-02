@@ -247,10 +247,10 @@ class DataDictionary(object):
                 if t not in db.table_names:
                     log.debug(
                         "Source database {d} has tables: {tables}".format(
-                            d=d, tables=db.table_names))
+                            d=repr(d), tables=db.table_names))
                     raise ValueError(
                         "Table {t} missing from source database "
-                        "{d}".format(t=t, d=d))
+                        "{d}".format(t=repr(t), d=repr(d)))
 
                 # We may need to cross-reference rows, so all rows need to know
                 # their type.
@@ -258,7 +258,9 @@ class DataDictionary(object):
                     if r.src_field not in db.metadata.tables[t].columns:
                         raise ValueError(
                             "Column {c} missing from table {t} in source "
-                            "database {d}".format(c=r.src_field, t=t, d=d))
+                            "database {d}".format(c=repr(r.src_field),
+                                                  t=repr(t),
+                                                  d=repr(d)))
                     sqla_coltype = (
                         db.metadata.tables[t].columns[r.src_field].type)
                     r.set_src_sqla_coltype(sqla_coltype)

@@ -227,7 +227,7 @@ setup(
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==0.2.9',
+        'cardinal_pythonlib==0.2.11',
 
         'beautifulsoup4==4.5.3',
         'prettytable==0.7.2',
@@ -259,23 +259,26 @@ setup(
     entry_points={
         'console_scripts': [
             # Format is 'script=module:function".
-            'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
+
+            'crate_postcodes=crate_anon.preprocess.postcodes:main',
+            'crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main',
+            'crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main',  # noqa
+
             'crate_anonymise=crate_anon.anonymise.anonymise_cli:main',
             'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
+            'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
             'crate_test_extract_text=crate_anon.anonymise.test_extract_text:main',  # noqa
+
             'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
             'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main',  # noqa
             'crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main',  # noqa
             'crate_nlp_build_medex_itself=crate_anon.nlp_manager.build_medex_itself:main',  # noqa
 
-            'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_django_secret_key:main',  # noqa
-            'crate_estimate_mysql_memory_usage=crate_anon.tools.estimate_mysql_memory_usage:main',  # noqa
-            'crate_merge_csv=crate_anon.tools.merge_csv:main',
-
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_launch_django_server=crate_anon.crateweb.manage:runserver',
+
             'crate_launch_cherrypy_server=crate_anon.tools.launch_cherrypy_server:main',  # noqa
             # ... a separate script with ":main" rather than
             # "crate_anon.crateweb.manage:runcpserver" so that we can launch
@@ -287,8 +290,11 @@ setup(
 
             'crate_windows_service=crate_anon.tools.winservice:main',
 
-            'crate_postcodes=crate_anon.preprocess.postcodes:main',
-            'crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main',
+            'crate_estimate_mysql_memory_usage=crate_anon.tools.estimate_mysql_memory_usage:main',  # noqa
+            'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_django_secret_key:main',  # noqa
+            'crate_list_all_extensions=crate_anon.tools.list_all_extensions:main',  # noqa
+            'crate_merge_csv=crate_anon.tools.merge_csv:main',
+
         ],
     },
 )

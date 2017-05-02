@@ -481,6 +481,25 @@ change_detection_encryption_phrase = YETANOTHER
 # Text extraction
 # -----------------------------------------------------------------------------
 
+    # extract_text_extensions_permitted and extract_text_extensions_prohibited
+    # govern what kinds of files are accepted for text extraction. It is very
+    # likely that you'll want to apply such restrictions; for example, if your
+    # database contains .jpg files, it's a waste of trying to extract text from
+    # them (and in theory, if your text extraction tool provided sufficient
+    # detail, such as binary-encoding the JPEG, you might leak identifiable
+    # information, such as a photo).
+    #
+    # - The "permitted" and "prohibited" settings are both lists of strings.
+    # - If the "permitted" list is not empty then a file will be processed
+    #   only if its extension is in the permitted list. Otherwise, it will be
+    #   processed only if it is not in the prohibited list.
+    # - The extensions must include the "." prefix.
+    # - Case sensitivity is controlled by the extra flag.
+
+extract_text_extensions_case_sensitive = False
+extract_text_extensions_permitted =
+extract_text_extensions_prohibited =
+
     # Use the plainest possible layout for text extraction?
     # False = better for human layout. Table example from DOCX:
     #     +---------+---------+

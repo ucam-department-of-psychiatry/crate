@@ -29,28 +29,18 @@ Anonymise multiple SQL-based databases using a data dictionary.
 # Imports
 # =============================================================================
 
-import html
 import logging
 import random
 import sys
-import traceback
-from typing import Any, Dict, Iterable, Generator, List, Optional, Tuple
-
-import regex
+from typing import Any, Dict, Iterable, Generator, List, Tuple
 
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table
-from cardinal_pythonlib.rnc_datetime import (
-    coerce_to_date,
-    get_now_utc,
-    truncate_date_to_first_of_month,
-)
-from cardinal_pythonlib.rnc_extract_text import document_to_text
+from cardinal_pythonlib.rnc_datetime import get_now_utc
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
-    ALTERMETHOD,
     BIGSEP,
     DEFAULT_CHUNKSIZE,
     DEFAULT_REPORT_EVERY,
@@ -65,7 +55,6 @@ from crate_anon.anonymise.models import (
     TridRecord,
 )
 from crate_anon.anonymise.patient import Patient
-from crate_anon.anonymise.altermethod import AlterMethod
 from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.sql import matches_tabledef
@@ -620,12 +609,9 @@ def process_table(sourcedbname: str,
         n += 1
         if n % config.report_every_n_rows == 0:
             log.info(
-                start +
-                "processing record {recnum}/{count}{for_pt} "
+                start + "processing record {recnum}/{count}{for_pt} "
                 "({progress})".format(
-                    n=n,
-                    recnum=recnum+1,
-                    count=count,
+                    n=n, recnum=recnum+1, count=count,
                     for_pt=" for this patient" if pid is not None else "",
                     progress=config.overall_progress()))
         recnum += ntasks or 1
@@ -637,11 +623,8 @@ def process_table(sourcedbname: str,
                     "... ... skipping unchanged record (identical by hash): "
                     "{sd}.{st}.{spkf} = "
                     "(destination) {dt}.{dpkf} = {pkv}".format(
-                        sd=sourcedbname,
-                        st=sourcetable,
-                        spkf=src_pk_name,
-                        dt=dest_table,
-                        dpkf=dest_pk_name,
+                        sd=sourcedbname, st=sourcetable, spkf=src_pk_name,
+                        dt=dest_table, dpkf=dest_pk_name,
                         pkv=row[pkfield_index]))
                 continue
         if constant:
@@ -651,11 +634,8 @@ def process_table(sourcedbname: str,
                     "... ... skipping unchanged record (identical by PK and "
                     "marked as constant): {sd}.{st}.{spkf} = "
                     "(destination) {dt}.{dpkf} = {pkv}".format(
-                        sd=sourcedbname,
-                        st=sourcetable,
-                        spkf=src_pk_name,
-                        dt=dest_table,
-                        dpkf=dest_pk_name,
+                        sd=sourcedbname, st=sourcetable, spkf=src_pk_name,
+                        dt=dest_table, dpkf=dest_pk_name,
                         pkv=row[pkfield_index]))
                 continue
         destvalues = {}
@@ -678,38 +658,14 @@ def process_table(sourcedbname: str,
                 value = config.encrypt_master_pid(value)
 
             for alter_method in ddr.get_alter_methods():
-                if alter_method.scrub:
-                    if value is not None:
-                        # Main point of anonymisation!
-                        value = patient.scrub(value)
-                elif alter_method.truncate_date:
-                    try:
-                        value = coerce_to_date(value)
-                        value = truncate_date_to_first_of_month(value)
-                    except (ValueError, OverflowError):
-                        log.warning(
-                            "Invalid date received to "
-                            "{ALTERMETHOD.TRUNCATEDATE} method: {v}".format(
-                                ALTERMETHOD=ALTERMETHOD, v=value))
-                        value = None
-                elif alter_method.extract_text:
-                    value, extracted = extract_text(value, row, alter_method,
-                                                    ddrows)
-                    if not extracted and ddr.skip_row_if_extract_text_fails():
-                        log.debug("Skipping row as text extraction failed")
-                        skip_row = True
-                        break
-                # elif alter_method.html_escape:
-                #     value = html.escape(value)
-                elif alter_method.html_unescape:
-                    value = html.unescape(value)
-                elif alter_method.html_untag:
-                    value = html_untag(value)
-                elif alter_method.skip_if_text_extract_fails:
-                    # Modifies other alter methods; doesn't do anything itself
-                    pass
+                value, skiprow = alter_method.alter(config, value, ddr, row,
+                                                    ddrows, patient)
+                if skiprow:
+                    break  # from alter method loop
+
             if skip_row:
-                break
+                break  # from data dictionary row (field) loop
+
             destvalues[ddr.dest_field] = value
 
         if skip_row or not destvalues:
@@ -730,102 +686,6 @@ def process_table(sourcedbname: str,
 
     log.debug(start + "finished: pid={}".format(pid))
     commit_destdb()
-
-
-def extract_text(value: Any,
-                 row: List[Any],
-                 alter_method: AlterMethod,
-                 ddrows: List[DataDictionaryRow]) -> Tuple[Optional[str], bool]:
-    """
-    Take a field's value and return extracted text, for file-related fields,
-    where the DD row indicates that this field contains a filename or a BLOB.
-
-    Returns tuple: value, extracted
-    """
-    filename = None
-    blob = None
-    extension = None
-
-    # Work out either a full filename, or a BLOB.
-    if alter_method.extract_from_filename:
-        # The database contains a plain and full filename.
-        filename = value
-        log.info("extract_text: disk file, filename={}".format(filename))
-
-    elif alter_method.extract_from_file_format:
-        # The database contains a filename. However, it may not be a full
-        # path. For example, in RiO, we have fields like
-        #   dbo.ClientDocument.Path, e.g. '1-1-20121023-1000001-LET.pdf'
-        #   dbo.ClientDocument.ClientID, e.g. '1000001-LET.pdf'
-        # and the disk file might be
-        #   C:\some_base_directory\1000001\Docs\1-1-20121023-1000001-LET.pdf
-        # We could specify this as a file spec:
-        #   "C:\some_base_directory\{ClientID}\{Path}".
-        # In principle, this might need to be field-specific, so it could
-        # go in the data dictionary (rather than as a setting that's constant
-        # across an entire anonymisation run).
-        # Let's introduce ALTERMETHOD.FILENAME_FORMAT_TO_TEXT, in v0.18.18.
-        #
-        # Create a dictionary of column name -> value
-        ffdict = {}  # type: Dict[str, Any]
-        for i, ddr in enumerate(ddrows):
-            ffdict[ddr.src_field] = row[i]
-        # Use that dictionary with the format string to make the filename
-        log.debug("extract_text: file_format_str={}, ffdict={}".format(
-            repr(alter_method.file_format_str), repr(ffdict)))
-        filename = alter_method.file_format_str.format(**ffdict)
-        log.info("extract_text: disk file, filename={}".format(filename))
-
-    else:
-        # The database contains the BLOB itself. However, we'd also like to
-        # know the file type, here from its extension. We look for another
-        # field that contains the extension, marked as such using
-        # alter_method.extract_ext_field in the data dictionary.
-        blob = value
-        extindex = next(
-            (i for i, ddr in enumerate(ddrows)
-                if ddr.src_field == alter_method.extract_ext_field),
-            None)
-        if extindex is None:
-            # Configuration error
-            raise ValueError(
-                "Bug: missing extension field for "
-                "alter_method={}".format(alter_method.get_text()))
-        extension = row[extindex]
-        log.info("extract_text: database BLOB, extension={}".format(
-            extension))
-
-    # Extract text from the file (given its filename), or from a BLOB.
-    try:
-        value = document_to_text(filename=filename,
-                                 blob=blob,
-                                 extension=extension,
-                                 plain=config.extract_text_plain,
-                                 width=config.extract_text_width)
-    except Exception as e:
-        # Runtime error
-        traceback.print_exc()  # full details, please
-        log.error("Caught exception from document_to_text: {}".format(e))
-        return None, False
-    return value, True
-
-
-HTML_TAG_RE = regex.compile('<[^>]*>')
-
-
-def html_untag(text: str) -> str:
-    # Lots of ways...
-    # -- xml.etree, for well-formed XML
-    #    http://stackoverflow.com/questions/9662346
-    # return ''.join(xml.etree.ElementTree.fromstring(text).itertext())
-    # -- html.parser
-    #    http://stackoverflow.com/questions/753052
-    # -- lxml (but needs source build on Windows):
-    #    http://www.neuraladvance.com/removing-html-from-python-strings.html
-    #    http://lxml.de/
-    # -- regex/re
-    #    http://stackoverflow.com/questions/3662142
-    return HTML_TAG_RE.sub('', text)
 
 
 def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:

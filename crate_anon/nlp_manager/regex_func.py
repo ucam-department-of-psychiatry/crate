@@ -22,7 +22,7 @@
 ===============================================================================
 """
 
-import typing
+import typing.re
 from typing import Any, Dict, Optional, Tuple
 
 import regex

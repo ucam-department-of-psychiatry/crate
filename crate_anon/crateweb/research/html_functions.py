@@ -25,7 +25,7 @@
 import logging
 import re
 import textwrap
-import typing
+import typing.re
 from typing import Any, Dict, Iterable, List, Optional
 
 from django.contrib.staticfiles.templatetags.staticfiles import static

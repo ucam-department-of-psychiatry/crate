@@ -35,7 +35,7 @@ from django.core.cache import cache  # default cache
 from crate_anon.common.jsonfunc import json_encode
 
 FunctionType = Callable[..., Any]
-ArgsType = Tuple[Any]
+ArgsType = Tuple[Any, ...]
 KwargsType = Dict[str, Any]
 
 log = logging.getLogger(__name__)
