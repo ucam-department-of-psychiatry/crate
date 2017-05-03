@@ -183,6 +183,7 @@ setup(
         # ---------------------------------------------------------------------
         # Core tools with accessories:
         'arrow==0.10.0',  # better datetime
+        'chardet==3.0.2',  # character encoding detection for cardinal_pythonlib  # noqa
         'colorlog==2.10.0',  # colour in logs
         # 'configobj==5.0.6',  # better config files
         'distro==1.0.2',  # replaces platform.linux_distribution
@@ -227,7 +228,7 @@ setup(
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==0.2.11',
+        'cardinal_pythonlib==0.2.13',
 
         'beautifulsoup4==4.5.3',
         'prettytable==0.7.2',

@@ -212,7 +212,7 @@ public class CrateGatePipeline {
         // --------------------------------------------------------------------
         // Do interesting things
         // --------------------------------------------------------------------
-        reportArgs();
+        reportArgs(true);
         setupGate();
         m_log.info("Ready for input");
 
@@ -252,6 +252,7 @@ public class CrateGatePipeline {
     private void argfail(String msg) {
         // Don't use the log; it's not configured yet.
         writeStderr(msg);
+        reportArgs(false);
         abort();
     }
 
@@ -290,22 +291,22 @@ public class CrateGatePipeline {
         int i = 0;
         int nleft;
         String arg;
-        String insufficient = "Insufficient arguments";
+        String insufficient = "CrateGatePipeline: Insufficient arguments while processing ";
         // Process
         while (i < m_args.length) {
             arg = m_args[i++].toLowerCase();
             nleft = m_args.length - i;
             switch (arg) {
                 case "-a":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_target_annotations.add(m_args[i++]);
                     break;
                 case "-e":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_file_encoding = m_args[i++];
                     break;
                 case "-g":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_gapp_file = new File(m_args[i++]);
                     break;
                 case "-h":
@@ -313,34 +314,33 @@ public class CrateGatePipeline {
                     exit();
                     break;
                 case "-it":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_input_terminator = m_args[i++];
                     break;
                 case "-ot":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_output_terminator = m_args[i++];
                     break;
                 case "-lt":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_extra_log_prefix = m_args[i++];
                     break;
                 case "-v":
                     m_verbose++;
                     break;
                 case "-wa":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_annotxml_filename_stem = m_args[i++];
                     break;
                 case "-wg":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_gatexml_filename_stem = m_args[i++];
                     break;
                 case "-wt":
-                    if (nleft < 1) argfail(insufficient);
+                    if (nleft < 1) argfail(insufficient + arg);
                     m_tsv_filename_stem = m_args[i++];
                     break;
                 case "-s":
-                    if (nleft < 1) argfail(insufficient);
                     m_suppress_gate_stdout = true;
                     break;
                 default:
@@ -357,9 +357,14 @@ public class CrateGatePipeline {
         }
     }
 
-    private void reportArgs() {
+    private void reportArgs(boolean to_log) {
         for (int i = 0; i < m_args.length; i++) {
-            m_log.debug("Arg " + i + " = " + m_args[i]);
+            String s = "Arg " + i + " = " + m_args[i];
+            if (to_log) {
+                m_log.debug(s);
+            } else {
+                writeStderr(s);
+            }
         }
     }
 

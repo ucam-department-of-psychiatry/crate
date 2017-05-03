@@ -224,6 +224,8 @@ class DatabaseSafeConfig(object):
             'ddgen_binary_to_text_field_pairs')
         self.ddgen_skip_row_if_extract_text_fails_fields = opt_multiline(
             'ddgen_skip_row_if_extract_text_fails_fields')
+        self.ddgen_rename_tables_remove_suffixes = opt_multiline(
+            'ddgen_rename_tables_remove_suffixes', as_words=True)
 
         self.ddgen_index_fields = opt_multiline('ddgen_index_fields')
         self.ddgen_allow_fulltext_indexing = opt_bool(

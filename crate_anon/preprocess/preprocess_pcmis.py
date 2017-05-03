@@ -26,16 +26,15 @@ INCOMPLETE_DO_NOT_USE
 ===============================================================================
 PCMIS table structure
 ===============================================================================
-- No proper documentation, but the structure is clear.
-- See pcmis_information_schema.ods
-
+No proper documentation, but the structure is clear.
+See pcmis_information_schema.ods
 
 - PatientDetails
 
     PatientID -- PK; patient-defining field; VARCHAR(100)
     FirstName
     LastName
-    NHSNumber
+    NHSNumber -- VARCHAR(100)
     ...
 
 - Other per-patient things: Patient*
@@ -63,6 +62,28 @@ PCMIS table structure
 
     pcmis_UserProfiles
     Users
+
+===============================================================================
+Decisions re database keys and anonymisation
+===============================================================================
+
+For RiO, we had integer patient IDs but mangled into a text format. So there
+were distinct performance advantages in making an integer version. For PCMIS,
+patient IDs look like 'JC000001', 'SB000001' (where the letters are unrelated
+to patients' initials; I'm not sure what they refer to). There are numerical
+overlaps if you ignore the letters. So there is no neat integer mapping; we'd
+be inventing an arbitrary new key if we added one.
+
+So the tradeoff is simplicity (keep textual PK for patients) versus speed
+(parallel processing based on an integer operation). It's natural to think of
+an integer hash of a string, but this hash has to operate in the SQL
+domain, be portable, and produce an integer (so SQL Server's HASHBYTES is of 
+no use. At present (2017-05-02), our PCMIS copy has ~53,000 patients in, and
+there are lots of tables with patients in.
+
+Therefore, DECISION: create an integer PK.
+
+Our PCMIS copy certainly has free text (search the schema for text types).
 
 """
 
@@ -100,15 +121,15 @@ from crate_anon.common.sql import (
     ViewMaker,
 )
 from crate_anon.common.sqla import (
-    get_single_int_pk_colname,
-    get_single_int_autoincrement_colname,
+    get_effective_int_pk_col,
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
-from crate_anon.preprocess.rio_ddgen import (
-    DDHint,
-    get_rio_dd_settings,
+from crate_anon.preprocess.rio_constants import (
+    DEFAULT_GEOG_COLS,
+    ONSPD_TABLE_POSTCODE,
 )
+from crate_anon.preprocess.rio_ddgen import DDHint
 
 log = logging.getLogger(__name__)
 
@@ -117,14 +138,23 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CRATE_COL_PK = "crate_pk"
-CRATE_COL_PCMIS_NUMBER = "crate_pcmis_number"
 CRATE_COL_NHS_NUMBER = "crate_nhs_number_int"
-MASTER_PATIENT_TABLE = "PatientDetails"
-PCMIS_COL_PATIENT_ID_COL = "PatientId"
+CRATE_COL_PT_NUMBER = "crate_patient_number"
+CRATE_COL_PK = "crate_pk"
 
-PCMIS_DRAFT_DDGEN = """
-"""
+CRATE_VIEW_SUFFIX = "_crateview"
+
+PCMIS_COL_CASE_NUMBER = "CaseNumber"
+PCMIS_COL_NHS_NUMBER = "NHSNumber"
+PCMIS_COL_PATIENT_ID = "PatientId"
+PCMIS_COL_POSTCODE = "PostCode"
+PCMIS_COL_PREV_POSTCODE = "PreviousPostCode"
+
+PCMIS_TABLE_CASE_CONTACT_DETAILS = "CaseContactDetails"
+PCMIS_TABLE_MASTER_PATIENT = "PatientDetails"
+
+VIEW_CASE_CONTACT_DETAILS_W_GEOG = PCMIS_TABLE_CASE_CONTACT_DETAILS + CRATE_VIEW_SUFFIX  # noqa
+VIEW_PT_DETAIL_W_GEOG = PCMIS_TABLE_MASTER_PATIENT + CRATE_VIEW_SUFFIX
 
 
 # =============================================================================
@@ -140,131 +170,50 @@ ddgen_omit_fields =
 
 ddgen_include_fields = #
     # -------------------------------------------------------------------------
-    # RCEP core views:
+    # PCMIS core tables
     # -------------------------------------------------------------------------
-    Care_Plan_Index.*
-    Care_Plan_Interventions.*
-    Care_Plan_Problems.*
-    Client_Address_History.*
-    Client_Alternative_ID.*
-    Client_Allergies.*
-    Client_Communications_History.*
-    Client_CPA.*
-    Client_Demographic_Details.*
-    Client_Family.*
-    Client_GP_History.*
-    Client_Medication.*
-    Client_Name_History.*
-    Client_Personal_Contacts.*
-    Client_Physical_Details.*
-    Client_Prescription.*
-    Client_Professional_Contacts.*
-    Client_School.*
-    CPA_CareCoordinator.*
-    CPA_Review.*
-    Diagnosis.*
-    Inpatient_Stay.*
-    Inpatient_Leave.*
-    Inpatient_Movement.*
-    Inpatient_Named_Nurse.*
-    Inpatient_Sleepover.*
-    Referral.*
-    Progress_Notes.*
-    Referral_Staff_History.*
-    Referral_Team_History.*
-    Referral_Waiting_Status_History.*
+    Case*.*
+    Group*.*
+    Lexicon*.*  # system lookup tables
+    Lookups.*  # system lookup table
+    lu*.*  # system lookup tables
+    Patient*.*
+    ReferralDetails.*
+    System*.*  # system lookup tables
+    Users.*  # staff
     # -------------------------------------------------------------------------
-    # Non-core:
+    # Custom views from CRATE
     # -------------------------------------------------------------------------
-    CPFT_*.*  # all fields in "CPFT_*" views
 
 ddgen_allow_no_patient_info = False
 
-ddgen_per_table_pid_field = crate_rio_number
+ddgen_per_table_pid_field = {CRATE_COL_PT_NUMBER}
 
 ddgen_add_per_table_pids_to_scrubber = False
 
-ddgen_master_pid_fieldname = crate_nhs_number_int
-    # ... is in Client_Demographic_Details view
+ddgen_master_pid_fieldname = {CRATE_COL_NHS_NUMBER}
+    # ... an integer created as a view from {PCMIS_TABLE_MASTER_PATIENT}.{PCMIS_COL_NHS_NUMBER}
 
 ddgen_table_blacklist = #
     # -------------------------------------------------------------------------
     # Blacklist: Prefixes: groups of tables; individual tables
     # -------------------------------------------------------------------------
-    Agresso*  # Agresso [sic] module (comms to social worker systems)
-    ADT*  # ?admit/discharge/transfer messages (see codes in ADTMessage)
-    Ams*  # Appointment Management System (Ams) module
-    Audit*  # RiO Audit Trail
-    CDSContract*  # something to do with commissioner contracts
-    Chd*  # Child development (interesting, but lots of tables and all empty)
-    Client  # RiO 5; superseded by ClientIndex (and then view Client_Demographic_Details); ?runs alongside as partial duplicate?
-    ClientAddressHistory  # defunct according to RIO 6.2 docs
-    ClientAddressMerged  # defunct according to RIO 6.2 docs
-    ClientChild*  # child info e.g. birth/immunisation (interesting, but several tables and all empty)
-    ClientCommunityDomain # defunct according to RIO 6.2 docs
-    ClientFamily  # contains only a comment; see ClientFamilyLink instead
-    ClientMerge*  # record of admin events (merging of client records)
-    ClientPhoto*  # no use to us or identifiable!
-    ClientRestrictedRecord*  # ? but admin
-    Con*  # Contracts module
-    DA*  # Drug Administration within EP
-    DemAuditTrail  # not in v6.2 docs; ?audit trail for demographics
-    DgnDiagnosis  # "Obsolete"; see DiagnosisClient
-    DS*  # Drug Service within EP
-    dtoElectoralWardPCLookup  # we do our own geography; 2.5m records
-    EP*  # E-Prescribing (EP) module, which we don't have
-    #   ... mostly we don't have it, but we may have EPClientAllergies etc.
-    #   ... so see whitelist too
-    ESRImport  # user-to-?role map? Small and system.
-    ExternalSystem*  # system
-    GenChd*  # lookup codes for Chd*
-    GenCon*  # lookup codes for Con*
-    GenDiagnosis  # "Obsolete"
-    GenError*  # system
-    GenExtendedPostcode  # we provide our own geography lookups; 5m records
-    GenExtract*  # details of reporting extracts
-    GenHCPTemplateDetails  # HCP diary template
-    GenIDSeed  # system (counters for different ID types)
-    GenLicenseKeys  # system; NB shows what components are licensed!
-    GenNumbers  # just a list of integers
-    GenPostcodeGeographicDataMappings  # as above, we do our own geography; 2.5m records
-    GenPrinter*  # printers
-    GenToDoList  # user to-do list items/notifications
-    gridall  # same number of records as dtoElectoralWardPCLookup; also geography;
-    KP90ErrorLog  # error log for KP90 report; http://www.hscic.gov.uk/datacollections/kp90
-    LR*  # Legitimate Relationships module
-    Meeting*  # Meetings module
-    Mes*  # messaging
-    MonthlyPlanner*  # system
-    PSS*  # Prevention, Screening & Surveillance (PSS)
-    RioPerformanceTimings  # system
-    RR*  # Results Reporting (e.g. laboratories, radiology)
-    #   ... would be great, but we don't have it
-    RTT*  # RTT* = Referral-to-Treatment (RTT) data collection (see NHS England docs)
-    SAF*  # SAF* = system; looks like details of tablet devices
-    Scheduler*  # Scheduler* = Scheduler module (for RiO computing)
-    Sec*  # Security? Definitely RiO internal stuff.
-    SPINE*  # system
-    SPRExternalNotification  # system?
-    tbl*  # records of changes to tables?
-    TeamPlanner*  # system
-    Temp*  # system
-    umt*  # system
-    Wfl*  # workflow
-    WL*  # Waiting lists (WL) module
-    view_AuditTrailPurge  # system; e.g. 96m records
-    # -------------------------------------------------------------------------
-    # Blacklist: Middle bits, suffixes
-    # -------------------------------------------------------------------------
-    *Access*  # system access controls
-    *Backup  # I'm guessing backups...
-    *Cache*  # system
-    *Lock*  # system
-    *Timeout*  # system
+    aspnet_*  # admin tables
+    CaseCarer*  # details of carers
+    CaseChild*  # details of children
+    CaseEmergency*  # emergency contacts
+    CaseEmployer*  # employer details
+    MissingData  # system?
+    ODBC_*  # admin tables
+    PatientCarer*  # details of carers
+    PatientDetails  # replaced by {VIEW_PT_DETAIL_W_GEOG}
+    PatientChild*  # details of children
+    PatientEmergency*  # emergency contacts
+    PatientEmployer*  # employer details
+    pcmis_*  # admin tables
     # -------------------------------------------------------------------------
     # Blacklist: CPFT custom
     # -------------------------------------------------------------------------
-    CDL_OUTDATEDPATIENTS_TWI  # RiO to CPFT 'M' number mapping, but we will use NHS number
     # -------------------------------------------------------------------------
     # Blacklist: Views supersede
     # Below here, we have other tables suppressed because CRATE's views offer
@@ -272,26 +221,7 @@ ddgen_table_blacklist = #
     # -------------------------------------------------------------------------
     {suppress_tables}
 
-# USEFUL TABLES (IN CPFT INSTANCE) INCLUDE:
-# =========================================
-# Assessment* = includes maps of non-core assessments (see e.g. AssessmentIndex)
-# CDL_OUTDATEDPATIENTS_TWI = map from TWI (trust-wide identifier) to old CPFT M number
-# UserAssess* = non-core assessments themselves
-# UserMaster* = lookup tables for non-core assessments
-
-ddgen_table_whitelist = #
-    # -------------------------------------------------------------------------
-    # Whitelist: Prefixes: groups of tables
-    # -------------------------------------------------------------------------
-    EPClientAllergy*  # Allergy details within EP module
-    # -------------------------------------------------------------------------
-    # Whitelist: Suffixes
-    # -------------------------------------------------------------------------
-    *_crate  # Views added by CRATE
-    # -------------------------------------------------------------------------
-    # Whitelist: Individual tables
-    # -------------------------------------------------------------------------
-    EPReactionType  # Allergy reaction type details within EP module
+ddgen_table_whitelist =
 
 ddgen_table_require_field_absolute = #
     # All tables/fields must have crate_pk
@@ -299,178 +229,227 @@ ddgen_table_require_field_absolute = #
 
 ddgen_table_require_field_conditional = #
     # If a table/view has ClientID, it must have crate_rio_number
-    {RIO_COL_PATIENT_ID}, {CRATE_COL_RIO_NUMBER}
+    {PCMIS_COL_PATIENT_ID_COL}, {CRATE_COL_PT_NUMBER}
 
 ddgen_field_blacklist = #
-    {RIO_COL_PATIENT_ID}  # replaced by crate_rio_number (which is then pseudonymised)
-    *Soundex  # identifying 4-character code; https://msdn.microsoft.com/en-us/library/ms187384.aspx
-    Spine*  # NHS Spine identifying codes
+    {PCMIS_COL_PATIENT_ID_COL}  # replaced by {CRATE_COL_PT_NUMBER} (which is then pseudonymised)
 
 ddgen_field_whitelist =
 
-ddgen_pk_fields = crate_pk
+ddgen_pk_fields = {CRATE_COL_PK}
 
 ddgen_constant_content = False
-
 ddgen_constant_content_tables =
-
 ddgen_nonconstant_content_tables =
-
 ddgen_addition_only = False
-
-ddgen_addition_only_tables = #
-    UserMaster*  # Lookup tables for non-core - addition only?
-
+ddgen_addition_only_tables =
 ddgen_deletion_possible_tables =
 
-ddgen_pid_defining_fieldnames = Client_Demographic_Details.crate_rio_number
+ddgen_pid_defining_fieldnames = {VIEW_PT_DETAIL_W_GEOG}.{CRATE_COL_PT_NUMBER}
 
 ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
-    # Original RiO tables (some may be superseded by views; list both here;
+    # Original PCMIS tables (some may be superseded by views; list both here;
     # if the table is blacklisted anyway, it doesn't matter).
     # ----------------------------------------------------------------------
-    AmsReferral.DischargeAddressLine*  # superseded by view Referral
-    AmsReferral.DischargePostCode  # superseded by view Referral
-    ClientAddress.AddressLine*  # superseded by view Client_Address_History
-    ClientAddress.PostCode  # superseded by view Client_Address_History
-    ClientAlternativeID.ID  # superseded by view Client_Alternative_ID
-    ClientIndex.crate_pk  # superseded by view Client_Demographic_Details
-    ClientIndex.DateOfBirth  # superseded by view Client_Demographic_Details
-    ClientIndex.DaytimePhone  # superseded by view Client_Demographic_Details
-    ClientIndex.EMailAddress  # superseded by view Client_Demographic_Details
-    ClientIndex.EveningPhone  # superseded by view Client_Demographic_Details
-    ClientIndex.Firstname  # superseded by view Client_Demographic_Details
-    ClientIndex.MobilePhone  # superseded by view Client_Demographic_Details
-    ClientIndex.NINumber  # superseded by view Client_Demographic_Details
-    ClientIndex.OtherAddress  # superseded by view Client_Demographic_Details
-    ClientIndex.SpineID  # superseded by view Client_Demographic_Details
-    ClientIndex.Surname  # superseded by view Client_Demographic_Details
-    ClientName.GivenName*  # superseded by view Client_Name_History
-    ClientName.Surname  # superseded by view Client_Name_History
-    ClientTelecom.Detail  # superseded by view Client_Communications_History
-    ImsEvent.DischargeAddressLine*  # superseded by view Inpatient_Stay
-    ImsEvent.DischargePostCode*  # superseded by view Inpatient_Stay
-    ImsEventLeave.AddressLine*  # superseded by view Inpatient_Leave
-    ImsEventLeave.PostCode  # superseded by view Inpatient_Leave
+    CaseContactDetails.CaseNumber
+    CaseContactDetails.FirstName
+    CaseContactDetails.MiddleName
+    CaseContactDetails.LastName
+    CaseContactDetails.DOB
+    CaseContactDetails.Address*
+    CaseContactDetails.TownCity
+    CaseContactDetails.County
+    CaseContactDetails.PostCode
+    CaseContactDetails.TelHome
+    CaseContactDetails.TelMobile
+    CaseContactDetails.TelWork
+    CaseContactDetails.FamilyName
+    CaseContactDetails.PreviousName
+    CaseContactDetails.PreviousAddress*
+    CaseContactDetails.PreviousTownCity
+    CaseContactDetails.PreviousCounty
+    CaseContactDetails.PreviousPostCode
+    CaseContactDetails.Email
+    CaseContactDetails.OtherCaseNumber
+    CaseContactDetails.NHSNumberVerified
+    CaseEpisodes.LinkedCaseNumber
+    PatientDetails.PatientID
+    PatientDetails.FirstName
+    PatientDetails.MiddleName
+    PatientDetails.LastName
+    PatientDetails.DOB
+    PatientDetails.Address*  # Address1, Address2, Address3
+    PatientDetails.TownCity
+    PatientDetails.County
+    PatientDetails.PostCode
+    PatientDetails.Tel*  # TelHome, TelMobile, TelWork
+    PatientDetails.NHSNumber
+    PatientDetails.FamilyName
+    PatientDetails.PreviousName
+    PatientDetails.PreviousAddress*
+    PatientDetails.PreviousTownCity
+    PatientDetails.PreviousCounty
+    PatientDetails.PreviousPostCode
+    PatientDetails.Email
+    PatientDetails.DependantChildren  # is VARCHAR(100)
+    PatientDetails.LastNameAlias
+    PatientDetails.FirstNameAlias
+    PatientDetails.DisplayName
     # ----------------------------------------------------------------------
     # Views
     # ----------------------------------------------------------------------
-    Client_Address_History.Address_Line_*
-    Client_Address_History.Post_Code
-    Client_Alternative_ID.ID
-    Client_Communications_History.crate_telephone
-    Client_Communications_History.crate_email_address
-    Client_Demographic_Details.crate_rio_number
-    Client_Demographic_Details.NHS_Number
-    Client_Demographic_Details.Firstname
-    Client_Demographic_Details.Surname
-    Client_Demographic_Details.Date_of_Birth
-    Client_Demographic_Details.*Phone
-    Client_Demographic_Details.Superseding_NHS_Number
-    Client_Name_History.Given_Name_*
-    Client_Name_History.Family_Name
-    Inpatient_Leave.Address_Line*
-    Inpatient_Leave.PostCode
-    Inpatient_Stay.Discharge_Address_Line_*
-    Inpatient_Stay.Discharge_Post_Code*
-    Referral.Discharge_Address_Line_*
-    Referral.Discharge_Post_Code*
-    {VIEW_ADDRESS_WITH_GEOGRAPHY}.AddressLine*  # superseded by other view Client_Address_History
-    {VIEW_ADDRESS_WITH_GEOGRAPHY}.PostCode  # superseded by other view Client_Address_History
+    {VIEW_PT_DETAIL_W_GEOG}.PatientID
+    {VIEW_PT_DETAIL_W_GEOG}.FirstName
+    {VIEW_PT_DETAIL_W_GEOG}.MiddleName
+    {VIEW_PT_DETAIL_W_GEOG}.LastName
+    {VIEW_PT_DETAIL_W_GEOG}.DOB
+    {VIEW_PT_DETAIL_W_GEOG}.Address*  # Address1, Address2, Address3
+    {VIEW_PT_DETAIL_W_GEOG}.TownCity
+    {VIEW_PT_DETAIL_W_GEOG}.County
+    {VIEW_PT_DETAIL_W_GEOG}.PostCode
+    {VIEW_PT_DETAIL_W_GEOG}.Tel*  # TelHome, TelMobile, TelWork
+    {VIEW_PT_DETAIL_W_GEOG}.NHSNumber
+    {VIEW_PT_DETAIL_W_GEOG}.FamilyName
+    {VIEW_PT_DETAIL_W_GEOG}.PreviousName
+    {VIEW_PT_DETAIL_W_GEOG}.PreviousAddress*
+    {VIEW_PT_DETAIL_W_GEOG}.PreviousTownCity
+    {VIEW_PT_DETAIL_W_GEOG}.PreviousCounty
+    {VIEW_PT_DETAIL_W_GEOG}.PreviousPostCode
+    {VIEW_PT_DETAIL_W_GEOG}.Email
+    {VIEW_PT_DETAIL_W_GEOG}.DependantChildren  # is VARCHAR(100)
+    {VIEW_PT_DETAIL_W_GEOG}.LastNameAlias
+    {VIEW_PT_DETAIL_W_GEOG}.FirstNameAlias
+    {VIEW_PT_DETAIL_W_GEOG}.DisplayName
 
 ddgen_scrubsrc_thirdparty_fields = # several:
     # ----------------------------------------------------------------------
-    # Original RiO tables (some may be superseded by views; list both here)
+    # Original PCMIS tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
-    # ClientFamilyLink.RelatedClientID  # superseded by view Client_Family
-    ClientContact.Surname  # superseded by view Client_Personal_Contacts
-    ClientContact.Firstname  # superseded by view Client_Personal_Contacts
-    ClientContact.AddressLine*  # superseded by view Client_Personal_Contacts
-    ClientContact.PostCode  # superseded by view Client_Personal_Contacts
-    ClientContact.*Phone  # superseded by view Client_Personal_Contacts
-    ClientContact.EmailAddress  # superseded by view Client_Personal_Contacts
-    ClientContact.NHSNumber  # superseded by view Client_Personal_Contacts
-    # ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
-    # ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
+    CaseCarerDetails.CarerName
+    CaseCarerDetails.CarerTelHome
+    CaseCarerDetails.CarerTelWork
+    CaseCarerDetails.CarerTelMobile
+    CaseCarerDetails.CarerAddress*
+    CaseCarerDetails.CarerTownCity
+    CaseCarerDetails.CarerCounty
+    CaseCarerDetails.CarerPostcode
+    CaseChildDetails.ChildCarer  # NVARCHAR(50)
+    CaseChildDetails.FirstName
+    CaseChildDetails.MiddleName
+    CaseChildDetails.LastName
+    CaseChildDetails.DOB
+    CaseEmergencyDetails.EmergencyContact
+    CaseEmergencyDetails.EmergencyAddress*
+    CaseEmergencyDetails.EmergencyTownCity
+    CaseEmergencyDetails.EmergencyCounty
+    CaseEmergencyDetails.EmergencyPostcode
+    CaseEmergencyDetails.EmergencyTelephone
+    CaseEmployerDetails.EmployerName
+    CaseEmployerDetails.EmployerJobTitle
+    CaseEmployerDetails.EmployerContact
+    CaseEmployerDetails.EmployerAddress*
+    CaseEmployerDetails.EmployerTownCity
+    CaseEmployerDetails.EmployerCounty
+    CaseEmployerDetails.EmployerPostcode
+    CaseEmployerDetails.EmployerTelephone
+    PatientCarerDetails.CarerName
+    PatientCarerDetails.CarerTelHome
+    PatientCarerDetails.CarerTelWork
+    PatientCarerDetails.CarerTelMobile
+    PatientCarerDetails.CarerAddress*
+    PatientCarerDetails.CarerTownCity
+    PatientCarerDetails.CarerCounty
+    PatientCarerDetails.CarerPostCode
+    PatientChildDetails.ChildCarer  # VARCHAR(50)
+    PatientChildDetails.FirstName
+    PatientChildDetails.MiddleName
+    PatientChildDetails.LastName
+    PatientChildDetails.DOB
+    PatientEmergencyDetails.NextOfKin
+    PatientEmergencyDetails.EmergencyContact
+    PatientEmergencyDetails.EmergencyAddress*
+    PatientEmergencyDetails.EmergencyTownCity
+    PatientEmergencyDetails.EmergencyCounty
+    PatientEmergencyDetails.EmergencyPostcode
+    PatientEmergencyDetails.EmergencyTelephone
+    PatientEmployerDetails.EmployerName
+    PatientEmployerDetails.EmployerJobTitle
+    PatientEmployerDetails.EmployerContact
+    PatientEmployerDetails.EmployerAddress*
+    PatientEmployerDetails.EmployerTownCity
+    PatientEmployerDetails.EmployerCounty
+    PatientEmployerDetails.EmployerPostcode
+    PatientEmployerDetails.EmployerTelephone
     # ----------------------------------------------------------------------
-    # RCEP/CRATE views
+    # CRATE views
     # ----------------------------------------------------------------------
-    Client_Personal_Contacts.Family_Name
-    Client_Personal_Contacts.Given_Name
-    Client_Personal_Contacts.Address_Line_*
-    Client_Personal_Contacts.Post_Code
-    Client_Personal_Contacts.*Phone
-    Client_Personal_Contacts.Email_Address
-    Client_Personal_Contacts.NHS_Number
 
 ddgen_scrubsrc_thirdparty_xref_pid_fields = # several:
     # ----------------------------------------------------------------------
-    # Original RiO tables (some may be superseded by views; list both here)
+    # Original PCMIS tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
-    # none; these are not integer:
-    # ClientFamilyLink.RelatedClientID  # superseded by view Client_Family
-    # ClientIndex.MainCarer  # superseded by view Client_Demographic_Details
-    # ClientIndex.OtherCarer  # superseded by view Client_Demographic_Details
     # ----------------------------------------------------------------------
     # RCEP/CRATE views
     # ----------------------------------------------------------------------
-    Client_Demographic_Details.Main_Carer
-    Client_Demographic_Details.Other_Carer
-    Client_Family.Related_Client_ID
 
 ddgen_required_scrubsrc_fields = # several:
-    Client_Demographic_Details.Date_Of_Birth
-    Client_Name_History.Given_Name_1
-    Client_Name_History.Family_Name
+    PatientDetails.FirstName
+    PatientDetails.LastName  # always present, but FamilyName can be NULL
+    PatientDetails.DOB
 
 ddgen_scrubmethod_code_fields = # variants:
-    *PostCode*
-    *Post_Code*
-    NINumber
-    National_Insurance_Number
-    ClientAlternativeID.ID
-    Client_Alternative_ID.ID
+    *PostCode
+    *Postcode
 
-ddgen_scrubmethod_date_fields = *Date*
+ddgen_scrubmethod_date_fields =
+    *DOB*
 
 ddgen_scrubmethod_number_fields = #
-    *Phone*
-    *NNN*
-    *NHS_Number*
+    *Tel*
+    *NHSNumber*
 
 ddgen_scrubmethod_phrase_fields = *Address*
 
 ddgen_safe_fields_exempt_from_scrubbing =
 
-    # RiO mostly uses string column lengths of 4, 10, 20, 40, 80, 500,
-    # unlimited. So what length is the minimum for "free text"?
-    # Comments are 500. Lots of 80-length fields are lookup descriptions.
-    # (Note that many scrub-SOURCE fields are of length 80, e.g. address
-    # fields, but they need different special handling.)
-ddgen_min_length_for_scrubbing = 81
+    # PCMIS mostly uses string column lengths of 1, 20, 32, 50, 64, 100, 128,
+    # 200, 250, 255, 256, 500, 1000, 2000, 4000, unlimited.
+    # So what length is the minimum for "free text"?
+    # - 20: mostly postcodes, lookup codes
+    # - 32: telephone numbers
+    # - 50: includes CaseAssessmentContactType.Purpose, plus lookup codes.
+    #       Also includes CaseChildDetails.Impact
+    # - 64: mostly codes; also e.g. ReferralDetails.EndOfCareReason
+    # - 100: lots of generic things, like CaseAssessmentCustom1.Q1
+ddgen_min_length_for_scrubbing = 50
 
-ddgen_truncate_date_fields = Client_Demographic_Details.Date_Of_Birth
+ddgen_truncate_date_fields =
+    CaseContactDetails.DOB
+    PatientDetails.DOB
 
-ddgen_filename_to_text_fields = Clinical_Documents.Path
-
+ddgen_filename_to_text_fields =
 ddgen_binary_to_text_field_pairs =
-
-ddgen_skip_row_if_extract_text_fails_fields = Clinical_Documents.Path
+ddgen_skip_row_if_extract_text_fails_fields =
+ddgen_rename_tables_remove_suffixes = {CRATE_VIEW_SUFFIX}
+ddgen_patient_opt_out_fields =
 
 ddgen_index_fields =
-
 ddgen_allow_fulltext_indexing = True
 
 ddgen_force_lower_case = False
-
 ddgen_convert_odd_chars_to_underscore = True
+
     """.format(  # noqa
         CRATE_COL_PK=CRATE_COL_PK,
-        CRATE_COL_RIO_NUMBER=CRATE_COL_RIO_NUMBER,
-        RIO_COL_PATIENT_ID=RIO_COL_PATIENT_ID,
+        CRATE_COL_PT_NUMBER=CRATE_COL_PT_NUMBER,
+        CRATE_COL_NHS_NUMBER=CRATE_COL_NHS_NUMBER,
+        CRATE_VIEW_SUFFIX=CRATE_VIEW_SUFFIX,
+        PCMIS_COL_NHS_NUMBER=PCMIS_COL_NHS_NUMBER,
+        PCMIS_COL_PATIENT_ID_COL=PCMIS_COL_PATIENT_ID,
+        PCMIS_TABLE_MASTER_PATIENT=PCMIS_TABLE_MASTER_PATIENT,
         suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
-        VIEW_ADDRESS_WITH_GEOGRAPHY=VIEW_ADDRESS_WITH_GEOGRAPHY,
+        VIEW_PT_DETAIL_W_GEOG=VIEW_PT_DETAIL_W_GEOG,
     )
 
 
@@ -478,87 +457,286 @@ ddgen_convert_odd_chars_to_underscore = True
 # Generic table processors
 # =============================================================================
 
-def is_per_case_table(table: Table) -> bool:
-    pass
+def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
+    log.info("Preprocessing patient table: {}".format(repr(table.name)))
+    pk_col = get_effective_int_pk_col(table)
+    pcmis_pk = pk_col if pk_col != CRATE_COL_PK else None
+    string_pt_id = PCMIS_COL_PATIENT_ID
+    required_cols = [string_pt_id]
+    if not progargs.print:
+        required_cols.extend([CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+
+    # -------------------------------------------------------------------------
+    # Add pk and rio_number columns, if not present
+    # -------------------------------------------------------------------------
+    if rio_type and rio_pk is not None:
+        crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
+        # ... can't do NOT NULL; need to populate it
+        required_cols.append(rio_pk)
+    else:  # RCEP type, or no PK in RiO
+        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
+                                                        engine.dialect)
+        # ... autopopulates
+    crate_rio_number_col = Column(CRATE_COL_RIO_NUMBER, BigInteger,
+                                  nullable=True)
+    # ... even if RiO numbers are INT, they come from VARCHAR(15) here, and
+    # that can (aod does) look numeric and overflow an INT.
+    # SQL Server requires Table-bound columns in order to generate DDL:
+    table.append_column(crate_pk_col)
+    table.append_column(crate_rio_number_col)
+    add_columns(engine, table, [crate_pk_col, crate_rio_number_col])
+
+    # -------------------------------------------------------------------------
+    # Update pk and rio_number values, if not NULL
+    # -------------------------------------------------------------------------
+    ensure_columns_present(engine, tablename=table.name,
+                           column_names=required_cols)
+    cast_id_to_int = sql_fragment_cast_to_int(string_pt_id,
+                                              dialect=engine.dialect)
+    if rio_type and rio_pk:
+        log.info("Table {}: updating columns {} and {}".format(
+            repr(table.name), repr(CRATE_COL_PK), repr(CRATE_COL_RIO_NUMBER)))
+        execute(engine, """
+            UPDATE {tablename} SET
+                {crate_pk} = {rio_pk},
+                {crate_rio_number} = {cast_id_to_int}
+            WHERE
+                {crate_pk} IS NULL
+                OR {crate_rio_number} IS NULL
+        """.format(
+            tablename=table.name,
+            crate_pk=CRATE_COL_PK,
+            rio_pk=rio_pk,
+            crate_rio_number=CRATE_COL_RIO_NUMBER,
+            cast_id_to_int=cast_id_to_int,
+        ))
+    else:
+        # RCEP format, or RiO with no PK
+        # crate_pk is autogenerated as an INT IDENTITY field
+        log.info("Table {}: updating column {}".format(
+            repr(table.name), repr(CRATE_COL_RIO_NUMBER)))
+        execute(engine, """
+            UPDATE {tablename} SET
+                {crate_rio_number} = {cast_id_to_int}
+            WHERE
+                {crate_rio_number} IS NULL
+        """.format(  # noqa
+            tablename=table.name,
+            crate_rio_number=CRATE_COL_RIO_NUMBER,
+            cast_id_to_int=cast_id_to_int,
+        ))
+    # -------------------------------------------------------------------------
+    # Add indexes, if absent
+    # -------------------------------------------------------------------------
+    # Note that the indexes are unlikely to speed up the WHERE NOT NULL search
+    # above, so it doesn't matter that we add these last. Their use is for
+    # the subsequent CRATE anonymisation table scans.
+    add_indexes(engine, table, [
+        {
+            'index_name': CRATE_IDX_PK,
+            'column': CRATE_COL_PK,
+            'unique': True,
+        },
+        {
+            'index_name': CRATE_IDX_RIONUM,
+            'column': CRATE_COL_RIO_NUMBER,
+        },
+    ])
+
+
+def drop_for_patient_table(table: Table, engine: Engine) -> None:
+    drop_indexes(engine, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
+    drop_columns(engine, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
+
+
+def process_nonpatient_table(table: Table,
+                             engine: Engine,
+                             progargs: Any) -> None:
+    if progargs.rcep:
+        return
+    log.info("Preprocessing non-patient table {}".format(repr(table.name)))
+    pk_col = get_rio_int_pk_col(table)
+    other_pk_col = pk_col if pk_col != CRATE_COL_PK else None
+    if other_pk_col:  # table has a primary key already
+        crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
+    else:
+        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
+                                                        engine.dialect)
+    table.append_column(crate_pk_col)  # must be Table-bound, as above
+    add_columns(engine, table, [crate_pk_col])
+    if not progargs.print:
+        ensure_columns_present(engine, tablename=table.name,
+                               column_names=[CRATE_COL_PK])
+    if other_pk_col:
+        execute(engine, """
+            UPDATE {tablename} SET {crate_pk} = {rio_pk}
+            WHERE {crate_pk} IS NULL
+        """.format(tablename=table.name,
+                   crate_pk=CRATE_COL_PK,
+                   rio_pk=other_pk_col))
+    add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
+                                 'column': CRATE_COL_PK,
+                                 'unique': True}])
+
+
+def drop_for_nonpatient_table(table: Table, engine: Engine) -> None:
+    drop_indexes(engine, table, [CRATE_IDX_PK])
+    drop_columns(engine, table, [CRATE_COL_PK])
 
 
 # =============================================================================
 # Specific table processors
 # =============================================================================
 
+def process_master_patient_table(table: Table,
+                                 engine: Engine,
+                                 progargs: Any) -> None:
+    # 1. Integer patient PK
+    crate_int_patient_pk_col = make_bigint_autoincrement_column(
+        CRATE_COL_PT_NUMBER, engine.dialect)
+    # ... autopopulates
+
+    # 2. NHS number
+    
+    crate_col_nhs_number = Column(CRATE_COL_NHS_NUMBER, BigInteger,
+                                  nullable=True)
+    table.append_column(crate_col_nhs_number)
+    add_columns(engine, table, [crate_col_nhs_number])
+    log.info("Table {}: updating column {} -> {}".format(
+        repr(table.name),
+        repr(PCMIS_COL_NHS_NUMBER),
+        repr(CRATE_COL_NHS_NUMBER)))
+    ensure_columns_present(engine, tablename=table.name,
+                           column_names=[PCMIS_COL_NHS_NUMBER])
+    if not progargs.print:
+        ensure_columns_present(engine, tablename=table.name,
+                               column_names=[CRATE_COL_NHS_NUMBER])
+    execute(engine, """
+        UPDATE {tablename} SET
+            {nhs_number_int} = CAST({nhscol} AS BIGINT)
+            WHERE {nhs_number_int} IS NULL
+    """.format(
+        tablename=table.name,
+        nhs_number_int=CRATE_COL_NHS_NUMBER,
+        nhscol=PCMIS_COL_NHS_NUMBER,
+    ))
+
+
+def drop_for_master_patient_table(table: Table, engine: Engine) -> None:
+    drop_columns(engine, table, [CRATE_COL_PT_NUMBER,
+                                 CRATE_COL_NHS_NUMBER])
+
 
 # =============================================================================
 # PCMIS views
 # =============================================================================
 
+# noinspection PyUnusedLocal
+def create_pcmis_views(engine: Engine,
+                       metadata: MetaData,
+                       progargs: Any,
+                       ddhint: DDHint) -> None:  # ddhint modified
+    pass
+
+
+# noinspection PyUnusedLocal
+def drop_pcmis_views(engine: Engine,
+                     metadata: MetaData,
+                     progargs: Any,
+                     ddhint: DDHint) -> None:  # ddhint modified
+    pass
 
 
 # =============================================================================
 # Geography views
 # =============================================================================
 
-def add_postcode_geography_view(engine: Engine,
-                                progargs: Any,
-                                ddhint: DDHint) -> None:  # ddhint modified
+def add_geography_view(basetable: str,
+                       viewname: str,
+                       engine: Engine,
+                       progargs: Any,
+                       ddhint: DDHint) -> None:  # ddhint modified
+    postcode_alias_1 = "_postcodetable1"
+    postcode_alias_2 = "_postcodetable2"
+    prev_prefix = "previous_"
+
     # Re-read column names, as we may have inserted some recently by hand that
     # may not be in the initial metadata.
-    if progargs.rio:
-        addresstable = RIO_TABLE_ADDRESS
-        rio_postcodecol = RIO_COL_POSTCODE
-    else:
-        addresstable = RCEP_TABLE_ADDRESS
-        rio_postcodecol = RCEP_COL_POSTCODE
-    orig_column_names = get_column_names(engine, tablename=addresstable,
+    orig_column_names = get_column_names(engine, tablename=basetable, 
                                          sort=True)
 
     # Remove any original column names being overridden by new ones.
     # (Could also do this the other way around!)
-    geogcols_lowercase = [x.lower() for x in progargs.geogcols]
+    newcols_lowercase = (
+        [x.lower() for x in progargs.geogcols] +
+        [prev_prefix + x.lower() for x in progargs.geogcols]
+    )
     orig_column_names = [x for x in orig_column_names
-                         if x.lower() not in geogcols_lowercase]
-
+                         if x.lower() not in newcols_lowercase]
     orig_column_specs = [
-        "{t}.{c}".format(t=addresstable, c=col)
+        "{t}.{c}".format(t=PCMIS_TABLE_MASTER_PATIENT, c=col)
         for col in orig_column_names
     ]
     geog_col_specs = [
-        "{db}.{t}.{c}".format(db=progargs.postcodedb,
-                              t=ONSPD_TABLE_POSTCODE,
-                              c=col)
+        "{postcode_alias_1}.{c} AS {c}".format(
+            postcode_alias_1=postcode_alias_1,
+            c=col)
+        for col in sorted(progargs.geogcols, key=lambda x: x.lower())
+    ] + [
+        "{postcode_alias_2}.{c} AS {prev_prefix}{c}".format(
+            postcode_alias_2=postcode_alias_2,
+            prev_prefix=prev_prefix,
+            c=col)
         for col in sorted(progargs.geogcols, key=lambda x: x.lower())
     ]
-    overlap = set(orig_column_names) & set(progargs.geogcols)
-    if overlap:
-        raise ValueError(
-            "Columns overlap: address table contains columns {}; "
-            "geogcols = {}; overlap = {}".format(
-                orig_column_names, progargs.geogcols, overlap))
-    ensure_columns_present(engine, tablename=addresstable, column_names=[
-        rio_postcodecol])
+
+    ensure_columns_present(engine,
+                           tablename=basetable,
+                           column_names=[PCMIS_COL_POSTCODE,
+                                         PCMIS_COL_PREV_POSTCODE])
     select_sql = """
         SELECT {origcols},
             {geogcols}
-        FROM {addresstable}
-        LEFT JOIN {pdb}.{pcdtab}
-        ON {addresstable}.{rio_postcodecol} = {pdb}.{pcdtab}.pcds
-        -- RCEP, and presumably RiO, appear to use the ONS pcds format, of
-        -- 2-4 char outward code; space; 3-char inward code.
-        -- If this fails, use this slower version:
-        -- ON REPLACE({addresstable}.{rio_postcodecol},
-        --            ' ',
-        --            '') = {pdb}.{pcdtab}.pcd_nospace
+        FROM {basetable}
+        -- PCMIS can have either 'XX99 9XX' or 'XX999XX' format:
+        LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_1}
+            ON REPLACE({basetable}.{PCMIS_COL_POSTCODE},
+                       ' ',
+                       '') = {postcode_alias_1}.pcd_nospace
+        LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_2}
+            ON REPLACE({basetable}.{PCMIS_COL_PREV_POSTCODE},
+                       ' ',
+                       '') = {postcode_alias_2}.pcd_nospace
     """.format(
-        addresstable=addresstable,
+        basetable=basetable,
         origcols=",\n            ".join(orig_column_specs),
         geogcols=",\n            ".join(geog_col_specs),
         pdb=progargs.postcodedb,
         pcdtab=ONSPD_TABLE_POSTCODE,
-        rio_postcodecol=rio_postcodecol,
+        PCMIS_COL_POSTCODE=PCMIS_COL_POSTCODE,
+        PCMIS_COL_PREV_POSTCODE=PCMIS_COL_PREV_POSTCODE,
+        postcode_alias_1=postcode_alias_1,
+        postcode_alias_2=postcode_alias_2,
     )
-    create_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY, select_sql)
-    assert_view_has_same_num_rows(engine, addresstable,
-                                  VIEW_ADDRESS_WITH_GEOGRAPHY)
-    ddhint.suppress_table(addresstable)
+    create_view(engine, viewname, select_sql)
+    assert_view_has_same_num_rows(engine, basetable, viewname)
+    ddhint.suppress_table(basetable)
+
+
+def add_geography_views(engine: Engine,
+                        progargs: Any,
+                        ddhint: DDHint) -> None:  # ddhint modified
+    add_geography_view(PCMIS_TABLE_MASTER_PATIENT,
+                       VIEW_PT_DETAIL_W_GEOG,
+                       engine, progargs, ddhint)
+    add_geography_view(PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                       VIEW_CASE_CONTACT_DETAILS_W_GEOG,
+                       engine, progargs, ddhint)
+
+
+def drop_geography_views(engine: Engine) -> None
+    drop_view(engine, VIEW_PT_DETAIL_W_GEOG)
+    drop_view(engine, VIEW_CASE_CONTACT_DETAILS_W_GEOG)
 
 
 # =============================================================================
@@ -569,15 +747,10 @@ def process_table(table: Table, engine: Engine, progargs: Any) -> None:
     tablename = table.name
     column_names = table.columns.keys()
     log.debug("TABLE: {}; COLUMNS: {}".format(tablename, column_names))
-    if progargs.rio:
-        patient_table_indicator_column = get_rio_patient_id_col(table)
-    else:  # RCEP:
-        patient_table_indicator_column = RCEP_COL_PATIENT_ID
 
-    is_patient_table = (patient_table_indicator_column in column_names or
-                        tablename == progargs.full_prognotes_table)
-    # ... special for RCEP/CPFT, where a RiO table (with different patient ID
-    # column) lives within an RCEP database.
+    is_case_table = PCMIS_COL_CASE_NUMBER in column_names
+    is_patient_table = PCMIS_COL_CASE_NUMBER in column_names
+
     if progargs.drop_danger_drop:
         # ---------------------------------------------------------------------
         # DROP STUFF! Opposite order to creation (below)
@@ -585,13 +758,11 @@ def process_table(table: Table, engine: Engine, progargs: Any) -> None:
         # Specific
         if tablename == progargs.master_patient_table:
             drop_for_master_patient_table(table, engine)
-        elif tablename == progargs.full_prognotes_table:
-            drop_for_progress_notes(table, engine)
-        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
-            drop_for_clindocs_table(table, engine)
         # Generic
         if is_patient_table:
             drop_for_patient_table(table, engine)
+        elif is_case_table:
+            drop_for_case_table(table, engine)
         else:
             drop_for_nonpatient_table(table, engine)
     else:
@@ -601,15 +772,13 @@ def process_table(table: Table, engine: Engine, progargs: Any) -> None:
         # Generic
         if is_patient_table:
             process_patient_table(table, engine, progargs)
+        elif is_case_table:
+            process_case_table(table, engine)
         else:
             process_nonpatient_table(table, engine, progargs)
         # Specific
         if tablename == progargs.master_patient_table:
             process_master_patient_table(table, engine, progargs)
-        elif progargs.rio and tablename == RIO_TABLE_CLINICAL_DOCUMENTS:
-            process_clindocs_table(table, engine, progargs)
-        elif tablename == progargs.full_prognotes_table:
-            process_progress_notes(table, engine, progargs)
 
 
 def process_all_tables(engine: Engine,
@@ -698,7 +867,7 @@ def main() -> None:
     if progargs.drop_danger_drop:
         # Drop views (and view-induced table indexes) first
         drop_pcmis_views(engine, metadata, progargs, ddhint)
-        drop_view(engine, VIEW_ADDRESS_WITH_GEOGRAPHY)
+        drop_geography_views(engine)
         if not progargs.debug_skiptables:
             process_all_tables(engine, metadata, progargs)
     else:
@@ -706,12 +875,12 @@ def main() -> None:
         if not progargs.debug_skiptables:
             process_all_tables(engine, metadata, progargs)
         if progargs.postcodedb:
-            add_postcode_geography_view(engine, progargs, ddhint)
+            add_geography_views(engine, progargs, ddhint)
         create_pcmis_views(engine, metadata, progargs, ddhint)
 
     if progargs.settings_filename:
         with open(progargs.settings_filename, 'w') as f:
-            print(get_rio_dd_settings(ddhint), file=f)
+            print(get_pcmis_dd_settings(ddhint), file=f)
 
 
 if __name__ == '__main__':

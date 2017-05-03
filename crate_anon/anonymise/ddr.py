@@ -844,6 +844,10 @@ class DataDictionaryRow(object):
             self.dest_table = str(self.dest_table)  # if this fails,
             # there's a Unicode problem
             self.dest_table = self.dest_table.translate(ODD_CHARS_TRANSLATE)
+        for suffix in dbconf.ddgen_rename_tables_remove_suffixes:
+            if self.dest_table.endswith(suffix):
+                self.dest_table = self.dest_table[:-len(suffix)]  # remove it
+                break  # only remove one suffix!
 
         # Should we index the destination?
         dest_sqla_type = self.get_dest_sqla_coltype(config)

@@ -39,7 +39,7 @@ log = logging.getLogger(__name__)
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_BUILD_DIR = os.path.join(THIS_DIR, 'compiled_nlp_classes')
 SOURCE_FILE = os.path.join(THIS_DIR, GATE_PIPELINE_CLASSNAME + '.java')
-DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'software',
+DEFAULT_GATEDIR = os.path.join(os.path.expanduser('~'), 'dev',
                                'GATE_Developer_8.0')
 DEFAULT_JAVA = 'java'
 DEFAULT_JAVAC = 'javac'

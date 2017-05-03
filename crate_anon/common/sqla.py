@@ -350,6 +350,14 @@ def get_single_int_autoincrement_colname(table_: Table) -> Optional[str]:
     return None
 
 
+def get_effective_int_pk_col(table_: Table) -> Optional[str]:
+    return (
+        get_single_int_pk_colname(table_) or
+        get_single_int_autoincrement_colname(table_) or
+        None
+    )
+
+
 # =============================================================================
 # Indexes
 # =============================================================================

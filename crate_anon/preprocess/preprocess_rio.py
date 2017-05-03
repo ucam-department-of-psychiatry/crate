@@ -55,8 +55,7 @@ from crate_anon.common.sql import (
     ViewMaker,
 )
 from crate_anon.common.sqla import (
-    get_single_int_pk_colname,
-    get_single_int_autoincrement_colname,
+    get_effective_int_pk_col,
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
@@ -129,19 +128,11 @@ def get_rio_patient_id_col(table: Table) -> str:
     return patient_id_col
 
 
-def get_rio_int_pk_col(table: Table) -> Optional[str]:
-    return (
-        get_single_int_pk_colname(table) or
-        get_single_int_autoincrement_colname(table) or
-        None
-    )
-
-
 def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
     log.info("Preprocessing patient table: {}".format(repr(table.name)))
     rio_type = table_is_rio_type(table.name, progargs)
     if rio_type:
-        pk_col = get_rio_int_pk_col(table)
+        pk_col = get_effective_int_pk_col(table)
         rio_pk = pk_col if pk_col != CRATE_COL_PK else None
         string_pt_id = get_rio_patient_id_col(table)
         required_cols = [string_pt_id]
@@ -241,7 +232,7 @@ def process_nonpatient_table(table: Table,
     if progargs.rcep:
         return
     log.info("Preprocessing non-patient table {}".format(repr(table.name)))
-    pk_col = get_rio_int_pk_col(table)
+    pk_col = get_effective_int_pk_col(table)
     other_pk_col = pk_col if pk_col != CRATE_COL_PK else None
     if other_pk_col:  # table has a primary key already
         crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)

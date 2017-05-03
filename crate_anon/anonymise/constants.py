@@ -943,6 +943,11 @@ ddgen_binary_to_text_field_pairs =
     # "{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS}":
 ddgen_skip_row_if_extract_text_fails_fields =
 
+    # Automatic renaming of tables
+    # (Typical use: you make a view with a suffix "_x" as a working step, then
+    # you want the suffix removed for users.)
+ddgen_rename_tables_remove_suffixes =
+    
     # Fields that are used as patient opt-out fields:
 ddgen_patient_opt_out_fields =
 

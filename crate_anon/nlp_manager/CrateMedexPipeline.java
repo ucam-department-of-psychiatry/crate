@@ -103,12 +103,12 @@ public class CrateMedexPipeline {
     public CrateMedexPipeline(String args[]) throws IOException {
         m_stdout = new PrintStream(System.out, true, m_std_encoding);
         m_args = args;
-        process_args();
+        processArgs();
         if (m_verbose > 0) {
-            report_args();
+            reportArgs();
         }
 
-        setup_medex();
+        setupMedex();
         status("Ready for input");
 
         // Wait for each "data ready" signal, then process files.
@@ -125,8 +125,8 @@ public class CrateMedexPipeline {
                 finished = true;
             } else if (line.equals(m_data_ready_signal)) {
                 // Process text
-                process_input();
-                signal_results_ready();
+                processInput();
+                signalResultsReady();
                 ++m_count;
             }
         }
@@ -146,6 +146,7 @@ public class CrateMedexPipeline {
 
     private void fail(String msg) {
         status(msg);
+        reportArgs();
         abort();
     }
 
@@ -181,22 +182,22 @@ public class CrateMedexPipeline {
         );
     }
 
-    private void process_args() {
+    private void processArgs() {
         int i = 0;
         int nleft;
         String arg;
-        String insufficient = "insufficient arguments";
+        String insufficient = "CrateMedexPipeline: Insufficient arguments while processing ";
         // Process
         while (i < m_args.length) {
             arg = m_args[i++].toLowerCase();
             nleft = m_args.length - i;
             switch (arg) {
                 case "-i":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) fail(insufficient + arg);
                     m_input_dir = m_args[i++];
                     break;
                 case "-o":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) fail(insufficient + arg);
                     m_output_dir = m_args[i++];
                     break;
                 case "-h":
@@ -207,15 +208,15 @@ public class CrateMedexPipeline {
                     m_verbose++;
                     break;
                 case "-lt":
-                    if (nleft < 1) fail(insufficient);
-                    set_logtag(m_args[i++]);
+                    if (nleft < 1) fail(insufficient + arg);
+                    setLogTag(m_args[i++]);
                     break;
                 case "-data_ready_signal":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) fail(insufficient + arg);
                     m_data_ready_signal = m_args[i++];
                     break;
                 case "-results_ready_signal":
-                    if (nleft < 1) fail(insufficient);
+                    if (nleft < 1) fail(insufficient + arg);
                     m_results_ready_signal = m_args[i++];
                     break;
                 default:
@@ -226,22 +227,22 @@ public class CrateMedexPipeline {
         }
         // Validate
         if (m_input_dir == null) {
-            status("missing -inputdir parameter; use -h for help");
+            status("missing -i parameter; use -h for help");
             abort();
         }
         if (m_output_dir == null) {
-            status("missing -outputdir parameter; use -h for help");
+            status("missing -o parameter; use -h for help");
             abort();
         }
     }
 
-    private void report_args() {
+    private void reportArgs() {
         for (int i = 0; i < m_args.length; i++) {
             status("Arg " + i + " = " + m_args[i]);
         }
     }
 
-    private void set_logtag(String msg) {
+    private void setLogTag(String msg) {
         m_logprefix = m_defaultlogprefix;
         if (m_logprefix.length() > 0) {
             m_logprefix += msg + ":";
@@ -277,7 +278,7 @@ public class CrateMedexPipeline {
         return m_location + ".." + File.separator + "resources" + File.separator + stem;
     }
 
-    private void setup_medex() throws IOException {
+    private void setupMedex() throws IOException {
         status("Starting MedEx...");
         m_medtagger = new MedTagger(m_lexicon_file,
                                     m_rxnorm_file,
@@ -297,7 +298,7 @@ public class CrateMedexPipeline {
         status("... done");
     }
 
-    private void process_input() throws IOException {
+    private void processInput() throws IOException {
         m_medtagger.run_batch_medtag();
     }
 
@@ -305,7 +306,7 @@ public class CrateMedexPipeline {
     // MedEx output processing
     // ========================================================================
 
-    private void signal_results_ready() throws IOException {
+    private void signalResultsReady() throws IOException {
         println(m_results_ready_signal);
         // Flushing is not required:
         // http://stackoverflow.com/questions/7166328

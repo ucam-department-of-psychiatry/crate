@@ -266,7 +266,7 @@ class AlterMethod(object):
         if self.extract_from_filename:
             # The database contains a plain and full filename.
             filename = value
-            _, extension = os.path.split(filename)
+            _, extension = os.path.splitext(filename)
             log.info("extract_text: disk file, filename={}".format(filename))
 
         elif self.extract_from_file_format:
@@ -291,7 +291,7 @@ class AlterMethod(object):
             log.debug("extract_text: file_format_str={}, ffdict={}".format(
                 repr(self.file_format_str), repr(ffdict)))
             filename = self.file_format_str.format(**ffdict)
-            _, extension = os.path.split(filename)
+            _, extension = os.path.splitext(filename)
             log.info("extract_text: disk file, filename={}".format(filename))
 
         else:
