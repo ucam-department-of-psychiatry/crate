@@ -858,7 +858,7 @@ class DataDictionaryRow(object):
                     config=self.config,
                     skip_if_text_extract_fails=True))
 
-        for fieldspec, cfg_section in dbconf.ddgen_extra_hash_fields.values():
+        for fieldspec, cfg_section in dbconf.ddgen_extra_hash_fields.items():
             if self.matches_fielddef(fieldspec):
                 self._alter_methods.append(AlterMethod(
                     config=self.config,
