@@ -863,7 +863,7 @@ class DataDictionaryRow(object):
             # Text field meeting the criteria to scrub
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    scrub=True))
-            log.critical("ADDED SCRUB")
+            log.critical("ADDED SCRUB: {}".format(self.get_signature()))
         if extracting_text:
             # Scrub all extract-text fields, unless asked not to
             if (not self.matches_fielddef(
