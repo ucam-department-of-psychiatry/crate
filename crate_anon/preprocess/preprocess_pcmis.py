@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # preprocess/preprocess_pcmis.py
 
-INCOMPLETE_DO_NOT_USE
-
 """
 ===============================================================================
     Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
@@ -83,22 +81,79 @@ there are lots of tables with patients in.
 
 Therefore, DECISION: create an integer PK.
 
+However, we could do this deterministically. Since the length is fixed, and the
+numerical part goes up to 999999, and the letters are always upper case -- ah,
+no, there are some like <digit><letter>999999. But 0-99 would be fine.
+
+    SELECT (
+        (ASCII(SUBSTRING(PatientID, 1, 1))) * 100000000 +
+        (ASCII(SUBSTRING(PatientID, 2, 1))) * 1000000 +
+        CAST(SUBSTRING(PatientID, 3, 6) AS BIGINT)
+    ) AS patient_id_int
+    FROM PatientDetails
+
+If we're using SQLAlchemy, then use things like func.substr instead, but it's
+a reasonable compromise for now to say that a specific database like PCMIS is
+going to be hosted on SQL Server, since PCMIS uses that
+    SQL Server      SQLAlchemy
+    SUBSTR          func.substr
+    ASCII           
+
+What about CaseNumber -- is that identifying? If not, it can remain the
+internal key to identify cases. If it is, then we have to replace it.
+The first character is 1,9,A-Z except Q, X, Y (n=25).
+The second character is 0,A-Z except I, Q, U, X, Z (n=22).
+So, pretty spread.
+The digits seem to be approximately consecutive.
+So it does look more like an internal PK than something identifiable.
+
+Mind you, very often it is identical to CaseNumber. So, do we need a second
+hash?
+
 Our PCMIS copy certainly has free text (search the schema for text types).
+
+===============================================================================
+Therefore, views and the like 
+===============================================================================
+
+MAIN SOFTWARE CHANGES
+- Support non-integer PIDs/MPIDs.
+- Add an AlterMethod that is hash=hash_config_key_name
+  with e.g.
+
+    [hash_config_key_name]
+    method = hmacsha256
+    key = somesecretkey
+
+TABLES
+- If a table doesn't have a PK, give it an AUTONUMBER integer PK (e.g.
+  "crate_pk"). That looks to be true of ?all tables.
+
+VIEWS
+- In general, not needed: we can use PatientId and CaseNumber as non-integer
+  fields.
+- We do need the geography views, though.
+
+DATA DICTIONARY AUTOGENERATIO
+- PatientId: always the PID.
+- NHSNumber: always the MPID.
+- CaseNumber: belongs in ddgen_extra_hash_fields, and users should give it the
+  same hash key as for the PID-to-RID conversion, since it's often the same
+  code.
 
 """
 
 
 import argparse
 import logging
-from typing import Any, List, Optional
+from typing import Any
 
 from sqlalchemy import (
     create_engine,
     MetaData,
 )
 from sqlalchemy.engine import Engine
-from sqlalchemy.schema import Column, Table
-from sqlalchemy.sql.sqltypes import BigInteger, Integer
+from sqlalchemy.schema import Table
 
 from crate_anon.anonymise.constants import CHARSET
 from crate_anon.common.debugfunc import pdb_run
@@ -112,16 +167,11 @@ from crate_anon.common.sql import (
     drop_indexes,
     drop_view,
     ensure_columns_present,
-    execute,
     get_column_names,
-    get_table_names,
-    get_view_names,
     set_print_not_execute,
-    sql_fragment_cast_to_int,
-    ViewMaker,
 )
 from crate_anon.common.sqla import (
-    get_effective_int_pk_col,
+    get_pk_colnames,
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
@@ -138,9 +188,9 @@ log = logging.getLogger(__name__)
 # Constants
 # =============================================================================
 
-CRATE_COL_NHS_NUMBER = "crate_nhs_number_int"
-CRATE_COL_PT_NUMBER = "crate_patient_number"
 CRATE_COL_PK = "crate_pk"
+
+CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
 
 CRATE_VIEW_SUFFIX = "_crateview"
 
@@ -187,12 +237,11 @@ ddgen_include_fields = #
 
 ddgen_allow_no_patient_info = False
 
-ddgen_per_table_pid_field = {CRATE_COL_PT_NUMBER}
+ddgen_per_table_pid_field = {PCMIS_COL_PATIENT_ID}
 
 ddgen_add_per_table_pids_to_scrubber = False
 
-ddgen_master_pid_fieldname = {CRATE_COL_NHS_NUMBER}
-    # ... an integer created as a view from {PCMIS_TABLE_MASTER_PATIENT}.{PCMIS_COL_NHS_NUMBER}
+ddgen_master_pid_fieldname = {PCMIS_COL_NHS_NUMBER}
 
 ddgen_table_blacklist = #
     # -------------------------------------------------------------------------
@@ -227,17 +276,10 @@ ddgen_table_require_field_absolute = #
     # All tables/fields must have crate_pk
     {CRATE_COL_PK}
 
-ddgen_table_require_field_conditional = #
-    # If a table/view has ClientID, it must have crate_rio_number
-    {PCMIS_COL_PATIENT_ID_COL}, {CRATE_COL_PT_NUMBER}
-
-ddgen_field_blacklist = #
-    {PCMIS_COL_PATIENT_ID_COL}  # replaced by {CRATE_COL_PT_NUMBER} (which is then pseudonymised)
-
+ddgen_table_require_field_conditional =
+ddgen_field_blacklist =
 ddgen_field_whitelist =
-
 ddgen_pk_fields = {CRATE_COL_PK}
-
 ddgen_constant_content = False
 ddgen_constant_content_tables =
 ddgen_nonconstant_content_tables =
@@ -245,7 +287,7 @@ ddgen_addition_only = False
 ddgen_addition_only_tables =
 ddgen_deletion_possible_tables =
 
-ddgen_pid_defining_fieldnames = {VIEW_PT_DETAIL_W_GEOG}.{CRATE_COL_PT_NUMBER}
+ddgen_pid_defining_fieldnames = {VIEW_PT_DETAIL_W_GEOG}.{PCMIS_COL_PATIENT_ID}
 
 ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
@@ -434,6 +476,17 @@ ddgen_skip_row_if_extract_text_fails_fields =
 ddgen_rename_tables_remove_suffixes = {CRATE_VIEW_SUFFIX}
 ddgen_patient_opt_out_fields =
 
+ddgen_extra_hash_fields = CaseNumber, pcmis_case_number_hashdef
+
+    # YOU WILL NEED TO DO THIS:
+    # (1) add "pcmis_case_number_hashdef" to your "extra_hash_config_sections"
+    #     setting;
+    # (2) add a "pcmis_case_number_hashdef" section, like this:
+    #       [pcmis_case_number_hashdef]
+    #       hash_method = HMAC_MD5
+    #       secret_key = my_special_secret_phrase_123
+    # and obviously you should use your own secret phrase, not this one!
+
 ddgen_index_fields =
 ddgen_allow_fulltext_indexing = True
 
@@ -442,209 +495,13 @@ ddgen_convert_odd_chars_to_underscore = True
 
     """.format(  # noqa
         CRATE_COL_PK=CRATE_COL_PK,
-        CRATE_COL_PT_NUMBER=CRATE_COL_PT_NUMBER,
-        CRATE_COL_NHS_NUMBER=CRATE_COL_NHS_NUMBER,
         CRATE_VIEW_SUFFIX=CRATE_VIEW_SUFFIX,
         PCMIS_COL_NHS_NUMBER=PCMIS_COL_NHS_NUMBER,
-        PCMIS_COL_PATIENT_ID_COL=PCMIS_COL_PATIENT_ID,
+        PCMIS_COL_PATIENT_ID=PCMIS_COL_PATIENT_ID,
         PCMIS_TABLE_MASTER_PATIENT=PCMIS_TABLE_MASTER_PATIENT,
         suppress_tables="\n    ".join(ddhint.get_suppressed_tables()),
         VIEW_PT_DETAIL_W_GEOG=VIEW_PT_DETAIL_W_GEOG,
     )
-
-
-# =============================================================================
-# Generic table processors
-# =============================================================================
-
-def process_patient_table(table: Table, engine: Engine, progargs: Any) -> None:
-    log.info("Preprocessing patient table: {}".format(repr(table.name)))
-    pk_col = get_effective_int_pk_col(table)
-    pcmis_pk = pk_col if pk_col != CRATE_COL_PK else None
-    string_pt_id = PCMIS_COL_PATIENT_ID
-    required_cols = [string_pt_id]
-    if not progargs.print:
-        required_cols.extend([CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
-
-    # -------------------------------------------------------------------------
-    # Add pk and rio_number columns, if not present
-    # -------------------------------------------------------------------------
-    if rio_type and rio_pk is not None:
-        crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
-        # ... can't do NOT NULL; need to populate it
-        required_cols.append(rio_pk)
-    else:  # RCEP type, or no PK in RiO
-        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
-                                                        engine.dialect)
-        # ... autopopulates
-    crate_rio_number_col = Column(CRATE_COL_RIO_NUMBER, BigInteger,
-                                  nullable=True)
-    # ... even if RiO numbers are INT, they come from VARCHAR(15) here, and
-    # that can (aod does) look numeric and overflow an INT.
-    # SQL Server requires Table-bound columns in order to generate DDL:
-    table.append_column(crate_pk_col)
-    table.append_column(crate_rio_number_col)
-    add_columns(engine, table, [crate_pk_col, crate_rio_number_col])
-
-    # -------------------------------------------------------------------------
-    # Update pk and rio_number values, if not NULL
-    # -------------------------------------------------------------------------
-    ensure_columns_present(engine, tablename=table.name,
-                           column_names=required_cols)
-    cast_id_to_int = sql_fragment_cast_to_int(string_pt_id,
-                                              dialect=engine.dialect)
-    if rio_type and rio_pk:
-        log.info("Table {}: updating columns {} and {}".format(
-            repr(table.name), repr(CRATE_COL_PK), repr(CRATE_COL_RIO_NUMBER)))
-        execute(engine, """
-            UPDATE {tablename} SET
-                {crate_pk} = {rio_pk},
-                {crate_rio_number} = {cast_id_to_int}
-            WHERE
-                {crate_pk} IS NULL
-                OR {crate_rio_number} IS NULL
-        """.format(
-            tablename=table.name,
-            crate_pk=CRATE_COL_PK,
-            rio_pk=rio_pk,
-            crate_rio_number=CRATE_COL_RIO_NUMBER,
-            cast_id_to_int=cast_id_to_int,
-        ))
-    else:
-        # RCEP format, or RiO with no PK
-        # crate_pk is autogenerated as an INT IDENTITY field
-        log.info("Table {}: updating column {}".format(
-            repr(table.name), repr(CRATE_COL_RIO_NUMBER)))
-        execute(engine, """
-            UPDATE {tablename} SET
-                {crate_rio_number} = {cast_id_to_int}
-            WHERE
-                {crate_rio_number} IS NULL
-        """.format(  # noqa
-            tablename=table.name,
-            crate_rio_number=CRATE_COL_RIO_NUMBER,
-            cast_id_to_int=cast_id_to_int,
-        ))
-    # -------------------------------------------------------------------------
-    # Add indexes, if absent
-    # -------------------------------------------------------------------------
-    # Note that the indexes are unlikely to speed up the WHERE NOT NULL search
-    # above, so it doesn't matter that we add these last. Their use is for
-    # the subsequent CRATE anonymisation table scans.
-    add_indexes(engine, table, [
-        {
-            'index_name': CRATE_IDX_PK,
-            'column': CRATE_COL_PK,
-            'unique': True,
-        },
-        {
-            'index_name': CRATE_IDX_RIONUM,
-            'column': CRATE_COL_RIO_NUMBER,
-        },
-    ])
-
-
-def drop_for_patient_table(table: Table, engine: Engine) -> None:
-    drop_indexes(engine, table, [CRATE_IDX_PK, CRATE_IDX_RIONUM])
-    drop_columns(engine, table, [CRATE_COL_PK, CRATE_COL_RIO_NUMBER])
-
-
-def process_nonpatient_table(table: Table,
-                             engine: Engine,
-                             progargs: Any) -> None:
-    if progargs.rcep:
-        return
-    log.info("Preprocessing non-patient table {}".format(repr(table.name)))
-    pk_col = get_rio_int_pk_col(table)
-    other_pk_col = pk_col if pk_col != CRATE_COL_PK else None
-    if other_pk_col:  # table has a primary key already
-        crate_pk_col = Column(CRATE_COL_PK, BigInteger, nullable=True)
-    else:
-        crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
-                                                        engine.dialect)
-    table.append_column(crate_pk_col)  # must be Table-bound, as above
-    add_columns(engine, table, [crate_pk_col])
-    if not progargs.print:
-        ensure_columns_present(engine, tablename=table.name,
-                               column_names=[CRATE_COL_PK])
-    if other_pk_col:
-        execute(engine, """
-            UPDATE {tablename} SET {crate_pk} = {rio_pk}
-            WHERE {crate_pk} IS NULL
-        """.format(tablename=table.name,
-                   crate_pk=CRATE_COL_PK,
-                   rio_pk=other_pk_col))
-    add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
-                                 'column': CRATE_COL_PK,
-                                 'unique': True}])
-
-
-def drop_for_nonpatient_table(table: Table, engine: Engine) -> None:
-    drop_indexes(engine, table, [CRATE_IDX_PK])
-    drop_columns(engine, table, [CRATE_COL_PK])
-
-
-# =============================================================================
-# Specific table processors
-# =============================================================================
-
-def process_master_patient_table(table: Table,
-                                 engine: Engine,
-                                 progargs: Any) -> None:
-    # 1. Integer patient PK
-    crate_int_patient_pk_col = make_bigint_autoincrement_column(
-        CRATE_COL_PT_NUMBER, engine.dialect)
-    # ... autopopulates
-
-    # 2. NHS number
-    
-    crate_col_nhs_number = Column(CRATE_COL_NHS_NUMBER, BigInteger,
-                                  nullable=True)
-    table.append_column(crate_col_nhs_number)
-    add_columns(engine, table, [crate_col_nhs_number])
-    log.info("Table {}: updating column {} -> {}".format(
-        repr(table.name),
-        repr(PCMIS_COL_NHS_NUMBER),
-        repr(CRATE_COL_NHS_NUMBER)))
-    ensure_columns_present(engine, tablename=table.name,
-                           column_names=[PCMIS_COL_NHS_NUMBER])
-    if not progargs.print:
-        ensure_columns_present(engine, tablename=table.name,
-                               column_names=[CRATE_COL_NHS_NUMBER])
-    execute(engine, """
-        UPDATE {tablename} SET
-            {nhs_number_int} = CAST({nhscol} AS BIGINT)
-            WHERE {nhs_number_int} IS NULL
-    """.format(
-        tablename=table.name,
-        nhs_number_int=CRATE_COL_NHS_NUMBER,
-        nhscol=PCMIS_COL_NHS_NUMBER,
-    ))
-
-
-def drop_for_master_patient_table(table: Table, engine: Engine) -> None:
-    drop_columns(engine, table, [CRATE_COL_PT_NUMBER,
-                                 CRATE_COL_NHS_NUMBER])
-
-
-# =============================================================================
-# PCMIS views
-# =============================================================================
-
-# noinspection PyUnusedLocal
-def create_pcmis_views(engine: Engine,
-                       metadata: MetaData,
-                       progargs: Any,
-                       ddhint: DDHint) -> None:  # ddhint modified
-    pass
-
-
-# noinspection PyUnusedLocal
-def drop_pcmis_views(engine: Engine,
-                     metadata: MetaData,
-                     progargs: Any,
-                     ddhint: DDHint) -> None:  # ddhint modified
-    pass
 
 
 # =============================================================================
@@ -734,13 +591,13 @@ def add_geography_views(engine: Engine,
                        engine, progargs, ddhint)
 
 
-def drop_geography_views(engine: Engine) -> None
+def drop_geography_views(engine: Engine) -> None:
     drop_view(engine, VIEW_PT_DETAIL_W_GEOG)
     drop_view(engine, VIEW_CASE_CONTACT_DETAILS_W_GEOG)
 
 
 # =============================================================================
-# Table action selector
+# Generic table processors
 # =============================================================================
 
 def process_table(table: Table, engine: Engine, progargs: Any) -> None:
@@ -748,37 +605,32 @@ def process_table(table: Table, engine: Engine, progargs: Any) -> None:
     column_names = table.columns.keys()
     log.debug("TABLE: {}; COLUMNS: {}".format(tablename, column_names))
 
-    is_case_table = PCMIS_COL_CASE_NUMBER in column_names
-    is_patient_table = PCMIS_COL_CASE_NUMBER in column_names
+    existing_pk_cols = get_pk_colnames(table)
+    adding_crate_pk = not existing_pk_cols
+
+    required_cols = [CRATE_COL_PK] if not progargs.print else []
 
     if progargs.drop_danger_drop:
         # ---------------------------------------------------------------------
         # DROP STUFF! Opposite order to creation (below)
         # ---------------------------------------------------------------------
-        # Specific
-        if tablename == progargs.master_patient_table:
-            drop_for_master_patient_table(table, engine)
-        # Generic
-        if is_patient_table:
-            drop_for_patient_table(table, engine)
-        elif is_case_table:
-            drop_for_case_table(table, engine)
-        else:
-            drop_for_nonpatient_table(table, engine)
+        drop_indexes(engine, table, [CRATE_IDX_PK])
+        drop_columns(engine, table, [CRATE_COL_PK])
     else:
         # ---------------------------------------------------------------------
         # CREATE STUFF!
         # ---------------------------------------------------------------------
-        # Generic
-        if is_patient_table:
-            process_patient_table(table, engine, progargs)
-        elif is_case_table:
-            process_case_table(table, engine)
-        else:
-            process_nonpatient_table(table, engine, progargs)
-        # Specific
-        if tablename == progargs.master_patient_table:
-            process_master_patient_table(table, engine, progargs)
+        # SQL Server requires Table-bound columns in order to generate DDL:
+        if adding_crate_pk:
+            crate_pk_col = make_bigint_autoincrement_column(CRATE_COL_PK,
+                                                            engine.dialect)
+            table.append_column(crate_pk_col)
+            add_columns(engine, table, [crate_pk_col])
+        ensure_columns_present(engine, tablename=table.name,
+                               column_names=required_cols)
+        add_indexes(engine, table, [{'index_name': CRATE_IDX_PK,
+                                     'column': CRATE_COL_PK,
+                                     'unique': True}])
 
 
 def process_all_tables(engine: Engine,
@@ -866,7 +718,6 @@ def main() -> None:
 
     if progargs.drop_danger_drop:
         # Drop views (and view-induced table indexes) first
-        drop_pcmis_views(engine, metadata, progargs, ddhint)
         drop_geography_views(engine)
         if not progargs.debug_skiptables:
             process_all_tables(engine, metadata, progargs)
@@ -876,7 +727,6 @@ def main() -> None:
             process_all_tables(engine, metadata, progargs)
         if progargs.postcodedb:
             add_geography_views(engine, progargs, ddhint)
-        create_pcmis_views(engine, metadata, progargs, ddhint)
 
     if progargs.settings_filename:
         with open(progargs.settings_filename, 'w') as f:
@@ -885,3 +735,8 @@ def main() -> None:
 
 if __name__ == '__main__':
     pdb_run(main)
+
+
+# *** When this is done, find out why the anonymiser is using so much memory.
+# https://www.huyng.com/posts/python-performance-analysis
+# http://chase-seibert.github.io/blog/2013/08/03/diagnosing-memory-leaks-python.html  # noqa

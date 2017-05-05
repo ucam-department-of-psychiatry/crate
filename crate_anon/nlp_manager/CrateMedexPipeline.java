@@ -68,12 +68,12 @@ public class CrateMedexPipeline {
     // Options
     private String m_data_ready_signal = m_default_data_ready_signal;
     private String m_results_ready_signal = m_default_results_ready_signal;
-    private String m_file_encoding = null;  // null: use system default
+    // UNUSED // private String m_file_encoding = "UTF-8";  // null would be: use system default
     private int m_verbose = 0;
     // Internal
     private String m_logprefix = m_defaultlogprefix;
     private int m_count = 0;
-    private String m_std_encoding = "UTF-8";
+    private String m_pipe_encoding = "UTF-8";
     private PrintStream m_stdout = null;
     // MedEx tagger object
     private MedTagger m_medtagger = null;
@@ -101,19 +101,33 @@ public class CrateMedexPipeline {
     // ========================================================================
 
     public CrateMedexPipeline(String args[]) throws IOException {
-        m_stdout = new PrintStream(System.out, true, m_std_encoding);
+        m_stdout = new PrintStream(System.out, true, m_pipe_encoding);
         m_args = args;
         processArgs();
         if (m_verbose > 0) {
             reportArgs();
         }
 
+        try {
+            runPipeline();
+        } catch (Exception e) {
+            status("Uncaught exception; aborting; stack trace follows");
+            e.printStackTrace();
+            abort();  // otherwise, Java exits with an UNDEFINED (e.g. 0 = "happy") return code
+
+            // NOTE ALSO THAT MEDEX CATCHES ITS OWN GENERAL EXCEPTIONS, PRINTS
+            // A STACK TRACE, AND CARRIES ON. See e.g. MedTagger.java, and
+            // search for printStackTrace.
+        }
+    }
+
+    private void runPipeline() throws IOException {
         setupMedex();
         status("Ready for input");
 
         // Wait for each "data ready" signal, then process files.
         BufferedReader br = new BufferedReader(
-            new InputStreamReader(System.in, m_std_encoding));
+            new InputStreamReader(System.in, m_pipe_encoding));
         String line;
         boolean finished = false;
         while (!finished) {

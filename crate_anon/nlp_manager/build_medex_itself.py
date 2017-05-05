@@ -28,7 +28,7 @@ import argparse
 import logging
 import os
 import subprocess
-from typing import List
+from typing import Dict, List, Tuple, Union
 
 from crate_anon.common.fileops import purge
 from crate_anon.common.logsupport import configure_logger_for_colour
@@ -242,6 +242,31 @@ def add_lines_after_trigger(filename: str, trigger: str,
             f.write(line)
 
 
+def replace_in_file(filename: str, changes: List[Tuple[str, str]],
+                    count: int = -1, encoding: str = 'utf8',
+                    backup_suffix: str = "~") -> None:
+    """Replaces all old by new in file filename."""
+    log.info("Replacing code in file: {}".format(filename))
+    # Read contents
+    with open(filename, encoding=encoding) as input_file:
+        original_content = input_file.read()
+    # Replace
+    new_content = original_content
+    for old, new in changes:
+        new_content = new_content.replace(old, new, count)
+    # Check for differences
+    if new_content == original_content:
+        log.info("... nothing to do")
+        return
+    # Make backup, if different
+    backup_name = filename + backup_suffix
+    os.rename(filename, backup_name)
+    log.info("... backup is: {}".format(repr(backup_name)))
+    # Write out new
+    with open(filename, 'w', encoding=encoding) as output_file:
+        output_file.write(new_content)
+
+
 def main() -> None:
     # -------------------------------------------------------------------------
     # Arguments
@@ -307,6 +332,109 @@ def main() -> None:
     add_lines_after_trigger(freqrulefilename, FREQ_RULE_TRIGGER_LINE_TRIMMED,
                             SOURCE_START_MARKER, SOURCE_END_MARKER,
                             frlines)
+
+    # -------------------------------------------------------------------------
+    # Fix bugs! Argh.
+    # -------------------------------------------------------------------------
+    bugfixes = [
+        {
+            "filename": os.path.join(args.medexdir, 'src', 'org', 'apache',
+                                     'NLPTools', 'Document.java'),
+            "changes": [
+                {
+                    "comment": """
+Medex confuses & and &&, leading to
+
+Exception in thread "main" java.lang.StringIndexOutOfBoundsException: String index out of range: 2
+    at java.lang.String.charAt(Unknown Source)
+    at org.apache.NLPTools.Document.<init>(Document.java:134)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:256)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:302)
+    at CrateMedexPipeline.<init>(CrateMedexPipeline.java:128)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:320)
+                    """,  # noqa
+                    "wrong": r"while(cur_pos<llen & (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){",  # noqa
+                    "right": r"while(cur_pos<llen && (txt.charAt(cur_pos)==' ' || txt.charAt(cur_pos)=='\n' || txt.charAt(cur_pos)=='\r') ){"  # noqa
+                    # -----------------------------^
+                },
+            ],
+        },
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        {
+            "filename": os.path.join(args.medexdir, 'src', 'org', 'apache',
+                                     'algorithms', 'SuffixArray.java'),
+            "changes": [
+                {
+                    "comment": """
+        
+java.lang.StringIndexOutOfBoundsException: String index out of range: 1
+    at java.lang.String.charAt(Unknown Source)
+    at org.apache.algorithms.SuffixArray.construct_tree_word(SuffixArray.java:375)
+    at org.apache.algorithms.SuffixArray.re_build(SuffixArray.java:97)
+    at org.apache.algorithms.SuffixArray.<init>(SuffixArray.java:60)
+    at org.apache.medex.MedTagger.medtagging(MedTagger.java:359)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:302)
+    at CrateMedexPipeline.<init>(CrateMedexPipeline.java:128)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:320)
+
+Offending code in SuffixArray.java:
+
+    for (int i=0;i<this.N;i++){
+        int pos=this.SA[i];
+        if (this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){
+            this.insert_SF_tree(this.SA[i], 0, 0); //# 0 denote the root in __SA;
+        }
+    }
+    
+The bug may relate to what's in SA[i]... but as a simple fix:
+        
+                    """,  # noqa
+                    "wrong": r"if (this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa
+                    "right": r"if (pos < this.otext.length() && this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){"  # noqa
+                    # -------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                },
+            ],
+        },
+    ]  # type: List[Dict[str, Union[str, List[Dict[str, str]]]]]
+
+    _ = """
+
+BUGS IN MEDEX-UIMA NOT YET FIXED:
+
+java.lang.ArrayIndexOutOfBoundsException: -1
+    at java.util.Vector.elementData(Unknown Source)
+    at java.util.Vector.get(Unknown Source)
+    at org.apache.NLPTools.SentenceBoundary.detect_boundaries(SentenceBoundary.java:329)
+    at org.apache.medex.MedTagger.medtagging(MedTagger.java:354)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:312)
+    at CrateMedexPipeline.runPipeline(CrateMedexPipeline.java:138)
+    at CrateMedexPipeline.<init>(CrateMedexPipeline.java:112)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:330)
+
+java.lang.NullPointerException
+    at org.apache.algorithms.SuffixArray.search(SuffixArray.java:636)
+    at org.apache.medex.MedTagger.medtagging(MedTagger.java:362)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:312)
+    at CrateMedexPipeline.runPipeline(CrateMedexPipeline.java:138)
+    at CrateMedexPipeline.<init>(CrateMedexPipeline.java:112)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:330)
+
+... frankly, it's just badly written. That's clearly why it uses the "catch
+all exceptions" strategy, but one would imagine the errors are unintentional
+(certainly the &/&& one!) or else they wouldn't print a stack trace and chug
+on.
+
+    """  # noqa
+
+    for bf in bugfixes:
+        filename = bf["filename"]
+        changes = []  # type: List[Tuple[str, str]]
+        for change in bf["changes"]:
+            changes.append((change["wrong"], change["right"]))
+        replace_in_file(filename, changes)
 
     # -------------------------------------------------------------------------
     # Clean up first?

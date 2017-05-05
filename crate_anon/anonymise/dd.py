@@ -36,12 +36,14 @@ import csv
 from functools import lru_cache
 import logging
 import operator
-from typing import AbstractSet, Any, List, Optional, Tuple
+from typing import (AbstractSet, Any, List, Optional, Tuple, TYPE_CHECKING,
+                    Union)
 
 from cardinal_pythonlib.rnc_db import is_sqltype_integer
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table
+from sqlalchemy.sql.sqltypes import String, TypeEngine
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import (
@@ -50,7 +52,14 @@ from crate_anon.anonymise.constants import (
     TridType,
 )
 from crate_anon.anonymise.ddr import DataDictionaryRow
-from crate_anon.common.sqla import is_sqlatype_text_over_one_char
+from crate_anon.common.sqla import (
+    is_sqlatype_integer,
+    is_sqlatype_string,
+    is_sqlatype_text_over_one_char,
+)
+
+if TYPE_CHECKING:
+    from crate_anon.anonymise.config import Config
 
 log = logging.getLogger(__name__)
 
@@ -59,15 +68,12 @@ log = logging.getLogger(__name__)
 # DataDictionary
 # =============================================================================
 
-CONFIG_FWD_REF = "Config"
-
-
 class DataDictionary(object):
     """
     Class representing an entire data dictionary.
     """
 
-    def __init__(self, config: CONFIG_FWD_REF) -> None:
+    def __init__(self, config: "Config") -> None:
         """
         Set defaults.
         """
@@ -99,10 +105,10 @@ class DataDictionary(object):
             log.debug("Data dictionary has correct header. Loading content...")
             for values in tsv:
                 valuedict = dict(zip(headers, values))
-                ddr = DataDictionaryRow()
+                ddr = DataDictionaryRow(self.config)
                 try:
                     ddr.set_from_dict(valuedict)
-                    ddr.check_valid(self.config)
+                    ddr.check_valid()
                 except ValueError:
                     log.critical("Offending input: {}".format(valuedict))
                     raise
@@ -168,13 +174,12 @@ class DataDictionary(object):
                             t=tablename,
                             f=columnname,
                         )
-                    ddr = DataDictionaryRow()
+                    ddr = DataDictionaryRow(self.config)
                     ddr.set_from_src_db_info(
                         pretty_dbname, tablename, columnname,
                         datatype_sqltext,
                         sqla_coltype,
                         dbconf=cfg,
-                        config=self.config,
                         comment=comment)
 
                     # If we have this one already, skip ASAP
@@ -229,6 +234,27 @@ class DataDictionary(object):
         Check DD validity against the source database.
         Also caches SQLAlchemy source column type
         """
+        def ensure_no_type_mismatch(ddr: DataDictionaryRow,
+                                    config_sqlatype: Union[TypeEngine, String],
+                                    human_type: str) -> None:
+            rowtype = ddr.get_src_sqla_coltype()
+            if (is_sqlatype_integer(rowtype) and
+                    is_sqlatype_integer(config_sqlatype)):
+                # Good enough. The only integer type we use for PID/MPID is
+                # BigInteger, so any integer type should fit.
+                return
+            if (is_sqlatype_string(rowtype) and
+                    is_sqlatype_string(config_sqlatype) and
+                    rowtype.length <= config_sqlatype.length):
+                return
+            raise ValueError(
+                "Source column {} is marked as a {} field but its type is {}, "
+                "while the config thinks it should be {}".format(
+                    r.get_signature(),
+                    human_type,
+                    r.get_src_sqla_coltype(),
+                    config_sqlatype))
+
         log.debug("Checking DD: source tables...")
         for d in self.get_source_databases():
             db = self.config.sources[d]
@@ -263,7 +289,7 @@ class DataDictionary(object):
                                                   d=repr(d)))
                     sqla_coltype = (
                         db.metadata.tables[t].columns[r.src_field].type)
-                    r.set_src_sqla_coltype(sqla_coltype)
+                    r.set_src_sqla_coltype(sqla_coltype)  # CACHES TYPE HERE
 
                 # We have to iterate twice, but shouldn't iterate more than
                 # that, for speed.
@@ -273,6 +299,13 @@ class DataDictionary(object):
                     # Needs PID field in table?
                     if not r.omit and (r.being_scrubbed() or r.master_pid):
                         needs_pidfield = True
+
+                    if r.primary_pid:
+                        ensure_no_type_mismatch(r, self.config.PidType,
+                                                "primary PID")
+                    if r.master_pid:
+                        ensure_no_type_mismatch(r, self.config.MpidType,
+                                                "master PID")
 
                     # Too many PKs?
                     if r.pk:
@@ -296,7 +329,7 @@ class DataDictionary(object):
                                         am=r.alter_method,
                                         f=am.extract_ext_field))
                             if not is_sqlatype_text_over_one_char(
-                                    extrow.get_src_sqla_coltype(self.config)):
+                                    extrow.get_src_sqla_coltype()):
                                 raise ValueError(
                                     "alter_method = {am}, but field {f}, which"
                                     " should contain an extension or filename,"
@@ -758,7 +791,7 @@ class DataDictionary(object):
         metadata = self.config.destdb.metadata
         columns = []  # type: List[Column]
         for ddr in self.get_rows_for_dest_table(tablename):
-            columns.append(ddr.get_dest_sqla_column(self.config))
+            columns.append(ddr.get_dest_sqla_column())
             if ddr.add_src_hash:
                 columns.append(self._get_srchash_sqla_column())
             if ddr.primary_pid:

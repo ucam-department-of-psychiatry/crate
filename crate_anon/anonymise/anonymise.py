@@ -57,6 +57,7 @@ from crate_anon.anonymise.models import (
 from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.ddr import DataDictionaryRow
 from crate_anon.common.formatting import print_record_counts
+from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
 from crate_anon.common.sql import matches_tabledef
 from crate_anon.common.sqla import (
     add_index,
@@ -182,7 +183,7 @@ def delete_dest_rows_with_no_src_row(
     temptable = Table(
         config.temporary_tablename,
         metadata,
-        Column(pkfield, pkddr.get_dest_sqla_coltype(config), primary_key=True),
+        Column(pkfield, pkddr.get_dest_sqla_coltype(), primary_key=True),
         **TABLE_KWARGS
     )
     # THIS (ABOVE) IS WHAT CONSTRAINS A USER-DEFINED PK TO BE UNIQUE WITHIN ITS
@@ -309,9 +310,11 @@ def gen_patient_ids(tasknum: int = 0,
     # ASSIGNS WORK TO THREADS/PROCESSES, via the simple expedient of processing
     # only those patient ID numbers where patientnum % ntasks == tasknum.
 
-    if 1 < ntasks <= tasknum:
-            raise Exception("Invalid tasknum {}; must be <{}".format(
-                tasknum, ntasks))
+    assert ntasks >= 1
+    assert 0 <= tasknum < ntasks
+
+    pid_is_integer = config.pidtype_is_integer
+    distribute_by_hash = ntasks > 1 and not pid_is_integer
 
     # If we're going to define based on >1 table, we need to keep track of
     # what we've processed. However, if we only have one table, we don't.
@@ -323,8 +326,12 @@ def gen_patient_ids(tasknum: int = 0,
     if config.debug_pid_list:
         log.warning("USING MANUALLY SPECIFIED INTEGER PATIENT ID LIST")
         for pid in config.debug_pid_list:
-            if ntasks == 1 or pid % ntasks == tasknum:
-                yield pid
+            if pid_is_integer:
+                if is_my_job_by_int(int(pid), tasknum=tasknum, ntasks=ntasks):
+                    yield pid
+            else:
+                if is_my_job_by_hash(pid, tasknum=tasknum, ntasks=ntasks):
+                    yield pid
         return
 
     # Otherwise do it properly:
@@ -350,7 +357,7 @@ def gen_patient_ids(tasknum: int = 0,
             distinct()
             # order_by(pidcol)  # no need to order by
         )
-        if ntasks > 1:
+        if ntasks > 1 and pid_is_integer:
             query = query.where(pidcol % ntasks == tasknum)
         result = session.execute(query)
         log.debug("Looking for patient IDs in {}.{}".format(ddr.src_table,
@@ -364,8 +371,15 @@ def gen_patient_ids(tasknum: int = 0,
                 log.warning("Patient ID is NULL")
                 continue
 
+            # Operating on non-integer PIDs and not our job?
+            if distribute_by_hash and not is_my_job_by_hash(
+                    patient_id, tasknum=tasknum, ntasks=ntasks):
+                continue
+
             # Duplicate?
             if keeping_track:
+                # Consider, for non-integer PIDs, storing the hash64 instead
+                # of the raw value.
                 if patient_id in processed_ids:
                     # we've done this one already; skip it this time
                     continue
@@ -658,8 +672,9 @@ def process_table(sourcedbname: str,
                 value = config.encrypt_master_pid(value)
 
             for alter_method in ddr.get_alter_methods():
-                value, skiprow = alter_method.alter(config, value, ddr, row,
-                                                    ddrows, patient)
+                value, skiprow = alter_method.alter(
+                    value=value, ddr=ddr, row=row,
+                    ddrows=ddrows, patient=patient)
                 if skiprow:
                     break  # from alter method loop
 
@@ -912,20 +927,31 @@ def gen_integers_from_file(filename: str) -> Generator[int, None, None]:
             yield pid
 
 
+def gen_words_from_file(filename: str) -> Generator[int, None, None]:
+    for line in open(filename):
+        for pid in line.split():
+            yield pid
+
+
 def gen_opt_out_pids_from_file(mpid: bool = False) -> Generator[int,
                                                                 None, None]:
     if mpid:
         text = "MPID"
         filenames = config.optout_mpid_filenames
+        as_int = config.mpidtype_is_integer
     else:
         text = "PID"
         filenames = config.optout_pid_filenames
+        as_int = config.pidtype_is_integer
     if not filenames:
         log.info("... no opt-out {} disk files in use".format(text))
     else:
         for filename in filenames:
             log.info("... {} file: {}".format(text, filename))
-            yield(gen_integers_from_file(filename))
+            if as_int:
+                yield(gen_integers_from_file(filename))
+            else:
+                yield(gen_words_from_file(filename))
 
 
 def gen_opt_out_pids_from_database(mpid: bool = False) -> Generator[int, None,

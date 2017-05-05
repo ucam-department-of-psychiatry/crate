@@ -26,7 +26,7 @@ Shared constants for CRATE anonymiser.
 
 from enum import unique
 
-from sqlalchemy import BigInteger, Integer
+from sqlalchemy import Integer
 from cardinal_pythonlib.rnc_lang import StrEnum
 
 from crate_anon.version import VERSION, VERSION_DATE
@@ -89,7 +89,6 @@ for i in range(127, 256):
     ODD_CHARS_TRANSLATE[i] = '_'
 ODD_CHARS_TRANSLATE = "".join(ODD_CHARS_TRANSLATE)
 
-PidType = BigInteger
 TridType = Integer
 MAX_TRID = 2 ** 31 - 1
 # https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html
@@ -104,15 +103,16 @@ MAX_TRID = 2 ** 31 - 1
 
 @unique
 class ALTERMETHOD(StrEnum):
-    TRUNCATEDATE = "truncate_date"
-    SCRUBIN = "scrub"
     BINARY_TO_TEXT = "binary_to_text"
-    FILENAME_TO_TEXT = "filename_to_text"
     FILENAME_FORMAT_TO_TEXT = "filename_format_to_text"  # new in v0.18.18
-    SKIP_IF_TEXT_EXTRACT_FAILS = "skip_if_extract_fails"
+    FILENAME_TO_TEXT = "filename_to_text"
+    HASH = "hash"
     # HTML_ESCAPE = "html_escape"
     HTML_UNESCAPE = "html_unescape"
     HTML_UNTAG = "html_untag"
+    SCRUBIN = "scrub"
+    SKIP_IF_TEXT_EXTRACT_FAILS = "skip_if_extract_fails"
+    TRUNCATEDATE = "truncate_date"
 
 
 @unique
@@ -424,6 +424,22 @@ DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
 #       to
 #           see link
 #
+#     - "{ALTERMETHOD.HASH}"=HASH_CONFIG_SECTION
+#       This allows you to hash additional identifying values if you need to
+#       keep them in the destination database to act as keys. You might use
+#
+#               {ALTERMETHOD.HASH}=case_number_hashdef
+#
+#       where your config file contains this section
+#
+#               [case_number_hashdef]
+#               hash_method = HMAC_MD5
+#               secret_key = my_special_secret_phrase_123
+#
+#       To do this, you also need to add "case_number_hashdef" to the
+#       "extra_hash_config_sections" setting (see below).
+#
+#
 #     You can specify multiple options separated by commas.
 #     Not all are compatible (e.g. scrubbing is for text; date truncation is
 #     for dates).
@@ -462,6 +478,18 @@ DEMO_CONFIG = r"""# Configuration file for CRATE anonymiser (crate_anonymise).
 data_dictionary_filename = testdd.tsv
 
 # -----------------------------------------------------------------------------
+# Critical field types
+# -----------------------------------------------------------------------------
+# We need to know PID and MPID types from the config so that we can set up our
+# secret mapping tables. You can leave these blank, in which case they will be
+# assumed to be large integers, using SQLAlchemy's BigInteger (e.g.
+# SQL Server's BIGINT). If you do specify them, you may specify EITHER
+# "BigInteger" or a string type such as "String(50)".
+
+sqlatype_pid =
+sqlatype_mpid =
+
+# -----------------------------------------------------------------------------
 # Encryption phrases/passwords
 # -----------------------------------------------------------------------------
 
@@ -476,6 +504,11 @@ per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
 master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
 
 change_detection_encryption_phrase = YETANOTHER
+
+    # If you are using the "{ALTERMETHOD.HASH}" field alteration method
+    # (see above), you need to list the hash methods here, for internal
+    # initialization order/performance reasons.
+extra_hash_config_sections =
 
 # -----------------------------------------------------------------------------
 # Text extraction
@@ -664,7 +697,7 @@ anonymise_strings_at_word_boundaries_only = True
 mapping_patient_id_fieldname = patient_id
 
     # Research ID field name. This will be a VARCHAR of length determined by
-    # hash_method. Used to replace per_table_patient_id_field.
+    # hash_method. Used to replace patient ID fields from source tables.
 research_id_fieldname = brcid
 
     # Transient integer research ID (TRID) fieldname.
@@ -676,7 +709,7 @@ trid_fieldname = trid
     # Name used for the master patient ID in the mapping table.
 mapping_master_id_fieldname = nhsnum
 
-    # Similarly, used to replace ddgen_master_pid_fieldname:
+    # Similarly, used to replace master patient ID fields in source tables:
 master_research_id_fieldname = nhshash
 
     # Change-detection hash fieldname. This will be a VARCHAR of length
@@ -739,7 +772,7 @@ admin_database = my_admin_database
     # no limit.
 debug_max_n_patients =
 
-    # Specify a list of integer patient IDs, for debugging? If specified, this
+    # Specify a list of patient IDs, for debugging? If specified, this
     # list will be used directly (overriding the patient ID source specified in
     # the data dictionary, and overriding debug_max_n_patients).
 debug_pid_list =
@@ -950,6 +983,15 @@ ddgen_rename_tables_remove_suffixes =
     
     # Fields that are used as patient opt-out fields:
 ddgen_patient_opt_out_fields =
+
+    # Are there any fields you want hashed, in addition to the normal PID/MPID
+    # fields? Specify these a list of FIELDSPEC, EXTRA_HASH_NAME pairs.
+    # For example:
+    #       ddgen_extra_hash_fields = CaseNumber*, case_number_hashdef
+    # where case_number_hashdef is an extra hash definition (see
+    # "extra_hash_config_sections", and "alter_method" in the data dictionary).
+    #
+ddgen_extra_hash_fields =
 
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # DESTINATION INDEXING

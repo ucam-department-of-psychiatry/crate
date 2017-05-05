@@ -20,6 +20,10 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 ===============================================================================
+
+The pipe encoding (Python -> Java stdin, Java stdout -> Python) is fixed at
+UTF-8 here and in the Java code.
+
 """
 
 import logging
@@ -134,7 +138,7 @@ class Gate(BaseNlpParser):
         self._progargs = shlex.split(formatted_progargs)
 
         self._n_uses = 0
-        self._encoding = 'utf8'
+        self._pipe_encoding = 'utf8'
         self._p = None  # the subprocess
         self._started = False
 
@@ -177,7 +181,7 @@ class Gate(BaseNlpParser):
         """Send text to the external program (via its stdin), encoding it in
         the process (typically to UTF-8)."""
         log.debug("SENDING: " + text)
-        bytes_ = text.encode(self._encoding)
+        bytes_ = text.encode(self._pipe_encoding)
         self._p.stdin.write(bytes_)
 
     def _flush_subproc_stdin(self) -> None:
@@ -188,7 +192,7 @@ class Gate(BaseNlpParser):
         """Translate what we've received from the external program's stdout,
         from its specific encoding (usually UTF-8) to a Python string."""
         bytes_ = self._p.stdout.readline()
-        text = bytes_.decode(self._encoding)
+        text = bytes_.decode(self._pipe_encoding)
         log.debug("RECEIVING: " + repr(text))
         return text
 

@@ -26,10 +26,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.schema import Column, Index, MetaData
 from sqlalchemy.types import BigInteger, DateTime, String
 
-from crate_anon.anonymise.constants import (
-    MAX_PID_STR,
-    TABLE_KWARGS,
-)
+from crate_anon.anonymise.constants import TABLE_KWARGS
 from crate_anon.nlp_manager.constants import (
     HashClass,
     MAX_STRING_PK_LENGTH,
@@ -44,8 +41,7 @@ ProgressBase = declarative_base(metadata=progress_meta)
 # Global constants
 # =============================================================================
 
-encrypted_length = len(HashClass("dummysalt").hash(MAX_PID_STR))
-SqlTypeHash = String(encrypted_length)
+SqlTypeHash = HashClass("dummysalt").sqla_column_type()
 
 
 # =============================================================================

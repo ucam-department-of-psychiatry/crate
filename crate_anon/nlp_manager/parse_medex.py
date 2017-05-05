@@ -320,6 +320,32 @@ expression="\b[Mm][Oo][Nn][Tt][Hh][Ll][Yy]\b",val="R1P1MONTH"
         duration, necessity
     FROM anonymous_output.drugs;
 
+-   ENCODING
+    - Pipe encoding (to Java's stdin, from Java's stdout) encoding is the less
+      important as we're only likely to send/receive ASCII. It's hard-coded
+      to UTF-8.
+    - File encoding is vital and is hard-coded to UTF-8 here and in the
+      receiving Java.
+
+    - We have no direct influence over the MedTagger code for output (unless we
+      modify it). The output function is MedTagger.print_result(), which
+      (line 2040 of MedTagger.java) calls out.write(stuff).
+      The out variable is set by
+      			this.out = new BufferedWriter(new FileWriter(output_dir
+					+ File.separator + doc.fname()));
+      That form of the FileWriter constructor, FileWriter(String fileName),
+      uses the "default character encoding", as per
+        https://docs.oracle.com/javase/7/docs/api/java/io/FileWriter.html
+      That default is given by System.getProperty("file.encoding").
+      However, we don't have to do something daft like asking the Java to
+      report its file encoding to Python through a pipe; instead, we can set
+      the Java default encoding. It can't be done dynamically, but it can be
+      done at JVM launch:
+        http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding
+      Therefore, we should have a Java parameter specified in the config file
+      as
+            -Dfile.encoding=UTF-8
+
 """  # noqa
 
 import logging
@@ -344,6 +370,10 @@ from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 log = logging.getLogger(__name__)
 
 
+# =============================================================================
+# Constants
+# =============================================================================
+
 DATA_FILENAME = "crate_medex.txt"
 DATA_FILENAME_KEEP = "crate_medex_{}.txt"
 
@@ -356,6 +386,48 @@ SKIP_IF_NO_GENERIC = True
 # ... Probably should be True. MedEx returns hits for drug "Thu" with no
 # generic drug; this from its weekday lexicon, I think.
 
+# -----------------------------------------------------------------------------
+# Maximum field lengths
+# -----------------------------------------------------------------------------
+# https://phekb.org/sites/phenotype/files/MedEx_UIMA_eMERGE_short.pdf
+#
+# RxNorm: https://www.nlm.nih.gov/research/umls/rxnorm/overview.html
+#
+# UMLS: https://www.nlm.nih.gov/research/umls/new_users/glossary.html
+# UMLS CUI max length: https://www.nlm.nih.gov/research/umls/knowledge_sources/metathesaurus/release/columns_data_elements.html  # noqa
+UMLS_CUI_MAX_LENGTH = 8  # definite
+
+# TIMEX3:
+# - http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf  # noqa
+# - http://www.timeml.org/publications/timeMLdocs/timeml_1.2.1.html#timex3  # noqa
+TIMEX3_MAX_LENGTH = 50  # guess
+
+# Drug length:
+# There are long ones, like
+#   "influenza virus vaccine, inactivated a-brisbane-59-2007, ivr-148 (h1n1) strain" (78)  # noqa
+# See e.g. resources/rxcui_generic.cfg, and:
+# $ wc -L filename  # shows length of longest line
+# $ egrep -n "^.{$(wc -L < filename)}$" filename  # shows longest line
+#   ... possibly this gets a bit confused by tabs, can also put a length in:
+# $ egrep -n "^.{302}$" filename  # shows lines of length 302
+# And we find a drug of length 286:
+#   1-oxa-7-azacyclopentadecan-15-one,13-((2,6-dideoy-3-c-methyl-3-o-methyl-alpha-l-ribo-hexopyranosyl)oxy)-2-ethyl-3,4,10-trihydroxy 3,5,8,10,12,14-hexamethyl-7-propyl-11-((3,4,6-trideoxy-3-(dimethylamino)-beta-d-xylo-hexopyranosyl)oxy)-, ((2r*, 3s*,4r*,5s*,8r*,10r*,11r*,12s*,13s*,14r*))-  # noqa
+# Then there are multivitamin things in brand_generic with length >600.
+# So we should use an unlimited field; SQLAlchemy helpfully seems to translate
+# Text to VARCHAR(MAX) under SQL Server, which is the more efficient:
+# http://stackoverflow.com/questions/834788/using-varcharmax-vs-text-on-sql-server  # noqa
+MEDEX_MAX_FORM_LENGTH = 255  # guess; "Powder For Oral Suspension" (26) is one
+MEDEX_MAX_STRENGTH_LENGTH = 50  # guess
+MEDEX_MAX_DOSE_AMOUNT_LENGTH = 50  # guess
+MEDEX_MAX_ROUTE_LENGTH = 50  # guess
+MEDEX_MAX_FREQUENCY_LENGTH = 50  # guess
+MEDEX_MAX_DURATION_LENGTH = 50  # guess
+MEDEX_MAX_NECESSITY_LENGTH = 50  # guess
+
+
+# =============================================================================
+# Medex
+# =============================================================================
 
 class Medex(BaseNlpParser):
     """Class controlling a Medex-UIMA external process, via our custom
@@ -415,7 +487,8 @@ class Medex(BaseNlpParser):
         ])
 
         self._n_uses = 0
-        self._encoding = 'utf8'
+        self._pipe_encoding = 'utf8'
+        self._file_encoding = 'utf8'
         self._p = None  # the subprocess
         self._started = False
 
@@ -467,7 +540,7 @@ class Medex(BaseNlpParser):
         """Send text to the external program (via its stdin), encoding it in
         the process (typically to UTF-8)."""
         log.debug("SENDING: " + text)
-        bytes_ = text.encode(self._encoding)
+        bytes_ = text.encode(self._pipe_encoding)
         self._p.stdin.write(bytes_)
 
     def _flush_subproc_stdin(self) -> None:
@@ -478,7 +551,7 @@ class Medex(BaseNlpParser):
         """Translate what we've received from the external program's stdout,
         from its specific encoding (usually UTF-8) to a Python string."""
         bytes_ = self._p.stdout.readline()
-        text = bytes_.decode(self._encoding)
+        text = bytes_.decode(self._pipe_encoding)
         log.debug("RECEIVING: " + repr(text))
         return text
 
@@ -544,7 +617,8 @@ class Medex(BaseNlpParser):
         outputfilename = os.path.join(self._outputdir.name, basefilename)
         # ... MedEx gives output files the SAME NAME as input files.
 
-        with open(inputfilename, mode='w') as infile:
+        with open(inputfilename, mode='w',
+                  encoding=self._file_encoding) as infile:
             # log.critical("text: {}".format(repr(text)))
             infile.write(text)
 
@@ -558,7 +632,8 @@ class Medex(BaseNlpParser):
             # obvious. Changed 2017-03-17.
             raise ValueError("Java interface to Medex failed - miconfigured?")
 
-        with open(outputfilename, mode='r') as infile:
+        with open(outputfilename, mode='r',
+                  encoding=self._file_encoding) as infile:
             resultlines = infile.readlines()
         for line in resultlines:
             # log.critical("received: {}".format(line))
@@ -733,23 +808,6 @@ class Medex(BaseNlpParser):
     # -------------------------------------------------------------------------
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
-        # https://phekb.org/sites/phenotype/files/MedEx_UIMA_eMERGE_short.pdf
-        # RxNorm: https://www.nlm.nih.gov/research/umls/rxnorm/overview.html
-        # UMLS: https://www.nlm.nih.gov/research/umls/new_users/glossary.html
-        # UMLS CUI max length: https://www.nlm.nih.gov/research/umls/knowledge_sources/metathesaurus/release/columns_data_elements.html  # noqa
-        # TIMEX3:
-        # http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf  # noqa
-        # http://www.timeml.org/publications/timeMLdocs/timeml_1.2.1.html#timex3  # noqa
-        drug_length = 50  # guess
-        form_length = 25  # guess
-        strength_length = 25  # guess
-        dose_amount_length = 25  # guess
-        route_length = 25  # guess
-        frequency_length = 30  # guess
-        timex3_length = 30  # guess
-        duration_length = 30  # guess
-        necessity_length = 30  # guess
-        umls_cui_max_length = 8  # definite
         startposdef = "Start position (zero-based) of "
         endposdef = (
             "End position (zero-based index of one beyond last character) of ")
@@ -760,79 +818,79 @@ class Medex(BaseNlpParser):
                 Column('sentence_text', Text,
                        doc="Text recognized as a sentence by MedEx"),
 
-                Column('drug', String(drug_length),
+                Column('drug', Text,
                        doc="Drug name, as in the text"),
                 Column('drug_startpos', Integer,
                        doc=startposdef + "drug"),
                 Column('drug_endpos', Integer,
                        doc=endposdef + "drug"),
 
-                Column('brand', String(drug_length),
+                Column('brand', Text,
                        doc="Drug brand name (?lookup ?only if given)"),
                 Column('brand_startpos', Integer,
                        doc=startposdef + "brand"),
                 Column('brand_endpos', Integer,
                        doc=endposdef + "brand"),
 
-                Column('form', String(form_length),
+                Column('form', String(MEDEX_MAX_FORM_LENGTH),
                        doc="Drug/dose form (e.g. 'tablet')"),
                 Column('form_startpos', Integer,
                        doc=startposdef + "form"),
                 Column('form_endpos', Integer,
                        doc=endposdef + "form"),
 
-                Column('strength', String(strength_length),
+                Column('strength', String(MEDEX_MAX_STRENGTH_LENGTH),
                        doc="Strength (e.g. '75mg')"),
                 Column('strength_startpos', Integer,
                        doc=startposdef + "strength"),
                 Column('strength_endpos', Integer,
                        doc=endposdef + "strength"),
 
-                Column('dose_amount', String(dose_amount_length),
+                Column('dose_amount', String(MEDEX_MAX_DOSE_AMOUNT_LENGTH),
                        doc="Dose amount (e.g. '2 tablets')"),
                 Column('dose_amount_startpos', Integer,
                        doc=startposdef + "dose_amount"),
                 Column('dose_amount_endpos', Integer,
                        doc=endposdef + "dose_amount"),
 
-                Column('route', String(route_length),
+                Column('route', String(MEDEX_MAX_ROUTE_LENGTH),
                        doc="Route (e.g. 'by mouth')"),
                 Column('route_startpos', Integer,
                        doc=startposdef + "route"),
                 Column('route_endpos', Integer,
                        doc=endposdef + "route"),
 
-                Column('frequency', String(frequency_length),
+                Column('frequency', String(MEDEX_MAX_FREQUENCY_LENGTH),
                        doc="Frequency (e.g. 'b.i.d.')"),
                 Column('frequency_startpos', Integer,
                        doc=startposdef + "frequency"),
                 Column('frequency_endpos', Integer,
                        doc=endposdef + "frequency"),
-                Column('frequency_timex3', String(timex3_length),
+                Column('frequency_timex3', String(TIMEX3_MAX_LENGTH),
                        doc="Normalized frequency in TIMEX3 format "
                            "(e.g. 'R1P12H')"),
 
-                Column('duration', String(duration_length),
+                Column('duration', String(MEDEX_MAX_DURATION_LENGTH),
                        doc="Duration (e.g. 'for 10 days')"),
                 Column('duration_startpos', Integer,
                        doc=startposdef + "duration"),
                 Column('duration_endpos', Integer,
                        doc=endposdef + "duration"),
 
-                Column('necessity', String(necessity_length),
+                Column('necessity', String(MEDEX_MAX_NECESSITY_LENGTH),
                        doc="Necessity (e.g. 'prn')"),
                 Column('necessity_startpos', Integer,
                        doc=startposdef + "necessity"),
                 Column('necessity_endpos', Integer,
                        doc=endposdef + "necessity"),
 
-                Column('umls_code', String(umls_cui_max_length),
+                Column('umls_code', String(UMLS_CUI_MAX_LENGTH),
                        doc="UMLS CUI"),
                 Column('rx_code', Integer,
                        doc="RxNorm RxCUI for drug"),
                 Column('generic_code', Integer,
                        doc="RxNorm RxCUI for generic name"),
-                Column('generic_name', String(drug_length),
+                Column('generic_name', Text,
                        doc="Generic drug name (associated with RxCUI code)"),
             ]
         }

@@ -48,7 +48,6 @@ from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
     MAX_TRID,
     TABLE_KWARGS,
-    PidType,
     TridType,
 )
 from crate_anon.common.sqla import exists_orm
@@ -66,7 +65,7 @@ class PatientInfo(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     pid = Column(
-        'pid', PidType,
+        'pid', config.PidType,
         primary_key=True, autoincrement=False,
         doc="Patient ID (PID) (PK)")
     rid = Column(
@@ -78,7 +77,7 @@ class PatientInfo(AdminBase):
         unique=True,
         doc="Transient integer research ID (TRID)")
     mpid = Column(
-        'mpid', PidType,
+        'mpid', config.MpidType,
         doc="Master patient ID (MPID)")
     mrid = Column(
         'mrid', config.SqlTypeEncryptedPid,
@@ -125,7 +124,7 @@ class TridRecord(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     pid = Column(
-        "pid", PidType,
+        "pid", config.PidType,
         primary_key=True, autoincrement=False,
         doc="Patient ID (PID) (PK)")
     trid = Column(
@@ -166,7 +165,7 @@ class OptOutPid(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     pid = Column(
-        'pid', PidType,
+        'pid', config.PidType,
         primary_key=True,
         doc="Patient ID")
 
@@ -187,7 +186,7 @@ class OptOutMpid(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     mpid = Column(
-        'mpid', PidType,
+        'mpid', config.MpidType,
         primary_key=True,
         doc="Patient ID")
 

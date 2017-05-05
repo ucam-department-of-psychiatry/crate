@@ -46,6 +46,7 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.hash import hash64
+from crate_anon.common.parallel import is_my_job_by_hash
 from crate_anon.common.sqla import (
     count_star,
     is_sqlatype_integer,
@@ -326,17 +327,9 @@ class InputFieldConfig(object):
             for row in result:  # ... a generator itself
                 with MultiTimerContext(timer, TIMING_PROCESS_GEN_TEXT):
                     pkval = row[0]
-                    if not pk_is_integer:
-                        hashed_pk = hash64(pkval)
-                        if distribute_by_hash and hashed_pk % ntasks != tasknum:
-                            # We convert some non-integer thing into a
-                            # deterministic but roughly randomly distributed
-                            # integer using hash64. That produces a signed
-                            # integer, which is OK because % works nonetheless.
-                            # This is less efficient than dividing the work up
-                            # via SQL, because we have to fetch/hash something.
-                            # Do this ASAP in this loop, for speed.
-                            continue
+                    if (distribute_by_hash and
+                            not is_my_job_by_hash(pkval, tasknum, ntasks)):
+                        continue
 
                     if 0 < self._debug_row_limit <= nrows_returned:
                         log.warning(

@@ -78,10 +78,11 @@ from cardinal_pythonlib.rnc_db import (
     ensure_valid_table_name,
 )
 from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
-from sqlalchemy import create_engine, String
+from sqlalchemy import BigInteger, create_engine, String
 from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.engine import Engine
+from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
@@ -89,7 +90,6 @@ from crate_anon.anonymise.constants import (
     DEFAULT_REPORT_EVERY,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT,
-    MAX_PID_STR,
     SEP,
 )
 from crate_anon.anonymise.dd import DataDictionary
@@ -99,17 +99,11 @@ from crate_anon.anonymise.scrub import (
 )
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.common.formatting import sizeof_fmt
-from crate_anon.common.hash import (
-    # MD5Hasher,
-    # SHA256Hasher,
-    # SHA512Hasher,
-    HmacMD5Hasher,
-    HmacSHA256Hasher,
-    HmacSHA512Hasher,
-)
+from crate_anon.common.hash import GenericHasher, make_hasher
 from crate_anon.common.sql import TransactionSizeLimiter
 from crate_anon.common.sqla import (
     hack_in_mssql_xml_type,
+    is_sqlatype_integer,
     monkeypatch_TableClause,
 )
 
@@ -241,6 +235,14 @@ class DatabaseSafeConfig(object):
         self.ddgen_patient_opt_out_fields = opt_multiline(
             'ddgen_patient_opt_out_fields')
 
+        self.ddgen_extra_hash_fields = opt_multiline_csv_pairs(
+            'ddgen_extra_hash_fields')
+        # ... key: fieldspec
+        # ... value: hash_config_section_name
+
+        self.PidType = BigInteger
+        self.MpidType = BigInteger
+
     def is_table_blacklisted(self, table: str) -> bool:
         for white in self.ddgen_table_whitelist:
             r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
@@ -271,6 +273,24 @@ class DatabaseSafeConfig(object):
             if if_field in colnames and then_field not in colnames:
                 return True
         return False
+
+
+# =============================================================================
+# ExtraHashconfig
+# =============================================================================
+
+def get_extra_hasher(parser: ExtendedConfigParser,
+                     section: str) -> GenericHasher:
+    """Read from a configparser section."""
+    if not parser.has_section(section):
+        raise ValueError("config missing section: " + section)
+
+    def opt_str(option: str) -> str:
+        return parser.get(section, option, fallback=None)
+
+    hash_method = opt_str("hash_method")
+    secret_key = opt_str("secret_key")
+    return make_hasher(hash_method, secret_key)
 
 
 # =============================================================================
@@ -336,7 +356,39 @@ class Config(object):
                                        with_conn=with_conn,
                                        reflect=reflect)
 
+        def get_sqlatype(sqlatype: str, default: TypeEngine) -> TypeEngine:
+            if not sqlatype:
+                return default
+            if sqlatype == "BigInteger":
+                return BigInteger
+            r = regex.compile(r"String\((\d+)\)")  # e.g. String(50)
+            try:
+                m = r.match(sqlatype)
+                length = int(m.group(1))
+                return String(length)
+            except (AttributeError, ValueError):
+                raise ValueError("Bad SQLAlchemy type specification for "
+                                 "PID/MPID columns: {}".format(repr(sqlatype)))
+
+        # ---------------------------------------------------------------------
+        # Data dictionary
+        # ---------------------------------------------------------------------
+
         self.data_dictionary_filename = opt_str('data_dictionary_filename')
+
+        # ---------------------------------------------------------------------
+        # Critical field types
+        # ---------------------------------------------------------------------
+
+        self.PidType = get_sqlatype(opt_str('sqlatype_pid'), BigInteger)
+        self.pidtype_is_integer = is_sqlatype_integer(self.PidType)
+        self.MpidType = get_sqlatype(opt_str('sqlatype_mpid'), BigInteger)
+        self.mpidtype_is_integer = is_sqlatype_integer(self.MpidType)
+
+        # ---------------------------------------------------------------------
+        # Encryption phrases/passwords
+        # ---------------------------------------------------------------------
+
         self.hash_method = opt_str('hash_method')
         self.per_table_patient_id_encryption_phrase = opt_str(
             'per_table_patient_id_encryption_phrase')
@@ -344,6 +396,54 @@ class Config(object):
             'master_patient_id_encryption_phrase')
         self.change_detection_encryption_phrase = opt_str(
             'change_detection_encryption_phrase')
+        _extra_hash_config_section_names = opt_multiline(
+            "extra_hash_config_sections")
+
+        self.extra_hashers = {}  # type: Dict[str, GenericHasher]
+        for hasher_name in _extra_hash_config_section_names:
+            self.extra_hashers[hasher_name] = get_extra_hasher(parser,
+                                                               hasher_name)
+        # Load encryption keys and create hashers
+        dummyhash = make_hasher(self.hash_method, "dummysalt")
+        encrypted_length = dummyhash.output_length()
+
+        self.SqlTypeEncryptedPid = String(encrypted_length)
+        self.sqltype_encrypted_pid_as_sql = str(self.SqlTypeEncryptedPid)
+        # ... VARCHAR(32) for MD5; VARCHAR(64) for SHA-256; VARCHAR(128) for
+        # SHA-512.
+
+        if not self.per_table_patient_id_encryption_phrase:
+            raise ValueError("Missing per_table_patient_id_encryption_phrase")
+        self.primary_pid_hasher = make_hasher(
+            self.hash_method, self.per_table_patient_id_encryption_phrase)
+
+        if not self.master_patient_id_encryption_phrase:
+            raise ValueError("Missing master_patient_id_encryption_phrase")
+        self.master_pid_hasher = make_hasher(
+            self.hash_method, self.master_patient_id_encryption_phrase)
+
+        if not self.change_detection_encryption_phrase:
+            raise ValueError("Missing change_detection_encryption_phrase")
+        self.change_detection_hasher = make_hasher(
+            self.hash_method, self.change_detection_encryption_phrase)
+
+        # ---------------------------------------------------------------------
+        # Text extraction
+        # ---------------------------------------------------------------------
+
+        self.extract_text_extensions_case_sensitive = opt_bool(
+            'extract_text_extensions_case_sensitive', False)
+        self.extract_text_extensions_permitted = opt_multiline(
+            'extract_text_extensions_permitted')
+        self.extract_text_extensions_prohibited = opt_multiline(
+            'extract_text_extensions_prohibited')
+        self.extract_text_plain = opt_bool('extract_text_plain', False)
+        self.extract_text_width = opt_int('extract_text_width', 80)
+
+        # ---------------------------------------------------------------------
+        # Anonymisation
+        # ---------------------------------------------------------------------
+
         self.replace_patient_info_with = opt_str('replace_patient_info_with')
         self.replace_third_party_info_with = opt_str(
             'replace_third_party_info_with')
@@ -367,6 +467,48 @@ class Config(object):
             'anonymise_numbers_at_numeric_boundaries_only', True)
         self.anonymise_strings_at_word_boundaries_only = opt_bool(
             'anonymise_strings_at_word_boundaries_only', True)
+
+        self.scrub_string_suffixes = opt_multiline('scrub_string_suffixes')
+        self.whitelist_filenames = opt_multiline('whitelist_filenames')
+        self.blacklist_filenames = opt_multiline('blacklist_filenames')
+        self.scrub_all_numbers_of_n_digits = opt_multiline_int(
+            'scrub_all_numbers_of_n_digits', minimum=1)
+
+        if not self.extract_text_extensions_case_sensitive:
+            self.extract_text_extensions_permitted = [
+                x.upper() for x in self.extract_text_extensions_permitted]
+            self.extract_text_extensions_permitted = [
+                x.upper() for x in self.extract_text_extensions_permitted]
+
+        # Whitelist, blacklist, nonspecific scrubber
+        self.whitelist = WordList(
+            filenames=self.whitelist_filenames,
+            hasher=self.change_detection_hasher,
+        )
+        self.blacklist = WordList(
+            filenames=self.blacklist_filenames,
+            replacement_text=self.replace_nonspecific_info_with,
+            hasher=self.change_detection_hasher,
+            at_word_boundaries_only=(
+                self.anonymise_strings_at_word_boundaries_only),
+            max_errors=0,
+        )
+        self.nonspecific_scrubber = NonspecificScrubber(
+            replacement_text=self.replace_nonspecific_info_with,
+            hasher=self.change_detection_hasher,
+            anonymise_codes_at_word_boundaries_only=(
+                self.anonymise_codes_at_word_boundaries_only),
+            anonymise_numbers_at_word_boundaries_only=(
+                self.anonymise_numbers_at_word_boundaries_only),
+            blacklist=self.blacklist,
+            scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
+            scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
+        )
+
+        # ---------------------------------------------------------------------
+        # Output fields and formatting
+        # ---------------------------------------------------------------------
+
         self.mapping_patient_id_fieldname = opt_str(
             'mapping_patient_id_fieldname')
         self.research_id_fieldname = opt_str('research_id_fieldname')
@@ -380,38 +522,21 @@ class Config(object):
         self.datetime_to_text_format = opt_str('datetime_to_text_format')
         self.append_source_info_to_comment = opt_bool(
             'append_source_info_to_comment', True)
+
+        # ---------------------------------------------------------------------
+        # Destination database configuration
+        # ---------------------------------------------------------------------
+
         self.max_rows_before_commit = opt_int('max_rows_before_commit',
                                               DEFAULT_MAX_ROWS_BEFORE_COMMIT)
         self.max_bytes_before_commit = opt_int('max_bytes_before_commit',
                                                DEFAULT_MAX_BYTES_BEFORE_COMMIT)
         self.temporary_tablename = opt_str('temporary_tablename')
-        self.debug_max_n_patients = opt_int('debug_max_n_patients', 0)
 
-        self.scrub_string_suffixes = opt_multiline('scrub_string_suffixes')
-        self.whitelist_filenames = opt_multiline('whitelist_filenames')
-        self.blacklist_filenames = opt_multiline('blacklist_filenames')
-        self.scrub_all_numbers_of_n_digits = opt_multiline_int(
-            'scrub_all_numbers_of_n_digits', minimum=1)
-        self.debug_pid_list = opt_multiline_int('debug_pid_list')
-        self.extract_text_extensions_case_sensitive = opt_bool(
-            'extract_text_extensions_case_sensitive', False)
-        self.extract_text_extensions_permitted = opt_multiline(
-            'extract_text_extensions_permitted')
-        self.extract_text_extensions_prohibited = opt_multiline(
-            'extract_text_extensions_prohibited')
-        self.extract_text_plain = opt_bool('extract_text_plain', False)
-        self.extract_text_width = opt_int('extract_text_width', 80)
-        self.optout_pid_filenames = opt_multiline('optout_pid_filenames')
-        self.optout_mpid_filenames = opt_multiline('optout_mpid_filenames')
-        self.optout_col_values = opt_pyvalue_list('optout_col_values')
-
-        if not self.extract_text_extensions_case_sensitive:
-            self.extract_text_extensions_permitted = [
-                x.upper() for x in self.extract_text_extensions_permitted]
-            self.extract_text_extensions_permitted = [
-                x.upper() for x in self.extract_text_extensions_permitted]
-
+        # ---------------------------------------------------------------------
         # Databases
+        # ---------------------------------------------------------------------
+
         destination_database_cfg_section = opt_str('destination_database')
         self._destination_database_url = parser.get_str(
             destination_database_cfg_section, 'url', required=True)
@@ -473,68 +598,24 @@ class Config(object):
             else:  # in context of web framework
                 self.src_dialects[sourcedb_name] = mssql_dialect
 
-        # Load encryption keys and create hashers
-        assert self.hash_method not in ("MD5", "SHA256", "SHA512"), (
-            # old options; removed
-            "Non-HMAC hashers are deprecated for security reasons. You have: "
-            "{}".format(self.hash_method))
-        if self.hash_method == "HMAC_MD5":
-            # noinspection PyPep8Naming
-            HashClass = HmacMD5Hasher
-        elif self.hash_method == "HMAC_SHA256" or not self.hash_method:
-            # noinspection PyPep8Naming
-            HashClass = HmacSHA256Hasher
-        elif self.hash_method == "HMAC_SHA512":
-            # noinspection PyPep8Naming
-            HashClass = HmacSHA512Hasher
-        else:
-            raise ValueError("Unknown value for hash_method")
-        encrypted_length = len(HashClass("dummysalt").hash(MAX_PID_STR))
+        # ---------------------------------------------------------------------
+        # Processing options
+        # ---------------------------------------------------------------------
 
-        self.SqlTypeEncryptedPid = String(encrypted_length)
-        self.sqltype_encrypted_pid_as_sql = str(self.SqlTypeEncryptedPid)
-        # ... VARCHAR(32) for MD5; VARCHAR(64) for SHA-256; VARCHAR(128) for
-        # SHA-512.
+        self.debug_max_n_patients = opt_int('debug_max_n_patients', 0)
+        self.debug_pid_list = opt_multiline('debug_pid_list')
 
-        if not self.per_table_patient_id_encryption_phrase:
-            raise ValueError("Missing per_table_patient_id_encryption_phrase")
-        self.primary_pid_hasher = HashClass(
-            self.per_table_patient_id_encryption_phrase)
+        # ---------------------------------------------------------------------
+        # Opting out entirely
+        # ---------------------------------------------------------------------
 
-        if not self.master_patient_id_encryption_phrase:
-            raise ValueError("Missing master_patient_id_encryption_phrase")
-        self.master_pid_hasher = HashClass(
-            self.master_patient_id_encryption_phrase)
+        self.optout_pid_filenames = opt_multiline('optout_pid_filenames')
+        self.optout_mpid_filenames = opt_multiline('optout_mpid_filenames')
+        self.optout_col_values = opt_pyvalue_list('optout_col_values')
 
-        if not self.change_detection_encryption_phrase:
-            raise ValueError("Missing change_detection_encryption_phrase")
-        self.change_detection_hasher = HashClass(
-            self.change_detection_encryption_phrase)
-
-        # Whitelist, blacklist, nonspecific scrubber
-        self.whitelist = WordList(
-            filenames=self.whitelist_filenames,
-            hasher=self.change_detection_hasher,
-        )
-        self.blacklist = WordList(
-            filenames=self.blacklist_filenames,
-            replacement_text=self.replace_nonspecific_info_with,
-            hasher=self.change_detection_hasher,
-            at_word_boundaries_only=(
-                self.anonymise_strings_at_word_boundaries_only),
-            max_errors=0,
-        )
-        self.nonspecific_scrubber = NonspecificScrubber(
-            replacement_text=self.replace_nonspecific_info_with,
-            hasher=self.change_detection_hasher,
-            anonymise_codes_at_word_boundaries_only=(
-                self.anonymise_codes_at_word_boundaries_only),
-            anonymise_numbers_at_word_boundaries_only=(
-                self.anonymise_numbers_at_word_boundaries_only),
-            blacklist=self.blacklist,
-            scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
-            scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
-        )
+        # ---------------------------------------------------------------------
+        # Rest of initialization
+        # ---------------------------------------------------------------------
 
         self.dd = DataDictionary(self)
 
@@ -693,6 +774,14 @@ class Config(object):
         dictionary attack. Thus, we should use a better version.
         """
         return self.change_detection_hasher.hash(repr(l))
+
+    def get_extra_hasher(self, hasher_name: str) -> GenericHasher:
+        if hasher_name not in self.extra_hashers.keys():
+            raise ValueError(
+                "Extra hasher {} requested but doesn't exist; check you have "
+                "listed it in 'extra_hash_config_sections' in the config "
+                "file".format(hasher_name))
+        return self.extra_hashers[hasher_name]
 
     def get_source_db_names(self) -> List[str]:
         return self.source_db_names

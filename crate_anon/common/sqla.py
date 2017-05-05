@@ -48,6 +48,7 @@ from sqlalchemy.sql.expression import (
     TableClause,
 )
 from sqlalchemy.sql.sqltypes import BigInteger, TypeEngine
+from sqlalchemy.sql.visitors import VisitableType
 
 log = logging.getLogger(__name__)
 
@@ -288,6 +289,17 @@ def get_column_names(engine: Engine, tablename: str) -> List[str]:
 # =============================================================================
 # More introspection
 # =============================================================================
+
+def get_pk_colnames(table_: Table) -> List[str]:
+    """
+    If a table has a PK, this will return its name; otherwise, None.
+    """
+    pk_names = []  # type: List[str]
+    for col in table_.columns:
+        if col.primary_key:
+            pk_names.append(col.name)
+    return pk_names
+
 
 def get_single_int_pk_colname(table_: Table) -> Optional[str]:
     """
@@ -790,6 +802,8 @@ def convert_sqla_type_for_dialect(
       replaced with "[XXXXXX]", will get longer (by an unpredictable amount).
       So, better to expand to unlimited length.
     """
+    assert coltype is not None
+
     # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
     #                                                     vars(coltype)))
     # noinspection PyUnresolvedReferences
@@ -861,33 +875,58 @@ def convert_sqla_type_for_dialect(
 # Questions about SQLAlchemy column types
 # =============================================================================
 
-def is_sqlatype_binary(coltype: TypeEngine) -> bool:
+# Note:
+#   x = String        } type(x) == VisitableType  # metaclass
+#   x = BigInteger    }
+# but:
+#   x = String()      } type(x) == TypeEngine
+#   x = BigInteger()  }
+#
+# isinstance also cheerfully handles multiple inheritance, i.e. if you have
+# class A(object), class B(object), and class C(A, B), followed by x = C(),
+# then all of isinstance(x, A), isinstance(x, B), isinstance(x, C) are True
+
+def _coltype_to_typeengine(coltype: Union[TypeEngine,
+                                          VisitableType]) -> TypeEngine:
+    if isinstance(coltype, VisitableType):
+        coltype = coltype()
+    assert isinstance(coltype, TypeEngine)
+    return coltype
+
+
+def is_sqlatype_binary(coltype: Union[TypeEngine, VisitableType]) -> bool:
     # Several binary types inherit internally from _Binary, making that the
     # easiest to check.
-
+    coltype = _coltype_to_typeengine(coltype)
     # noinspection PyProtectedMember
     return isinstance(coltype, sqltypes._Binary)
 
 
 def is_sqlatype_date(coltype: TypeEngine) -> bool:
-    # isinstance also cheerfully handles multiple inheritance, i.e. if you have
-    # class A(object), class B(object), and class C(A, B), followed by x = C(),
-    # then all of isinstance(x, A), isinstance(x, B), isinstance(x, C) are True
-
+    coltype = _coltype_to_typeengine(coltype)
     # noinspection PyProtectedMember
     return isinstance(coltype, sqltypes._DateAffinity)
 
 
-def is_sqlatype_integer(coltype: TypeEngine) -> bool:
+def is_sqlatype_integer(coltype: Union[TypeEngine, VisitableType]) -> bool:
+    coltype = _coltype_to_typeengine(coltype)
     return isinstance(coltype, sqltypes.Integer)
 
 
-def is_sqlatype_numeric(coltype: TypeEngine) -> bool:
+def is_sqlatype_numeric(coltype: Union[TypeEngine, VisitableType]) -> bool:
+    coltype = _coltype_to_typeengine(coltype)
     return isinstance(coltype, sqltypes.Numeric)  # includes Float, Decimal
 
 
-def is_sqlatype_text_of_length_at_least(coltype: TypeEngine,
-                                        min_length: int = 1000) -> bool:
+def is_sqlatype_string(coltype: Union[TypeEngine, VisitableType]) -> bool:
+    coltype = _coltype_to_typeengine(coltype)
+    return isinstance(coltype, sqltypes.String)
+
+
+def is_sqlatype_text_of_length_at_least(
+        coltype: Union[TypeEngine, VisitableType],
+        min_length: int = 1000) -> bool:
+    coltype = _coltype_to_typeengine(coltype)
     if not isinstance(coltype, sqltypes.String):
         return False  # not a string/text type at all
     if coltype.length is None:
@@ -895,18 +934,24 @@ def is_sqlatype_text_of_length_at_least(coltype: TypeEngine,
     return coltype.length >= min_length
 
 
-def is_sqlatype_text_over_one_char(coltype: TypeEngine) -> bool:
+def is_sqlatype_text_over_one_char(
+        coltype: Union[TypeEngine, VisitableType]) -> bool:
+    coltype = _coltype_to_typeengine(coltype)
     return is_sqlatype_text_of_length_at_least(coltype, 2)
 
 
-def does_sqlatype_merit_fulltext_index(coltype: TypeEngine,
-                                       min_length: int = 1000) -> bool:
+def does_sqlatype_merit_fulltext_index(
+        coltype: Union[TypeEngine, VisitableType],
+        min_length: int = 1000) -> bool:
+    coltype = _coltype_to_typeengine(coltype)
     return is_sqlatype_text_of_length_at_least(coltype, min_length)
 
 
-def does_sqlatype_require_index_len(coltype: TypeEngine) -> bool:
+def does_sqlatype_require_index_len(
+        coltype: Union[TypeEngine, VisitableType]) -> bool:
     # MySQL, at least, requires index length to be specified for BLOB and TEXT
     # columns: http://dev.mysql.com/doc/refman/5.7/en/create-index.html
+    coltype = _coltype_to_typeengine(coltype)
     if isinstance(coltype, sqltypes.Text):
         return True
     if isinstance(coltype, sqltypes.LargeBinary):

@@ -558,6 +558,7 @@ destdb = DESTINATION_DATABASE
 desttable = drugs
 progargs = java
     -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
+    -Dfile.encoding=UTF-8
     CrateMedexPipeline
     -lt {{NLPLOGTAG}}
     -v -v

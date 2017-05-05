@@ -38,6 +38,7 @@ from crate_anon.anonymise.constants import (
     DEMO_CONFIG,
 )
 from crate_anon.common.debugfunc import pdb_run
+from crate_anon.common.lang import die
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.version import VERSION, VERSION_DATE
 
@@ -172,9 +173,9 @@ def main() -> None:
     from crate_anon.anonymise.anonymise import anonymise  # delayed import
     try:
         anonymise(args)
-    except:
+    except Exception as exc:
         log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
-        raise
+        die(exc)
 
 
 # =============================================================================

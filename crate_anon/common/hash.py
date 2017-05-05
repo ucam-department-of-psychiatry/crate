@@ -45,6 +45,9 @@ import hashlib
 import hmac
 import sys
 from typing import Any, Callable, Tuple, Union
+
+from sqlalchemy.sql.sqltypes import String, TypeEngine
+
 from crate_anon.common.timing import MultiTimerContext, timer
 
 try:
@@ -73,6 +76,12 @@ class GenericHasher(object):
     def hash(self, raw: Any) -> str:
         """The public interface to a hasher."""
         raise NotImplementedError()
+
+    def output_length(self) -> int:
+        return len(self.hash("dummytext"))
+
+    def sqla_column_type(self) -> TypeEngine:
+        return String(length=self.output_length())
 
 
 # =============================================================================
@@ -141,6 +150,27 @@ class HmacSHA256Hasher(GenericHmacHasher):
 class HmacSHA512Hasher(GenericHmacHasher):
     def __init__(self, key: str) -> None:
         super().__init__(hashlib.sha512, key)
+
+
+# =============================================================================
+# Hash factory
+# =============================================================================
+
+def make_hasher(hash_method: str, key: str) -> GenericHasher:
+    hash_method = hash_method.upper()
+    if hash_method in ("MD5", "SHA256", "SHA512"):
+        raise ValueError(
+            "Non-HMAC hashers are deprecated for security reasons. You are "
+            "trying to use: {}".format(hash_method))
+    if hash_method == "HMAC_MD5":
+        return HmacMD5Hasher(key)
+    elif hash_method == "HMAC_SHA256" or not hash_method:
+        return HmacSHA256Hasher(key)
+    elif hash_method == "HMAC_SHA512":
+        return HmacSHA512Hasher(key)
+    else:
+        raise ValueError("Unknown value for hash_method: {}".format(
+            hash_method))
 
 
 # =============================================================================

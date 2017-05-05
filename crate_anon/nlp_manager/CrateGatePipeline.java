@@ -132,7 +132,7 @@ public class CrateGatePipeline {
     // Internal
     private String m_extra_log_prefix = "";
     private int m_count = 0;
-    private String m_std_encoding = "UTF-8";
+    private String m_pipe_encoding = "UTF-8";
     private PrintStream m_out = null;
     // Logger:
     private static final Logger m_log = Logger.getLogger(CrateGatePipeline.class);
@@ -192,7 +192,7 @@ public class CrateGatePipeline {
         // --------------------------------------------------------------------
 
         // We're going to write to this:
-        m_out = new PrintStream(System.out, true, m_std_encoding);
+        m_out = new PrintStream(System.out, true, m_pipe_encoding);
 
         // Some GATE apps may write to System.out, which will cause us problems
         // unless we divert them:
@@ -213,6 +213,17 @@ public class CrateGatePipeline {
         // Do interesting things
         // --------------------------------------------------------------------
         reportArgs(true);
+        try {
+            runPipeline();
+        } catch (Exception e) {
+            m_log.error("Uncaught exception; aborting; stack trace follows");
+            e.printStackTrace();
+            abort();  // otherwise, Java exits with an UNDEFINED (e.g. 0 = "happy") return code
+        }
+    }
+
+    private void runPipeline()
+            throws GateException, IOException, ResourceInstantiationException {
         setupGate();
         m_log.info("Ready for input");
 
@@ -410,7 +421,7 @@ public class CrateGatePipeline {
 
     private StdinResult readStdin() throws IOException {
         BufferedReader br = new BufferedReader(
-            new InputStreamReader(System.in, m_std_encoding));
+            new InputStreamReader(System.in, m_pipe_encoding));
         StringBuffer sb = new StringBuffer();
         String line;
         boolean finished_this = false;

@@ -23,6 +23,8 @@
 """
 
 import logging
+import sys
+import traceback
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 log = logging.getLogger(__name__)
@@ -85,6 +87,49 @@ def recover_info_from_exception(err: Exception) -> Dict:
     if not isinstance(info, dict):
         return {}
     return info
+
+
+def die(exc: Exception = None, exit_code: int = 1) -> None:
+    """
+    It is not clear that Python guarantees to exit with a non-zero exit code
+    (errorlevel in DOS/Windows) upon an unhandled exception. So this function
+    produces the usual stack trace then dies.
+
+    http://stackoverflow.com/questions/9555133/e-printstacktrace-equivalent-in-python  # noqa
+
+    Test code:
+
+import logging
+import sys
+import traceback
+logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger()
+
+def fail():
+    try:
+        x = 1/0
+    except Exception as exc:
+        die(exc)
+
+
+    Then call
+        fail()
+    ... which should exit Python; then from Linux:
+        echo $?  # show exit code
+
+    """
+    if exc:
+        lines = traceback.format_exception(
+            None,  # etype: ignored
+            exc,
+            exc.__traceback__)  # https://www.python.org/dev/peps/pep-3134/
+        msg = "".join(lines)
+        # Method 1:
+        # print("".join(lines), file=sys.stderr, flush=True)
+        # Method 2:
+        log.critical(msg)
+    log.critical("Exiting with exit code {}".format(exit_code))
+    sys.exit(exit_code)
 
 
 # =============================================================================

@@ -24,7 +24,7 @@
 
 import argparse
 import logging
-from typing import Any, List, Optional
+from typing import Any, List
 
 from sqlalchemy import (
     create_engine,

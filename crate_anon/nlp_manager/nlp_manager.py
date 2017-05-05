@@ -77,6 +77,7 @@ from crate_anon.anonymise.constants import (
     SEP,
 )
 from crate_anon.common.formatting import print_record_counts
+from crate_anon.common.lang import die
 from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sqla import count_star
 from crate_anon.common.timing import MultiTimerContext, timer
@@ -308,9 +309,9 @@ def process_nlp(nlpdef: NlpDefinition,
     log.info(SEP + "NLP")
     session = nlpdef.get_progdb_session()
     for ifconfig in nlpdef.get_ifconfigs():
-        i = 0
-        recnum = tasknum
-        count = ifconfig.get_count()
+        i = 0  # record count within this process
+        recnum = tasknum  # record count overall
+        totalcount = ifconfig.get_count()  # total number of records in table
         for text, other_values in ifconfig.gen_text(tasknum=tasknum,
                                                     ntasks=ntasks):
             i += 1
@@ -319,17 +320,27 @@ def process_nlp(nlpdef: NlpDefinition,
             if report_every and i % report_every == 0:
                 log.info(
                     "Processing {db}.{t}.{c}, PK: {pkf}={pkv} "
-                    "(record {approx}{recnum}/{count})".format(
+                    "({overall}record {approx}{recnum}/{totalcount})"
+                    "{thisproc}".format(
                         db=other_values[FN_SRCDB],
                         t=other_values[FN_SRCTABLE],
                         c=other_values[FN_SRCFIELD],
                         pkf=other_values[FN_SRCPKFIELD],
                         pkv=pkstr if pkstr else pkval,
+                        overall="overall " if ntasks > 1 else "",
                         approx="~" if pkstr and ntasks > 1 else "",
                         # ... string hashing means approx. distribution
                         recnum=recnum + 1,
                         i=i,
-                        count=count))
+                        totalcount=totalcount,
+                        thisproc=(
+                            " ({i}/~{proccount} this process)".format(
+                                i=i,
+                                proccount=totalcount // ntasks)
+                            if ntasks > 1 else ""
+                        )
+                    )
+                )
             recnum += ntasks
             # log.critical("other_values={}".format(repr(other_values)))
             srchash = nlpdef.hash(text)
@@ -652,9 +663,9 @@ def main() -> None:
                         report_every=args.report_every_nlp,
                         tasknum=args.process,
                         ntasks=args.nprocesses)
-        except:
+        except Exception as exc:
             log.critical("TERMINAL ERROR FROM THIS PROCESS")  # so we see proc#
-            raise
+            die(exc)
 
     log.info("Finished")
     end = get_now_utc()
