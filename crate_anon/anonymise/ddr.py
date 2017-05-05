@@ -720,8 +720,6 @@ class DataDictionaryRow(object):
         self.src_field = field
         self.src_datatype = datatype_sqltext
         self._src_sqla_coltype = sqla_coltype
-
-        # Is the field special, such as a PK?
         self._pk = False
         self._add_src_hash = False
         self._primary_pid = False
@@ -729,6 +727,12 @@ class DataDictionaryRow(object):
         self._master_pid = False
         self._constant = False
         self._addition_only = False
+        self.comment = comment
+        self._from_file = False
+
+        # ---------------------------------------------------------------------
+        # Is the field special, such as a PK?
+        # ---------------------------------------------------------------------
         if self.matches_fielddef(dbconf.ddgen_pk_fields):
             self._pk = True
             self._constant = (
@@ -751,11 +755,15 @@ class DataDictionaryRow(object):
         if self.matches_fielddef(dbconf.ddgen_pid_defining_fieldnames):
             self._defines_primary_pids = True
 
+        # ---------------------------------------------------------------------
         # Does it indicate the patient wishes to opt out entirely?
+        # ---------------------------------------------------------------------
         if self.matches_fielddef(dbconf.ddgen_patient_opt_out_fields):
             self._opt_out_info = True
 
+        # ---------------------------------------------------------------------
         # Does the field contain sensitive data?
+        # ---------------------------------------------------------------------
         if (self._master_pid or
                 self._defines_primary_pids or
                 (self._primary_pid and
@@ -770,11 +778,15 @@ class DataDictionaryRow(object):
         else:
             self.scrub_src = None
 
+        # ---------------------------------------------------------------------
         # Is it a mandatory scrubbing field?
+        # ---------------------------------------------------------------------
         if self.matches_fielddef(dbconf.ddgen_required_scrubsrc_fields):
             self._required_scrubber = True
 
+        # ---------------------------------------------------------------------
         # What kind of sensitive data? Date, text, number, code?
+        # ---------------------------------------------------------------------
         if not self.scrub_src:
             self.scrub_method = ""
         elif (self.scrub_src is SCRUBSRC.THIRDPARTY_XREF_PID or
@@ -793,7 +805,9 @@ class DataDictionaryRow(object):
         else:
             self.scrub_method = SCRUBMETHOD.WORDS
 
+        # ---------------------------------------------------------------------
         # Do we want to change the destination fieldname?
+        # ---------------------------------------------------------------------
         if self._primary_pid:
             self.dest_field = self.config.research_id_fieldname
         elif self._master_pid:
@@ -808,14 +822,18 @@ class DataDictionaryRow(object):
             self.dest_field = self.dest_field.translate(ODD_CHARS_TRANSLATE)
             # ... this will choke on a Unicode string
 
+        # ---------------------------------------------------------------------
         # Do we want to change the destination field SQL type?
+        # ---------------------------------------------------------------------
         if self._primary_pid or self._master_pid:
             self.dest_datatype = self.config.sqltype_encrypted_pid_as_sql
         else:
             self.dest_datatype = ''
         # ... and see also potential changes made below
 
+        # ---------------------------------------------------------------------
         # How should we manipulate the destination?
+        # ---------------------------------------------------------------------
         extracting_text = False
         if self.matches_fielddef(dbconf.ddgen_truncate_date_fields):
             self._alter_methods.append(AlterMethod(config=self.config,
@@ -845,6 +863,7 @@ class DataDictionaryRow(object):
             # Text field meeting the criteria to scrub
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    scrub=True))
+            log.critical("ADDED SCRUB")
         if extracting_text:
             # Scrub all extract-text fields, unless asked not to
             if (not self.matches_fielddef(
@@ -858,6 +877,11 @@ class DataDictionaryRow(object):
                     config=self.config,
                     skip_if_text_extract_fails=True))
 
+        log.critical(str(dbconf.ddgen_min_length_for_scrubbing))
+        if is_sqlatype_text_of_length_at_least(
+                sqla_coltype, dbconf.ddgen_min_length_for_scrubbing):
+            log.critical("LONG ENOUGH")
+
         for fieldspec, cfg_section in dbconf.ddgen_extra_hash_fields.items():
             if self.matches_fielddef(fieldspec):
                 self._alter_methods.append(AlterMethod(
@@ -866,7 +890,9 @@ class DataDictionaryRow(object):
                     hash_config_section=cfg_section
                 ))
 
+        # ---------------------------------------------------------------------
         # Manipulate the destination table name?
+        # ---------------------------------------------------------------------
         # http://stackoverflow.com/questions/10017147
         self.dest_table = table
         if dbconf.ddgen_force_lower_case:
@@ -880,7 +906,9 @@ class DataDictionaryRow(object):
                 self.dest_table = self.dest_table[:-len(suffix)]  # remove it
                 break  # only remove one suffix!
 
+        # ---------------------------------------------------------------------
         # Should we index the destination?
+        # ---------------------------------------------------------------------
         dest_sqla_type = self.get_dest_sqla_coltype()
         if self._pk:
             self.index = INDEX.UNIQUE
@@ -904,7 +932,9 @@ class DataDictionaryRow(object):
             else None
         )
 
+        # ---------------------------------------------------------------------
         # Should we omit it (at least until a human has looked at the DD)?
+        # ---------------------------------------------------------------------
         # In descending order of priority:
         if self.matches_fielddef(dbconf.ddgen_omit_fields):  # explicit
             # Explicit omission trumps everything else
@@ -928,6 +958,3 @@ class DataDictionaryRow(object):
             self.omit = False
         else:
             self.omit = dbconf.ddgen_omit_by_default
-
-        self.comment = comment
-        self._from_file = False
