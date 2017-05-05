@@ -877,10 +877,10 @@ class DataDictionaryRow(object):
                     config=self.config,
                     skip_if_text_extract_fails=True))
 
-        log.critical(str(dbconf.ddgen_min_length_for_scrubbing))
         if is_sqlatype_text_of_length_at_least(
                 sqla_coltype, dbconf.ddgen_min_length_for_scrubbing):
             log.critical("LONG ENOUGH")
+            log.critical(self.alter_method)
 
         for fieldspec, cfg_section in dbconf.ddgen_extra_hash_fields.items():
             if self.matches_fielddef(fieldspec):
