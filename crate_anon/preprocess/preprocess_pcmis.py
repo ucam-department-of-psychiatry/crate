@@ -531,7 +531,7 @@ def add_geography_view(basetable: str,
     orig_column_names = [x for x in orig_column_names
                          if x.lower() not in newcols_lowercase]
     orig_column_specs = [
-        "{t}.{c}".format(t=PCMIS_TABLE_MASTER_PATIENT, c=col)
+        "{t}.{c}".format(t=basetable, c=col)
         for col in orig_column_names
     ]
     geog_col_specs = [
