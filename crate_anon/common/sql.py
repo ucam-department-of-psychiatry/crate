@@ -731,8 +731,8 @@ def ensure_columns_present(engine: Engine,
     for col in column_names:
         if col.lower() not in existing_column_names:
             raise ValueError(
-                "Column {} missing from table {}".format(
-                    repr(col), repr(tablename)))
+                "Column {} missing from table {}, whose columns are {}".format(
+                    repr(col), repr(tablename), repr(column_names)))
 
 
 def create_view(engine: Engine,

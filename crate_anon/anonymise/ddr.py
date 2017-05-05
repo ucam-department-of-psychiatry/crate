@@ -473,7 +473,12 @@ class DataDictionaryRow(object):
         name = self.dest_field
         coltype = self.get_dest_sqla_coltype()
         comment = self.comment or ''
-        kwargs = {'doc': comment}
+        kwargs = {
+            'doc': comment,
+            # When SQLAlchemy 1.2 released, add this:
+            # 'comment': comment,
+            # https://bitbucket.org/zzzeek/sqlalchemy/issues/1546/feature-request-commenting-db-objects  # noqa
+        }
         if self._pk:
             kwargs['primary_key'] = True
             kwargs['autoincrement'] = False
