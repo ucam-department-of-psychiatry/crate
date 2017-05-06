@@ -203,12 +203,13 @@ CRATE_VIEW_SUFFIX = "_crateview"
 PCMIS_COL_CASE_NUMBER = "CaseNumber"
 PCMIS_COL_CONTACT_NUMBER = "ContactNumber"
 PCMIS_COL_NHS_NUMBER = "NHSNumber"
-PCMIS_COL_PATIENT_ID = "PatientId"
+PCMIS_COL_PATIENT_ID = "PatientID"
 PCMIS_COL_POSTCODE = "PostCode"
 PCMIS_COL_PREV_POSTCODE = "PreviousPostCode"
 
 PCMIS_TABLE_CASE_CONTACTS = "CaseContacts"  # contacts -> cases
-PCMIS_TABLE_CASE_CONTACT_DETAILS = "CaseContactDetails"  # cases -> patients
+PCMIS_TABLE_CASE_CONTACT_DETAILS = "CaseContactDetails"
+PCMIS_TABLE_REFERRAL_DETAILS = "ReferralDetails"  # cases -> patients
 PCMIS_TABLE_MASTER_PATIENT = "PatientDetails"
 
 VIEW_CASE_CONTACT_DETAILS_W_GEOG = PCMIS_TABLE_CASE_CONTACT_DETAILS + CRATE_VIEW_SUFFIX  # noqa
@@ -603,16 +604,16 @@ def get_pcmis_views(engine: Engine,
 
             if PCMIS_COL_CASE_NUMBER in columns:
                 viewmaker.add_select(
-                    "{cases}.{pid} AS {pid}".format(
-                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                    "{referrals}.{pid} AS {pid}".format(
+                        referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         pid=PCMIS_COL_PATIENT_ID))
                 viewmaker.add_from(
-                    "LEFT JOIN {cases} ON {t}.{case} = {cases}.{case}".format(
-                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                    "LEFT JOIN {referrals} ON {t}.{case} = {referrals}.{case}".format(  # noqa
+                        referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         t=tablename,
                         case=PCMIS_COL_CASE_NUMBER))
                 viewmaker.record_lookup_table_keyfield(
-                    PCMIS_TABLE_CASE_CONTACT_DETAILS, PCMIS_COL_CASE_NUMBER)
+                    PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
 
             elif PCMIS_COL_CONTACT_NUMBER in columns:
                 # ... and PCMIS_COL_CASE_NUMBER is not...
@@ -628,16 +629,16 @@ def get_pcmis_views(engine: Engine,
                 viewmaker.record_lookup_table_keyfield(
                     PCMIS_TABLE_CASE_CONTACTS, PCMIS_COL_CONTACT_NUMBER)
                 viewmaker.add_select(
-                    "{cases}.{pid} AS {pid}".format(
-                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                    "{referrals}.{pid} AS {pid}".format(
+                        referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         pid=PCMIS_COL_PATIENT_ID))
                 viewmaker.add_from(
-                    "LEFT JOIN {cases} ON {contacts}.{case} = {cases}.{case}".format(  # noqa
-                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                    "LEFT JOIN {referrals} ON {contacts}.{case} = {referrals}.{case}".format(  # noqa
+                        referrals=PCMIS_TABLE_REFERRAL_DETAILS,
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
                         case=PCMIS_COL_CASE_NUMBER))
                 viewmaker.record_lookup_table_keyfield(
-                    PCMIS_TABLE_CASE_CONTACT_DETAILS, PCMIS_COL_CASE_NUMBER)
+                    PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
 
             else:
                 log.debug("Not identifiable as a patient table: " + tablename)
