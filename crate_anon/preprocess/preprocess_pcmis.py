@@ -618,9 +618,9 @@ def get_pcmis_views(engine: Engine,
             elif PCMIS_COL_CONTACT_NUMBER in columns:
                 # ... and PCMIS_COL_CASE_NUMBER is not...
                 viewmaker.add_select(
-                    "{contacts}.{contact} AS {contact}".format(
+                    "{contacts}.{case} AS {case}".format(
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
-                        contact=PCMIS_COL_CONTACT_NUMBER))
+                        case=PCMIS_COL_CASE_NUMBER))
                 viewmaker.add_from(
                     "LEFT JOIN {contacts} ON {t}.{contact} = {contacts}.{contact}".format(  # noqa
                         contacts=PCMIS_TABLE_CASE_CONTACTS,
