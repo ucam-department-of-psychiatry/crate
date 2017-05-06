@@ -590,6 +590,10 @@ def get_pcmis_views(engine: Engine,
         if PCMIS_COL_PATIENT_ID not in columns:
             need_view = True
 
+            # Not specifically for this, but we'll need it everywhere:
+            viewmaker.record_lookup_table_keyfield(
+                PCMIS_TABLE_MASTER_PATIENT, PCMIS_COL_PATIENT_ID)
+
             if PCMIS_COL_CASE_NUMBER in columns:
                 viewmaker.add_select(
                     "{referrals}.{pid} AS {pid}".format(
