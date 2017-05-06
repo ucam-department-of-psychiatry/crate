@@ -813,7 +813,7 @@ class ViewMaker(object):
         self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
 
         if insert_basetable_columns:
-            grammar = make_grammar(engine.dialect)
+            grammar = make_grammar(engine.dialect.name)
 
             def q(identifier: str) -> str:
                 return grammar.quote_identifier_if_required(identifier)

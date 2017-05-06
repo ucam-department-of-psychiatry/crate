@@ -586,7 +586,7 @@ def get_pcmis_views(engine: Engine,
     def q(identifier: str) -> str:
         return grammar.quote_identifier(identifier)
 
-    grammar = make_grammar(engine.dialect)
+    grammar = make_grammar(engine.dialect.name)
 
     views = []  # type: List[ViewMaker]
     tables = get_table_names(engine, sort=True)
