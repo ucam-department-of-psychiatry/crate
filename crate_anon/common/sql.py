@@ -798,8 +798,10 @@ class ViewMaker(object):
                  existing_to_lower: bool = False,
                  rename: Dict[str, str] = None,
                  progargs: argparse.Namespace = None,
-                 enforce_same_n_rows_as_base: bool = True) -> None:
+                 enforce_same_n_rows_as_base: bool = True,
+                 insert_basetable_columns: bool = True) -> None:
         rename = rename or {}
+        assert basetable, "ViewMaker: basetable missing!"
         self.viewname = viewname
         self.engine = engine
         self.basetable = basetable
@@ -807,19 +809,21 @@ class ViewMaker(object):
         self.enforce_same_n_rows_as_base = enforce_same_n_rows_as_base
 
         self.select_elements = []
-        for colname in get_column_names(engine, tablename=basetable,
-                                        to_lower=existing_to_lower):
-            if colname in rename:
-                rename_to = rename[colname]
-                if not rename_to:
-                    continue
-                as_clause = " AS {}".format(rename_to)
-            else:
-                as_clause = ""
-            self.select_elements.append("{t}.{c}{as_clause}".format(
-                t=basetable, c=colname, as_clause=as_clause))
-        assert self.select_elements, "Must have some active SELECT elements " \
-                                     "from base table"
+
+        if insert_basetable_columns:
+            for colname in get_column_names(engine, tablename=basetable,
+                                            to_lower=existing_to_lower):
+                if colname in rename:
+                    rename_to = rename[colname]
+                    if not rename_to:
+                        continue
+                    as_clause = " AS {}".format(rename_to)
+                else:
+                    as_clause = ""
+                self.select_elements.append("{t}.{c}{as_clause}".format(
+                    t=basetable, c=colname, as_clause=as_clause))
+            assert self.select_elements, "Must have some active SELECT " \
+                                         "elements from base table"
         self.from_elements = [basetable]
         self.where_elements = []
         self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
@@ -834,6 +838,7 @@ class ViewMaker(object):
         self.where_elements.append(clause)
 
     def get_sql(self) -> str:
+        assert self.select_elements, "ViewMaker: no SELECT elements!"
         if self.where_elements:
             where = "\n    WHERE {}".format(
                 "\n        AND ".join(self.where_elements))

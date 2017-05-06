@@ -595,13 +595,10 @@ def get_pcmis_views(engine: Engine,
             enforce_same_n_rows_as_base=True)
 
         # 1. SELECT all the table's own columns
-        columns = get_column_names(engine, tablename, sort=True)
-        for col in columns:
-            viewmaker.add_select("{bt}.{c} AS {c}".format(bt=tablename,
-                                                          c=col))
-        viewmaker.add_from(tablename)
+        # ... done automatically by the viewmaker
 
         # 2. If the patient ID isn't present, link it in.
+        columns = get_column_names(engine, tablename, sort=True)
         if PCMIS_COL_PATIENT_ID not in columns:
 
             if PCMIS_COL_CASE_NUMBER in columns:
