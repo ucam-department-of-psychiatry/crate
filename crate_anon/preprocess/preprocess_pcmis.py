@@ -648,7 +648,7 @@ def get_pcmis_views(engine: Engine,
                     PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
 
             else:
-                log.debug("Not identifiable as a patient table: " + tablename)
+                log.info("Not identifiable as a patient table: " + tablename)
                 continue
 
         # 3. Add geography?
@@ -662,6 +662,7 @@ def get_pcmis_views(engine: Engine,
 
         # 4. Finishing touches
         if not need_view:
+            log.debug("Doesn't need a view: " + tablename)
             continue
         ddhint.suppress_table(tablename)
         ddhint.add_bulk_source_index_request(
