@@ -591,6 +591,7 @@ def get_pcmis_views(engine: Engine,
     views = []  # type: List[ViewMaker]
     tables = get_table_names(engine, sort=True)
     for tablename in tables:
+        need_view = True
         viewname = tablename + CRATE_VIEW_SUFFIX
         viewmaker = ViewMaker(
             viewname=viewname,
@@ -606,6 +607,7 @@ def get_pcmis_views(engine: Engine,
         # 2. If the patient ID isn't present, link it in.
         columns = get_column_names(engine, tablename, sort=True)
         if PCMIS_COL_PATIENT_ID not in columns:
+            need_view = True
 
             if PCMIS_COL_CASE_NUMBER in columns:
                 viewmaker.add_select(
@@ -653,11 +655,14 @@ def get_pcmis_views(engine: Engine,
         if (progargs.postcodedb and
                 tablename in [PCMIS_TABLE_MASTER_PATIENT,
                               PCMIS_TABLE_CASE_CONTACT_DETAILS]):
+            need_view = True
             add_geography_to_view(basetable=tablename, columns=columns,
                                   viewmaker=viewmaker, engine=engine,
                                   progargs=progargs)
 
         # 4. Finishing touches
+        if not need_view:
+            continue
         ddhint.suppress_table(tablename)
         ddhint.add_bulk_source_index_request(
             viewmaker.get_lookup_table_keyfields())
