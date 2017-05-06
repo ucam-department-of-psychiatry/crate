@@ -235,18 +235,18 @@ ddgen_include_fields = #
     # -------------------------------------------------------------------------
     # PCMIS core tables
     # -------------------------------------------------------------------------
-    Case*.*
-    Group*.*
     Lexicon*.*  # system lookup tables
     Lookups.*  # system lookup table
     lu*.*  # system lookup tables
-    Patient*.*
-    ReferralDetails.*
     System*.*  # system lookup tables
     Users.*  # staff
     # -------------------------------------------------------------------------
     # Custom views from CRATE
     # -------------------------------------------------------------------------
+    Case*{CRATE_VIEW_SUFFIX}.*
+    Group*{CRATE_VIEW_SUFFIX}.*
+    Patient*{CRATE_VIEW_SUFFIX}.*
+    ReferralDetails{CRATE_VIEW_SUFFIX}.*
 
 ddgen_allow_no_patient_info = False
 
@@ -354,28 +354,6 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     # Views
     # ----------------------------------------------------------------------
-    {VIEW_PT_DETAIL_W_GEOG}.PatientID
-    {VIEW_PT_DETAIL_W_GEOG}.FirstName
-    {VIEW_PT_DETAIL_W_GEOG}.MiddleName
-    {VIEW_PT_DETAIL_W_GEOG}.LastName
-    {VIEW_PT_DETAIL_W_GEOG}.DOB
-    {VIEW_PT_DETAIL_W_GEOG}.Address*  # Address1, Address2, Address3
-    {VIEW_PT_DETAIL_W_GEOG}.TownCity
-    {VIEW_PT_DETAIL_W_GEOG}.County
-    {VIEW_PT_DETAIL_W_GEOG}.PostCode
-    {VIEW_PT_DETAIL_W_GEOG}.Tel*  # TelHome, TelMobile, TelWork
-    {VIEW_PT_DETAIL_W_GEOG}.NHSNumber
-    {VIEW_PT_DETAIL_W_GEOG}.FamilyName
-    {VIEW_PT_DETAIL_W_GEOG}.PreviousName
-    {VIEW_PT_DETAIL_W_GEOG}.PreviousAddress*
-    {VIEW_PT_DETAIL_W_GEOG}.PreviousTownCity
-    {VIEW_PT_DETAIL_W_GEOG}.PreviousCounty
-    {VIEW_PT_DETAIL_W_GEOG}.PreviousPostCode
-    {VIEW_PT_DETAIL_W_GEOG}.Email
-    {VIEW_PT_DETAIL_W_GEOG}.DependantChildren  # is VARCHAR(100)
-    {VIEW_PT_DETAIL_W_GEOG}.LastNameAlias
-    {VIEW_PT_DETAIL_W_GEOG}.FirstNameAlias
-    {VIEW_PT_DETAIL_W_GEOG}.DisplayName
 
 ddgen_scrubsrc_thirdparty_fields = # several:
     # ----------------------------------------------------------------------
