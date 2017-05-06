@@ -644,7 +644,7 @@ def get_pcmis_views(engine: Engine,
 
             else:
                 log.debug("Not identifiable as a patient table: " + tablename)
-                return []
+                continue
 
         # 3. Add geography?
         if (progargs.postcodedb and
