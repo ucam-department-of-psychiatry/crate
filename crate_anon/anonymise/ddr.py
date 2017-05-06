@@ -557,15 +557,17 @@ class DataDictionaryRow(object):
         #             self.src_datatype))
 
         # 2016-11-11: error message clarified
-        if ((self._primary_pid or self._master_pid) and
-                not is_sqltype_integer(self.src_datatype)):
-            raise ValueError(
-                "For {}: All fields with src_flags={} or src_flags={} set "
-                "should be integer, (a) for work distribution purposes, and "
-                "(b) so we know the structure of our secret mapping table in "
-                "advance.".format(self.src_field,
-                                  SRCFLAG.PRIMARY_PID,
-                                  SRCFLAG.MASTER_PID))
+        # 2017-05-06: check removed; we can now handle non-integer PIDs
+        #
+        # if ((self._primary_pid or self._master_pid) and
+        #         not is_sqltype_integer(self.src_datatype)):
+        #     raise ValueError(
+        #         "For {}: All fields with src_flags={} or src_flags={} set "
+        #         "should be integer, (a) for work distribution purposes, and "
+        #         "(b) so we know the structure of our secret mapping table "
+        #         "in advance.".format(self.src_field,
+        #                              SRCFLAG.PRIMARY_PID,
+        #                              SRCFLAG.MASTER_PID))
 
         if self._defines_primary_pids and not self._primary_pid:
             raise ValueError(

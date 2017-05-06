@@ -47,6 +47,9 @@ See pcmis_information_schema.ods
     
 - Group things: linked to cases via GroupMember
 
+    IMPORTANTLY: there are only two, Groups and GroupSession
+    and neither are identifiable.
+
 - Carers: from PatientCarerDetails (CarerNumber, PatientID)
 - Children: from PatientChildDetails (ChildNumber, PatientID)
 
