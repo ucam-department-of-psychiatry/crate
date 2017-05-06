@@ -807,26 +807,32 @@ class ViewMaker(object):
         self.basetable = basetable
         self.progargs = progargs  # only for others' benefit
         self.enforce_same_n_rows_as_base = enforce_same_n_rows_as_base
-
         self.select_elements = []
+        self.from_elements = [basetable]
+        self.where_elements = []
+        self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
 
         if insert_basetable_columns:
+            grammar = make_grammar(engine.dialect)
+
+            def q(identifier: str) -> str:
+                return grammar.quote_identifier_if_required(identifier)
+
             for colname in get_column_names(engine, tablename=basetable,
                                             to_lower=existing_to_lower):
                 if colname in rename:
                     rename_to = rename[colname]
                     if not rename_to:
                         continue
-                    as_clause = " AS {}".format(rename_to)
+                    as_clause = " AS {}".format(q(rename_to))
                 else:
                     as_clause = ""
                 self.select_elements.append("{t}.{c}{as_clause}".format(
-                    t=basetable, c=colname, as_clause=as_clause))
+                    t=q(basetable),
+                    c=q(colname),
+                    as_clause=as_clause))
             assert self.select_elements, "Must have some active SELECT " \
                                          "elements from base table"
-        self.from_elements = [basetable]
-        self.where_elements = []
-        self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
 
     def add_select(self, clause: str) -> None:
         self.select_elements.append(clause)

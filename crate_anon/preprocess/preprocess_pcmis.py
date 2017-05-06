@@ -181,6 +181,7 @@ from crate_anon.common.sqla import (
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
 )
+from crate_anon.common.sql_grammar_factory import make_grammar
 from crate_anon.preprocess.rio_constants import (
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,
@@ -581,8 +582,12 @@ def add_geography_to_view(basetable: str,
 
 def get_pcmis_views(engine: Engine,
                     progargs: Any,
-                    ddhint: DDHint) -> List[ViewMaker]:
-    # ddhint modified
+                    ddhint: DDHint) -> List[ViewMaker]:  # ddhint modified
+    def q(identifier: str) -> str:
+        return grammar.quote_identifier(identifier)
+
+    grammar = make_grammar(engine.dialect)
+
     views = []  # type: List[ViewMaker]
     tables = get_table_names(engine, sort=True)
     for tablename in tables:
@@ -610,7 +615,7 @@ def get_pcmis_views(engine: Engine,
                 viewmaker.add_from(
                     "LEFT JOIN {referrals} ON {t}.{case} = {referrals}.{case}".format(  # noqa
                         referrals=PCMIS_TABLE_REFERRAL_DETAILS,
-                        t=tablename,
+                        t=q(tablename),
                         case=PCMIS_COL_CASE_NUMBER))
                 viewmaker.record_lookup_table_keyfield(
                     PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
