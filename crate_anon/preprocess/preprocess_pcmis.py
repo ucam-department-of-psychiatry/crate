@@ -61,6 +61,12 @@ See pcmis_information_schema.ods
     pcmis_UserProfiles
     Users
 
+- Then a lot of other things are index by ContactNumber, which probably
+  cross-refers to CaseContacts, having
+  
+    ContactNumber INT
+    CaseNumber VARCHAR(100)
+
 ===============================================================================
 Decisions re database keys and anonymisation
 ===============================================================================
@@ -146,7 +152,7 @@ DATA DICTIONARY AUTOGENERATIO
 
 import argparse
 import logging
-from typing import Any
+from typing import Any, List
 
 from sqlalchemy import (
     create_engine,
@@ -161,16 +167,16 @@ from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
-    assert_view_has_same_num_rows,
-    create_view,
     drop_columns,
     drop_indexes,
-    drop_view,
     ensure_columns_present,
     get_column_names,
+    get_table_names,
     set_print_not_execute,
+    ViewMaker,
 )
 from crate_anon.common.sqla import (
+    get_effective_int_pk_col,
     get_pk_colnames,
     hack_in_mssql_xml_type,
     make_bigint_autoincrement_column,
@@ -195,12 +201,14 @@ CRATE_IDX_PK = "crate_idx_pk"  # for any patient table
 CRATE_VIEW_SUFFIX = "_crateview"
 
 PCMIS_COL_CASE_NUMBER = "CaseNumber"
+PCMIS_COL_CONTACT_NUMBER = "ContactNumber"
 PCMIS_COL_NHS_NUMBER = "NHSNumber"
 PCMIS_COL_PATIENT_ID = "PatientId"
 PCMIS_COL_POSTCODE = "PostCode"
 PCMIS_COL_PREV_POSTCODE = "PreviousPostCode"
 
-PCMIS_TABLE_CASE_CONTACT_DETAILS = "CaseContactDetails"
+PCMIS_TABLE_CASE_CONTACTS = "CaseContacts"  # contacts -> cases
+PCMIS_TABLE_CASE_CONTACT_DETAILS = "CaseContactDetails"  # cases -> patients
 PCMIS_TABLE_MASTER_PATIENT = "PatientDetails"
 
 VIEW_CASE_CONTACT_DETAILS_W_GEOG = PCMIS_TABLE_CASE_CONTACT_DETAILS + CRATE_VIEW_SUFFIX  # noqa
@@ -508,92 +516,170 @@ ddgen_convert_odd_chars_to_underscore = True
 # Geography views
 # =============================================================================
 
-def add_geography_view(basetable: str,
-                       viewname: str,
-                       engine: Engine,
-                       progargs: Any,
-                       ddhint: DDHint) -> None:  # ddhint modified
+def add_geography_to_view(basetable: str,
+                          columns: List[str],
+                          viewmaker: ViewMaker,  # viewmaker modified
+                          engine: Engine,
+                          progargs: Any) -> None:
     postcode_alias_1 = "_postcodetable1"
     postcode_alias_2 = "_postcodetable2"
     prev_prefix = "previous_"
-
-    # Re-read column names, as we may have inserted some recently by hand that
-    # may not be in the initial metadata.
-    orig_column_names = get_column_names(engine, tablename=basetable, 
-                                         sort=True)
-
-    # Remove any original column names being overridden by new ones.
-    # (Could also do this the other way around!)
-    newcols_lowercase = (
-        [x.lower() for x in progargs.geogcols] +
-        [prev_prefix + x.lower() for x in progargs.geogcols]
-    )
-    orig_column_names = [x for x in orig_column_names
-                         if x.lower() not in newcols_lowercase]
-    orig_column_specs = [
-        "{t}.{c}".format(t=basetable, c=col)
-        for col in orig_column_names
-    ]
-    geog_col_specs = [
-        "{postcode_alias_1}.{c} AS {c}".format(
-            postcode_alias_1=postcode_alias_1,
-            c=col)
-        for col in sorted(progargs.geogcols, key=lambda x: x.lower())
-    ] + [
-        "{postcode_alias_2}.{c} AS {prev_prefix}{c}".format(
-            postcode_alias_2=postcode_alias_2,
-            prev_prefix=prev_prefix,
-            c=col)
-        for col in sorted(progargs.geogcols, key=lambda x: x.lower())
-    ]
+    columns_lower = [c.lower() for c in columns]
 
     ensure_columns_present(engine,
                            tablename=basetable,
                            column_names=[PCMIS_COL_POSTCODE,
                                          PCMIS_COL_PREV_POSTCODE])
-    select_sql = """
-        SELECT {origcols},
-            {geogcols}
-        FROM {basetable}
-        -- PCMIS can have either 'XX99 9XX' or 'XX999XX' format:
-        LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_1}
-            ON REPLACE({basetable}.{PCMIS_COL_POSTCODE},
-                       ' ',
-                       '') = {postcode_alias_1}.pcd_nospace
-        LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_2}
-            ON REPLACE({basetable}.{PCMIS_COL_PREV_POSTCODE},
-                       ' ',
-                       '') = {postcode_alias_2}.pcd_nospace
-    """.format(
-        basetable=basetable,
-        origcols=",\n            ".join(orig_column_specs),
-        geogcols=",\n            ".join(geog_col_specs),
-        pdb=progargs.postcodedb,
-        pcdtab=ONSPD_TABLE_POSTCODE,
-        PCMIS_COL_POSTCODE=PCMIS_COL_POSTCODE,
-        PCMIS_COL_PREV_POSTCODE=PCMIS_COL_PREV_POSTCODE,
-        postcode_alias_1=postcode_alias_1,
-        postcode_alias_2=postcode_alias_2,
+
+    for gc in sorted(progargs.geogcols, key=lambda x: x.lower()):
+        if gc in columns_lower:
+            raise ValueError("Geography column {} clashes with an existing "
+                             "column".format(repr(gc)))
+        viewmaker.add_select(
+            "{postcode_alias_1}.{gc} AS {gc}".format(
+                postcode_alias_1=postcode_alias_1,
+                gc=gc
+            )
+        )
+        viewmaker.add_select(
+            "{postcode_alias_2}.{gc} AS {prev_prefix}{gc}".format(
+                postcode_alias_2=postcode_alias_2,
+                gc=gc,
+                prev_prefix=prev_prefix
+            )
+        )
+
+    # PCMIS can have either 'XX99 9XX' or 'XX999XX' format:
+    viewmaker.add_from(
+        "LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_1} "
+        "ON REPLACE({basetable}.{PCMIS_COL_POSTCODE}, ' ', '') = "
+        "{postcode_alias_1}.pcd_nospace".format(
+            pdb=progargs.postcodedb,
+            pcdtab=ONSPD_TABLE_POSTCODE,
+            postcode_alias_1=postcode_alias_1,
+            basetable=basetable,
+            PCMIS_COL_POSTCODE=PCMIS_COL_POSTCODE,
+        )
     )
-    create_view(engine, viewname, select_sql)
-    assert_view_has_same_num_rows(engine, basetable, viewname)
-    ddhint.suppress_table(basetable)
+    viewmaker.add_from(
+        "LEFT JOIN {pdb}.{pcdtab} AS {postcode_alias_2} "
+        "ON REPLACE({basetable}.{PCMIS_COL_POSTCODE}, ' ', '') = "
+        "{postcode_alias_2}.pcd_nospace".format(
+            pdb=progargs.postcodedb,
+            pcdtab=ONSPD_TABLE_POSTCODE,
+            postcode_alias_2=postcode_alias_2,
+            basetable=basetable,
+            PCMIS_COL_POSTCODE=PCMIS_COL_POSTCODE,
+        )
+    )
 
 
-def add_geography_views(engine: Engine,
-                        progargs: Any,
-                        ddhint: DDHint) -> None:  # ddhint modified
-    add_geography_view(PCMIS_TABLE_MASTER_PATIENT,
-                       VIEW_PT_DETAIL_W_GEOG,
-                       engine, progargs, ddhint)
-    add_geography_view(PCMIS_TABLE_CASE_CONTACT_DETAILS,
-                       VIEW_CASE_CONTACT_DETAILS_W_GEOG,
-                       engine, progargs, ddhint)
+# =============================================================================
+# PCMIS views
+# =============================================================================
+
+def get_pcmis_views(engine: Engine,
+                    progargs: Any,
+                    ddhint: DDHint) -> List[ViewMaker]:
+    # ddhint modified
+    views = []  # type: List[ViewMaker]
+    tables = get_table_names(engine, sort=True)
+    for tablename in tables:
+        viewname = tablename + CRATE_VIEW_SUFFIX
+        viewmaker = ViewMaker(
+            viewname=viewname,
+            engine=engine,
+            basetable=tablename,
+            rename=None,
+            progargs=progargs,
+            enforce_same_n_rows_as_base=True)
+
+        # 1. SELECT all the table's own columns
+        columns = get_column_names(engine, tablename, sort=True)
+        for col in columns:
+            viewmaker.add_select("{bt}.{c} AS {c}".format(bt=tablename,
+                                                          c=col))
+        viewmaker.add_from(tablename)
+
+        # 2. If the patient ID isn't present, link it in.
+        if PCMIS_COL_PATIENT_ID not in columns:
+
+            if PCMIS_COL_CASE_NUMBER in columns:
+                viewmaker.add_select(
+                    "{cases}.{pid} AS {pid}".format(
+                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                        pid=PCMIS_COL_PATIENT_ID))
+                viewmaker.add_from(
+                    "LEFT JOIN {cases} ON {t}.{case} = {cases}.{case}".format(
+                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                        t=tablename,
+                        case=PCMIS_COL_CASE_NUMBER))
+                viewmaker.record_lookup_table_keyfield(
+                    PCMIS_TABLE_CASE_CONTACT_DETAILS, PCMIS_COL_CASE_NUMBER)
+
+            elif PCMIS_COL_CONTACT_NUMBER in columns:
+                # ... and PCMIS_COL_CASE_NUMBER is not...
+                viewmaker.add_select(
+                    "{contacts}.{contact} AS {contact}".format(
+                        contacts=PCMIS_TABLE_CASE_CONTACTS,
+                        contact=PCMIS_COL_CONTACT_NUMBER))
+                viewmaker.add_from(
+                    "LEFT JOIN {contacts} ON {t}.{contact} = {contacts}.{contact}".format(  # noqa
+                        contacts=PCMIS_TABLE_CASE_CONTACTS,
+                        t=tablename,
+                        contact=PCMIS_COL_CONTACT_NUMBER))
+                viewmaker.record_lookup_table_keyfield(
+                    PCMIS_TABLE_CASE_CONTACTS, PCMIS_COL_CONTACT_NUMBER)
+                viewmaker.add_select(
+                    "{cases}.{pid} AS {pid}".format(
+                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                        pid=PCMIS_COL_PATIENT_ID))
+                viewmaker.add_from(
+                    "LEFT JOIN {cases} ON {contacts}.{case} = {cases}.{case}".format(  # noqa
+                        cases=PCMIS_TABLE_CASE_CONTACT_DETAILS,
+                        contacts=PCMIS_TABLE_CASE_CONTACTS,
+                        case=PCMIS_COL_CASE_NUMBER))
+                viewmaker.record_lookup_table_keyfield(
+                    PCMIS_TABLE_CASE_CONTACT_DETAILS, PCMIS_COL_CASE_NUMBER)
+
+            else:
+                log.debug("Not identifiable as a patient table: " + tablename)
+                return []
+
+        # 3. Add geography?
+        if (progargs.postcodedb and
+                tablename in [PCMIS_TABLE_MASTER_PATIENT,
+                              PCMIS_TABLE_CASE_CONTACT_DETAILS]):
+            add_geography_to_view(basetable=tablename, columns=columns,
+                                  viewmaker=viewmaker, engine=engine,
+                                  progargs=progargs)
+
+        # 4. Finishing touches
+        ddhint.suppress_table(tablename)
+        ddhint.add_bulk_source_index_request(
+            viewmaker.get_lookup_table_keyfields())
+        views.append(viewmaker)
+    return views
 
 
-def drop_geography_views(engine: Engine) -> None:
-    drop_view(engine, VIEW_PT_DETAIL_W_GEOG)
-    drop_view(engine, VIEW_CASE_CONTACT_DETAILS_W_GEOG)
+def create_pcmis_views(engine: Engine,
+                       metadata: MetaData,
+                       progargs: Any,
+                       ddhint: DDHint) -> None:  # ddhint modified
+    views = get_pcmis_views(engine, progargs, ddhint)
+    for viewmaker in views:
+        viewmaker.create_view(engine)
+    ddhint.add_indexes(engine, metadata)
+
+
+def drop_pcmis_views(engine: Engine,
+                     metadata: MetaData,
+                     progargs: Any,
+                     ddhint: DDHint) -> None:  # ddhint modified
+    views = get_pcmis_views(engine, progargs, ddhint)
+    ddhint.drop_indexes(engine, metadata)
+    for viewmaker in views:
+        viewmaker.drop_view(engine)
 
 
 # =============================================================================
@@ -606,6 +692,10 @@ def process_table(table: Table, engine: Engine, progargs: Any) -> None:
     log.debug("TABLE: {}; COLUMNS: {}".format(tablename, column_names))
 
     existing_pk_cols = get_pk_colnames(table)
+    assert len(existing_pk_cols) < 2, (
+        "Table {} has >1 PK column; don't know what to do".format(tablename))
+    if existing_pk_cols and not get_effective_int_pk_col(table):
+        raise ValueError("Table {} has a non-integer PK".format(repr(table)))
     adding_crate_pk = not existing_pk_cols
 
     required_cols = [CRATE_COL_PK] if not progargs.print else []
@@ -718,15 +808,14 @@ def main() -> None:
 
     if progargs.drop_danger_drop:
         # Drop views (and view-induced table indexes) first
-        drop_geography_views(engine)
+        drop_pcmis_views(engine, metadata, progargs, ddhint)
         if not progargs.debug_skiptables:
             process_all_tables(engine, metadata, progargs)
     else:
         # Tables first, then views
         if not progargs.debug_skiptables:
             process_all_tables(engine, metadata, progargs)
-        if progargs.postcodedb:
-            add_geography_views(engine, progargs, ddhint)
+        create_pcmis_views(engine, metadata, progargs, ddhint)
 
     if progargs.settings_filename:
         with open(progargs.settings_filename, 'w') as f:
@@ -735,8 +824,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     pdb_run(main)
-
-
-# *** When this is done, find out why the anonymiser is using so much memory.
-# https://www.huyng.com/posts/python-performance-analysis
-# http://chase-seibert.github.io/blog/2013/08/03/diagnosing-memory-leaks-python.html  # noqa

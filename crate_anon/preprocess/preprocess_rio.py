@@ -479,8 +479,7 @@ def get_rio_views(engine: Engine,
                   suppress_basetables: bool = True,
                   suppress_lookup: bool = True) -> List[ViewMaker]:
     # ddhint modified
-    # Returns dictionary of {viewname: select_sql} pairs.
-    views = []
+    views = []  # type: List[ViewMaker]
     all_tables_lower = get_table_names(engine, to_lower=True)
     all_views_lower = get_view_names(engine, to_lower=True)
     all_selectables_lower = list(set(all_tables_lower + all_views_lower))

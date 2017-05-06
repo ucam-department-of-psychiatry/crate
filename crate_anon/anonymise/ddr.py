@@ -431,6 +431,10 @@ class DataDictionaryRow(object):
         return [am for am in self._alter_methods if am.extract_text]
 
     def remove_scrub_from_alter_methods(self) -> None:
+        log.debug(
+            "remove_scrub_from_alter_methods "
+            "[used for non-patient tables]: {}".format(
+                self.get_signature()))
         for sm in self._alter_methods:
             sm.scrub = False
 
@@ -863,7 +867,6 @@ class DataDictionaryRow(object):
             # Text field meeting the criteria to scrub
             self._alter_methods.append(AlterMethod(config=self.config,
                                                    scrub=True))
-            log.critical("ADDED SCRUB: {}".format(self.get_signature()))
         if extracting_text:
             # Scrub all extract-text fields, unless asked not to
             if (not self.matches_fielddef(
@@ -876,11 +879,6 @@ class DataDictionaryRow(object):
                 self._alter_methods.append(AlterMethod(
                     config=self.config,
                     skip_if_text_extract_fails=True))
-
-        if is_sqlatype_text_of_length_at_least(
-                sqla_coltype, dbconf.ddgen_min_length_for_scrubbing):
-            log.critical("LONG ENOUGH")
-            log.critical(self.alter_method)
 
         for fieldspec, cfg_section in dbconf.ddgen_extra_hash_fields.items():
             if self.matches_fielddef(fieldspec):
