@@ -23,6 +23,7 @@
 """
 
 import argparse
+from collections import OrderedDict
 import datetime
 import functools
 import logging
@@ -810,7 +811,8 @@ class ViewMaker(object):
         self.select_elements = []
         self.from_elements = [basetable]
         self.where_elements = []
-        self.lookup_table_keyfields = []  # of (table, keyfield(s)) tuples
+        self.lookup_tables = []  # type: List[str]
+        self.index_requests = OrderedDict()
 
         if insert_basetable_columns:
             grammar = make_grammar(engine.dialect.name)
@@ -866,11 +868,24 @@ class ViewMaker(object):
     def drop_view(self, engine: Engine) -> None:
         drop_view(engine, self.viewname)
 
+    def record_lookup_table(self, table: str) -> None:
+        if table not in self.lookup_tables:
+            self.lookup_tables.append(table)
+
+    def request_index(self, table: str, column: str) -> None:
+        if table not in self.index_requests:
+            self.index_requests[table] = []  # type: List[str]
+        self.index_requests[table].append(column)
+
     def record_lookup_table_keyfield(
             self,
             table: str,
             keyfield: Union[str, Iterable[str]]) -> None:
-        self.lookup_table_keyfields.append((table, keyfield))
+        if isinstance(keyfield, str):
+            keyfield = [keyfield]
+        self.record_lookup_table(table)
+        for kf in keyfield:
+            self.request_index(table, kf)
 
     def record_lookup_table_keyfields(
             self,
@@ -881,11 +896,10 @@ class ViewMaker(object):
             self.record_lookup_table_keyfield(t, k)
 
     def get_lookup_tables(self) -> List[str]:
-        return list(set(table for table, keyfield
-                        in self.lookup_table_keyfields))
+        return self.lookup_tables
 
-    def get_lookup_table_keyfields(self) -> List[Tuple[str, str]]:
-        return list(self.lookup_table_keyfields)
+    def get_index_request_dict(self) -> Dict[str, List[str]]:
+        return self.index_requests
 
 
 # =============================================================================

@@ -515,7 +515,7 @@ def get_rio_views(engine: Engine,
         if suppress_lookup:
             ddhint.suppress_tables(viewmaker.get_lookup_tables())
         ddhint.add_bulk_source_index_request(
-            viewmaker.get_lookup_table_keyfields())
+            viewmaker.get_index_request_dict())
         views.append(viewmaker)
     return views
 

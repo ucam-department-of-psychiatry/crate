@@ -58,6 +58,12 @@ def is_developer(user: settings.AUTH_USER_MODEL) -> bool:
     return user.profile.is_developer
 
 
+def is_clinician(user: settings.AUTH_USER_MODEL) -> bool:
+    if not user.is_authenticated():
+        return False  # won't have a profile
+    return user.profile.is_clinician
+
+
 # =============================================================================
 # Forms
 # =============================================================================

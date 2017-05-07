@@ -23,7 +23,7 @@
 """
 
 import logging
-from typing import Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Tuple, Union
 
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine
@@ -77,13 +77,13 @@ class DDHint(object):
 
     def add_bulk_source_index_request(
             self,
-            table_columns_list: Iterable[Tuple[str, Iterable[str]]]) -> None:
-        for table, columns in table_columns_list:
-            assert table, ("Bad table; table={}, table_columns_list={}".format(
-                repr(table), repr(table_columns_list)))
+            table_columns_dict: Dict[str, List[str]]) -> None:
+        for table, columns in table_columns_dict.items():
+            assert table, ("Bad table; table={}, table_columns_dict={}".format(
+                repr(table), repr(table_columns_dict)))
             assert columns, (
-                "Bad table; columns={}, table_columns_list={}".format(
-                    repr(columns), repr(table_columns_list)))
+                "Bad table; columns={}, table_columns_dict={}".format(
+                    repr(columns), repr(table_columns_dict)))
             self.add_source_index_request(table, columns)
 
     def add_indexes(self, engine: Engine, metadata: MetaData) -> None:

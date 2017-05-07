@@ -479,6 +479,10 @@ ddgen_extra_hash_fields = CaseNumber, pcmis_case_number_hashdef
     # and obviously you should use your own secret phrase, not this one!
 
 ddgen_index_fields =
+    {PCMIS_COL_CASE_NUMBER}
+    {PCMIS_COL_CONTACT_NUMBER}
+    GroupCode
+
 ddgen_allow_fulltext_indexing = True
 
 ddgen_force_lower_case = False
@@ -487,6 +491,8 @@ ddgen_convert_odd_chars_to_underscore = True
     """.format(  # noqa
         CRATE_COL_PK=CRATE_COL_PK,
         CRATE_VIEW_SUFFIX=CRATE_VIEW_SUFFIX,
+        PCMIS_COL_CASE_NUMBER=PCMIS_COL_CASE_NUMBER,
+        PCMIS_COL_CONTACT_NUMBER=PCMIS_COL_CONTACT_NUMBER,
         PCMIS_COL_NHS_NUMBER=PCMIS_COL_NHS_NUMBER,
         PCMIS_COL_PATIENT_ID=PCMIS_COL_PATIENT_ID,
         PCMIS_TABLE_MASTER_PATIENT=PCMIS_TABLE_MASTER_PATIENT,
@@ -606,6 +612,7 @@ def get_pcmis_views(engine: Engine,
                         case=PCMIS_COL_CASE_NUMBER))
                 viewmaker.record_lookup_table_keyfield(
                     PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
+                viewmaker.request_index(tablename, PCMIS_COL_CASE_NUMBER)
 
             elif PCMIS_COL_CONTACT_NUMBER in columns:
                 # ... and PCMIS_COL_CASE_NUMBER is not...
@@ -631,6 +638,7 @@ def get_pcmis_views(engine: Engine,
                         case=PCMIS_COL_CASE_NUMBER))
                 viewmaker.record_lookup_table_keyfield(
                     PCMIS_TABLE_REFERRAL_DETAILS, PCMIS_COL_CASE_NUMBER)
+                viewmaker.request_index(tablename, PCMIS_COL_CONTACT_NUMBER)
 
             else:
                 log.info("Not identifiable as a patient table: " + tablename)
@@ -651,7 +659,7 @@ def get_pcmis_views(engine: Engine,
             continue
         ddhint.suppress_table(tablename)
         ddhint.add_bulk_source_index_request(
-            viewmaker.get_lookup_table_keyfields())
+            viewmaker.get_index_request_dict())
         views.append(viewmaker)
     return views
 

@@ -135,13 +135,21 @@ class UserProfile(models.Model):
     # -------------------------------------------------------------------------
     # Clinician-specific bits
     # -------------------------------------------------------------------------
+    is_clinician = models.BooleanField(
+        default=False,
+        verbose_name="User is a clinician (with implied permission to look "
+                     "up RIDs)")
     is_consultant = models.BooleanField(
         default=False,
-        verbose_name="User is an NHS consultant")
+        verbose_name="User is an NHS consultant "
+                     "(relevant for clinical trials)")
     signatory_title = models.CharField(
         max_length=255,
         verbose_name='Title for signature (e.g. "Consultant psychiatrist")')
 
+    # -------------------------------------------------------------------------
+    # Functions
+    # -------------------------------------------------------------------------
     def get_address_components(self) -> List[str]:
         return list(filter(None,
                            [self.address_1, self.address_2, self.address_3,
