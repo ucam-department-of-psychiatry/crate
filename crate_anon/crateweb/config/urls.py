@@ -177,6 +177,12 @@ urlpatterns = [
         name='submit_contact_request'),
 
     # -------------------------------------------------------------------------
+    # Clinician views
+    # -------------------------------------------------------------------------
+    url(r'^all_text_from_pid/$', research_views.all_text_from_pid,
+        name='all_text_from_pid'),
+
+    # -------------------------------------------------------------------------
     # Look up PID
     # -------------------------------------------------------------------------
     url(r'^pidlookup/$', research_views.pidlookup, name='pidlookup'),

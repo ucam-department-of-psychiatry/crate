@@ -69,7 +69,7 @@ from crate_anon.common.sql_grammar_factory import (
 from crate_anon.crateweb.core.dbfunc import (
     get_fieldnames_from_cursor,
 )
-from crate_anon.crateweb.core.utils import is_superuser, paginate
+from crate_anon.crateweb.core.utils import is_clinician, is_superuser, paginate
 from crate_anon.crateweb.extra.django_cache_fn import django_cache_function
 from crate_anon.crateweb.extra.serve import file_response
 from crate_anon.crateweb.research.forms import (
@@ -1846,3 +1846,12 @@ def pe_one_table(request: HttpRequest, pe_id: str,
 
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
+
+
+# =============================================================================
+# Clinician views
+# =============================================================================
+
+@user_passes_test(is_clinician)
+def all_text_from_pid(request: HttpRequest) -> HttpResponse:
+    return HttpResponse("all_text_from_pid: not yet implemented ***")

@@ -27,7 +27,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.shortcuts import render
-from crate_anon.crateweb.core.utils import is_developer
+from crate_anon.crateweb.core.utils import is_clinician, is_developer
 from crate_anon.crateweb.research.views import query_context
 
 log = logging.getLogger(__name__)
@@ -44,6 +44,7 @@ def home(request: HttpRequest) -> HttpResponse:
     # log.critical("MIDDLEWARE_CLASSES: {}".format(repr(MIDDLEWARE_CLASSES)))
     context = {
         'nav_on_main_menu': True,
+        'is_clinician': is_clinician(request.user),
         'is_developer': is_developer(request.user),
         'safety_catch_on': settings.SAFETY_CATCH_ON,
         'developer_email': settings.DEVELOPER_EMAIL,

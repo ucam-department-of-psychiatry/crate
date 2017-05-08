@@ -126,6 +126,7 @@ public class CrateGatePipeline {
     private String m_gatexml_filename_stem = null;
     private String m_tsv_filename_stem = null;
     private boolean m_suppress_gate_stdout = false;
+    private boolean m_show_contents_on_crash = false;
     // Text
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
@@ -134,6 +135,7 @@ public class CrateGatePipeline {
     private int m_count = 0;
     private String m_pipe_encoding = "UTF-8";
     private PrintStream m_out = null;
+    private String m_current_contents_for_crash_debugging = null;
     // Logger:
     private static final Logger m_log = Logger.getLogger(CrateGatePipeline.class);
 
@@ -217,7 +219,15 @@ public class CrateGatePipeline {
             runPipeline();
         } catch (Exception e) {
             m_log.error("Uncaught exception; aborting; stack trace follows");
-            e.printStackTrace();
+            e.printStackTrace(); // *** CHECK: ALWAYS GOING TO STDERR?
+            if (m_show_contents_on_crash) {
+                if (m_current_contents_for_crash_debugging == null) {
+                    m_log.error("No current contents");
+                } else {
+                    m_log.error("Current contents being processed:");
+                    writeStderr(m_current_contents_for_crash_debugging);
+                }
+            }
             abort();  // otherwise, Java exits with an UNDEFINED (e.g. 0 = "happy") return code
         }
     }
@@ -294,7 +304,10 @@ public class CrateGatePipeline {
 "                   is the file's sequence number (starting from 0).\n" +
 "  -wg FILESTEM     Write GateXML document to FILESTEM<n>.xml.\n" +
 "  -wt FILESTEM     Write TSV-format annotations FILESTEM<n>.tsv.\n" +
-"  -s               Suppress any stdout from GATE application.\n"
+"  -s               Suppress any stdout from GATE application.\n" +
+"  -show_contents_on_crash\n" +
+"                   If GATE crashes, report the current text to stderr.\n" +
+"                   (WARNING: likely to contain identifiable material.)\n"
         );
     }
 
@@ -353,6 +366,9 @@ public class CrateGatePipeline {
                     break;
                 case "-s":
                     m_suppress_gate_stdout = true;
+                    break;
+                case "-show_contents_on_crash":
+                    m_show_contents_on_crash = true;
                     break;
                 default:
                     usage();

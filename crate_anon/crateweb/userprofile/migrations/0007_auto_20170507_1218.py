@@ -15,11 +15,11 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='userprofile',
             name='is_clinician',
-            field=models.BooleanField(default=False, verbose_name='User is a clinician (with implied permission to look up RIDs)'),
+            field=models.BooleanField(default=False, verbose_name='User is a clinician (with implied permission to look up RIDs)'),  # noqa
         ),
         migrations.AlterField(
             model_name='userprofile',
             name='is_consultant',
-            field=models.BooleanField(default=False, verbose_name='User is an NHS consultant (relevant for clinical trials)'),
+            field=models.BooleanField(default=False, verbose_name='User is an NHS consultant (relevant for clinical trials)'),  # noqa
         ),
     ]

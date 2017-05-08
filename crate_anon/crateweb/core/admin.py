@@ -1116,6 +1116,7 @@ class UserProfileInline(admin.StackedInline):
               'telephone',
               'address_1', 'address_2', 'address_3', 'address_4',
               'address_5', 'address_6', 'address_7',
+              'is_clinician', 'is_consultant',
               'get_studies_as_lead', 'get_studies_as_researcher',
               'enough_info_for_researcher')
     readonly_fields = ('get_studies_as_lead', 'get_studies_as_researcher',

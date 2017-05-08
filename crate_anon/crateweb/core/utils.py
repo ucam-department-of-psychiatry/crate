@@ -47,6 +47,8 @@ def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
     """
     Function for user with decorator, e.g.
         @user_passes_test(is_superuser)
+        
+    Superuser equates to Research Database Manager.
     """
     # https://docs.djangoproject.com/en/dev/topics/auth/default/#django.contrib.auth.decorators.user_passes_test  # noqa
     return user.is_superuser

@@ -1,5 +1,4 @@
 {# home.html #}
-
 {% extends "base.html" %}
 
 {% block content %}
@@ -65,6 +64,13 @@
             </li>
             <li><a href="{% url 'submit_contact_request' %}">Submit a contact request</a></li>
         </ul>
+
+        {%  if is_clinician %}
+        <h2>Privileged operations for clinicians</h2>
+        <ul>
+            <li><a href="{% url 'all_text_from_pid' %}">Search all text for an identified patient</a></li>
+        </ul>
+        {% endif %}
 
         {% comment %}
             <h2>Leaflets</h2>
