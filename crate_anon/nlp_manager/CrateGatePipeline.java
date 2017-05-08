@@ -219,7 +219,7 @@ public class CrateGatePipeline {
             runPipeline();
         } catch (Exception e) {
             m_log.error("Uncaught exception; aborting; stack trace follows");
-            e.printStackTrace(); // *** CHECK: ALWAYS GOING TO STDERR?
+            e.printStackTrace();  // always goes to System.err (stderr)
             if (m_show_contents_on_crash) {
                 if (m_current_contents_for_crash_debugging == null) {
                     m_log.error("No current contents");
@@ -527,6 +527,9 @@ public class CrateGatePipeline {
     private void processInput(String text)
             throws ResourceInstantiationException, ExecutionException,
                    IOException, InvalidOffsetException {
+        if (m_show_contents_on_crash) {
+            m_current_contents_for_crash_debugging = text;
+        }
         // Make a document from plain text
         Document doc = Factory.newDocument(text);
         // Add the single document to the corpus
