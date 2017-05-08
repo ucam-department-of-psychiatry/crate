@@ -42,7 +42,8 @@ from sqlalchemy.schema import (Column, CreateColumn, DDL, MetaData, Index,
 from sqlalchemy.orm.session import Session
 from sqlalchemy.sql import (column, exists, func,  literal, select, sqltypes,
                             text, table)
-from sqlalchemy.sql.compiler import IdentifierPreparer
+from sqlalchemy.sql.compiler import IdentifierPreparer, SQLCompiler
+# from sqlalchemy.sql.dml import Insert
 from sqlalchemy.sql.expression import (
     ClauseElement,
     Insert,
@@ -66,12 +67,28 @@ POSTGRES_DEFAULT_SCHEMA = 'public'
 # Dialect stuff
 # =============================================================================
 
-def quote_identifier(identifier: str, engine: Engine) -> str:
-    # See also http://sqlalchemy-utils.readthedocs.io/en/latest/_modules/sqlalchemy_utils/functions/orm.html  # noqa
-    dialect = engine.dialect  # type: Dialect
+def get_dialect(mixed: Union[SQLCompiler, Engine, Dialect]) -> Dialect:
+    if isinstance(mixed, Dialect):
+        return mixed
+    elif isinstance(mixed, Engine):
+        return mixed.dialect
+    elif isinstance(mixed, SQLCompiler):
+        return mixed.dialect
+    else:
+        raise ValueError("get_dialect: 'mixed' parameter of wrong type")
+
+
+def get_preparer(mixed: Union[SQLCompiler, Engine,
+                              Dialect]) -> IdentifierPreparer:
+    dialect = get_dialect(mixed)
     # noinspection PyUnresolvedReferences
-    preparer = dialect.preparer(dialect)  # type: IdentifierPreparer
-    return preparer.quote(identifier)
+    return dialect.preparer(dialect)  # type: IdentifierPreparer
+
+
+def quote_identifier(identifier: str,
+                     mixed: Union[SQLCompiler, Engine, Dialect]) -> str:
+    # See also http://sqlalchemy-utils.readthedocs.io/en/latest/_modules/sqlalchemy_utils/functions/orm.html  # noqa
+    return get_preparer(mixed).quote(identifier)
 
 
 # =============================================================================
@@ -200,19 +217,22 @@ class InsertOnDuplicate(Insert):
     pass
 
 
-def insert_on_duplicate(tablename, values=None, inline=False, **kwargs):
+def insert_on_duplicate(tablename: str,
+                        values: Any = None,
+                        inline: bool = False,
+                        **kwargs):
     return InsertOnDuplicate(tablename, values, inline=inline, **kwargs)
 
 
 # noinspection PyPep8Naming
-def monkeypatch_TableClause():
+def monkeypatch_TableClause() -> None:
     log.debug("Adding 'INSERT ON DUPLICATE KEY UPDATE' support for MySQL "
               "to SQLAlchemy")
     TableClause.insert_on_duplicate = insert_on_duplicate
 
 
 # noinspection PyPep8Naming
-def unmonkeypatch_TableClause():
+def unmonkeypatch_TableClause() -> None:
     del TableClause.insert_on_duplicate
 
 
@@ -228,7 +248,9 @@ RE_INSERT_FIELDNAMES = re.compile(INSERT_FIELDNAMES_REGEX)
 
 
 @compiles(InsertOnDuplicate, 'mysql')
-def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
+def compile_insert_on_duplicate_key_update(insert: Insert,
+                                           compiler: SQLCompiler,
+                                           **kw) -> str:
     """
     We can't get the fieldnames directly from 'insert' or 'compiler'.
     We could rewrite the innards of the visit_insert statement, like
@@ -237,7 +259,8 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
     We could use a hack-in-by-hand method, like
         http://stackoverflow.com/questions/6611563/sqlalchemy-on-duplicate-key-update
     ... but a little automation would be nice.
-    So, regex to the rescue:
+    So, regex to the rescue.
+    NOTE THAT COLUMNS ARE ALREADY QUOTED by this stage; no need to repeat.
     """
     # log.critical(compiler.__dict__)
     # log.critical(compiler.dialect.__dict__)
@@ -249,9 +272,10 @@ def compile_insert_on_duplicate_key_update(insert, compiler, **kw):
         raise ValueError("compile_insert_on_duplicate_key_update: no match")
     columns = [c.strip() for c in m.group('columns').split(",")]
     # log.critical(columns)
-    updates = ", ".join(["{c} = VALUES({c})".format(c=c) for c in columns])
+    updates = ", ".join(
+        ["{c} = VALUES({c})".format(c=c) for c in columns])
     s += ' ON DUPLICATE KEY UPDATE {}'.format(updates)
-    # log.critical(s)
+    log.critical(s)
     return s
 
 
@@ -466,7 +490,8 @@ def add_index(engine: Engine,
     is_mssql = engine.dialect.name == 'mssql'
     is_mysql = engine.dialect.name == 'mysql'
 
-    multiple_sqla_columns = multiple_sqla_columns or []
+    if multiple_sqla_columns is None:
+        multiple_sqla_columns = []  # type: List[Column]
     if multiple_sqla_columns and not (fulltext and is_mssql):
         raise ValueError("add_index: Use multiple_sqla_columns only for mssql "
                          "(Microsoft SQL Server) full-text indexing")
@@ -476,11 +501,11 @@ def add_index(engine: Engine,
             "both (sqla_column = {}, multiple_sqla_columns = {}".format(
                 repr(sqla_column), repr(multiple_sqla_columns)))
     if sqla_column is not None:
-        colname = sqla_column.name
+        colnames = [sqla_column.name]
         sqla_table = sqla_column.table
         tablename = sqla_table.name
     else:
-        colname = ", ".join(c.name for c in multiple_sqla_columns)
+        colnames = [c.name for c in multiple_sqla_columns]
         sqla_table = multiple_sqla_columns[0].table
         tablename = sqla_table.name
         if any(c.table.name != tablename for c in multiple_sqla_columns[1:]):
@@ -493,19 +518,19 @@ def add_index(engine: Engine,
         if is_mssql:
             idxname = ''  # they are unnamed
         else:
-            idxname = "_idxft_{}".format(colname)
+            idxname = "_idxft_{}".format("_".join(colnames))
     else:
-        idxname = "_idx_{}".format(colname)
+        idxname = "_idx_{}".format("_".join(colnames))
     if idxname and index_exists(engine, tablename, idxname):
         log.info("Skipping creation of index {} on table {}; already "
                  "exists".format(idxname, tablename))
         return
         # because it will crash if you add it again!
-    log.info("Creating{ft} index {i} on table {t}, column {c}".format(
+    log.info("Creating{ft} index {i} on table {t}, column(s) {c}".format(
         ft=" full-text" if fulltext else "",
         i=idxname or "<unnamed>",
         t=tablename,
-        c=colname))
+        c=", ".join(colnames)))
 
     if fulltext:
         if is_mysql:
@@ -514,10 +539,10 @@ def add_index(engine: Engine,
             # https://dev.mysql.com/doc/refman/5.6/en/innodb-fulltext-index.html
             sql = (
                 "ALTER TABLE {tablename} "
-                "ADD FULLTEXT INDEX {idxname} ({colname})".format(
+                "ADD FULLTEXT INDEX {idxname} ({colnames})".format(
                     tablename=quote(tablename),
                     idxname=quote(idxname),
-                    colname=quote(colname),
+                    colnames=", ".join(quote(c) for c in colnames),
                 )
             )
             # DDL(sql, bind=engine).execute_if(dialect='mysql')
@@ -550,11 +575,11 @@ def add_index(engine: Engine,
             # We don't name the FULLTEXT index itself, but it has to relate
             # to an existing unique index.
             sql = (
-                "CREATE FULLTEXT INDEX ON {tablename} ({colname}) "
+                "CREATE FULLTEXT INDEX ON {tablename} ({colnames}) "
                 "KEY INDEX {keyidxname} ".format(
                     tablename=quote(tablename),
                     keyidxname=quote(pk_index_name),
-                    colname=quote(colname),
+                    colnames=", ".join(quote(c) for c in colnames),
                 )
             )
             # SQL Server won't let you do this inside a transaction:
@@ -673,7 +698,7 @@ RE_COLTYPE_WITH_TWO_PARAMS = re.compile(
 
 
 def _get_sqla_coltype_class_from_str(coltype: str,
-                                     dialect: Dialect) -> Type[Column]:
+                                     dialect: Dialect) -> Type[TypeEngine]:
     """
     Upper- and lower-case search.
     For example, the SQLite dialect uses upper case, and the
