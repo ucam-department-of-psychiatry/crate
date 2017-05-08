@@ -67,8 +67,11 @@ POSTGRES_DEFAULT_SCHEMA = 'public'
 # =============================================================================
 
 def quote_identifier(identifier: str, engine: Engine) -> str:
-    preparer = engine.dialect.preparer  # type: IdentifierPreparer
-    return preparer.quote_identifier(identifier)
+    # See also http://sqlalchemy-utils.readthedocs.io/en/latest/_modules/sqlalchemy_utils/functions/orm.html  # noqa
+    dialect = engine.dialect  # type: Dialect
+    # noinspection PyUnresolvedReferences
+    preparer = dialect.preparer(dialect)  # type: IdentifierPreparer
+    return preparer.quote(identifier)
 
 
 # =============================================================================
