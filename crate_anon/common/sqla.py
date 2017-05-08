@@ -40,8 +40,9 @@ from sqlalchemy.ext.declarative.api import DeclarativeMeta
 from sqlalchemy.schema import (Column, CreateColumn, DDL, MetaData, Index,
                                Sequence, Table)
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import (column, exists, func, literal, select, sqltypes,
+from sqlalchemy.sql import (column, exists, func,  literal, select, sqltypes,
                             text, table)
+from sqlalchemy.sql.compiler import IdentifierPreparer
 from sqlalchemy.sql.expression import (
     ClauseElement,
     Insert,
@@ -59,6 +60,15 @@ log = logging.getLogger(__name__)
 
 MSSQL_DEFAULT_SCHEMA = 'dbo'
 POSTGRES_DEFAULT_SCHEMA = 'public'
+
+
+# =============================================================================
+# Dialect stuff
+# =============================================================================
+
+def quote_identifier(identifier: str, engine: Engine) -> str:
+    preparer = engine.dialect.preparer  # type: IdentifierPreparer
+    return preparer.quote_identifier(identifier)
 
 
 # =============================================================================
@@ -446,6 +456,10 @@ def add_index(engine: Engine,
     # (using ALTER TABLE).
     # http://dev.mysql.com/doc/innodb/1.1/en/innodb-create-index-examples.html  # noqa
     # ... ignored in transition to SQLAlchemy
+
+    def quote(identifier: str) -> str:
+        return quote_identifier(identifier, engine)
+
     is_mssql = engine.dialect.name == 'mssql'
     is_mysql = engine.dialect.name == 'mysql'
 
@@ -498,9 +512,9 @@ def add_index(engine: Engine,
             sql = (
                 "ALTER TABLE {tablename} "
                 "ADD FULLTEXT INDEX {idxname} ({colname})".format(
-                    tablename=tablename,
-                    idxname=idxname,
-                    colname=colname,
+                    tablename=quote(tablename),
+                    idxname=quote(idxname),
+                    colname=quote(colname),
                 )
             )
             # DDL(sql, bind=engine).execute_if(dialect='mysql')
@@ -535,9 +549,9 @@ def add_index(engine: Engine,
             sql = (
                 "CREATE FULLTEXT INDEX ON {tablename} ({colname}) "
                 "KEY INDEX {keyidxname} ".format(
-                    tablename=tablename,
-                    keyidxname=pk_index_name,
-                    colname=colname,
+                    tablename=quote(tablename),
+                    keyidxname=quote(pk_index_name),
+                    colname=quote(colname),
                 )
             )
             # SQL Server won't let you do this inside a transaction:
