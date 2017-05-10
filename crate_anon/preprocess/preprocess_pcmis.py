@@ -306,51 +306,52 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     # Original PCMIS tables (some may be superseded by views; list both here;
     # if the table is blacklisted anyway, it doesn't matter).
+    # We achieve "list both" by using *. 
     # ----------------------------------------------------------------------
-    CaseContactDetails.CaseNumber
-    CaseContactDetails.FirstName
-    CaseContactDetails.MiddleName
-    CaseContactDetails.LastName
-    CaseContactDetails.DOB
-    CaseContactDetails.Address*
-    CaseContactDetails.TownCity
-    CaseContactDetails.County
-    CaseContactDetails.PostCode
-    CaseContactDetails.TelHome
-    CaseContactDetails.TelMobile
-    CaseContactDetails.TelWork
-    CaseContactDetails.FamilyName
-    CaseContactDetails.PreviousName
-    CaseContactDetails.PreviousAddress*
-    CaseContactDetails.PreviousTownCity
-    CaseContactDetails.PreviousCounty
-    CaseContactDetails.PreviousPostCode
-    CaseContactDetails.Email
-    CaseContactDetails.OtherCaseNumber
-    CaseContactDetails.NHSNumberVerified
-    CaseEpisodes.LinkedCaseNumber
-    PatientDetails.PatientID
-    PatientDetails.FirstName
-    PatientDetails.MiddleName
-    PatientDetails.LastName
-    PatientDetails.DOB
-    PatientDetails.Address*  # Address1, Address2, Address3
-    PatientDetails.TownCity
-    PatientDetails.County
-    PatientDetails.PostCode
-    PatientDetails.Tel*  # TelHome, TelMobile, TelWork
-    PatientDetails.NHSNumber
-    PatientDetails.FamilyName
-    PatientDetails.PreviousName
-    PatientDetails.PreviousAddress*
-    PatientDetails.PreviousTownCity
-    PatientDetails.PreviousCounty
-    PatientDetails.PreviousPostCode
-    PatientDetails.Email
-    PatientDetails.DependantChildren  # is VARCHAR(100)
-    PatientDetails.LastNameAlias
-    PatientDetails.FirstNameAlias
-    PatientDetails.DisplayName
+    CaseContactDetails*.CaseNumber
+    CaseContactDetails*.FirstName
+    CaseContactDetails*.MiddleName
+    CaseContactDetails*.LastName
+    CaseContactDetails*.DOB
+    CaseContactDetails*.Address*
+    CaseContactDetails*.TownCity
+    CaseContactDetails*.County
+    CaseContactDetails*.PostCode
+    CaseContactDetails*.TelHome
+    CaseContactDetails*.TelMobile
+    CaseContactDetails*.TelWork
+    CaseContactDetails*.FamilyName
+    CaseContactDetails*.PreviousName
+    CaseContactDetails*.PreviousAddress*
+    CaseContactDetails*.PreviousTownCity
+    CaseContactDetails*.PreviousCounty
+    CaseContactDetails*.PreviousPostCode
+    CaseContactDetails*.Email
+    CaseContactDetails*.OtherCaseNumber
+    CaseContactDetails*.NHSNumberVerified
+    CaseEpisodes*.LinkedCaseNumber
+    PatientDetails*.PatientID
+    PatientDetails*.FirstName
+    PatientDetails*.MiddleName
+    PatientDetails*.LastName
+    PatientDetails*.DOB
+    PatientDetails*.Address*  # Address1, Address2, Address3
+    PatientDetails*.TownCity
+    PatientDetails*.County
+    PatientDetails*.PostCode
+    PatientDetails*.Tel*  # TelHome, TelMobile, TelWork
+    PatientDetails*.NHSNumber
+    PatientDetails*.FamilyName
+    PatientDetails*.PreviousName
+    PatientDetails*.PreviousAddress*
+    PatientDetails*.PreviousTownCity
+    PatientDetails*.PreviousCounty
+    PatientDetails*.PreviousPostCode
+    PatientDetails*.Email
+    PatientDetails*.DependantChildren  # is VARCHAR(100)
+    PatientDetails*.LastNameAlias
+    PatientDetails*.FirstNameAlias
+    PatientDetails*.DisplayName
     # ----------------------------------------------------------------------
     # Views
     # ----------------------------------------------------------------------
@@ -359,77 +360,71 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     # ----------------------------------------------------------------------
     # Original PCMIS tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
-    CaseCarerDetails.CarerName
-    CaseCarerDetails.CarerTelHome
-    CaseCarerDetails.CarerTelWork
-    CaseCarerDetails.CarerTelMobile
-    CaseCarerDetails.CarerAddress*
-    CaseCarerDetails.CarerTownCity
-    CaseCarerDetails.CarerCounty
-    CaseCarerDetails.CarerPostcode
-    CaseChildDetails.ChildCarer  # NVARCHAR(50)
-    CaseChildDetails.FirstName
-    CaseChildDetails.MiddleName
-    CaseChildDetails.LastName
-    CaseChildDetails.DOB
-    CaseEmergencyDetails.EmergencyContact
-    CaseEmergencyDetails.EmergencyAddress*
-    CaseEmergencyDetails.EmergencyTownCity
-    CaseEmergencyDetails.EmergencyCounty
-    CaseEmergencyDetails.EmergencyPostcode
-    CaseEmergencyDetails.EmergencyTelephone
-    CaseEmployerDetails.EmployerName
-    CaseEmployerDetails.EmployerJobTitle
-    CaseEmployerDetails.EmployerContact
-    CaseEmployerDetails.EmployerAddress*
-    CaseEmployerDetails.EmployerTownCity
-    CaseEmployerDetails.EmployerCounty
-    CaseEmployerDetails.EmployerPostcode
-    CaseEmployerDetails.EmployerTelephone
-    PatientCarerDetails.CarerName
-    PatientCarerDetails.CarerTelHome
-    PatientCarerDetails.CarerTelWork
-    PatientCarerDetails.CarerTelMobile
-    PatientCarerDetails.CarerAddress*
-    PatientCarerDetails.CarerTownCity
-    PatientCarerDetails.CarerCounty
-    PatientCarerDetails.CarerPostCode
-    PatientChildDetails.ChildCarer  # VARCHAR(50)
-    PatientChildDetails.FirstName
-    PatientChildDetails.MiddleName
-    PatientChildDetails.LastName
-    PatientChildDetails.DOB
-    PatientEmergencyDetails.NextOfKin
-    PatientEmergencyDetails.EmergencyContact
-    PatientEmergencyDetails.EmergencyAddress*
-    PatientEmergencyDetails.EmergencyTownCity
-    PatientEmergencyDetails.EmergencyCounty
-    PatientEmergencyDetails.EmergencyPostcode
-    PatientEmergencyDetails.EmergencyTelephone
-    PatientEmployerDetails.EmployerName
-    PatientEmployerDetails.EmployerJobTitle
-    PatientEmployerDetails.EmployerContact
-    PatientEmployerDetails.EmployerAddress*
-    PatientEmployerDetails.EmployerTownCity
-    PatientEmployerDetails.EmployerCounty
-    PatientEmployerDetails.EmployerPostcode
-    PatientEmployerDetails.EmployerTelephone
+    CaseCarerDetails*.CarerName
+    CaseCarerDetails*.CarerTelHome
+    CaseCarerDetails*.CarerTelWork
+    CaseCarerDetails*.CarerTelMobile
+    CaseCarerDetails*.CarerAddress*
+    CaseCarerDetails*.CarerTownCity
+    CaseCarerDetails*.CarerCounty
+    CaseCarerDetails*.CarerPostcode
+    CaseChildDetails*.ChildCarer  # NVARCHAR(50)
+    CaseChildDetails*.FirstName
+    CaseChildDetails*.MiddleName
+    CaseChildDetails*.LastName
+    CaseChildDetails*.DOB
+    CaseEmergencyDetails*.EmergencyContact
+    CaseEmergencyDetails*.EmergencyAddress*
+    CaseEmergencyDetails*.EmergencyTownCity
+    CaseEmergencyDetails*.EmergencyCounty
+    CaseEmergencyDetails*.EmergencyPostcode
+    CaseEmergencyDetails*.EmergencyTelephone
+    CaseEmployerDetails*.EmployerName
+    CaseEmployerDetails*.EmployerJobTitle
+    CaseEmployerDetails*.EmployerContact
+    CaseEmployerDetails*.EmployerAddress*
+    CaseEmployerDetails*.EmployerTownCity
+    CaseEmployerDetails*.EmployerCounty
+    CaseEmployerDetails*.EmployerPostcode
+    CaseEmployerDetails*.EmployerTelephone
+    PatientCarerDetails*.CarerName
+    PatientCarerDetails*.CarerTelHome
+    PatientCarerDetails*.CarerTelWork
+    PatientCarerDetails*.CarerTelMobile
+    PatientCarerDetails*.CarerAddress*
+    PatientCarerDetails*.CarerTownCity
+    PatientCarerDetails*.CarerCounty
+    PatientCarerDetails*.CarerPostCode
+    PatientChildDetails*.ChildCarer  # VARCHAR(50)
+    PatientChildDetails*.FirstName
+    PatientChildDetails*.MiddleName
+    PatientChildDetails*.LastName
+    PatientChildDetails*.DOB
+    PatientEmergencyDetails*.NextOfKin
+    PatientEmergencyDetails*.EmergencyContact
+    PatientEmergencyDetails*.EmergencyAddress*
+    PatientEmergencyDetails*.EmergencyTownCity
+    PatientEmergencyDetails*.EmergencyCounty
+    PatientEmergencyDetails*.EmergencyPostcode
+    PatientEmergencyDetails*.EmergencyTelephone
+    PatientEmployerDetails*.EmployerName
+    PatientEmployerDetails*.EmployerJobTitle
+    PatientEmployerDetails*.EmployerContact
+    PatientEmployerDetails*.EmployerAddress*
+    PatientEmployerDetails*.EmployerTownCity
+    PatientEmployerDetails*.EmployerCounty
+    PatientEmployerDetails*.EmployerPostcode
+    PatientEmployerDetails*.EmployerTelephone
     # ----------------------------------------------------------------------
     # CRATE views
     # ----------------------------------------------------------------------
 
-ddgen_scrubsrc_thirdparty_xref_pid_fields = # several:
-    # ----------------------------------------------------------------------
-    # Original PCMIS tables (some may be superseded by views; list both here)
-    # ----------------------------------------------------------------------
-    # ----------------------------------------------------------------------
-    # RCEP/CRATE views
-    # ----------------------------------------------------------------------
+ddgen_scrubsrc_thirdparty_xref_pid_fields =
 
 ddgen_required_scrubsrc_fields = # several:
-    PatientDetails.FirstName
-    PatientDetails.LastName  # always present, but FamilyName can be NULL
-    PatientDetails.DOB
+    PatientDetails{CRATE_VIEW_SUFFIX}.FirstName
+    PatientDetails{CRATE_VIEW_SUFFIX}.LastName  # always present, but FamilyName can be NULL
+    PatientDetails{CRATE_VIEW_SUFFIX}.DOB
 
 ddgen_scrubmethod_code_fields = # variants:
     *PostCode

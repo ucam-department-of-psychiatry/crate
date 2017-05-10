@@ -939,7 +939,7 @@ ddgen_scrubsrc_thirdparty_fields =
 ddgen_scrubsrc_thirdparty_xref_pid_fields =
 
     # Are any scrub_src fields required (mandatory), i.e. must have non-NULL
-    # data in at least one row?
+    # data in at least one row (or the patient will be skipped)?
 ddgen_required_scrubsrc_fields =
 
     # Override default scrubbing methods
