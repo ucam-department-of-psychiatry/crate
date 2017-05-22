@@ -40,6 +40,7 @@ See pcmis_information_schema.ods
 - CasesAll
 
     CaseNumber -- appears to be unique; same #records as ReferralDetails
+    ReferralDate
 
 - Many other per-case things: Case*
 
@@ -317,9 +318,8 @@ ddgen_scrubsrc_patient_fields = # several of these:
     CaseContactDetails*.TownCity
     CaseContactDetails*.County
     CaseContactDetails*.PostCode
-    CaseContactDetails*.TelHome
-    CaseContactDetails*.TelMobile
-    CaseContactDetails*.TelWork
+    CaseContactDetails*.Tel*
+    CaseContactDetails*.NHSNumber
     CaseContactDetails*.FamilyName
     CaseContactDetails*.PreviousName
     CaseContactDetails*.PreviousAddress*
@@ -327,8 +327,13 @@ ddgen_scrubsrc_patient_fields = # several of these:
     CaseContactDetails*.PreviousCounty
     CaseContactDetails*.PreviousPostCode
     CaseContactDetails*.Email
+    CaseContactDetails*.Profession
     CaseContactDetails*.OtherCaseNumber
     CaseContactDetails*.NHSNumberVerified
+    CaseContactDetails*.Voicemail*
+    CaseContactDetails*.LastNameAlias
+    CaseContactDetails*.FirstNameAlias
+    CaseContactDetails*.DisplayName
     CaseEpisodes*.LinkedCaseNumber
     PatientDetails*.PatientID
     PatientDetails*.FirstName
@@ -348,7 +353,8 @@ ddgen_scrubsrc_patient_fields = # several of these:
     PatientDetails*.PreviousCounty
     PatientDetails*.PreviousPostCode
     PatientDetails*.Email
-    PatientDetails*.DependantChildren  # is VARCHAR(100)
+    PatientDetails*.NHSNumberVerified
+    PatientDetails*.Voicemail*
     PatientDetails*.LastNameAlias
     PatientDetails*.FirstNameAlias
     PatientDetails*.DisplayName
@@ -360,10 +366,11 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     # ----------------------------------------------------------------------
     # Original PCMIS tables (some may be superseded by views; list both here)
     # ----------------------------------------------------------------------
+    CaseContactDetails*.DependantChildren  # is VARCHAR(100)
+    CaseContactDetails*.ChildDetails*
+    CaseContactDetails*.CarerDetails*
     CaseCarerDetails*.CarerName
-    CaseCarerDetails*.CarerTelHome
-    CaseCarerDetails*.CarerTelWork
-    CaseCarerDetails*.CarerTelMobile
+    CaseCarerDetails*.CarerTel*
     CaseCarerDetails*.CarerAddress*
     CaseCarerDetails*.CarerTownCity
     CaseCarerDetails*.CarerCounty
@@ -373,6 +380,7 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     CaseChildDetails*.MiddleName
     CaseChildDetails*.LastName
     CaseChildDetails*.DOB
+    CaseEmergencyDetails*.NextOfKin
     CaseEmergencyDetails*.EmergencyContact
     CaseEmergencyDetails*.EmergencyAddress*
     CaseEmergencyDetails*.EmergencyTownCity
@@ -388,9 +396,7 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     CaseEmployerDetails*.EmployerPostcode
     CaseEmployerDetails*.EmployerTelephone
     PatientCarerDetails*.CarerName
-    PatientCarerDetails*.CarerTelHome
-    PatientCarerDetails*.CarerTelWork
-    PatientCarerDetails*.CarerTelMobile
+    PatientCarerDetails*.CarerTel*
     PatientCarerDetails*.CarerAddress*
     PatientCarerDetails*.CarerTownCity
     PatientCarerDetails*.CarerCounty
@@ -400,6 +406,7 @@ ddgen_scrubsrc_thirdparty_fields = # several:
     PatientChildDetails*.MiddleName
     PatientChildDetails*.LastName
     PatientChildDetails*.DOB
+    PatientDetails*.DependantChildren  # is VARCHAR(100)
     PatientEmergencyDetails*.NextOfKin
     PatientEmergencyDetails*.EmergencyContact
     PatientEmergencyDetails*.EmergencyAddress*
@@ -426,15 +433,15 @@ ddgen_required_scrubsrc_fields = # several:
     PatientDetails{CRATE_VIEW_SUFFIX}.LastName  # always present, but FamilyName can be NULL
     PatientDetails{CRATE_VIEW_SUFFIX}.DOB
 
-ddgen_scrubmethod_code_fields = # variants:
+ddgen_scrubmethod_code_fields = # note: case-insensitive matching:
     *PostCode
-    *Postcode
 
 ddgen_scrubmethod_date_fields =
     *DOB*
 
 ddgen_scrubmethod_number_fields = #
     *Tel*
+    *Voicemail*
     *NHSNumber*
 
 ddgen_scrubmethod_phrase_fields = *Address*
