@@ -69,7 +69,7 @@ class Gate(BaseNlpParser):
     configuration file and the specific GATE program used.
 
     PROBLEM when attempting to use KConnect (Bio-YODIE): its source code is
-    riddled with direct calls to System.out.println().
+    full of direct calls to System.out.println().
 
     POTENTIAL SOLUTIONS
     - named pipes:
