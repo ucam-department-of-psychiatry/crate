@@ -26,7 +26,7 @@ Slightly extended ConfigParser.
 
 import ast
 import configparser
-from typing import Dict, Iterable, Generator, Generic, List, Optional
+from typing import Any, Dict, Iterable, Generator, List, Optional
 # http://mypy-lang.org/examples.html
 # https://www.python.org/dev/peps/pep-0484/
 # https://docs.python.org/3/library/typing.html
@@ -157,7 +157,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
     def get_pyvalue_list(self,
                          section: str,
                          option: str,
-                         default: Generic = None) -> List[Generic]:
+                         default: Any = None) -> List[Any]:
         default = default or []
         strvalue = self.get(section, option, fallback=None)
         if not strvalue:

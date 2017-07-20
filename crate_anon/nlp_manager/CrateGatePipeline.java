@@ -554,6 +554,7 @@ public class CrateGatePipeline {
         // The default of doc.getAnnotations() only gets the default (unnamed)
         // AnnotationSet. But for KConnect/Bio-YODIE, we find an unnamed set,
         // and a set named "Bio", whose annotations look like "Bio#Disease".
+        // Similarly, the GATE BRC Pharmacotherapy app has a set named "Output".
         //
         // The underlying functions are:
         //      public AnnotationSet SimpleDocument::getAnnotations();
@@ -601,25 +602,24 @@ public class CrateGatePipeline {
             // Extract the annotations
             Map<String, AnnotationSet> sets = getAnnotationSets(doc);
             for (Map.Entry<String, AnnotationSet> entry : sets.entrySet()) {
-                String name = entry.getKey();
+                String setname = entry.getKey();
                 AnnotationSet annotations = entry.getValue();
                 Iterator annot_types_it = m_target_annotations.iterator();
                 while (annot_types_it.hasNext()) {
-                    // extract all the annotations of each requested type and
-                    // add them to the temporary set
+                    // Extract all the annotations of each requested type:
                     AnnotationSet annots_of_this_type = annotations.get(
                         (String)annot_types_it.next());
                     if (annots_of_this_type != null) {
+                        // Add them to the temporary set, for the XML (below)
                         annotations_to_write.addAll(annots_of_this_type);
                     }
+                    // Process individual annotations
+                    Iterator ann_it = annots_of_this_type.iterator();
+                    while (ann_it.hasNext()) {
+                        Annotation annot = (Annotation)ann_it.next();
+                        processAnnotation(setname, annot, doc, outtsv);
+                    }
                 }
-            }
-
-            // Process individual annotations
-            Iterator ann_it = annotations_to_write.iterator();
-            while (ann_it.hasNext()) {
-                Annotation annot = (Annotation)ann_it.next();
-                processAnnotation(annot, doc, outtsv);
             }
 
             // Write annotated contents (as XML) to file?
@@ -637,12 +637,12 @@ public class CrateGatePipeline {
             // Process all of them...
             Map<String, AnnotationSet> sets = getAnnotationSets(doc);
             for (Map.Entry<String, AnnotationSet> entry : sets.entrySet()) {
-                String name = entry.getKey();
+                String setname = entry.getKey();
                 AnnotationSet annotations = entry.getValue();
                 Iterator ann_it = annotations.iterator();
                 while (ann_it.hasNext()) {
                     Annotation annot = (Annotation)ann_it.next();
-                    processAnnotation(annot, doc, outtsv);
+                    processAnnotation(setname, annot, doc, outtsv);
                 }
             }
 
@@ -668,7 +668,7 @@ public class CrateGatePipeline {
         // http://stackoverflow.com/questions/7166328
     }
 
-    private void processAnnotation(Annotation a, Document doc,
+    private void processAnnotation(String setname, Annotation a, Document doc,
                                    PrintStream outtsv)
             throws InvalidOffsetException, IOException {
         String type = a.getType();
@@ -681,6 +681,7 @@ public class CrateGatePipeline {
         // It's a Serializable, I think, not a string. Anyway, this works.
 
         Map<String, String> outputmap = new HashMap<String, String>();
+        outputmap.put("_set", setname);
         outputmap.put("_type", type);
         outputmap.put("_id", "" + id);
         // ... http://stackoverflow.com/questions/5071040

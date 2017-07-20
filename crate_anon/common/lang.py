@@ -58,6 +58,37 @@ def merge_two_dicts(x: Dict, y: Dict) -> Dict:
     return z
 
 
+def rename_keys_in_dict(d: Dict[str, Any], renames: Dict[str, str]) -> None:
+    """
+    Renames, in place, the keys in d according to the mapping in "renames".
+    """
+    # https://stackoverflow.com/questions/4406501/change-the-name-of-a-key-in-dictionary  # noqa
+    for old_key, new_key in renames.items():
+        if old_key in d:
+            if new_key in d:
+                raise ValueError(
+                    "rename_keys_in_dict: renaming {} -> {} but new key "
+                    "already exists".format(repr(old_key), repr(new_key)))
+            d[new_key] = d.pop(old_key)
+
+
+def set_null_values_in_dict(d: Dict[str, Any],
+                            null_literals: List[Any]) -> None:
+    """
+    Within d (in place), replace any values found in null_literals with None.
+    """
+    if not null_literals:
+        return
+    # DO NOT add/delete values to/from a dictionary during iteration, but it
+    # is OK to modify existing keys:
+    #       https://stackoverflow.com/questions/6777485
+    #       https://stackoverflow.com/questions/2315520
+    #       https://docs.python.org/3/library/stdtypes.html#dict-views
+    for k, v in d.items():
+        if v in null_literals:
+            d[k] = None
+
+
 # =============================================================================
 # List handling
 # =============================================================================

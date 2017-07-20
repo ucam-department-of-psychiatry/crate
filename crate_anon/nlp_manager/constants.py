@@ -599,6 +599,10 @@ OS_PATHSEP = :
     # defined here.
 
 desttable = person
+
+renames =  # one pair per line; can quote, using shlex rules; case-sensitive
+    firstName   firstname
+
 destfields =
     rule        VARCHAR(100)
     firstname   VARCHAR(100)
@@ -617,10 +621,11 @@ indexdefs =
 [output_location]
 
 desttable = location
+renames =
+    locType     loctype
 destfields =
     rule        VARCHAR(100)
     loctype     VARCHAR(100)
-
 indexdefs =
     rule    100
     loctype 100
@@ -633,20 +638,90 @@ indexdefs =
 [output_disease_or_syndrome]
 
 desttable = kconnect_diseases
+renames =
+    Experiencer     experiencer
+    Negation        negation
+    PREF            pref
+    STY             sty
+    TUI             tui
+    Temporality     temporality
+    VOCABS          vocabs
 destfields =
     # Found by manual inspection of KConnect/Bio-YODIE output from the GATE console:
-    Experiencer  VARCHAR(100)  # e.g. "Patient"
-    Negation     VARCHAR(100)  # e.g. "Affirmed"
-    PREF         VARCHAR(100)  # e.g. "Rheumatic gout"; PREFferred name
-    STY          VARCHAR(100)  # e.g. "Disease or Syndrome"; Semantic Type (STY) [semantic type name]
-    TUI          VARCHAR(4)    # e.g. "T047"; Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/
-    Temporality  VARCHAR(100)  # e.g. "Recent"
-    VOCABS       VARCHAR(255)  # e.g. "AIR,MSH,NDFRT,MEDLINEPLUS,NCI,LNC,NCI_FDA,NCI,MTH,AIR,ICD9CM,LNC,SNOMEDCT_US,LCH_NW,HPO,SNOMEDCT_US,ICD9CM,SNOMEDCT_US,COSTAR,CST,DXP,QMR,OMIM,OMIM,AOD,CSP,NCI_NCI-GLOSS,CHV"; list of UMLS vocabularies
+    experiencer  VARCHAR(100)  # e.g. "Patient"
+    negation     VARCHAR(100)  # e.g. "Affirmed"
+    pref         VARCHAR(100)  # e.g. "Rheumatic gout"; PREFferred name
+    sty          VARCHAR(100)  # e.g. "Disease or Syndrome"; Semantic Type (STY) [semantic type name]
+    tui          VARCHAR(4)    # e.g. "T047"; Type Unique Identifier (TUI) [semantic type identifier]; 4 characters; https://www.ncbi.nlm.nih.gov/books/NBK9679/
+    temporality  VARCHAR(100)  # e.g. "Recent"
+    vocabs       VARCHAR(255)  # e.g. "AIR,MSH,NDFRT,MEDLINEPLUS,NCI,LNC,NCI_FDA,NCI,MTH,AIR,ICD9CM,LNC,SNOMEDCT_US,LCH_NW,HPO,SNOMEDCT_US,ICD9CM,SNOMEDCT_US,COSTAR,CST,DXP,QMR,OMIM,OMIM,AOD,CSP,NCI_NCI-GLOSS,CHV"; list of UMLS vocabularies
     inst         VARCHAR(8)    # e.g. "C0003873"; looks like a Concept Unique Identifier (CUI); 1 letter then 7 digits
     inst_full    VARCHAR(255)  # e.g. "http://linkedlifedata.com/resource/umls/id/C0003873"
     language     VARCHAR(100)  # e.g. ""; ?will look like "ENG" for English? See https://www.nlm.nih.gov/research/umls/implementation_resources/query_diagrams/er1.html
     tui_full     VARCHAR(255)  # e.g. "http://linkedlifedata.com/resource/semanticnetwork/id/T047"
+indexdefs =
+    pref    100
+    sty     100
+    tui     4
+    inst    8
 
+
+# -----------------------------------------------------------------------------
+# Output types for SLAM BRC GATE Pharmacotherapy
+# -----------------------------------------------------------------------------
+# Note new "renames" option, because the names of the annotations are not 
+# always valid SQL column names.
+
+[output_prescription]
+
+desttable = medications_gate
+renames =  # one pair per line; can quote, using shlex rules; case-sensitive
+    drug-type           drug_type
+    dose-value          dose_value
+    dose-unit           dose_unit
+    dose-multiple       dose_multiple
+    Directionality      directionality
+    Experiencer         experiencer
+    "Length of Time"    length_of_time
+    Temporality         temporality
+    "Unit of Time"      unit_of_time
+null_literals =
+    # Sometimes GATE provides "null" for a NULL value; we can convert to SQL NULL.
+    # Sequence of words; shlex rules.
+    null
+    ""
+destfields =
+    # Found by (a) manual inspection of BRC GATE pharmacotherapy output from
+    # the GATE console; (b) inspection of
+    # application-resources/schemas/Prescription.xml
+    # Note preference for DECIMAL over FLOAT/REAL; see
+    # https://stackoverflow.com/questions/1056323
+    rule            VARCHAR(100)  # not in XML but is present in a subset: e.g. "weanOff"; max length unclear
+    drug            VARCHAR(200)  # required string; e.g. "haloperidol"; max length 47 from "wc -L BNF_generic.lst", 134 from BNF_trade.lst
+    drug_type       VARCHAR(100)  # required string; from "drug-type"; e.g. "BNF_generic"; ?length of longest drug ".lst" filename
+    dose            VARCHAR(100)  # required string; e.g. "5mg"; max length unclear
+    dose_value      DECIMAL       # required numeric; from "dose-value"; "double" in the XML but DECIMAL probably better; e.g. 5.0
+    dose_unit       VARCHAR(100)  # required string; from "dose-unit"; e.g. "mg"; max length unclear
+    dose_multiple   INT           # required integer; from "dose-multiple"; e.g. 1
+    route           VARCHAR(7)    # required string; one of: "oral", "im", "iv", "rectal", "sc", "dermal", "unknown"
+    status          VARCHAR(10)   # required; one of: "start", "continuing", "stop"
+    tense           VARCHAR(7)    # required; one of: "past", "present"
+    date            VARCHAR(100)  # optional string; max length unclear
+    directionality  VARCHAR(100)  # optional string; max length unclear
+    experiencer     VARCHAR(100)  # optional string; e.g. "Patient"
+    frequency       DECIMAL       # optional numeric; "double" in the XML but DECIMAL probably better
+    interval        DECIMAL       # optional numeric; "double" in the XML but DECIMAL probably better
+    length_of_time  VARCHAR(100)  # optional string; from "Length of Time"; max length unclear
+    temporality     VARCHAR(100)  # optional string; e.g. "Recent"
+    time_unit       VARCHAR(100)  # optional string; from "time-unit"; e.g. "day"; max length unclear
+    unit_of_time    VARCHAR(100)  # optional string; from "Unit of Time"; max length unclear
+    when            VARCHAR(100)  # optional string; max length unclear
+indexdefs =
+    rule    100
+    drug    200
+    route   7
+    status  10
+    tense   7
 
 # =============================================================================
 # E. Input field definitions

@@ -23,7 +23,8 @@
 """
 
 import ast
-from typing import List
+import shlex
+from typing import Dict, List
 
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
@@ -56,16 +57,54 @@ class OutputUserConfig(object):
 
         def opt_strlist(option: str,
                         required: bool = False,
-                        lower: bool = True,
                         as_words: bool = True) -> List[str]:
             return parser.get_str_list(section, option, required=required,
-                                       lower=lower, as_words=as_words)
+                                       lower=False, as_words=as_words)
+            # We do NOT change the case.
 
         if not parser.has_section(section):
             raise ValueError("config missing section: " + section)
 
+        # ---------------------------------------------------------------------
+        # desttable
+        # ---------------------------------------------------------------------
+
         self._desttable = opt_str('desttable', required=True)
         ensure_valid_table_name(self._desttable)
+
+        # ---------------------------------------------------------------------
+        # renames
+        # ---------------------------------------------------------------------
+
+        self._renames = {}  # type: Dict[str, str]
+        rename_lines = opt_strlist('renames', required=False, as_words=False)
+        for line in rename_lines:
+            if not line.strip():
+                continue
+            words = shlex.split(line)
+            if len(words) != 2:
+                raise ValueError(
+                    "Bad 'renames' option in config section {}; line was {} "
+                    "but should have contained two things".format(
+                        repr(section), repr(line)))
+            annotation_name = words[0]
+            field_name = words[1]
+            ensure_valid_field_name(field_name)
+            self._renames[annotation_name] = field_name
+
+        # ---------------------------------------------------------------------
+        # null_literals
+        # ---------------------------------------------------------------------
+
+        null_literal_lines = opt_strlist('null_literals', required=False,
+                                         as_words=False)
+        self._null_literals = []  # type: List[str]
+        for line in null_literal_lines:
+            self._null_literals += shlex.split(line)
+
+        # ---------------------------------------------------------------------
+        # destfields
+        # ---------------------------------------------------------------------
 
         self._destfields = []  # type: List[str]
         self._dest_datatypes = []  # type: List[str]
@@ -92,6 +131,10 @@ class OutputUserConfig(object):
         if len(set(self._destfields)) != len(self._destfields):
             raise ValueError("Duplicate fields exist in destination fields: "
                              "{}".format(self._destfields))
+
+        # ---------------------------------------------------------------------
+        # indexdefs
+        # ---------------------------------------------------------------------
 
         self._indexfields = []  # type: List[str]
         self._indexlengths = []  # type: List[int]
@@ -135,3 +178,9 @@ class OutputUserConfig(object):
             kwargs = {'mysql_length': length} if length is not None else {}
             indexes.append(Index(index_name, field, **kwargs))
         return indexes
+
+    def renames(self) -> Dict[str, str]:
+        return self._renames
+
+    def null_literals(self) -> List[str]:
+        return self._null_literals

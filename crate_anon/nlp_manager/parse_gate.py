@@ -36,6 +36,7 @@ from typing import Any, Dict, Generator, List, Tuple
 from cardinal_pythonlib.rnc_lang import chunks
 from sqlalchemy import Column, Index, Integer, Text
 
+from crate_anon.common.lang import rename_keys_in_dict, set_null_values_in_dict
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
@@ -246,6 +247,9 @@ class Gate(BaseNlpParser):
                 log.warning(
                     "Unknown annotation type, skipping: {}".format(annottype))
                 continue
+            c = self._outputtypemap[annottype]
+            rename_keys_in_dict(d, c.renames())
+            set_null_values_in_dict(d, c.null_literals())
             yield self._type_to_tablename[annottype], d
 
         self._n_uses += 1
@@ -276,6 +280,8 @@ class Gate(BaseNlpParser):
     @staticmethod
     def _standard_columns() -> List[Column]:
         return [
+            Column('_set', SqlTypeDbIdentifier,
+                   doc="GATE output set name"),
             Column('_type', SqlTypeDbIdentifier,
                    doc="GATE annotation type name"),
             Column('_id', Integer,
@@ -286,6 +292,12 @@ class Gate(BaseNlpParser):
                    doc="End position in the content"),
             Column('_content', Text,
                    doc="Full content marked as relevant."),
+        ]
+
+    @staticmethod
+    def _standard_indexes() -> List[Index]:
+        return [
+            Index('_idx__set', '_set', mysql_length=MAX_SQL_FIELD_LEN),
         ]
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:
@@ -300,5 +312,8 @@ class Gate(BaseNlpParser):
     def dest_tables_indexes(self) -> Dict[str, List[Index]]:
         tables = {}  # type: Dict[str, List[Index]]
         for anottype, otconfig in self._outputtypemap.items():
-            tables[otconfig.get_tablename()] = otconfig.get_indexes()
+            tables[otconfig.get_tablename()] = (
+                self._standard_indexes() +
+                otconfig.get_indexes()
+            )
         return tables
