@@ -118,6 +118,7 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
             sqla_table.drop(engine, checkfirst=True)
         # Create
         log.info("creating table {}".format(tablename))
+        log.debug(repr(sqla_table))
         sqla_table.create(engine, checkfirst=True)
         # Check
         resulting_fieldnames = get_column_names(engine, tablename)

@@ -268,9 +268,14 @@ class DatabaseSafeConfig(object):
     def does_table_fail_minimum_fields(self, colnames: List[str]) -> bool:
         for abs_req in self.ddgen_table_require_field_absolute:
             if abs_req not in colnames:
+                log.debug("Table fails minimum field requirements: no column "
+                          "named {}".format(repr(abs_req)))
                 return True
         for if_field, then_field in self.ddgen_table_require_field_conditional.items():  # noqa
             if if_field in colnames and then_field not in colnames:
+                log.debug("Table fails minimum field requirements: field {} "
+                          "present but field {} "
+                          "absent".format(repr(if_field), repr(then_field)))
                 return True
         return False
 

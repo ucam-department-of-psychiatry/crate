@@ -25,7 +25,9 @@
 import ast
 import contextlib
 import copy
+import csv
 from functools import lru_cache
+import io
 import logging
 import re
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
@@ -275,7 +277,7 @@ def compile_insert_on_duplicate_key_update(insert: Insert,
     updates = ", ".join(
         ["{c} = VALUES({c})".format(c=c) for c in columns])
     s += ' ON DUPLICATE KEY UPDATE {}'.format(updates)
-    log.critical(s)
+    # log.critical(s)
     return s
 
 
@@ -690,6 +692,7 @@ def giant_text_sqltype(dialect: Dialect) -> str:
 # Reverse a textual SQL column type to an SQLAlchemy column type
 # -----------------------------------------------------------------------------
 
+RE_MYSQL_ENUM_COLTYPE = re.compile(r'ENUM\((?P<valuelist>.+)\)')
 RE_COLTYPE_WITH_COLLATE = re.compile(r'(?P<maintype>.+) COLLATE .+')
 RE_COLTYPE_WITH_ONE_PARAM = re.compile(r'(?P<type>\w+)\((?P<size>\w+)\)')
 RE_COLTYPE_WITH_TWO_PARAMS = re.compile(
@@ -710,6 +713,14 @@ def _get_sqla_coltype_class_from_str(coltype: str,
         return ischema_names[coltype.upper()]
     except KeyError:
         return ischema_names[coltype.lower()]
+
+
+def get_list_of_sql_string_literals_from_quoted_csv(x: str) -> List[str]:
+    f = io.StringIO(x)
+    reader = csv.reader(f, delimiter=',', quotechar="'", quoting=csv.QUOTE_ALL,
+                        skipinitialspace=True)
+    for line in reader:  # should only be one
+        return [x for x in line]
 
 
 @lru_cache(maxsize=None)
@@ -755,10 +766,11 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
         -   Thus, this is a bit useless.
         -   Fixed, with a few special cases.
     """
-    size = None
-    dp = None
-    args = []
-    kwargs = {}
+    size = None  # type: int
+    dp = None  # type: int
+    args = []  # type: List[Any]
+    kwargs = {}  # type: Dict[str, Any]
+    basetype = ''
 
     try:
         # Split e.g. "VARCHAR(32) COLLATE blah" into "VARCHAR(32)", "who cares"
@@ -766,13 +778,30 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
         if m is not None:
             coltype = m.group('maintype')
 
-        # Split e.g. "DECIMAL(10, 2)" into DECIMAL, 10, 2
-        m = RE_COLTYPE_WITH_TWO_PARAMS.match(coltype)
-        if m is not None:
-            basetype = m.group('type').upper()
-            size = ast.literal_eval(m.group('size'))
-            dp = ast.literal_eval(m.group('dp'))
-        else:
+        found = False
+
+        if not found:
+            # Deal with ENUM('a', 'b', 'c', ...)
+            m = RE_MYSQL_ENUM_COLTYPE.match(coltype)
+            if m is not None:
+                # Convert to VARCHAR with max size being that of largest enum
+                basetype = 'VARCHAR'
+                values = get_list_of_sql_string_literals_from_quoted_csv(
+                    m.group('valuelist'))
+                length = max(len(x) for x in values)
+                kwargs = {'length': length}
+                found = True
+
+        if not found:
+            # Split e.g. "DECIMAL(10, 2)" into DECIMAL, 10, 2
+            m = RE_COLTYPE_WITH_TWO_PARAMS.match(coltype)
+            if m is not None:
+                basetype = m.group('type').upper()
+                size = ast.literal_eval(m.group('size'))
+                dp = ast.literal_eval(m.group('dp'))
+                found = True
+
+        if not found:
             # Split e.g. "VARCHAR(32)" into VARCHAR, 32
             m = RE_COLTYPE_WITH_ONE_PARAM.match(coltype)
             if m is not None:
@@ -780,8 +809,10 @@ def get_sqla_coltype_from_dialect_str(coltype: str,
                 size_text = m.group('size').strip().upper()
                 if size_text != 'MAX':
                     size = ast.literal_eval(size_text)
-            else:
-                basetype = coltype.upper()
+                found = True
+
+        if not found:
+            basetype = coltype.upper()
 
         # Special cases: pre-processing
         # noinspection PyUnresolvedReferences
@@ -846,8 +877,6 @@ def convert_sqla_type_for_dialect(
     """
     assert coltype is not None
 
-    # log.critical("Incoming coltype: {}, vars={}".format(repr(coltype),
-    #                                                     vars(coltype)))
     # noinspection PyUnresolvedReferences
     to_mysql = dialect.name == 'mysql'
     # noinspection PyUnresolvedReferences
@@ -857,6 +886,8 @@ def convert_sqla_type_for_dialect(
     # -------------------------------------------------------------------------
     # Text
     # -------------------------------------------------------------------------
+    if isinstance(coltype, sqltypes.Enum):
+        return sqltypes.String(length=coltype.length)
     if isinstance(coltype, sqltypes.UnicodeText):
         # Unbounded Unicode text.
         # Includes derived classes such as mssql.base.NTEXT.
@@ -1116,6 +1147,7 @@ def unit_tests() -> None:
         # mysql
         ("BIGINT", d_mssql),
         ("LONGTEXT", d_mysql),
+        ("ENUM('red','green','blue')", d_mysql),
     ]
     for coltype, dialect in to_check:
         print("... {} -> dialect {} -> {}".format(

@@ -41,6 +41,7 @@ After anonymisation, check with:
 
 import argparse
 import datetime
+import enum
 import logging
 import os
 import random
@@ -52,6 +53,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum,
     ForeignKey,
     Integer,
     LargeBinary,
@@ -157,6 +159,24 @@ def compile_blob_mysql(type_, compiler, **kw):
 
 
 # =============================================================================
+# A silly enum
+# =============================================================================
+
+class EnumColours(enum.Enum):
+    red = 1
+    green = 2
+    blue = 3
+
+
+# =============================================================================
+# Randomness
+# =============================================================================
+
+def coin(p: float = 0.5) -> bool:
+    return random.random() < p
+
+
+# =============================================================================
 # Tables
 # =============================================================================
 
@@ -174,6 +194,7 @@ class Patient(Base):
     postcode = Column(String(50))
     optout = Column(Boolean, default=False)
     related_patient_id = Column(Integer)
+    colour = Column(Enum(EnumColours), nullable=True)  # new in v0.18.41
 
 
 class Note(Base):
@@ -317,6 +338,7 @@ def main() -> None:
         nhsnum=123456,
         phone="(01223)-123456",
         postcode="CB2 3EB",
+        colour=EnumColours.red,
     )
     session.add(p1)
     n1 = Note(
@@ -365,6 +387,7 @@ basophils 0.6.
         phone="(01223)-234567",
         postcode="CB2 3EB",
         related_patient_id=1,
+        colour=EnumColours.green,
     )
     session.add(p2)
     n2 = Note(
@@ -403,6 +426,7 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
             phone="123456",
             postcode="CB2 3EB",
             related_patient_id=p + 2,  # one back from patient_id
+            colour=EnumColours.blue if coin() else None,
         )
         session.add(patient)
         patient_id = patient.patient_id
