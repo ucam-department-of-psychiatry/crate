@@ -51,7 +51,7 @@ from crate_anon.common.sqla import (
     count_star,
     is_sqlatype_integer,
     get_column_type,
-    table_exists,
+    table_or_view_exists,
 )
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
@@ -211,8 +211,8 @@ class InputFieldConfig(object):
                   FN_SRCDB),
         ]
 
-    def _require_table_exists(self) -> None:
-        if not table_exists(self._get_source_engine(), self._srctable):
+    def _require_table_or_view_exists(self) -> None:
+        if not table_or_view_exists(self._get_source_engine(), self._srctable):
             msg = "Missing source table: {}.{}".format(self._srcdb,
                                                        self._srctable)
             log.critical(msg)
@@ -220,7 +220,7 @@ class InputFieldConfig(object):
 
     def get_copy_columns(self) -> List[Column]:
         # We read the column type from the source database.
-        self._require_table_exists()
+        self._require_table_or_view_exists()
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
         copy_columns = []  # type: List[Column]
@@ -249,7 +249,7 @@ class InputFieldConfig(object):
         return copy_columns
 
     def get_copy_indexes(self) -> List[Index]:
-        self._require_table_exists()
+        self._require_table_or_view_exists()
         meta = self._get_source_metadata()
         t = Table(self._srctable, meta, autoload=True)
         copy_indexes = []  # type: List[Index]

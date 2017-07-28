@@ -290,8 +290,22 @@ def get_table_names(engine: Engine) -> List[str]:
     return insp.get_table_names()
 
 
+def get_view_names(engine: Engine) -> List[str]:
+    insp = Inspector.from_engine(engine)
+    return insp.get_view_names()
+
+
 def table_exists(engine: Engine, tablename: str) -> bool:
     return tablename in get_table_names(engine)
+
+
+def view_exists(engine: Engine, viewname: str) -> bool:
+    return viewname in get_view_names(engine)
+
+
+def table_or_view_exists(engine: Engine, table_or_view_name: str) -> bool:
+    tables_and_views = get_table_names(engine) + get_view_names(engine)
+    return table_or_view_name in tables_and_views
 
 
 def get_columns_info(engine: Engine, tablename: str) -> List[Dict]:

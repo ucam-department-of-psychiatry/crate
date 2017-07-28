@@ -29,15 +29,15 @@ import os
 import traceback
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from cardinal_pythonlib.rnc_datetime import (
-    coerce_to_date,
-    truncate_date_to_first_of_month,
-)
 from cardinal_pythonlib.rnc_extract_text import document_to_text
 import regex
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import ALTERMETHOD
+from crate_anon.common.datetimefunc import (
+    coerce_to_datetime,
+    truncate_date_to_first_of_month,
+)
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config
@@ -248,7 +248,7 @@ class AlterMethod(object):
     @staticmethod
     def _truncate_date_func(value: Any) -> Optional[datetime.datetime]:
         try:
-            value = coerce_to_date(value)
+            value = coerce_to_datetime(value)
             return truncate_date_to_first_of_month(value)
         except (ValueError, OverflowError):
             log.warning(

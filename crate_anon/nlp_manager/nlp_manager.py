@@ -67,7 +67,6 @@ import os
 import sys
 from typing import Any, Dict, List, Tuple
 
-from cardinal_pythonlib.rnc_datetime import get_now_utc
 from sqlalchemy.schema import Column, Index, Table
 from sqlalchemy.types import BigInteger, String
 from crate_anon.anonymise.constants import (
@@ -76,6 +75,7 @@ from crate_anon.anonymise.constants import (
     TABLE_KWARGS,
     SEP,
 )
+from crate_anon.common.datetimefunc import get_now_utc
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.lang import die
 from crate_anon.common.logsupport import configure_logger_for_colour

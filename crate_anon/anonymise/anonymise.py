@@ -37,7 +37,6 @@ from typing import Any, Dict, Iterable, Generator, List, Tuple
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table
-from cardinal_pythonlib.rnc_datetime import get_now_utc
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
@@ -56,6 +55,7 @@ from crate_anon.anonymise.models import (
 )
 from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.ddr import DataDictionaryRow
+from crate_anon.common.datetimefunc import get_now_utc
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
 from crate_anon.common.sql import matches_tabledef

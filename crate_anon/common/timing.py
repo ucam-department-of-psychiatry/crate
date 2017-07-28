@@ -27,7 +27,8 @@ This isn't very elegant, as it uses a global timing record.
 from collections import OrderedDict
 import datetime
 import logging
-from cardinal_pythonlib.rnc_datetime import get_now_utc
+from crate_anon.common.datetimefunc import get_now_utc
+
 log = logging.getLogger(__name__)
 
 
