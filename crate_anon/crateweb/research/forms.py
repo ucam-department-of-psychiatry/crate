@@ -26,6 +26,10 @@ import datetime
 import logging
 from typing import Any, Optional
 
+from cardinal_pythonlib.django.forms import (
+    MultipleIntAreaField,
+    MultipleWordAreaField,
+)
 from django import forms
 from django.conf import settings
 from django.forms import (
@@ -37,10 +41,7 @@ from django.forms import (
     IntegerField,
     ModelForm,
 )
-from crate_anon.crateweb.extra.forms import (
-    MultipleIntAreaField,
-    MultipleWordAreaField,
-)
+
 from crate_anon.crateweb.research.models import Highlight, Query
 from crate_anon.common.sql import (
     SQL_OPS_MULTIPLE_VALUES,

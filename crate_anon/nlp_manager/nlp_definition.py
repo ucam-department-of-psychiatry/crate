@@ -33,13 +33,13 @@ import os
 import sys
 from typing import Dict, Iterable, List, Optional
 
-from cardinal_pythonlib.rnc_lang import chunks
+from cardinal_pythonlib.datetimefunc import get_now_utc_notz
+from cardinal_pythonlib.lists import chunks
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import MetaData
 
 from crate_anon.anonymise.dbholder import DatabaseHolder
-from crate_anon.common.datetimefunc import get_now_utc_notz
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.common.sql import TransactionSizeLimiter
 from crate_anon.nlp_manager.constants import (

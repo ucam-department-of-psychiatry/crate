@@ -30,9 +30,8 @@ import os
 import subprocess
 from typing import Dict, List, Tuple, Union
 
-from crate_anon.common.fileops import purge
-from crate_anon.common.logsupport import configure_logger_for_colour
-
+from cardinal_pythonlib.fileops import purge
+from cardinal_pythonlib.logs import configure_logger_for_colour
 
 log = logging.getLogger(__name__)
 

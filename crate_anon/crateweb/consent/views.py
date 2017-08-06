@@ -26,6 +26,13 @@ import logging
 import mimetypes
 from typing import Optional
 
+from cardinal_pythonlib.django.serve import (
+    serve_buffer,
+    serve_concatenated_pdf_from_disk,
+    serve_file,
+    serve_html_or_pdf,
+)
+from cardinal_pythonlib.nhs import generate_random_nhs_number
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
 from django.db import transaction
@@ -34,8 +41,7 @@ from django.http.response import HttpResponseBase
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, render
 
-from crate_anon.common.contenttypes import CONTENTTYPE_PDF
-from crate_anon.common.nhs import generate_random_nhs_number
+from crate_anon.common.contenttypes import ContentType
 from crate_anon.crateweb.consent.forms import (
     ClinicianResponseForm,
     SingleNhsNumberForm,
@@ -67,11 +73,6 @@ from crate_anon.crateweb.core.utils import (
     is_developer,
     is_superuser,
 )
-from crate_anon.crateweb.extra.pdf import (
-    serve_concatenated_pdf_from_disk,
-    serve_html_or_pdf,
-)
-from crate_anon.crateweb.extra.serve import serve_buffer, serve_file
 
 log = logging.getLogger(__name__)
 
@@ -150,7 +151,7 @@ def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
     if not study.study_details_pdf:
         raise Http404("No details")
     return serve_file(study.study_details_pdf.path,
-                      content_type=CONTENTTYPE_PDF,
+                      content_type=ContentType.PDF,
                       as_inline=True)
 study_details.login_required = False
 
@@ -161,7 +162,7 @@ def study_form(request: HttpRequest, study_id: str) -> HttpResponseBase:
     if not study.subject_form_template_pdf:
         raise Http404("No study form for clinicians to complete")
     return serve_file(study.subject_form_template_pdf.path,
-                      content_type=CONTENTTYPE_PDF,
+                      content_type=ContentType.PDF,
                       as_inline=True)
 study_form.login_required = False
 
@@ -240,7 +241,7 @@ def view_leaflet(request: HttpRequest, leaflet_name: str) -> HttpResponseBase:
     if not leaflet.pdf:
         raise Http404("Missing leaflet")
     return serve_file(leaflet.pdf.path,
-                      content_type=CONTENTTYPE_PDF,
+                      content_type=ContentType.PDF,
                       as_inline=True)
 view_leaflet.login_required = False
 
@@ -251,7 +252,7 @@ def view_letter(request: HttpRequest, letter_id: str) -> HttpResponseBase:
     if not letter.pdf:
         raise Http404("Missing letter")
     return serve_file(letter.pdf.path,
-                      content_type=CONTENTTYPE_PDF,
+                      content_type=ContentType.PDF,
                       as_inline=True)
 
 
@@ -450,7 +451,7 @@ def clinician_pack(request: HttpRequest,
     offered_filename = "clinician_pack_{}.pdf".format(clinician_response_id)
     return serve_buffer(pdf,
                         offered_filename=offered_filename,
-                        content_type=CONTENTTYPE_PDF,
+                        content_type=ContentType.PDF,
                         as_attachment=False,
                         as_inline=True)
 

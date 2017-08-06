@@ -22,12 +22,13 @@
 ===============================================================================
 """
 
+from cardinal_pythonlib.hash import HmacMD5Hasher
 from sqlalchemy.types import String
+
 from crate_anon.anonymise.constants import (
     DEFAULT_MAX_BYTES_BEFORE_COMMIT,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
 )
-from crate_anon.common.hash import HmacMD5Hasher
 from crate_anon.version import VERSION, VERSION_DATE
 
 DEFAULT_REPORT_EVERY_NLP = 500  # low values slow down processing

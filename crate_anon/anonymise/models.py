@@ -34,6 +34,7 @@ import logging
 import random
 from typing import TYPE_CHECKING
 
+from cardinal_pythonlib.sqlalchemy.orm_query import exists_orm
 from sqlalchemy import (
     Column,
     MetaData,
@@ -50,7 +51,6 @@ from crate_anon.anonymise.constants import (
     TABLE_KWARGS,
     TridType,
 )
-from crate_anon.common.sqla import exists_orm
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.scrub import PersonalizedScrubber

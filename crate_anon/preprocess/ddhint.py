@@ -23,14 +23,12 @@
 """
 
 import logging
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, Iterable, List, Union
 
+from cardinal_pythonlib.dicts import get_case_insensitive_dict_key
 from sqlalchemy import MetaData
 from sqlalchemy.engine import Engine
 
-from crate_anon.common.lang import (
-    get_case_insensitive_dict_key,
-)
 from crate_anon.common.sql import (
     add_indexes,
     drop_indexes,

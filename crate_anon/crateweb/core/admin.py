@@ -30,6 +30,12 @@
 import logging
 from typing import Any, Dict, Iterable, Tuple
 
+from cardinal_pythonlib.django.admin import (
+    admin_view_fk_link,
+    admin_view_reverse_fk_links,
+    disable_bool_icon,
+)
+from cardinal_pythonlib.stringfunc import replace_in_list
 from django import forms
 from django.conf import settings
 from django.contrib import admin
@@ -43,17 +49,14 @@ from django.http.request import HttpRequest
 from django.template.defaultfilters import yesno
 from django.template.loader import render_to_string
 from django.utils.translation import ugettext_lazy
+
 from crate_anon.crateweb.extra.admin import (
     AddOnlyModelAdmin,
-    admin_view_fk_link,
-    admin_view_reverse_fk_links,
     AllStaffReadOnlyModelAdmin,
     EditOnceOnlyModelAdmin,
     EditOnlyModelAdmin,
-    disable_bool_icon,
     ReadOnlyModelAdmin,
 )
-from crate_anon.common.stringfunc import replace_in_list
 from crate_anon.crateweb.userprofile.models import UserProfile
 from crate_anon.crateweb.consent.models import (
     CharityPaymentRecord,

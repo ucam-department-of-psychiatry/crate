@@ -29,6 +29,8 @@ import datetime
 import logging
 from typing import Any, Dict, Iterable, Generator, List, Optional, Union
 
+from cardinal_pythonlib.datetimefunc import coerce_to_datetime
+from cardinal_pythonlib.hash import GenericHasher
 from cardinal_pythonlib.rnc_db import (
     is_sqltype_date,
     is_sqltype_text_over_one_char,
@@ -46,8 +48,6 @@ from crate_anon.anonymise.anonregex import (
     get_string_regex_elements,
     get_uk_postcode_regex_elements,
 )
-from crate_anon.common.datetimefunc import coerce_to_datetime
-from crate_anon.common.hash import GenericHasher
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,
     reduce_to_alphanumeric,

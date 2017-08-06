@@ -24,12 +24,33 @@
 
 import argparse
 from collections import OrderedDict
-import datetime
 import functools
 import logging
 import re
 from typing import Any, Dict, Iterable, List, Tuple, Union
 
+from cardinal_pythonlib.json.serialize import (
+    METHOD_PROVIDES_INIT_KWARGS,
+    METHOD_STRIP_UNDERSCORE,
+    register_for_json,
+)
+from cardinal_pythonlib.lists import unique_list
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.reprfunc import mapped_repr_stripping_underscores
+from cardinal_pythonlib.sizeformatter import sizeof_fmt
+from cardinal_pythonlib.sql.literals import (
+    sql_date_literal,
+    sql_string_literal,
+)
+from cardinal_pythonlib.sql.sql_grammar import SqlGrammar, text_from_parsed
+from cardinal_pythonlib.sql.sql_grammar_factory import (
+    DIALECT_MYSQL,
+    make_grammar,
+    mysql_grammar,
+)
+from cardinal_pythonlib.sqlalchemy.core_query import count_star
+from cardinal_pythonlib.sqlalchemy.schema import column_creation_ddl
+from cardinal_pythonlib.timing import MultiTimerContext, timer
 from pyparsing import ParseResults
 from sqlalchemy import inspect
 from sqlalchemy.dialects.mssql.base import MS_2012_VERSION
@@ -38,26 +59,7 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Table
 
-from crate_anon.common.formatting import sizeof_fmt
-from crate_anon.common.jsonfunc import (
-    METHOD_PROVIDES_INIT_KWARGS,
-    METHOD_STRIP_UNDERSCORE,
-    register_for_json,
-)
-from crate_anon.common.lang import (
-    mapped_repr_stripping_underscores,
-    unique_list,
-)
-from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
-from crate_anon.common.timing import MultiTimerContext, timer
 from crate_anon.common.stringfunc import get_spec_match_regex
-from crate_anon.common.sql_grammar import SqlGrammar, text_from_parsed
-from crate_anon.common.sql_grammar_factory import (
-    DIALECT_MYSQL,
-    make_grammar,
-    mysql_grammar,
-)
-from crate_anon.common.sqla import column_creation_ddl, count_star
 
 log = logging.getLogger(__name__)
 
@@ -107,31 +109,6 @@ QB_STRING_TYPES = [QB_DATATYPE_STRING, QB_DATATYPE_STRING_FULLTEXT]
 
 COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
 # ... start, group(alphabetical), literal (, group(digit), literal ), end
-
-
-# =============================================================================
-# SQL elements: literals
-# =============================================================================
-
-def sql_string_literal(text: str) -> str:
-    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
-    # <character string literal>
-    return "'" + text.replace("'", "''") + "'"
-
-
-def sql_date_literal(dt: datetime.datetime) -> str:
-    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
-    # <date string>
-    return dt.strftime("'%Y-%m-%d'")
-
-
-def sql_datetime_literal(dt: datetime.datetime,
-                         subsecond: bool = False) -> str:
-    # ANSI SQL: http://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt
-    # <timestamp string>
-    # ... the subsecond part is non-ANSI
-    fmt = "'%Y-%m-%d %H:%M:%S{}'".format(".%f" if subsecond else "")
-    return dt.strftime(fmt)
 
 
 # def combine_db_schema_table(db: Optional[str],

@@ -33,10 +33,14 @@ import subprocess
 import sys
 from typing import Any, Dict, Generator, List, Tuple
 
-from cardinal_pythonlib.rnc_lang import chunks
+from cardinal_pythonlib.dicts import (
+    rename_keys_in_dict,
+    set_null_values_in_dict,
+)
+from cardinal_pythonlib.lists import chunks
+from cardinal_pythonlib.tsv import tsv_pairs_to_dict
 from sqlalchemy import Column, Index, Integer, Text
 
-from crate_anon.common.lang import rename_keys_in_dict, set_null_values_in_dict
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     MAX_SQL_FIELD_LEN,
@@ -44,7 +48,6 @@ from crate_anon.nlp_manager.constants import (
 )
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
 from crate_anon.nlp_manager.output_user_config import OutputUserConfig
-from crate_anon.nlp_manager.text_handling import tsv_pairs_to_dict
 
 log = logging.getLogger(__name__)
 

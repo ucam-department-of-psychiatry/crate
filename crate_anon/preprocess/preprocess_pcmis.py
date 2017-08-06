@@ -158,6 +158,15 @@ import argparse
 import logging
 from typing import Any, List
 
+from cardinal_pythonlib.debugging import pdb_run
+from cardinal_pythonlib.logs import configure_logger_for_colour
+from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
+from cardinal_pythonlib.sqlalchemy.schema import (
+    get_effective_int_pk_col,
+    get_pk_colnames,
+    hack_in_mssql_xml_type,
+    make_bigint_autoincrement_column,
+)
 from sqlalchemy import (
     create_engine,
     MetaData,
@@ -166,8 +175,6 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.schema import Table
 
 from crate_anon.anonymise.constants import CHARSET
-from crate_anon.common.debugfunc import pdb_run
-from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.sql import (
     add_columns,
     add_indexes,
@@ -179,13 +186,6 @@ from crate_anon.common.sql import (
     set_print_not_execute,
     ViewMaker,
 )
-from crate_anon.common.sqla import (
-    get_effective_int_pk_col,
-    get_pk_colnames,
-    hack_in_mssql_xml_type,
-    make_bigint_autoincrement_column,
-)
-from crate_anon.common.sql_grammar_factory import make_grammar
 from crate_anon.preprocess.rio_constants import (
     DEFAULT_GEOG_COLS,
     ONSPD_TABLE_POSTCODE,

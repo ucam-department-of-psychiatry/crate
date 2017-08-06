@@ -34,6 +34,12 @@ import random
 import sys
 from typing import Any, Dict, Iterable, Generator, List, Tuple
 
+from cardinal_pythonlib.datetimefunc import get_now_utc
+from cardinal_pythonlib.sqlalchemy.core_query import count_star, exists_plain
+from cardinal_pythonlib.sqlalchemy.schema import (
+    add_index,
+    get_column_names,
+)
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import Column, Index, MetaData, Table
 from sqlalchemy.sql import column, func, or_, select, table
@@ -55,16 +61,9 @@ from crate_anon.anonymise.models import (
 )
 from crate_anon.anonymise.patient import Patient
 from crate_anon.anonymise.ddr import DataDictionaryRow
-from crate_anon.common.datetimefunc import get_now_utc
 from crate_anon.common.formatting import print_record_counts
 from crate_anon.common.parallel import is_my_job_by_hash, is_my_job_by_int
 from crate_anon.common.sql import matches_tabledef
-from crate_anon.common.sqla import (
-    add_index,
-    count_star,
-    exists_plain,
-    get_column_names,
-)
 
 log = logging.getLogger(__name__)
 

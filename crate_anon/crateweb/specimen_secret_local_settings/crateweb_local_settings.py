@@ -285,7 +285,7 @@ MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 Mb
 #   default backend:
 # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 #   bugfix for servers that only support TLSv1:
-# EMAIL_BACKEND = 'crate_anon.crateweb.core.mail.SmtpEmailBackendTls1'
+# EMAIL_BACKEND = 'cardinal_pythonlib.django.mail.SmtpEmailBackendTls1'
 
 EMAIL_HOST = 'smtp.somewhere.nhs.uk'
 EMAIL_PORT = 587  # usually 25 (plain SMTP) or 587 (STARTTLS)

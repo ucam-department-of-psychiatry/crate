@@ -55,10 +55,11 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
+from cardinal_pythonlib.fileops import mkdir_p
+from cardinal_pythonlib.logs import configure_logger_for_colour
+
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.patient import Patient
-from crate_anon.common.fileops import mkdir_p
-from crate_anon.common.logsupport import configure_logger_for_colour
 
 log = logging.getLogger(__name__)
 

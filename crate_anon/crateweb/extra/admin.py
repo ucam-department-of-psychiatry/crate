@@ -23,17 +23,14 @@
 """
 
 import logging
-from typing import Any, Callable, Dict, List, Type
+from typing import Any, Dict, List, Type
 
-from django.contrib.admin import AdminSite, ModelAdmin
+from django.contrib.admin import ModelAdmin
 from django.contrib.admin.views.main import ChangeList
-from django.core.urlresolvers import reverse
-from django.db.models import Model
 from django.forms import ModelForm
 from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.utils.encoding import force_text
-from django.utils.html import escape
 from django.utils.translation import ugettext
 
 log = logging.getLogger(__name__)
@@ -212,105 +209,3 @@ class AllStaffReadOnlyModelAdmin(ReadOnlyModelAdmin):
     def has_change_permission(self, request: HttpRequest, obj=None) -> bool:
         return request.user.is_staff
 
-
-# =============================================================================
-# Links in model admin
-# =============================================================================
-
-# noinspection PyProtectedMember
-def admin_view_url(admin_site: AdminSite, 
-                   obj, 
-                   view_type: str = "change", 
-                   current_app: str = None) -> str:
-    app_name = obj._meta.app_label.lower()
-    model_name = obj._meta.object_name.lower()
-    pk = obj.pk
-    viewname = "admin:{}_{}_{}".format(app_name, model_name, view_type)
-    if current_app is None:
-        current_app = admin_site.name
-    url = reverse(viewname, args=[pk], current_app=current_app)
-    return url
-
-
-# noinspection PyProtectedMember
-def admin_view_fk_link(modeladmin: ModelAdmin,
-                       obj,
-                       fkfield: str,
-                       missing: str = "(None)",
-                       use_str: bool = True,
-                       view_type: str = "change",
-                       current_app: str = None) -> str:
-    if not hasattr(obj, fkfield):
-        return missing
-    linked_obj = getattr(obj, fkfield)
-    app_name = linked_obj._meta.app_label.lower()
-    model_name = linked_obj._meta.object_name.lower()
-    viewname = "admin:{}_{}_{}".format(app_name, model_name, view_type)
-    # https://docs.djangoproject.com/en/dev/ref/contrib/admin/#reversing-admin-urls  # noqa
-    if current_app is None:
-        current_app = modeladmin.admin_site.name
-        # ... plus a bit of home-grown magic; see Django source
-    url = reverse(viewname, args=[linked_obj.pk], current_app=current_app)
-    if use_str:
-        label = escape(str(linked_obj))
-    else:
-        label = "{} {}".format(escape(linked_obj._meta.object_name),
-                               linked_obj.pk)
-    return '<a href="{}">{}</a>'.format(url, label)
-
-
-# noinspection PyProtectedMember
-def admin_view_reverse_fk_links(modeladmin: ModelAdmin,
-                                obj,
-                                reverse_fk_set_field: str,
-                                missing: str = "(None)",
-                                use_str: bool = True,
-                                separator: str = "<br>",
-                                view_type: str = "change",
-                                current_app: str = None) -> str:
-    if not hasattr(obj, reverse_fk_set_field):
-        return missing
-    linked_objs = getattr(obj, reverse_fk_set_field).all()
-    if not linked_objs:
-        return missing
-    first = linked_objs[0]
-    app_name = first._meta.app_label.lower()
-    model_name = first._meta.object_name.lower()
-    viewname = "admin:{}_{}_{}".format(app_name, model_name, view_type)
-    if current_app is None:
-        current_app = modeladmin.admin_site.name
-    links = []
-    for linked_obj in linked_objs:
-        # log.debug("linked_obj: {}".format(linked_obj))
-        url = reverse(viewname, args=[linked_obj.pk], current_app=current_app)
-
-        if use_str:
-            label = escape(str(linked_obj))
-        else:
-            label = "{} {}".format(escape(linked_obj._meta.object_name),
-                                   linked_obj.pk)
-        links.append('<a href="{}">{}</a>'.format(url, label))
-    # log.debug("links: {}".format(links))
-    return separator.join(links)
-
-
-# =============================================================================
-# Disable boolean icons for a ModelAdmin field
-# =============================================================================
-# http://stackoverflow.com/questions/13990846/disable-on-off-icon-for-boolean-field-in-django  # noqa
-# ... extended to use closures
-
-def disable_bool_icon(fieldname: str, model: Model) -> Callable[[Any], bool]:
-    # noinspection PyUnusedLocal
-    def func(self, obj):
-        return getattr(obj, fieldname)
-    func.boolean = False
-    func.admin_order_field = fieldname
-    # func.short_description = \
-    #     model._meta.get_field_by_name(fieldname)[0].verbose_name
-    # get_field_by_name() deprecated in Django 1.9 and will go in 1.10
-    # https://docs.djangoproject.com/en/1.8/ref/models/meta/
-    # noinspection PyProtectedMember
-    func.short_description = \
-        model._meta.get_field(fieldname).verbose_name
-    return func

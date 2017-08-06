@@ -23,14 +23,16 @@
 """
 
 import logging
-from django import forms
-from django.conf import settings
-from django.db.models import Q, QuerySet
-from crate_anon.crateweb.extra.forms import (
+
+from cardinal_pythonlib.django.forms import (
     MultipleNhsNumberAreaField,
     MultipleWordAreaField,
     SingleNhsNumberField,
 )
+from django import forms
+from django.conf import settings
+from django.db.models import Q, QuerySet
+
 from crate_anon.crateweb.consent.models import (
     ClinicianResponse,
     Study,

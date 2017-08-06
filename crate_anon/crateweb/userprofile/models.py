@@ -24,6 +24,7 @@
 
 from typing import Any, List, Optional, Type
 
+from cardinal_pythonlib.django.fields.jsonclassfield import JsonClassField
 from django.conf import settings
 from django.db import models
 from django.dispatch import receiver
@@ -34,7 +35,6 @@ from crate_anon.crateweb.core.constants import (
     LEN_PHONE,
     LEN_TITLE,
 )
-from crate_anon.common.jsonfunc import JsonClassField
 from crate_anon.crateweb.extra.salutation import (
     forename_surname,
     salutation,

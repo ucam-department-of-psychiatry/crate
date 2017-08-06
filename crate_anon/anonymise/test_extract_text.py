@@ -28,7 +28,7 @@ Anonymise multiple SQL-based databases using a data dictionary.
 import argparse
 import os
 
-from cardinal_pythonlib.rnc_extract_text import document_to_text
+from cardinal_pythonlib.extract_text import document_to_text
 
 from crate_anon.common.stringfunc import uprint
 

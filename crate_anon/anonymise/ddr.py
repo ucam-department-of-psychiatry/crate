@@ -30,15 +30,24 @@ import ast
 import logging
 from typing import Any, List, Dict, Iterable, TYPE_CHECKING, Union
 
+from cardinal_pythonlib.convert import convert_to_int
+from cardinal_pythonlib.lists import count_bool
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
-    is_sqltype_integer,
     is_sqltype_valid,
 )
-from cardinal_pythonlib.rnc_lang import (
-    convert_to_int,
-    count_bool,
+from cardinal_pythonlib.sqlalchemy.schema import (
+    convert_sqla_type_for_dialect,
+    does_sqlatype_merit_fulltext_index,
+    does_sqlatype_require_index_len,
+    giant_text_sqltype,
+    get_sqla_coltype_from_dialect_str,
+    is_sqlatype_binary,
+    is_sqlatype_date,
+    is_sqlatype_numeric,
+    is_sqlatype_text_of_length_at_least,
+    is_sqlatype_text_over_one_char,
 )
 from sqlalchemy import Column
 from sqlalchemy.sql.sqltypes import TypeEngine
@@ -54,18 +63,6 @@ from crate_anon.anonymise.constants import (
     SCRUBMETHOD,
     SCRUBSRC,
     SRCFLAG,
-)
-from crate_anon.common.sqla import (
-    convert_sqla_type_for_dialect,
-    does_sqlatype_merit_fulltext_index,
-    does_sqlatype_require_index_len,
-    giant_text_sqltype,
-    get_sqla_coltype_from_dialect_str,
-    is_sqlatype_binary,
-    is_sqlatype_date,
-    is_sqlatype_numeric,
-    is_sqlatype_text_of_length_at_least,
-    is_sqlatype_text_over_one_char,
 )
 import crate_anon.common.sql
 

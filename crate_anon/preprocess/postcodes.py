@@ -54,6 +54,10 @@ import sys
 # import textwrap
 from typing import Any, Dict, Generator, Iterable, List, TextIO
 
+from cardinal_pythonlib.dicts import rename_key
+from cardinal_pythonlib.extract_text import docx_process_simple_text
+from cardinal_pythonlib.fileops import find_first
+from cardinal_pythonlib.logs import configure_logger_for_colour
 import openpyxl
 from openpyxl.cell.cell import Cell
 import prettytable
@@ -71,11 +75,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 import xlrd
 
-from cardinal_pythonlib.rnc_extract_text import docx_process_simple_text
 from crate_anon.anonymise.constants import CHARSET, TABLE_KWARGS
-from crate_anon.common.fileops import find_first
-from crate_anon.common.lang import rename_kwarg
-from crate_anon.common.logsupport import configure_logger_for_colour
 
 log = logging.getLogger(__name__)
 metadata = MetaData()
@@ -411,9 +411,9 @@ class OAClassification(Base):
     subgroup_code = Column(String(3), primary_key=True)
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'Supergroup', 'supergroup_desc')
-        rename_kwarg(kwargs, 'Group', 'group_desc')
-        rename_kwarg(kwargs, 'Subgroup', 'subgroup_desc')
+        rename_key(kwargs, 'Supergroup', 'supergroup_desc')
+        rename_key(kwargs, 'Group', 'group_desc')
+        rename_key(kwargs, 'Subgroup', 'subgroup_desc')
         kwargs['supergroup_code'] = kwargs['supergroup_desc'][0:1]
         kwargs['group_code'] = kwargs['group_desc'][0:2]
         kwargs['subgroup_code'] = kwargs['subgroup_desc'][0:3]
@@ -428,8 +428,8 @@ class BUA(Base):
     bua_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'BUA13CD', 'bua_code')
-        rename_kwarg(kwargs, 'BUA13NM', 'bua_name')
+        rename_key(kwargs, 'BUA13CD', 'bua_code')
+        rename_key(kwargs, 'BUA13NM', 'bua_name')
         super().__init__(**kwargs)
 
 
@@ -441,8 +441,8 @@ class BUASD(Base):
     buasd_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'BUASD13CD', 'buasd_code')
-        rename_kwarg(kwargs, 'BUASD13NM', 'buasd_name')
+        rename_key(kwargs, 'BUASD13CD', 'buasd_code')
+        rename_key(kwargs, 'BUASD13NM', 'buasd_name')
         super().__init__(**kwargs)
 
 
@@ -454,8 +454,8 @@ class CASWard(Base):
     cas_ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'WDCAS03CD', 'cas_ward_code')
-        rename_kwarg(kwargs, 'WDCAS03NM', 'cas_ward_name')
+        rename_key(kwargs, 'WDCAS03CD', 'cas_ward_code')
+        rename_key(kwargs, 'WDCAS03NM', 'cas_ward_name')
         super().__init__(**kwargs)
 
 
@@ -468,9 +468,9 @@ class CCG(Base):
     ccg_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'CCG15CD', 'ccg_ons_code')
-        rename_kwarg(kwargs, 'CCG15CDH', 'ccg_ccg_code')
-        rename_kwarg(kwargs, 'CCG15NM', 'ccg_name')
+        rename_key(kwargs, 'CCG15CD', 'ccg_ons_code')
+        rename_key(kwargs, 'CCG15CDH', 'ccg_ccg_code')
+        rename_key(kwargs, 'CCG15NM', 'ccg_name')
         super().__init__(**kwargs)
 
 
@@ -482,8 +482,8 @@ class CHP(Base):
     chp_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'CHP12CD', 'chp_code')
-        rename_kwarg(kwargs, 'CHP12NM', 'chp_name')
+        rename_key(kwargs, 'CHP12CD', 'chp_code')
+        rename_key(kwargs, 'CHP12NM', 'chp_name')
         super().__init__(**kwargs)
 
 
@@ -496,9 +496,9 @@ class Country(Base):
     country_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'CTRY12CD', 'country_code')
-        rename_kwarg(kwargs, 'CTRY12NM', 'country_name')
-        rename_kwarg(kwargs, 'CTRY12NMW', 'country_name_welsh')
+        rename_key(kwargs, 'CTRY12CD', 'country_code')
+        rename_key(kwargs, 'CTRY12NM', 'country_name')
+        rename_key(kwargs, 'CTRY12NMW', 'country_name_welsh')
         super().__init__(**kwargs)
 
 
@@ -539,8 +539,8 @@ class County2010(Base):
     county_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'CTY10CD', 'county_code')
-        rename_kwarg(kwargs, 'CTY10NM', 'county_name')
+        rename_key(kwargs, 'CTY10CD', 'county_code')
+        rename_key(kwargs, 'CTY10NM', 'county_name')
         super().__init__(**kwargs)
 
 
@@ -552,8 +552,8 @@ class Datazone(Base):
     dz_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'DZ11CD', 'dz_code')
-        rename_kwarg(kwargs, 'DZ11NM', 'dz_name')
+        rename_key(kwargs, 'DZ11CD', 'dz_code')
+        rename_key(kwargs, 'DZ11NM', 'dz_name')
         super().__init__(**kwargs)
 
 
@@ -565,8 +565,8 @@ class DCELLS(Base):
     dcells_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'DCELL10CD', 'dcells_code')
-        rename_kwarg(kwargs, 'DCELL10NM', 'dcells_name')
+        rename_key(kwargs, 'DCELL10CD', 'dcells_code')
+        rename_key(kwargs, 'DCELL10NM', 'dcells_name')
         super().__init__(**kwargs)
         
 
@@ -593,8 +593,8 @@ class EER(Base):
     eer_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'EER10CD', 'eer_code')
-        rename_kwarg(kwargs, 'EER10NM', 'eer_name')
+        rename_key(kwargs, 'EER10CD', 'eer_code')
+        rename_key(kwargs, 'EER10NM', 'eer_name')
         super().__init__(**kwargs)
 
 
@@ -607,9 +607,9 @@ class EnterpriseRegion(Base):
     er_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'ER10CD', 'er_code')
-        rename_kwarg(kwargs, 'ER10CDO', 'er_code_old')
-        rename_kwarg(kwargs, 'ER10NM', 'er_name')
+        rename_key(kwargs, 'ER10CD', 'er_code')
+        rename_key(kwargs, 'ER10CDO', 'er_code_old')
+        rename_key(kwargs, 'ER10NM', 'er_name')
         super().__init__(**kwargs)
 
 
@@ -622,8 +622,8 @@ class HealthAuthority(Base):
     ha_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'HA01CD', 'ha_code')
-        rename_kwarg(kwargs, 'HA01NM', 'ha_name')
+        rename_key(kwargs, 'HA01CD', 'ha_code')
+        rename_key(kwargs, 'HA01NM', 'ha_name')
         super().__init__(**kwargs)
 
 
@@ -635,8 +635,8 @@ class HealthBoardNI(Base):
     hb_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'HA03CD', 'hb_code')
-        rename_kwarg(kwargs, 'HA03NM', 'hb_name')
+        rename_key(kwargs, 'HA03CD', 'hb_code')
+        rename_key(kwargs, 'HA03NM', 'hb_name')
         super().__init__(**kwargs)
 
 
@@ -648,8 +648,8 @@ class HealthBoardSC(Base):
     hb_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'HB14CD', 'hb_code')
-        rename_kwarg(kwargs, 'HB14NM', 'hb_name')
+        rename_key(kwargs, 'HB14CD', 'hb_code')
+        rename_key(kwargs, 'HB14NM', 'hb_name')
         super().__init__(**kwargs)
 
 
@@ -662,9 +662,9 @@ class HSCBNI(Base):
     hscb_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'HSCB10CDO', 'hscb_code')
-        rename_kwarg(kwargs, 'HSCB10CD', 'hscb_code_2')
-        rename_kwarg(kwargs, 'HSCB10NM', 'hscb_name')
+        rename_key(kwargs, 'HSCB10CDO', 'hscb_code')
+        rename_key(kwargs, 'HSCB10CD', 'hscb_code_2')
+        rename_key(kwargs, 'HSCB10NM', 'hscb_name')
         super().__init__(**kwargs)
 
 
@@ -677,9 +677,9 @@ class IMDLookupEN(Base):
     imd_rank = Column(Integer)
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LSOA11CD', 'lsoa_code')
-        rename_kwarg(kwargs, 'LSOA11NM', 'lsoa_name')
-        rename_kwarg(kwargs, 'IMD15', 'imd_rank')
+        rename_key(kwargs, 'LSOA11CD', 'lsoa_code')
+        rename_key(kwargs, 'LSOA11NM', 'lsoa_name')
+        rename_key(kwargs, 'IMD15', 'imd_rank')
         convert_int(kwargs, 'imd_rank')
         super().__init__(**kwargs)
 
@@ -692,8 +692,8 @@ class IMDLookupNI(Base):
     imd_rank = Column(Integer)
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'OA01CD', 'oa_code')
-        rename_kwarg(kwargs, 'IMD10', 'imd_rank')
+        rename_key(kwargs, 'OA01CD', 'oa_code')
+        rename_key(kwargs, 'IMD10', 'imd_rank')
         convert_int(kwargs, 'imd_rank')
         super().__init__(**kwargs)
 
@@ -706,8 +706,8 @@ class IMDLookupSC(Base):
     imd_rank = Column(Integer)
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'DZ01CD', 'dz_code')
-        rename_kwarg(kwargs, 'IMD12', 'imd_rank')
+        rename_key(kwargs, 'DZ01CD', 'dz_code')
+        rename_key(kwargs, 'IMD12', 'imd_rank')
         convert_int(kwargs, 'imd_rank')
         super().__init__(**kwargs)
 
@@ -721,9 +721,9 @@ class IMDLookupWA(Base):
     imd_rank = Column(Integer)
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LSOA11CD', 'lsoa_code')
-        rename_kwarg(kwargs, 'LSOA11NM', 'lsoa_name')
-        rename_kwarg(kwargs, 'IMD14', 'imd_rank')
+        rename_key(kwargs, 'LSOA11CD', 'lsoa_code')
+        rename_key(kwargs, 'LSOA11NM', 'lsoa_name')
+        rename_key(kwargs, 'IMD14', 'imd_rank')
         convert_int(kwargs, 'imd_rank')
         super().__init__(**kwargs)
 
@@ -737,8 +737,8 @@ class IZ2005(Base):
     iz_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'IZ05CD', 'iz_code')
-        rename_kwarg(kwargs, 'IZ05NM', 'iz_name')
+        rename_key(kwargs, 'IZ05CD', 'iz_code')
+        rename_key(kwargs, 'IZ05NM', 'iz_name')
         super().__init__(**kwargs)
 
 
@@ -750,8 +750,8 @@ class IZ2011(Base):
     iz_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'IZ11CD', 'iz_code')
-        rename_kwarg(kwargs, 'IZ11NM', 'iz_name')
+        rename_key(kwargs, 'IZ11CD', 'iz_code')
+        rename_key(kwargs, 'IZ11NM', 'iz_name')
         super().__init__(**kwargs)
 
 
@@ -771,16 +771,16 @@ class LAU(Base):
     nuts1_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LAU215CD', 'lau2_code')
-        rename_kwarg(kwargs, 'LAU215NM', 'lau2_name')
-        rename_kwarg(kwargs, 'LAU115CD', 'lau1_code')
-        rename_kwarg(kwargs, 'LAU115NM', 'lau1_name')
-        rename_kwarg(kwargs, 'NUTS315CD', 'nuts3_code')
-        rename_kwarg(kwargs, 'NUTS315NM', 'nuts3_name')
-        rename_kwarg(kwargs, 'NUTS215CD', 'nuts2_code')
-        rename_kwarg(kwargs, 'NUTS215NM', 'nuts2_name')
-        rename_kwarg(kwargs, 'NUTS115CD', 'nuts1_code')
-        rename_kwarg(kwargs, 'NUTS115NM', 'nuts1_name')
+        rename_key(kwargs, 'LAU215CD', 'lau2_code')
+        rename_key(kwargs, 'LAU215NM', 'lau2_name')
+        rename_key(kwargs, 'LAU115CD', 'lau1_code')
+        rename_key(kwargs, 'LAU115NM', 'lau1_name')
+        rename_key(kwargs, 'NUTS315CD', 'nuts3_code')
+        rename_key(kwargs, 'NUTS315NM', 'nuts3_name')
+        rename_key(kwargs, 'NUTS215CD', 'nuts2_code')
+        rename_key(kwargs, 'NUTS215NM', 'nuts2_name')
+        rename_key(kwargs, 'NUTS115CD', 'nuts1_code')
+        rename_key(kwargs, 'NUTS115NM', 'nuts1_name')
         super().__init__(**kwargs)
 
 
@@ -792,8 +792,8 @@ class LAD(Base):
     lad_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LAD16CD', 'lad_code')
-        rename_kwarg(kwargs, 'LAD16NM', 'lad_name')
+        rename_key(kwargs, 'LAD16CD', 'lad_code')
+        rename_key(kwargs, 'LAD16NM', 'lad_name')
         super().__init__(**kwargs)
 
 
@@ -806,9 +806,9 @@ class LCG(Base):
     lcg_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LCG10CD', 'lcg_code')
-        rename_kwarg(kwargs, 'LCG10CDO', 'lcg_code_old')
-        rename_kwarg(kwargs, 'LCG10NM', 'lcg_name')
+        rename_key(kwargs, 'LCG10CD', 'lcg_code')
+        rename_key(kwargs, 'LCG10CDO', 'lcg_code_old')
+        rename_key(kwargs, 'LCG10NM', 'lcg_name')
         super().__init__(**kwargs)
 
 
@@ -821,8 +821,8 @@ class LEA(Base):
     lea_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'EDUC09CD', 'lea_code')
-        rename_kwarg(kwargs, 'EDUC09NM', 'lea_name')
+        rename_key(kwargs, 'EDUC09CD', 'lea_code')
+        rename_key(kwargs, 'EDUC09NM', 'lea_name')
         super().__init__(**kwargs)
 
 
@@ -835,8 +835,8 @@ class LEP(Base):
     lep1_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LEP13CD1', 'lep1_code')
-        rename_kwarg(kwargs, 'LEP13NM1', 'lep1_name')
+        rename_key(kwargs, 'LEP13CD1', 'lep1_code')
+        rename_key(kwargs, 'LEP13NM1', 'lep1_name')
         super().__init__(**kwargs)
 
 
@@ -850,9 +850,9 @@ class LHB2014(Base):
     lhb_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LHB14CD', 'lhb_code')
-        rename_kwarg(kwargs, 'LHB14NM', 'lhb_name')
-        rename_kwarg(kwargs, 'LHB14NMW', 'lhb_name_welsh')
+        rename_key(kwargs, 'LHB14CD', 'lhb_code')
+        rename_key(kwargs, 'LHB14NM', 'lhb_name')
+        rename_key(kwargs, 'LHB14NMW', 'lhb_name_welsh')
         super().__init__(**kwargs)
 
 
@@ -864,8 +864,8 @@ class LHB2006(Base):
     lhb_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LHB06CD', 'lhb_code')
-        rename_kwarg(kwargs, 'LHB06NM', 'lhb_name')
+        rename_key(kwargs, 'LHB06CD', 'lhb_code')
+        rename_key(kwargs, 'LHB06NM', 'lhb_name')
         super().__init__(**kwargs)
 
 
@@ -877,8 +877,8 @@ class LLSC(Base):
     llsc_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LLSC10CD', 'llsc_code')
-        rename_kwarg(kwargs, 'LLSC10NM', 'llsc_name')
+        rename_key(kwargs, 'LLSC10CD', 'llsc_code')
+        rename_key(kwargs, 'LLSC10NM', 'llsc_name')
         super().__init__(**kwargs)
 
 
@@ -890,8 +890,8 @@ class LSOAEW2004(Base):
     lsoa_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LSOA04CD', 'lsoa_code')
-        rename_kwarg(kwargs, 'LSOA04NM', 'lsoa_name')
+        rename_key(kwargs, 'LSOA04CD', 'lsoa_code')
+        rename_key(kwargs, 'LSOA04NM', 'lsoa_name')
         super().__init__(**kwargs)
 
 
@@ -903,8 +903,8 @@ class LSOANI2005(Base):
     lsoa_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LSOAN05CD', 'lsoa_code')
-        rename_kwarg(kwargs, 'LSOAN05NM', 'lsoa_name')
+        rename_key(kwargs, 'LSOAN05CD', 'lsoa_code')
+        rename_key(kwargs, 'LSOAN05NM', 'lsoa_name')
         super().__init__(**kwargs)
 
 
@@ -916,8 +916,8 @@ class LSOAEW2011(Base):
     lsoa_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LSOA11CD', 'lsoa_code')
-        rename_kwarg(kwargs, 'LSOA11NM', 'lsoa_name')
+        rename_key(kwargs, 'LSOA11CD', 'lsoa_code')
+        rename_key(kwargs, 'LSOA11NM', 'lsoa_name')
         super().__init__(**kwargs)
 
 
@@ -929,8 +929,8 @@ class MSOAEW2004(Base):
     msoa_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'MSOA04CD', 'msoa_code')
-        rename_kwarg(kwargs, 'MSOA04NM', 'msoa_name')
+        rename_key(kwargs, 'MSOA04CD', 'msoa_code')
+        rename_key(kwargs, 'MSOA04NM', 'msoa_name')
         super().__init__(**kwargs)
 
 
@@ -942,8 +942,8 @@ class MSOAEW2011(Base):
     msoa_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'MSOA11CD', 'msoa_code')
-        rename_kwarg(kwargs, 'MSOA11NM', 'msoa_name')
+        rename_key(kwargs, 'MSOA11CD', 'msoa_code')
+        rename_key(kwargs, 'MSOA11NM', 'msoa_name')
         super().__init__(**kwargs)
 
 
@@ -955,8 +955,8 @@ class NationalPark(Base):
     park_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'NPARK10CD', 'park_code')
-        rename_kwarg(kwargs, 'NPARK10NM', 'park_name')
+        rename_key(kwargs, 'NPARK10CD', 'park_code')
+        rename_key(kwargs, 'NPARK10NM', 'park_name')
         super().__init__(**kwargs)
 
 
@@ -969,9 +969,9 @@ class PanSHA(Base):
     psha_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'PSHA10CD', 'psha_code')
-        rename_kwarg(kwargs, 'PSHA10CDO', 'psha_code_old')
-        rename_kwarg(kwargs, 'PSHA10NM', 'psha_name')
+        rename_key(kwargs, 'PSHA10CD', 'psha_code')
+        rename_key(kwargs, 'PSHA10CDO', 'psha_code_old')
+        rename_key(kwargs, 'PSHA10NM', 'psha_name')
         super().__init__(**kwargs)
 
 
@@ -985,10 +985,10 @@ class Parish(Base):
     district_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'PAR14CD', 'parish_code')
-        rename_kwarg(kwargs, 'PAR14NM', 'parish_name')
-        rename_kwarg(kwargs, 'LAD14CD', 'district_code')
-        rename_kwarg(kwargs, 'LAD14NM', 'district_name')
+        rename_key(kwargs, 'PAR14CD', 'parish_code')
+        rename_key(kwargs, 'PAR14NM', 'parish_name')
+        rename_key(kwargs, 'LAD14CD', 'district_code')
+        rename_key(kwargs, 'LAD14NM', 'district_name')
         super().__init__(**kwargs)
 
 
@@ -1001,9 +1001,9 @@ class PCT2011(Base):
     pct_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'PCO11CD', 'pct_code')
-        rename_kwarg(kwargs, 'PCO11CDO', 'pct_code_old')
-        rename_kwarg(kwargs, 'PCO11NM', 'pct_name')
+        rename_key(kwargs, 'PCO11CD', 'pct_code')
+        rename_key(kwargs, 'PCO11CDO', 'pct_code_old')
+        rename_key(kwargs, 'PCO11NM', 'pct_name')
         super().__init__(**kwargs)
 
 
@@ -1015,8 +1015,8 @@ class PCT2005(Base):
     pct_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'PCO05CD', 'pct_code')
-        rename_kwarg(kwargs, 'PCO05NM', 'pct_name')
+        rename_key(kwargs, 'PCO05CD', 'pct_code')
+        rename_key(kwargs, 'PCO05NM', 'pct_name')
         super().__init__(**kwargs)
 
 
@@ -1028,8 +1028,8 @@ class PFA(Base):
     pfa_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'PFA15CD', 'pfa_code')
-        rename_kwarg(kwargs, 'PFA15NM', 'pfa_name')
+        rename_key(kwargs, 'PFA15CD', 'pfa_code')
+        rename_key(kwargs, 'PFA15NM', 'pfa_name')
         super().__init__(**kwargs)
 
 
@@ -1042,9 +1042,9 @@ class GOR(Base):
     gor_name_welsh = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'GOR10CD', 'gor_code')
-        rename_kwarg(kwargs, 'GOR10NM', 'gor_name')
-        rename_kwarg(kwargs, 'GOR10NMW', 'gor_name')
+        rename_key(kwargs, 'GOR10CD', 'gor_code')
+        rename_key(kwargs, 'GOR10NM', 'gor_name')
+        rename_key(kwargs, 'GOR10NMW', 'gor_name')
         super().__init__(**kwargs)
 
 
@@ -1056,8 +1056,8 @@ class SHA2004(Base):
     sha_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'SHA04CD', 'sha_code')
-        rename_kwarg(kwargs, 'SHA04NM', 'sha_name')
+        rename_key(kwargs, 'SHA04CD', 'sha_code')
+        rename_key(kwargs, 'SHA04NM', 'sha_name')
         super().__init__(**kwargs)
 
 
@@ -1069,8 +1069,8 @@ class SHA2010(Base):
     sha_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'SHA10CD', 'sha_code')
-        rename_kwarg(kwargs, 'SHA10NM', 'sha_name')
+        rename_key(kwargs, 'SHA10CD', 'sha_code')
+        rename_key(kwargs, 'SHA10NM', 'sha_name')
         super().__init__(**kwargs)
 
 
@@ -1082,8 +1082,8 @@ class SSR(Base):
     ssr_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'SSR95CD', 'ssr_code')
-        rename_kwarg(kwargs, 'SSR95NM', 'ssr_name')
+        rename_key(kwargs, 'SSR95CD', 'ssr_code')
+        rename_key(kwargs, 'SSR95NM', 'ssr_name')
         convert_int(kwargs, 'ssr_code')
         super().__init__(**kwargs)
 
@@ -1098,10 +1098,10 @@ class Ward1991(Base):
     ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'WD91CD', 'ward_code_ons')
-        rename_kwarg(kwargs, 'WD91CDC', 'ward_code_census')
-        rename_kwarg(kwargs, 'WD91CDO', 'ward_code_ogss')
-        rename_kwarg(kwargs, 'WD91NM', 'ward_name')
+        rename_key(kwargs, 'WD91CD', 'ward_code_ons')
+        rename_key(kwargs, 'WD91CDC', 'ward_code_census')
+        rename_key(kwargs, 'WD91CDO', 'ward_code_ogss')
+        rename_key(kwargs, 'WD91NM', 'ward_name')
         super().__init__(**kwargs)
 
 
@@ -1113,8 +1113,8 @@ class Ward1998(Base):
     ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'WD98CD', 'ward_code')
-        rename_kwarg(kwargs, 'WD98NM', 'ward_name')
+        rename_key(kwargs, 'WD98CD', 'ward_code')
+        rename_key(kwargs, 'WD98NM', 'ward_name')
         super().__init__(**kwargs)
 
 
@@ -1126,8 +1126,8 @@ class Ward2005(Base):
     ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'WDSTL05CD', 'ward_code')
-        rename_kwarg(kwargs, 'WDSTL05NM', 'ward_name')
+        rename_key(kwargs, 'WDSTL05CD', 'ward_code')
+        rename_key(kwargs, 'WDSTL05NM', 'ward_name')
         super().__init__(**kwargs)
 
 
@@ -1139,8 +1139,8 @@ class Ward2016(Base):
     ward_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'WD16CD', 'ward_code')
-        rename_kwarg(kwargs, 'WD16NM', 'ward_name')
+        rename_key(kwargs, 'WD16CD', 'ward_code')
+        rename_key(kwargs, 'WD16NM', 'ward_name')
         super().__init__(**kwargs)
 
 
@@ -1152,8 +1152,8 @@ class TTWA(Base):
     ttwa_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'TTWA11CD', 'ttwa_code')
-        rename_kwarg(kwargs, 'TTWA11NM', 'ttwa_name')
+        rename_key(kwargs, 'TTWA11CD', 'ttwa_code')
+        rename_key(kwargs, 'TTWA11NM', 'ttwa_name')
         super().__init__(**kwargs)
 
 
@@ -1165,8 +1165,8 @@ class NCP(Base):
     ncp_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'NCP14CD', 'ncp_code')
-        rename_kwarg(kwargs, 'NCP14NM', 'ncp_name')
+        rename_key(kwargs, 'NCP14CD', 'ncp_code')
+        rename_key(kwargs, 'NCP14NM', 'ncp_name')
         super().__init__(**kwargs)
 
 
@@ -1179,8 +1179,8 @@ class WestminsterConstituency(Base):
     pcon_name = Column(String(NAME_LEN))
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'PCON14CD', 'pcon_code')
-        rename_kwarg(kwargs, 'PCON14NM', 'pcon_name')
+        rename_key(kwargs, 'PCON14CD', 'pcon_code')
+        rename_key(kwargs, 'PCON14NM', 'pcon_name')
         super().__init__(**kwargs)
 
 
@@ -1215,12 +1215,12 @@ class PopWeightedCentroidsLsoa2011(Base):
     # ... which can't be more than 3 for any latitude/longitude
 
     def __init__(self, **kwargs: Any) -> None:
-        rename_kwarg(kwargs, 'LSOA11CD', 'lsoa_code')
-        rename_kwarg(kwargs, 'LSOA11NM', 'lsoa_name')
-        rename_kwarg(kwargs, 'BNGNORTH', 'bng_north')
-        rename_kwarg(kwargs, 'BNGEAST', 'bng_east')
-        rename_kwarg(kwargs, 'LONGITUDE', 'longitude')
-        rename_kwarg(kwargs, 'LATITUDE', 'latitude')
+        rename_key(kwargs, 'LSOA11CD', 'lsoa_code')
+        rename_key(kwargs, 'LSOA11NM', 'lsoa_name')
+        rename_key(kwargs, 'BNGNORTH', 'bng_north')
+        rename_key(kwargs, 'BNGEAST', 'bng_east')
+        rename_key(kwargs, 'LONGITUDE', 'longitude')
+        rename_key(kwargs, 'LATITUDE', 'latitude')
         # MySQL doesn't care if you pass a string to a numeric field, but
         # SQL server does. So:
         convert_int(kwargs, 'bng_north')

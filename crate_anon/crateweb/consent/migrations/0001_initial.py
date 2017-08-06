@@ -24,11 +24,11 @@
 
 from __future__ import unicode_literals
 
+from cardinal_pythonlib.django.fields.restrictedcontentfile import ContentTypeRestrictedFileField  # noqa
 from django.db import migrations, models
 from django.conf import settings
 import crate_anon.crateweb.consent.models as consent_models
 import crate_anon.crateweb.consent.storage as consent_storage
-import crate_anon.crateweb.extra.fields as extra_fields
 
 # !!! warning !!! some fields hard-code a local file path in /home/rudolf/...
 # ... edited; no default is OK here; see
@@ -215,7 +215,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, serialize=False, primary_key=True, verbose_name='ID')),  # noqa
                 ('name', models.CharField(choices=[('cpft_tpir', 'CPFT: Taking part in research'), ('nihr_yhrsl', 'NIHR: Your health records save lives'), ('cpft_trafficlight_choice', 'CPFT: traffic-light choice'), ('cpft_clinres', 'CPFT: clinical research')], verbose_name='leaflet name', unique=True, max_length=50)),  # noqa
-                ('pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.leaflet_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
+                ('pdf', ContentTypeRestrictedFileField(upload_to=consent_models.leaflet_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -332,8 +332,8 @@ class Migration(migrations.Migration):
                 ('rec_reference', models.CharField(blank=True, verbose_name='Research Ethics Committee reference', max_length=50)),  # noqa
                 ('approved_locally', models.BooleanField(verbose_name='Approved by local institution?')),  # noqa
                 ('local_approval_at', models.DateTimeField(blank=True, null=True, verbose_name='When approved by local institution?')),  # noqa
-                ('study_details_pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.study_details_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
-                ('subject_form_template_pdf', extra_fields.ContentTypeRestrictedFileField(upload_to=consent_models.study_form_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
+                ('study_details_pdf', ContentTypeRestrictedFileField(upload_to=consent_models.study_details_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
+                ('subject_form_template_pdf', ContentTypeRestrictedFileField(upload_to=consent_models.study_form_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
                 ('lead_researcher', models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='studies_as_lead')),  # noqa
                 ('researchers', models.ManyToManyField(to=settings.AUTH_USER_MODEL, blank=True, related_name='studies_as_researcher')),  # noqa
             ],

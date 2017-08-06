@@ -29,7 +29,10 @@ import logging
 import os
 from typing import List
 
-from cardinal_pythonlib.rnc_extract_text import is_text_extractor_available
+from cardinal_pythonlib.debugging import pdb_run
+from cardinal_pythonlib.exceptions import die
+from cardinal_pythonlib.extract_text import is_text_extractor_available
+from cardinal_pythonlib.logs import configure_logger_for_colour
 
 from crate_anon.anonymise.constants import (
     CONFIG_ENV_VAR,
@@ -37,9 +40,6 @@ from crate_anon.anonymise.constants import (
     DEFAULT_REPORT_EVERY,
     DEMO_CONFIG,
 )
-from crate_anon.common.debugfunc import pdb_run
-from crate_anon.common.lang import die
-from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)

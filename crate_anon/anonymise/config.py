@@ -72,12 +72,21 @@ import os
 import sys
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-import regex
+from cardinal_pythonlib.hash import GenericHasher, make_hasher
+from cardinal_pythonlib.logs import remove_all_logger_handlers
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
-from cardinal_pythonlib.rnc_log import remove_all_logger_handlers
+from cardinal_pythonlib.sqlalchemy.schema import (
+    hack_in_mssql_xml_type,
+    is_sqlatype_integer,
+)
+from cardinal_pythonlib.sizeformatter import sizeof_fmt
+from cardinal_pythonlib.sqlalchemy.insert_on_duplicate import (
+    monkeypatch_TableClause,
+)
+import regex
 from sqlalchemy import BigInteger, create_engine, String
 from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
@@ -98,14 +107,7 @@ from crate_anon.anonymise.scrub import (
     WordList,
 )
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
-from crate_anon.common.formatting import sizeof_fmt
-from crate_anon.common.hash import GenericHasher, make_hasher
 from crate_anon.common.sql import TransactionSizeLimiter
-from crate_anon.common.sqla import (
-    hack_in_mssql_xml_type,
-    is_sqlatype_integer,
-    monkeypatch_TableClause,
-)
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.dbholder import DatabaseHolder

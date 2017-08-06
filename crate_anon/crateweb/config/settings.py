@@ -104,11 +104,11 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
 
     # Additional:
-    'crate_anon.crateweb.extra.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
-    'crate_anon.crateweb.extra.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
-    'crate_anon.crateweb.extra.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
+    'cardinal_pythonlib.django.middleware.UserBasedExceptionMiddleware',  # provide debugging details to superusers  # noqa
+    'cardinal_pythonlib.django.middleware.LoginRequiredMiddleware',  # prohibit all pages except login pages if not logged in  # noqa
+    'cardinal_pythonlib.django.middleware.DisableClientSideCachingMiddleware',  # no client-side caching  # noqa
     'crate_anon.crateweb.core.middleware.RestrictAdminMiddleware',  # non-developers can't access the devadmin site  # noqa
-    # 'crate_anon.crateweb.extra.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
+    # 'cardinal_pythonlib.django.request_cache.RequestCacheMiddleware',  # per-request cache, UNTESTED  # noqa
 
 )
 

@@ -31,6 +31,21 @@ import re
 from typing import Any, List, Optional, Tuple, Type, Union
 
 # from audit_log.models import AuthStampedModel  # django-audit-log
+from cardinal_pythonlib.dbfunc import (
+    dictfetchall,
+    dictfetchone,
+    fetchallfirstvalues,
+)
+from cardinal_pythonlib.django.admin import admin_view_url
+from cardinal_pythonlib.django.fields.helpers import choice_explanation
+from cardinal_pythonlib.django.fields.restrictedcontentfile import ContentTypeRestrictedFileField  # noqa
+from cardinal_pythonlib.django.files import (
+    auto_delete_files_on_instance_change,
+    auto_delete_files_on_instance_delete,
+)
+from cardinal_pythonlib.django.reprfunc import modelrepr
+from cardinal_pythonlib.pdf import get_concatenated_pdf_in_memory
+from cardinal_pythonlib.reprfunc import simple_repr
 from django import forms
 from django.conf import settings
 from django.core.exceptions import (
@@ -52,8 +67,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
 
-from crate_anon.common.lang import simple_repr
-from crate_anon.common.contenttypes import CONTENTTYPE_PDF
+from crate_anon.common.contenttypes import ContentType
 from crate_anon.crateweb.core.constants import (
     LEN_ADDRESS,
     LEN_FIELD_DESCRIPTION,
@@ -62,29 +76,14 @@ from crate_anon.crateweb.core.constants import (
     LEN_TITLE,
     MAX_HASH_LENGTH,
 )
-from crate_anon.crateweb.core.dbfunc import (
-    dictfetchall,
-    dictfetchone,
-    fetchallfirstvalues,
-)
 from crate_anon.crateweb.core.utils import (
-    modelrepr,
     site_absolute_url,
     string_time_now,
     url_with_querystring,
 )
-from crate_anon.crateweb.extra.admin import admin_view_url
-from crate_anon.crateweb.extra.fields import (
-    auto_delete_files_on_instance_change,
-    auto_delete_files_on_instance_delete,
-    choice_explanation,
-    ContentTypeRestrictedFileField,
-    # IsoDateTimeTzField,
-)
 from crate_anon.crateweb.extra.pdf import (
-    get_concatenated_pdf_in_memory,
-    pdf_from_html,
-    PdfPlan,
+    make_pdf_on_disk_from_html_with_django_settings,
+    CratePdfPlan,
 )
 from crate_anon.crateweb.extra.salutation import (
     forename_surname,
@@ -202,13 +201,13 @@ class Study(models.Model):
     study_details_pdf = ContentTypeRestrictedFileField(
         blank=True,
         storage=privatestorage,
-        content_types=[CONTENTTYPE_PDF],
+        content_types=[ContentType.PDF],
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=study_details_upload_to)
     subject_form_template_pdf = ContentTypeRestrictedFileField(
         blank=True,
         storage=privatestorage,
-        content_types=[CONTENTTYPE_PDF],
+        content_types=[ContentType.PDF],
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=study_form_upload_to)
     # http://nemesisdesign.net/blog/coding/django-private-file-upload-and-serving/  # noqa
@@ -315,7 +314,7 @@ class Leaflet(models.Model):
     pdf = ContentTypeRestrictedFileField(
         blank=True,
         storage=privatestorage,
-        content_types=[CONTENTTYPE_PDF],
+        content_types=[ContentType.PDF],
         max_upload_size=settings.MAX_UPLOAD_SIZE_BYTES,
         upload_to=leaflet_upload_to)
 
@@ -2915,25 +2914,25 @@ class ContactRequest(models.Model):
         # Order should match letter...
 
         # Letter to patient from clinician
-        pdf_plans = [PdfPlan(
+        pdf_plans = [CratePdfPlan(
             is_html=True,
             html=self.get_letter_clinician_to_pt_re_study()
         )]
         # Study details
         if self.study.study_details_pdf:
-            pdf_plans.append(PdfPlan(
+            pdf_plans.append(CratePdfPlan(
                 is_filename=True,
                 filename=self.study.study_details_pdf.path
             ))
         # Decision form about this study
-        pdf_plans.append(PdfPlan(
+        pdf_plans.append(CratePdfPlan(
             is_html=True,
             html=self.get_decision_form_to_pt_re_study()
         ))
         # Additional form for this study
         if self.is_extra_form():
             if self.study.subject_form_template_pdf:
-                pdf_plans.append(PdfPlan(
+                pdf_plans.append(CratePdfPlan(
                     is_filename=True,
                     filename=self.study.subject_form_template_pdf.path
                 ))
@@ -2957,15 +2956,15 @@ class ContactRequest(models.Model):
             #         )
             #     )
 
-            pdf_plans.append(PdfPlan(
+            pdf_plans.append(CratePdfPlan(
                 is_html=True,
                 html=self.patient_lookup.get_traffic_light_decision_form()
             ))
         # General info leaflet
         try:
             leaflet = Leaflet.objects.get(name=Leaflet.CPFT_TPIR)
-            pdf_plans.append(PdfPlan(is_filename=True,
-                                     filename=leaflet.pdf.path))
+            pdf_plans.append(CratePdfPlan(is_filename=True,
+                                          filename=leaflet.pdf.path))
         except ObjectDoesNotExist:
             log.warning("Missing taking-part-in-research leaflet!")
             email_rdbm_task.delay(
@@ -3245,10 +3244,11 @@ class Letter(models.Model):
             if debug_store_html:
                 with open(abs_filename + ".html", 'w') as f:
                     f.write(html)
-            pdf_from_html(html,
-                          header_html=None,
-                          footer_html=None,
-                          output_path=abs_filename)
+            make_pdf_on_disk_from_html_with_django_settings(
+                html,
+                output_path=abs_filename,
+                header_html=None,
+                footer_html=None)
         else:
             # PDF supplied in memory
             with open(abs_filename, 'wb') as f:
@@ -3424,7 +3424,7 @@ class Email(models.Model):
         email.save()
         EmailAttachment.create(email=email,
                                fileobj=letter.pdf,
-                               content_type=CONTENTTYPE_PDF)  # will save
+                               content_type=ContentType.PDF)  # will save
         return email
 
     @classmethod
@@ -3450,7 +3450,7 @@ class Email(models.Model):
         email.save()
         EmailAttachment.create(email=email,
                                fileobj=letter.pdf,
-                               content_type=CONTENTTYPE_PDF)  # will save
+                               content_type=ContentType.PDF)  # will save
         return email
 
     @classmethod
@@ -3805,44 +3805,3 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         patient_lookup=patient_lookup,
         study=study,
     )
-
-
-# =============================================================================
-# Testing an ISO-based millisecond-precision date/time field with timezone
-# =============================================================================
-
-# class BlibbleTest(models.Model):
-#     at = IsoDateTimeTzField()
-#
-#     class Meta:
-#         managed = True
-#         db_table = 'consent_test'
-#         verbose_name_plural = "no ideas"
-
-"""
-import logging
-logging.basicConfig()
-import datetime
-import dateutil
-import pytz
-from django.utils import timezone
-from consent.models import BlibbleTest
-
-now = datetime.datetime.now(pytz.utc)
-t = BlibbleTest(at=now)
-time1 = dateutil.parser.parse("2015-11-11T22:21:37.000000+05:00")
-t.save()
-# BlibbleTest.objects.filter(at__lt=time1)
-
-# Explicitly use transform:
-BlibbleTest.objects.filter(at__utc=time1)
-BlibbleTest.objects.filter(at__utc=now)
-BlibbleTest.objects.filter(at__utcdate=time1)
-BlibbleTest.objects.filter(at__utcdate=now)
-BlibbleTest.objects.filter(at__sourcedate=time1)
-BlibbleTest.objects.filter(at__sourcedate=now)
-
-# Use 'exact' lookup
-BlibbleTest.objects.filter(at=time1)
-BlibbleTest.objects.filter(at=now)
-"""

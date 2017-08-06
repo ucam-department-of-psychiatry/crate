@@ -232,7 +232,7 @@ setup(
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==0.2.13',
+        'cardinal_pythonlib==1.0.0',
 
         'beautifulsoup4==4.5.3',
         'prettytable==0.7.2',

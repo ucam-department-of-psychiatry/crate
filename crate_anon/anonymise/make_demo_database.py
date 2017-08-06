@@ -47,6 +47,7 @@ import os
 import random
 import subprocess
 
+from cardinal_pythonlib.logs import configure_logger_for_colour
 from sqlalchemy import (
     create_engine,
     BigInteger,
@@ -70,7 +71,6 @@ from crate_anon.anonymise.constants import (
     CHARSET,
     TABLE_KWARGS,
 )
-from crate_anon.common.logsupport import configure_logger_for_colour
 
 log = logging.getLogger(__name__)
 metadata = MetaData()

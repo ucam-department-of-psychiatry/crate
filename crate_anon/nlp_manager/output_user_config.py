@@ -31,11 +31,13 @@ from cardinal_pythonlib.rnc_db import (
     ensure_valid_table_name,
     is_sqltype_valid
 )
-from cardinal_pythonlib.rnc_lang import chunks
+from cardinal_pythonlib.lists import chunks
+from cardinal_pythonlib.sqlalchemy.schema import (
+    get_sqla_coltype_from_dialect_str,
+)
 from sqlalchemy import Column, Index
 
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
-from crate_anon.common.sqla import get_sqla_coltype_from_dialect_str
 from crate_anon.nlp_manager.input_field_config import InputFieldConfig
 
 

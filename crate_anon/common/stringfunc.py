@@ -25,30 +25,8 @@
 import fnmatch
 from functools import lru_cache
 import sys
-from typing import Dict, Iterable, List
 
 import regex
-
-
-# =============================================================================
-# Replacement
-# =============================================================================
-
-def multiple_replace(text: str, rep: Dict[str, str]) -> str:
-    """Returns text in which the keys of rep (a dict) have been replaced by
-    their values."""
-    # http://stackoverflow.com/questions/6116978/python-replace-multiple-strings  # noqa
-    rep = dict((regex.escape(k), v) for k, v in rep.items())
-    pattern = regex.compile("|".join(rep.keys()))
-    return pattern.sub(lambda m: rep[regex.escape(m.group(0))], text)
-
-
-def replace_in_list(stringlist: Iterable[str],
-                    replacedict: Dict[str, str]) -> List[str]:
-    newlist = []
-    for fromstring in stringlist:
-        newlist.append(multiple_replace(fromstring, replacedict))
-    return newlist
 
 
 # =============================================================================

@@ -25,7 +25,7 @@
 import logging
 from typing import Any
 
-from crate_anon.common.hash import hash64
+from cardinal_pythonlib.hash import hash64
 
 log = logging.getLogger(__name__)
 

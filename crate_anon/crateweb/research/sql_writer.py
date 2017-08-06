@@ -25,9 +25,18 @@
 import logging
 from typing import List, Optional
 
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.sql.sql_grammar import (
+    format_sql,
+    SqlGrammar,
+    text_from_parsed,
+)
+from cardinal_pythonlib.sql.sql_grammar_factory import (
+    DIALECT_MYSQL,
+    make_grammar,
+)
 from pyparsing import ParseResults
 
-from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
 from crate_anon.common.sql import (
     ColumnId,
     get_first_from_table,
@@ -38,12 +47,6 @@ from crate_anon.common.sql import (
     TableId,
     WhereCondition,
 )
-from crate_anon.common.sql_grammar import (
-    format_sql,
-    SqlGrammar,
-    text_from_parsed,
-)
-from crate_anon.common.sql_grammar_factory import DIALECT_MYSQL, make_grammar
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
 )

@@ -29,21 +29,21 @@ import os
 import traceback
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
-from cardinal_pythonlib.rnc_extract_text import document_to_text
+from cardinal_pythonlib.datetimefunc import (
+    coerce_to_datetime,
+    truncate_date_to_first_of_month,
+)
+from cardinal_pythonlib.extract_text import document_to_text
 import regex
 
 # don't import config: circular dependency would have to be sorted out
 from crate_anon.anonymise.constants import ALTERMETHOD
-from crate_anon.common.datetimefunc import (
-    coerce_to_datetime,
-    truncate_date_to_first_of_month,
-)
 
 if TYPE_CHECKING:
+    from cardinal_pythonlib.hash import GenericHasher
     from crate_anon.anonymise.config import Config
     from crate_anon.anonymise.ddr import DataDictionaryRow
     from crate_anon.anonymise.patient import Patient
-    from crate_anon.common.hash import GenericHasher
 
 log = logging.getLogger(__name__)
 

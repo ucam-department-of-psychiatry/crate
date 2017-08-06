@@ -34,10 +34,10 @@ import typing.re
 from typing import List, Optional, Union
 import unittest
 
+from cardinal_pythonlib.lists import unique_list
+from cardinal_pythonlib.logs import configure_logger_for_colour
 import regex  # sudo apt-get install python-regex
 
-from crate_anon.common.lang import unique_list
-from crate_anon.common.logsupport import configure_logger_for_colour
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,  # for unit testing
     reduce_to_alphanumeric,  # for unit testing

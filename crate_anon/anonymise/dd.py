@@ -40,6 +40,11 @@ from typing import (AbstractSet, Any, List, Optional, Tuple, TYPE_CHECKING,
                     Union)
 
 from cardinal_pythonlib.rnc_db import is_sqltype_integer
+from cardinal_pythonlib.sqlalchemy.schema import (
+    is_sqlatype_integer,
+    is_sqlatype_string,
+    is_sqlatype_text_over_one_char,
+)
 from sortedcontainers import SortedSet
 import sqlalchemy.exc
 from sqlalchemy import Column, Table
@@ -52,11 +57,6 @@ from crate_anon.anonymise.constants import (
     TridType,
 )
 from crate_anon.anonymise.ddr import DataDictionaryRow
-from crate_anon.common.sqla import (
-    is_sqlatype_integer,
-    is_sqlatype_string,
-    is_sqlatype_text_over_one_char,
-)
 
 if TYPE_CHECKING:
     from crate_anon.anonymise.config import Config

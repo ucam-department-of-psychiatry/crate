@@ -356,10 +356,10 @@ import sys
 import tempfile
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
-from cardinal_pythonlib.rnc_lang import AttrDict
+from cardinal_pythonlib.fileops import mkdir_p
+from cardinal_pythonlib.enumlike import AttrDict
 from sqlalchemy import Column, Index, Integer, String, Text
 
-from crate_anon.common.fileops import mkdir_p
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
 from crate_anon.nlp_manager.constants import (
     MEDEX_DATA_READY_SIGNAL,

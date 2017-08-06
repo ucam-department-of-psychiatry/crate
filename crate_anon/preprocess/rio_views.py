@@ -24,7 +24,7 @@
 
 from collections import OrderedDict
 
-from cardinal_pythonlib.rnc_lang import merge_dicts
+from cardinal_pythonlib.dicts import merge_dicts
 
 from crate_anon.common.sql import sql_fragment_cast_to_int
 from crate_anon.preprocess.rio_constants import (

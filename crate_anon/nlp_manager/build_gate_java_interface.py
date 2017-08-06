@@ -29,8 +29,8 @@ import logging
 import os
 import subprocess
 
-# from crate_anon.common.fileops import moveglob, rmglob
-from crate_anon.common.logsupport import configure_logger_for_colour
+from cardinal_pythonlib.logs import configure_logger_for_colour
+
 from crate_anon.nlp_manager.constants import GATE_PIPELINE_CLASSNAME
 
 

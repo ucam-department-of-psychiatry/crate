@@ -27,7 +27,7 @@ Shared constants for CRATE anonymiser.
 from enum import unique
 
 from sqlalchemy import Integer
-from cardinal_pythonlib.rnc_lang import StrEnum
+from cardinal_pythonlib.enumlike import StrEnum
 
 from crate_anon.version import VERSION, VERSION_DATE
 
@@ -35,7 +35,6 @@ from crate_anon.version import VERSION, VERSION_DATE
 # Logging
 # =============================================================================
 
-LOG_FORMAT = '%(asctime)s.%(msecs)03d:%(levelname)s:%(name)s:%(message)s'
 LOG_DATEFMT = '%Y-%m-%d %H:%M:%S'
 
 LOG_COLORS = {

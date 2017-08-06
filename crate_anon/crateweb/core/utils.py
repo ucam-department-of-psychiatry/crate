@@ -28,7 +28,6 @@ import urllib.parse
 from typing import Any, Dict, List, Union
 
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, Page, PageNotAnInteger
 from django.db.models import QuerySet
 from django.http import QueryDict
@@ -158,23 +157,6 @@ def get_friendly_date(date: datetime.datetime) -> str:
         return date.strftime("%d %B %Y")  # e.g. 03 December 2013
     except Exception as e:
         raise type(e)(str(e) + ' [value was {}]'.format(repr(date)))
-
-
-def modelrepr(instance) -> str:
-    """Default repr version of a Django model object, for debugging."""
-    elements = []
-    # noinspection PyProtectedMember
-    for fieldname in [f.name for f in instance._meta.get_fields()]:
-        try:
-            value = repr(getattr(instance, fieldname))
-        except ObjectDoesNotExist:
-            value = "<RelatedObjectDoesNotExist>"
-        elements.append("{}={}".format(fieldname, value))
-    return "<{} <{}>>".format(type(instance).__name__,
-                              ", ".join(elements))
-    # - type(instance).__name__ gives the Python class name from an instance
-    # - ... as does ModelClass.__name__ but we don't have that directly here
-    # - instance._meta.model_name gives a lower-case version
 
 
 # =============================================================================

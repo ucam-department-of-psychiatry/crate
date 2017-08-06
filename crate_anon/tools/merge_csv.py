@@ -28,7 +28,7 @@ import logging
 import sys
 from typing import List, TextIO
 
-from crate_anon.common.logsupport import main_only_quicksetup_rootlogger
+from cardinal_pythonlib.logs import main_only_quicksetup_rootlogger
 
 log = logging.getLogger(__name__)
 

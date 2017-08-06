@@ -32,14 +32,17 @@ mimetypes.types_map['.xlsx']  # application/vnd.openxmlformats-officedocument.sp
 
 """  # noqa
 
-CONTENTTYPE_PDF = "application/pdf"
 
-CONTENTTYPE_ZIP = "application/zip"
-# ... http://stackoverflow.com/questions/4411757/zip-mime-types-when-to-pick-which-one  # noqa
+class ContentType(object):
+    CSV = "text/csv"
+    # http://stackoverflow.com/questions/264256/what-is-the-best-mime-type-and-extension-to-use-when-exporting-tab-delimited  # noqa
+    # http://www.iana.org/assignments/media-types/text/tab-separated-values
 
-CONTENTTYPE_TSV = "text/tab-separated-values"
-CONTENTTYPE_CSV = "text/csv"
-# http://stackoverflow.com/questions/264256/what-is-the-best-mime-type-and-extension-to-use-when-exporting-tab-delimited  # noqa
-# http://www.iana.org/assignments/media-types/text/tab-separated-values
+    PDF = "application/pdf"
 
-CONTENTTYPE_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"  # noqa
+    TSV = "text/tab-separated-values"
+
+    XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"  # noqa
+
+    ZIP = "application/zip"
+    # ... http://stackoverflow.com/questions/4411757/zip-mime-types-when-to-pick-which-one  # noqa

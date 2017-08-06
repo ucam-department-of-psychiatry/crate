@@ -28,6 +28,7 @@ import textwrap
 import typing.re
 from typing import Any, Dict, Iterable, List, Optional
 
+from cardinal_pythonlib.django.function_cache import django_cache_function
 from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.utils.html import escape
 # from django.template import loader
@@ -36,8 +37,6 @@ from pygments import highlight
 from pygments.lexers.sql import SqlLexer
 from pygments.formatters.html import HtmlFormatter
 import sqlparse
-
-from crate_anon.crateweb.extra.django_cache_fn import django_cache_function
 
 log = logging.getLogger(__name__)
 

@@ -30,11 +30,9 @@ import subprocess
 import sys
 import tempfile
 
-from crate_anon.common.fileops import (
-    mkdir_p,
-    copytree,
-    get_lines_without_comments,
-)
+from cardinal_pythonlib.file_io import get_lines_without_comments
+from cardinal_pythonlib.fileops import copytree, mkdir_p
+
 from crate_anon.version import VERSION, VERSION_DATE
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 

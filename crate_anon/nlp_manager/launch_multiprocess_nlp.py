@@ -47,11 +47,12 @@ import sys
 import time
 from typing import List
 
-from crate_anon.common.subproc import (
+from cardinal_pythonlib.logs import configure_logger_for_colour
+from cardinal_pythonlib.subproc import (
     check_call_process,
     run_multiple_processes,
 )
-from crate_anon.common.logsupport import configure_logger_for_colour
+
 from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)

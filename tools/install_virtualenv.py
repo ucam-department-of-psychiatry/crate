@@ -24,11 +24,8 @@
 import argparse
 import os
 import platform
-# import shutil
 import subprocess
 import sys
-
-# from crate_anon.common.fileops import get_lines_without_comments
 
 
 if sys.version_info[0] < 3:

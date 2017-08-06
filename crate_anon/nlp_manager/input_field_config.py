@@ -26,10 +26,18 @@ import logging
 # import sys
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
+from cardinal_pythonlib.hash import hash64
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
     ensure_valid_table_name,
 )
+from cardinal_pythonlib.sqlalchemy.core_query import count_star
+from cardinal_pythonlib.sqlalchemy.schema import (
+    is_sqlatype_integer,
+    get_column_type,
+    table_or_view_exists,
+)
+from cardinal_pythonlib.timing import MultiTimerContext, timer
 from sqlalchemy import BigInteger, Column, Index, String, Table
 from sqlalchemy.sql import and_, column, exists, or_, select, table
 
@@ -44,15 +52,7 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
     MAX_STRING_PK_LENGTH,
 )
-from crate_anon.common.timing import MultiTimerContext, timer
-from crate_anon.common.hash import hash64
 from crate_anon.common.parallel import is_my_job_by_hash
-from crate_anon.common.sqla import (
-    count_star,
-    is_sqlatype_integer,
-    get_column_type,
-    table_or_view_exists,
-)
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
 

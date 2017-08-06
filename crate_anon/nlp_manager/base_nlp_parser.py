@@ -29,14 +29,14 @@ import logging
 import sys
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
-from sqlalchemy.schema import Column, Index, Table
-from sqlalchemy.sql import and_, exists, or_
-
-from crate_anon.common.timing import MultiTimerContext, timer
-from crate_anon.common.sqla import (
+from cardinal_pythonlib.timing import MultiTimerContext, timer
+from cardinal_pythonlib.sqlalchemy.schema import (
     column_lists_equal,
     index_lists_equal
 )
+from sqlalchemy.schema import Column, Index, Table
+from sqlalchemy.sql import and_, exists, or_
+
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_SRCPKVAL,

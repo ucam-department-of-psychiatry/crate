@@ -29,6 +29,15 @@ import logging
 # import pprint
 from typing import Any, Dict, List, Union
 
+from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
+from cardinal_pythonlib.django.function_cache import django_cache_function
+from cardinal_pythonlib.django.serve import file_response
+from cardinal_pythonlib.exceptions import recover_info_from_exception
+from cardinal_pythonlib.hash import hash64
+from cardinal_pythonlib.sql.sql_grammar_factory import (
+    DIALECT_MYSQL,
+    DIALECT_MSSQL,
+)
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
@@ -46,13 +55,7 @@ from django.template.loader import render_to_string
 from django.utils.html import escape
 from pyparsing import ParseException
 
-from crate_anon.common.contenttypes import (
-    CONTENTTYPE_TSV,
-    CONTENTTYPE_XLSX,
-    CONTENTTYPE_ZIP,
-)
-from crate_anon.common.hash import hash64
-from crate_anon.common.lang import recover_info_from_exception
+from crate_anon.common.contenttypes import ContentType
 from crate_anon.common.sql import (
     ColumnId,
     escape_sql_string_literal,
@@ -62,16 +65,7 @@ from crate_anon.common.sql import (
     toggle_distinct,
     WhereCondition,
 )
-from crate_anon.common.sql_grammar_factory import (
-    DIALECT_MYSQL,
-    DIALECT_MSSQL,
-)
-from crate_anon.crateweb.core.dbfunc import (
-    get_fieldnames_from_cursor,
-)
 from crate_anon.crateweb.core.utils import is_clinician, is_superuser, paginate
-from crate_anon.crateweb.extra.django_cache_fn import django_cache_function
-from crate_anon.crateweb.extra.serve import file_response
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
@@ -632,7 +626,7 @@ def query_tsv(request: HttpRequest, query_id: str) -> HttpResponse:
     try:
         return file_response(
             query.make_tsv(),
-            content_type=CONTENTTYPE_TSV,
+            content_type=ContentType.TSV,
             filename="crate_results_{num}_{datetime}.tsv".format(
                 num=query.id,
                 datetime=datetime_iso_for_filename(),
@@ -647,7 +641,7 @@ def query_excel(request: HttpRequest, query_id: str) -> HttpResponse:
     try:
         return file_response(
             query.make_excel(),
-            content_type=CONTENTTYPE_XLSX,
+            content_type=ContentType.XLSX,
             filename="crate_query_{}_{}.xlsx".format(
                 query_id, datetime_iso_for_filename())
         )
@@ -1148,7 +1142,7 @@ def structure_tree(request: HttpRequest) -> HttpResponse:
 def structure_tsv(request: HttpRequest) -> HttpResponse:
     return file_response(
         research_database_info.get_tsv(),
-        content_type=CONTENTTYPE_TSV,
+        content_type=ContentType.TSV,
         filename="structure.tsv"
     )
 
@@ -1157,7 +1151,7 @@ def structure_tsv(request: HttpRequest) -> HttpResponse:
 def structure_excel(request: HttpRequest) -> HttpResponse:
     return file_response(
         research_database_info.get_excel(),
-        content_type=CONTENTTYPE_TSV,
+        content_type=ContentType.TSV,
         filename="structure.xlsx"
     )
 
@@ -1610,7 +1604,7 @@ def pe_tsv_zip(request: HttpRequest, pe_id: str) -> HttpResponse:
     try:
         return file_response(
             pe.get_zipped_tsv_binary(),
-            content_type=CONTENTTYPE_ZIP,
+            content_type=ContentType.ZIP,
             filename="crate_pe_{num}_{datetime}.zip".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
@@ -1625,7 +1619,7 @@ def pe_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
     try:
         return file_response(
             pe.get_xlsx_binary(),
-            content_type=CONTENTTYPE_XLSX,
+            content_type=ContentType.XLSX,
             filename="crate_pe_{num}_{datetime}.xlsx".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
@@ -1696,7 +1690,7 @@ def pe_data_finder_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
     try:
         return file_response(
             pe.data_finder_excel(),
-            content_type=CONTENTTYPE_XLSX,
+            content_type=ContentType.XLSX,
             filename="crate_pe_df_{num}_{datetime}.xlsx".format(
                 num=pe.id,
                 datetime=datetime_iso_for_filename(),
