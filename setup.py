@@ -295,10 +295,10 @@ setup(
 
             'crate_windows_service=crate_anon.tools.winservice:main',
 
-            'crate_estimate_mysql_memory_usage=crate_anon.tools.estimate_mysql_memory_usage:main',  # noqa
-            'crate_generate_new_django_secret_key=crate_anon.tools.generate_new_django_secret_key:main',  # noqa
-            'crate_list_all_extensions=crate_anon.tools.list_all_extensions:main',  # noqa
-            'crate_merge_csv=crate_anon.tools.merge_csv:main',
+            'crate_estimate_mysql_memory_usage=cardinal_pythonlib.tools.estimate_mysql_memory_usage:main',  # noqa
+            'crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main',  # noqa
+            'crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main',  # noqa
+            'crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main',
 
         ],
     },
