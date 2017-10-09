@@ -14,11 +14,11 @@
     <ul>
         <li>You are the lead or other designated researcher (or you are the RDBM)</li>
         <li>Title/forename/surname information is available for the lead researcher</li>
-        <li>The study has been approved patient contact</li>
+        <li>The study has been approved for patient contact</li>
         <li>A patient information leaflet has been uploaded by the RDBM</li>
     </ul>
-    <p>The RDBM can submit contact requests using NHS numbers or research
-    IDs; researchers are restricted to research ID lookup.</p>
+    <p><b>The RDBM can submit contact requests using NHS numbers or research
+        IDs; researchers are restricted to research ID lookup.</b></p>
 
     <form action="{% url 'submit_contact_request' %}" method="post">
         {% csrf_token %}

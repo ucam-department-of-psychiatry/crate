@@ -270,14 +270,14 @@ LOGGING = {
         },
         'color': {
             '()': 'colorlog.ColoredFormatter',
-            'format': '%(log_color)s%(asctime)s.%(msecs)03d:%(name)s:%(levelname)s:%(message)s',  # noqa
+            'format': '%(white)s%(asctime)s.%(msecs)03d:%(name)s:%(levelname)s: %(log_color)s%(message)s',  # noqa
             'datefmt': '%Y-%m-%d %H:%M:%S',
             'log_colors': {
-                'DEBUG': 'bold_black',
-                'INFO': 'white',
-                'WARNING': 'yellow',
-                'ERROR': 'red',
-                'CRITICAL': 'bold_red',
+                'DEBUG': 'cyan',
+                'INFO': 'green',
+                'WARNING': 'bold_yellow',
+                'ERROR': 'bold_red',
+                'CRITICAL': 'bold_yellow,bg_blue',
             },
         }
     },
@@ -313,6 +313,13 @@ LOGGING = {
         'django': {
             'handlers': ['console', 'mail_admins'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': True,
+        },
+
+        # cardinal_pythonlib
+        'cardinal_pythonlib': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
             'propagate': True,
         },
 

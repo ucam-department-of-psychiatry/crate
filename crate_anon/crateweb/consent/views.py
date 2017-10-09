@@ -30,7 +30,6 @@ from cardinal_pythonlib.django.serve import (
     serve_buffer,
     serve_concatenated_pdf_from_disk,
     serve_file,
-    serve_html_or_pdf,
 )
 from cardinal_pythonlib.nhs import generate_random_nhs_number
 from django.conf import settings
@@ -73,6 +72,7 @@ from crate_anon.crateweb.core.utils import (
     is_developer,
     is_superuser,
 )
+from crate_anon.crateweb.extra.pdf import serve_html_or_pdf
 
 log = logging.getLogger(__name__)
 

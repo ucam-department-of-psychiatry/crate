@@ -126,11 +126,23 @@
                             anything else for None.
                             The flag consent_after_discharge is now irrelevant.</li>
 
+                        <li><a href="{% url 'draft_first_traffic_light_letter' -1 'pdf' %}">
+                            Covering letter for first traffic-light decision form (PDF)</a></li>
+
+                        <li><a href="{% url 'draft_first_traffic_light_letter' -1 'html' %}">
+                            Covering letter for first traffic-light decision form (HTML)</a></li>
+
                         <li><a href="{% url 'draft_traffic_light_decision_form' -1 'pdf' %}">
                             Traffic-light decision form (PDF)</a></li>
 
                         <li><a href="{% url 'draft_traffic_light_decision_form' -1 'html' %}">
                             Traffic-light decision form (HTML)</a></li>
+
+                        <li><a href="{% url 'draft_confirm_traffic_light_letter' -1 'pdf' %}">
+                            Letter confirming traffic-light decision (PDF)</a> (use e.g. "?consent_mode=yellow")</li>
+
+                        <li><a href="{% url 'draft_confirm_traffic_light_letter' -1 'html' %}">
+                            Letter confirming traffic-light decision (HTML)</a></li>
 
                         <li><a href="{% url 'draft_clinician_email' -1 %}">
                             E-mail to clinician</a></li>

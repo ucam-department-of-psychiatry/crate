@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# (Don't use a shebang; Lintian will complain "script-not-executable".)
 # crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py
 
 """
@@ -350,8 +350,19 @@ MANAGERS = (
 
 # For a recent version, fetch one from http://wkhtmltopdf.org/, e.g.
 # v0.12.4 for your OS.
-WKHTMLTOPDF_FILENAME = ''
+# WKHTMLTOPDF_FILENAME = ''
+WKHTMLTOPDF_FILENAME = '/home/rudolf/dev/wkhtmltopdf/wkhtmltox/bin/wkhtmltopdf'
 # WKHTMLTOPDF_FILENAME = '/usr/bin/wkhtmltopdf'
+
+WKHTMLTOPDF_OPTIONS = {  # dict for pdfkit
+    "page-size": "A4",
+    "margin-left": "20mm",
+    "margin-right": "20mm",
+    "margin-top": "21mm",  # from paper edge down to top of content?
+    "margin-bottom": "24mm",  # from paper edge up to bottom of content?
+    "header-spacing": "3",  # mm, from content up to bottom of header
+    "footer-spacing": "3",  # mm, from content down to top of footer
+}
 
 PDF_LOGO_ABS_URL = 'http://localhost/crate_logo'
 # ... path on local machine, read by wkhtmltopdf

@@ -2275,9 +2275,9 @@ class ConsentMode(Decision):
             'patient_lookup': patient_lookup,
             'settings': settings,
             # URLs
-            'red_img_url': site_absolute_url(static('red.png')),
-            'yellow_img_url': site_absolute_url(static('yellow.png')),
-            'green_img_url': site_absolute_url(static('green.png')),
+            # 'red_img_url': site_absolute_url(static('red.png')),
+            # 'yellow_img_url': site_absolute_url(static('yellow.png')),
+            # 'green_img_url': site_absolute_url(static('green.png')),
         }
         # 1. Building a static URL in code:
         #    http://stackoverflow.com/questions/11721818/django-get-the-static-files-url-in-view  # noqa
@@ -3668,6 +3668,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     dob = today - relativedelta(years=age, months=age_months)
 
     consent_mode_str = get_str('consent_mode', None)
+    # log.critical("consent_mode_str: {!r}".format(consent_mode_str))
     if consent_mode_str not in (None, ConsentMode.RED, ConsentMode.YELLOW,
                                 ConsentMode.GREEN):
         consent_mode_str = None
@@ -3683,7 +3684,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     study = Study(
         id=TEST_ID,
         institutional_id=9999999999999,
-        title="Investigation of the psychokinetic ability of mussels",
+        title="Functional neuroimaging of whimsy",
         lead_researcher=request.user,
         # researchers=[request.user],  # THIS BREAKS IT.
         # ... actual crash is in
@@ -3691,8 +3692,10 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         #   ReverseManyToOneDescriptor.__set__(), calling
         #   manager.set(value)
         registered_at=datetime.datetime.now(),
-        summary="Double-blind comparison of filter feeders’ ability to "
-                "move water unobstructed versus through a rigid barrier",
+        summary="An investigation of the change in blood-oxygen-level-"
+                "dependent (BOLD) functional magnetic resonance imaging "
+                "(fMRI) signals during the experience of quaint and "
+                "fanciful humourous activity",
         search_methods_planned="Generalized trawl",
         patient_contact=True,
         include_under_16s=True,
@@ -3739,7 +3742,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         pt_address_2="1 Penny Lane",
         pt_address_3="Mordenville",
         pt_address_4="Slowtown",
-        pt_address_5="Pembrokeshire",
+        pt_address_5="Cambridgeshire",
         pt_address_6="CB1 0ZZ",
         pt_address_7="UK",
         pt_telephone="01223 000000",
@@ -3751,14 +3754,14 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         gp_address_2="99 Bloom Street",
         gp_address_3="Mordenville",
         gp_address_4="Slowtown",
-        gp_address_5="Pembrokeshire",
+        gp_address_5="Cambridgeshire",
         gp_address_6="CB1 9QQ",
         gp_address_7="UK",
         gp_telephone="01223 111111",
         gp_email="g.generalist@honeysuckle.nhs.uk",
         clinician_title="Dr",
         clinician_first_name="Petra",
-        clinician_last_name="Psychiatrist",
+        clinician_last_name="Paroxetine",
         clinician_address_1="Union House",
         clinician_address_2="37 Union Lane",
         clinician_address_3="Chesterton",
@@ -3767,7 +3770,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         clinician_address_6="CB4 1PR",
         clinician_address_7="UK",
         clinician_telephone="01223 222222",
-        clinician_email="p.psychiatrist@cpft_or_similar.nhs.uk",
+        clinician_email="p.paroxetine@cpft_or_similar.nhs.uk",
         clinician_is_consultant=True,
         clinician_signatory_title="Consultant psychiatrist",
         # PatientLookup

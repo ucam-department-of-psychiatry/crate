@@ -264,7 +264,7 @@ urlpatterns = [
     url(r'^draft_withdrawal_letter/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_withdrawal_letter,
         name='draft_withdrawal_letter'),
-    url(r'^draft_first_traffic_light_letter/(?P<patient_lookup_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
+    url(r'^draft_first_traffic_light_letter/(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_first_traffic_light_letter,
         name='draft_first_traffic_light_letter'),
     url(r'^draft_letter_clinician_to_pt_re_study/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
@@ -273,7 +273,7 @@ urlpatterns = [
     url(r'^decision_form_to_pt_re_study/(?P<contact_request_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.decision_form_to_pt_re_study,
         name='decision_form_to_pt_re_study'),
-    url(r'^draft_confirm_traffic_light_letter/(?P<consent_mode_id>[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
+    url(r'^draft_confirm_traffic_light_letter/(?P<consent_mode_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa
         consent_views.draft_confirm_traffic_light_letter,
         name='draft_confirm_traffic_light_letter'),
     url(r'^draft_traffic_light_decision_form/(?P<patient_lookup_id>-?[0-9]+)/(?P<viewtype>pdf|html)/$',  # noqa

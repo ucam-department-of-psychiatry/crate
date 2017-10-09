@@ -30,7 +30,10 @@ import subprocess
 import sys
 import tempfile
 
-from cardinal_pythonlib.file_io import get_lines_without_comments
+from cardinal_pythonlib.file_io import (
+    get_lines_without_comments,
+    remove_gzip_timestamp,
+)
 from cardinal_pythonlib.fileops import copytree, mkdir_p
 
 from crate_anon.version import VERSION, VERSION_DATE
@@ -43,7 +46,10 @@ if sys.version_info[0] < 3:
 # Constants including defaults
 # =============================================================================
 
-PACKAGE = "crate"
+PACKAGE_FOR_DEB = "crate"
+PACKAGE_FOR_PYPI = "crate-anon"
+PACKAGE_DIR_FROM_SOURCE_ROOT = "crate_anon"
+
 
 CRATE_USER = "www-data"
 CRATE_GROUP = "www-data"
@@ -121,7 +127,13 @@ running_centos()
 service_exists()
 {
     # arguments: $1 is the service being tested
+    
+    # Older Ubuntu:
     if service $1 status 2>&1 | grep "unrecognized service" >/dev/null ; then
+        return 1  # false
+    fi
+    # Ubuntu 16.04:
+    if service $1 status 2>&1 | grep "not-found" >/dev/null ; then
         return 1  # false
     fi
     return 0  # true
@@ -182,6 +194,12 @@ for cmd in PREREQUISITES:
 # =============================================================================
 
 # -----------------------------------------------------------------------------
+# Software
+# -----------------------------------------------------------------------------
+
+PYTHON_WITH_VER = "python3.5"
+
+# -----------------------------------------------------------------------------
 # Directory constants
 # -----------------------------------------------------------------------------
 
@@ -192,15 +210,18 @@ EGG_DIR = join(SOURCE_ROOT, "crate_anon.egg-info")
 PACKAGE_DIR = join(SOURCE_ROOT, "built_packages")
 
 # Destination, as seen on the final system
-DEST_ROOT = join('/usr/share', PACKAGE)
-DEST_DJANGO_ROOT = join(DEST_ROOT, 'crate', 'crateweb')
+DEST_ROOT = join('/usr/share', PACKAGE_FOR_DEB)
+DEST_VIRTUALENV = join(DEST_ROOT, 'crate_virtualenv')
+DEST_CRATE_ROOT = join(DEST_VIRTUALENV,
+                       'lib', PYTHON_WITH_VER, "site-packages",
+                       PACKAGE_DIR_FROM_SOURCE_ROOT)
+DEST_DJANGO_ROOT = join(DEST_CRATE_ROOT, 'crateweb')
 # Lintian dislikes files/subdirectories in: /usr/bin/X, /usr/local/X, /opt/X
 # It dislikes images in /usr/lib
-DEST_VIRTUALENV = join(DEST_ROOT, 'crate_virtualenv')
-DEST_PACKAGE_CONF_DIR = join('/etc', PACKAGE)
+DEST_PACKAGE_CONF_DIR = join('/etc', PACKAGE_FOR_DEB)
 DEST_SUPERVISOR_CONF_DIR = '/etc/supervisor/conf.d'
 INFO_DEST_DPKG_DIR = '/var/lib/dpkg/info'  # not written to directly
-DEST_DOC_DIR = join('/usr/share/doc', PACKAGE)
+DEST_DOC_DIR = join('/usr/share/doc', PACKAGE_FOR_DEB)
 DEST_COLLECTED_STATIC_DIR = join(DEST_DJANGO_ROOT, 'static_collected')
 DEST_PYTHON_CACHE = join(DEST_ROOT, '.cache')
 
@@ -219,11 +240,11 @@ WORK_ROOT = workpath(DEST_ROOT)
 DEBVERSION = '{}-1'.format(VERSION)
 PACKAGENAME = join(
     PACKAGE_DIR,
-    '{PACKAGE}_{DEBVERSION}_all.deb'.format(PACKAGE=PACKAGE,
+    '{PACKAGE}_{DEBVERSION}_all.deb'.format(PACKAGE=PACKAGE_FOR_DEB,
                                             DEBVERSION=DEBVERSION))
 print("Building .deb package for {} version {} ({})".format(
-    PACKAGE, VERSION, VERSION_DATE))
-CRATE_PIPFILE = '{}-{}.tar.gz'.format(PACKAGE, VERSION)
+    PACKAGE_FOR_DEB, VERSION, VERSION_DATE))
+CRATE_PIPFILE = '{}-{}.tar.gz'.format(PACKAGE_FOR_PYPI, VERSION)
 
 # -----------------------------------------------------------------------------
 # Files
@@ -233,21 +254,15 @@ DEB_REQUIREMENTS_FILE = join(SOURCE_ROOT, 'requirements-ubuntu.txt')
 SPECIMEN_SUPERVISOR_CONF_FILE = join(
     DEST_ROOT, 'specimen_etc_supervisor_conf.d_crate.conf')
 DEST_SUPERVISOR_CONF_FILE = join(DEST_SUPERVISOR_CONF_DIR,
-                                 '{}.conf'.format(PACKAGE))
+                                 '{}.conf'.format(PACKAGE_FOR_DEB))
 DEB_PACKAGE_FILE = join(PACKAGE_DIR,
-                        '{}_{}_all.deb'.format(PACKAGE, DEBVERSION))
+                        '{}_{}_all.deb'.format(PACKAGE_FOR_DEB, DEBVERSION))
 LOCAL_CONFIG_BASENAME = "crateweb_local_settings.py"
 DEST_CRATEWEB_CONF_FILE = join(DEST_PACKAGE_CONF_DIR, LOCAL_CONFIG_BASENAME)
 INSTRUCTIONS = join(DEST_ROOT, 'instructions.txt')
 DEST_VENV_INSTALLER = join(DEST_ROOT, 'tools', 'install_virtualenv.py')
 DEST_WKHTMLTOPDF_INSTALLER = join(DEST_ROOT, 'tools', 'install_wkhtmltopdf.py')
 DEST_CRATE_PIPFILE = join(DEST_ROOT, CRATE_PIPFILE)
-
-# -----------------------------------------------------------------------------
-# Software
-# -----------------------------------------------------------------------------
-
-PYTHON_WITH_VER = "python3.4"
 
 # =============================================================================
 # Make directories
@@ -268,7 +283,7 @@ mkdir_p(DEB_OVERRIDE_DIR)
 
 # -----------------------------------------------------------------------------
 print("Creating preinst file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE + '.preinst'))
+      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.preinst'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'preinst'), 'w') as outfile:
     print("""#!/bin/bash
@@ -284,12 +299,12 @@ echo '{PACKAGE}: preinst file finished'
 
     """.format(
         BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
     ), file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating postinst file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE + '.postinst'))
+      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.postinst'))
 # -----------------------------------------------------------------------------
 
 if MAKE_GROUP:
@@ -379,7 +394,7 @@ echo "Please read this file: {INSTRUCTIONS}"
 echo
     """.format(  # noqa
         BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
         MAKE_GROUP_COMMAND_1=MAKE_GROUP_COMMAND_1,
         MAKE_GROUP_COMMAND_2=MAKE_GROUP_COMMAND_2,
         MAKE_USER_COMMAND_1=MAKE_USER_COMMAND_1,
@@ -400,7 +415,7 @@ echo
 
 # -----------------------------------------------------------------------------
 print("Creating prerm file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE + '.prerm'))
+      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.prerm'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'prerm'), 'w') as outfile:
     print("""#!/bin/bash
@@ -414,13 +429,13 @@ rm -rf {DEST_VIRTUALENV}
 echo '{PACKAGE}: prerm file finished'
     """.format(
         BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
         DEST_VIRTUALENV=DEST_VIRTUALENV,
     ), file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating postrm file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE + '.postrm'))
+      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.postrm'))
 # -----------------------------------------------------------------------------
 with open(join(DEB_DIR, 'postrm'), 'w') as outfile:
     print("""#!/bin/bash
@@ -433,7 +448,7 @@ restart_supervisord
 echo '{PACKAGE}: postrm file finished'
     """.format(
         BASHFUNC=BASHFUNC,
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
     ), file=outfile)
 
 # -----------------------------------------------------------------------------
@@ -458,14 +473,14 @@ Description: Clinical Records Anonymisation and Text Extraction (CRATE).
  (3) Provide a research web front end.
  (4) Manage a consent-to-contact framework that's anonymous to researchers.
 """.format(
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
         DEBVERSION=DEBVERSION,
         DEPENDENCIES=", ".join(DEPENDS_DEB),
     ), file=outfile)
 
 # -----------------------------------------------------------------------------
 print("Creating conffiles file. Will be installed as " +
-      join(INFO_DEST_DPKG_DIR, PACKAGE + '.conffiles'))
+      join(INFO_DEST_DPKG_DIR, PACKAGE_FOR_DEB + '.conffiles'))
 # -----------------------------------------------------------------------------
 configfiles = [DEST_CRATEWEB_CONF_FILE,
                DEST_SUPERVISOR_CONF_FILE]
@@ -478,7 +493,7 @@ with open(join(DEB_DIR, 'conffiles'), 'w') as outfile:
 # -----------------------------------------------------------------------------
 print("Creating Lintian override file")
 # -----------------------------------------------------------------------------
-with open(join(DEB_OVERRIDE_DIR, PACKAGE), 'w') as outfile:
+with open(join(DEB_OVERRIDE_DIR, PACKAGE_FOR_DEB), 'w') as outfile:
     print("""
 # Not an official new Debian package, so ignore this one.
 # If we did want to close a new-package ITP bug:
@@ -488,7 +503,7 @@ with open(join(DEB_OVERRIDE_DIR, PACKAGE), 'w') as outfile:
 {PACKAGE} binary: embedded-javascript-library
 {PACKAGE} binary: non-standard-file-perm
     """.format(
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
     ), file=outfile)
 
 # -----------------------------------------------------------------------------
@@ -500,20 +515,26 @@ with open(workpath(DEST_DOC_DIR, 'copyright'), 'w') as outfile:
 
 CRATE
 
-    Copyright (C) 2015-2016 Rudolf Cardinal (rudolf@pobox.com).
-    Department of Psychiatry, University of Cambridge.
+===============================================================================
+    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
 
-    Licensed under the Apache License, Version 2.0 (the 'License');
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+    This file is part of CRATE.
 
-        http://www.apache.org/licenses/LICENSE-2.0
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an 'AS IS' BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+===============================================================================
+
+    See also /usr/share/common-licenses
 
 ADDITIONAL LIBRARY COMPONENTS
 
@@ -522,9 +543,10 @@ ADDITIONAL LIBRARY COMPONENTS
     the source).
 
     """.format(
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
     ), file=outfile)
-
+# ... reference to /usr/share/common-licenses is required by Lintian;
+# https://lintian.debian.org/tags/copyright-should-refer-to-common-license-file-for-gpl.html  # noqa
 
 # =============================================================================
 # Destination files
@@ -559,9 +581,10 @@ with open(workpath(SPECIMEN_SUPERVISOR_CONF_FILE), 'w') as outfile:
 
 [program:crate-celery-worker]
 
-command = {DEST_VIRTUALENV}/bin/celery worker --app=consent --loglevel=info
+command = {DEST_VIRTUALENV}/bin/celery worker --app=crate_anon.crateweb.consent --loglevel=info
 directory = {DEST_DJANGO_ROOT}
-environment = PYTHONPATH="{DEST_ROOT}",{CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
+environment = {CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
+# ... no longer used: PYTHONPATH="{DEST_ROOT}"
 user = {CRATE_USER}
 stdout_logfile = /var/log/supervisor/{PACKAGE}_celery.log
 stderr_logfile = /var/log/supervisor/{PACKAGE}_celery_err.log
@@ -572,12 +595,14 @@ stopwaitsecs = 600
 
 [program:crate-gunicorn]
 
-command = {DEST_VIRTUALENV}/bin/gunicorn config.wsgi:application --workers 4 --bind=unix:{DEFAULT_GUNICORN_SOCKET}
+command = {DEST_VIRTUALENV}/bin/gunicorn crate_anon.crateweb.config.wsgi:application --workers 4 --bind=unix:{DEFAULT_GUNICORN_SOCKET}
 ; Alternative methods (port and socket respectively):
 ;   --bind=127.0.0.1:{DEFAULT_GUNICORN_PORT}
 ;   --bind=unix:{DEFAULT_GUNICORN_SOCKET}
 directory = {DEST_DJANGO_ROOT}
-environment = PYTHONPATH="{DEST_ROOT}",{CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
+# ... Gunicorn/Django is VERY FUSSY ABOUT ITS DIRECTORY, even with absolute package names; "config" must work as a bare import
+environment = {CRATEWEB_CONFIG_ENV_VAR}="{DEST_CRATE_CONF_FILE}"
+# ... no longer used: PYTHONPATH="{DEST_ROOT}"
 user = {CRATE_USER}
 stdout_logfile = /var/log/supervisor/{PACKAGE}_gunicorn.log
 stderr_logfile = /var/log/supervisor/{PACKAGE}_gunicorn_err.log
@@ -586,14 +611,14 @@ autorestart = true
 startsecs = 10
 stopwaitsecs = 60
 
-    """.format(
+    """.format(  # noqa
         CRATEWEB_CONFIG_ENV_VAR=CRATEWEB_CONFIG_ENV_VAR,
         DEST_VIRTUALENV=DEST_VIRTUALENV,
         DEST_DJANGO_ROOT=DEST_DJANGO_ROOT,
         DEST_ROOT=DEST_ROOT,
         DEST_CRATE_CONF_FILE=DEST_CRATEWEB_CONF_FILE,
         CRATE_USER=CRATE_USER,
-        PACKAGE=PACKAGE,
+        PACKAGE=PACKAGE_FOR_DEB,
         DEFAULT_GUNICORN_PORT=DEFAULT_GUNICORN_PORT,
         DEFAULT_GUNICORN_SOCKET=DEFAULT_GUNICORN_SOCKET,
     ), file=outfile)
@@ -876,12 +901,16 @@ shutil.copy(join(SOURCE_ROOT, 'changelog.Debian'), workpath(DEST_DOC_DIR))
 subprocess.check_call(['gzip', '-9',
                        workpath(DEST_DOC_DIR, 'changelog.Debian')])
 # ... must be compressed
+remove_gzip_timestamp(workpath(DEST_DOC_DIR, 'changelog.Debian.gz'))
+# ... must not have timestamp
 
 # -----------------------------------------------------------------------------
 print("Building Python package")
 # -----------------------------------------------------------------------------
 # Remove egg info, or files are cached inappropriately.
 shutil.rmtree(EGG_DIR, ignore_errors=True)
+# setup.py needs to be run from the right directory
+os.chdir(SOURCE_ROOT)
 subprocess.check_call([
     PYTHON_WITH_VER, join(SOURCE_ROOT, 'setup.py'), 'sdist'
 ])
@@ -891,9 +920,10 @@ print("Copying package files")
 # -----------------------------------------------------------------------------
 shutil.copy(join(SOURCE_ROOT, 'dist', CRATE_PIPFILE),
             workpath(DEST_CRATE_PIPFILE))
+remove_gzip_timestamp(workpath(DEST_CRATE_PIPFILE))
 # shutil.copy(join(SOURCE_ROOT, 'README.md'), WORK_ROOT)
 copytree(join(SOURCE_ROOT, 'tools'), join(WORK_ROOT))
-shutil.copy(join(SOURCE_ROOT, 'crate', 'crateweb',
+shutil.copy(join(SOURCE_ROOT, PACKAGE_DIR_FROM_SOURCE_ROOT, 'crateweb',
                  'specimen_secret_local_settings', LOCAL_CONFIG_BASENAME),
             workpath(DEST_CRATEWEB_CONF_FILE))
 shutil.copy(workpath(SPECIMEN_SUPERVISOR_CONF_FILE),
@@ -968,5 +998,5 @@ else:
 print("=" * 79)
 print("Debian package should be: " + PACKAGENAME)
 print("Quick install: sudo gdebi --non-interactive " + DEB_PACKAGE_FILE)
-print("Quick remove: sudo apt-get remove " + PACKAGE)
+print("Quick remove: sudo apt-get remove " + PACKAGE_FOR_DEB)
 # =============================================================================

@@ -106,8 +106,8 @@ DT_FORMATS = [
 ]
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-DEFAULT_DOCDIR = os.path.join(CURRENT_DIR, os.pardir, os.pardir,
-                              "testdocs_for_text_extraction")
+DEFAULT_DOCDIR = os.path.abspath(os.path.join(
+    CURRENT_DIR, os.pardir, "testdocs_for_text_extraction"))
 DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, 'doctest.doc')
 DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, 'doctest.docx')
 DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, 'doctest.odt')

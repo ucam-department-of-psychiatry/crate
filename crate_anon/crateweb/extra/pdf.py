@@ -25,14 +25,15 @@
 import logging
 from typing import Any, Dict
 
+from cardinal_pythonlib.dicts import merge_two_dicts
+from cardinal_pythonlib.django.serve import serve_buffer
 from cardinal_pythonlib.pdf import (
     get_pdf_from_html,
     make_pdf_on_disk_from_html,
     PdfPlan,
 )
-
-from cardinal_pythonlib.dicts import merge_two_dicts
 from django.conf import settings
+from django.http import HttpResponse
 
 log = logging.getLogger(__name__)
 
@@ -59,8 +60,9 @@ def get_pdf_from_html_with_django_settings(
         footer_html: str = None,
         wkhtmltopdf_filename: str = None,
         wkhtmltopdf_options: Dict[str, Any] = None,
-        debug: bool = False,
-        fix_pdfkit_encoding_bug: bool = True) -> bytes:
+        debug_content: bool = False,
+        debug_options: bool = False,
+        fix_pdfkit_encoding_bug: bool = None) -> bytes:
     # Customized for this Django site
     wkhtmltopdf_filename = wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME  # noqa
     if wkhtmltopdf_options is None:
@@ -68,6 +70,7 @@ def get_pdf_from_html_with_django_settings(
     else:
         wkhtmltopdf_options = merge_two_dicts(settings.WKHTMLTOPDF_OPTIONS,
                                               wkhtmltopdf_options)
+    # log.critical("{!r}".format(wkhtmltopdf_options))
 
     return get_pdf_from_html(
         html=html,
@@ -75,7 +78,8 @@ def get_pdf_from_html_with_django_settings(
         footer_html=footer_html,
         wkhtmltopdf_filename=wkhtmltopdf_filename,
         wkhtmltopdf_options=wkhtmltopdf_options,
-        debug=debug,
+        debug_content=debug_content,
+        debug_options=debug_options,
         fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,
     )
 
@@ -87,8 +91,9 @@ def make_pdf_on_disk_from_html_with_django_settings(
         wkhtmltopdf_filename: str = None,
         wkhtmltopdf_options: Dict[str, Any] = None,
         output_path: str = None,
-        debug: bool = False,
-        fix_pdfkit_encoding_bug: bool = True) -> bool:
+        debug_content: bool = False,
+        debug_options: bool = False,
+        fix_pdfkit_encoding_bug: bool = None) -> bool:
     # Customized for this Django site
     wkhtmltopdf_filename = wkhtmltopdf_filename or settings.WKHTMLTOPDF_FILENAME  # noqa
     if wkhtmltopdf_options is None:
@@ -104,6 +109,41 @@ def make_pdf_on_disk_from_html_with_django_settings(
         footer_html=footer_html,
         wkhtmltopdf_filename=wkhtmltopdf_filename,
         wkhtmltopdf_options=wkhtmltopdf_options,
-        debug=debug,
+        debug_content=debug_content,
+        debug_options=debug_options,
         fix_pdfkit_encoding_bug=fix_pdfkit_encoding_bug,
     )
+
+
+# =============================================================================
+# Serve PDFs from HTML
+# =============================================================================
+
+def serve_pdf_from_html(html: str,
+                        offered_filename: str = "test.pdf",
+                        **kwargs) -> HttpResponse:
+    """Same args as pdf_from_html."""
+    pdf = get_pdf_from_html_with_django_settings(html, **kwargs)
+    return serve_buffer(pdf,
+                        offered_filename=offered_filename,
+                        content_type="application/pdf",
+                        as_attachment=False,
+                        as_inline=True)
+
+
+def serve_html_or_pdf(html: str, viewtype: str) -> HttpResponse:
+    """
+    For development.
+
+    HTML = contents
+    viewtype = "pdf" or "html"
+    """
+    if viewtype == "pdf":
+        return serve_pdf_from_html(
+            html,
+            header_html=settings.PDF_LETTER_HEADER_HTML,
+            footer_html=settings.PDF_LETTER_FOOTER_HTML)
+    elif viewtype == "html":
+        return HttpResponse(html)
+    else:
+        raise ValueError("Bad viewtype")

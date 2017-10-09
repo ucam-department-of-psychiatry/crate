@@ -178,6 +178,10 @@ setup(
             '*.lua',
             '*.sh',
         ],
+        'crate_anon.testdocs_for_text_extraction': [
+            'doctest.*',
+            'nonascii.odt',
+        ],
     },
 
     install_requires=[
@@ -232,7 +236,7 @@ setup(
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==1.0.0',
+        'cardinal_pythonlib==1.0.2',
 
         'beautifulsoup4==4.5.3',
         'prettytable==0.7.2',
