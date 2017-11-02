@@ -242,8 +242,8 @@ class DatabaseSafeConfig(object):
         # ... key: fieldspec
         # ... value: hash_config_section_name
 
-        self.PidType = BigInteger
-        self.MpidType = BigInteger
+        self.pidtype = BigInteger()
+        self.mpidtype = BigInteger()
 
     def is_table_blacklisted(self, table: str) -> bool:
         for white in self.ddgen_table_whitelist:
@@ -364,10 +364,15 @@ class Config(object):
                                        reflect=reflect)
 
         def get_sqlatype(sqlatype: str, default: TypeEngine) -> TypeEngine:
+
+            """
+            Since we might have to return String(length=...), we have to return
+            an instance, not a class.
+            """
             if not sqlatype:
                 return default
             if sqlatype == "BigInteger":
-                return BigInteger
+                return BigInteger()
             r = regex.compile(r"String\((\d+)\)")  # e.g. String(50)
             try:
                 m = r.match(sqlatype)
@@ -387,10 +392,10 @@ class Config(object):
         # Critical field types
         # ---------------------------------------------------------------------
 
-        self.PidType = get_sqlatype(opt_str('sqlatype_pid'), BigInteger)
-        self.pidtype_is_integer = is_sqlatype_integer(self.PidType)
-        self.MpidType = get_sqlatype(opt_str('sqlatype_mpid'), BigInteger)
-        self.mpidtype_is_integer = is_sqlatype_integer(self.MpidType)
+        self.pidtype = get_sqlatype(opt_str('sqlatype_pid'), BigInteger())
+        self.pidtype_is_integer = is_sqlatype_integer(self.pidtype)
+        self.mpidtype = get_sqlatype(opt_str('sqlatype_mpid'), BigInteger())
+        self.mpidtype_is_integer = is_sqlatype_integer(self.mpidtype)
 
         # ---------------------------------------------------------------------
         # Encryption phrases/passwords
@@ -516,12 +521,8 @@ class Config(object):
         # Output fields and formatting
         # ---------------------------------------------------------------------
 
-        self.mapping_patient_id_fieldname = opt_str(
-            'mapping_patient_id_fieldname')
         self.research_id_fieldname = opt_str('research_id_fieldname')
         self.trid_fieldname = opt_str('trid_fieldname')
-        self.mapping_master_id_fieldname = opt_str(
-            'mapping_master_id_fieldname')
         self.master_research_id_fieldname = opt_str(
             'master_research_id_fieldname')
         self.source_hash_fieldname = opt_str('source_hash_fieldname')
@@ -693,11 +694,9 @@ class Config(object):
             ensure_valid_field_name(getattr(self, name))
 
         specialfieldlist = [
-            "mapping_patient_id_fieldname",
             "research_id_fieldname",
             "trid_fieldname",
             "master_research_id_fieldname",
-            "mapping_master_id_fieldname",
             "source_hash_fieldname",
         ]
         fieldset = set()

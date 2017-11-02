@@ -22,8 +22,7 @@
 ===============================================================================
 """
 
-import typing.re
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Pattern, Tuple
 
 import regex
 # noinspection PyProtectedMember
@@ -59,7 +58,7 @@ def at_start_wb(regex_str: str) -> str:
     return "(?: \b (?: {} ) )".format(regex_str)
 
 
-def compile_regex(regex_str: str) -> typing.re.Pattern:
+def compile_regex(regex_str: str) -> Pattern:
     try:
         return regex.compile(regex_str, REGEX_COMPILE_FLAGS)
     except _regex_core.error:
@@ -68,7 +67,7 @@ def compile_regex(regex_str: str) -> typing.re.Pattern:
 
 
 def compile_regex_dict(regexstr_to_value_dict: Dict[str, Any]) \
-        -> Dict[typing.re.Pattern, Any]:
+        -> Dict[Pattern, Any]:
     return {
         compile_regex(k): v
         for k, v in regexstr_to_value_dict.items()
@@ -76,7 +75,7 @@ def compile_regex_dict(regexstr_to_value_dict: Dict[str, Any]) \
 
 
 def get_regex_dict_match(text: Optional[str],
-                         regex_to_value_dict: Dict[typing.re.Pattern, Any],
+                         regex_to_value_dict: Dict[Pattern, Any],
                          default: Any = None) \
         -> Tuple[bool, Any]:
     """Returns (matched, result)."""

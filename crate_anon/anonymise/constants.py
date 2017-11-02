@@ -692,9 +692,6 @@ anonymise_strings_at_word_boundaries_only = True
 # Output fields and formatting
 # -----------------------------------------------------------------------------
 
-    # Name used for the primary patient ID in the mapping table.
-mapping_patient_id_fieldname = patient_id
-
     # Research ID field name. This will be a VARCHAR of length determined by
     # hash_method. Used to replace patient ID fields from source tables.
 research_id_fieldname = brcid
@@ -704,9 +701,6 @@ research_id_fieldname = brcid
     # containing a primary patient ID (in the source) or research ID (in the
     # destination).
 trid_fieldname = trid
-
-    # Name used for the master patient ID in the mapping table.
-mapping_master_id_fieldname = nhsnum
 
     # Similarly, used to replace master patient ID fields in source tables:
 master_research_id_fieldname = nhshash

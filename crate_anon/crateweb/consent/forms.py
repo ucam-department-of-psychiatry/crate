@@ -37,6 +37,7 @@ from crate_anon.crateweb.consent.models import (
     ClinicianResponse,
     Study,
 )
+from crate_anon.crateweb.research.research_db_info import SingleResearchDatabase  # noqa
 
 log = logging.getLogger(__name__)
 
@@ -82,12 +83,21 @@ class SuperuserSubmitContactRequestForm(AbstractContactRequestForm):
         initial=True)
     nhs_numbers = MultipleNhsNumberAreaField(label='NHS numbers',
                                              required=False)
-    rids = MultipleWordAreaField(
-        label='{} (RID)'.format(settings.SECRET_MAP['RID_FIELD']),
-        required=False)
-    mrids = MultipleWordAreaField(
-        label='{} (MRID)'.format(settings.SECRET_MAP['MASTER_RID_FIELD']),
-        required=False)
+    rids = MultipleWordAreaField(required=False)
+    mrids = MultipleWordAreaField(required=False)
+
+    def __init__(self,
+                 *args,
+                 dbinfo: SingleResearchDatabase,
+                 **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        rids = self.fields['rids']  # type: MultipleWordAreaField
+        mrids = self.fields['mrids']  # type: MultipleWordAreaField
+
+        rids.label = "{} ({}) (RID)".format(dbinfo.rid_field,
+                                            dbinfo.rid_description)
+        mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
+                                              dbinfo.mrid_description)
 
 
 class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
@@ -97,22 +107,30 @@ class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
               "(UNTICK to ask clinician for additional info)",
         required=False,
         initial=True)
-    rids = MultipleWordAreaField(
-        label='{} (RID)'.format(settings.SECRET_MAP['RID_FIELD']),
-        required=False)
-    mrids = MultipleWordAreaField(
-        label='{} (MRID)'.format(settings.SECRET_MAP['MASTER_RID_FIELD']),
-        required=False)
+    rids = MultipleWordAreaField(required=False)
+    mrids = MultipleWordAreaField(required=False)
 
-    def __init__(self, user, *args, **kwargs):
+    def __init__(self,
+                 *args,
+                 user: settings.AUTH_USER_MODEL,
+                 dbinfo: SingleResearchDatabase,
+                 **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.fields['study'].queryset = (
+        study = self.fields['study']  # type: forms.ModelChoiceField
+        rids = self.fields['rids']  # type: MultipleWordAreaField
+        mrids = self.fields['mrids']  # type: MultipleWordAreaField
+
+        study.queryset = (
             get_queryset_possible_contact_studies()
             .filter(Q(lead_researcher=user) | Q(researchers__in=[user]))
             .distinct()
         )
         # https://docs.djangoproject.com/en/1.8/ref/models/querysets/#field-lookups  # noqa
         # http://stackoverflow.com/questions/5329586/django-modelchoicefield-filtering-query-set-and-setting-default-value-as-an-obj  # noqa
+        rids.label = "{} ({}) (RID)".format(dbinfo.rid_field,
+                                            dbinfo.rid_description)
+        mrids.label = "{} ({}) (MRID)".format(dbinfo.mrid_field,
+                                              dbinfo.mrid_description)
 
 
 class ClinicianResponseForm(forms.ModelForm):

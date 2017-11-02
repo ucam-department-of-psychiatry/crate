@@ -33,7 +33,7 @@ import os
 import sys
 from typing import Dict, Iterable, List, Optional
 
-from cardinal_pythonlib.datetimefunc import get_now_utc_notz
+from cardinal_pythonlib.datetimefunc import get_now_utc_notz_datetime
 from cardinal_pythonlib.lists import chunks
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
@@ -140,7 +140,7 @@ class NlpDefinition(object):
         self._max_bytes_before_commit = self.opt_int(
             nlpname, 'max_bytes_before_commit',
             DEFAULT_MAX_BYTES_BEFORE_COMMIT)
-        self._now = get_now_utc_notz()
+        self._now = get_now_utc_notz_datetime()
 
         # ---------------------------------------------------------------------
         # Input field definitions
@@ -164,7 +164,7 @@ class NlpDefinition(object):
                 self.require_section(procname)
                 processor = make_processor(proctype, self, procname)
                 self._processors.append(processor)
-        except:
+        except ValueError:
             log.critical("Bad 'processors' specification")
             raise
 

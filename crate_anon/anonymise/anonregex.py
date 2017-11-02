@@ -30,13 +30,14 @@ import calendar
 import datetime
 import dateutil.parser  # for unit tests
 import logging
-import typing.re
-from typing import List, Optional, Union
+from typing import List, Optional, Pattern, Union
 import unittest
 
 from cardinal_pythonlib.lists import unique_list
 from cardinal_pythonlib.logs import configure_logger_for_colour
 import regex  # sudo apt-get install python-regex
+# noinspection PyProtectedMember
+from regex import _regex_core
 
 from crate_anon.common.stringfunc import (
     get_digit_string_from_vaguely_numeric_string,  # for unit testing
@@ -359,8 +360,7 @@ def get_regex_string_from_elements(elementlist: List[str]) -> str:
     # non-capturing group, (?:...)
 
 
-def get_regex_from_elements(elementlist: List[str]) \
-        -> Optional[typing.re.Pattern]:
+def get_regex_from_elements(elementlist: List[str]) -> Optional[Pattern]:
     """
     Convert a list of regex elements into a compiled regex, which will operate
     in case-insensitive fashion on Unicode strings.
@@ -370,7 +370,7 @@ def get_regex_from_elements(elementlist: List[str]) \
     try:
         s = get_regex_string_from_elements(elementlist)
         return regex.compile(s, regex.IGNORECASE | regex.UNICODE)
-    except:
+    except _regex_core.error:
         log.exception("Failed regex: elementlist={}".format(elementlist))
         raise
 
@@ -526,8 +526,8 @@ def examples_for_paper():
     at_word_boundaries_only = True
     words_regexes = []  # type: List[str]
     for s in get_anon_fragments_from_string(testwords):
-        l = len(s)
-        if l < min_string_length_to_scrub_with:
+        length = len(s)
+        if length < min_string_length_to_scrub_with:
             continue
         words_regexes.extend(get_string_regex_elements(
             s,

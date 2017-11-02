@@ -219,7 +219,7 @@ setup(
         # 'pygraphviz==1.3.1',  # not used
         'pyparsing==2.1.10',  # generic grammar parser
         'PyPDF2==1.26.0',
-        'pytz==2016.10',
+        # 'pytz==2016.10',
         'python-dateutil==2.6.0',
         'sqlparse==0.2.2',
         'Werkzeug==0.11.15',
@@ -236,7 +236,7 @@ setup(
         # For the anonymiser/pythonlib:
         # ---------------------------------------------------------------------
 
-        'cardinal_pythonlib==1.0.2',
+        'cardinal_pythonlib==1.0.7',
 
         'beautifulsoup4==4.5.3',
         'prettytable==0.7.2',

@@ -24,6 +24,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
+# noinspection PyPackageRequirements
 import picklefield.fields
 from django.conf import settings
 

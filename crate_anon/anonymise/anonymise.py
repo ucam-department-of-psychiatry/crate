@@ -34,7 +34,7 @@ import random
 import sys
 from typing import Any, Dict, Iterable, Generator, List, Tuple
 
-from cardinal_pythonlib.datetimefunc import get_now_utc
+from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.sqlalchemy.core_query import count_star, exists_plain
 from cardinal_pythonlib.sqlalchemy.schema import (
     add_index,
@@ -127,12 +127,12 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
         extra = list(outcome_set - target_set)
         if missing:
             raise Exception(
-                "Missing fields in destination table {t}: {l}".format(
-                    t=tablename, l=missing))
+                "Missing fields in destination table {t}: {fields}".format(
+                    t=tablename, fields=missing))
         if extra:
             log.warning(
-                "Extra fields in destination table {t}: {l}".format(
-                    t=tablename, l=extra))
+                "Extra fields in destination table {t}: {fields}".format(
+                    t=tablename, fields=extra))
 
 
 def delete_dest_rows_with_no_src_row(
@@ -1148,7 +1148,7 @@ def anonymise(args: Any) -> None:
     # -------------------------------------------------------------------------
 
     log.info(BIGSEP + "Starting")
-    start = get_now_utc()
+    start = get_now_utc_pendulum()
 
     # 1. Drop/remake tables. Single-tasking only.
     if args.dropremake or everything:
@@ -1178,7 +1178,7 @@ def anonymise(args: Any) -> None:
         create_indexes(tasknum=args.process, ntasks=args.nprocesses)
 
     log.info(BIGSEP + "Finished")
-    end = get_now_utc()
+    end = get_now_utc_pendulum()
     time_taken = end - start
     log.info("Time taken: {} seconds".format(time_taken.total_seconds()))
     # config.dd.debug_cache_hits()

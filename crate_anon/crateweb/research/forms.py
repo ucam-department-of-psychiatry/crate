@@ -24,17 +24,17 @@
 
 import datetime
 import logging
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from cardinal_pythonlib.django.forms import (
     MultipleIntAreaField,
     MultipleWordAreaField,
 )
 from django import forms
-from django.conf import settings
 from django.forms import (
     BooleanField,
     CharField,
+    ChoiceField,
     DateField,
     FileField,
     FloatField,
@@ -43,6 +43,7 @@ from django.forms import (
 )
 
 from crate_anon.crateweb.research.models import Highlight, Query
+from crate_anon.crateweb.research.research_db_info import SingleResearchDatabase  # noqa
 from crate_anon.common.sql import (
     SQL_OPS_MULTIPLE_VALUES,
     SQL_OPS_VALUE_UNNECESSARY,
@@ -83,32 +84,112 @@ class BlankHighlightForm(ModelForm):
         fields = []
 
 
+class DatabasePickerForm(forms.Form):
+    database = ChoiceField(label="Database", required=True)
+
+    def __init__(self,
+                 *args,
+                 dbinfolist: List[SingleResearchDatabase],
+                 **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        f = self.fields['database']  # type: ChoiceField
+        f.choices = [(d.name, d.description) for d in dbinfolist]
+
+
 class PidLookupForm(forms.Form):
-    trids = MultipleIntAreaField(
-        label='{} (TRID)'.format(settings.SECRET_MAP['TRID_FIELD']),
-        required=False)
-    rids = MultipleWordAreaField(
-        label='{} (RID)'.format(settings.SECRET_MAP['RID_FIELD']),
-        required=False)
-    mrids = MultipleWordAreaField(
-        label='{} (MRID)'.format(settings.SECRET_MAP['MASTER_RID_FIELD']),
-        required=False)
+    rids = MultipleWordAreaField(required=False)
+    mrids = MultipleWordAreaField(required=False)
+    trids = MultipleIntAreaField(required=False)
+
+    def __init__(self,
+                 *args,
+                 dbinfo: SingleResearchDatabase,
+                 **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        rids = self.fields['rids']  # type: MultipleIntAreaField
+        mrids = self.fields['mrids']  # type: MultipleIntAreaField
+        trids = self.fields['trids']  # type: MultipleIntAreaField
+        rids.label = "{}: {} (RID)".format(dbinfo.rid_field,
+                                           dbinfo.rid_description)
+        mrids.label = "{}: {} (MRID)".format(dbinfo.mrid_field,
+                                             dbinfo.mrid_description)
+        trids.label = "{}: {} (TRID)".format(dbinfo.trid_field,
+                                             dbinfo.trid_description)
+
+
+DEFAULT_MIN_TEXT_FIELD_LENGTH = 100
+
+
+class FieldPickerInfo(object):
+    def __init__(self, value: str, description: str, type_: Type):
+        self.value = value
+        self.description = description
+        self.type_ = type_
 
 
 class SQLHelperTextAnywhereForm(forms.Form):
-    fkname = CharField(label="Field name containing patient research ID",
-                       required=True)
-    min_length = IntegerField(
-        label="Minimum length of textual field (suggest e.g. 50)",
-        min_value=1, required=True)
+    fkname = ChoiceField(required=True)
+    patient_id = CharField(label="ID value (to restrict to a single patient)",
+                           required=False)
     fragment = CharField(label="String fragment to find", required=True)
     use_fulltext_index = BooleanField(
         label="Use full-text indexing where available "
         "(faster, but requires whole words)",
         required=False)
+    min_length = IntegerField(
+        label="Minimum 'width' of textual field to include (e.g. {})".format(
+            DEFAULT_MIN_TEXT_FIELD_LENGTH
+        ),
+        min_value=1, required=True)
     include_content = BooleanField(
         label="Include content from fields where found (slower)",
         required=False)
+    include_datetime = BooleanField(
+        label="Include date/time from where known",
+        required=False)
+
+    def __init__(
+            self,
+            *args,
+            fk_options: List[FieldPickerInfo],
+            fk_label: str = "Field name containing patient research ID",
+            **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fk_options = fk_options
+        # Set the choices available for fkname
+        f = self.fields['fkname']  # type: ChoiceField
+        f.choices = [(opt.value, opt.description) for opt in fk_options]
+        f.label = fk_label
+
+    def clean(self) -> Dict[str, Any]:
+        cleaned_data = super().clean()
+        fieldname = cleaned_data.get("fkname")
+        pidvalue = cleaned_data.get("patient_id")
+        if fieldname and pidvalue:
+            opt = next(o for o in self.fk_options if o.value == fieldname)
+            try:
+                _ = opt.type_(pidvalue)
+            except (TypeError, ValueError):
+                raise forms.ValidationError(
+                    "For field {!r}, the ID value must be of type {}".format(
+                        opt.description, opt.type_))
+        return cleaned_data
+
+
+class ClinicianAllTextFromPidForm(SQLHelperTextAnywhereForm):
+    patient_id = CharField(label="ID value", required=True)
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args,
+                         fk_label="Field name containing patient ID",
+                         **kwargs)
+        ic = self.fields['include_content']  # type: BooleanField
+        id = self.fields['include_datetime']  # type: BooleanField
+
+        # Hide include_content/include_datetime (always true here)
+        # ic.widget = ic.hidden_widget  # ... nope!
+        ic.widget = forms.HiddenInput()  # yes, this works
+        id.widget = forms.HiddenInput()
 
 
 def html_form_date_to_python(text: str) -> datetime.datetime:

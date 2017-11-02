@@ -49,9 +49,6 @@ def gen_all_values_for_patient(dbname: str,
     Generate all sensitive (scrub_src) values for a given patient, from a given
     source table. Used to build the scrubber.
 
-        sources: dictionary
-            key: db name
-            value: rnc_db database object
         dbname: source database name
         table: source table
         fields: source fields containing scrub_src information

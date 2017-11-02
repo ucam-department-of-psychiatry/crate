@@ -8,23 +8,23 @@
 */
 
 var c_available_python = "{{ option_c_available }}";
-var c_available = c_available_python == "True";
+var c_available = c_available_python === "True";
 var r_available_python = "{{ option_r_available }}";
-var r_available = r_available_python == "True";
+var r_available = r_available_python === "True";
 var initial_response = "{{ initial_response }}";
 
 //noinspection JSUnusedGlobalSymbols
 function startup() {
     // document.getElementById("debug").innerHTML += "initial_response: " + initial_response + ".";
-    if (initial_response == 'A') {
+    if (initial_response === 'A') {
         showA();
-    } else if (initial_response == 'B') {
+    } else if (initial_response === 'B') {
         showB();
-    } else if (initial_response == 'C') {
+    } else if (initial_response === 'C') {
         showC();
-    } else if (initial_response == 'D') {
+    } else if (initial_response === 'D') {
         showD();
-    } else if (initial_response == 'R') {
+    } else if (initial_response === 'R') {
         showR();
     } else {
         hideAll();

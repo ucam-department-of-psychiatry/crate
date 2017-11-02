@@ -10,11 +10,11 @@
 
         <table>
             <tr>
-                <th>{{ SECRET_MAP.TRID_FIELD }} (TRID)</th>
-                <th>{{ SECRET_MAP.RID_FIELD }} (RID)</th>
-                <th>{{ SECRET_MAP.MASTER_RID_FIELD }} (MRID)</th>
-                <th>{{ SECRET_MAP.PID_FIELD }} (PID)</th>
-                <th>{{ SECRET_MAP.MASTER_PID_FIELD }} (MPID)</th>
+                <th><i>TRID</i><br>{{ trid_field }}: {{ trid_description }}</th>
+                <th><i>RID</i><br>{{ rid_field }}: {{ rid_description }}</th>
+                <th><i>MRID</i><br>{{ mrid_field }}: {{ mrid_description }}</th>
+                <th><i>PID</i><br>{{ pid_description }}</th>
+                <th><i>MPID</i><br>{{ mpid_description }}</th>
             </tr>
             {% for lookup in lookups %}
                 <tr>

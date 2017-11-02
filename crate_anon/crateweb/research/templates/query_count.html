@@ -9,7 +9,7 @@
 
     <h1>Count</h1>
     <div>There are <b>{{ rowcount|intcomma }}</b> records.</div>
-    <div><a href="{% url 'results' %}">view results</a></div>
+    <div><a href="{% url 'results' current_query_id %}">view results</a></div>
 
     <h1>SQL</h1>
     <pre>{{ sql }}</pre>

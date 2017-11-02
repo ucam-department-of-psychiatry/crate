@@ -44,11 +44,11 @@ from cardinal_pythonlib.sql.literals import (
 )
 from cardinal_pythonlib.sql.sql_grammar import SqlGrammar, text_from_parsed
 from cardinal_pythonlib.sql.sql_grammar_factory import (
-    DIALECT_MYSQL,
     make_grammar,
     mysql_grammar,
 )
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from cardinal_pythonlib.sqlalchemy.schema import column_creation_ddl
 from cardinal_pythonlib.timing import MultiTimerContext, timer
 from pyparsing import ParseResults
@@ -129,8 +129,30 @@ COLTYPE_WITH_ONE_INTEGER_REGEX = re.compile(r"^([A-z]+)\((\d+)\)$")
 @functools.total_ordering
 class SchemaId(object):
     def __init__(self, db: str = '', schema: str = '') -> None:
+        assert "." not in db, (
+            "Bad database name ({!r}); can't include '.'".format(db)
+        )
+        assert "." not in schema, (
+            "Bad schema name ({!r}); can't include '.'".format(schema)
+        )
         self._db = db
         self._schema = schema
+
+    @property
+    def schema_tag(self) -> str:
+        """
+        String suitable for encoding the SchemaId e.g. in a single HTML form.
+        The __init__ function checks the assumption of no '.' characters in
+        either part.
+        """
+        return "{}.{}".format(self._db, self._schema)
+
+    @classmethod
+    def from_schema_tag(cls, tag: str) -> 'SchemaId':
+        parts = tag.split(".")
+        assert len(parts) == 2, "Bad schema tag {!r}".format(tag)
+        db, schema = parts
+        return SchemaId(db, schema)
 
     def __bool__(self) -> bool:
         return bool(self._schema)
@@ -162,9 +184,11 @@ class SchemaId(object):
         return ColumnId(db=self._db, schema=self._schema,
                         table=table, column=column)
 
+    @property
     def db(self) -> str:
         return self._db
 
+    @property
     def schema(self) -> str:
         return self._schema
 
@@ -210,6 +234,7 @@ class TableId(object):
                                schema=self._schema,
                                table=self._table)
 
+    @property
     def schema_id(self) -> SchemaId:
         return SchemaId(db=self._db, schema=self._schema)
 
@@ -225,12 +250,15 @@ class TableId(object):
     def table_part(self, grammar: SqlGrammar) -> str:
         return make_identifier(grammar, table=self._table)
 
+    @property
     def db(self) -> str:
         return self._db
 
+    @property
     def schema(self) -> str:
         return self._schema
 
+    @property
     def table(self) -> str:
         return self._table
 
@@ -269,6 +297,7 @@ class ColumnId(object):
             (other._db, other._schema, other._table, other._column)
         )
 
+    @property
     def is_valid(self) -> bool:
         return bool(self._table and self._column)  # the minimum
 
@@ -279,24 +308,31 @@ class ColumnId(object):
                                table=self._table,
                                column=self._column)
 
+    @property
     def db(self) -> str:
         return self._db
 
+    @property
     def schema(self) -> str:
         return self._schema
 
+    @property
     def table(self) -> str:
         return self._table
 
+    @property
     def column(self) -> str:
         return self._column
 
+    @property
     def schema_id(self) -> SchemaId:
         return SchemaId(db=self._db, schema=self._schema)
 
+    @property
     def table_id(self) -> TableId:
         return TableId(db=self._db, schema=self._schema, table=self._table)
 
+    @property
     def has_table_and_column(self) -> bool:
         return bool(self._table and self._column)
 
@@ -351,12 +387,12 @@ def split_db_schema_table_column(db_schema_table_col: str) -> ColumnId:
 def columns_to_table_column_hierarchy(
         columns: List[ColumnId],
         sort: bool = True) -> List[Tuple[TableId, List[ColumnId]]]:
-    tables = unique_list(c.table_id() for c in columns)
+    tables = unique_list(c.table_id for c in columns)
     if sort:
         tables.sort()
     table_column_map = []
     for t in tables:
-        t_columns = [c for c in columns if c.table_id() == t]
+        t_columns = [c for c in columns if c.table_id == t]
         if sort:
             t_columns.sort()
         table_column_map.append((t, t_columns))
@@ -462,11 +498,11 @@ def get_first_from_table(parsed: ParseResults,
     existing_tables = parsed.join_source.from_tables.asList()
     for t in existing_tables:
         table_id = split_db_schema_table(t)
-        if match_db and table_id.db() != match_db:
+        if match_db and table_id.db != match_db:
             continue
-        if match_schema and table_id.schema() != match_schema:
+        if match_schema and table_id.schema != match_schema:
             continue
-        if match_table and table_id.table() != match_table:
+        if match_table and table_id.table != match_table:
             continue
         return table_id
     return TableId()
@@ -948,10 +984,10 @@ def matches_tabledef(table: str, tabledef: Union[str, List[str]]) -> bool:
 
 def _matches_fielddef(table: str, field: str, fielddef: str) -> bool:
     column_id = split_db_schema_table_column(fielddef)
-    cr = get_spec_match_regex(column_id.column())
-    if not column_id.table():
+    cr = get_spec_match_regex(column_id.column)
+    if not column_id.table:
         return cr.match(field)
-    tr = get_spec_match_regex(column_id.table())
+    tr = get_spec_match_regex(column_id.table)
     return tr.match(table) and cr.match(field)
 
 
@@ -1132,16 +1168,18 @@ class WhereCondition(object):
             (other._raw_sql, other._column_id, other._op, other._value)
         )
 
+    @property
     def column_id(self) -> ColumnId:
         return self._column_id
 
+    @property
     def table_id(self) -> TableId:
         if self._raw_sql:
             return self._from_table_for_raw_sql
-        return self.column_id().table_id()
+        return self.column_id.table_id
 
     def table_str(self, grammar: SqlGrammar) -> str:
-        return self.table_id().identifier(grammar)
+        return self.table_id.identifier(grammar)
 
     def sql(self, grammar: SqlGrammar) -> str:
         if self._raw_sql:
@@ -1204,7 +1242,8 @@ def format_sql_for_print(sql: str) -> str:
 def is_sql_column_type_textual(column_type: str,
                                min_length: int = 1) -> bool:
     column_type = column_type.upper()
-    if column_type == 'TEXT':
+    if column_type in SQLTYPES_TEXT:
+        # A text type without a specific length
         return True
     try:
         m = COLTYPE_WITH_ONE_INTEGER_REGEX.match(column_type)
@@ -1247,6 +1286,17 @@ def escape_sql_string_literal(s: str) -> str:
     substitution.
     """
     return escape_percent_in_literal(escape_quote_in_literal(s))
+
+
+def make_string_literal(s: str) -> str:
+    return "'{}'".format(escape_sql_string_literal(s))
+
+
+def escape_sql_string_or_int_literal(s: Union[str, int]) -> str:
+    if isinstance(s, int):
+        return str(s)
+    else:
+        return make_string_literal(s)
 
 
 def translate_sql_qmark_to_percent(sql: str) -> str:
@@ -1316,7 +1366,7 @@ def unit_tests():
     assert matches_fielddef("sometable", "somefield", "sometable.*")
     assert matches_fielddef("sometable", "somefield", "somefield")
 
-    grammar = make_grammar(DIALECT_MYSQL)
+    grammar = make_grammar(SqlaDialectName.MYSQL)
     sql = "SELECT t1.c1, t2.c2 " \
           "FROM t1 INNER JOIN t2 ON t1.k = t2.k"
     parsed = grammar.get_select_statement().parseString(sql, parseAll=True)

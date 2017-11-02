@@ -31,10 +31,8 @@ from cardinal_pythonlib.sql.sql_grammar import (
     SqlGrammar,
     text_from_parsed,
 )
-from cardinal_pythonlib.sql.sql_grammar_factory import (
-    DIALECT_MYSQL,
-    make_grammar,
-)
+from cardinal_pythonlib.sql.sql_grammar_factory import make_grammar
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from pyparsing import ParseResults
 
 from crate_anon.common.sql import (
@@ -70,13 +68,13 @@ def get_join_info(grammar: SqlGrammar,
     first_from_table = get_first_from_table(parsed)
     from_table_in_join_schema = get_first_from_table(
         parsed,
-        match_db=jointable.db(),
-        match_schema=jointable.schema())
+        match_db=jointable.db,
+        match_schema=jointable.schema)
     exact_match_table = get_first_from_table(
         parsed,
-        match_db=jointable.db(),
-        match_schema=jointable.schema(),
-        match_table=jointable.table())
+        match_db=jointable.db,
+        match_schema=jointable.schema,
+        match_table=jointable.table)
 
     if not first_from_table:
         # No tables in query yet.
@@ -112,10 +110,10 @@ def get_join_info(grammar: SqlGrammar,
         )]
 
     # OK. So now we're building a cross-database join.
-    existing_family = research_database_info.get_db_rid_family(
-        first_from_table.schema_id())
-    new_family = research_database_info.get_db_rid_family(
-        jointable.schema_id())
+    existing_family = research_database_info.get_dbinfo_by_schema_id(
+        first_from_table.schema_id).rid_family
+    new_family = research_database_info.get_dbinfo_by_schema_id(
+        jointable.schema_id).rid_family
     # log.critical("existing_family={}, new_family={}".format(
     #     existing_family, new_family))
     if existing_family and existing_family == new_family:
@@ -135,19 +133,19 @@ def get_join_info(grammar: SqlGrammar,
     # log.critical("get_join_info: new DB, different RID family, using MRID")
     existing_mrid_column = research_database_info.get_mrid_column_from_table(
         first_from_table)
-    existing_mrid_table = existing_mrid_column.table_id()
+    existing_mrid_table = existing_mrid_column.table_id
     if not existing_mrid_table:
         raise ValueError(
             "No MRID table available (in the same database as table {}; "
             "cannot link)".format(first_from_table))
     new_mrid_column = research_database_info.get_mrid_column_from_table(
         jointable)
-    new_mrid_table = new_mrid_column.table_id()
+    new_mrid_table = new_mrid_column.table_id
     existing_mrid_table_in_query = bool(get_first_from_table(
         parsed,
-        match_db=existing_mrid_table.db(),
-        match_schema=existing_mrid_table.schema(),
-        match_table=existing_mrid_table.table()))
+        match_db=existing_mrid_table.db,
+        match_schema=existing_mrid_table.schema,
+        match_table=existing_mrid_table.table))
 
     joins = []
     if not existing_mrid_table_in_query:
@@ -220,7 +218,7 @@ class SelectElement(object):
     def from_table(self) -> Optional[TableId]:
         if self.raw_select:
             return self.from_table_for_raw_select
-        return self.column_id.table_id()
+        return self.column_id.table_id
 
     def from_table_str(self, grammar: SqlGrammar) -> str:
         table_id = self.from_table()
@@ -366,7 +364,7 @@ def add_to_select(sql: str,
             # (2) Reparse...
             p = reparse_select(p, grammar=grammar)
 
-        add_new_table(wc.table_id())
+        add_new_table(wc.table_id)
 
     # -------------------------------------------------------------------------
     # Process all the FROM clauses, autojoining as necessary
@@ -398,7 +396,7 @@ def add_to_select(sql: str,
 # =============================================================================
 
 def unit_tests() -> None:
-    grammar = make_grammar(DIALECT_MYSQL)
+    grammar = make_grammar(SqlaDialectName.MYSQL)
     log.info(add_to_select(
         "SELECT t1.a, t1.b FROM t1 WHERE t1.col1 > 5",
         grammar=grammar,

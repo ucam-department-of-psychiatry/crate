@@ -11,6 +11,13 @@
                 {{ developer_email }}</div>
         {%  endif %}
 
+        {%  if is_clinician %}
+        <h2>Privileged operations for clinicians</h2>
+        <ul>
+            <li><a href="{% url 'all_text_from_pid' %}">Search all text for an identified patient</a></li>
+        </ul>
+        {% endif %}
+
         <h2>Research database</h2>
         <ul>
             <li><b>Main query functions:</b>
@@ -65,13 +72,6 @@
             <li><a href="{% url 'submit_contact_request' %}">Submit a contact request</a></li>
         </ul>
 
-        {%  if is_clinician %}
-        <h2>Privileged operations for clinicians</h2>
-        <ul>
-            <li><a href="{% url 'all_text_from_pid' %}">Search all text for an identified patient</a></li>
-        </ul>
-        {% endif %}
-
         {% comment %}
             <h2>Leaflets</h2>
             <ul>
@@ -117,8 +117,6 @@
 
                 <li>Test templates.
 
-
-
                     <ul>
                         <li>You can use URL query parameters like
                             <b>?age=40;age_months=2;consent_mode=yellow;request_direct_approach=1;consent_after_discharge=0</b>.
@@ -146,6 +144,10 @@
 
                         <li><a href="{% url 'draft_clinician_email' -1 %}">
                             E-mail to clinician</a></li>
+
+                        <li><a href="{% url 'clinician_response' -1 %}?token=dummytoken&email_choice=more">
+                            Clinician "tell me more" response view</a>
+                        </li>
 
                         <li><a href="{% url 'draft_letter_clinician_to_pt_re_study' -1 'html' %}">
                             Letter from clinician to patient re study (HTML)</a></li>

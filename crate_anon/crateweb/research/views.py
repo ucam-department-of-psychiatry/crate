@@ -27,17 +27,15 @@ import datetime
 import json
 import logging
 # import pprint
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Type, Union
 
 from cardinal_pythonlib.dbfunc import get_fieldnames_from_cursor
 from cardinal_pythonlib.django.function_cache import django_cache_function
 from cardinal_pythonlib.django.serve import file_response
 from cardinal_pythonlib.exceptions import recover_info_from_exception
 from cardinal_pythonlib.hash import hash64
-from cardinal_pythonlib.sql.sql_grammar_factory import (
-    DIALECT_MYSQL,
-    DIALECT_MSSQL,
-)
+from cardinal_pythonlib.logs import BraceStyleAdapter
+from cardinal_pythonlib.sqlalchemy.dialect import SqlaDialectName
 from django import forms
 from django.conf import settings
 from django.contrib.auth.decorators import user_passes_test
@@ -45,10 +43,11 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
+from django.core.urlresolvers import reverse
 # from django.db import connection
 from django.db import DatabaseError
 from django.db.models import Q, QuerySet
-from django.http import HttpResponse
+from django.http.response import HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -59,6 +58,7 @@ from crate_anon.common.contenttypes import ContentType
 from crate_anon.common.sql import (
     ColumnId,
     escape_sql_string_literal,
+    escape_sql_string_or_int_literal,
     SQL_OPS_MULTIPLE_VALUES,
     SQL_OPS_VALUE_UNNECESSARY,
     TableId,
@@ -69,6 +69,10 @@ from crate_anon.crateweb.core.utils import is_clinician, is_superuser, paginate
 from crate_anon.crateweb.research.forms import (
     AddHighlightForm,
     AddQueryForm,
+    ClinicianAllTextFromPidForm,
+    DatabasePickerForm,
+    DEFAULT_MIN_TEXT_FIELD_LENGTH,
+    FieldPickerInfo,
     ManualPeQueryForm,
     PidLookupForm,
     QueryBuilderForm,
@@ -93,6 +97,8 @@ from crate_anon.crateweb.research.models import (
 )
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
+    PatientFieldPythonTypes,
+    SingleResearchDatabase,
 )
 from crate_anon.crateweb.userprofile.models import get_patients_per_page
 from crate_anon.crateweb.research.sql_writer import (
@@ -100,7 +106,7 @@ from crate_anon.crateweb.research.sql_writer import (
     SelectElement,
 )
 
-log = logging.getLogger(__name__)
+log = BraceStyleAdapter(logging.getLogger(__name__))
 
 
 # =============================================================================
@@ -140,6 +146,17 @@ def datetime_iso_for_filename() -> str:
 
 
 # =============================================================================
+# Errors
+# =============================================================================
+
+def generic_error(request: HttpRequest, error: str) -> HttpResponse:
+    context = {
+        'error': error,
+    }
+    return render(request, 'generic_error.html', context)
+
+
+# =============================================================================
 # Queries
 # =============================================================================
 
@@ -149,41 +166,37 @@ def get_db_structure_json() -> str:
     colinfolist = research_database_info.get_colinfolist()
     if not colinfolist:
         log.warning("get_db_structure_json(): colinfolist is empty")
-    info = []
-    grammar = research_database_info.grammar
-    for schema in research_database_info.get_researchdb_schemas():  # preserve order  # noqa
+    info = []  # type: List[Dict[str, Any]]
+    for dbinfo in research_database_info.dbinfolist:
         log.info("get_db_structure_json: schema {}".format(
-            schema.identifier(grammar)))
-        if not research_database_info.is_db_schema_eligible_for_query_builder(
-                schema):
+            dbinfo.schema_identifier))
+        if not dbinfo.eligible_for_query_builder:
             log.debug("Skipping schema={}: not eligible for query "
-                      "builder".format(schema.identifier(grammar)))
+                      "builder".format(dbinfo.schema_identifier))
             continue
         schema_cil = [x for x in colinfolist
-                      if x.table_catalog == schema.db() and
-                      x.table_schema == schema.schema()]
-        trid_field = research_database_info.get_schema_trid_field(schema)
-        rid_field = research_database_info.get_schema_rid_field(schema)
-        table_info = []
+                      if x.table_catalog == dbinfo.database and
+                      x.table_schema == dbinfo.schema_name]
+        table_info = []  # type: List[Dict[str, Any]]
         for table in sorted(set(x.table_name for x in schema_cil)):
             table_cil = [x for x in schema_cil if x.table_name == table]
             if not any(x for x in table_cil
-                       if x.column_name == trid_field):
+                       if x.column_name == dbinfo.trid_field):
                 # This table doesn't contain a TRID, so we will skip it.
                 log.debug("... skipping table {}: no TRID [{}]".format(
-                    table, trid_field))
+                    table, dbinfo.trid_field))
                 continue
             if not any(x for x in table_cil
-                       if x.column_name == rid_field):
+                       if x.column_name == dbinfo.rid_field):
                 # This table doesn't contain a RID, so we will skip it.
                 log.debug("... skipping table {}: no RID [{}]".format(
-                    table, rid_field))
+                    table, dbinfo.rid_field))
                 continue
-            column_info = []
+            column_info = []  # type: List[Dict[str, str]]
             for ci in sorted(table_cil, key=lambda x: x.column_name):
                 column_info.append({
                     'colname': ci.column_name,
-                    'coltype': ci.querybuilder_type(),
+                    'coltype': ci.querybuilder_type,
                     'rawtype': ci.column_type,
                     'comment': ci.column_comment or '',
                 })
@@ -196,8 +209,8 @@ def get_db_structure_json() -> str:
                 table, len(column_info)))
         if table_info:
             info.append({
-                'database': schema.db(),
-                'schema': schema.schema(),
+                'database': dbinfo.database,
+                'schema': dbinfo.schema_name,
                 'tables': table_info,
             })
     return json.dumps(info)
@@ -266,7 +279,6 @@ def query_build(request: HttpRequest) -> HttpResponse:
             else:
                 form = QueryBuilderForm(request.POST, request.FILES)
                 if form.is_valid():
-                    # log.critical("is_valid")
                     database = (form.cleaned_data['database'] if with_database
                                 else '')
                     schema = form.cleaned_data['schema']
@@ -274,7 +286,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
                     column = form.cleaned_data['column']
                     column_id = ColumnId(db=database, schema=schema,
                                          table=table, column=column)
-                    table_id = column_id.table_id()
+                    table_id = column_id.table_id
 
                     if 'submit_select' in request.POST:
                         profile.sql_scratchpad = add_to_select(
@@ -288,7 +300,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
 
                     elif 'submit_select_star' in request.POST:
                         select_elements = [
-                            SelectElement(column_id=c.column_id()) for c in
+                            SelectElement(column_id=c.column_id) for c in
                             research_database_info.all_columns(table_id)]
                         profile.sql_scratchpad = add_to_select(
                             profile.sql_scratchpad,
@@ -325,7 +337,6 @@ def query_build(request: HttpRequest) -> HttpResponse:
                     profile.save()
 
                 else:
-                    # log.critical("not is_valid")
                     pass
 
         except ParseException as e:
@@ -359,8 +370,8 @@ def query_build(request: HttpRequest) -> HttpResponse:
         'database_structure': get_db_structure_json(),
         'starting_values': json.dumps(starting_values_dict),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
-        'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
-        'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
+        'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
+        'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
         'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
@@ -522,8 +533,8 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
         'form': form,
         'queries': queries,
         'nav_on_query': True,
-        'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
-        'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
+        'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
+        'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
         'sql_highlight_css': prettify_sql_css(),
     }
     context.update(query_context(request))
@@ -1023,22 +1034,64 @@ def get_highlight_descriptions(
 # =============================================================================
 # PID lookup
 # =============================================================================
+# In general with these database-choosing functions, don't redirect between
+# the "generic" and "database-specific" views using POST, because we can't then
+# add default values to a new form (since the request.POST object is
+# populated and immutable). Use a dbname query parameter as well.
+# (That doesn't make it HTTP GET; it makes it HTTP POST with query parameters.)
 
+@user_passes_test(is_superuser)
 def pidlookup(request: HttpRequest) -> HttpResponse:
     """
     Look up PID information from RID information.
     """
-    form = PidLookupForm(request.POST or None)
+    dbinfolist = research_database_info.dbs_with_secret_map
+    n = len(dbinfolist)
+    if n == 0:
+        return generic_error(request, "No databases with lookup map!")
+    elif n == 1:
+        dbname = dbinfolist[0].name
+        return HttpResponseRedirect(
+            reverse("pidlookup_with_db", args=[dbname])
+        )
+    else:
+        form = DatabasePickerForm(request.POST or None, dbinfolist=dbinfolist)
+        if form.is_valid():
+            dbname = form.cleaned_data['database']
+            return HttpResponseRedirect(
+                reverse("pidlookup_with_db", args=[dbname])
+            )
+        return render(request, 'pid_lookup_choose_db.html', {'form': form})
+
+
+@user_passes_test(is_superuser)
+def pidlookup_with_db(request: HttpRequest,
+                      dbname: str) -> HttpResponse:
+    """
+    Look up PID information from RID information, for a specific database.
+    """
+    try:
+        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+    except ValueError:
+        return generic_error(request,
+                             "No research database named {!r}".format(dbname))
+    form = PidLookupForm(request.POST or None, dbinfo=dbinfo)
     if form.is_valid():
         trids = form.cleaned_data['trids']
         rids = form.cleaned_data['rids']
         mrids = form.cleaned_data['mrids']
-        return render_lookup(request, trids=trids, rids=rids, mrids=mrids)
-    return render(request, 'pid_lookup_form.html', {'form': form})
+        return render_lookup(request=request, dbinfo=dbinfo,
+                             trids=trids, rids=rids, mrids=mrids)
+    context = {
+        'db_name': dbinfo.name,
+        'db_description': dbinfo.description,
+        'form': form,
+    }
+    return render(request, 'pid_lookup_form.html', context)
 
 
-@user_passes_test(is_superuser)
 def render_lookup(request: HttpRequest,
+                  dbinfo: SingleResearchDatabase,
                   trids: List[int] = None,
                   rids: List[str] = None,
                   mrids: List[str] = None,
@@ -1052,7 +1105,9 @@ def render_lookup(request: HttpRequest,
     mrids = [] if mrids is None else mrids
     pids = [] if pids is None else pids
     mpids = [] if mpids is None else mpids
-    lookups = PidLookup.objects.filter(
+
+    assert dbinfo.secret_lookup_db
+    lookups = PidLookup.objects.using(dbinfo.secret_lookup_db).filter(
         Q(trid__in=trids) |
         Q(rid__in=rids) |
         Q(mrid__in=mrids) |
@@ -1061,7 +1116,14 @@ def render_lookup(request: HttpRequest,
     ).order_by('pid')
     context = {
         'lookups': lookups,
-        'SECRET_MAP': settings.SECRET_MAP,
+        'trid_field': dbinfo.trid_field,
+        'trid_description': dbinfo.trid_description,
+        'rid_field': dbinfo.rid_field,
+        'rid_description': dbinfo.rid_description,
+        'mrid_field': dbinfo.mrid_field,
+        'mrid_description': dbinfo.mrid_description,
+        'pid_description': dbinfo.pid_description,
+        'mpid_description': dbinfo.mpid_description,
     }
     return render(request, 'pid_lookup_result.html', context)
 
@@ -1190,87 +1252,250 @@ def textmatch(column_name: str,
             column=column_name, fragment=fragment)
 
 
-def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
+def textfinder_sql(patient_id_fieldname: str,
+                   fragment: str,
+                   min_length: int,
+                   use_fulltext_index: bool,
+                   include_content: bool,
+                   include_datetime: bool,
+                   patient_id_value: Union[int, str] = None,
+                   extra_fieldname: str = None,
+                   extra_value: Union[int, str] = None) -> str:
+    """
+    Returns SQL to find the text in fragment across all tables that contain the
+    field indicated by patient_id_fieldname, where the length of the text field
+    is at least min_length.
+
+    use_fulltext_index: use database full-text indexing
+    include_content: include the text fields in the output
+    patient_id_value: restrict to a single patient
+
+    Will raise ValueError if no tables match the request.
+    """
+    grammar = research_database_info.grammar
+    tables = research_database_info.tables_containing_field(
+        patient_id_fieldname)
+    if not tables:
+        raise ValueError(
+            "No tables containing fieldname: {}".format(patient_id_fieldname))
+    have_pid_value = patient_id_value is not None and patient_id_value != ''
+    if have_pid_value:
+        pidclause = "{patient_id_fieldname} = {value}".format(
+            patient_id_fieldname=patient_id_fieldname,
+            value=escape_sql_string_or_int_literal(patient_id_value)
+        )
+    else:
+        pidclause = ""
+    using_extra = extra_fieldname and extra_value is not None
+    table_heading = "_table_name"
+    datacol_heading = "_column_name"
+    datetime_heading = "_datetime"
+
+    queries = []  # type: List[str]
+
+    def add_query(table_ident: str,
+                  extra_cols: List[str],
+                  date_id: str,
+                  extra_conditions: List[str]) -> None:
+        selectcols = []  # type: List[str]
+        # Patient ID(s); date
+        if using_extra:
+            selectcols.append('{lit} AS {ef}'.format(
+                lit=escape_sql_string_or_int_literal(extra_value),
+                ef=extra_fieldname
+            ))
+        selectcols.append(patient_id_fieldname)
+        if include_datetime:
+            selectcols.append("{} AS {}".format(date_id, datetime_heading))
+        # +/- table/column/content
+        selectcols += extra_cols
+        # Build query
+        query = (
+            "SELECT {cols}"
+            "\nFROM {table}".format(cols=", ".join(selectcols),
+                                    table=table_ident)
+        )
+        conditions = []  # type: List[str]
+        if have_pid_value:
+            conditions.append(pidclause)
+        conditions.extend(extra_conditions)
+        query += "\nWHERE " + " AND ".join(conditions)
+        queries.append(query)
+
+    for table_id in tables:
+        columns = research_database_info.text_columns(
+            table_id=table_id, min_length=min_length)
+        if not columns:
+            continue
+        table_identifier = table_id.identifier(grammar)
+        date_col = research_database_info.get_default_date_column(
+            table=table_id)
+        if research_database_info.table_contains(table_id, date_col):
+            date_identifier = date_col.identifier(grammar)
+        else:
+            date_identifier = "NULL"
+
+        if include_content:
+            # Content required; therefore, one query per text column.
+            table_select = "'{}' AS {}".format(
+                escape_sql_string_literal(table_identifier),
+                table_heading
+            )
+            for columninfo in columns:
+                column_identifier = columninfo.column_id.identifier(grammar)
+                contentcol_name_select = "'{}' AS {}".format(column_identifier,
+                                                             datacol_heading)
+                content_select = "{} AS _content".format(column_identifier)
+                add_query(table_ident=table_identifier,
+                          extra_cols=[table_select,
+                                      contentcol_name_select,
+                                      content_select],
+                          date_id=date_identifier,
+                          extra_conditions=[
+                              textmatch(
+                                  column_name=column_identifier,
+                                  fragment=fragment,
+                                  as_fulltext=(columninfo.indexed_fulltext and
+                                               use_fulltext_index)
+                              )
+                          ])
+
+        else:
+            # Content not required; therefore, one query per table.
+            elements = []  # type: List[str]
+            for columninfo in columns:
+                elements.append(textmatch(
+                    column_name=columninfo.column_id.identifier(grammar),
+                    fragment=fragment,
+                    as_fulltext=(columninfo.indexed_fulltext and
+                                 use_fulltext_index)
+                ))
+            add_query(table_ident=table_identifier,
+                      extra_cols=[],
+                      date_id=date_identifier,
+                      extra_conditions=[
+                          "(\n    {}\n)".format("\n    OR ".join(elements))
+                      ])
+
+    sql = "\nUNION\n".join(queries)
+    if sql:
+        order_by_cols = []
+        if using_extra:
+            order_by_cols.append(extra_fieldname)
+        order_by_cols.append(patient_id_fieldname)
+        if include_datetime:
+            order_by_cols.append(datetime_heading + " DESC")
+        if include_content:
+            order_by_cols.extend([table_heading, datacol_heading])
+        sql += "\nORDER BY " + ", ".join(order_by_cols)
+    return sql
+
+
+def common_find_text(request: HttpRequest,
+                     dbinfo: SingleResearchDatabase,
+                     form_class: Type[SQLHelperTextAnywhereForm],
+                     default_values: Dict[str, Any],
+                     permit_pid_search: bool,
+                     html_filename: str) -> HttpResponse:
     """
     Creates SQL to find text anywhere in the database(s) via a UNION query.
     """
-    # When you forget, go back to:
+    # When you forget about Django forms, go back to:
     # http://www.slideshare.net/pydanny/advanced-django-forms-usage
-    default_values = {
-        'fkname': settings.SECRET_MAP['RID_FIELD'],
-        'min_length': 50,
-        'use_fulltext_index': True,
-        'include_content': False,
-    }
-    form = SQLHelperTextAnywhereForm(request.POST or default_values)
-    grammar = research_database_info.grammar
+
+    # ... they are used for SELECT AS so they do have to be valid in SQL
+    fk_options = []  # type: List[FieldPickerInfo]
+    lookup_dbalias = ''
+    if permit_pid_search:
+        fk_options.append(FieldPickerInfo(
+            value=dbinfo.pid_pseudo_field,
+            description="{}: {}".format(dbinfo.pid_pseudo_field,
+                                        dbinfo.pid_description),
+            type_=PatientFieldPythonTypes.PID
+        ))
+        fk_options.append(FieldPickerInfo(
+            value=dbinfo.mpid_pseudo_field,
+            description="{}: {}".format(
+                dbinfo.mpid_pseudo_field, dbinfo.mpid_description),
+            type_=PatientFieldPythonTypes.MPID,
+        ))
+        lookup_dbalias = dbinfo.secret_lookup_db
+        assert lookup_dbalias
+        default_values['fkname'] = dbinfo.pid_pseudo_field
+    fk_options += [
+        FieldPickerInfo(value=dbinfo.rid_field,
+                        description="{}: {}".format(dbinfo.rid_field,
+                                                    dbinfo.rid_description),
+                        type_=PatientFieldPythonTypes.RID),
+        FieldPickerInfo(value=dbinfo.mrid_field,
+                        description="{}: {}".format(dbinfo.mrid_field,
+                                                    dbinfo.mrid_description),
+                        type_=PatientFieldPythonTypes.MRID),
+        FieldPickerInfo(value=dbinfo.trid_field,
+                        description="{}: {}".format(dbinfo.trid_field,
+                                                    dbinfo.trid_description),
+                        type_=PatientFieldPythonTypes.TRID),
+    ]
+    form = form_class(request.POST or default_values, fk_options=fk_options)
     if form.is_valid():
-        fkname = form.cleaned_data['fkname']
-        min_length = form.cleaned_data['min_length']
-        use_fulltext_index = form.cleaned_data['use_fulltext_index']
-        include_content = form.cleaned_data['include_content']
-        fragment = escape_sql_string_literal(form.cleaned_data['fragment'])
-        table_queries = []
-        tables = research_database_info.tables_containing_field(fkname)
-        if not tables:
-            return HttpResponse(
-                "No tables containing fieldname: {}".format(fkname))
-        if include_content:
-            queries = []
-            for table_id in tables:
-                columns = research_database_info.text_columns(
-                    table_id=table_id, min_length=min_length)
-                for columninfo in columns:
-                    column_identifier = columninfo.column_id().identifier(grammar)  # noqa
-                    query = (
-                        "SELECT {fkname} AS patient_id,"
-                        "\n    '{table_literal}' AS table_name,"
-                        "\n    '{col_literal}' AS column_name,"
-                        "\n    {column_name} AS content"
-                        "\nFROM {table}"
-                        "\nWHERE {condition}".format(
-                            fkname=fkname,
-                            table_literal=escape_sql_string_literal(
-                                table_id.identifier(grammar)),
-                            col_literal=escape_sql_string_literal(
-                                columninfo.column_name),
-                            column_name=column_identifier,
-                            table=table_id.identifier(grammar),
-                            condition=textmatch(
-                                column_identifier,
-                                fragment,
-                                columninfo.indexed_fulltext and use_fulltext_index  # noqa
-                            ),
-                        )
-                    )
-                    queries.append(query)
-            sql = "\nUNION\n".join(queries)
-            sql += "\nORDER BY patient_id".format(fkname)
+        patient_id_fieldname = form.cleaned_data['fkname']
+        pidvalue = form.cleaned_data['patient_id']
+
+        # For patient lookups, a TRID is quick but not so helpful for
+        # clinicians. Use the RID.
+        if patient_id_fieldname == dbinfo.pid_pseudo_field:
+            lookup = (
+                PidLookup.objects.using(lookup_dbalias)
+                .filter(pid=pidvalue).first()
+            )  # type: PidLookup
+            if lookup is None:
+                return generic_error(
+                    request, "No patient with PID {!r}".format(pidvalue))
+            # Replace:
+            extra_fieldname = patient_id_fieldname
+            extra_value = pidvalue
+            patient_id_fieldname = dbinfo.rid_field
+            pidvalue = lookup.rid  # string
+        elif patient_id_fieldname == dbinfo.mpid_pseudo_field:
+            lookup = (
+                PidLookup.objects.using(lookup_dbalias)
+                .filter(mpid=pidvalue).first()
+            )  # type: PidLookup
+            if lookup is None:
+                return generic_error(
+                    request, "No patient with MPID {!r}".format(pidvalue))
+            # Replace:
+            extra_fieldname = patient_id_fieldname
+            extra_value = pidvalue
+            patient_id_fieldname = dbinfo.rid_field
+            pidvalue = lookup.rid  # string
         else:
-            for table_id in tables:
-                elements = []
-                columns = research_database_info.text_columns(
-                    table_id=table_id, min_length=min_length)
-                if not columns:
-                    continue
-                for columninfo in columns:
-                    element = textmatch(
-                        columninfo.column_id().identifier(grammar),
-                        fragment,
-                        columninfo.indexed_fulltext and use_fulltext_index)
-                    elements.append(element)
-                table_query = (
-                    "SELECT {fkname} FROM {table} WHERE ("
-                    "\n    {elements}\n)".format(
-                        fkname=fkname,
-                        table=table_id.identifier(grammar),
-                        elements="\n    OR ".join(elements),
-                    )
-                )
-                table_queries.append(table_query)
-            sql = "\nUNION\n".join(table_queries)
-            if sql:
-                sql += "\nORDER BY {}".format(fkname)
+            extra_fieldname = None
+            extra_value = None
+
+        try:
+            min_length = form.cleaned_data['min_length']
+            sql = textfinder_sql(
+                patient_id_fieldname=patient_id_fieldname,
+                fragment=escape_sql_string_literal(
+                    form.cleaned_data['fragment']),
+                min_length=min_length,
+                use_fulltext_index=form.cleaned_data['use_fulltext_index'],
+                include_content=form.cleaned_data['include_content'],
+                include_datetime=form.cleaned_data['include_datetime'],
+                patient_id_value=pidvalue,
+                extra_fieldname=extra_fieldname,
+                extra_value=extra_value,
+            )
+            # This SQL will link across all available research databases
+            # where the fieldname conditions are met.
+            if not sql:
+                raise ValueError(
+                    "No fields matched your criteria (text columns of minimum "
+                    "length {} in tables containing field {!r})".format(
+                        min_length, patient_id_fieldname))
+        except ValueError as e:
+            return generic_error(request, str(e))
         if 'submit_save' in request.POST:
             return query_submit(request, sql, run=False)
         elif 'submit_run' in request.POST:
@@ -1278,7 +1503,111 @@ def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
         else:
             return render(request, 'sql_fragment.html', {'sql': sql})
 
-    return render(request, 'sqlhelper_form_text_anywhere.html', {'form': form})
+    return render(request, html_filename, {
+        'db_name': dbinfo.name,
+        'db_description': dbinfo.description,
+        'form': form,
+    })
+
+
+def sqlhelper_text_anywhere(request: HttpRequest) -> HttpResponse:
+    """
+    Picks a database, then redirects to sqlhelper_text_anywhere_with_db.
+    """
+    if research_database_info.single_research_db:
+        dbname = research_database_info.first_dbinfo.name
+        return HttpResponseRedirect(
+            reverse('sqlhelper_text_anywhere_with_db', args=[dbname])
+        )
+    else:
+        form = DatabasePickerForm(request.POST or None,
+                                  dbinfolist=research_database_info.dbinfolist)
+        if form.is_valid():
+            dbname = form.cleaned_data['database']
+            return HttpResponseRedirect(
+                reverse('sqlhelper_text_anywhere_with_db', args=[dbname])
+            )
+        return render(request, 'sqlhelper_form_text_anywhere_choose_db.html',
+                      {'form': form})
+
+
+def sqlhelper_text_anywhere_with_db(request: HttpRequest,
+                                    dbname: str) -> HttpResponse:
+    """
+    Creates SQL to find text anywhere in the database(s) via a UNION query.
+    """
+    try:
+        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+    except ValueError:
+        return generic_error(request,
+                             "No research database named {!r}".format(dbname))
+    default_values = {
+        'fkname': dbinfo.rid_field,
+        'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
+        'use_fulltext_index': True,
+        'include_content': False,
+        'include_datetime': False,
+    }
+    return common_find_text(
+        request=request,
+        dbinfo=dbinfo,
+        form_class=SQLHelperTextAnywhereForm,
+        default_values=default_values,
+        permit_pid_search=False,
+        html_filename='sqlhelper_form_text_anywhere.html')
+
+
+@user_passes_test(is_clinician)
+def all_text_from_pid(request: HttpRequest) -> HttpResponse:
+    """
+    Picks a database, then redirects to all_text_from_pid_with_db.
+    """
+    dbinfolist = research_database_info.dbs_with_secret_map
+    n = len(dbinfolist)
+    if n == 0:
+        return generic_error(request, "No databases with lookup map!")
+    elif n == 1:
+        dbname = dbinfolist[0].name
+        return HttpResponseRedirect(
+            reverse('all_text_from_pid_with_db', args=[dbname])
+        )
+    else:
+        form = DatabasePickerForm(request.POST or None, dbinfolist=dbinfolist)
+        if form.is_valid():
+            dbname = form.cleaned_data['database']
+            return HttpResponseRedirect(
+                reverse('all_text_from_pid_with_db', args=[dbname])
+            )
+        return render(request,
+                      'clinician_form_all_text_from_pid_choose_db.html',
+                      {'form': form})
+
+
+@user_passes_test(is_clinician)
+def all_text_from_pid_with_db(request: HttpRequest,
+                              dbname: str) -> HttpResponse:
+    """
+    Clinician view to look up a patient's RID from their PID and display
+    text from any field.
+    """
+    try:
+        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+    except ValueError:
+        return generic_error(request,
+                             "No research database named {!r}".format(dbname))
+    default_values = {
+        'min_length': DEFAULT_MIN_TEXT_FIELD_LENGTH,
+        'use_fulltext_index': True,
+        'include_content': True,
+        'include_datetime': True,
+    }
+    return common_find_text(
+        request=request,
+        dbinfo=dbinfo,
+        form_class=ClinicianAllTextFromPidForm,
+        default_values=default_values,
+        permit_pid_search=True,
+        html_filename='clinician_form_all_text_from_pid.html')
 
 
 # =============================================================================
@@ -1313,11 +1642,11 @@ def pe_build(request: HttpRequest) -> HttpResponse:
             profile.save()
 
         elif 'global_save' in request.POST:
-            if pmq.ok_to_run():
+            if pmq.ok_to_run:
                 return pe_submit(request, pmq, run=False)
 
         elif 'global_run' in request.POST:
-            if pmq.ok_to_run():
+            if pmq.ok_to_run:
                 return pe_submit(request, pmq, run=True)
 
         elif 'global_manual_set' in request.POST:
@@ -1346,9 +1675,9 @@ def pe_build(request: HttpRequest) -> HttpResponse:
                     pmq.add_output_column(column_id)  # noqa
 
                 elif 'submit_select_star' in request.POST:
-                    table_id = column_id.table_id()
+                    table_id = column_id.table_id
                     all_column_ids = [
-                        c.column_id() for c in
+                        c.column_id for c in
                         research_database_info.all_columns(table_id)]
                     for c in all_column_ids:
                         pmq.add_output_column(c)
@@ -1378,7 +1707,7 @@ def pe_build(request: HttpRequest) -> HttpResponse:
                 # log.critical("not is_valid")
                 pass
 
-    manual_query = pmq.get_manual_patient_id_query()
+    manual_query = pmq.manual_patient_id_query
 
     if form is None:
         form = QueryBuilderForm()
@@ -1407,22 +1736,22 @@ def pe_build(request: HttpRequest) -> HttpResponse:
     if manual_query:
         pmq_patient_conditions = "<div><i>Overridden by manual query.</i></div>"  # noqa
         pmq_manual_patient_query = prettify_sql_html(
-            pmq.get_manual_patient_id_query())
+            pmq.manual_patient_id_query)
     else:
-        pmq_patient_conditions = pmq.pt_conditions_html()
+        pmq_patient_conditions = pmq.pt_conditions_html
         pmq_manual_patient_query = "<div><i>None</i></div>"
     pmq_final_patient_query = prettify_sql_html(pmq.patient_id_query(
         with_order_by=True))
 
     warnings = ''
-    if not pmq.has_patient_id_query():
+    if not pmq.has_patient_id_query:
         warnings += '<div class="warning">No patient criteria yet</div>'
-    if not pmq.has_output_columns():
+    if not pmq.has_output_columns:
         warnings += '<div class="warning">No output columns yet</div>'
 
     context = {
         'nav_on_pe_build': True,
-        'pmq_output_columns': pmq.output_cols_html(),
+        'pmq_output_columns': pmq.output_cols_html,
         'pmq_patient_conditions': pmq_patient_conditions,
         'pmq_manual_patient_query': pmq_manual_patient_query,
         'pmq_final_patient_query': pmq_final_patient_query,
@@ -1430,8 +1759,8 @@ def pe_build(request: HttpRequest) -> HttpResponse:
         'database_structure': get_db_structure_json(),
         'starting_values': json.dumps(starting_values_dict),
         'sql_dialect': settings.RESEARCH_DB_DIALECT,
-        'dialect_mysql': settings.RESEARCH_DB_DIALECT == DIALECT_MYSQL,
-        'dialect_mssql': settings.RESEARCH_DB_DIALECT == DIALECT_MSSQL,
+        'dialect_mysql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MYSQL,
+        'dialect_mssql': settings.RESEARCH_DB_DIALECT == SqlaDialectName.MSSQL,
         'sql_highlight_css': prettify_sql_css(),
         'manual_form': manual_form,
     }
@@ -1569,7 +1898,7 @@ def get_identical_pes(request: HttpRequest,
     # Accordingly, we can predict problems under SQL Server with very long
     # strings; see the problem in query_submit().
     # So, we should similarly hash:
-    identical_pes = all_pes.filter(pmq_hash=pmq.hash64())
+    identical_pes = all_pes.filter(pmq_hash=pmq.hash64)
     # Beware: Python's hash() function will downconvert to 32 bits on 32-bit
     # machines; use pmq.hash64() directly, not hash(pmq).
 
@@ -1689,7 +2018,7 @@ def pe_data_finder_excel(request: HttpRequest, pe_id: str) -> HttpResponse:
     pe = get_object_or_404(PatientExplorer, id=pe_id)  # type: PatientExplorer
     try:
         return file_response(
-            pe.data_finder_excel(),
+            pe.data_finder_excel,
             content_type=ContentType.XLSX,
             filename="crate_pe_df_{num}_{datetime}.xlsx".format(
                 num=pe.id,
@@ -1809,7 +2138,7 @@ def pe_one_table(request: HttpRequest, pe_id: str,
                 grammar=grammar,
                 where_conditions=[WhereCondition(
                     raw_sql=where_clause,
-                    from_table_for_raw_sql=mrid_column.table_id()
+                    from_table_for_raw_sql=mrid_column.table_id
                 )],
                 magic_join=True,
                 formatted=True)
@@ -1840,12 +2169,3 @@ def pe_one_table(request: HttpRequest, pe_id: str,
 
     except DatabaseError as exception:
         return render_bad_pe(request, pe, exception)
-
-
-# =============================================================================
-# Clinician views
-# =============================================================================
-
-@user_passes_test(is_clinician)
-def all_text_from_pid(request: HttpRequest) -> HttpResponse:
-    return HttpResponse("all_text_from_pid: not yet implemented ***")

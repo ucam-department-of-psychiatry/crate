@@ -27,14 +27,17 @@ import contextlib
 import datetime
 import io
 import logging
-from typing import Any, Dict, Generator, List, Iterable, Optional, Tuple, Type
+from typing import Any, Dict, Generator, List, Optional, Tuple
 import zipfile
 
 from cardinal_pythonlib.dbfunc import dictfetchall, get_fieldnames_from_cursor
 from cardinal_pythonlib.django.fields.jsonclassfield import JsonClassField
 from cardinal_pythonlib.excel import excel_to_bytes
 from cardinal_pythonlib.exceptions import add_info_to_exception
-from cardinal_pythonlib.hash import hash64
+from cardinal_pythonlib.hash import (
+    get_longest_supported_hasher_output_length,
+    hash64,
+)
 from cardinal_pythonlib.json.serialize import (
     json_encode,
     METHOD_STRIP_UNDERSCORE,
@@ -50,6 +53,7 @@ from django.http.request import HttpRequest
 from django.db.backends.utils import CursorWrapper
 from openpyxl import Workbook
 
+from crate_anon.anonymise.models import PatientInfoConstants
 from crate_anon.common.sql import (
     ColumnId,
     columns_to_table_column_hierarchy,
@@ -62,13 +66,14 @@ from crate_anon.common.sql import (
     WhereCondition,
 )
 from crate_anon.crateweb.research.html_functions import (
-    highlight_text,
     HtmlElementCounter,
     N_CSS_HIGHLIGHT_CLASSES,
     prettify_sql_html,
 )
 from crate_anon.crateweb.research.research_db_info import (
+    RESEARCH_DB_CONNECTION_NAME,
     research_database_info,
+    SingleResearchDatabase,
 )
 from crate_anon.crateweb.research.sql_writer import (
     add_to_select,
@@ -131,13 +136,13 @@ if getattr(settings, 'DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET',
 # =============================================================================
 
 def debug_query() -> None:
-    cursor = connections['research'].cursor()
+    cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()
     cursor.execute("SELECT 'debug'")
 
 
 def get_executed_researchdb_cursor(sql, args: List[Any] = None) -> CursorWrapper:  # noqa
     args = args or []
-    cursor = connections['research'].cursor()
+    cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()
     try:
         cursor.execute(sql, args or None)
     except DatabaseError as exception:
@@ -320,29 +325,6 @@ class Query(models.Model):
         self.mark_audited()
 
     # -------------------------------------------------------------------------
-    # Highlights
-    # -------------------------------------------------------------------------
-
-    def add_highlight(self, text: str, colour: int = 0) -> None:
-        h = Highlight(text=text, colour=colour)
-        self.highlight_set.add(h)
-
-    def get_highlights_as_dict(self) -> Dict[int, Iterable[Highlight]]:
-        d = OrderedDict()
-        for n in range(N_CSS_HIGHLIGHT_CLASSES):
-            d[n] = Highlight.objects.filter(query_id=self.id, colour=n)
-        return d
-
-    def get_highlight_descriptions(self) -> List[str]:
-        d = self.get_highlights_as_dict()
-        desc = []
-        for n in range(N_CSS_HIGHLIGHT_CLASSES):
-            if d[n]:
-                # noinspection PyTypeChecker
-                desc.append(", ".join(highlight_text(h.text, n) for h in d[n]))
-        return desc
-
-    # -------------------------------------------------------------------------
     # SQL queries
     # -------------------------------------------------------------------------
 
@@ -471,82 +453,108 @@ class QueryAudit(models.Model):
 # Lookup class for secret RID-to-PID conversion
 # =============================================================================
 
-class PidLookupRouter(object):
-    # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/
-    # https://newcircle.com/s/post/1242/django_multiple_database_support
-    # noinspection PyMethodMayBeStatic,PyUnusedLocal
-    def db_for_read(self, model: Type[models.Model], **hints) -> Optional[str]:
-        """
-        read model PidLookup -> look at database secret
-        """
-        # log.debug("PidLookupRouter: {}".format(model._meta.model_name))
-        # if model._meta.model_name == PidLookup._meta.model_name:
-        if model == PidLookup:
-            return 'secret'
-        return None
-
-    # noinspection PyUnusedLocal
-    @staticmethod
-    def allow_migrate(db, app_label, model_name=None, **hints):
-        # 2017-02-12, to address bug:
-        # - https://code.djangoproject.com/ticket/27054
-        # See also:
-        # - https://docs.djangoproject.com/en/1.10/topics/db/multi-db/#using-other-management-commands  # noqa
-        return db == 'default'
+# class PidLookupRouter(object):
+#     # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/
+#     # https://newcircle.com/s/post/1242/django_multiple_database_support
+#     # noinspection PyMethodMayBeStatic,PyUnusedLocal
+#     def db_for_read(self, model: Type[models.Model], **hints) -> Optional[str]:  # noqa
+#         """
+#         read model PidLookup -> look at database secret
+#         """
+#         # log.debug("PidLookupRouter: {}".format(model._meta.model_name))
+#         # if model._meta.model_name == PidLookup._meta.model_name:
+#         if model == PidLookup:
+#             return 'secret'
+#         return None
+#
+#     # noinspection PyUnusedLocal
+#     @staticmethod
+#     def allow_migrate(db: str, app_label: str, model_name: str = None,
+#                       **hints) -> bool:
+#         # 2017-02-12, to address bug:
+#         # - https://code.djangoproject.com/ticket/27054
+#         # See also:
+#         # - https://docs.djangoproject.com/en/1.10/topics/db/multi-db/#using-other-management-commands  # noqa
+#         return db == 'default'
 
 
 class PidLookup(models.Model):
     """
     Lookup class for secret RID-to-PID conversion.
-    Uses the 'secret' database connection.
+    Used via one or other of the 'secret' database connections.
+    Intended for READ-ONLY access to that table.
+
+    Since we have fixed the tablenames for the anonymiser, we remove the
+    settings.SECRET_MAP option. See PatientInfo in
+    crate_anon/anonymise/models.py. Moreover, we fix the maximum length,
+    regardless of the specifics of the config used.
 
     Use as e.g. Lookup(pid=XXX)
     """
     pid = models.PositiveIntegerField(
         primary_key=True,
-        db_column=settings.SECRET_MAP['PID_FIELD'])
+        db_column=PatientInfoConstants.PID_FIELDNAME)
     mpid = models.PositiveIntegerField(
-        db_column=settings.SECRET_MAP['MASTER_PID_FIELD'])
+        db_column=PatientInfoConstants.MPID_FIELDNAME)
     rid = models.CharField(
-        db_column=settings.SECRET_MAP['RID_FIELD'],
-        max_length=settings.SECRET_MAP['MAX_RID_LENGTH'])
+        db_column=PatientInfoConstants.RID_FIELDNAME,
+        max_length=get_longest_supported_hasher_output_length())
     mrid = models.CharField(
-        db_column=settings.SECRET_MAP['MASTER_RID_FIELD'],
-        max_length=settings.SECRET_MAP['MAX_RID_LENGTH'])
+        db_column=PatientInfoConstants.MRID_FIELDNAME,
+        max_length=get_longest_supported_hasher_output_length())
     trid = models.PositiveIntegerField(
-        db_column=settings.SECRET_MAP['TRID_FIELD'])
+        db_column=PatientInfoConstants.TRID_FIELDNAME)
 
     class Meta:
         managed = False
-        db_table = settings.SECRET_MAP['TABLENAME']
+        db_table = PatientInfoConstants.SECRET_MAP_TABLENAME
+
+    # https://stackoverflow.com/questions/12158463/how-can-i-make-a-model-read-only  # noqa
+    def save(self, *args, **kwargs) -> None:
+        return
+
+    def delete(self, *args, **kwargs) -> None:
+        return
 
 
-def get_pid_lookup(trid: int = None,
+def get_pid_lookup(dbinfo: SingleResearchDatabase,
+                   pid: int = None,
+                   mpid: int = None,
+                   trid: int = None,
                    rid: str = None,
-                   mrid: str = None) -> PidLookup:
+                   mrid: str = None) -> Optional[PidLookup]:
+    dbalias = dbinfo.secret_lookup_db
+    assert dbalias
+    q = PidLookup.objects.using(dbalias)
     if trid is not None:
-        lookup = PidLookup.objects.get(trid=trid)
+        lookup = q.get(trid=trid)
     elif rid is not None:
-        lookup = PidLookup.objects.get(rid=rid)
+        lookup = q.get(rid=rid)
     elif mrid is not None:
-        lookup = PidLookup.objects.get(mrid=mrid)
+        lookup = q.get(mrid=mrid)
+    elif pid is not None:
+        lookup = q.get(pid=pid)
+    elif mpid is not None:
+        lookup = q.get(mpid=mpid)
     else:
         raise ValueError("no input")
     return lookup
 
 
-def get_mpid(trid: int = None,
+def get_mpid(dbinfo: SingleResearchDatabase,
+             trid: int = None,
              rid: str = None,
              mrid: str = None) -> int:
-    lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
+    lookup = get_pid_lookup(dbinfo=dbinfo, trid=trid, rid=rid, mrid=mrid)
     # noinspection PyTypeChecker
     return lookup.mpid
 
 
-def get_pid(trid: int = None,
+def get_pid(dbinfo: SingleResearchDatabase,
+            trid: int = None,
             rid: str = None,
             mrid: str = None) -> int:
-    lookup = get_pid_lookup(trid=trid, rid=rid, mrid=mrid)
+    lookup = get_pid_lookup(dbinfo=dbinfo, trid=trid, rid=rid, mrid=mrid)
     # noinspection PyTypeChecker
     return lookup.pid
 
@@ -680,24 +688,30 @@ class PatientMultiQuery(object):
         down-converted to 32 bits. Use hash64() directly if you want a 64-bit
         result.
         """
-        return self.hash64()
+        return self.hash64
 
+    @property
     def hash64(self) -> int:
         return hash64(json_encode(self))
 
-    def get_output_columns(self) -> List[ColumnId]:
+    @property
+    def output_columns(self) -> List[ColumnId]:
         return self._output_columns
 
+    @property
     def has_output_columns(self) -> bool:
         return bool(self._output_columns)
 
+    @property
     def ok_to_run(self) -> bool:
-        return self.has_output_columns() and self.has_patient_id_query()
+        return self.has_output_columns and self.has_patient_id_query
 
-    def get_patient_conditions(self) -> List[WhereCondition]:
+    @property
+    def patient_conditions(self) -> List[WhereCondition]:
         return self._patient_conditions
 
-    def get_manual_patient_id_query(self) -> str:
+    @property
+    def manual_patient_id_query(self) -> str:
         return self._manual_patient_id_query
 
     def add_output_column(self, column_id: ColumnId) -> None:
@@ -723,14 +737,15 @@ class PatientMultiQuery(object):
         if not self._patient_conditions:
             return None
         return research_database_info.get_linked_mrid_column(
-            self._patient_conditions[0].table_id())
+            self._patient_conditions[0].table_id)
 
+    @property
     def has_patient_id_query(self) -> bool:
         if self._manual_patient_id_query:
             return True
         if self._patient_conditions:
             mrid_col = self._get_select_mrid_column()
-            if mrid_col and mrid_col.is_valid():
+            if mrid_col and mrid_col.is_valid:
                 return True
         return False
 
@@ -747,7 +762,7 @@ class PatientMultiQuery(object):
 
         grammar = research_database_info.grammar
         select_mrid_column = self._get_select_mrid_column()
-        if not select_mrid_column.is_valid():
+        if not select_mrid_column.is_valid:
             log.warning(
                 "PatientMultiQuery.patient_id_query(): invalid "
                 "select_mrid_column: {}".format(repr(select_mrid_column)))
@@ -774,6 +789,7 @@ class PatientMultiQuery(object):
         # log.critical(sql)
         return sql
 
+    @property
     def all_full_queries(self) -> List[Tuple[TableId, str, List[Any]]]:
         return self.all_queries(mrids=None)
 
@@ -849,28 +865,30 @@ class PatientMultiQuery(object):
     # Display
     # -------------------------------------------------------------------------
 
+    @property
     def output_cols_html(self) -> str:
         grammar = research_database_info.grammar
         return prettify_sql_html("\n".join(
             [column_id.identifier(grammar)
-             for column_id in self.get_output_columns()]))
+             for column_id in self.output_columns]))
 
+    @property
     def pt_conditions_html(self) -> str:
         grammar = research_database_info.grammar
         return prettify_sql_html("\nAND ".join([
-            wc.sql(grammar) for wc in self.get_patient_conditions()]))
+            wc.sql(grammar) for wc in self.patient_conditions]))
 
     def summary_html(self, element_counter: HtmlElementCounter) -> str:
         def collapser(x: str) -> str:
             return element_counter.overflow_div(contents=x)
-        outcols = self.output_cols_html()
-        manual_query = self.get_manual_patient_id_query()
+        outcols = self.output_cols_html
+        manual_query = self.manual_patient_id_query
         if manual_query:
             manual_or_auto = " (MANUAL)"
             ptselect = prettify_sql_html(manual_query)
         else:
             manual_or_auto = ""
-            ptselect = self.pt_conditions_html()
+            ptselect = self.pt_conditions_html
         return """
             Output columns:<br>
             {outcols}
@@ -961,7 +979,7 @@ class PatientMultiQuery(object):
             ]
             where_conditions = [
                 WhereCondition(raw_sql=where_clause,
-                               from_table_for_raw_sql=mrid_col.table_id()),
+                               from_table_for_raw_sql=mrid_col.table_id),
             ]
             sql = add_to_select(
                 '',
@@ -1023,7 +1041,7 @@ class PatientExplorer(models.Model):
             PatientExplorer.objects\
                 .filter(user=self.user, active=True)\
                 .update(active=False)
-        self.pmq_hash = self.patient_multiquery.hash64()
+        self.pmq_hash = self.patient_multiquery.hash64
         # Beware: Python's hash() function will downconvert to 32 bits on 32-bit
         # machines; use pmq.hash64() directly, not hash(pmq).
         super().save(*args, **kwargs)
@@ -1098,29 +1116,6 @@ class PatientExplorer(models.Model):
                                  fail_msg=fail_msg)
         a.save()
         self.mark_audited()
-
-    # -------------------------------------------------------------------------
-    # Highlights
-    # -------------------------------------------------------------------------
-
-    def add_highlight(self, text: str, colour: int = 0) -> None:
-        h = Highlight(text=text, colour=colour)
-        self.highlight_set.add(h)
-
-    def get_highlights_as_dict(self) -> Dict[int, Iterable[Highlight]]:
-        d = OrderedDict()
-        for n in range(N_CSS_HIGHLIGHT_CLASSES):
-            d[n] = Highlight.objects.filter(query_id=self.id, colour=n)
-        return d
-
-    def get_highlight_descriptions(self) -> List[str]:
-        d = self.get_highlights_as_dict()
-        desc = []
-        for n in range(N_CSS_HIGHLIGHT_CLASSES):
-            if d[n]:
-                # noinspection PyTypeChecker
-                desc.append(", ".join(highlight_text(h.text, n) for h in d[n]))
-        return desc
 
     # -------------------------------------------------------------------------
     # Using the internal PatientMultiQuery
@@ -1203,6 +1198,7 @@ class PatientExplorer(models.Model):
     # Display
     # -------------------------------------------------------------------------
 
+    @property
     def summary_html(self) -> str:
         # Nasty hack. We want collapsing things, so we want HTML element IDs.
         # We could build the HTML table in code for the Patient Explorer
@@ -1214,16 +1210,19 @@ class PatientExplorer(models.Model):
         return self.patient_multiquery.summary_html(
             element_counter=element_counter)
 
+    @property
     def has_patient_id_query(self) -> bool:
-        return self.patient_multiquery.has_patient_id_query()
+        return self.patient_multiquery.has_patient_id_query
 
+    @property
     def has_output_columns(self) -> bool:
-        return self.patient_multiquery.has_output_columns()
+        return self.patient_multiquery.has_output_columns
 
     # -------------------------------------------------------------------------
     # Data finder
     # -------------------------------------------------------------------------
 
+    @property
     def data_finder_excel(self) -> bytes:
         """
         Performs a SELECT COUNT(*)

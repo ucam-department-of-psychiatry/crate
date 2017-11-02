@@ -1,0 +1,17 @@
+{# clinician_form_all_text_from_pid_choose_db.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Choose database to look up research ID (RID) from patient ID (PID)</h1>
+
+    <form action="{% url 'all_text_from_pid' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Choose database" />
+    </form>
+
+{% endblock %}

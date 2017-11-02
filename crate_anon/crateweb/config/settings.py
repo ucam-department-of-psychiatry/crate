@@ -234,7 +234,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_collected')
 # Some managed database access goes to the secret mapping database.
 # =============================================================================
 
-DATABASE_ROUTERS = ['crate_anon.crateweb.research.models.PidLookupRouter']
+# DATABASE_ROUTERS = ['crate_anon.crateweb.research.models.PidLookupRouter']
+# ... superseded by use of QuerySet.using()
 
 # PROBLEM 2017-02-12: Django 1.10.5:
 # - "Unable to create the django_migrations table..."
@@ -277,7 +278,7 @@ LOGGING = {
                 'INFO': 'green',
                 'WARNING': 'bold_yellow',
                 'ERROR': 'bold_red',
-                'CRITICAL': 'bold_yellow,bg_blue',
+                'CRITICAL': 'bold_white,bg_red',
             },
         }
     },
@@ -430,16 +431,7 @@ if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ and
     MAX_UPLOAD_SIZE_BYTES = 1000
     PRIVATE_FILE_STORAGE_ROOT = '/tmp'
     RESEARCH_DB_TITLE = "dummy database title"
-    SECRET_KEY = 'dummy'
-    SECRET_MAP = {
-        'TABLENAME': 'dummy',
-        'PID_FIELD': 'dummy',
-        'RID_FIELD': 'dummy',
-        'MASTER_PID_FIELD': 'dummy',
-        'MASTER_RID_FIELD': 'dummy',
-        'TRID_FIELD': 'dummy',
-        'MAX_RID_LENGTH': 255,
-    }
+    SECRET_KEY = 'dummy'  # A Django setting.
 else:
     if CRATEWEB_CONFIG_ENV_VAR not in os.environ:
         raise ValueError("""
@@ -455,8 +447,10 @@ else:
     set {e}=C:/some/path/my_secret_crate_settings.py
         """.format(e=CRATEWEB_CONFIG_ENV_VAR))
     filename = os.environ[CRATEWEB_CONFIG_ENV_VAR]
-    log.warning("Loading local settings from: {}".format(filename))
+    print("Loading local settings from: {}".format(filename))
     # ... NB logger not yet set to a reasonable priority; use warning level
+    # ... no, logger not even configured, and this is loaded via Django;
+    #     use print()!
     _loader = importlib.machinery.SourceFileLoader('local_settings',
                                                    filename)
     _local_module = _loader.load_module()

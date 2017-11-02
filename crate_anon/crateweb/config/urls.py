@@ -43,6 +43,8 @@ from django.conf.urls import include, url
 # from django.contrib import admin
 # import django.views.defaults
 # import admin_honeypot
+
+# noinspection PyPackageRequirements
 import debug_toolbar
 from crate_anon.crateweb.core.admin import (
     mgr_admin_site,
@@ -169,6 +171,9 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     url(r'^sqlhelper_text_anywhere/$', research_views.sqlhelper_text_anywhere,
         name='sqlhelper_text_anywhere'),
+    url(r'^sqlhelper_text_anywhere_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
+        research_views.sqlhelper_text_anywhere_with_db,
+        name='sqlhelper_text_anywhere_with_db'),
 
     # -------------------------------------------------------------------------
     # Researcher consent functions
@@ -181,11 +186,17 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     url(r'^all_text_from_pid/$', research_views.all_text_from_pid,
         name='all_text_from_pid'),
+    url(r'^all_text_from_pid_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
+        research_views.all_text_from_pid_with_db,
+        name='all_text_from_pid_with_db'),
 
     # -------------------------------------------------------------------------
     # Look up PID
     # -------------------------------------------------------------------------
     url(r'^pidlookup/$', research_views.pidlookup, name='pidlookup'),
+    url(r'^pidlookup_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
+        research_views.pidlookup_with_db,
+        name='pidlookup_with_db'),
 
     # -------------------------------------------------------------------------
     # User profile
@@ -211,7 +222,7 @@ urlpatterns = [
     # -------------------------------------------------------------------------
     # Public views
     # -------------------------------------------------------------------------
-    url(r'^study_details/(?P<study_id>[0-9]+)/$', consent_views.study_details,
+    url(r'^study_details/(?P<study_id>-?[0-9]+)/$', consent_views.study_details,
         name='study_details'),
     url(r'^study_form/(?P<study_id>[0-9]+)/$', consent_views.study_form,
         name='study_form'),
@@ -227,7 +238,7 @@ urlpatterns = [
         consent_views.clinician_response_view, name='clinician_response'),
         # note the -? : allows viewing (and URL-reversing within) an e-mail
         # having a dummy ID of -1.
-    url(r'^clinician_pack/(?P<clinician_response_id>[0-9]+)/(?P<token>[a-zA-Z0-9]+)/$',  # noqa
+    url(r'^clinician_pack/(?P<clinician_response_id>-?[0-9]+)/(?P<token>[a-zA-Z0-9]+)/$',  # noqa
         consent_views.clinician_pack, name='clinician_pack'),
 
     # -------------------------------------------------------------------------

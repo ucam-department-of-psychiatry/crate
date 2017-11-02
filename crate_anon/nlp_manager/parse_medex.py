@@ -357,7 +357,6 @@ import tempfile
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
 from cardinal_pythonlib.fileops import mkdir_p
-from cardinal_pythonlib.enumlike import AttrDict
 from sqlalchemy import Column, Index, Integer, String, Text
 
 from crate_anon.nlp_manager.base_nlp_parser import BaseNlpParser
@@ -429,6 +428,15 @@ MEDEX_MAX_NECESSITY_LENGTH = 50  # guess
 # Medex
 # =============================================================================
 
+class PseudoTempDir(object):
+    """
+    This class exists so that a TemporaryDirectory and a manually specified
+    directory can be addressed via the same (very simple!) interface.
+    """
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+
 class Medex(BaseNlpParser):
     """Class controlling a Medex-UIMA external process, via our custom
     Java interface, CrateMedexPipeline.java.
@@ -466,14 +474,14 @@ class Medex(BaseNlpParser):
             # ... which manages it using weakref.finalize
         else:
             homedir = os.path.expanduser("~")
-            self._inputdir = AttrDict(
-                name=os.path.join(homedir, "medextemp", "input"))
+            self._inputdir = PseudoTempDir(
+                os.path.join(homedir, "medextemp", "input"))
             mkdir_p(self._inputdir.name)
-            self._outputdir = AttrDict(
-                name=os.path.join(homedir, "medextemp", "output"))
+            self._outputdir = PseudoTempDir(
+                os.path.join(homedir, "medextemp", "output"))
             mkdir_p(self._outputdir.name)
-            self._workingdir = AttrDict(
-                name=os.path.join(homedir, "medextemp", "working"))
+            self._workingdir = PseudoTempDir(
+                os.path.join(homedir, "medextemp", "working"))
             mkdir_p(self._workingdir.name)
 
         progargs = nlpdef.opt_str(cfgsection, 'progargs', required=True)

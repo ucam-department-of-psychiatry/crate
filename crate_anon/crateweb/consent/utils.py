@@ -94,7 +94,7 @@ def get_domain_from_email(email: str) -> str:
     # Very simple version...
     try:
         return email.split('@')[1]
-    except:
+    except (AttributeError, IndexError):
         raise ValidationError("Bad e-mail address: no domain")
 
 

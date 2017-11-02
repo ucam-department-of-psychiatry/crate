@@ -73,6 +73,7 @@ from crate_anon.crateweb.core.utils import (
     is_superuser,
 )
 from crate_anon.crateweb.extra.pdf import serve_html_or_pdf
+from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
 
 log = logging.getLogger(__name__)
 
@@ -147,12 +148,17 @@ def get_consent_mode(request: HttpRequest,
 
 # noinspection PyUnusedLocal
 def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
-    study = get_object_or_404(Study, pk=study_id)  # type: Study
+    if study_id == TEST_ID_STR:
+        study = make_dummy_objects(request).study
+    else:
+        study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.study_details_pdf:
         raise Http404("No details")
     return serve_file(study.study_details_pdf.path,
                       content_type=ContentType.PDF,
                       as_inline=True)
+
+
 study_details.login_required = False
 
 
@@ -164,6 +170,8 @@ def study_form(request: HttpRequest, study_id: str) -> HttpResponseBase:
     return serve_file(study.subject_form_template_pdf.path,
                       content_type=ContentType.PDF,
                       as_inline=True)
+
+
 study_form.login_required = False
 
 
@@ -182,6 +190,8 @@ def study_pack(request: HttpRequest, study_id: str) -> HttpResponseBase:
         filenames,
         offered_filename="study_{}_pack.pdf".format(study_id)
     )
+
+
 study_pack.login_required = False
 
 
@@ -207,6 +217,7 @@ def generate_fake_nhs(request: HttpRequest, n: str = 10) -> HttpResponse:
 
 def view_email_html(request: HttpRequest, email_id: str) -> HttpResponse:
     email = get_object_or_404(Email, pk=email_id)  # type: Email
+    # noinspection PyTypeChecker
     validate_email_request(request.user, email)
     return HttpResponse(email.msg_html)
 
@@ -214,6 +225,7 @@ def view_email_html(request: HttpRequest, email_id: str) -> HttpResponse:
 def view_email_attachment(request: HttpRequest,
                           attachment_id: str) -> HttpResponseBase:
     attachment = get_object_or_404(EmailAttachment, pk=attachment_id)  # type: EmailAttachment  # noqa
+    # noinspection PyTypeChecker
     validate_email_request(request.user, attachment.email)
     if not attachment.file:
         raise Http404("Attachment missing")
@@ -243,11 +255,14 @@ def view_leaflet(request: HttpRequest, leaflet_name: str) -> HttpResponseBase:
     return serve_file(leaflet.pdf.path,
                       content_type=ContentType.PDF,
                       as_inline=True)
+
+
 view_leaflet.login_required = False
 
 
 def view_letter(request: HttpRequest, letter_id: str) -> HttpResponseBase:
     letter = get_object_or_404(Letter, pk=letter_id)  # type: Letter
+    # noinspection PyTypeChecker
     validate_letter_request(request.user, letter)
     if not letter.pdf:
         raise Http404("Missing letter")
@@ -257,15 +272,21 @@ def view_letter(request: HttpRequest, letter_id: str) -> HttpResponseBase:
 
 
 def submit_contact_request(request: HttpRequest) -> HttpResponse:
+    dbinfo = research_database_info.dbinfo_for_contact_lookup
     if request.user.is_superuser:
         form = SuperuserSubmitContactRequestForm(
-            request.POST if request.method == 'POST' else None)
+            request.POST if request.method == 'POST' else None,
+            dbinfo=dbinfo)
     else:
         form = ResearcherSubmitContactRequestForm(
-            request.user,
-            request.POST if request.method == 'POST' else None)
+            user=request.user,
+            data=request.POST if request.method == 'POST' else None,
+            dbinfo=dbinfo)
     if not form.is_valid():
-        return render(request, 'contact_request_submit.html', {'form': form})
+        return render(request, 'contact_request_submit.html', {
+            'db_description': dbinfo.description,
+            'form': form,
+        })
 
     study = form.cleaned_data['study']
     request_direct_approach = form.cleaned_data['request_direct_approach']
@@ -321,12 +342,20 @@ def clinician_response_view(request: HttpRequest,
     """
     REC DOCUMENTS 09, 11, 13 (B): Web form for clinicians to respond with
     """
-    clinician_response = get_object_or_404(
-        ClinicianResponse, pk=clinician_response_id)  # type: ClinicianResponse
-    contact_request = clinician_response.contact_request
-    study = contact_request.study
-    patient_lookup = contact_request.patient_lookup
-    consent_mode = contact_request.consent_mode
+    if clinician_response_id == TEST_ID_STR:
+        dummies = make_dummy_objects(request)
+        clinician_response = dummies.clinician_response
+        contact_request = dummies.contact_request
+        study = dummies.study
+        patient_lookup = dummies.patient_lookup
+        consent_mode = dummies.consent_mode
+    else:
+        clinician_response = get_object_or_404(
+            ClinicianResponse, pk=clinician_response_id)  # type: ClinicianResponse  # noqa
+        contact_request = clinician_response.contact_request
+        study = contact_request.study
+        patient_lookup = contact_request.patient_lookup
+        consent_mode = contact_request.consent_mode
 
     # Build form.
     # - We have an existing clinician_response and wish to modify it
@@ -348,6 +377,8 @@ def clinician_response_view(request: HttpRequest,
     # Token valid? Check raw data. Say goodbye otherwise.
     # - The raw data in the form is not influenced by the form's instance.
     if form.data['token'] != clinician_response.token:
+        # log.critical("Token from user: {!r}".format(form.data['token']))
+        # log.critical("Original token: {!r}".format(clinician_response.token))
         return HttpResponseForbidden(
             "Not authorized. The token you passed doesn't match the one you "
             "were sent.")
@@ -431,6 +462,7 @@ def clinician_response_view(request: HttpRequest,
                 settings.PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS),
     })
 
+
 clinician_response_view.login_required = False
 
 
@@ -438,9 +470,14 @@ clinician_response_view.login_required = False
 def clinician_pack(request: HttpRequest,
                    clinician_response_id: str,
                    token: str) -> HttpResponse:
-    clinician_response = get_object_or_404(
-        ClinicianResponse, pk=clinician_response_id)  # type: ClinicianResponse
-    contact_request = clinician_response.contact_request
+    if clinician_response_id == TEST_ID_STR:
+        dummies = make_dummy_objects(request)
+        clinician_response = dummies.clinician_response
+        contact_request = dummies.contact_request
+    else:
+        clinician_response = get_object_or_404(
+            ClinicianResponse, pk=clinician_response_id)  # type: ClinicianResponse  # noqa
+        contact_request = clinician_response.contact_request
     # Check token authentication
     if token != clinician_response.token:
         return HttpResponseForbidden(
@@ -454,6 +491,7 @@ def clinician_pack(request: HttpRequest,
                         content_type=ContentType.PDF,
                         as_attachment=False,
                         as_inline=True)
+
 
 clinician_pack.login_required = False
 

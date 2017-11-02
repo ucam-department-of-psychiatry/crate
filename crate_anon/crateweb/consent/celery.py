@@ -52,6 +52,7 @@ def debug_task(self) -> None:
     print('Request: {0!r}'.format(self.request))
     print('Backend: {}'.format(current_task.backend))
 
+
 """
 ===============================================================================
 To test:

@@ -382,8 +382,8 @@ class PersonalizedScrubber(ScrubberBase):
         # Source is a string containing textual words.
         elements = []
         for s in get_anon_fragments_from_string(str(value)):
-            l = len(s)
-            if l < self.min_string_length_to_scrub_with:
+            length = len(s)
+            if length < self.min_string_length_to_scrub_with:
                 # With numbers: if you use the length limit, you may see
                 # numeric parts of addresses, e.g. 4 Drury Lane as
                 # 4 [___] [___]. However, if you exempt numbers then you
@@ -394,7 +394,7 @@ class PersonalizedScrubber(ScrubberBase):
                 continue
             if self.whitelist and self.whitelist.contains(s):
                 continue
-            if l >= self.min_string_length_for_errors:
+            if length >= self.min_string_length_for_errors:
                 max_errors = self.string_max_regex_errors
             else:
                 max_errors = 0
@@ -412,12 +412,12 @@ class PersonalizedScrubber(ScrubberBase):
         value = str(value)
         if not value:
             return []
-        l = len(value)
-        if l < self.min_string_length_to_scrub_with:
+        length = len(value)
+        if length < self.min_string_length_to_scrub_with:
             return []
         if self.whitelist and self.whitelist.contains(value):
             return []
-        if l >= self.min_string_length_for_errors:
+        if length >= self.min_string_length_for_errors:
             max_errors = self.string_max_regex_errors
         else:
             max_errors = 0

@@ -60,27 +60,56 @@ admin_meta = MetaData()
 AdminBase = declarative_base(metadata=admin_meta)
 
 
+class PatientInfoConstants(object):
+    SECRET_MAP_TABLENAME = 'secret_map'
+    PID_FIELDNAME = "pid"
+    MPID_FIELDNAME = "mpid"
+    RID_FIELDNAME = "rid"
+    MRID_FIELDNAME = "mrid"
+    TRID_FIELDNAME = "trid"
+
+
 class PatientInfo(AdminBase):
-    __tablename__ = 'secret_map'
+    """
+    Design decision in this class:
+    - It gets too complicated if you try to make the fieldnames arbitrary and
+      determined by the config.
+    - So we always use 'pid', 'rid', etc.
+        - Older config settings that this decision removes:
+            mapping_patient_id_fieldname
+            mapping_master_id_fieldname
+        - Note that these are still actively used, as they can be used to
+          set the names in the OUTPUT database (not the mapping database):
+            research_id_fieldname
+            trid_fieldname
+            master_research_id_fieldname
+            source_hash_fieldname
+    - The config is allowed to set three column types:
+        - the source PID type (e.g. INT, BIGINT, VARCHAR)
+        - the source MPID type (e.g. BIGINT)
+        - the encrypted (RID, MRID) type (which is set by the encryption
+          algorithm; e.g. VARCHAR(128) for SHA-512.
+    """
+    __tablename__ = PatientInfoConstants.SECRET_MAP_TABLENAME
     __table_args__ = TABLE_KWARGS
 
     pid = Column(
-        'pid', config.PidType,
+        PatientInfoConstants.PID_FIELDNAME, config.pidtype,
         primary_key=True, autoincrement=False,
         doc="Patient ID (PID) (PK)")
     rid = Column(
-        'rid', config.SqlTypeEncryptedPid,
+        PatientInfoConstants.RID_FIELDNAME, config.SqlTypeEncryptedPid,
         nullable=False, unique=True,
         doc="Research ID (RID)")
     trid = Column(
-        'trid', TridType,
+        PatientInfoConstants.TRID_FIELDNAME, TridType,
         unique=True,
         doc="Transient integer research ID (TRID)")
     mpid = Column(
-        'mpid', config.MpidType,
+        PatientInfoConstants.MPID_FIELDNAME, config.mpidtype,
         doc="Master patient ID (MPID)")
     mrid = Column(
-        'mrid', config.SqlTypeEncryptedPid,
+        PatientInfoConstants.MRID_FIELDNAME, config.SqlTypeEncryptedPid,
         doc="Master research ID (MRID)")
     scrubber_hash = Column(
         'scrubber_hash', config.SqlTypeEncryptedPid,
@@ -124,7 +153,7 @@ class TridRecord(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     pid = Column(
-        "pid", config.PidType,
+        "pid", config.pidtype,
         primary_key=True, autoincrement=False,
         doc="Patient ID (PID) (PK)")
     trid = Column(
@@ -165,7 +194,7 @@ class OptOutPid(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     pid = Column(
-        'pid', config.PidType,
+        'pid', config.pidtype,
         primary_key=True,
         doc="Patient ID")
 
@@ -186,7 +215,7 @@ class OptOutMpid(AdminBase):
     __table_args__ = TABLE_KWARGS
 
     mpid = Column(
-        'mpid', config.MpidType,
+        'mpid', config.mpidtype,
         primary_key=True,
         doc="Patient ID")
 

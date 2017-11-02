@@ -166,6 +166,7 @@ function showAll() {
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
     for (i = 0; i < elements.length; ++i) {
+        // noinspection Annotator
         elements[i].src = MINUS_IMAGE;
     }
 }
@@ -178,6 +179,7 @@ function hideAll() {
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
     for (i = 0; i < elements.length; ++i) {
+        // noinspection Annotator
         elements[i].src = PLUS_IMAGE;
     }
 }
@@ -190,6 +192,7 @@ function expandAll() {
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
     for (i = 0; i < elements.length; ++i) {
+        // noinspection Annotator
         elements[i].src = PLUS_IMAGE;
     }
 }
@@ -202,32 +205,39 @@ function collapseAll() {
     }
     elements = getElementsByClassName(CLASS_PLUSMINUS_IMAGE);
     for (i = 0; i < elements.length; ++i) {
+        // noinspection Annotator
         elements[i].src = MINUS_IMAGE;
     }
 }
 
+// noinspection JSUnusedGlobalSymbols
 function toggleVisible(divId, imageId) {
     var div = document.getElementById(divId),
         img = document.getElementById(imageId);
 
     if (hasClass(div, CLASS_VISIBLE)) {
         setInvisible(div);
+        // noinspection Annotator
         img.src = PLUS_IMAGE;
     } else {
         setVisible(div);
+        // noinspection Annotator
         img.src = MINUS_IMAGE;
     }
 }
 
+// noinspection JSUnusedGlobalSymbols
 function toggleCollapsed(divId, imageId) {
     var div = document.getElementById(divId),
         img = document.getElementById(imageId);
 
     if (hasClass(div, CLASS_BIG)) {
         setSmall(div);
+        // noinspection Annotator
         img.src = PLUS_IMAGE;
     } else {
         setBig(div);
+        // noinspection Annotator
         img.src = MINUS_IMAGE;
     }
 }

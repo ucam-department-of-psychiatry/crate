@@ -161,7 +161,7 @@ function get_all_schema_names(db) {
         schema,
         i;
     for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
-        if (DATABASE_STRUCTURE[i].database == db) {
+        if (DATABASE_STRUCTURE[i].database === db) {
             schema = DATABASE_STRUCTURE[i].schema;
             if (!contains(schema_names, schema)) {
                 schema_names.push(schema);
@@ -174,8 +174,8 @@ function get_all_schema_names(db) {
 function get_schema_info(db, schema) {
     var i;
     for (i = 0; i < DATABASE_STRUCTURE.length; ++i) {
-        if (DATABASE_STRUCTURE[i].database == db &&
-                DATABASE_STRUCTURE[i].schema == schema) {
+        if (DATABASE_STRUCTURE[i].database === db &&
+                DATABASE_STRUCTURE[i].schema === schema) {
             return DATABASE_STRUCTURE[i];
         }
     }
@@ -202,7 +202,7 @@ function get_table_info(db, schema, table) {
         return null;
     }
     for (i = 0; i < schema_info.tables.length; ++i) {
-        if (schema_info.tables[i].table == table) {
+        if (schema_info.tables[i].table === table) {
             return schema_info.tables[i];
         }
     }
@@ -229,7 +229,7 @@ function get_column_info(db, schema, table, column) {
         return null;
     }
     for (i = 0; i < tableinfo.columns.length; ++i) {
-        if (tableinfo.columns[i].colname == column) {
+        if (tableinfo.columns[i].colname === column) {
             return tableinfo.columns[i];
         }
     }
@@ -239,6 +239,7 @@ function get_column_info(db, schema, table, column) {
 // Ancillary and HTML/DOM manipulation functions
 // ============================================================================
 
+// noinspection JSUnusedLocalSymbols
 function log(text) {
     // console.log(text);
 }
@@ -316,14 +317,14 @@ function set_picker_value_by_id(element_id, value, default_value) {
         i;
     if (value) {
         for (i = 0; i < element.options.length; ++i) {
-            if (element.options[i].value == value) {
+            if (element.options[i].value === value) {
                 element.selectedIndex = i;
                 return;
             }
         }
     } else if (default_value) {
         for (i = 0; i < element.options.length; ++i) {
-            if (element.options[i].value == default_value) {
+            if (element.options[i].value === default_value) {
                 element.selectedIndex = i;
                 return;
             }
@@ -541,7 +542,7 @@ function column_changed() {
         show_element(select_button);
     }
     if (!STARTING_VALUES.offer_where || !column ||
-            coltype == QB_DATATYPE_UNKNOWN) {
+            coltype === QB_DATATYPE_UNKNOWN) {
         reset_select_options(where_op_picker, OPS_NONE);
         hide_element(where_op_picker);
         hide_element(where_button);
@@ -553,17 +554,17 @@ function column_changed() {
                 reset_select_options(where_op_picker, OPS_NUMBER_DATE);
                 break;
             case QB_DATATYPE_STRING:
-                if (SQL_DIALECT == DIALECT_MYSQL) {
+                if (SQL_DIALECT === DIALECT_MYSQL) {
                     reset_select_options(where_op_picker, OPS_STRING_MYSQL);
                 } else {
                     reset_select_options(where_op_picker, OPS_STRING);
                 }
                 break;
             case QB_DATATYPE_STRING_FULLTEXT:
-                if (SQL_DIALECT == DIALECT_MYSQL) {
+                if (SQL_DIALECT === DIALECT_MYSQL) {
                     reset_select_options(where_op_picker,
                                          OPS_STRING_FULLTEXT_MYSQL);
-                } else if (SQL_DIALECT == DIALECT_MSSQL) {
+                } else if (SQL_DIALECT === DIALECT_MSSQL) {
                     reset_select_options(where_op_picker,
                                          OPS_STRING_FULLTEXT_MSSQL);
                 } else {

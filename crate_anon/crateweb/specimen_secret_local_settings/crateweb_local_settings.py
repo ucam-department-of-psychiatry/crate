@@ -66,6 +66,7 @@ DEBUG = False
 def always_show_toolbar(request):
     return True  # Always show toolbar, for debugging only.
 
+
 if DEBUG:
     ALLOWED_HOSTS = []
     DEBUG_TOOLBAR_CONFIG = {
@@ -138,9 +139,9 @@ DATABASES = {
     },
 
     # -------------------------------------------------------------------------
-    # Secret database for RID/PID mapping
+    # One or more secret databases for RID/PID mapping
     # -------------------------------------------------------------------------
-    'secret': {
+    'secret_1': {
         'ENGINE': 'django.db.backends.mysql',
         'HOST': '127.0.0.1',
         'PORT': 3306,
@@ -160,7 +161,14 @@ DATABASES = {
     # ... see attributes of PatientLookup in crate_anon/consent/models.py
 }
 
-# Database title
+# Which database should be used to look up demographic details and consent
+# modes?
+# Must (a) be a key of PatientLookup.DATABASES_CHOICES in consent/models.py;
+#      (b) be defined in DATABASES, above, UNLESS it is 'dummy_clinical'
+#          (which is just for testing purposes)
+CLINICAL_LOOKUP_DB = 'dummy_clinical'
+
+# Research database title (displayed in web site)
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 
 # Databases/schemas to provide database structure info for, and details on how
@@ -180,22 +188,46 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 # - PostgreSQL can only query a single database via a single connection.
 RESEARCH_DB_INFO = [
     {
-        # Database name:
+        # Unique name:
+        'name': 'myresearchdb',
+
+        # Human-friendly description:
+        'description': 'My friendly research database',
+
+        # Database name as seen by the database engine:
         # - BLANK, i.e. '', for MySQL.
         # - BLANK, i.e. '', for PostgreSQL.
         # - The database name, for SQL Server.
         'database': '',
+
         # Schema name:
         # - The database=schema name, for MySQL.
         # - The schema name, for PostgreSQL (usual default: 'public').
         # - The schema name, for SQL Server (usual default: 'dbo').
         'schema': 'dbo',
 
+        # Fields not in the database, but used for SELECT AS statements for
+        # some clinician views:
+        'pid_pseudo_field': 'my_pid_field',
+        'mpid_pseudo_field': 'my_mpid_field',
+
+        # Fields and tables found within the database:
         'trid_field': 'trid',
         'rid_field': 'brcid',
         'rid_family': 1,
         'mrid_table': 'patients',
         'mrid_field': 'nhshash',
+
+        # Descriptions, used for PID lookup and the like
+        'pid_description': 'Patient ID (My ID Number; PID) for database X',
+        'mpid_description': 'Master patient ID (NHS number; MPID)',
+        'rid_description': 'Research ID (RID) for database X',
+        'mrid_description': 'Master research ID (MRID)',
+        'trid_description': 'Transient research ID (TRID) for database X',
+
+        # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
+        # that is a database alias from DATABASES:
+        'secret_lookup_db': 'secret_1',
 
         # For the data finder: is there a standard date field for most patient
         # tables?
@@ -209,6 +241,15 @@ RESEARCH_DB_INFO = [
     #     'rid_family': 1,
     #     'mrid_table': None,
     #     'mrid_field': None,
+    #
+    #     'pid_description': '',
+    #     'mpid_description': '',
+    #     'rid_description': '',
+    #     'mrid_description': '',
+    #     'trid_description': '',
+    #
+    #     'secret_lookup_db': '',
+    #
     #     'default_date_field': '',
     # },
     # {
@@ -219,9 +260,24 @@ RESEARCH_DB_INFO = [
     #     'rid_family': 2,
     #     'mrid_table': 'hashed_nhs_numbers',
     #     'mrid_field': 'nhshash',
+    #
+    #     'pid_description': '',
+    #     'mpid_description': '',
+    #     'rid_description': '',
+    #     'mrid_description': '',
+    #     'trid_description': '',
+    #
+    #     'secret_lookup_db': '',
+    #
     #     'default_date_field': '',
     # },
 ]
+
+# Which database (from those defined in RESEARCH_DB_INFO above) should be used
+# to look up patients when contact requests are made?
+# Give the 'name' attribute of one of the databases in RESEARCH_DB_INFO.
+# Its secret_lookup_db will be used for the actual lookup process.
+RESEARCH_DB_FOR_CONTACT_LOOKUP = 'myresearchdb'
 
 # For the automatic query generator, we need to know the underlying SQL dialect
 # Options are
@@ -230,26 +286,6 @@ RESEARCH_DB_INFO = [
 RESEARCH_DB_DIALECT = 'mysql'
 
 DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET = True
-
-# Configuration of the secret mapping database (as set during initial
-# anonymisation)
-SECRET_MAP = {
-    # Table within 'secret' mapping database containing PID/RID mapping
-    'TABLENAME': "secret_map",
-    # PID/RID fieldnames within that table
-    'PID_FIELD': "patient_id",
-    'RID_FIELD': "brcid",
-    'MASTER_PID_FIELD': "nhsnum",
-    'MASTER_RID_FIELD': "nhshash",
-    'TRID_FIELD': 'trid',
-    # Maximum length of the RID fields (containing a hash in a VARCHAR field)
-    'MAX_RID_LENGTH': 255,
-}
-
-# Which of the databases defined above should be used for lookups?
-# Must (a) be a key of PatientLookup.DATABASES_CHOICES in consent/models.py;
-#      (b) be defined in DATABASES, above, UNLESS it is 'dummy_clinical'
-CLINICAL_LOOKUP_DB = 'dummy_clinical'
 
 # =============================================================================
 # Database extra help file

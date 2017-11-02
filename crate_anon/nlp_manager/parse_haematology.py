@@ -23,7 +23,6 @@
 """
 
 import logging
-import typing.re
 from typing import Optional
 
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
@@ -185,7 +184,7 @@ class WbcBase(SimpleNumericalResultParser):
         )
 
     @staticmethod
-    def make_wbc_regex(cell_type_regex_text: str) -> typing.re.Pattern:
+    def make_wbc_regex(cell_type_regex_text: str) -> str:
         return r"""
             ({CELL_TYPE})                   # group for cell type name
             {OPTIONAL_RESULTS_IGNORABLES}

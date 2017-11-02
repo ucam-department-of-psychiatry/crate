@@ -39,6 +39,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
     # http://www.flagonwiththedragon.com/2011/06/16/django-authenticationform-for-user-login/  # noqa
     # http://stackoverflow.com/questions/16750464/django-redirect-after-login-not-working-next-not-posting  # noqa
 
+    # noinspection PyCallByClass,PyTypeChecker
     nextpage = request.GET.get('next', reverse('home'))
     log.debug("login_view: nextpage: {}".format(nextpage))
     if request.user.is_authenticated():

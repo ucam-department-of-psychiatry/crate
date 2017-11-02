@@ -26,7 +26,6 @@
 
 import logging
 import sys
-import typing.re
 from typing import Any, Dict, Generator, List, Tuple
 
 from sqlalchemy import Column, Integer, Float, String, Text
@@ -356,7 +355,7 @@ class SimpleNumericalResultParser(NumericalResultParser):
                  regex_str: str,
                  variable: str,
                  target_unit: str,
-                 units_to_factor: Dict[typing.re.Pattern, float],
+                 units_to_factor: Dict[str, float],
                  take_absolute: bool = False,
                  commit: bool = False,
                  debug: bool = False) -> None:

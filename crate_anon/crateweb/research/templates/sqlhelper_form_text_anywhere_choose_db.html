@@ -1,0 +1,21 @@
+{# sqlhelper_form_text_anywhere_choose_db.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Choose database</h1>
+
+    <div>An SQL fragment will be generated that spans all known databases if
+        there are matching fieldnames, but please choose one on which to base
+        the identifier descriptions.</div>
+
+    <form action="{% url 'sqlhelper_text_anywhere' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Choose database" />
+    </form>
+
+{% endblock %}

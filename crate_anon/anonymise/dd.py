@@ -244,9 +244,10 @@ class DataDictionary(object):
                 # BigInteger, so any integer type should fit.
                 return
             if (is_sqlatype_string(rowtype) and
-                    is_sqlatype_string(config_sqlatype) and
-                    rowtype.length <= config_sqlatype.length):
-                return
+                    is_sqlatype_string(config_sqlatype)):
+                # noinspection PyUnresolvedReferences
+                if rowtype.length <= config_sqlatype.length:
+                    return
             raise ValueError(
                 "Source column {} is marked as a {} field but its type is {}, "
                 "while the config thinks it should be {}".format(
@@ -301,10 +302,10 @@ class DataDictionary(object):
                         needs_pidfield = True
 
                     if r.primary_pid:
-                        ensure_no_type_mismatch(r, self.config.PidType,
+                        ensure_no_type_mismatch(r, self.config.pidtype,
                                                 "primary PID")
                     if r.master_pid:
-                        ensure_no_type_mismatch(r, self.config.MpidType,
+                        ensure_no_type_mismatch(r, self.config.mpidtype,
                                                 "master PID")
 
                     # Too many PKs?

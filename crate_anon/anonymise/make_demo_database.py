@@ -108,10 +108,10 @@ DT_FORMATS = [
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_DOCDIR = os.path.abspath(os.path.join(
     CURRENT_DIR, os.pardir, "testdocs_for_text_extraction"))
-DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, 'doctest.doc')
-DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, 'doctest.docx')
-DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, 'doctest.odt')
-DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, 'doctest.pdf')
+DEFAULT_DOCTEST_DOC = os.path.join(DEFAULT_DOCDIR, 'doctest.doc')
+DEFAULT_DOCTEST_DOCX = os.path.join(DEFAULT_DOCDIR, 'doctest.docx')
+DEFAULT_DOCTEST_ODT = os.path.join(DEFAULT_DOCDIR, 'doctest.odt')
+DEFAULT_DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, 'doctest.pdf')
 
 MAX_EXT_LENGTH_WITH_DOT = 10
 
@@ -240,14 +240,18 @@ class FilenameDoc(Base):
 # noinspection PyPep8Naming
 def main() -> None:
     default_size = 0
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument(
         "url",
         help=(
             "SQLAlchemy database URL. Append ?charset=utf8, e.g. "
             "mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 ."
             " WARNING: If you get the error 'MySQL has gone away', increase "
-            "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."))
+            "the max_allowed_packet parameter in my.cnf (e.g. to 32M)."
+        )
+    )
     parser.add_argument(
         "--size", type=int, default=default_size, choices=[0, 1, 2, 3],
         help="Make tiny (0), small (1), medium (2), or large (3) database "
@@ -256,17 +260,17 @@ def main() -> None:
                         help="Be verbose")
     parser.add_argument("--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
-        "--doctest-doc", default=DOCTEST_DOC,
-        help="Test file for .DOC (default: {})".format(DOCTEST_DOC))
+        "--doctest_doc", default=DEFAULT_DOCTEST_DOC,
+        help="Test file for .DOC")
     parser.add_argument(
-        "--doctest-docx", default=DOCTEST_DOCX,
-        help="Test file for .DOCX (default: {})".format(DOCTEST_DOCX))
+        "--doctest_docx", default=DEFAULT_DOCTEST_DOCX,
+        help="Test file for .DOCX")
     parser.add_argument(
-        "--doctest-odt", default=DOCTEST_ODT,
-        help="Test file for .ODT (default: {})".format(DOCTEST_ODT))
+        "--doctest_odt", default=DEFAULT_DOCTEST_ODT,
+        help="Test file for .ODT")
     parser.add_argument(
-        "--doctest-pdf", default=DOCTEST_PDF,
-        help="Test file for .PDF (default: {})".format(DOCTEST_PDF))
+        "--doctest_pdf", default=DEFAULT_DOCTEST_PDF,
+        help="Test file for .PDF")
     args = parser.parse_args()
 
     nwords = 10000
@@ -372,7 +376,10 @@ basophils 0.6.
         """
     )
     session.add(n1)
-    for filename in (DOCTEST_DOC, DOCTEST_DOCX, DOCTEST_ODT, DOCTEST_PDF):
+    for filename in (args.doctest_doc,
+                     args.doctest_docx,
+                     args.doctest_odt,
+                     args.doctest_pdf):
         bd = BlobDoc(patient=p1, filename=filename)
         session.add(bd)
         fd = FilenameDoc(patient=p1, filename=filename)

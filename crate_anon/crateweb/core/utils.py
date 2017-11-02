@@ -75,6 +75,7 @@ def paginate(request: HttpRequest,
     if per_page is None:
         per_page = get_per_page(request)
     paginator = Paginator(all_items, per_page)
+    # noinspection PyCallByClass,PyArgumentList
     requested_page = request.GET.get('page')
     try:
         return paginator.page(requested_page)

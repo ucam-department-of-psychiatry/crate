@@ -1,0 +1,35 @@
+{# clinician_form_all_text_from_pid.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Clinical view: Find text anywhere</h1>
+
+    <div class="warning">
+        1. <b>BEWARE:</b> you are searching the research database, which lags
+        behind the original clinical records. The absence of information here
+        does not imply its absence in recent clinical records.
+    </div>
+
+    <div class="warning">
+        2. You should only use this function for patients you are personally
+        caring for.
+    </div>
+
+    <div>Enter a fragment of text to find, across all text fields.</div>
+
+    <div>Database to be used to map patient/research IDs:
+        <b>{{ db_description }}</b></div>
+
+    <form action="{% url 'all_text_from_pid_with_db' db_name %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" name="submit_save" value="Save SQL as query" />
+        <input type="submit" name="submit_run" value="Run" />
+        <input type="submit" name="submit_view" value="View SQL" />
+    </form>
+
+{% endblock %}

@@ -55,7 +55,7 @@ from django.core.exceptions import (
 )
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 # from django.contrib.auth.models import User
-from django.contrib.staticfiles.templatetags.staticfiles import static
+# from django.contrib.staticfiles.templatetags.staticfiles import static
 from django.core.urlresolvers import reverse
 from django.core.validators import validate_email
 from django.db import connections, models, transaction
@@ -92,6 +92,7 @@ from crate_anon.crateweb.extra.salutation import (
     title_forename_surname,
 )
 from crate_anon.crateweb.research.models import get_mpid
+from crate_anon.crateweb.research.research_db_info import research_database_info  # noqa
 from crate_anon.crateweb.consent.storage import privatestorage
 from crate_anon.crateweb.consent.tasks import (
     email_rdbm_task,
@@ -714,6 +715,10 @@ class PatientLookupBase(models.Model):
             return diff.days
         except (AttributeError, TypeError, ValueError):
             return None
+
+    @property
+    def nhs_number(self) -> int:
+        raise NotImplementedError()
 
     # -------------------------------------------------------------------------
     # GP
@@ -2426,14 +2431,15 @@ class ContactRequest(models.Model):
         The decisions parameter is a list that's appended to.
         """
         # Translate to an NHS number
+        dbinfo = research_database_info.dbinfo_for_contact_lookup
         if self.lookup_nhs_number is not None:
             self.nhs_number = self.lookup_nhs_number
         elif self.lookup_rid is not None:
-            # noinspection PyTypeChecker
-            self.nhs_number = get_mpid(rid=self.lookup_rid)
+            self.nhs_number = get_mpid(dbinfo=dbinfo,
+                                       rid=self.lookup_rid)
         elif self.lookup_mrid is not None:
-            # noinspection PyTypeChecker
-            self.nhs_number = get_mpid(mrid=self.lookup_mrid)
+            self.nhs_number = get_mpid(dbinfo=dbinfo,
+                                       mrid=self.lookup_mrid)
         else:
             raise ValueError("No NHS number, RID, or MRID supplied.")
         # Look up patient details (afresh)
@@ -3422,6 +3428,7 @@ class Email(models.Model):
                     letter=letter,
                     to_researcher=True)
         email.save()
+        # noinspection PyTypeChecker
         EmailAttachment.create(email=email,
                                fileobj=letter.pdf,
                                content_type=ContentType.PDF)  # will save
@@ -3448,6 +3455,7 @@ class Email(models.Model):
                     letter=letter,
                     to_researcher=True)
         email.save()
+        # noinspection PyTypeChecker
         EmailAttachment.create(email=email,
                                fileobj=letter.pdf,
                                content_type=ContentType.PDF)  # will save
@@ -3617,11 +3625,13 @@ class DummyObjectCollection(object):
                  contact_request: ContactRequest,
                  consent_mode: ConsentMode,
                  patient_lookup: PatientLookup,
-                 study: Study):
+                 study: Study,
+                 clinician_response: ClinicianResponse):
         self.contact_request = contact_request
         self.consent_mode = consent_mode
         self.patient_lookup = patient_lookup
         self.study = study
+        self.clinician_response = clinician_response
 
 
 def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
@@ -3655,11 +3665,13 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
     """
     def get_int(query_param_name: str, default: Optional[int]) -> int:
         try:
+            # noinspection PyCallByClass,PyTypeChecker
             return int(request.GET.get(query_param_name, default))
         except (TypeError, ValueError):
             return default
 
     def get_str(query_param_name: str, default: Optional[str]) -> str:
+        # noinspection PyCallByClass,PyTypeChecker
         return request.GET.get(query_param_name, default)
 
     age = get_int('age', 40)
@@ -3695,7 +3707,7 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         summary="An investigation of the change in blood-oxygen-level-"
                 "dependent (BOLD) functional magnetic resonance imaging "
                 "(fMRI) signals during the experience of quaint and "
-                "fanciful humourous activity",
+                "fanciful humorous activity",
         search_methods_planned="Generalized trawl",
         patient_contact=True,
         include_under_16s=True,
@@ -3799,7 +3811,12 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         clinician_involvement=clinician_involvement,
         consent_withdrawn=False,
         consent_withdrawn_at=None,
-
+    )
+    clinician_response = ClinicianResponse(
+        id=TEST_ID,
+        contact_request=contact_request,
+        token="dummytoken",
+        responded=False,
     )
 
     return DummyObjectCollection(
@@ -3807,4 +3824,5 @@ def make_dummy_objects(request: HttpRequest) -> DummyObjectCollection:
         consent_mode=consent_mode,
         patient_lookup=patient_lookup,
         study=study,
+        clinician_response=clinician_response,
     )

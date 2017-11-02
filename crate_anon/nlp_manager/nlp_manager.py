@@ -67,7 +67,7 @@ import os
 import sys
 from typing import Any, Dict, List, Tuple
 
-from cardinal_pythonlib.datetimefunc import get_now_utc
+from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.sqlalchemy.core_query import count_star
@@ -644,7 +644,7 @@ def main() -> None:
     # -------------------------------------------------------------------------
 
     log.info("Starting: incremental={}".format(args.incremental))
-    start = get_now_utc()
+    start = get_now_utc_pendulum()
     timer.set_timing(args.timing, reset=True)
 
     # 1. Drop/remake tables. Single-tasking only.
@@ -669,7 +669,7 @@ def main() -> None:
             die(exc)
 
     log.info("Finished")
-    end = get_now_utc()
+    end = get_now_utc_pendulum()
     time_taken = end - start
     log.info("Time taken: {:.3f} seconds".format(time_taken.total_seconds()))
 

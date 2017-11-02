@@ -498,7 +498,7 @@ class DataDictionaryRow(object):
         """
         try:
             self._check_valid()
-        except:
+        except (AssertionError, ValueError):
             log.exception(
                 "Offending DD row [{}]: {}".format(
                     self.get_offender_description(), str(self)))

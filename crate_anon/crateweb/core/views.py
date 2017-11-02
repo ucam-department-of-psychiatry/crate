@@ -29,6 +29,7 @@ from django.http.request import HttpRequest
 from django.shortcuts import render
 from crate_anon.crateweb.core.utils import is_clinician, is_developer
 from crate_anon.crateweb.research.views import query_context
+from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
 
@@ -59,4 +60,8 @@ def home(request: HttpRequest) -> HttpResponse:
 # =============================================================================
 
 def about(request: HttpRequest) -> HttpResponse:
-    return render(request, 'about.html')
+    context = {
+        'VERSION': VERSION,
+        'VERSION_DATE': VERSION_DATE,
+    }
+    return render(request, 'about.html', context)

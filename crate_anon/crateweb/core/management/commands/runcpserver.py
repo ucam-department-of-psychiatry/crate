@@ -274,7 +274,7 @@ def start_server(opts: Namespace) -> None:
     cherrypy.tree.mount(Missing(), '', config=static_config)
     cherrypy.tree.graft(wsgi_application, opts.root_path)
 
-    # noinspection PyBroadException
+    # noinspection PyBroadException,PyPep8
     try:
         cherrypy.engine.start()
         cherrypy.engine.block()

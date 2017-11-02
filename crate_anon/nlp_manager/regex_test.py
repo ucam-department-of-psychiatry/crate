@@ -22,8 +22,7 @@
 ===============================================================================
 """
 
-import typing.re
-from typing import List, Tuple
+from typing import List, Pattern, Tuple
 from crate_anon.nlp_manager.regex_func import compile_regex
 
 
@@ -35,7 +34,7 @@ def f_score(precision: float, recall: float, beta: float = 1) -> float:
     )
 
 
-def get_compiled_regex_results(compiled_regex: typing.re.Pattern,
+def get_compiled_regex_results(compiled_regex: Pattern,
                                text: str) -> List[str]:
     results = []  # type: List[str]
     for m in compiled_regex.finditer(text):
@@ -43,7 +42,7 @@ def get_compiled_regex_results(compiled_regex: typing.re.Pattern,
     return results
 
 
-def print_compiled_regex_results(compiled_regex: typing.re.Pattern, text: str,
+def print_compiled_regex_results(compiled_regex: Pattern, text: str,
                                  prefix_spaces: int = 4) -> None:
     results = get_compiled_regex_results(compiled_regex, text)
     print("{}{} -> {}".format(' ' * prefix_spaces,
