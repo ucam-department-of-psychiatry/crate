@@ -1288,14 +1288,14 @@ def textfinder_sql(patient_id_fieldname: str,
         pidclause = ""
     using_extra = extra_fieldname and extra_value is not None
     table_heading = "_table_name"
-    datacol_heading = "_column_name"
+    contents_colname_heading = "_column_name"
     datetime_heading = "_datetime"
 
     queries = []  # type: List[str]
 
     def add_query(table_ident: str,
                   extra_cols: List[str],
-                  date_id: str,
+                  date_value_select: str,
                   extra_conditions: List[str]) -> None:
         selectcols = []  # type: List[str]
         # Patient ID(s); date
@@ -1306,7 +1306,8 @@ def textfinder_sql(patient_id_fieldname: str,
             ))
         selectcols.append(patient_id_fieldname)
         if include_datetime:
-            selectcols.append("{} AS {}".format(date_id, datetime_heading))
+            selectcols.append("{} AS {}".format(date_value_select,
+                                                datetime_heading))
         # +/- table/column/content
         selectcols += extra_cols
         # Build query
@@ -1330,7 +1331,7 @@ def textfinder_sql(patient_id_fieldname: str,
         table_identifier = table_id.identifier(grammar)
         date_col = research_database_info.get_default_date_column(
             table=table_id)
-        if research_database_info.table_contains(table_id, date_col):
+        if date_col:
             date_identifier = date_col.identifier(grammar)
         else:
             date_identifier = "NULL"
@@ -1343,14 +1344,14 @@ def textfinder_sql(patient_id_fieldname: str,
             )
             for columninfo in columns:
                 column_identifier = columninfo.column_id.identifier(grammar)
-                contentcol_name_select = "'{}' AS {}".format(column_identifier,
-                                                             datacol_heading)
+                contentcol_name_select = "'{}' AS {}".format(
+                    column_identifier, contents_colname_heading)
                 content_select = "{} AS _content".format(column_identifier)
                 add_query(table_ident=table_identifier,
                           extra_cols=[table_select,
                                       contentcol_name_select,
                                       content_select],
-                          date_id=date_identifier,
+                          date_value_select=date_identifier,
                           extra_conditions=[
                               textmatch(
                                   column_name=column_identifier,
@@ -1372,7 +1373,7 @@ def textfinder_sql(patient_id_fieldname: str,
                 ))
             add_query(table_ident=table_identifier,
                       extra_cols=[],
-                      date_id=date_identifier,
+                      date_value_select=date_identifier,
                       extra_conditions=[
                           "(\n    {}\n)".format("\n    OR ".join(elements))
                       ])
@@ -1386,7 +1387,7 @@ def textfinder_sql(patient_id_fieldname: str,
         if include_datetime:
             order_by_cols.append(datetime_heading + " DESC")
         if include_content:
-            order_by_cols.extend([table_heading, datacol_heading])
+            order_by_cols.extend([table_heading, contents_colname_heading])
         sql += "\nORDER BY " + ", ".join(order_by_cols)
     return sql
 

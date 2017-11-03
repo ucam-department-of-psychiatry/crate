@@ -35,6 +35,7 @@ raise Exception(
     "However, you need to configure it for your institution's set-up, and "
     "remove this line.".format(os.path.abspath(__file__)))
 
+from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIK
 
 # =============================================================================
 # Site URL configuration
@@ -189,88 +190,97 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 RESEARCH_DB_INFO = [
     {
         # Unique name:
-        'name': 'myresearchdb',
+        RDIK.NAME: 'myresearchdb',
 
         # Human-friendly description:
-        'description': 'My friendly research database',
+        RDIK.DESCRIPTION: 'My friendly research database',
 
         # Database name as seen by the database engine:
         # - BLANK, i.e. '', for MySQL.
         # - BLANK, i.e. '', for PostgreSQL.
         # - The database name, for SQL Server.
-        'database': '',
+        RDIK.DATABASE: '',
 
         # Schema name:
         # - The database=schema name, for MySQL.
         # - The schema name, for PostgreSQL (usual default: 'public').
         # - The schema name, for SQL Server (usual default: 'dbo').
-        'schema': 'dbo',
+        RDIK.SCHEMA: 'dbo',
 
         # Fields not in the database, but used for SELECT AS statements for
         # some clinician views:
-        'pid_pseudo_field': 'my_pid_field',
-        'mpid_pseudo_field': 'my_mpid_field',
+        RDIK.PID_PSEUDO_FIELD: 'my_pid_field',
+        RDIK.MPID_PSEUDO_FIELD: 'my_mpid_field',
 
         # Fields and tables found within the database:
-        'trid_field': 'trid',
-        'rid_field': 'brcid',
-        'rid_family': 1,
-        'mrid_table': 'patients',
-        'mrid_field': 'nhshash',
+        RDIK.TRID_FIELD: 'trid',
+        RDIK.RID_FIELD: 'brcid',
+        RDIK.RID_FAMILY: 1,
+        RDIK.MRID_TABLE: 'patients',
+        RDIK.MRID_FIELD: 'nhshash',
 
         # Descriptions, used for PID lookup and the like
-        'pid_description': 'Patient ID (My ID Number; PID) for database X',
-        'mpid_description': 'Master patient ID (NHS number; MPID)',
-        'rid_description': 'Research ID (RID) for database X',
-        'mrid_description': 'Master research ID (MRID)',
-        'trid_description': 'Transient research ID (TRID) for database X',
+        RDIK.PID_DESCRIPTION: 'Patient ID (My ID Number; PID) for database X',
+        RDIK.MPID_DESCRIPTION: 'Master patient ID (NHS number; MPID)',
+        RDIK.RID_DESCRIPTION: 'Research ID (RID) for database X',
+        RDIK.MRID_DESCRIPTION: 'Master research ID (MRID)',
+        RDIK.TRID_DESCRIPTION: 'Transient research ID (TRID) for database X',
 
         # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
         # that is a database alias from DATABASES:
-        'secret_lookup_db': 'secret_1',
+        RDIK.SECRET_LOOKUP_DB: 'secret_1',
 
         # For the data finder: is there a standard date field for most patient
         # tables?
-        'default_date_field': '',
+        RDIK.DATE_FIELDS_BY_TABLE: {},
+        RDIK.DEFAULT_DATE_FIELDS: ['default_date_field'],
     },
-    # {
-    #     'database': 'similar_database',
-    #     'schema': 'similar_schema',
-    #     'trid_field': 'trid',
-    #     'rid_field': 'same_rid',
-    #     'rid_family': 1,
-    #     'mrid_table': None,
-    #     'mrid_field': None,
-    #
-    #     'pid_description': '',
-    #     'mpid_description': '',
-    #     'rid_description': '',
-    #     'mrid_description': '',
-    #     'trid_description': '',
-    #
-    #     'secret_lookup_db': '',
-    #
-    #     'default_date_field': '',
-    # },
-    # {
-    #     'database': 'different_database',
-    #     'schema': 'different_schema',
-    #     'trid_field': 'trid',
-    #     'rid_field': 'different_rid',
-    #     'rid_family': 2,
-    #     'mrid_table': 'hashed_nhs_numbers',
-    #     'mrid_field': 'nhshash',
-    #
-    #     'pid_description': '',
-    #     'mpid_description': '',
-    #     'rid_description': '',
-    #     'mrid_description': '',
-    #     'trid_description': '',
-    #
-    #     'secret_lookup_db': '',
-    #
-    #     'default_date_field': '',
-    # },
+    {
+        RDIK.NAME: 'similar_database',
+        RDIK.DESCRIPTION: 'A database sharing the RID with the first',
+
+        RDIK.DATABASE: 'similar_database',
+        RDIK.SCHEMA: 'similar_schema',
+        RDIK.TRID_FIELD: 'trid',
+        RDIK.RID_FIELD: 'same_rid',
+        RDIK.RID_FAMILY: 1,
+        RDIK.MRID_TABLE: None,
+        RDIK.MRID_FIELD: None,
+
+        RDIK.PID_DESCRIPTION: '',
+        RDIK.MPID_DESCRIPTION: '',
+        RDIK.RID_DESCRIPTION: '',
+        RDIK.MRID_DESCRIPTION: '',
+        RDIK.TRID_DESCRIPTION: '',
+
+        RDIK.SECRET_LOOKUP_DB: '',
+
+        RDIK.DATE_FIELDS_BY_TABLE: {},
+        RDIK.DEFAULT_DATE_FIELDS: [],
+    },
+    {
+        RDIK.NAME: 'different_database',
+        RDIK.DESCRIPTION: 'A database sharing only the MRID with the first',
+
+        RDIK.DATABASE: 'different_database',
+        RDIK.SCHEMA: 'different_schema',
+        RDIK.TRID_FIELD: 'trid',
+        RDIK.RID_FIELD: 'different_rid',
+        RDIK.RID_FAMILY: 2,
+        RDIK.MRID_TABLE: 'hashed_nhs_numbers',
+        RDIK.MRID_FIELD: 'nhshash',
+
+        RDIK.PID_DESCRIPTION: '',
+        RDIK.MPID_DESCRIPTION: '',
+        RDIK.RID_DESCRIPTION: '',
+        RDIK.MRID_DESCRIPTION: '',
+        RDIK.TRID_DESCRIPTION: '',
+
+        RDIK.SECRET_LOOKUP_DB: '',
+
+        RDIK.DATE_FIELDS_BY_TABLE: {},
+        RDIK.DEFAULT_DATE_FIELDS: [],
+    },
 ]
 
 # Which database (from those defined in RESEARCH_DB_INFO above) should be used

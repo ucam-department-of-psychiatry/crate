@@ -25,3 +25,33 @@
 CRATEWEB_CONFIG_ENV_VAR = 'CRATE_WEB_LOCAL_SETTINGS'
 CHERRYPY_EXTRA_ARGS_ENV_VAR = 'CRATE_CHERRYPY_ARGS'
 CELERY_APP_NAME = 'crate_anon.crateweb.consent'
+
+
+class ResearchDbInfoKeys(object):
+    """
+    Keys for each dictionary within settings.RESEARCH_DB_INFO
+    """
+    NAME = 'name'
+    DESCRIPTION = 'description'
+
+    DATABASE = 'database'
+    SCHEMA = 'schema'
+
+    PID_PSEUDO_FIELD = 'pid_pseudo_field'
+    MPID_PSEUDO_FIELD = 'mpid_pseudo_field'
+    TRID_FIELD = 'trid_field'
+    RID_FIELD = 'rid_field'
+    RID_FAMILY = 'rid_family'
+    MRID_TABLE = 'mrid_table'
+    MRID_FIELD = 'mrid_field'
+
+    PID_DESCRIPTION = 'pid_description'
+    MPID_DESCRIPTION = 'mpid_description'
+    RID_DESCRIPTION = 'rid_description'
+    MRID_DESCRIPTION = 'mrid_description'
+    TRID_DESCRIPTION = 'trid_description'
+
+    SECRET_LOOKUP_DB = 'secret_lookup_db'
+
+    DATE_FIELDS_BY_TABLE = 'date_fields_by_table'
+    DEFAULT_DATE_FIELDS = 'default_date_fields'

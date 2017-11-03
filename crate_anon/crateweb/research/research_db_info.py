@@ -66,8 +66,30 @@ from crate_anon.common.sql import (
     TableId,
     translate_sql_qmark_to_percent,
 )
+from crate_anon.crateweb.config.constants import ResearchDbInfoKeys
 
 log = BraceStyleAdapter(logging.getLogger(__name__))
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+RESEARCH_DB_CONNECTION_NAME = 'research'
+
+SUPPORTED_DIALECTS = [
+    SqlaDialectName.MSSQL,
+    SqlaDialectName.MYSQL,
+    # SqlaDialectName.POSTGRES,  # no grammar yet
+]
+
+
+class PatientFieldPythonTypes(object):
+    PID = int
+    MPID = int
+    RID = str
+    MRID = str
+    TRID = int
 
 
 # =============================================================================
@@ -131,59 +153,17 @@ class ColumnInfo(object):
         return str(self.column_id)
 
 
-class ResearchDbInfoKeys(object):
-    """
-    Keys for each dictionary within settings.RESEARCH_DB_INFO
-    """
-    NAME = 'name'
-    DESCRIPTION = 'description'
-
-    DATABASE = 'database'
-    SCHEMA = 'schema'
-
-    PID_PSEUDO_FIELD = 'pid_pseudo_field'
-    MPID_PSEUDO_FIELD = 'mpid_pseudo_field'
-    TRID_FIELD = 'trid_field'
-    RID_FIELD = 'rid_field'
-    RID_FAMILY = 'rid_family'
-    MRID_TABLE = 'mrid_table'
-    MRID_FIELD = 'mrid_field'
-
-    PID_DESCRIPTION = 'pid_description'
-    MPID_DESCRIPTION = 'mpid_description'
-    RID_DESCRIPTION = 'rid_description'
-    MRID_DESCRIPTION = 'mrid_description'
-    TRID_DESCRIPTION = 'trid_description'
-
-    SECRET_LOOKUP_DB = 'secret_lookup_db'
-
-    DEFAULT_DATE_FIELD = 'default_date_field'
-
-
-RESEARCH_DB_CONNECTION_NAME = 'research'
-
-SUPPORTED_DIALECTS = [
-    SqlaDialectName.MSSQL,
-    SqlaDialectName.MYSQL,
-    # SqlaDialectName.POSTGRES,  # no grammar yet
-]
-
-
-class PatientFieldPythonTypes(object):
-    PID = int
-    MPID = int
-    RID = str
-    MRID = str
-    TRID = int
-
-
 class SingleResearchDatabase(object):
     """
     Represents, and adds information to, a single entry from the
     RESEARCH_DB_INFO list. (It's a list because it's ordered.)
     """
-    def __init__(self, index: int, grammar: SqlGrammar,
-                 rdb_info: "ResearchDatabaseInfo") -> None:
+    def __init__(self,
+                 index: int,
+                 grammar: SqlGrammar,
+                 rdb_info: "ResearchDatabaseInfo",
+                 connection,
+                 vendor) -> None:
         assert 0 <= index <= len(settings.RESEARCH_DB_INFO)
         infodict = settings.RESEARCH_DB_INFO[index]
 
@@ -280,12 +260,37 @@ class SingleResearchDatabase(object):
                                                 self.mpid_pseudo_field)
             )
 
-        self.default_date_field = infodict.get(
-            ResearchDbInfoKeys.DEFAULT_DATE_FIELD, '')
-        assert isinstance(self.default_date_field, str)
+        self.date_fields_by_table = infodict.get(
+            ResearchDbInfoKeys.DATE_FIELDS_BY_TABLE, {}
+        )  # type: Dict[str, str]
+        assert isinstance(self.date_fields_by_table, dict)
+        for k, v in self.date_fields_by_table.items():
+            assert isinstance(k, str) and k, (
+                "Bad key {!r} for {} for database named {!r}".format(
+                    k, ResearchDbInfoKeys.DATE_FIELDS_BY_TABLE,
+                    self.name))
+            assert isinstance(v, str) and v, (
+                "Bad value {!r} for {} for database named {!r}".format(
+                    v, ResearchDbInfoKeys.DATE_FIELDS_BY_TABLE,
+                    self.name))
+
+        self.default_date_fields = infodict.get(
+            ResearchDbInfoKeys.DEFAULT_DATE_FIELDS, []
+        )  # type: List[str]
+        assert isinstance(self.default_date_fields, list)
+        for v in self.default_date_fields:
+            assert isinstance(v, str) and v, (
+                "Bad item {!r} for {} for database named {!r}".format(
+                    v, ResearchDbInfoKeys.DEFAULT_DATE_FIELDS,
+                    self.name))
 
         self.schema_id = SchemaId(self.database, self.schema_name)
         assert self.schema_id
+
+        # Now discover the schema
+        self.schema_infodictlist = self.get_schema_infodictlist(
+            connection, vendor)
+        self.colinfolist = [ColumnInfo(**d) for d in self.schema_infodictlist]
 
     @property
     def schema_identifier(self) -> str:
@@ -315,6 +320,41 @@ class SingleResearchDatabase(object):
         if self.schema_id == other.schema_id:
             return True
         return self.rid_family == other.rid_family
+
+    def get_default_date_field(self, table_id: TableId) -> Optional[ColumnId]:
+        """
+        Gets the default date column for the specified table, or None
+        if none exists.
+        """
+        if table_id.table in self.date_fields_by_table:
+            # We've been told about a specific date column for this table.
+            column_id = ColumnId(
+                db=table_id.db,
+                schema=table_id.schema,
+                table=table_id.table,
+                column=self.date_fields_by_table[table_id.table]
+            )
+            # Now, does it actually exist?
+            if self.column_present(column_id):
+                # Yes.
+                return column_id
+            # No.
+        for datecolname in self.default_date_fields:
+            column_id = ColumnId(
+                db=table_id.db,
+                schema=table_id.schema,
+                table=table_id.table,
+                column=datecolname
+            )
+            if self.column_present(column_id):
+                return column_id
+        return None
+
+    def column_present(self, column_id: ColumnId) -> bool:
+        for ci in self.colinfolist:
+            if ci.column_id == column_id:
+                return True
+        return False
 
     # -------------------------------------------------------------------------
     # Fetching schema info from the database
@@ -582,7 +622,8 @@ ORDER BY
 
     def get_schema_infodictlist(self,
                                 connection: BaseDatabaseWrapper,
-                                vendor: str) -> List[Dict[str, Any]]:
+                                vendor: str,
+                                debug: bool = False) -> List[Dict[str, Any]]:
         db_name = self.database
         schema_name = self.schema_name
         log.debug("Fetching/caching database structure (for database {!r}, "
@@ -613,11 +654,18 @@ ORDER BY
         # We execute this one directly, rather than using the Query class,
         # since this is a system rather than a per-user query.
         cursor = connection.cursor()
-        # log.debug("sql = {}, args = {}".format(sql, repr(args)))
+        if debug:
+            log.debug("sql = {}, args = {}".format(sql, repr(args)))
         cursor.execute(sql, args)
         results = dictfetchall(cursor)  # list of OrderedDicts
-        # log.debug("results = {}".format(repr(results)))
+        if debug:
+            log.debug("results = {}".format(repr(results)))
         log.debug("... done")
+        if not results:
+            log.warning(
+                "SingleResearchDatabase.get_schema_infodictlist(): no results "
+                "for database/schema {!r} database - misconfigured?".format(
+                    self.schema_identifier))
         return results
         # Re passing multiple values to SQL via args:
         # - Don't circumvent the parameter protection against SQL injection.
@@ -646,12 +694,17 @@ class ResearchDatabaseInfo(object):
 
         self.grammar = make_grammar(self.dialect)  # not expensive
 
+        connection = self._connection()
+        vendor = connection.vendor
+
         self.dbinfolist = []  # type: List[SingleResearchDatabase]
         for index in range(len(settings.RESEARCH_DB_INFO)):
             self.dbinfolist.append(SingleResearchDatabase(
                 index=index,
                 grammar=self.grammar,
-                rdb_info=self
+                rdb_info=self,
+                connection=connection,
+                vendor=vendor
             ))
         assert len(self.dbinfolist) > 0, (
             "No research databases configured in RESEARCH_DB_INFO"
@@ -820,10 +873,9 @@ class ResearchDatabaseInfo(object):
                 table_db.can_communicate_directly(first_db)):
             return self.get_mrid_column_from_schema(first_db.schema_id)
 
-    def get_default_date_column(self, table: TableId) -> ColumnId:
-        # Default date column (which may or may not exist)
+    def get_default_date_column(self, table: TableId) -> Optional[ColumnId]:
         dbinfo = self._get_db_info(table.schema_id)
-        return table.column_id(dbinfo.default_date_field)
+        return dbinfo.get_default_date_field(table)
 
     # -------------------------------------------------------------------------
     # Table/column information
@@ -832,23 +884,18 @@ class ResearchDatabaseInfo(object):
     @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_schema_infodictlist(self) -> List[Dict[str, Any]]:
-        connection = self._connection()
-        vendor = connection.vendor
-        results = []
+        results = []  # type: List[Dict[str, Any]]
         for dbinfo in self.dbinfolist:
-            results.extend(dbinfo.get_schema_infodictlist(connection, vendor))
-        if not results:
-            log.warning(
-                "ResearchDatabaseInfo.get_schema_infodictlist(): no results "
-                "for {!r} database - misconfigured?".format(
-                    RESEARCH_DB_CONNECTION_NAME))
+            results.extend(dbinfo.schema_infodictlist)
         return results
 
     @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
     def get_colinfolist(self) -> List[ColumnInfo]:
-        infodictlist = self.get_schema_infodictlist()
-        return [ColumnInfo(**d) for d in infodictlist]
+        colinfolist = []  # type: List[ColumnInfo]
+        for dbi in self.dbinfolist:
+            colinfolist.extend(dbi.colinfolist)
+        return colinfolist
 
     @django_cache_function(timeout=None)
     # @lru_cache(maxsize=None)
@@ -875,10 +922,8 @@ class ResearchDatabaseInfo(object):
             schema_to_colinfolist[schema].append(c)
         return OrderedDict(sorted(schema_to_colinfolist.items()))
 
-    def tables_containing_field(self,
-                                fieldname: str) -> List[TableId]:
+    def tables_containing_field(self, fieldname: str) -> List[TableId]:
         """
-        Returns a list of (db, schema, table) tuples.
         We won't use a SELECT on INFORMATION_SCHEMA here, since we already
         have the information.
         """
@@ -977,3 +1022,7 @@ class ResearchDatabaseInfo(object):
 
 
 research_database_info = ResearchDatabaseInfo()
+
+
+*** patient text finder won't support MPID/MRID as it stands; not per-table
+... think!

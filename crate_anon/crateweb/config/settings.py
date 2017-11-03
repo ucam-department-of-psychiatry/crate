@@ -262,7 +262,10 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '%(name)s:%(levelname)s:%(asctime)s.%(msecs)03d:%(module)s:%(message)s',  # noqa
+            'format': (
+                '%(name)s:%(levelname)s:%(asctime)s.%(msecs)03d:'
+                '%(module)s:%(message)s'
+            ),
             'datefmt': '%Y-%m-%d %H:%M:%S',
         },
         'simple': {
@@ -271,7 +274,12 @@ LOGGING = {
         },
         'color': {
             '()': 'colorlog.ColoredFormatter',
-            'format': '%(white)s%(asctime)s.%(msecs)03d:%(name)s:%(levelname)s: %(log_color)s%(message)s',  # noqa
+            'format': (
+                '%(white)s%(asctime)s.%(msecs)03d '
+                '[p%(process)d.t%(thread)d] '
+                '%(name)s:%(levelname)s: '
+                '%(reset)s%(log_color)s%(message)s'
+            ),
             'datefmt': '%Y-%m-%d %H:%M:%S',
             'log_colors': {
                 'DEBUG': 'cyan',

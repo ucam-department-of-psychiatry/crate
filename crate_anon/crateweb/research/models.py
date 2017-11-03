@@ -922,7 +922,7 @@ class PatientMultiQuery(object):
                 table=table_id)
             date_col = research_database_info.get_default_date_column(
                 table=table_id)
-            if research_database_info.table_contains(table_id, date_col):
+            if date_col:
                 min_date = "MIN({})".format(date_col.identifier(grammar))
                 max_date = "MAX({})".format(date_col.identifier(grammar))
             else:
