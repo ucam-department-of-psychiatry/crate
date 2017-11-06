@@ -1,12 +1,12 @@
-{# pid_lookup_choose_db.html #}
+{# rid_lookup_choose_db.html #}
 
 {% extends "base.html" %}
 
 {% block content %}
 
-    <h1>Choose database to look up patient ID (PID) from research ID (RID)</h1>
+    <h1>Choose database to look up research ID (RID) from patient ID (PID)</h1>
 
-    <form action="{% url 'pidlookup' %}" method="post">
+    <form action="{% url 'ridlookup' %}" method="post">
         {% csrf_token %}
         <table class="formtable">
             {{ form.as_table }}

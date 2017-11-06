@@ -76,6 +76,7 @@ from crate_anon.crateweb.research.forms import (
     ManualPeQueryForm,
     PidLookupForm,
     QueryBuilderForm,
+    RidLookupForm,
     SQLHelperTextAnywhereForm,
 )
 from crate_anon.crateweb.research.html_functions import (
@@ -1040,10 +1041,11 @@ def get_highlight_descriptions(
 # populated and immutable). Use a dbname query parameter as well.
 # (That doesn't make it HTTP GET; it makes it HTTP POST with query parameters.)
 
-@user_passes_test(is_superuser)
-def pidlookup(request: HttpRequest) -> HttpResponse:
+def pid_rid_lookup(request: HttpRequest,
+                   with_db_url_name: str,
+                   html_filename: str) -> HttpResponse:
     """
-    Look up PID information from RID information.
+    Common functionality for pidlookup, ridlookup.
     """
     dbinfolist = research_database_info.dbs_with_secret_map
     n = len(dbinfolist)
@@ -1052,16 +1054,63 @@ def pidlookup(request: HttpRequest) -> HttpResponse:
     elif n == 1:
         dbname = dbinfolist[0].name
         return HttpResponseRedirect(
-            reverse("pidlookup_with_db", args=[dbname])
+            reverse(with_db_url_name, args=[dbname])
         )
     else:
         form = DatabasePickerForm(request.POST or None, dbinfolist=dbinfolist)
         if form.is_valid():
             dbname = form.cleaned_data['database']
             return HttpResponseRedirect(
-                reverse("pidlookup_with_db", args=[dbname])
+                reverse(with_db_url_name, args=[dbname])
             )
-        return render(request, 'pid_lookup_choose_db.html', {'form': form})
+        return render(request, html_filename, {'form': form})
+
+
+def pid_rid_lookup_with_db(
+        request: HttpRequest,
+        dbname: str,
+        form_html_filename: str,
+        formclass: Any,
+        result_html_filename: str) -> HttpResponse:
+    """
+    Common functionality for pidlookup_with_db, ridlookup_with_db.
+    """
+    # There's a bug in the Python 3.5 typing module; we can't use
+    # Union[Type[PidLookupForm], Type[RidLookupForm]] yet; we get
+    # TypeError: descriptor '__subclasses__' of 'type' object needs an argument
+    # ... see https://github.com/python/typing/issues/266
+    try:
+        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
+    except ValueError:
+        return generic_error(request,
+                             "No research database named {!r}".format(dbname))
+    form = formclass(request.POST or None, dbinfo=dbinfo)  # type: Union[PidLookupForm, RidLookupForm]  # noqa
+    if form.is_valid():
+        pids = form.cleaned_data.get('pids') or []  # type: List[int]
+        mpids = form.cleaned_data.get('mpids') or []  # type: List[int]
+        trids = form.cleaned_data.get('trids') or []  # type: List[int]
+        rids = form.cleaned_data.get('rids') or []  # type: List[str]
+        mrids = form.cleaned_data.get('mrids') or []  # type: List[str]
+        return render_lookup(request=request, dbinfo=dbinfo,
+                             result_html_filename=result_html_filename,
+                             pids=pids, mpids=mpids,
+                             trids=trids, rids=rids, mrids=mrids)
+    context = {
+        'db_name': dbinfo.name,
+        'db_description': dbinfo.description,
+        'form': form,
+    }
+    return render(request, form_html_filename, context)
+
+
+@user_passes_test(is_superuser)
+def pidlookup(request: HttpRequest) -> HttpResponse:
+    """
+    Look up PID information from RID information.
+    """
+    return pid_rid_lookup(request=request,
+                          with_db_url_name="pidlookup_with_db",
+                          html_filename="pid_lookup_choose_db.html")
 
 
 @user_passes_test(is_superuser)
@@ -1070,33 +1119,49 @@ def pidlookup_with_db(request: HttpRequest,
     """
     Look up PID information from RID information, for a specific database.
     """
-    try:
-        dbinfo = research_database_info.get_dbinfo_by_name(dbname)
-    except ValueError:
-        return generic_error(request,
-                             "No research database named {!r}".format(dbname))
-    form = PidLookupForm(request.POST or None, dbinfo=dbinfo)
-    if form.is_valid():
-        trids = form.cleaned_data['trids']
-        rids = form.cleaned_data['rids']
-        mrids = form.cleaned_data['mrids']
-        return render_lookup(request=request, dbinfo=dbinfo,
-                             trids=trids, rids=rids, mrids=mrids)
-    context = {
-        'db_name': dbinfo.name,
-        'db_description': dbinfo.description,
-        'form': form,
-    }
-    return render(request, 'pid_lookup_form.html', context)
+    return pid_rid_lookup_with_db(
+        request=request,
+        dbname=dbname,
+        form_html_filename='pid_lookup_form.html',
+        formclass=PidLookupForm,
+        result_html_filename='pid_lookup_result.html')
+
+
+@user_passes_test(is_clinician)
+def ridlookup(request: HttpRequest) -> HttpResponse:
+    """
+    Look up RID information from PID information.
+    """
+    return pid_rid_lookup(request=request,
+                          with_db_url_name="ridlookup_with_db",
+                          html_filename="rid_lookup_choose_db.html")
+
+
+@user_passes_test(is_clinician)
+def ridlookup_with_db(request: HttpRequest,
+                      dbname: str) -> HttpResponse:
+    """
+    Look up RID information from PID information, for a specific database.
+    """
+    return pid_rid_lookup_with_db(
+        request=request,
+        dbname=dbname,
+        form_html_filename='rid_lookup_form.html',
+        formclass=RidLookupForm,
+        result_html_filename='rid_lookup_result.html')
 
 
 def render_lookup(request: HttpRequest,
                   dbinfo: SingleResearchDatabase,
+                  result_html_filename: str,
                   trids: List[int] = None,
                   rids: List[str] = None,
                   mrids: List[str] = None,
                   pids: List[int] = None,
                   mpids: List[int] = None) -> HttpResponse:
+    """
+    Shows the output of a PID/RID lookup.
+    """
     # if not request.user.superuser:
     #    return HttpResponse('Forbidden', status=403)
     #    # http://stackoverflow.com/questions/3297048/403-forbidden-vs-401-unauthorized-http-responses  # noqa
@@ -1125,7 +1190,7 @@ def render_lookup(request: HttpRequest,
         'pid_description': dbinfo.pid_description,
         'mpid_description': dbinfo.mpid_description,
     }
-    return render(request, 'pid_lookup_result.html', context)
+    return render(request, result_html_filename, context)
 
 
 # =============================================================================
@@ -1404,49 +1469,67 @@ def common_find_text(request: HttpRequest,
     # When you forget about Django forms, go back to:
     # http://www.slideshare.net/pydanny/advanced-django-forms-usage
 
-    # ... they are used for SELECT AS so they do have to be valid in SQL
+    # -------------------------------------------------------------------------
+    # What may the user use to look up patients?
+    # -------------------------------------------------------------------------
     fk_options = []  # type: List[FieldPickerInfo]
-    lookup_dbalias = ''
     if permit_pid_search:
         fk_options.append(FieldPickerInfo(
             value=dbinfo.pid_pseudo_field,
             description="{}: {}".format(dbinfo.pid_pseudo_field,
                                         dbinfo.pid_description),
-            type_=PatientFieldPythonTypes.PID
+            type_=PatientFieldPythonTypes.PID,
+            permits_empty_id=False
         ))
         fk_options.append(FieldPickerInfo(
             value=dbinfo.mpid_pseudo_field,
             description="{}: {}".format(
                 dbinfo.mpid_pseudo_field, dbinfo.mpid_description),
             type_=PatientFieldPythonTypes.MPID,
+            permits_empty_id=False
         ))
-        lookup_dbalias = dbinfo.secret_lookup_db
-        assert lookup_dbalias
+        assert dbinfo.secret_lookup_db
         default_values['fkname'] = dbinfo.pid_pseudo_field
-    fk_options += [
+    fk_options.append(
         FieldPickerInfo(value=dbinfo.rid_field,
                         description="{}: {}".format(dbinfo.rid_field,
                                                     dbinfo.rid_description),
-                        type_=PatientFieldPythonTypes.RID),
-        FieldPickerInfo(value=dbinfo.mrid_field,
-                        description="{}: {}".format(dbinfo.mrid_field,
-                                                    dbinfo.mrid_description),
-                        type_=PatientFieldPythonTypes.MRID),
-        FieldPickerInfo(value=dbinfo.trid_field,
-                        description="{}: {}".format(dbinfo.trid_field,
-                                                    dbinfo.trid_description),
-                        type_=PatientFieldPythonTypes.TRID),
-    ]
+                        type_=PatientFieldPythonTypes.RID,
+                        permits_empty_id=True),
+    )
+    if dbinfo.secret_lookup_db:
+        fk_options.append(
+            FieldPickerInfo(value=dbinfo.mrid_field,
+                            description="{}: {}".format(
+                                dbinfo.mrid_field, dbinfo.mrid_description),
+                            type_=PatientFieldPythonTypes.MRID,
+                            permits_empty_id=False)
+        )
+
+    # We don't want to make too much of the TRID. Let's not offer it as
+    # a lookup option. If performance becomes a major problem with these
+    # queries, we could always say "if dbinfo.secret_lookup_db, then
+    # look up the TRID from the RID (or whatever we're using)".
+    #
+    # FieldPickerInfo(value=dbinfo.trid_field,
+    #                 description="{}: {}".format(dbinfo.trid_field,
+    #                                             dbinfo.trid_description),
+    #                 type_=PatientFieldPythonTypes.TRID),
+
     form = form_class(request.POST or default_values, fk_options=fk_options)
     if form.is_valid():
         patient_id_fieldname = form.cleaned_data['fkname']
         pidvalue = form.cleaned_data['patient_id']
+        min_length = form.cleaned_data['min_length']
 
+        # ---------------------------------------------------------------------
+        # Whare are we going to use internally for the lookup?
+        # ---------------------------------------------------------------------
         # For patient lookups, a TRID is quick but not so helpful for
         # clinicians. Use the RID.
         if patient_id_fieldname == dbinfo.pid_pseudo_field:
             lookup = (
-                PidLookup.objects.using(lookup_dbalias)
+                PidLookup.objects.using(dbinfo.secret_lookup_db)
                 .filter(pid=pidvalue).first()
             )  # type: PidLookup
             if lookup is None:
@@ -1459,7 +1542,7 @@ def common_find_text(request: HttpRequest,
             pidvalue = lookup.rid  # string
         elif patient_id_fieldname == dbinfo.mpid_pseudo_field:
             lookup = (
-                PidLookup.objects.using(lookup_dbalias)
+                PidLookup.objects.using(dbinfo.secret_lookup_db)
                 .filter(mpid=pidvalue).first()
             )  # type: PidLookup
             if lookup is None:
@@ -1470,12 +1553,36 @@ def common_find_text(request: HttpRequest,
             extra_value = pidvalue
             patient_id_fieldname = dbinfo.rid_field
             pidvalue = lookup.rid  # string
+
+        elif patient_id_fieldname == dbinfo.mrid_field:
+            # Using MRID. This is not stored in each table. Rather than have
+            # an absolutely enormous query (SELECT stuff FROM texttable INNER
+            # JOIN mridtable ON patient_id_stuff WHERE textttable.contents
+            # LIKE something AND mridtable.mrid = ? UNION SELECT morestuff...)
+            # let's look up the RID from the MRID. Consequently, we only offer
+            # MRID lookup if we have a secret lookup table.
+            lookup = (
+                PidLookup.objects.using(dbinfo.secret_lookup_db)
+                .filter(mrid=pidvalue).first()
+            )
+            if lookup is None:
+                return generic_error(
+                    request, "No patient with RID {!r}".format(pidvalue))
+            # Replace:
+            extra_fieldname = patient_id_fieldname
+            extra_value = pidvalue
+            patient_id_fieldname = dbinfo.rid_field
+            pidvalue = lookup.rid  # string
+
         else:
+            # Using RID directly (or, if we wanted to support it, TRID).
             extra_fieldname = None
             extra_value = None
 
+        # ---------------------------------------------------------------------
+        # Generate the query
+        # ---------------------------------------------------------------------
         try:
-            min_length = form.cleaned_data['min_length']
             sql = textfinder_sql(
                 patient_id_fieldname=patient_id_fieldname,
                 fragment=escape_sql_string_literal(
@@ -1497,6 +1604,10 @@ def common_find_text(request: HttpRequest,
                         min_length, patient_id_fieldname))
         except ValueError as e:
             return generic_error(request, str(e))
+
+        # ---------------------------------------------------------------------
+        # Run, save, or display the query
+        # ---------------------------------------------------------------------
         if 'submit_save' in request.POST:
             return query_submit(request, sql, run=False)
         elif 'submit_run' in request.POST:
@@ -1504,6 +1615,9 @@ def common_find_text(request: HttpRequest,
         else:
             return render(request, 'sql_fragment.html', {'sql': sql})
 
+    # -------------------------------------------------------------------------
+    # Offer the starting choices
+    # -------------------------------------------------------------------------
     return render(request, html_filename, {
         'db_name': dbinfo.name,
         'db_description': dbinfo.description,

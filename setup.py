@@ -186,25 +186,15 @@ setup(
 
     install_requires=[
 
-        # ---------------------------------------------------------------------
-        # For the web front end:
-        # ---------------------------------------------------------------------
-        # Core tools with accessories:
-        'arrow==0.10.0',  # better datetime
-        'chardet==3.0.2',  # character encoding detection for cardinal_pythonlib  # noqa
-        'colorlog==2.10.0',  # colour in logs
-        # 'configobj==5.0.6',  # better config files
-        'distro==1.0.2',  # replaces platform.linux_distribution
-        # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
-        'psutil==5.0.1',  # process management
-        # REMOVED in version 0.18.42; needs Visual C++ under Windows  # 'pyhashxx==0.1.3',  # fast non-cryptographic hashing  # noqa
-        'semver==2.7.5',  # comparing semantic versions
-        'SQLAlchemy==1.1.5',  # database access
-        'typing==3.5.3.0',  # part of stdlib in Python 3.5, but not 3.4
-
-        # Web app:
         'amqp==2.1.3',  # because 2.1.4 has a bug; see CRATE manual; amqp is used by Celery  # noqa
+        'arrow==0.10.0',  # better datetime
+        'beautifulsoup4==4.5.3',
+        'cardinal_pythonlib==1.0.7',
         'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
+        'chardet==3.0.2',  # character encoding detection for cardinal_pythonlib  # noqa
+        'cherrypy==10.0.0',  # Cross-platform
+        'colorlog==2.10.0',  # colour in logs
+        'distro==1.0.2',  # replaces platform.linux_distribution
         'Django==1.10.5',  # "django" versus "Django": neither helps pycharm checking  # noqa
         'django-debug-toolbar==1.6',
         # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
@@ -213,37 +203,30 @@ setup(
         # 'django-silk==0.5.7',
         'django-sslserver==0.19',
         'flower==0.9.1',  # debug Celery; web server; only runs explicitly
+        'gunicorn==19.6.0',  # UNIX only, though will install under Windows
         'kombu==4.0.1',  # see above re amqp/celery
+        # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
+        'openpyxl==2.4.2',  # for ONSPD
+        'pendulum==1.3.0',  # dates/times
         'pdfkit==0.6.1',
+        'prettytable==0.7.2',
+        'psutil==5.0.1',  # process management
         'pygments==2.2.0',  # syntax highlighting
-        # 'pygraphviz==1.3.1',  # not used
+        # REMOVED in version 0.18.42; needs Visual C++ under Windows  # 'pyhashxx==0.1.3',  # fast non-cryptographic hashing  # noqa
         'pyparsing==2.1.10',  # generic grammar parser
         'PyPDF2==1.26.0',
         # 'pytz==2016.10',
         'python-dateutil==2.6.0',
-        'sqlparse==0.2.2',
-        'Werkzeug==0.11.15',
-
-        # ONSPD:
-        'openpyxl==2.4.2',
-        'xlrd==1.0.0',
-
-        # Serving:
-        'gunicorn==19.6.0',  # UNIX only, though will install under Windows
-        'cherrypy==10.0.0',  # Cross-platform
-
-        # ---------------------------------------------------------------------
-        # For the anonymiser/pythonlib:
-        # ---------------------------------------------------------------------
-
-        'cardinal_pythonlib==1.0.7',
-
-        'beautifulsoup4==4.5.3',
-        'prettytable==0.7.2',
         # 'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
         # ... https://python-docx.readthedocs.org/en/latest/user/install.html
         'regex==2017.1.17',
+        'semver==2.7.5',  # comparing semantic versions
         'sortedcontainers==1.5.7',
+        'SQLAlchemy==1.1.5',  # database access
+        'sqlparse==0.2.2',
+        'typing==3.5.3.0',  # part of stdlib in Python 3.5, but not 3.4
+        'Werkzeug==0.11.15',
+        'xlrd==1.0.0',  # for ONSPD
 
         # ---------------------------------------------------------------------
         # For database connections (see manual): install manually
@@ -261,6 +244,7 @@ setup(
         #   'pymssql',
         # PostgreSQL:
         #   'psycopg2',  # has prerequisites (e.g. pg_config executable)
+
     ] + ([
         'pypiwin32==219'
     ] if windows else []),

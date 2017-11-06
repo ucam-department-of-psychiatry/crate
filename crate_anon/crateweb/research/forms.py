@@ -117,14 +117,31 @@ class PidLookupForm(forms.Form):
                                              dbinfo.trid_description)
 
 
+class RidLookupForm(forms.Form):
+    pids = MultipleWordAreaField(required=False)
+    mpids = MultipleWordAreaField(required=False)
+
+    def __init__(self,
+                 *args,
+                 dbinfo: SingleResearchDatabase,
+                 **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        pids = self.fields['pids']  # type: MultipleIntAreaField
+        mpids = self.fields['mpids']  # type: MultipleIntAreaField
+        pids.label = "{} (PID)".format(dbinfo.pid_description)
+        mpids.label = "{} (MPID)".format(dbinfo.mpid_description)
+
+
 DEFAULT_MIN_TEXT_FIELD_LENGTH = 100
 
 
 class FieldPickerInfo(object):
-    def __init__(self, value: str, description: str, type_: Type):
+    def __init__(self, value: str, description: str, type_: Type,
+                 permits_empty_id: bool):
         self.value = value
         self.description = description
         self.type_ = type_
+        self.permits_empty_id = permits_empty_id
 
 
 class SQLHelperTextAnywhereForm(forms.Form):
@@ -165,31 +182,49 @@ class SQLHelperTextAnywhereForm(forms.Form):
         cleaned_data = super().clean()
         fieldname = cleaned_data.get("fkname")
         pidvalue = cleaned_data.get("patient_id")
-        if fieldname and pidvalue:
+        if fieldname:
             opt = next(o for o in self.fk_options if o.value == fieldname)
-            try:
-                _ = opt.type_(pidvalue)
-            except (TypeError, ValueError):
-                raise forms.ValidationError(
-                    "For field {!r}, the ID value must be of type {}".format(
-                        opt.description, opt.type_))
+            if pidvalue:
+                try:
+                    _ = opt.type_(pidvalue)
+                except (TypeError, ValueError):
+                    raise forms.ValidationError(
+                        "For field {!r}, the ID value must be of "
+                        "type {}".format(opt.description, opt.type_))
+            else:
+                self._check_permits_empty_id_for_blank_id(opt)
         return cleaned_data
+
+    def _check_permits_empty_id_for_blank_id(self,
+                                             opt: FieldPickerInfo) -> None:
+        # Exists as a function so ClinicianAllTextFromPidForm can override it.
+        if not opt.permits_empty_id:
+            raise forms.ValidationError(
+                "For this ID type ({}), you must specify an ID "
+                "value".format(opt.value))
 
 
 class ClinicianAllTextFromPidForm(SQLHelperTextAnywhereForm):
     patient_id = CharField(label="ID value", required=True)
+    # ... the clinician view always requires an ID (no "patient browsing";
+    # that's in the domain of research as it might yield patients that aren't
+    # being cared for by this clinician)
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args,
                          fk_label="Field name containing patient ID",
                          **kwargs)
-        ic = self.fields['include_content']  # type: BooleanField
-        id = self.fields['include_datetime']  # type: BooleanField
+        inccontent = self.fields['include_content']  # type: BooleanField
+        incdate = self.fields['include_datetime']  # type: BooleanField
 
         # Hide include_content/include_datetime (always true here)
-        # ic.widget = ic.hidden_widget  # ... nope!
-        ic.widget = forms.HiddenInput()  # yes, this works
-        id.widget = forms.HiddenInput()
+        # inccontent.widget = inccontent.hidden_widget  # ... nope!
+        inccontent.widget = forms.HiddenInput()  # yes, this works
+        incdate.widget = forms.HiddenInput()
+
+    def _check_permits_empty_id_for_blank_id(self,
+                                             opt: FieldPickerInfo) -> None:
+        return
 
 
 def html_form_date_to_python(text: str) -> datetime.datetime:

@@ -44,6 +44,7 @@ from cardinal_pythonlib.django.files import (
     auto_delete_files_on_instance_delete,
 )
 from cardinal_pythonlib.django.reprfunc import modelrepr
+from cardinal_pythonlib.logs import BraceStyleAdapter
 from cardinal_pythonlib.pdf import get_concatenated_pdf_in_memory
 from cardinal_pythonlib.reprfunc import simple_repr
 from django import forms
@@ -110,7 +111,7 @@ from crate_anon.preprocess.rio_constants import (
     RCEP_COL_PATIENT_ID,
 )
 
-log = logging.getLogger(__name__)
+log = BraceStyleAdapter(logging.getLogger(__name__))
 
 CLINICIAN_RESPONSE_FWD_REF = "ClinicianResponse"
 CONSENT_MODE_FWD_REF = "ConsentMode"
@@ -895,6 +896,10 @@ class PatientLookup(PatientLookupBase):
     clinician_found = models.BooleanField(default=False,
                                           verbose_name="Clinician found")
 
+    @classmethod
+    def possible_lookup_databases(cls) -> List[str]:
+        return [x[0] for x in cls.DATABASE_CHOICES]
+
     def __repr__(self):
         return modelrepr(self)
 
@@ -988,7 +993,7 @@ def lookup_patient(nhs_number: int,
                    save: bool = True,
                    existing_ok: bool = False) -> PatientLookup:
     source_db = source_db or settings.CLINICAL_LOOKUP_DB
-    if source_db not in [x[0] for x in PatientLookup.DATABASE_CHOICES]:
+    if source_db not in PatientLookup.possible_lookup_databases():
         raise ValueError("Bad source_db: {}".format(source_db))
     if existing_ok:
         try:
@@ -2205,7 +2210,7 @@ class ConsentMode(Decision):
             cls,
             nhs_number: int,
             created_by: settings.AUTH_USER_MODEL,
-            source_db: str = None) -> None:
+            source_db: str = None) -> List[str]:
         """
         Checks the primary clinical record and CRATE's own records for consent
         modes for this patient. If the most recent one is in the external
@@ -2213,19 +2218,30 @@ class ConsentMode(Decision):
 
         This has the effect that external primary clinical records (e.g. RiO)
         take priority, but if there's no record in RiO, we can still proceed.
+
+        Returns a list of human-readable decisions.
         """
+        decisions = []  # type: List[str]
         source_db = source_db or settings.CLINICAL_LOOKUP_DB
-        if source_db not in [x[0] for x in PatientLookup.DATABASE_CHOICES]:
+        if source_db not in PatientLookup.possible_lookup_databases():
             raise ValueError("Bad source_db: {}".format(source_db))
+        decisions.append("source_db = {}".format(source_db))
+
         if source_db != PatientLookup.CPFT_RIO_CRATE_PREPROCESSED:
             # Don't know how to look up consent modes from other sources
-            return
+            errmsg = ("Don't know how to look up consent modes "
+                      "from {}".format(source_db))
+            decisions.append(errmsg)
+            log.warning(errmsg)
+            return decisions
+
         pass # *** implement consent-mode lookup when RiO updated
         # Will need to:
         # - Fetch the most recent record.
         # - If its date is later than the most recent CRATE record:
         #   - create a new ConsentMode with (..., source=source_db)
         #   - save it
+        # In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd
 
     def consider_withdrawal(self) -> None:
         """

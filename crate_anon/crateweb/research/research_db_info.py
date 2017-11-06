@@ -1022,7 +1022,3 @@ class ResearchDatabaseInfo(object):
 
 
 research_database_info = ResearchDatabaseInfo()
-
-
-*** patient text finder won't support MPID/MRID as it stands; not per-table
-... think!

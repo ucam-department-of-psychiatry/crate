@@ -47,12 +47,15 @@ import os
 import random
 import subprocess
 
+from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.logs import configure_logger_for_colour
+from pendulum import Pendulum
 from sqlalchemy import (
     create_engine,
     BigInteger,
     Boolean,
     Column,
+    Date,
     DateTime,
     Enum,
     ForeignKey,
@@ -187,7 +190,7 @@ class Patient(Base):
     patient_id = Column(Integer, primary_key=True, autoincrement=False)
     forename = Column(String(50))
     surname = Column(String(50))
-    dob = Column(DateTime)
+    dob = Column(Date)
     nullfield = Column(Integer)
     nhsnum = Column(BigInteger)
     phone = Column(String(50))
@@ -204,6 +207,7 @@ class Note(Base):
     note_id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
     note = Column(Text)
+    note_datetime = Column(DateTime)
 
     patient = relationship("Patient")
 
@@ -216,14 +220,19 @@ class BlobDoc(Base):
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
     blob = Column(LargeBinary)  # modified as above!
     extension = Column(String(MAX_EXT_LENGTH_WITH_DOT))
+    blob_datetime = Column(DateTime)
 
     patient = relationship("Patient")
 
-    def __init__(self, patient: Patient, filename: str) -> None:
+    def __init__(self, patient: Patient, filename: str,
+                 blob_datetime: datetime.datetime) -> None:
         _, extension = os.path.splitext(filename)
         with open(filename, 'rb') as f:
             contents = f.read()  # will be of type 'bytes'
-        super().__init__(patient=patient, blob=contents, extension=extension)
+        super().__init__(patient=patient,
+                         blob=contents,
+                         extension=extension,
+                         blob_datetime=blob_datetime)
 
 
 class FilenameDoc(Base):
@@ -233,6 +242,7 @@ class FilenameDoc(Base):
     filename_doc_id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey('patient.patient_id'))
     filename = Column(Text)
+    file_datetime = Column(DateTime)
 
     patient = relationship("Patient")
 
@@ -332,6 +342,16 @@ def main() -> None:
 
     log.info("Inserting data.")
 
+    # Autoincrementing date
+
+    _datetime = Pendulum(year=2000, month=1, day=1, hour=9)
+
+    def incdatetime() -> datetime.datetime:
+        nonlocal _datetime
+        _p = _datetime
+        _datetime = _datetime.add(days=1)
+        return pendulum_to_datetime(_p)
+
     # Special extra patient
 
     p1 = Patient(
@@ -373,16 +393,19 @@ MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73.
 ESR 16 (H) mm/h.
 WBC 9.2; neutrophils 4.3; lymphocytes 2.6; eosinophils 0.4; monocytes 1.2;
 basophils 0.6.
-        """
+        """,
+        note_datetime=incdatetime()
     )
     session.add(n1)
     for filename in (args.doctest_doc,
                      args.doctest_docx,
                      args.doctest_odt,
                      args.doctest_pdf):
-        bd = BlobDoc(patient=p1, filename=filename)
+        bd = BlobDoc(patient=p1, filename=filename,
+                     blob_datetime=incdatetime())
         session.add(bd)
-        fd = FilenameDoc(patient=p1, filename=filename)
+        fd = FilenameDoc(patient=p1, filename=filename,
+                         file_datetime=incdatetime())
         session.add(fd)
 
     p2 = Patient(
@@ -408,7 +431,8 @@ His NHS number was 123.456 or possibly 12 34 56 or 123456, perhaps.
 His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.
 Bob Hope visited Seattle.
 Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
-        """
+        """,
+        note_datetime=incdatetime(),
     )
     session.add(n2)
 
@@ -451,6 +475,7 @@ Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.
             note = Note(
                 patient=patient,
                 note=fname + sname + rname + numbers + dates + wstr,
+                note_datetime=incdatetime()
             )
             session.add(note)
         prev_forename = forename

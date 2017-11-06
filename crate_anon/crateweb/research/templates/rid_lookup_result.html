@@ -1,0 +1,48 @@
+{# rid_lookup_result.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Lookup of research identifiers (CONFIDENTIAL)</h1>
+
+    {% if lookups %}
+
+        <table>
+            <tr>
+                <th><i>TRID</i><br>{{ trid_field }}: {{ trid_description }}</th>
+                <th><i>RID</i><br>{{ rid_field }}: {{ rid_description }}</th>
+                <th><i>MRID</i><br>{{ mrid_field }}: {{ mrid_description }}</th>
+                <th><i>PID</i><br>{{ pid_description }}</th>
+                <th><i>MPID</i><br>{{ mpid_description }}</th>
+            </tr>
+            {% for lookup in lookups %}
+                <tr>
+                    <td>{{ lookup.trid }}</td>
+                    <td>{{ lookup.rid }}</td>
+                    <td>{{ lookup.mrid }}</td>
+                    <td><b>{{ lookup.pid }}</b></td>
+                    <td><b>{{ lookup.mpid }}</b></td>
+                </tr>
+            {% endfor %}
+        </table>
+
+        <h2>Plain RID list</h2>
+        <pre>{% for lookup in lookups %}{{ lookup.rid }}<br>{% endfor %}</pre>
+
+        <h2>Plain MRID list</h2>
+        <pre>{% for lookup in lookups %}{{ lookup.mrid }}<br>{% endfor %}</pre>
+
+    {% else %}
+
+        <div>None found.</div>
+
+    {% endif %}
+
+    <h2>Key</h2>
+    {% include "pid_abbrev_explanation.html" %}
+
+    <h2>Again?</h2>
+    <div><a href="{% url 'ridlookup' %}">Look up more</a></div>
+
+{% endblock %}

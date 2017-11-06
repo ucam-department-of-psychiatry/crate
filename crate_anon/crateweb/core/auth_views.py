@@ -41,7 +41,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
     # noinspection PyCallByClass,PyTypeChecker
     nextpage = request.GET.get('next', reverse('home'))
-    log.debug("login_view: nextpage: {}".format(nextpage))
+    # log.debug("login_view: nextpage: {}".format(nextpage))
     if request.user.is_authenticated():
         return HttpResponseRedirect(nextpage)
     form = AuthenticationForm(

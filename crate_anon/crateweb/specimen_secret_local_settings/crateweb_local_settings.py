@@ -35,7 +35,8 @@ raise Exception(
     "However, you need to configure it for your institution's set-up, and "
     "remove this line.".format(os.path.abspath(__file__)))
 
-from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIK
+# noinspection PyPep8
+from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
 # =============================================================================
 # Site URL configuration
@@ -190,96 +191,96 @@ RESEARCH_DB_TITLE = "My NHS Trust Research Database"
 RESEARCH_DB_INFO = [
     {
         # Unique name:
-        RDIK.NAME: 'myresearchdb',
+        RDIKeys.NAME: 'myresearchdb',
 
         # Human-friendly description:
-        RDIK.DESCRIPTION: 'My friendly research database',
+        RDIKeys.DESCRIPTION: 'My friendly research database',
 
         # Database name as seen by the database engine:
         # - BLANK, i.e. '', for MySQL.
         # - BLANK, i.e. '', for PostgreSQL.
         # - The database name, for SQL Server.
-        RDIK.DATABASE: '',
+        RDIKeys.DATABASE: '',
 
         # Schema name:
         # - The database=schema name, for MySQL.
         # - The schema name, for PostgreSQL (usual default: 'public').
         # - The schema name, for SQL Server (usual default: 'dbo').
-        RDIK.SCHEMA: 'dbo',
+        RDIKeys.SCHEMA: 'dbo',
 
         # Fields not in the database, but used for SELECT AS statements for
         # some clinician views:
-        RDIK.PID_PSEUDO_FIELD: 'my_pid_field',
-        RDIK.MPID_PSEUDO_FIELD: 'my_mpid_field',
+        RDIKeys.PID_PSEUDO_FIELD: 'my_pid_field',
+        RDIKeys.MPID_PSEUDO_FIELD: 'my_mpid_field',
 
         # Fields and tables found within the database:
-        RDIK.TRID_FIELD: 'trid',
-        RDIK.RID_FIELD: 'brcid',
-        RDIK.RID_FAMILY: 1,
-        RDIK.MRID_TABLE: 'patients',
-        RDIK.MRID_FIELD: 'nhshash',
+        RDIKeys.TRID_FIELD: 'trid',
+        RDIKeys.RID_FIELD: 'brcid',
+        RDIKeys.RID_FAMILY: 1,
+        RDIKeys.MRID_TABLE: 'patients',
+        RDIKeys.MRID_FIELD: 'nhshash',
 
         # Descriptions, used for PID lookup and the like
-        RDIK.PID_DESCRIPTION: 'Patient ID (My ID Number; PID) for database X',
-        RDIK.MPID_DESCRIPTION: 'Master patient ID (NHS number; MPID)',
-        RDIK.RID_DESCRIPTION: 'Research ID (RID) for database X',
-        RDIK.MRID_DESCRIPTION: 'Master research ID (MRID)',
-        RDIK.TRID_DESCRIPTION: 'Transient research ID (TRID) for database X',
+        RDIKeys.PID_DESCRIPTION: 'Patient ID (My ID Num; PID) for database X',
+        RDIKeys.MPID_DESCRIPTION: 'Master patient ID (NHS number; MPID)',
+        RDIKeys.RID_DESCRIPTION: 'Research ID (RID) for database X',
+        RDIKeys.MRID_DESCRIPTION: 'Master research ID (MRID)',
+        RDIKeys.TRID_DESCRIPTION: 'Transient research ID (TRID) for database X',
 
         # To look up PID/RID mappings, provide a key for 'secret_lookup_db'
         # that is a database alias from DATABASES:
-        RDIK.SECRET_LOOKUP_DB: 'secret_1',
+        RDIKeys.SECRET_LOOKUP_DB: 'secret_1',
 
         # For the data finder: is there a standard date field for most patient
         # tables?
-        RDIK.DATE_FIELDS_BY_TABLE: {},
-        RDIK.DEFAULT_DATE_FIELDS: ['default_date_field'],
+        RDIKeys.DATE_FIELDS_BY_TABLE: {},
+        RDIKeys.DEFAULT_DATE_FIELDS: ['default_date_field'],
     },
     {
-        RDIK.NAME: 'similar_database',
-        RDIK.DESCRIPTION: 'A database sharing the RID with the first',
+        RDIKeys.NAME: 'similar_database',
+        RDIKeys.DESCRIPTION: 'A database sharing the RID with the first',
 
-        RDIK.DATABASE: 'similar_database',
-        RDIK.SCHEMA: 'similar_schema',
-        RDIK.TRID_FIELD: 'trid',
-        RDIK.RID_FIELD: 'same_rid',
-        RDIK.RID_FAMILY: 1,
-        RDIK.MRID_TABLE: None,
-        RDIK.MRID_FIELD: None,
+        RDIKeys.DATABASE: 'similar_database',
+        RDIKeys.SCHEMA: 'similar_schema',
+        RDIKeys.TRID_FIELD: 'trid',
+        RDIKeys.RID_FIELD: 'same_rid',
+        RDIKeys.RID_FAMILY: 1,
+        RDIKeys.MRID_TABLE: None,
+        RDIKeys.MRID_FIELD: None,
 
-        RDIK.PID_DESCRIPTION: '',
-        RDIK.MPID_DESCRIPTION: '',
-        RDIK.RID_DESCRIPTION: '',
-        RDIK.MRID_DESCRIPTION: '',
-        RDIK.TRID_DESCRIPTION: '',
+        RDIKeys.PID_DESCRIPTION: '',
+        RDIKeys.MPID_DESCRIPTION: '',
+        RDIKeys.RID_DESCRIPTION: '',
+        RDIKeys.MRID_DESCRIPTION: '',
+        RDIKeys.TRID_DESCRIPTION: '',
 
-        RDIK.SECRET_LOOKUP_DB: '',
+        RDIKeys.SECRET_LOOKUP_DB: '',
 
-        RDIK.DATE_FIELDS_BY_TABLE: {},
-        RDIK.DEFAULT_DATE_FIELDS: [],
+        RDIKeys.DATE_FIELDS_BY_TABLE: {},
+        RDIKeys.DEFAULT_DATE_FIELDS: [],
     },
     {
-        RDIK.NAME: 'different_database',
-        RDIK.DESCRIPTION: 'A database sharing only the MRID with the first',
+        RDIKeys.NAME: 'different_database',
+        RDIKeys.DESCRIPTION: 'A database sharing only the MRID with the first',
 
-        RDIK.DATABASE: 'different_database',
-        RDIK.SCHEMA: 'different_schema',
-        RDIK.TRID_FIELD: 'trid',
-        RDIK.RID_FIELD: 'different_rid',
-        RDIK.RID_FAMILY: 2,
-        RDIK.MRID_TABLE: 'hashed_nhs_numbers',
-        RDIK.MRID_FIELD: 'nhshash',
+        RDIKeys.DATABASE: 'different_database',
+        RDIKeys.SCHEMA: 'different_schema',
+        RDIKeys.TRID_FIELD: 'trid',
+        RDIKeys.RID_FIELD: 'different_rid',
+        RDIKeys.RID_FAMILY: 2,
+        RDIKeys.MRID_TABLE: 'hashed_nhs_numbers',
+        RDIKeys.MRID_FIELD: 'nhshash',
 
-        RDIK.PID_DESCRIPTION: '',
-        RDIK.MPID_DESCRIPTION: '',
-        RDIK.RID_DESCRIPTION: '',
-        RDIK.MRID_DESCRIPTION: '',
-        RDIK.TRID_DESCRIPTION: '',
+        RDIKeys.PID_DESCRIPTION: '',
+        RDIKeys.MPID_DESCRIPTION: '',
+        RDIKeys.RID_DESCRIPTION: '',
+        RDIKeys.MRID_DESCRIPTION: '',
+        RDIKeys.TRID_DESCRIPTION: '',
 
-        RDIK.SECRET_LOOKUP_DB: '',
+        RDIKeys.SECRET_LOOKUP_DB: '',
 
-        RDIK.DATE_FIELDS_BY_TABLE: {},
-        RDIK.DEFAULT_DATE_FIELDS: [],
+        RDIKeys.DATE_FIELDS_BY_TABLE: {},
+        RDIKeys.DEFAULT_DATE_FIELDS: [],
     },
 ]
 

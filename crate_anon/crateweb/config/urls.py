@@ -191,12 +191,16 @@ urlpatterns = [
         name='all_text_from_pid_with_db'),
 
     # -------------------------------------------------------------------------
-    # Look up PID
+    # Look up PID/RID
     # -------------------------------------------------------------------------
     url(r'^pidlookup/$', research_views.pidlookup, name='pidlookup'),
     url(r'^pidlookup_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
         research_views.pidlookup_with_db,
         name='pidlookup_with_db'),
+    url(r'^ridlookup/$', research_views.ridlookup, name='ridlookup'),
+    url(r'^ridlookup_with_db/(?P<dbname>[a-zA-Z0-9_]+)/$',
+        research_views.ridlookup_with_db,
+        name='ridlookup_with_db'),
 
     # -------------------------------------------------------------------------
     # User profile
