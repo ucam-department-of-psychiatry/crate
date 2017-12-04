@@ -157,7 +157,7 @@ class ExtendedConfigParser(configparser.ConfigParser):
     def get_pyvalue_list(self,
                          section: str,
                          option: str,
-                         default: Any = None) -> List[Any]:
+                         default = None) -> list:
         default = default or []
         strvalue = self.get(section, option, fallback=None)
         if not strvalue:
