@@ -202,6 +202,7 @@ setup(
         'django-picklefield==0.3.2',  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
         # 'django-silk==0.5.7',
         'django-sslserver==0.19',
+        'flashtext==2.5',
         'flower==0.9.1',  # debug Celery; web server; only runs explicitly
         'gunicorn==19.6.0',  # UNIX only, though will install under Windows
         'kombu==4.0.1',  # see above re amqp/celery

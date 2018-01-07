@@ -27,7 +27,10 @@ Scrubber classes for CRATE anonymiser.
 from collections import OrderedDict
 import datetime
 import logging
-from typing import Any, Dict, Iterable, Generator, List, Optional, Union
+from sortedcontainers import SortedSet
+import string
+from typing import (Any, Dict, Iterable, Generator, List, Optional, Pattern,
+                    Union)
 
 from cardinal_pythonlib.datetimefunc import coerce_to_datetime
 from cardinal_pythonlib.hash import GenericHasher
@@ -35,6 +38,7 @@ from cardinal_pythonlib.rnc_db import (
     is_sqltype_date,
     is_sqltype_text_over_one_char,
 )
+from flashtext import KeywordProcessor
 
 from crate_anon.anonymise.constants import SCRUBMETHOD
 from crate_anon.anonymise.anonregex import (
@@ -90,6 +94,18 @@ def lower_case_words_from_file(fileobj: Iterable[str]) -> Generator[str, None,
             yield word.lower()
 
 
+FLASHTEXT_NON_WORD_BOUNDARIES = set(SortedSet(
+    string.digits +  # part of flashtext default
+    string.ascii_letters +  # part of flashtext default
+    '_' +  # part of flashtext default
+
+    # now... https://unicode-table.com/en/
+    ''.join(chr(i) for i in range(0xC0, 0x2B8 + 1)) +
+    ''.join(chr(i) for i in range(0x386, 0x556 + 1))
+))  # use the SortedSet for debugging!
+# Why do we do this? So e.g. "naïve" isn't truncated to "naï[~~~]".
+
+
 class WordList(ScrubberBase):
     def __init__(self,
                  filenames: Iterable[str] = None,
@@ -98,7 +114,8 @@ class WordList(ScrubberBase):
                  hasher: GenericHasher = None,
                  suffixes: List[str] = None,
                  at_word_boundaries_only: bool = True,
-                 max_errors: int = 0) -> None:
+                 max_errors: int = 0,
+                 regex_method: bool = False) -> None:
         filenames = filenames or []
         words = words or []
 
@@ -107,9 +124,11 @@ class WordList(ScrubberBase):
         self.suffixes = suffixes
         self.at_word_boundaries_only = at_word_boundaries_only
         self.max_errors = max_errors
-        self._regex = None
-        self._cached_hash = None
-        self._regex_built = False
+        self.regex_method = regex_method
+        self._regex = None  # type: Pattern
+        self._processor = None  # type: KeywordProcessor
+        self._cached_hash = None  # type: str
+        self._built = False
 
         self.words = set()
         # Sets are faster than lists for "is x in s" operations:
@@ -120,10 +139,13 @@ class WordList(ScrubberBase):
         # noinspection PyTypeChecker
         for w in words:
             self.add_word(w, clear_cache=False)
+        # log.debug("Created wordlist with {} words".format(len(self.words)))
 
     def clear_cache(self) -> None:
         """Clear cached information."""
+        self._built = False
         self._regex = None
+        self._processor = None
         self._cached_hash = None
 
     def add_word(self, word: str, clear_cache: bool = True) -> None:
@@ -153,23 +175,42 @@ class WordList(ScrubberBase):
         return self._cached_hash
 
     def scrub(self, text: str) -> str:
-        if not self._regex_built:
-            self.build_regex()
-        if not self._regex:
-            return text
-        return self._regex.sub(self.replacement_text, text)
+        if not self._built:
+            self.build()
+        if self.regex_method:
+            if not self._regex:
+                return text
+            return self._regex.sub(self.replacement_text, text)
+        else:
+            if not self._processor:
+                return text
+            return self._processor.replace_keywords(text)
 
-    def build_regex(self) -> None:
-        elements = []
-        for w in self.words:
-            elements.extend(get_string_regex_elements(
-                w,
-                suffixes=self.suffixes,
-                at_word_boundaries_only=self.at_word_boundaries_only,
-                max_errors=self.max_errors
-            ))
-        self._regex = get_regex_from_elements(elements)
-        self._regex_built = True
+    def build(self) -> None:
+        if self.regex_method:
+            elements = []
+            for w in self.words:
+                elements.extend(get_string_regex_elements(
+                    w,
+                    suffixes=self.suffixes,
+                    at_word_boundaries_only=self.at_word_boundaries_only,
+                    max_errors=self.max_errors
+                ))
+            log.debug("Building regex with {} elements".format(len(elements)))
+            self._regex = get_regex_from_elements(elements)
+        else:
+            if self.words:
+                self._processor = KeywordProcessor(case_sensitive=False)
+                self._processor.set_non_word_boundaries(
+                    FLASHTEXT_NON_WORD_BOUNDARIES)
+                replacement = self.replacement_text
+                log.debug("Building FlashText processor with {} "
+                          "keywords".format(len(self.words)))
+                for w in self.words:
+                    self._processor.add_keyword(w, replacement)
+            else:
+                self._processor = None
+        self._built = True
 
 
 # =============================================================================
@@ -517,3 +558,13 @@ class PersonalizedScrubber(ScrubberBase):
             ('elements', self.elements_tuplelist),
         )
         return OrderedDict(d)
+
+
+_TEST_FLASHTEXT = r"""
+
+import flashtext
+replacement = "[~~~]"
+keywords = [
+
+
+"""
