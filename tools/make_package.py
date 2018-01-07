@@ -3,7 +3,7 @@
 
 """
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -34,7 +34,7 @@ from cardinal_pythonlib.file_io import (
     get_lines_without_comments,
     remove_gzip_timestamp,
 )
-from cardinal_pythonlib.fileops import copytree, mkdir_p
+from cardinal_pythonlib.fileops import copy_tree_root, mkdir_p
 
 from crate_anon.version import VERSION, VERSION_DATE
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
@@ -516,7 +516,7 @@ with open(workpath(DEST_DOC_DIR, 'copyright'), 'w') as outfile:
 CRATE
 
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -922,7 +922,7 @@ shutil.copy(join(SOURCE_ROOT, 'dist', CRATE_PIPFILE),
             workpath(DEST_CRATE_PIPFILE))
 remove_gzip_timestamp(workpath(DEST_CRATE_PIPFILE))
 # shutil.copy(join(SOURCE_ROOT, 'README.md'), WORK_ROOT)
-copytree(join(SOURCE_ROOT, 'tools'), join(WORK_ROOT))
+copy_tree_root(join(SOURCE_ROOT, 'tools'), join(WORK_ROOT))
 shutil.copy(join(SOURCE_ROOT, PACKAGE_DIR_FROM_SOURCE_ROOT, 'crateweb',
                  'specimen_secret_local_settings', LOCAL_CONFIG_BASENAME),
             workpath(DEST_CRATEWEB_CONF_FILE))

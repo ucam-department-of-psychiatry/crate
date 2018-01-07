@@ -3,7 +3,7 @@
 
 """
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -35,6 +35,9 @@ import unittest
 
 from cardinal_pythonlib.lists import unique_list
 from cardinal_pythonlib.logs import configure_logger_for_colour
+
+# https://pypi.python.org/pypi/regex/
+# https://bitbucket.org/mrabarnett/mrab-regex
 import regex  # sudo apt-get install python-regex
 # noinspection PyProtectedMember
 from regex import _regex_core

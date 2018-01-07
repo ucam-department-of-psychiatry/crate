@@ -3,7 +3,7 @@
 
 """
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -266,9 +266,11 @@ def main() -> None:
         "--size", type=int, default=default_size, choices=[0, 1, 2, 3],
         help="Make tiny (0), small (1), medium (2), or large (3) database "
              "(default={})".format(default_size))
-    parser.add_argument('--verbose', '-v', action='store_true',
-                        help="Be verbose")
-    parser.add_argument("--echo", action="store_true", help="Echo SQL")
+    parser.add_argument(
+        '--verbose', '-v', action='store_true',
+        help="Be verbose")
+    parser.add_argument(
+        "--echo", action="store_true", help="Echo SQL")
     parser.add_argument(
         "--doctest_doc", default=DEFAULT_DOCTEST_DOC,
         help="Test file for .DOC")

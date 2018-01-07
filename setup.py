@@ -3,7 +3,7 @@
 
 """
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -189,7 +189,7 @@ setup(
         'amqp==2.1.3',  # because 2.1.4 has a bug; see CRATE manual; amqp is used by Celery  # noqa
         'arrow==0.10.0',  # better datetime
         'beautifulsoup4==4.5.3',
-        'cardinal_pythonlib==1.0.7',
+        'cardinal_pythonlib==1.0.9',
         'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
         'chardet==3.0.2',  # character encoding detection for cardinal_pythonlib  # noqa
         'cherrypy==10.0.0',  # Cross-platform
@@ -259,6 +259,7 @@ setup(
 
             'crate_anonymise=crate_anon.anonymise.anonymise_cli:main',
             'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
+            'crate_fetch_wordlists=crate_anon.anonymise.fetch_wordlists:main',
             'crate_make_demo_database=crate_anon.anonymise.make_demo_database:main',  # noqa
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
             'crate_test_extract_text=crate_anon.anonymise.test_extract_text:main',  # noqa

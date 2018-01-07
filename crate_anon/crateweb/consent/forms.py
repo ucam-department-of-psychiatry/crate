@@ -3,7 +3,7 @@
 
 """
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -31,7 +31,6 @@ from cardinal_pythonlib.django.forms import (
 )
 from django import forms
 from django.conf import settings
-from django.db.models import Q, QuerySet
 
 from crate_anon.crateweb.consent.models import (
     ClinicianResponse,
@@ -44,19 +43,6 @@ log = logging.getLogger(__name__)
 
 class SingleNhsNumberForm(forms.Form):
     nhs_number = SingleNhsNumberField(label="NHS number")
-
-
-def get_queryset_possible_contact_studies() -> QuerySet:
-    return (
-        Study.objects
-        .filter(patient_contact=True)
-        .filter(approved_by_rec=True)
-        .filter(approved_locally=True)
-        .exclude(study_details_pdf='')
-        .exclude(lead_researcher__profile__title='')
-        .exclude(lead_researcher__first_name='')
-        .exclude(lead_researcher__last_name='')
-    )
 
 
 class AbstractContactRequestForm(forms.Form):
@@ -75,7 +61,7 @@ class AbstractContactRequestForm(forms.Form):
 
 class SuperuserSubmitContactRequestForm(AbstractContactRequestForm):
     study = forms.ModelChoiceField(
-        queryset=get_queryset_possible_contact_studies())
+        queryset=Study.get_queryset_possible_contact_studies())
     request_direct_approach = forms.BooleanField(
         label="Request direct approach to patient, if available "
               "(UNTICK to ask clinician for additional info)",
@@ -101,7 +87,8 @@ class SuperuserSubmitContactRequestForm(AbstractContactRequestForm):
 
 
 class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
-    study = forms.ModelChoiceField(queryset=Study.objects.all())
+    study = forms.ModelChoiceField(queryset=None)
+    # ... queryset changed below
     request_direct_approach = forms.BooleanField(
         label="Request direct approach to patient, if available "
               "(UNTICK to ask clinician for additional info)",
@@ -120,10 +107,9 @@ class ResearcherSubmitContactRequestForm(AbstractContactRequestForm):
         rids = self.fields['rids']  # type: MultipleWordAreaField
         mrids = self.fields['mrids']  # type: MultipleWordAreaField
 
-        study.queryset = (
-            get_queryset_possible_contact_studies()
-            .filter(Q(lead_researcher=user) | Q(researchers__in=[user]))
-            .distinct()
+        study.queryset = Study.filter_studies_for_researcher(
+            queryset=Study.get_queryset_possible_contact_studies(),
+            user=user
         )
         # https://docs.djangoproject.com/en/1.8/ref/models/querysets/#field-lookups  # noqa
         # http://stackoverflow.com/questions/5329586/django-modelchoicefield-filtering-query-set-and-setting-default-value-as-an-obj  # noqa

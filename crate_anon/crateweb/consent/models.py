@@ -3,7 +3,7 @@
 
 """
 ===============================================================================
-    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
 
@@ -243,6 +243,19 @@ class Study(models.Model):
         if self.clinical_trial:
             return "Yes (and it is a clinical trial)"
         return "Yes (and it is not a clinical trial)"
+
+    @staticmethod
+    def get_queryset_possible_contact_studies() -> QuerySet:
+        return (
+            Study.objects
+            .filter(patient_contact=True)
+            .filter(approved_by_rec=True)
+            .filter(approved_locally=True)
+            .exclude(study_details_pdf='')
+            .exclude(lead_researcher__profile__title='')
+            .exclude(lead_researcher__first_name='')
+            .exclude(lead_researcher__last_name='')
+        )
 
     @staticmethod
     def filter_studies_for_researcher(
@@ -2242,6 +2255,26 @@ class ConsentMode(Decision):
         #   - create a new ConsentMode with (..., source=source_db)
         #   - save it
         # In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd
+        # *** also: use celery beat to refresh regularly +/- trigger withdrawal
+        #     of consent if consent mode changed;
+        #     http://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html
+        _ = """
+
+-- *** consent-to-contact tables/fields are:
+
+SELECT [ClientID]
+      ,[AssessmentDate]
+      ,[ReferralNumber]
+      ,[ResearchContact]
+      ,[OptOut]
+      ,[OptOutFromMedicalResearch_AfterDetailsRemoved]
+      ,[PersonActingonBehalf_of_Patient]
+      ,[PersonActingonBehalf_of_Patient_Relation]
+      ,[Personactingonbehalf_address]
+      ,[WhoMakesDecisionFor_Patient]
+FROM [CPFT_DATAMART].[dbo].[ConsentToResearch]
+  
+        """
 
     def consider_withdrawal(self) -> None:
         """
