@@ -27,7 +27,6 @@ Scrubber classes for CRATE anonymiser.
 from collections import OrderedDict
 import datetime
 import logging
-from sortedcontainers import SortedSet
 import string
 from typing import (Any, Dict, Iterable, Generator, List, Optional, Pattern,
                     Union)
@@ -38,6 +37,7 @@ from cardinal_pythonlib.rnc_db import (
     is_sqltype_date,
     is_sqltype_text_over_one_char,
 )
+from cardinal_pythonlib.text import UNICODE_CATEGORY_STRINGS
 from flashtext import KeywordProcessor
 
 from crate_anon.anonymise.constants import SCRUBMETHOD
@@ -94,16 +94,14 @@ def lower_case_words_from_file(fileobj: Iterable[str]) -> Generator[str, None,
             yield word.lower()
 
 
-FLASHTEXT_NON_WORD_BOUNDARIES = set(SortedSet(
+FLASHTEXT_WORD_CHARACTERS = set(
     string.digits +  # part of flashtext default
     string.ascii_letters +  # part of flashtext default
     '_' +  # part of flashtext default
-
-    # now... https://unicode-table.com/en/
-    ''.join(chr(i) for i in range(0xC0, 0x2B8 + 1)) +
-    ''.join(chr(i) for i in range(0x386, 0x556 + 1))
-))  # use the SortedSet for debugging!
+    UNICODE_CATEGORY_STRINGS['Latin_Alphabetic']
+)
 # Why do we do this? So e.g. "naïve" isn't truncated to "naï[~~~]".
+# Check: FLASHTEXT_WORDCHAR_STR = "".join(sorted(FLASHTEXT_WORD_CHARACTERS))
 
 
 class WordList(ScrubberBase):
@@ -202,7 +200,7 @@ class WordList(ScrubberBase):
             if self.words:
                 self._processor = KeywordProcessor(case_sensitive=False)
                 self._processor.set_non_word_boundaries(
-                    FLASHTEXT_NON_WORD_BOUNDARIES)
+                    FLASHTEXT_WORD_CHARACTERS)
                 replacement = self.replacement_text
                 log.debug("Building FlashText processor with {} "
                           "keywords".format(len(self.words)))

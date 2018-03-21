@@ -337,6 +337,19 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
 
 def a_not_b(a_filename: str, b_filename: str, output_filename: str,
             min_line_length: int = 0) -> None:
+    if a_filename == output_filename and a_filename != "-":
+        raise ValueError("Filenames for A and OUT cannot be the same "
+                         "(will read from A whilst writing to OUT).")
+    if a_filename == b_filename:
+        raise ValueError("A and B cannot be the same file")
+        # ... because it's pointless, and/or it's unsafe to use stdin for
+        # both A and B
+    if b_filename == output_filename:
+        raise ValueError("B and OUT cannot be the same file")
+        # ... you don't want to overwrite your exclusion file! (Maybe you might
+        # want to overwrite A, but our method below reads all of B, then
+        # streams A to OUT, which prohibits A and OUT being the same, as
+        # above.)
     log.info(
         "Finding lines in A={a} that are not in B={b} (in case-insensitive "
         "fashion); writing to OUT={o}".format(
@@ -422,6 +435,8 @@ SPECIMEN_USAGE = r"""
 
 cd ~/Documents/code/crate/working
 
+# Downloading these and then using a file:// URL is unnecessary, but it makes
+# the processing steps faster if we need to retry with new settings.
 wget https://www.gutenberg.org/files/3201/files/CROSSWD.TXT -O dictionary.txt
 wget https://www.ssa.gov/OACT/babynames/names.zip -O forenames.zip
 wget http://www2.census.gov/topics/genealogy/1990surnames/dist.all.last -O surnames_1990.txt
@@ -473,7 +488,7 @@ def main() -> None:
         '--verbose', '-v', action='store_true',
         help="Be verbose")
     parser.add_argument(
-        '--min_word_length', type=check_positive_int, default=3,
+        '--min_word_length', type=check_positive_int, default=2,
         help="Minimum word length to allow"
     )
     parser.add_argument(
@@ -571,12 +586,15 @@ def main() -> None:
     filter_group.add_argument(
         '--a_not_b', type=str, nargs=3,
         help="In case-insensitive fashion, find lines in file A that are not "
-             "in file B and write them to file C. Specimen use: "
-             "'--a_not_b us_surnames.txt english_words.txt "
-             "filtered_surnames.txt' -- this will produce US surnames that "
-             "are not themselves English words. You can use '-' for A or OUT "
-             "mean 'stdin' or 'stdout' respectively.",
-        metavar=('A', 'B', 'C'),
+             "in file B and write them to file OUT. Specimen use: "
+             "'--a_not_b us_surnames.txt english_words.txt filtered_surnames.txt' "  # noqa
+             "-- this will produce US surnames that are not themselves "
+             "English words. You could proceed with e.g. "
+             "'--a_not_b filtered_surnames.txt medical_eponyms.txt filtered_surnames.txt' "  # noqa
+             "to remove medical eponyms. You can use '-' for A or OUT to mean "
+             "'stdin' (for A) or 'stdout' (for OUT). The three filenames must "
+             "be different, except that you can use '-' for both A and OUT.",
+        metavar=('A', 'B', 'OUT'),
     )
 
     args = parser.parse_args()

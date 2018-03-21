@@ -64,14 +64,16 @@ log = logging.getLogger(__name__)
 # OK, first one works; that's easier.
 
 class Gate(BaseNlpParser):
-    """Class controlling an external process, typically our Java interface to
+    """
+    Class controlling an external process, typically our Java interface to
     GATE programs, CrateGatePipeline.java (but it could be any external
     program).
 
     We send text to it, it parses the text, and it sends us back results, which
     we return as dictionaries. The specific text sought depends on the
     configuration file and the specific GATE program used.
-
+    """
+    _ = """
     PROBLEM when attempting to use KConnect (Bio-YODIE): its source code is
     full of direct calls to System.out.println().
 
@@ -85,6 +87,7 @@ class Gate(BaseNlpParser):
     - redirect stdout in our Java handler
         System.setOut()
         ... yes, that works.
+        Implemented and exposed as --suppress_gate_stdout.
     """
     NAME = "GATE"
 
@@ -135,8 +138,10 @@ class Gate(BaseNlpParser):
         else:
             self._env = os.environ.copy()
         self._env["NLPLOGTAG"] = logtag
-        # ... because passing a "-lt" switch with no parameter will make
-        # CrateGatePipeline.java complain and stop
+        # ... We have ensured that this is not empty for real use, because
+        # passing a "-lt" switch with no parameter will make
+        # CrateGatePipeline.java complain and stop. The environment variable
+        # is read via the "progargs" config argument, as follows.
 
         formatted_progargs = progargs.format(**self._env)
         self._progargs = shlex.split(formatted_progargs)

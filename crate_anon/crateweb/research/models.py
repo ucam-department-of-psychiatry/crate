@@ -140,7 +140,8 @@ def debug_query() -> None:
     cursor.execute("SELECT 'debug'")
 
 
-def get_executed_researchdb_cursor(sql, args: List[Any] = None) -> CursorWrapper:  # noqa
+def get_executed_researchdb_cursor(sql: str,
+                                   args: List[Any] = None) -> CursorWrapper:
     args = args or []
     cursor = connections[RESEARCH_DB_CONNECTION_NAME].cursor()
     try:

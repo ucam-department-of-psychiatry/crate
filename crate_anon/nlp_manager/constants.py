@@ -137,6 +137,9 @@ DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 
 # =============================================================================
 # A. Individual NLP definitions
+#
+#    These map from INPUTS FROM YOUR DATABASE to PROCESSORS and a PROGRESS-
+#    TRACKING DATABASE, and give names to those mappings.
 # =============================================================================
 # - referred to by the nlp_manager.py's command-line arguments
 # - You are likely to need to alter these (particularly the bits in capital
@@ -287,6 +290,12 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 
 # =============================================================================
 # B. NLP processor definitions
+#
+#    These control the behaviour of individual NLP processors.
+#    In the case of CRATE's built-in processors, the only configuration needed 
+#    is the destination database/table, but for some, like GATE applications, 
+#    you need to define more -- such as how to run the external program, and 
+#    what sort of table structure should be created to receive the results.  
 # =============================================================================
 # - You're likely to have to modify the destination databases these point to,
 #   but otherwise you can probably leave them as they are.
@@ -437,6 +446,10 @@ desttable = validate_neutrophils
 # Specimen GATE demo people/places processor definition
 # -----------------------------------------------------------------------------
 
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 [procdef_gate_name_location]
 
     # Which database will this processor write to?
@@ -489,13 +502,13 @@ progargs = java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     {CLASSNAME}
-    -g "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
-    -a Person
-    -a Location
-    -it END_OF_TEXT_FOR_NLP
-    -ot END_OF_NLP_OUTPUT_RECORD
-    -lt {{NLPLOGTAG}}
-    -v
+    --gate_app "{{GATEDIR}}/plugins/ANNIE/ANNIE_with_defaults.gapp"
+    --annotation Person
+    --annotation Location
+    --input_terminator END_OF_TEXT_FOR_NLP
+    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --log_tag {{NLPLOGTAG}}
+    --verbose
 
 progenvsection = MY_ENV_SECTION
 
@@ -524,75 +537,11 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
 
 # max_external_prog_uses = 1000
 
-# -----------------------------------------------------------------------------
-# Specimen KConnect (Bio-YODIE) processor definition
-# -----------------------------------------------------------------------------
-
-[procdef_gate_kconnect]
-
-destdb = DESTINATION_DATABASE
-outputtypemap =
-    disease_or_syndrome output_disease_or_syndrome
-progargs = java
-    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
-    -Dgate.home="{{GATEDIR}}"
-    CrateGatePipeline
-    -g "{{KCONNECTDIR}}/main-bio/main-bio.xgapp"
-    -a Disease_or_Syndrome
-    -it END_OF_TEXT_FOR_NLP
-    -ot END_OF_NLP_OUTPUT_RECORD
-    -lt {{NLPLOGTAG}}
-    -s
-    -v
-progenvsection = MY_ENV_SECTION
-input_terminator = END_OF_TEXT_FOR_NLP
-output_terminator = END_OF_NLP_OUTPUT_RECORD
-# max_external_prog_uses = 1000
-
-# -----------------------------------------------------------------------------
-# Specimen MedEx processor definition
-# -----------------------------------------------------------------------------
-
-[procdef_medex_drugs]
-
-destdb = DESTINATION_DATABASE
-desttable = drugs
-progargs = java
-    -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
-    -Dfile.encoding=UTF-8
-    CrateMedexPipeline
-    -lt {{NLPLOGTAG}}
-    -v -v
-# ... other arguments are added by the code
-progenvsection = MY_ENV_SECTION
-
-# =============================================================================
-# C. Environment variable definitions (for external program, and progargs).
-# =============================================================================
-# - The environment will start by inheriting the parent environment, then add
-#   variables here.
-# - Keys are case-sensitive.
-# - You'll need to modify this according to your local configuration.
-
-[MY_ENV_SECTION]
-
-GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
-NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
-MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
-KCONNECTDIR = /home/myuser/somewhere/yodie-pipeline-1-2-umls-only
-OS_PATHSEP = :
-
-
-# =============================================================================
-# D. Output definitions (for GATE apps)
-# =============================================================================
-# - These define the tables that will receive GATE output.
-# - You probably don't have to modify these, unless you're adding a new GATE
-#   app.
-
-# -----------------------------------------------------------------------------
-# Output types for GATE people-and-places demo
-# -----------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the output tables used by this GATE processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # (This is an additional thing we need for GATE applications, since CRATE 
+    # doesn't automatically know what sort of output they will produce.)
 
 [output_person]
 
@@ -633,8 +582,38 @@ indexdefs =
 
 
 # -----------------------------------------------------------------------------
-# Output types for KConnect/Bio-YODIE
+# Specimen Sheffield/KCL KConnect (Bio-YODIE) processor definition
 # -----------------------------------------------------------------------------
+# https://gate.ac.uk/applications/bio-yodie.html
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[procdef_gate_kconnect]
+
+destdb = DESTINATION_DATABASE
+outputtypemap =
+    disease_or_syndrome output_disease_or_syndrome
+progargs = java
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
+    -Dgate.home="{{GATEDIR}}"
+    CrateGatePipeline
+    --gate_app "{{KCONNECTDIR}}/main-bio/main-bio.xgapp"
+    --annotation Disease_or_Syndrome
+    --input_terminator END_OF_TEXT_FOR_NLP
+    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --log_tag {{NLPLOGTAG}}
+    --suppress_gate_stdout
+    --verbose
+progenvsection = MY_ENV_SECTION
+input_terminator = END_OF_TEXT_FOR_NLP
+output_terminator = END_OF_NLP_OUTPUT_RECORD
+# max_external_prog_uses = 1000
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the output tables used by this GATE processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 [output_disease_or_syndrome]
 
@@ -666,10 +645,43 @@ indexdefs =
     tui     4
     inst    8
 
+# -----------------------------------------------------------------------------
+# Specimen KCL GATE pharmacotherapy processor definition
+# -----------------------------------------------------------------------------
+# https://github.com/KHP-Informatics/brc-gate-pharmacotherapy
 
-# -----------------------------------------------------------------------------
-# Output types for SLAM BRC GATE Pharmacotherapy
-# -----------------------------------------------------------------------------
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[procdef_gate_pharmacotherapy]
+
+destdb = DESTINATION_DATABASE
+outputtypemap =
+    prescription output_prescription
+progargs = java
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
+    -Dgate.home="{{GATEDIR}}"
+    CrateGatePipeline
+    --gate_app "{{GATE_PHARMACOTHERAPY_DIR}}/application.xgapp"
+    --include_set Output
+    --annotation Prescription
+    --input_terminator END_OF_TEXT_FOR_NLP
+    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --log_tag {{NLPLOGTAG}}
+    --suppress_gate_stdout
+    --show_contents_on_crash
+
+#    -v
+progenvsection = CPFT_ENV_SECTION
+input_terminator = END_OF_TEXT_FOR_NLP
+output_terminator = END_OF_NLP_OUTPUT_RECORD
+# max_external_prog_uses = 1000
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the output tables used by this GATE processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 # Note new "renames" option, because the names of the annotations are not 
 # always valid SQL column names.
 
@@ -697,6 +709,9 @@ destfields =
     # application-resources/schemas/Prescription.xml
     # Note preference for DECIMAL over FLOAT/REAL; see
     # https://stackoverflow.com/questions/1056323
+    # Note that not all annotations appear for all texts. Try e.g.:
+    #   Please start haloperidol 5mg tds.
+    #   I suggest you start haloperidol 5mg tds for one week.
     rule            VARCHAR(100)  # not in XML but is present in a subset: e.g. "weanOff"; max length unclear
     drug            VARCHAR(200)  # required string; e.g. "haloperidol"; max length 47 from "wc -L BNF_generic.lst", 134 from BNF_trade.lst
     drug_type       VARCHAR(100)  # required string; from "drug-type"; e.g. "BNF_generic"; ?length of longest drug ".lst" filename
@@ -724,8 +739,122 @@ indexdefs =
     status  10
     tense   7
 
+# -----------------------------------------------------------------------------
+# Specimen KCL Lewy Body Diagnosis Application (LBDA) processor definition
+# -----------------------------------------------------------------------------
+# https://github.com/KHP-Informatics/brc-gate-LBD
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[procdef_gate_kcl_lbda]
+
+    # "cDiagnosis" is the "confirmed diagnosis" field, as d/w Jyoti Jyoti 
+    # 2018-03-20; see also README.md.
+    # Note that we must use lower case in the outputtypemap.
+
+destdb = DESTINATION_DATABASE
+outputtypemap =
+    cdiagnosis output_lbd_diagnosis
+progargs = java
+    -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
+    -Dgate.home="{{GATEDIR}}"
+    CrateGatePipeline
+    --gate_app "{{KCL_LBDA_DIR}}/application.xgapp"
+    --include_set Automatic
+    --annotation cDiagnosis
+    --input_terminator END_OF_TEXT_FOR_NLP
+    --output_terminator END_OF_NLP_OUTPUT_RECORD
+    --log_tag {{NLPLOGTAG}}
+    --suppress_gate_stdout
+    --verbose
+progenvsection = MY_ENV_SECTION
+input_terminator = END_OF_TEXT_FOR_NLP
+output_terminator = END_OF_NLP_OUTPUT_RECORD
+# max_external_prog_uses = 1000
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    # Define the output tables used by this GATE processor
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[output_lbd_diagnosis]
+
+desttable = lewy_body_dementia_gate
+null_literals =
+    null
+    ""
+destfields =
+    # Found by
+    # (a) manual inspection of output from the GATE Developer console:
+    # - e.g. {{rule=Includefin, text=Lewy body dementia}} 
+    # (b) inspection of contents:
+    # - run a Cygwin shell
+    # - find . -type f -exec grep cDiagnosis -l {{}} \;
+    # - 3 hits:
+    #       ./application-resources/jape/DiagnosisExclude2.jape
+    #           ... part of the "Lewy"-detection apparatus               
+    #       ./application-resources/jape/text-feature.jape
+    #           ... adds "text" annotation to cDiagnosis Token
+    #       ./application.xgapp
+    #           ... in annotationTypes
+    # On that basis:
+    rule            VARCHAR(100)  # 
+    text            VARCHAR(200)  # 
+indexdefs =
+    rule    100
+    text    200
+
+# -----------------------------------------------------------------------------
+# Specimen MedEx processor definition
+# -----------------------------------------------------------------------------
+# https://sbmi.uth.edu/ccb/resources/medex.htm
+
+[procdef_medex_drugs]
+
+destdb = DESTINATION_DATABASE
+desttable = drugs
+progargs = java
+    -classpath {{NLPPROGDIR}}:{{MEDEXDIR}}/bin:{{MEDEXDIR}}/lib/*
+    -Dfile.encoding=UTF-8
+    CrateMedexPipeline
+    -lt {{NLPLOGTAG}}
+    -v -v
+# ... other arguments are added by the code
+progenvsection = MY_ENV_SECTION
+
+
 # =============================================================================
-# E. Input field definitions
+# C. Environment variable definitions
+#
+#    We define environment variable groups here, with one group per section.
+#    When a section is selected (e.g. by a "progenvsection" command in an NLP 
+#    processor definition), these variables can be substituted into the 
+#    "progargs" part of the NLP definition (for when external programs are 
+#    called) and are available in the operating system environment for those 
+#    programs themselves.
+# =============================================================================
+# - The environment will start by inheriting the parent environment, then add
+#   variables here.
+# - Keys are case-sensitive.
+# - You'll need to modify this according to your local configuration.
+
+[MY_ENV_SECTION]
+
+GATEDIR = /home/myuser/somewhere/GATE_Developer_8.0
+NLPPROGDIR = /home/myuser/somewhere/crate_anon/nlp_manager/compiled_nlp_classes
+MEDEXDIR = /home/myuser/somewhere/Medex_UIMA_1.3.6
+KCONNECTDIR = /home/myuser/somewhere/yodie-pipeline-1-2-umls-only
+OS_PATHSEP = :
+
+
+# =============================================================================
+# D. Input field definitions
+#
+#    These define database "inputs" in more detail, including the database,
+#    table, and field (column) containing the input, the associated primary key
+#    field, and fields that should be copied to the destination to make 
+#    subsequent work easier (e.g. patient research IDs).
 # =============================================================================
 # - Referred to within the NLP definition, and cross-referencing database
 #   definitions.
@@ -759,8 +888,11 @@ copyfields = RID_FIELD
 indexed_copyfields = RID_FIELD
     TRID_FIELD
 
+
 # =============================================================================
-# F. Database definitions, each in its own section
+# E. Database definitions, each in its own section
+#
+#    These are simply URLs that define how to connect to different databases.
 # =============================================================================
 # Use SQLAlchemy URLs: http://docs.sqlalchemy.org/en/latest/core/engines.html
 

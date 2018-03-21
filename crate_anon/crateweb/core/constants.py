@@ -22,6 +22,7 @@
 ===============================================================================
 """
 
+DJANGO_DEFAULT_CONNECTION = 'default'  # key to django.db.connections
 LEN_ADDRESS = 100
 LEN_FIELD_DESCRIPTION = 100
 LEN_NAME = 100

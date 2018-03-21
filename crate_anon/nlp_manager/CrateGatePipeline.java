@@ -127,6 +127,8 @@ public class CrateGatePipeline {
     private String m_tsv_filename_stem = null;
     private boolean m_suppress_gate_stdout = false;
     private boolean m_show_contents_on_crash = false;
+    private ArrayList<String> m_set_inclusion_list = new ArrayList<String>();
+    private ArrayList<String> m_set_exclusion_list = new ArrayList<String>();
     // Text
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
@@ -211,10 +213,25 @@ public class CrateGatePipeline {
             System.setOut(System.err);
         }
 
+        // Report arguments etc.
+
+        reportArgs(true);
+        if (m_set_inclusion_list.size() == 0) {
+            m_log.debug("Including all sets by default");
+        } else {
+            for (String include : m_set_inclusion_list) {
+                m_log.debug("Explicitly including set: " +
+                            toPrintableRepresentation(include));
+            }
+        }
+        for (String exclude : m_set_exclusion_list) {
+            m_log.debug("Explicitly excluding set: " +
+                        toPrintableRepresentation(exclude));
+        }
+
         // --------------------------------------------------------------------
         // Do interesting things
         // --------------------------------------------------------------------
-        reportArgs(true);
         try {
             runPipeline();
         } catch (Exception e) {
@@ -279,35 +296,98 @@ public class CrateGatePipeline {
 
     private void usage() {
         writeStderr(
-"usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]] [-e ENCODING]\n" +
-"                         [-h] [-it TERM] [-ot TERM] [-v [-v]]\n" +
+"usage: CrateGatePipeline -g GATEAPP [-a ANN [-a ANN [...]]]\n" +
+"                         [--include_set SET [--include_set SET [...]]]\n" +
+"                         [--exclude_set SET [--exclude_set SET [...]]]\n" +
+"                         [-e ENCODING] [-it TERM] [-ot TERM] [-lt LOGTAG]\n" +
 "                         [-wa FILESTEM] [-wg FILESTEM] [-wt FILESTEM]\n" +
+"                         [-s] [--show_contents_on_crash]\n" +
+"                         [-h] [-v [-v [-v]]]\n" +
 "\n" +
 "Java front end to GATE natural language processor.\n" +
-"Takes input on stdin. Produces output on stdout.\n" +
 "\n" +
-"required arguments:\n" +
-"  -g GATEAPP       Specifies the GATE app (.gapp/.xgapp) file to use.\n" +
+"- Takes input on stdin. Produces output on stdout.\n" +
+"- GATE applications produce output clustered (1) into named annotation sets\n" +
+"  (with a default, unnamed set). (2) Within annotation sets, we find\n" +
+"  annotations. (3) Each annotation is a collection of key/value pairs.\n" +
+"  This collection is not fixed, in that individual annotations, or keys within\n" +
+"  annotations, may be present sometimes and absent sometimes, depending on the\n" +
+"  input text.\n" +
 "\n" +
-"optional arguments:\n" +
-"  -a ANNOT         Adds the specified annotation to the target list.\n" +
-"  -e ENCODING      The character encoding of the source documents, to be used\n" +
+"Required arguments:\n" +
+"\n" +
+"  --gate_app GATEAPP\n" +
+"  -g GATEAPP\n" +
+"                   Specifies the GATE app (.gapp/.xgapp) file to use.\n" +
+"\n" +
+"Optional arguments:\n" +
+"\n" +
+"  --annotation ANNOT\n" +
+"  -a ANNOT\n" +
+"                   Adds the specified annotation to the target list.\n" +
+"\n" +
+"  --include_set SET\n" +
+"  --exclude_set SET\n" +
+"                   Includes or excludes the specified GATE set, by name.\n" +
+"                   By default, the inclusion list is empty, and the exclusion\n" +
+"                   list is also empty. By specifying set names here, you add\n" +
+"                   to the inclusion or exclusion list. You can specify each\n" +
+"                   option multiple times. Then, the rules are as follows:\n" +
+"                   the output from a GATE set is included if (A) the inclusion\n" +
+"                   list is empty OR the set is on the inclusion list, AND (B)\n" +
+"                   the set is not on the exclusion list. Note also that there\n" +
+"                   is a default set with no name; refer to this one using\n" +
+"                   the empty string \"\". Set names are compared in a\n" +
+"                   case-sensitive manner.\n" +
+"\n" +
+"  --encoding ENCODING\n" +
+"  -e ENCODING\n" +
+"                   The character encoding of the source documents, to be used\n" +
 "                   for file output. If not specified, the platform default\n" +
 "                   encoding (currently \"" + System.getProperty("file.encoding") + "\") is assumed.\n" +
-"  -h               Show this help message and exit.\n" +
-"  -it TERMINATOR   Specify stdin end-of-document terminator.\n" +
-"  -ot TERMINATOR   Specify stdout end-of-document terminator.\n" +
-"  -lt LOGTAG       Use an additional tag for stderr logging.\n" +
+"\n" +
+"  --input_terminator TERMINATOR\n" +
+"  -it TERMINATOR\n" +
+"                   Specify stdin end-of-document terminator.\n" +
+"\n" +
+"  --output_terminator TERMINATOR\n" +
+"  -ot TERMINATOR\n" +
+"                   Specify stdout end-of-document terminator.\n" +
+"\n" +
+"  --log_tag LOGTAG\n" +
+"  -lt LOGTAG\n" +
+"                   Use an additional tag for stderr logging.\n" +
 "                   Helpful in multiprocess environments.\n" +
-"  -v               Verbose (use up to 3 times to be more verbose).\n" +
-"  -wa FILESTEM     Write annotated XML document to FILESTEM<n>.xml, where <n>\n" +
+"\n" +
+"  --write_annotated_xml FILESTEM\n" +
+"  -wa FILESTEM\n" +
+"                   Write annotated XML document to FILESTEM<n>.xml, where <n>\n" +
 "                   is the file's sequence number (starting from 0).\n" +
-"  -wg FILESTEM     Write GateXML document to FILESTEM<n>.xml.\n" +
-"  -wt FILESTEM     Write TSV-format annotations FILESTEM<n>.tsv.\n" +
-"  -s               Suppress any stdout from GATE application.\n" +
+"\n" +
+"  --write_gate_xml FILESTEM\n" +
+"  -wg FILESTEM\n" +
+"                   Write GateXML document to FILESTEM<n>.xml.\n" +
+"\n" +
+"  --write_tsv FILESTEM\n" +
+"  -wt FILESTEM\n" +
+"                   Write TSV-format annotations to FILESTEM<n>.tsv.\n" +
+"\n" +
+"  --suppress_gate_stdout\n" +
+"  -s\n" +
+"                   Suppress any stdout from GATE application.\n" +
+"\n" +
+"  --show_contents_on_crash\n" +
 "  -show_contents_on_crash\n" +
 "                   If GATE crashes, report the current text to stderr.\n" +
-"                   (WARNING: likely to contain identifiable material.)\n"
+"                   (WARNING: likely to contain identifiable material.)\n" +
+"\n" +
+"  --help\n" +
+"  -h\n" +
+"                   Show this help message and exit.\n" +
+"\n" +
+"  --verbose\n" +
+"  -v\n" +
+"                   Verbose (use up to 3 times to be more verbose).\n"
         );
     }
 
@@ -322,54 +402,90 @@ public class CrateGatePipeline {
             nleft = m_args.length - i;
             switch (arg) {
                 case "-a":
+                case "--annotation":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_target_annotations.add(m_args[i++]);
                     break;
+
+                case "--include_set":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_set_inclusion_list.add(m_args[i++]);
+                    break;
+
+                case "--exclude_set":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_set_exclusion_list.add(m_args[i++]);
+                    break;
+
                 case "-e":
+                case "--encoding":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_file_encoding = m_args[i++];
                     break;
+
                 case "-g":
+                case "--gate_app":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_gapp_file = new File(m_args[i++]);
                     break;
+
                 case "-h":
+                case "--help":
                     usage();
                     exit();
                     break;
+
                 case "-it":
+                case "--input_terminator":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_input_terminator = m_args[i++];
                     break;
+
                 case "-ot":
+                case "--output_terminator":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_output_terminator = m_args[i++];
                     break;
+
                 case "-lt":
+                case "--log_tag":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_extra_log_prefix = m_args[i++];
                     break;
+
                 case "-v":
+                case "--verbose":
                     m_verbose++;
                     break;
+
                 case "-wa":
+                case "--write_annotated_xml":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_annotxml_filename_stem = m_args[i++];
                     break;
+
                 case "-wg":
+                case "--write_gate_xml":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_gatexml_filename_stem = m_args[i++];
                     break;
+
                 case "-wt":
+                case "--write_tsv":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_tsv_filename_stem = m_args[i++];
                     break;
+
                 case "-s":
+                case "--suppress_gate_stdout":
                     m_suppress_gate_stdout = true;
                     break;
+
                 case "-show_contents_on_crash":
+                case "--show_contents_on_crash":
                     m_show_contents_on_crash = true;
                     break;
+
                 default:
                     usage();
                     abort();
@@ -416,6 +532,58 @@ public class CrateGatePipeline {
         }
         s = s.replace("%", "%%");
         return s;
+    }
+
+    private static final char CONTROL_LIMIT = ' ';
+    private static final char PRINTABLE_LIMIT = '\u007e';
+    private static final char[] HEX_DIGITS = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
+
+    public static String toPrintableRepresentation(String source) {
+        // https://stackoverflow.com/questions/1350397/java-equivalent-of-python-repr
+        if (source == null) {
+            return null;
+        } else {
+
+            final StringBuilder sb = new StringBuilder();
+            final int limit = source.length();
+            char[] hexbuf = null;
+
+            int pointer = 0;
+
+            sb.append('"');
+
+            while (pointer < limit) {
+                int ch = source.charAt(pointer++);
+
+                switch (ch) {
+
+                case '\0': sb.append("\\0"); break;
+                case '\t': sb.append("\\t"); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\"': sb.append("\\\""); break;
+                case '\\': sb.append("\\\\"); break;
+
+                default:
+                    if (CONTROL_LIMIT <= ch && ch <= PRINTABLE_LIMIT) {
+                        sb.append((char)ch);
+                    } else {
+                        sb.append("\\u");
+
+                        if (hexbuf == null) {
+                            hexbuf = new char[4];
+                        }
+                        for (int offs = 4; offs > 0; ) {
+                            hexbuf[--offs] = HEX_DIGITS[ch & 0xf];
+                            ch >>>= 4;
+                        }
+                        sb.append(hexbuf, 0, 4);
+                    }
+                }
+            }
+
+            return sb.append('"').toString();
+        }
     }
 
     // ========================================================================
@@ -550,11 +718,45 @@ public class CrateGatePipeline {
     // GATE output processing
     // ========================================================================
 
+    private boolean useSet(String setname) {
+        // Check set name against inclusion/exclusion lists.
+        // Case-sensitive comparisons used here.
+        for (String exclude : m_set_exclusion_list) {
+            if (setname.equals(exclude)) {  // .equals(), not ==!
+                // Explicitly excluded.
+                m_log.debug("Explicitly excluding set: " +
+                            toPrintableRepresentation(setname));
+                return false;
+            }
+        }
+        if (m_set_inclusion_list.size() == 0) {
+            // Empty inclusion list, which means include everything by default.
+            m_log.debug("Including set by default: " +
+                        toPrintableRepresentation(setname));
+            return true;
+        }
+        for (String include : m_set_inclusion_list) {
+            if (setname.equals(include)) {  // .equals(), not ==!
+                // Explicitly included.
+                m_log.debug("Explicitly including set: " +
+                            toPrintableRepresentation(setname));
+                return true;
+            }
+        }
+        // An inclusion list has been specified, but our set name isn't on it.
+        m_log.debug("Excluding set as not included: " +
+                    toPrintableRepresentation(setname));
+        return false;
+    }
+
     private Map<String, AnnotationSet> getAnnotationSets(Document doc) {
         // The default of doc.getAnnotations() only gets the default (unnamed)
         // AnnotationSet. But for KConnect/Bio-YODIE, we find an unnamed set,
         // and a set named "Bio", whose annotations look like "Bio#Disease".
         // Similarly, the GATE BRC Pharmacotherapy app has a set named "Output".
+        // Sometimes, the default unnamed set provides the same information as
+        // a named set, so we need to be able to specify inclusion/exclusion
+        // criteria.
         //
         // The underlying functions are:
         //      public AnnotationSet SimpleDocument::getAnnotations();
@@ -563,9 +765,13 @@ public class CrateGatePipeline {
         //      public Set<String> SimpleDocument::getAnnotationSetNames();
 
         Map<String, AnnotationSet> sets = new HashMap<String, AnnotationSet>();
-        sets.put("", doc.getAnnotations());  // the unnamed one
+        if (useSet("")) {
+            sets.put("", doc.getAnnotations());  // the unnamed one
+        }
         for (String name : doc.getAnnotationSetNames()) {
-            sets.put(name, doc.getAnnotations(name));
+            if (useSet(name)) {
+                sets.put(name, doc.getAnnotations(name));
+            }
         }
         return sets;
     }
