@@ -434,6 +434,7 @@ if ('CRATE_RUN_WITHOUT_LOCAL_SETTINGS' in os.environ and
     # We will only get here for the collectstatic command in the Debian
     # postinst file, so we just need the minimum specified.
     CLINICAL_LOOKUP_DB = 'dummy_clinical'
+    CLINICAL_LOOKUP_CONSENT_DB = 'dummy_clinical'
     EMAIL_SENDER = 'dummy'
     FORCE_SCRIPT_NAME = ''
     MAX_UPLOAD_SIZE_BYTES = 1000

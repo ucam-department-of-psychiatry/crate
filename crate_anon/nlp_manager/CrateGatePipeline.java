@@ -129,6 +129,8 @@ public class CrateGatePipeline {
     private boolean m_show_contents_on_crash = false;
     private ArrayList<String> m_set_inclusion_list = new ArrayList<String>();
     private ArrayList<String> m_set_exclusion_list = new ArrayList<String>();
+    private Map<String, ArrayList<String>> m_set_annotation_combos =
+        new HashMap<String, ArrayList<String>>();
     // Text
     private static final String m_sep1 = ">>>>>>>>>>>>>>>>> ";
     private static final String m_sep2 = "<<<<<<<<<<<<<<<<<";
@@ -216,17 +218,36 @@ public class CrateGatePipeline {
         // Report arguments etc.
 
         reportArgs(true);
+        // Sets:
         if (m_set_inclusion_list.size() == 0) {
             m_log.debug("Including all sets by default");
         } else {
             for (String include : m_set_inclusion_list) {
-                m_log.debug("Explicitly including set: " +
-                            toPrintableRepresentation(include));
+                m_log.debug("Explicitly including set: " + toPrintable(include));
             }
         }
         for (String exclude : m_set_exclusion_list) {
-            m_log.debug("Explicitly excluding set: " +
-                        toPrintableRepresentation(exclude));
+            m_log.debug("Explicitly excluding set: " + toPrintable(exclude));
+        }
+        // Annotations:
+        if (!m_set_annotation_combos.isEmpty()) {
+            for (Map.Entry<String, ArrayList<String>> entry :
+                    m_set_annotation_combos.entrySet()) {
+                String set = entry.getKey();
+                ArrayList<String> annots = entry.getValue();
+                for (String annot : annots) {
+                    m_log.debug("Including set = " + toPrintable(set) +
+                                ", annotation = " + toPrintable(annot));
+                }
+            }
+        } else {
+            if (m_target_annotations.isEmpty()) {
+                m_log.debug("Including all annotations by default");
+            } else {
+                for (String annot : m_target_annotations) {
+                    m_log.debug("Including annotation: " + toPrintable(annot));
+                }
+            }
         }
 
         // --------------------------------------------------------------------
@@ -322,10 +343,6 @@ public class CrateGatePipeline {
 "\n" +
 "Optional arguments:\n" +
 "\n" +
-"  --annotation ANNOT\n" +
-"  -a ANNOT\n" +
-"                   Adds the specified annotation to the target list.\n" +
-"\n" +
 "  --include_set SET\n" +
 "  --exclude_set SET\n" +
 "                   Includes or excludes the specified GATE set, by name.\n" +
@@ -339,6 +356,17 @@ public class CrateGatePipeline {
 "                   is a default set with no name; refer to this one using\n" +
 "                   the empty string \"\". Set names are compared in a\n" +
 "                   case-sensitive manner.\n" +
+"\n" +
+"  --annotation ANNOT\n" +
+"  -a ANNOT\n" +
+"                   Adds the specified annotation to the target list.\n" +
+"                   If you don't specify any, you'll get them all.\n" +
+"\n" +
+"  --set_annotation SET ANNOT\n" +
+"  -sa SET ANNOT\n" +
+"                   Adds the specific set/annotation combination to the target\n" +
+"                   list. Use this option for maximum control. You cannot mix\n" +
+"                   --annotation and --set_annotation.\n" +
 "\n" +
 "  --encoding ENCODING\n" +
 "  -e ENCODING\n" +
@@ -401,12 +429,6 @@ public class CrateGatePipeline {
             arg = m_args[i++].toLowerCase();
             nleft = m_args.length - i;
             switch (arg) {
-                case "-a":
-                case "--annotation":
-                    if (nleft < 1) argfail(insufficient + arg);
-                    m_target_annotations.add(m_args[i++]);
-                    break;
-
                 case "--include_set":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_set_inclusion_list.add(m_args[i++]);
@@ -415,6 +437,31 @@ public class CrateGatePipeline {
                 case "--exclude_set":
                     if (nleft < 1) argfail(insufficient + arg);
                     m_set_exclusion_list.add(m_args[i++]);
+                    break;
+
+                case "-a":
+                case "--annotation":
+                    if (nleft < 1) argfail(insufficient + arg);
+                    m_target_annotations.add(m_args[i++]);
+                    break;
+
+                case "-sa":
+                case "--set_annotation":
+                    {
+                        if (nleft < 2) argfail(insufficient + arg);
+                        String set = m_args[i++];
+                        String annot = m_args[i++];
+                        ArrayList<String> annotlist = m_set_annotation_combos.get(set);
+                        if (annotlist == null) {
+                            annotlist = new ArrayList<String>();
+                            annotlist.add(annot);
+                            m_set_annotation_combos.put(set, annotlist);
+                        } else {
+                            if (!annotlist.contains(annot)) {
+                                annotlist.add(annot);
+                            }
+                        }
+                    }
                     break;
 
                 case "-e":
@@ -498,6 +545,10 @@ public class CrateGatePipeline {
                     "use -h for help");
             abort();
         }
+        if (!m_target_annotations.isEmpty() && !m_set_annotation_combos.isEmpty()) {
+            argfail("Use either --annotation or --set_annotation, not both.");
+            abort();
+        }
     }
 
     private void reportArgs(boolean to_log) {
@@ -538,38 +589,31 @@ public class CrateGatePipeline {
     private static final char PRINTABLE_LIMIT = '\u007e';
     private static final char[] HEX_DIGITS = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-    public static String toPrintableRepresentation(String source) {
+    public static String toPrintable(String source) {
         // https://stackoverflow.com/questions/1350397/java-equivalent-of-python-repr
         if (source == null) {
             return null;
         } else {
-
             final StringBuilder sb = new StringBuilder();
             final int limit = source.length();
             char[] hexbuf = null;
-
             int pointer = 0;
 
             sb.append('"');
-
             while (pointer < limit) {
                 int ch = source.charAt(pointer++);
-
                 switch (ch) {
-
                 case '\0': sb.append("\\0"); break;
                 case '\t': sb.append("\\t"); break;
                 case '\n': sb.append("\\n"); break;
                 case '\r': sb.append("\\r"); break;
                 case '\"': sb.append("\\\""); break;
                 case '\\': sb.append("\\\\"); break;
-
                 default:
                     if (CONTROL_LIMIT <= ch && ch <= PRINTABLE_LIMIT) {
                         sb.append((char)ch);
                     } else {
                         sb.append("\\u");
-
                         if (hexbuf == null) {
                             hexbuf = new char[4];
                         }
@@ -581,7 +625,6 @@ public class CrateGatePipeline {
                     }
                 }
             }
-
             return sb.append('"').toString();
         }
     }
@@ -724,28 +767,32 @@ public class CrateGatePipeline {
         for (String exclude : m_set_exclusion_list) {
             if (setname.equals(exclude)) {  // .equals(), not ==!
                 // Explicitly excluded.
-                m_log.debug("Explicitly excluding set: " +
-                            toPrintableRepresentation(setname));
+                m_log.debug("Explicitly excluding set: " + toPrintable(setname));
                 return false;
             }
         }
         if (m_set_inclusion_list.size() == 0) {
             // Empty inclusion list, which means include everything by default.
-            m_log.debug("Including set by default: " +
-                        toPrintableRepresentation(setname));
+            m_log.debug("Including set by default: " + toPrintable(setname));
             return true;
         }
         for (String include : m_set_inclusion_list) {
             if (setname.equals(include)) {  // .equals(), not ==!
                 // Explicitly included.
-                m_log.debug("Explicitly including set: " +
-                            toPrintableRepresentation(setname));
+                m_log.debug("Explicitly including set: " + toPrintable(setname));
+                return true;
+            }
+        }
+        for (String include : m_set_annotation_combos.keySet()) {
+            if (setname.equals(include)) {
+                // Explicitly included via a set/annotation pair
+                m_log.debug("Including set for set/annotation pair: " +
+                            toPrintable(setname));
                 return true;
             }
         }
         // An inclusion list has been specified, but our set name isn't on it.
-        m_log.debug("Excluding set as not included: " +
-                    toPrintableRepresentation(setname));
+        m_log.debug("Excluding set as not included: " + toPrintable(setname));
         return false;
     }
 
@@ -776,6 +823,32 @@ public class CrateGatePipeline {
         return sets;
     }
 
+    private void fetchAndProcessAnnotations(
+                Document doc,
+                PrintStream outtsv,
+                String setname,
+                AnnotationSet annotations,
+                ArrayList<String> target_annots,
+                Set<Annotation> annotations_to_write)  // written to; used for XML
+            throws InvalidOffsetException, IOException {
+        Iterator annot_types_it = target_annots.iterator();
+        while (annot_types_it.hasNext()) {
+            // Extract all the annotations of each requested type:
+            AnnotationSet annots_of_this_type = annotations.get(
+                (String)annot_types_it.next());
+            if (annots_of_this_type != null) {
+                // Add them to the temporary set, for the XML
+                annotations_to_write.addAll(annots_of_this_type);
+            }
+            // Process individual annotations
+            Iterator ann_it = annots_of_this_type.iterator();
+            while (ann_it.hasNext()) {
+                Annotation annot = (Annotation)ann_it.next();
+                processAnnotation(setname, annot, doc, outtsv);
+            }
+        }
+    }
+
     private void reportOutput(Document doc)
             throws IOException, InvalidOffsetException {
         FeatureMap features = doc.getFeatures();
@@ -796,7 +869,7 @@ public class CrateGatePipeline {
         }
 
         // Fetch relevant output
-        if (!m_target_annotations.isEmpty()) {
+        if (!m_target_annotations.isEmpty() || !m_set_annotation_combos.isEmpty()) {
 
             // ----------------------------------------------------------------
             // User has specified annotations to report.
@@ -807,23 +880,27 @@ public class CrateGatePipeline {
 
             // Extract the annotations
             Map<String, AnnotationSet> sets = getAnnotationSets(doc);
-            for (Map.Entry<String, AnnotationSet> entry : sets.entrySet()) {
-                String setname = entry.getKey();
-                AnnotationSet annotations = entry.getValue();
-                Iterator annot_types_it = m_target_annotations.iterator();
-                while (annot_types_it.hasNext()) {
-                    // Extract all the annotations of each requested type:
-                    AnnotationSet annots_of_this_type = annotations.get(
-                        (String)annot_types_it.next());
-                    if (annots_of_this_type != null) {
-                        // Add them to the temporary set, for the XML (below)
-                        annotations_to_write.addAll(annots_of_this_type);
-                    }
-                    // Process individual annotations
-                    Iterator ann_it = annots_of_this_type.iterator();
-                    while (ann_it.hasNext()) {
-                        Annotation annot = (Annotation)ann_it.next();
-                        processAnnotation(setname, annot, doc, outtsv);
+            for (Map.Entry<String, AnnotationSet> gate_entry : sets.entrySet()) {
+                String setname = gate_entry.getKey();
+                AnnotationSet annotations = gate_entry.getValue();
+
+                if (!m_target_annotations.isEmpty()) {
+                    // Specifying annotations generically
+                    fetchAndProcessAnnotations(doc, outtsv, setname,
+                                               annotations, m_target_annotations,
+                                               annotations_to_write);
+                } else {
+                    // Specifying set/annotation combinations
+                    for (Map.Entry<String, ArrayList<String>> sa_combo_entry :
+                            m_set_annotation_combos.entrySet()) {
+                        String target_set = sa_combo_entry.getKey();
+                        if (!setname.equals(target_set)) {
+                            continue;
+                        }
+                        ArrayList<String> target_annots = sa_combo_entry.getValue();
+                        fetchAndProcessAnnotations(doc, outtsv, setname,
+                                                   annotations, target_annots,
+                                                   annotations_to_write);
                     }
                 }
             }

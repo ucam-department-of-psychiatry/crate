@@ -32,7 +32,7 @@ Anonymise multiple SQL-based databases using a data dictionary.
 import logging
 import random
 import sys
-from typing import Any, Dict, Iterable, Generator, List, Tuple
+from typing import Any, Dict, Iterable, Generator, List, Tuple, Union
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_pendulum
 from cardinal_pythonlib.sqlalchemy.core_query import count_star, exists_plain
@@ -262,21 +262,21 @@ def commit_admindb() -> None:
 # Opt-out
 # =============================================================================
 
-def opting_out_pid(pid: int) -> bool:
+def opting_out_pid(pid: Union[int, str]) -> bool:
     """Does this patient wish to opt out?"""
     if pid is None:
         return False
     return OptOutPid.opting_out(config.admindb.session, pid)
 
 
-def opting_out_mpid(mpid: int) -> bool:
+def opting_out_mpid(mpid: Union[int, str]) -> bool:
     """Does this patient wish to opt out?"""
     if mpid is None:
         return False
     return OptOutMpid.opting_out(config.admindb.session, mpid)
 
 
-def gen_optout_rids() -> Generator[int, None, None]:
+def gen_optout_rids() -> Generator[str, None, None]:
     # If a patient opts out, we need to be able to wipe their information from
     # the database, and hence look up their RID for that purpose.
     session = config.admindb.session
@@ -421,7 +421,7 @@ def estimate_count_patients() -> int:
 def gen_rows(dbname: str,
              sourcetable: str,
              sourcefields: Iterable[str],
-             pid: int = None,
+             pid: Union[int, str] = None,
              intpkname: str = None,
              tasknum: int = 0,
              ntasks: int = 1,
@@ -470,7 +470,9 @@ def gen_rows(dbname: str,
         config.rows_inserted_per_table[db_table_tuple] += 1
 
 
-def count_rows(dbname: str, sourcetable: str, pid: int = None) -> int:
+def count_rows(dbname: str,
+               sourcetable: str,
+               pid: Union[int, str] = None) -> int:
     # Count function to match gen_rows()
     session = config.sources[dbname].session
     query = select([func.count()]).select_from(table(sourcetable))
@@ -927,7 +929,7 @@ def gen_integers_from_file(filename: str) -> Generator[int, None, None]:
             yield pid
 
 
-def gen_words_from_file(filename: str) -> Generator[int, None, None]:
+def gen_words_from_file(filename: str) -> Generator[str, None, None]:
     for line in open(filename):
         for pid in line.split():
             yield pid

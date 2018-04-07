@@ -32,7 +32,7 @@ To create a SQLAlchemy ORM programmatically:
 
 import logging
 import random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from cardinal_pythonlib.sqlalchemy.orm_query import exists_orm
 from sqlalchemy import (
@@ -134,7 +134,7 @@ class PatientInfo(AdminBase):
         # noinspection PyTypeChecker
         self.trid = TridRecord.get_trid(session, self.pid)
 
-    def set_mpid(self, mpid: int) -> None:
+    def set_mpid(self, mpid: Union[int, str]) -> None:
         self.mpid = mpid
         self.mrid = config.encrypt_master_pid(self.mpid)
 
@@ -162,7 +162,7 @@ class TridRecord(AdminBase):
         doc="Transient integer research ID (TRID)")
 
     @classmethod
-    def get_trid(cls, session: Session, pid: int) -> int:
+    def get_trid(cls, session: Session, pid: Union[int, str]) -> int:
         try:
             obj = session.query(cls).filter(cls.pid == pid).one()
             return obj.trid
@@ -170,7 +170,7 @@ class TridRecord(AdminBase):
             return cls.new_trid(session, pid)
 
     @classmethod
-    def new_trid(cls, session: Session, pid: int) -> int:
+    def new_trid(cls, session: Session, pid: Union[int, str]) -> int:
         """
         We check for existence by inserting and asking the database if it's
         happy, not by asking the database if it exists (since other processes
@@ -199,11 +199,11 @@ class OptOutPid(AdminBase):
         doc="Patient ID")
 
     @classmethod
-    def opting_out(cls, session: Session, pid: int) -> bool:
+    def opting_out(cls, session: Session, pid: Union[int, str]) -> bool:
         return exists_orm(session, cls, cls.pid == pid)
 
     @classmethod
-    def add(cls, session: Session, pid: int) -> None:
+    def add(cls, session: Session, pid: Union[int, str]) -> None:
         log.debug("Adding opt-out for PID {}".format(pid))
         newthing = cls(pid=pid)
         session.merge(newthing)
@@ -220,11 +220,11 @@ class OptOutMpid(AdminBase):
         doc="Patient ID")
 
     @classmethod
-    def opting_out(cls, session: Session, mpid: int) -> bool:
+    def opting_out(cls, session: Session, mpid: Union[int, str]) -> bool:
         return exists_orm(session, cls, cls.mpid == mpid)
 
     @classmethod
-    def add(cls, session: Session, mpid: int) -> None:
+    def add(cls, session: Session, mpid: Union[int, str]) -> None:
         log.debug("Adding opt-out for MPID {}".format(mpid))
         newthing = cls(mpid=mpid)
         session.merge(newthing)

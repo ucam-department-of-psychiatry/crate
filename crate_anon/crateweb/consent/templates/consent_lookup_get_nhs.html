@@ -1,0 +1,17 @@
+{# consent_lookup_get_nhs.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Test lookup of research consent information from NHS number</h1>
+
+    <form action="{% url 'test_consent_lookup' %}" method="post">
+        {% csrf_token %}
+        <table class="formtable">
+            {{ form.as_table }}
+        </table>
+        <input type="submit" value="Submit" />
+    </form>
+
+{% endblock %}

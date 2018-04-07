@@ -54,7 +54,7 @@ from cardinal_pythonlib.timing import MultiTimerContext, timer
 from pyparsing import ParseResults
 from sqlalchemy import inspect
 from sqlalchemy.dialects.mssql.base import MS_2012_VERSION
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import Column, Table
@@ -1343,11 +1343,11 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
     return newsql
 
 
-if False:
+_ = """
     _SQLTEST1 = "SELECT a FROM b WHERE c=? AND d LIKE 'blah%' AND e='?'"
     _SQLTEST2 = "SELECT a FROM b WHERE c=%s AND d LIKE 'blah%%' AND e='?'"
     _SQLTEST3 = translate_sql_qmark_to_percent(_SQLTEST1)
-
+"""
 
 # =============================================================================
 # Tests

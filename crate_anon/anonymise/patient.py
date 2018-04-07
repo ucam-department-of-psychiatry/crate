@@ -25,7 +25,7 @@ Patient class for CRATE anonymiser.
 """
 
 import logging
-from typing import AbstractSet, Any, Generator, List
+from typing import AbstractSet, Any, Generator, List, Union
 
 from sqlalchemy.sql import column, select, table
 
@@ -41,10 +41,11 @@ log = logging.getLogger(__name__)
 # Generate identifiable values for a patient
 # =============================================================================
 
-def gen_all_values_for_patient(dbname: str,
-                               tablename: str,
-                               fields: List[str],
-                               pid: int) -> Generator[List[Any], None, None]:
+def gen_all_values_for_patient(
+        dbname: str,
+        tablename: str,
+        fields: List[str],
+        pid: Union[int, str]) -> Generator[List[Any], None, None]:
     """
     Generate all sensitive (scrub_src) values for a given patient, from a given
     source table. Used to build the scrubber.
@@ -84,14 +85,14 @@ class Patient(object):
     """Class representing a patient-specific information, such as PIDs, RIDs,
     and scrubbers."""
 
-    def __init__(self, pid: int, debug: bool = False) -> None:
+    def __init__(self, pid: Union[int, str], debug: bool = False) -> None:
         """
         Build the scrubber based on data dictionary information.
 
             sources: dictionary
                 key: db name
                 value: rnc_db database object
-            pid: integer patient identifier
+            pid: (usually integer) patient identifier
         """
         self.pid = pid
         self.session = config.admindb.session
@@ -148,7 +149,10 @@ class Patient(object):
         # promptly. Otherwise, might get:
         #   Deadlock found when trying to get lock; try restarting transaction
 
-    def _build_scrubber(self, pid: int, depth: int, max_depth: int) -> None:
+    def _build_scrubber(self,
+                        pid: Union[int, str],
+                        depth: int,
+                        max_depth: int) -> None:
         if depth > 0:
             log.debug("Building scrubber recursively: depth = {}".format(
                 depth))
@@ -200,15 +204,15 @@ class Patient(object):
     def mandatory_scrubbers_unfulfilled(self) -> AbstractSet[str]:
         return self._mandatory_scrubbers_unfulfilled
 
-    def get_pid(self) -> int:
+    def get_pid(self) -> Union[int, str]:
         """Return the patient ID (PID)."""
         return self.info.pid
 
-    def get_mpid(self) -> int:
+    def get_mpid(self) -> Union[int, str]:
         """Return the master patient ID (MPID)."""
         return self.info.mpid
 
-    def set_mpid(self, mpid: int) -> None:
+    def set_mpid(self, mpid: Union[int, str]) -> None:
         self.info.set_mpid(mpid)
 
     def get_rid(self) -> str:

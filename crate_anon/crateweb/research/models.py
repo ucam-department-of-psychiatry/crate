@@ -27,7 +27,7 @@ import contextlib
 import datetime
 import io
 import logging
-from typing import Any, Dict, Generator, List, Optional, Tuple
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 import zipfile
 
 from cardinal_pythonlib.dbfunc import dictfetchall, get_fieldnames_from_cursor
@@ -519,8 +519,8 @@ class PidLookup(models.Model):
 
 
 def get_pid_lookup(dbinfo: SingleResearchDatabase,
-                   pid: int = None,
-                   mpid: int = None,
+                   pid: Union[int, str] = None,
+                   mpid: Union[int, str] = None,
                    trid: int = None,
                    rid: str = None,
                    mrid: str = None) -> Optional[PidLookup]:

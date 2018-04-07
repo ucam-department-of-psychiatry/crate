@@ -25,7 +25,8 @@
 import datetime
 # from functools import lru_cache
 import os
-from typing import Any, Dict, Optional
+import re
+from typing import Any, Dict, Optional, Union
 
 from cardinal_pythonlib.django.function_cache import django_cache_function
 from django.conf import settings
@@ -33,10 +34,18 @@ from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string
 
 
+# =============================================================================
+# Read files
+# =============================================================================
+
 def read_static_file_contents(filename: str) -> str:
     with open(os.path.join(settings.LOCAL_STATIC_DIR, filename)) as f:
         return f.read()
 
+
+# =============================================================================
+# CSS, plus assistance for PDF/e-mail rendering to HTML
+# =============================================================================
 
 def pdf_css(patient: bool = True) -> str:
     contents = read_static_file_contents('base.css')
@@ -90,6 +99,10 @@ def render_email_html_to_string(template: str,
     return render_to_string(template, context)
 
 
+# =============================================================================
+# E-mail addresses
+# =============================================================================
+
 def get_domain_from_email(email: str) -> str:
     # Very simple version...
     try:
@@ -108,6 +121,46 @@ def validate_researcher_email_domain(email: str) -> None:
             return
     raise ValidationError("Invalid researcher e-mail domain")
 
+
+APPROX_EMAIL_REGEX = re.compile(  # http://emailregex.com/
+    r"(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)")
+
+
+def make_forename_surname_email_address(forename: str,
+                                        surname: str,
+                                        domain: str,
+                                        default: str = '') -> str:
+    if not forename or not surname:  # in case one is None
+        return default
+    forename = forename.replace(" ", "")
+    surname = surname.replace(" ", "")
+    if not forename or not surname:  # in case one is empty
+        return default
+    if len(forename) == 1:
+        # Initial only; that won't do.
+        return default
+    # Other duff things we see: John Smith (CALT), where "Smith (CALT)" is the
+    # surname and CALT is Cambridge Adult Locality Team. This can map to
+    # something unpredictable, like JohnSmithOT@cpft.nhs.uk, so we can't use
+    # it.
+    # Formal definition is at http://stackoverflow.com/questions/2049502/what-characters-are-allowed-in-email-address  # noqa
+    # See also: http://emailregex.com/
+    attempt = "{}.{}@{}".format(forename, surname, domain)
+    if APPROX_EMAIL_REGEX.match(attempt):
+        return attempt
+    else:
+        return default
+
+
+def make_cpft_email_address(forename: str, surname: str,
+                            default: str = '') -> str:
+    return make_forename_surname_email_address(forename, surname,
+                                               "cpft.nhs.uk", default)
+
+
+# =============================================================================
+# Date/time
+# =============================================================================
 
 def days_to_years(days: int, dp: int = 1) -> str:
     """
@@ -135,3 +188,10 @@ def latest_date(*args) -> Optional[datetime.date]:
         else:
             latest = max(d, latest)
     return latest
+
+
+def to_date(d: Optional[Union[datetime.date,
+                              datetime.datetime]]) -> Optional[datetime.date]:
+    if isinstance(d, datetime.datetime):
+        return d.date()
+    return d  # datetime.date, or None

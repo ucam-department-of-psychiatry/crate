@@ -35,7 +35,7 @@ from typing import Dict, Iterable, List, Optional
 
 from cardinal_pythonlib.datetimefunc import get_now_utc_notz_datetime
 from cardinal_pythonlib.lists import chunks
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.schema import MetaData
 

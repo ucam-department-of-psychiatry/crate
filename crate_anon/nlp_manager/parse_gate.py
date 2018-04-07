@@ -124,10 +124,16 @@ class Gate(BaseNlpParser):
         for c in chunks(typepairs, 2):
             annottype = c[0]
             outputsection = c[1]
-            if annottype != annottype.lower():
-                raise Exception(
-                    "Section {}: annotation types in outputtypemap must be in "
-                    "lower case: change {}".format(cfgsection, annottype))
+            # 2018-03-27: not clear why we need to force the user to specify
+            # in lower case! We just said it's case-insensitive. So ditch this:
+            #
+            # if annottype != annottype.lower():
+            #     raise Exception(
+            #         "Section {}: annotation types in outputtypemap must be in "  # noqa
+            #         "lower case: change {}".format(cfgsection, annottype))
+            #
+            # and add this:
+            annottype = annottype.lower()
             # log.critical(outputsection)
             c = OutputUserConfig(nlpdef.get_parser(), outputsection)
             self._outputtypemap[annottype] = c

@@ -37,7 +37,7 @@ from sqlalchemy import (
     create_engine,
     MetaData,
 )
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Column, Table
 from sqlalchemy.sql.sqltypes import BigInteger, Integer
 

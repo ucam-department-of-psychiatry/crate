@@ -40,8 +40,13 @@ import itertools
 import logging
 from operator import attrgetter
 import sys
-from typing import Dict, Generator, Iterable, Optional, Union
+from typing import Dict, Generator, Iterable, List, Optional, Union
 
+from cardinal_pythonlib.argparse_func import (
+    percentage,
+    positive_int,
+    str2bool,
+)
 from cardinal_pythonlib.file_io import (
     gen_files_from_zipfiles,
     gen_lines_from_binary_files,
@@ -55,6 +60,8 @@ from cardinal_pythonlib.logs import configure_logger_for_colour
 from cardinal_pythonlib.network import gen_binary_files_from_urls
 import regex
 from sortedcontainers import SortedSet
+
+from crate_anon.anonymise.eponyms import get_plain_eponyms
 
 log = logging.getLogger(__name__)
 
@@ -332,35 +339,53 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
 
 
 # =============================================================================
+# Medical eponyms
+# =============================================================================
+
+def fetch_eponyms(filename: str, add_unaccented_versions: bool) -> None:
+    names = get_plain_eponyms(add_unaccented_versions=add_unaccented_versions)
+    write_words_to_file(filename, names)
+
+
+# =============================================================================
 # File processing: A-not-B
 # =============================================================================
 
-def a_not_b(a_filename: str, b_filename: str, output_filename: str,
-            min_line_length: int = 0) -> None:
-    if a_filename == output_filename and a_filename != "-":
-        raise ValueError("Filenames for A and OUT cannot be the same "
-                         "(will read from A whilst writing to OUT).")
-    if a_filename == b_filename:
-        raise ValueError("A and B cannot be the same file")
+def filter_files(input_filenames: List[str],  # "A"
+                 exclusion_filenames: List[str],  # "B"
+                 output_filename: str,  # "OUT"
+                 min_line_length: int = 0) -> None:
+    # Check inputs
+    input_output_overlap = set(input_filenames).intersection(
+        set(exclusion_filenames))
+    if len(input_output_overlap) > 0:
+        raise ValueError("Input and exclusion files cannot overlap; overlap "
+                         "is {}".format(input_output_overlap))
         # ... because it's pointless, and/or it's unsafe to use stdin for
         # both A and B
-    if b_filename == output_filename:
-        raise ValueError("B and OUT cannot be the same file")
-        # ... you don't want to overwrite your exclusion file! (Maybe you might
-        # want to overwrite A, but our method below reads all of B, then
-        # streams A to OUT, which prohibits A and OUT being the same, as
-        # above.)
+    if output_filename != "-":
+        if output_filename in input_filenames:
+            raise ValueError("Output cannot be one of the input files")
+            # ... would be reading from A whilst writing to OUT
+        if output_filename in exclusion_filenames:
+            raise ValueError("Output cannot be one of the exclusion files")
+            # ... you don't want to overwrite your exclusion file! (Maybe you
+            # might want to overwrite A, but our method below reads all of B,
+            # then streams A to OUT, which prohibits A and OUT being the same,
+            # as above.)
+    # Announce intention
     log.info(
         "Finding lines in A={a} that are not in B={b} (in case-insensitive "
         "fashion); writing to OUT={o}".format(
-            a=a_filename, b=b_filename, o=output_filename))
+            a=input_filenames, b=exclusion_filenames, o=output_filename))
+    # Do it
     a_count = 0
     output_count = 0
     log.debug("... reading from B")
     exclusion_lines_lower = set(
         gen_lower(
             gen_lines_from_textfiles(
-                gen_textfiles_from_filenames([b_filename])
+                gen_textfiles_from_filenames(exclusion_filenames)
             )
         )
     )
@@ -368,43 +393,19 @@ def a_not_b(a_filename: str, b_filename: str, output_filename: str,
     b_count = len(exclusion_lines_lower)
     log.debug("... reading from A, writing to OUT")
     with smart_open(output_filename, 'w') as outfile:
-        with smart_open(a_filename, 'r') as a_file:
-            for a_line in a_file:
-                a_count += 1
-                if len(a_line) < min_line_length:
-                    continue
-                if a_line.lower() in exclusion_lines_lower:
-                    continue
-                outfile.write(a_line)
-                output_count += 1
+        for ifilename in input_filenames:
+            with smart_open(ifilename, 'r') as a_file:
+                for a_line in a_file:
+                    a_count += 1
+                    if len(a_line) < min_line_length:
+                        continue
+                    if a_line.lower() in exclusion_lines_lower:
+                        continue
+                    outfile.write(a_line)
+                    output_count += 1
     log.info(
         "... done (line counts: A {a}, B {b}, OUT {o})".format(
             a=a_count, b=b_count, o=output_count))
-
-
-# =============================================================================
-# Argparse checkers
-# =============================================================================
-# https://stackoverflow.com/questions/14117415/in-python-using-argparse-allow-only-positive-integers
-
-def check_positive_int(value: str) -> int:
-    try:
-        ivalue = int(value)
-        assert ivalue > 0
-    except (AssertionError, TypeError, ValueError):
-        raise argparse.ArgumentTypeError(
-            "{!r} is an invalid positive int".format(value))
-    return ivalue
-
-
-def check_percentage(value: str) -> float:
-    try:
-        fvalue = float(value)
-        assert 0 <= fvalue <= 100
-    except (AssertionError, TypeError, ValueError):
-        raise argparse.ArgumentTypeError(
-            "{!r} is an invalid percentage value".format(value))
-    return fvalue
 
 
 # =============================================================================
@@ -453,7 +454,8 @@ crate_fetch_wordlists \
     --us_surnames \
         --us_surnames_1990_census_url file://$PWD/surnames_1990.txt \
         --us_surnames_2010_census_url file://$PWD/surnames_2010.zip \
-        --us_surnames_max_cumfreq_pct 100
+        --us_surnames_max_cumfreq_pct 100 \
+    --eponyms
 
 #    --show_rejects \
 #    --verbose
@@ -462,16 +464,14 @@ crate_fetch_wordlists \
 # Surnames encompassing the top 85% gives 74525 surnames (of 175880).
 
 crate_fetch_wordlists \
-    --a_not_b \
+    --filter_input \
         us_forenames.txt \
-        english_words.txt \
-        filtered_forenames.txt
-
-crate_fetch_wordlists \
-    --a_not_b \
         us_surnames.txt \
+    --filter_exclude \
         english_words.txt \
-        filtered_surnames.txt
+        medical_eponyms.txt \
+    --filter_output \
+        filtered_names.txt
 
 """  # noqa
 
@@ -488,7 +488,7 @@ def main() -> None:
         '--verbose', '-v', action='store_true',
         help="Be verbose")
     parser.add_argument(
-        '--min_word_length', type=check_positive_int, default=2,
+        '--min_word_length', type=positive_int, default=2,
         help="Minimum word length to allow"
     )
     parser.add_argument(
@@ -538,11 +538,11 @@ def main() -> None:
              "https://www.ssa.gov/OACT/babynames/limits.html)"
     )
     us_forename_group.add_argument(
-        '--us_forenames_min_cumfreq_pct', type=check_percentage, default=0,
+        '--us_forenames_min_cumfreq_pct', type=percentage, default=0,
         help=MIN_CUMFREQ_PCT_HELP
     )
     us_forename_group.add_argument(
-        '--us_forenames_max_cumfreq_pct', type=check_percentage, default=100,
+        '--us_forenames_max_cumfreq_pct', type=percentage, default=100,
         help=MAX_CUMFREQ_PCT_HELP
     )
     us_forename_group.add_argument(
@@ -571,33 +571,57 @@ def main() -> None:
         help="URL for zip of US 2010 Census surnames"
     )
     us_surname_group.add_argument(
-        '--us_surnames_min_cumfreq_pct', type=check_percentage, default=0,
+        '--us_surnames_min_cumfreq_pct', type=percentage, default=0,
         help=MIN_CUMFREQ_PCT_HELP
     )
     us_surname_group.add_argument(
-        '--us_surnames_max_cumfreq_pct', type=check_percentage, default=100,
+        '--us_surnames_max_cumfreq_pct', type=percentage, default=100,
         help=MAX_CUMFREQ_PCT_HELP
+    )
+
+    eponyms_group = parser.add_argument_group("Medical eponyms")
+    eponyms_group.add_argument(
+        '--eponyms', action='store_true',
+        help="Write medical eponyms (to remove from blacklist)"
+    )
+    eponyms_group.add_argument(
+        '--eponyms_output', type=str, default="medical_eponyms.txt",
+        help="Output file for medical eponyms"
+    )
+    eponyms_group.add_argument(
+        '--eponyms_add_unaccented_versions', type=str2bool, nargs='?',
+        const=True, default=True,
+        help="Add unaccented versions (e.g. Sjogren as well as Sjögren)"
     )
 
     filter_group = parser.add_argument_group(
         "Filter functions",
-        "Extra functions to filter wordlists"
+        "Extra functions to filter wordlists. Specify an input file (or "
+        "files), whose lines will be included; optional exclusion file(s), "
+        "whose lines will be excluded (in case-insensitive fashion); and an "
+        "output file. You can use '-' for the output file to mean 'stdout', "
+        "and for one input file to mean 'stdin'. No filenames (other than "
+        "'-' for input and output) may overlap. The --min_line_length option "
+        "also applies. Duplicates are not removed."
     )
     filter_group.add_argument(
-        '--a_not_b', type=str, nargs=3,
-        help="In case-insensitive fashion, find lines in file A that are not "
-             "in file B and write them to file OUT. Specimen use: "
-             "'--a_not_b us_surnames.txt english_words.txt filtered_surnames.txt' "  # noqa
-             "-- this will produce US surnames that are not themselves "
-             "English words. You could proceed with e.g. "
-             "'--a_not_b filtered_surnames.txt medical_eponyms.txt filtered_surnames.txt' "  # noqa
-             "to remove medical eponyms. You can use '-' for A or OUT to mean "
-             "'stdin' (for A) or 'stdout' (for OUT). The three filenames must "
-             "be different, except that you can use '-' for both A and OUT.",
-        metavar=('A', 'B', 'OUT'),
+        '--filter_input', type=str, nargs='*',
+        help="Input file(s). See above.",
     )
-
+    filter_group.add_argument(
+        '--filter_exclude', type=str, nargs='*',
+        help="Exclusion file(s). See above.",
+    )
+    filter_group.add_argument(
+        '--filter_output', type=str, nargs='?',
+        help="Exclusion file(s). See above.",
+    )
     args = parser.parse_args()
+
+    if bool(args.filter_input) != bool(args.filter_output):
+        print("Specify both --filter_input and --filter_output, or none.")
+        parser.print_usage()
+        sys.exit(1)
 
     loglevel = logging.DEBUG if args.verbose else logging.INFO
     rootlogger = logging.getLogger()
@@ -635,11 +659,16 @@ def main() -> None:
                           min_word_length=args.min_word_length,
                           show_rejects=args.show_rejects)
 
-    if args.a_not_b:
-        a_not_b(a_filename=args.a_not_b[0],
-                b_filename=args.a_not_b[1],
-                output_filename=args.a_not_b[2],
-                min_line_length=args.min_word_length)
+    if args.eponyms:
+        fetch_eponyms(
+            filename=args.eponyms_output,
+            add_unaccented_versions=args.eponyms_add_unaccented_versions)
+
+    if args.filter_input:
+        filter_files(input_filenames=args.filter_input,
+                     exclusion_filenames=args.filter_exclude,
+                     output_filename=args.filter_output,
+                     min_line_length=args.min_word_length)
 
 
 if __name__ == '__main__':

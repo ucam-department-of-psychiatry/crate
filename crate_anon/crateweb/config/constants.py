@@ -55,3 +55,36 @@ class ResearchDbInfoKeys(object):
 
     DATE_FIELDS_BY_TABLE = 'date_fields_by_table'
     DEFAULT_DATE_FIELDS = 'default_date_fields'
+
+
+SOURCE_DB_NAME_MAX_LENGTH = 20
+
+
+class ClinicalDatabaseType(object):
+    # NB the following strings mustn't be longer than SOURCE_DB_NAME_MAX_LENGTH
+    DUMMY_CLINICAL = 'dummy_clinical'
+    CPFT_CRS = 'cpft_crs'
+    CPFT_PCMIS = 'cpft_pcmis'
+    CPFT_RIO_CRATE_PREPROCESSED = 'cpft_rio_crate'
+    CPFT_RIO_DATAMART = 'cpft_rio_datamart'
+    CPFT_RIO_RAW = 'cpft_rio_raw'
+    CPFT_RIO_RCEP = 'cpft_rio_rcep'
+
+    # For Django fields, using the above:
+    DATABASE_CHOICES = (
+        # First key must match a database entry in Django local settings.
+        (DUMMY_CLINICAL,
+         'Dummy clinical database for testing'),
+        # (ClinicalDatabaseType.CPFT_PCMIS,
+        #  'CPFT Psychological Wellbeing Service (IAPT) PC-MIS'),
+        (CPFT_CRS,
+         'CPFT Care Records System (CRS) 2005-2012'),
+        (CPFT_RIO_RCEP,
+         'CPFT RiO 2013- (preprocessed by Servelec RCEP tool)'),
+        (CPFT_RIO_RAW,
+         'CPFT RiO 2013- (raw)'),
+        (CPFT_RIO_CRATE_PREPROCESSED,
+         'CPFT RiO 2013- (preprocessed by CRATE)'),
+        (CPFT_RIO_DATAMART,
+         'CPFT RiO 2013- (data warehouse processed version)'),
+    )

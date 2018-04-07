@@ -156,19 +156,24 @@ DATABASES = {
     # Others, for consent lookup
     # -------------------------------------------------------------------------
 
-    # Optional: 'cpft_iapt'
     # Optional: 'cpft_crs'
-    # Optional: 'cpft_rio_rcep'
+    # Optional: 'cpft_pcmis'
     # Optional: 'cpft_rio_crate'
-    # ... see attributes of PatientLookup in crate_anon/consent/models.py
+    # Optional: 'cpft_rio_datamart'
+    # Optional: 'cpft_rio_raw'
+    # Optional: 'cpft_rio_rcep'
+    # ... see ClinicalDatabaseType in crate_anon/crateweb/config/constants.py
 }
 
-# Which database should be used to look up demographic details and consent
-# modes?
-# Must (a) be a key of PatientLookup.DATABASES_CHOICES in consent/models.py;
+# Which database should be used to look up demographic details?
+# Must (a) be a key of ClinicalDatabaseType.DATABASE_CHOICES in
+#          crate_anon/crateweb/config/constants.py;
 #      (b) be defined in DATABASES, above, UNLESS it is 'dummy_clinical'
 #          (which is just for testing purposes)
 CLINICAL_LOOKUP_DB = 'dummy_clinical'
+
+# Which database should be used to look up consent modes?
+CLINICAL_LOOKUP_CONSENT_DB = 'dummy_clinical'
 
 # Research database title (displayed in web site)
 RESEARCH_DB_TITLE = "My NHS Trust Research Database"

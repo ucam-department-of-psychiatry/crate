@@ -70,7 +70,7 @@ import fnmatch
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
 
 from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from cardinal_pythonlib.logs import remove_all_logger_handlers
@@ -90,7 +90,7 @@ import regex
 from sqlalchemy import BigInteger, create_engine, String
 from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.constants import (
@@ -753,14 +753,14 @@ class Config(object):
         # OK!
         log.debug("Config validated.")
 
-    def encrypt_primary_pid(self, pid: int) -> str:
+    def encrypt_primary_pid(self, pid: Union[int, str]) -> str:
         """Encrypt a primary PID, producing a RID."""
         if pid is None:  # this is very unlikely!
             raise ValueError("Trying to hash NULL PID!")
             # ... see encrypt_master_pid() below
         return self.primary_pid_hasher.hash(pid)
 
-    def encrypt_master_pid(self, mpid: int) -> Optional[str]:
+    def encrypt_master_pid(self, mpid: Union[int, str]) -> Optional[str]:
         """Encrypt a master PID, producing a master RID."""
         if mpid is None:
             return None

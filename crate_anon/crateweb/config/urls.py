@@ -262,6 +262,8 @@ urlpatterns = [
         name='generate_fake_nhs'),
     url(r'^test_patient_lookup/$', consent_views.test_patient_lookup,
         name='test_patient_lookup'),
+    url(r'^test_consent_lookup/$', consent_views.test_consent_lookup,
+        name='test_consent_lookup'),
 
     url(r'^draft_clinician_email/(?P<contact_request_id>-?[0-9]+)/$',
         consent_views.draft_clinician_email,

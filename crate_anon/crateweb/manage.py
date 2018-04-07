@@ -76,5 +76,14 @@ def runcpserver() -> None:
     main(argv)
 
 
+def fetch_optouts() -> None:
+    argv = sys.argv[:]  # copy
+    argv.insert(1, 'fetch_optouts')
+    extraargs = shlex.split(os.environ.get(CHERRYPY_EXTRA_ARGS_ENV_VAR, ''))
+    # log.critical(extraargs)
+    argv.extend(extraargs)
+    main(argv)
+
+
 if __name__ == "__main__":
     main()

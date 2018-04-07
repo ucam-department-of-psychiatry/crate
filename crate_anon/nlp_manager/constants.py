@@ -463,8 +463,8 @@ destdb = DESTINATION_DATABASE
     # Those sections (q.v.) define tables and columns (fields).
 
 outputtypemap =
-    person output_person
-    location output_location
+    Person output_person
+    Location output_location
 
     # GATE NLP is done by an external program.
     # SEE THE MANUAL FOR DETAIL.
@@ -594,7 +594,7 @@ indexdefs =
 
 destdb = DESTINATION_DATABASE
 outputtypemap =
-    disease_or_syndrome output_disease_or_syndrome
+    Disease_or_Syndrome output_disease_or_syndrome
 progargs = java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
@@ -658,7 +658,7 @@ indexdefs =
 
 destdb = DESTINATION_DATABASE
 outputtypemap =
-    prescription output_prescription
+    Prescription output_prescription
 progargs = java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
@@ -751,19 +751,26 @@ indexdefs =
 [procdef_gate_kcl_lbda]
 
     # "cDiagnosis" is the "confirmed diagnosis" field, as d/w Jyoti Jyoti 
-    # 2018-03-20; see also README.md.
+    # 2018-03-20; see also README.md. This appears in the "Automatic" and the
+    # unnamed set. There is also a near-miss one, "DiagnosisAlmost", which
+    # appears in the unnamed set.
+    #   "Mr Jones has Lewy body dementia."
+    #       -> DiagnosisAlmost
+    #   "Mr Jones has a diagnosis of Lewy body dementia." 
+    #       -> DiagnosisAlmost, cDiagnosis
     # Note that we must use lower case in the outputtypemap.
 
 destdb = DESTINATION_DATABASE
 outputtypemap =
-    cdiagnosis output_lbd_diagnosis
+    cDiagnosis output_lbd_diagnosis
+    DiagnosisAlmost output_lbd_diagnosis
 progargs = java
     -classpath "{{NLPPROGDIR}}"{{OS_PATHSEP}}"{{GATEDIR}}/bin/gate.jar"{{OS_PATHSEP}}"{{GATEDIR}}/lib/*"
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{KCL_LBDA_DIR}}/application.xgapp"
-    --include_set Automatic
-    --annotation cDiagnosis
+    --set_annotation "" DiagnosisAlmost \
+    --set_annotation Automatic cDiagnosis \
     --input_terminator END_OF_TEXT_FOR_NLP
     --output_terminator END_OF_NLP_OUTPUT_RECORD
     --log_tag {{NLPLOGTAG}}

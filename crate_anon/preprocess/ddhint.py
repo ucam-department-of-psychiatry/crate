@@ -27,7 +27,7 @@ from typing import Dict, Iterable, List, Union
 
 from cardinal_pythonlib.dicts import get_case_insensitive_dict_key
 from sqlalchemy import MetaData
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.base import Engine
 
 from crate_anon.common.sql import (
     add_indexes,

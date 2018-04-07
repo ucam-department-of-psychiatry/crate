@@ -171,7 +171,7 @@ from sqlalchemy import (
     create_engine,
     MetaData,
 )
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine.base import Engine
 from sqlalchemy.schema import Table
 
 from crate_anon.anonymise.constants import CHARSET

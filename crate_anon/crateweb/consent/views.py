@@ -24,7 +24,7 @@
 
 import logging
 import mimetypes
-from typing import Optional
+from typing import List, Optional
 
 from cardinal_pythonlib.django.serve import (
     serve_buffer,
@@ -47,6 +47,7 @@ from crate_anon.crateweb.consent.forms import (
     SuperuserSubmitContactRequestForm,
     ResearcherSubmitContactRequestForm,
 )
+from crate_anon.crateweb.consent.lookup import lookup_consent, lookup_patient
 from crate_anon.crateweb.consent.models import (
     CharityPaymentRecord,
     ClinicianResponse,
@@ -56,7 +57,6 @@ from crate_anon.crateweb.consent.models import (
     EmailAttachment,
     Leaflet,
     Letter,
-    lookup_patient,
     make_dummy_objects,
     PatientLookup,
     Study,
@@ -245,6 +245,28 @@ def test_patient_lookup(request: HttpRequest) -> HttpResponse:
         return render(request, 'patient_lookup_result.html',
                       {'lookup': lookup})
     return render(request, 'patient_lookup_get_nhs.html', {'form': form})
+
+
+@user_passes_test(is_developer)
+def test_consent_lookup(request: HttpRequest) -> HttpResponse:
+    form = SingleNhsNumberForm(
+        request.POST if request.method == 'POST' else None)
+    if form.is_valid():
+        decisions = []  # type: List[str]
+        nhs_number = form.cleaned_data['nhs_number']
+        consent_mode = lookup_consent(nhs_number=nhs_number,
+                                      decisions=decisions)
+        # Don't use a Form. https://code.djangoproject.com/ticket/17031
+        return render(
+            request,
+            'consent_lookup_result.html',
+            {
+                'consent_mode': consent_mode,
+                'nhs_number': nhs_number,
+                'decisions': decisions,
+            }
+        )
+    return render(request, 'consent_lookup_get_nhs.html', {'form': form})
 
 
 # noinspection PyUnusedLocal

@@ -1,0 +1,57 @@
+{# patient_lookup_result.html #}
+
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Results of consent lookup (not saved)</h1>
+
+    <div>Lookup for NHS number: {{ nhs_number }}</div>
+
+    {% if consent_mode is None %}
+
+        <div>No information found!</div>
+
+    {% else %}
+
+        <h2>ConsentMode</h2>
+        <table class="heading_left">
+            <tr><th>nhs_number</th><td>{{ consent_mode.nhs_number }}</td></tr>
+            <tr><th>current</th><td>{{ consent_mode.current }}</td></tr>
+            <tr><th>created_atth><td>{{ consent_mode.created_at }}</td></tr>
+            <tr><th>created_by</th><td>{{ consent_mode.created_by }}</td></tr>
+            <tr><th>exclude_entirely</th><td>{{ consent_mode.exclude_entirely }}</td></tr>
+            <tr><th>consent_mode</th><td>{{ consent_mode.consent_mode }}</td></tr>
+            <tr><th>consent_after_discharge</th><td>{{ consent_mode.consent_after_discharge }}</td></tr>
+            <tr><th>max_approaches_per_year</th><td>{{ consent_mode.max_approaches_per_year }}</td></tr>
+            <tr><th>other_requests</th><td>{{ consent_mode.other_requests }}</td></tr>
+            <tr><th>prefers_email</th><td>{{ consent_mode.prefers_email }}</td></tr>
+            <tr><th>changed_by_clinician_override</th><td>{{ consent_mode.changed_by_clinician_override }}</td></tr>
+            <tr><th>source</th><td>{{ consent_mode.source }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+            <tr><th>XXX</th><td>{{ consent_mode.XXX }}</td></tr>
+        </table>
+
+        <h2>Decision</h2>
+        <table class="heading_left">
+            <tr><th>decision_signed_by_patient</th><td>{{ consent_mode.decision_signed_by_patient }}</td></tr>
+            <tr><th>decision_otherwise_directly_authorized_by_patient</th><td>{{ consent_mode.decision_otherwise_directly_authorized_by_patient }}</td></tr>
+            <tr><th>decision_under16_signed_by_parent</th><td>{{ consent_mode.decision_under16_signed_by_parent }}</td></tr>
+            <tr><th>decision_under16_signed_by_clinician</th><td>{{ consent_mode.decision_under16_signed_by_clinician }}</td></tr>
+            <tr><th>decision_lack_capacity_signed_by_representative</th><td>{{ consent_mode.decision_lack_capacity_signed_by_representative }}</td></tr>
+            <tr><th>decision_lack_capacity_signed_by_clinician</th><td>{{ consent_mode.decision_lack_capacity_signed_by_clinician }}</td></tr>
+        </table>
+
+    {% endif %}
+
+    <h2>Decisions during lookup</h2>
+    <table class="heading_left">
+        <tr><th>decisions</th><td>{{ decisions }}</td></tr>
+    </table>
+{% endblock %}
