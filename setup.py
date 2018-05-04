@@ -189,7 +189,7 @@ setup(
         'amqp==2.1.3',  # because 2.1.4 has a bug; see CRATE manual; amqp is used by Celery  # noqa
         'arrow==0.10.0',  # better datetime
         'beautifulsoup4==4.5.3',
-        'cardinal_pythonlib==1.0.13',
+        'cardinal_pythonlib==1.0.15',
         'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
         'chardet==3.0.2',  # character encoding detection for cardinal_pythonlib  # noqa
         'cherrypy==10.0.0',  # Cross-platform
