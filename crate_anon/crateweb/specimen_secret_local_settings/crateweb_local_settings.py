@@ -250,8 +250,8 @@ RESEARCH_DB_INFO = [
         RDIKeys.TRID_FIELD: 'trid',
         RDIKeys.RID_FIELD: 'same_rid',
         RDIKeys.RID_FAMILY: 1,
-        RDIKeys.MRID_TABLE: None,
-        RDIKeys.MRID_FIELD: None,
+        RDIKeys.MRID_TABLE: '',
+        RDIKeys.MRID_FIELD: '',
 
         RDIKeys.PID_DESCRIPTION: '',
         RDIKeys.MPID_DESCRIPTION: '',

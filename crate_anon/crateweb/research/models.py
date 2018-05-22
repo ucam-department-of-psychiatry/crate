@@ -27,7 +27,7 @@ import contextlib
 import datetime
 import io
 import logging
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterable, List, Optional, Tuple, Union
 import zipfile
 
 from cardinal_pythonlib.dbfunc import dictfetchall, get_fieldnames_from_cursor
@@ -51,7 +51,9 @@ from django.db.models import QuerySet
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.db.backends.utils import CursorWrapper
-from openpyxl import Workbook
+from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+from openpyxl.workbook.workbook import Workbook
+from openpyxl.worksheet.worksheet import Worksheet
 
 from crate_anon.anonymise.models import PatientInfoConstants
 from crate_anon.common.sql import (
@@ -151,6 +153,57 @@ def get_executed_researchdb_cursor(sql: str,
         raise
     # noinspection PyTypeChecker
     return contextlib.closing(cursor)
+
+
+# =============================================================================
+# Data going to Excel files
+# =============================================================================
+
+ILLEGAL_CHARACTERS_REPLACED_WITH = ""
+
+
+def gen_excel_row_elements(worksheet: Worksheet,
+                           row: Iterable) -> Generator[Any, None, None]:
+    """
+    Reasons for this function:
+
+    1.  Need a tuple/list/generator, as openpyxl checks its types manually.
+
+    - We want to have a Worksheet object from openpyxl, and say something like
+        ws.append(row)
+      where "row" has come from a database query.
+    - However, openpyxl doesn't believe in duck-typing; see Worksheet.append()
+      in openpyxl/worksheet/worksheet.py.
+      So sometimes the plain append works (e.g. from MySQL results), but
+      sometimes it fails, e.g. when the row is of type pyodbc.Row.
+    - So we must coerce it to a tuple, list, or generator.
+    - A generator will be the most efficient.
+
+    2.  If a string fails certain checks, openpyxl will raise an
+        IllegalCharacterError exception. We need to work around that. We'll use
+        the "forgiveness, not permission" maxim.
+        Specifically, it dislikes strings matching its ILLEGAL_CHARACTERS_RE,
+        which contains unprintable low characters matching this:
+            r'[\000-\010]|[\013-\014]|[\016-\037]'
+        ... note the use of octal; \037 is decimal 31.
+
+        openpyxl gets to its Cell.check_string() function for these types:
+            STRING_TYPES = (basestring, unicode, bytes)
+        ... which in Python 3, means (str, str, bytes).
+        So we should check str and bytes. (For bytes, we'll follow its method
+        of converting to str in the encoding of the worksheet's choice.)
+    """
+    for element in row:
+        if isinstance(element, bytes):
+            # Convert to str using the worksheet's encoding.
+            element = element.decode(worksheet.encoding)
+            # ... or: str(element, encoding)
+
+        if isinstance(element, str):
+            yield ILLEGAL_CHARACTERS_RE.sub(ILLEGAL_CHARACTERS_REPLACED_WITH,
+                                            element)
+        else:
+            yield element
 
 
 # =============================================================================
@@ -402,12 +455,7 @@ class Query(models.Model):
             ws.append(fieldnames)
             row = cursor.fetchone()
             while row is not None:
-                ws.append(tuple(row))
-                # - openpyxl doesn't believe in duck-typing; see
-                #   openpyxl/worksheet/worksheet.py
-                # - Sometimes this works (e.g. from MySQL), but sometimes it
-                #   fails, e.g. when the row is of type pyodbc.Row
-                # - So we must coerce to list or tuple
+                ws.append(gen_excel_row_elements(ws, row))
                 row = cursor.fetchone()
                 # BUG in django-pyodbc-azure==1.10.4.0 (providing
                 # sql_server/*), 2017-02-17: this causes
@@ -1180,7 +1228,7 @@ class PatientExplorer(models.Model):
                 ws.append(fieldnames)
                 row = cursor.fetchone()
                 while row is not None:
-                    ws.append(tuple(row))
+                    ws.append(gen_excel_row_elements(ws, row))
                     row = cursor.fetchone()
         sql_ws = wb.create_sheet(title="SQL")
         for r in sqlsheet_rows:

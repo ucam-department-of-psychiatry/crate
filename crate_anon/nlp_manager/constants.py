@@ -769,8 +769,8 @@ progargs = java
     -Dgate.home="{{GATEDIR}}"
     CrateGatePipeline
     --gate_app "{{KCL_LBDA_DIR}}/application.xgapp"
-    --set_annotation "" DiagnosisAlmost \
-    --set_annotation Automatic cDiagnosis \
+    --set_annotation "" DiagnosisAlmost
+    --set_annotation Automatic cDiagnosis
     --input_terminator END_OF_TEXT_FOR_NLP
     --output_terminator END_OF_NLP_OUTPUT_RECORD
     --log_tag {{NLPLOGTAG}}
