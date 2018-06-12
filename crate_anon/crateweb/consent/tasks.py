@@ -21,14 +21,13 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 ===============================================================================
 
-===============================================================================
 See also celery.py, which defines the app
-===============================================================================
 
-===============================================================================
 If you get a "received unregistered task" error:
 ===============================================================================
+
 1.  Restart the Celery worker. That may fix it.
+
 2.  If that fails, consider: SPECIFY ABSOLUTE NAMES FOR TASKS.
     e.g. with @shared_task(name="myfuncname")
     Possible otherwise that if this module is imported in different ways
@@ -36,41 +35,56 @@ If you get a "received unregistered task" error:
     error.
     http://docs.celeryq.org/en/latest/userguide/tasks.html#task-names
 
-===============================================================================
+
 Acknowledgement/not doing things more than once:
 ===============================================================================
+
 - http://docs.celeryproject.org/en/latest/userguide/tasks.html
+
 - default is to acknowledge on receipt of request, not after task completion;
   that prevents things from happening more than once.
   If you can guarantee your function is idempotent, you can acknowledge after
   completion.
+
 - http://docs.celeryproject.org/en/latest/faq.html#faq-acks-late-vs-retry
+
 - We'll stick with the default (slightly less reliable but won't be run more
   than once).
 
-===============================================================================
+
 Circular imports:
 ===============================================================================
+
 - http://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models  # noqa
+
 - The potential circularity is:
+
     - At launch, Celery must import tasks, which could want to import models.
+
     - At launch, Django loads models, which may use tasks.
+
 - Simplest solution is to keep tasks very simple (as below) and use delayed
   imports here.
 
-===============================================================================
+
 Race condition:
 ===============================================================================
+
 - Django:
     (1) existing object
     (2) amend with form
     (3) save()
     (4) call function.delay(obj.id)
   Object is received by Celery in the state before save() at step 3.
+
 - http://celery.readthedocs.org/en/latest/userguide/tasks.html#database-transactions  # noqa
+
 - http://stackoverflow.com/questions/26862942/django-related-objects-are-missing-from-celery-task-race-condition  # noqa
+
 - https://code.djangoproject.com/ticket/14051
+
 - https://github.com/aaugustin/django-transaction-signals
+
 - SOLUTION:
   https://docs.djangoproject.com/en/dev/topics/db/transactions/#django.db.transaction.on_commit  # noqa
     from django.db import transaction

@@ -69,71 +69,7 @@ HashClass = HmacMD5Hasher
 DEMO_CONFIG = ("""# Configuration file for CRATE NLP manager (crate_nlp).
 # Version {VERSION} ({VERSION_DATE}).
 #
-# PLEASE SEE THE MANUAL FOR AN OVERVIEW.
-#
-# =============================================================================
-# Notes on default fields
-# =============================================================================
-# - NOTE THAT THE FOLLOWING FIELDNAMES ARE USED AS STANDARD, AND WILL BE
-#   AUTOCREATED:
-#
-#   For *all* NLP processors (from input_field_config.py):
-#
-#       _pk BIGINT
-#           -- Arbitrary primary key (PK) within this table.
-#       _nlpdef {IdentType}
-#           -- Name of the NLP definition producing this row.
-#       _srcdb {IdentType}
-#           -- Source database name (from CRATE NLP config file)
-#       _srctable {IdentType}
-#           -- Source table name
-#       _srcpkfield {IdentType}
-#           -- PK field (column) name in source table
-#       _srcpkval BIGINT
-#           -- Source PK value
-#       _srcpkstr VARCHAR({MAX_STRING_PK_LENGTH})
-#           -- NULL if the table has an integer PK, but the PK if
-#              the PK was a string, to deal with hash collisions.
-#       _srcfield {IdentType}
-#           -- Field (column) name of source text
-#
-#   The length of the VARCHAR fields is set by the MAX_SQL_FIELD_LEN constant.
-#
-# - Pipelines using GATE add these:
-#
-#       _type {IdentType}
-#           -- Annotation type name (e.g. 'Person')
-#       _id INT
-#           -- Annotation ID, from GATE. Not clear that this is very useful.
-#       _start INT
-#           -- Start position in the content
-#       _end INT
-#           -- End position in the content
-#       _content TEXT
-#           -- Full content marked as relevant. (Not the entire content of the
-#              source field.)
-#
-# - CRATE's numerical regular-expression pipelines add these:
-#
-#       variable_name  {IdentType}
-#           -- variable name as determined by the NLP processor
-#       _content TEXT
-#           -- matching text contents
-#       _start INT
-#           -- start position within the full text
-#       _end INT
-#           -- end position within the full text
-#       variable_text TEXT
-#           -- text that actually matched the target variable name
-#       relation VARCHAR(3)
-#           -- mathematical relation of variable to value, e.g. '<=', '='
-#       value_text TEXT
-#           -- numerical value as text
-#       units TEXT
-#           -- text that matched some definition of a possible unit
-#
-#   ... plus a NLP-specific field with the actual value.
-
+# PLEASE SEE THE HELP.
 
 # =============================================================================
 # A. Individual NLP definitions

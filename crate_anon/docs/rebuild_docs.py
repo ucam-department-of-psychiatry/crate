@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/version.py
+# crate_anon/docs/rebuild_docs.py
 
 """
 ===============================================================================
@@ -22,5 +22,29 @@
 ===============================================================================
 """
 
-VERSION = "0.18.51"
-VERSION_DATE = "2018-06-29"
+import os
+import shutil
+import subprocess
+
+# Work out directories
+THIS_DIR = os.path.dirname(os.path.realpath(__file__))
+BUILD_HTML_DIR = os.path.join(THIS_DIR, "build", "html")
+
+DEST_DIRS = [
+]
+
+# Remove anything old
+shutil.rmtree(BUILD_HTML_DIR, ignore_errors=True)
+for destdir in DEST_DIRS:
+    print("Deleting directory {!r}".format(destdir))
+    shutil.rmtree(destdir, ignore_errors=True)
+
+# Build docs
+print("Making HTML version of documentation")
+os.chdir(THIS_DIR)
+subprocess.call(["make", "html"])
+
+# Copy
+for destdir in DEST_DIRS:
+    print("Copying {!r} -> {!r}".format(BUILD_HTML_DIR, destdir))
+    shutil.copytree(BUILD_HTML_DIR, destdir)

@@ -1,26 +1,25 @@
-#!/usr/bin/env python
-# crate_anon/version.py
+.. crate_anon/docs/source/autodoc/crateweb/extra/pdf.rst
 
-"""
-===============================================================================
-    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
-
+..  Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
+    .
     This file is part of CRATE.
-
+    .
     CRATE is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
-
+    .
     CRATE is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
     GNU General Public License for more details.
-
+    .
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
-===============================================================================
-"""
 
-VERSION = "0.18.51"
-VERSION_DATE = "2018-06-29"
+
+crate_anon.crateweb.extra.pdf
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. automodule:: crate_anon.crateweb.extra.pdf
+    :members:
