@@ -20,6 +20,11 @@
 Ancillary tools
 ===============
 
+crate_docs
+~~~~~~~~~~
+
+Launches this documentation via your web browser.
+
 crate_make_demo_database
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

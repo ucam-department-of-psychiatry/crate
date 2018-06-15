@@ -25,7 +25,7 @@ CRATE setup file
 
 To use:
 
-    python setup.py sdist
+    python setup.py sdist --extras
 
     twine upload dist/*
 
@@ -33,67 +33,133 @@ To install in development mode:
 
     pip install -e .
 
+More reasoning is in the setup.py file for CamCOPS.
 """
 # https://packaging.python.org/en/latest/distributing/#working-in-development-mode  # noqa
 # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/
 # http://jtushman.github.io/blog/2013/06/17/sharing-code-across-applications-with-python/  # noqa
 
+import argparse
 from setuptools import setup, find_packages
 from codecs import open
-# import fnmatch
+import fnmatch
 import os
 import platform
+from pprint import pformat
+import subprocess
+import sys
+from typing import List
 
 from crate_anon.version import VERSION
 
-here = os.path.abspath(os.path.dirname(__file__))
 
-# setup.py is executed on the destination system at install time, so:
-windows = platform.system() == 'Windows'
+# =============================================================================
+# Helper functions
+# =============================================================================
 
-# -----------------------------------------------------------------------------
+def add_all_files(root_dir: str,
+                  filelist: List[str],
+                  absolute: bool = False,
+                  include_n_parents: int = 0,
+                  verbose: bool = True,
+                  skip_patterns: List[str] = None) -> None:
+    skip_patterns = skip_patterns or SKIP_PATTERNS
+    if absolute:
+        base_dir = root_dir
+    else:
+        base_dir = os.path.abspath(
+            os.path.join(root_dir, *(['..'] * include_n_parents)))
+    for dir_, subdirs, files in os.walk(root_dir, topdown=True):
+        if absolute:
+            final_dir = dir_
+        else:
+            final_dir = os.path.relpath(dir_, base_dir)
+        for filename in files:
+            _, ext = os.path.splitext(filename)
+            final_filename = os.path.join(final_dir, filename)
+            if any(fnmatch.fnmatch(final_filename, pattern)
+                   for pattern in skip_patterns):
+                if verbose:
+                    print("Skipping: {}".format(final_filename))
+                continue
+            if verbose:
+                print("Adding: {}".format(final_filename))
+            filelist.append(final_filename)
+
+
+# =============================================================================
+# Constants
+# =============================================================================
+
+# Directories
+THIS_DIR = os.path.abspath(os.path.dirname(__file__))  # .../crate
+CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate_anon/
+DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
+DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
+
+# Files
+DOCMAKER = os.path.join(DOC_ROOT_DIR, "rebuild_docs.py")
+MANIFEST_FILE = os.path.join(THIS_DIR, 'MANIFEST.in')  # we will write this
+
+# OS; setup.py is executed on the destination system at install time, so:
+RUNNING_WINDOWS = platform.system() == 'Windows'
+
 # Get the long description from the README file
-# -----------------------------------------------------------------------------
-with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-    long_description = f.read()
+with open(os.path.join(THIS_DIR, 'README.rst'), encoding='utf-8') as f:
+    LONG_DESCRIPTION = f.read()
 
-# -----------------------------------------------------------------------------
-# Get all filenames
-# -----------------------------------------------------------------------------
-# rootdir = os.path.join(here, 'crate')
-# data_files = []
-# for dir_, subdirs, filenames in os.walk(rootdir):
-#     files = []
-#     reldir = os.path.relpath(dir_, rootdir)
-#     for pattern in ['*.py', '*.html']:
-#         for filename in fnmatch.filter(filenames, pattern):
-#             files.append(filename)
-#     if files:
-#         data_files.append((reldir, files))
-# print(data_files)
-# http://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python  # noqa
-# http://stackoverflow.com/questions/27664504/how-to-add-package-data-recursively-in-python-setup-py  # noqa
+# Files not to bundle
+SKIP_PATTERNS = ['*.pyc', '~*']
 
-# rootdir = os.path.join(here, 'crate', 'crateweb', 'static_collected')
-# static_collected = []
-# for dir_, subdirs, filenames in os.walk(rootdir):
-#     reldir = os.path.normpath(os.path.join(
-#         'static_collected', os.path.relpath(dir_, rootdir)))
-#     for filename in filenames:
-#         if filename in ['.gitignore']:
-#             continue
-#         static_collected.append(os.path.join(reldir, filename))
 
-# -----------------------------------------------------------------------------
+# =============================================================================
+# If we run this with "python setup.py sdist --extras", we *BUILD* the package
+# and do all the extras. (When the end user installs it, that argument will be
+# absent.)
+# =============================================================================
+
+EXTRAS_ARG = 'extras'
+parser = argparse.ArgumentParser()
+parser.add_argument('--' + EXTRAS_ARG, action='store_true',
+                    help="USE THIS TO CREATE PACKAGES. Copies extra info in.")
+our_args, leftover_args = parser.parse_known_args()
+sys.argv[1:] = leftover_args
+
+extra_files = []  # type: List[str]
+
+if getattr(our_args, EXTRAS_ARG):
+    # Here's where we do the extra stuff.
+
+    # New Sphinx documentation
+    print("Building and copying documentation...")
+    subprocess.call([DOCMAKER])
+
+    # Add files to the distribution
+    add_all_files(DOC_HTML_DIR, extra_files,
+                  absolute=False, include_n_parents=4)
+    # ... magic number! Means that "crate_anon/docs/build/html" is included.
+
+    # Write the manifest.
+    extra_files.sort()
+    print("EXTRA_FILES: \n{}".format(pformat(extra_files)))
+    manifest_lines = ['include ' + x for x in extra_files]
+    with open(MANIFEST_FILE, 'wt') as manifest:
+        manifest.writelines([
+            "# This is an AUTOCREATED file, MANIFEST.in; see setup.py and DO "
+            "NOT EDIT BY HAND"])
+        manifest.write("\n\n" + "\n".join(manifest_lines) + "\n")
+
+# =============================================================================
 # setup args
-# -----------------------------------------------------------------------------
+# =============================================================================
+
 setup(
     name='crate-anon',  # 'crate' is taken
 
     version=VERSION,
 
     description='CRATE: clinical records anonymisation and text extraction',
-    long_description=long_description,
+    long_description=LONG_DESCRIPTION,
 
     # The project's main homepage.
     url='https://github.com/RudolfCardinal/crate',
@@ -141,6 +207,7 @@ setup(
         '': [
             'README.md'
         ],
+        'crate_anon': extra_files,
         'crate_anon.crateweb': [
             # Don't use 'static/*', or at the point of installation it gets
             # upset about "demo_logo" ("can't copy... doesn't exist or not
@@ -165,17 +232,8 @@ setup(
             'templates/*.js',
             'userprofile/templates/*.html',
         ],
-        'crate_anon.docs': [
-            'Cardinal_2017_Clinical_records_anon.pdf',
-            'CRATE_MANUAL.odt',
-        ],
         'crate_anon.nlp_manager': [
             '*.java',
-            '*.sh',
-        ],
-        'crate_anon.mysql_auditor': [
-            '*.conf',
-            '*.lua',
             '*.sh',
         ],
         'crate_anon.testdocs_for_text_extraction': [
@@ -183,6 +241,7 @@ setup(
             'nonascii.odt',
         ],
     },
+    include_package_data=True,  # use MANIFEST.in during install?
 
     install_requires=[
 
@@ -247,17 +306,28 @@ setup(
         # PostgreSQL:
         #   'psycopg2',  # has prerequisites (e.g. pg_config executable)
 
-    ] + ([
-        'pypiwin32==219'
-    ] if windows else []),
+    ] + (
+        # Windows-specific stuff
+        [
+            'pypiwin32==219',
+        ] if RUNNING_WINDOWS else []
+    ),
 
     entry_points={
         'console_scripts': [
             # Format is 'script=module:function".
 
+            # Documentation
+
+            'crate_docs=crate_anon.tools.launch_docs:main',
+
+            # Preprocessing
+
             'crate_postcodes=crate_anon.preprocess.postcodes:main',
-            'crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main',
             'crate_preprocess_pcmis=crate_anon.preprocess.preprocess_pcmis:main',  # noqa
+            'crate_preprocess_rio=crate_anon.preprocess.preprocess_rio:main',
+
+            # Anonymisation
 
             'crate_anonymise=crate_anon.anonymise.anonymise_cli:main',
             'crate_anonymise_multiprocess=crate_anon.anonymise.launch_multiprocess_anonymiser:main',  # noqa
@@ -266,28 +336,32 @@ setup(
             'crate_test_anonymisation=crate_anon.anonymise.test_anonymisation:main',  # noqa
             'crate_test_extract_text=crate_anon.anonymise.test_extract_text:main',  # noqa
 
+            # NLP
+
             'crate_nlp=crate_anon.nlp_manager.nlp_manager:main',
-            'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
             'crate_nlp_build_gate_java_interface=crate_anon.nlp_manager.build_gate_java_interface:main',  # noqa
-            'crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main',  # noqa
             'crate_nlp_build_medex_itself=crate_anon.nlp_manager.build_medex_itself:main',  # noqa
+            'crate_nlp_build_medex_java_interface=crate_anon.nlp_manager.build_medex_java_interface:main',  # noqa
+            'crate_nlp_multiprocess=crate_anon.nlp_manager.launch_multiprocess_nlp:main',  # noqa
+
+            # Web site
 
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
-            'crate_launch_django_server=crate_anon.crateweb.manage:runserver',
-
+            'crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main',  # noqa
+            'crate_launch_celery=crate_anon.tools.launch_celery:main',
             'crate_launch_cherrypy_server=crate_anon.tools.launch_cherrypy_server:main',  # noqa
             # ... a separate script with ":main" rather than
             # "crate_anon.crateweb.manage:runcpserver" so that we can launch
             # the "runcpserver" function from our Windows service, and have it
             # deal with the CherryPy special environment variable
-            'crate_launch_celery=crate_anon.tools.launch_celery:main',
+            'crate_launch_django_server=crate_anon.crateweb.manage:runserver',
             'crate_launch_flower=crate_anon.tools.launch_flower:main',
             'crate_print_demo_crateweb_config=crate_anon.tools.print_crateweb_demo_config:main',  # noqa
-
             'crate_windows_service=crate_anon.tools.winservice:main',
 
+            # Miscellaneous, from cardinal_pythonlib
+
             'crate_estimate_mysql_memory_usage=cardinal_pythonlib.tools.estimate_mysql_memory_usage:main',  # noqa
-            'crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main',  # noqa
             'crate_list_all_extensions=cardinal_pythonlib.tools.list_all_extensions:main',  # noqa
             'crate_merge_csv=cardinal_pythonlib.tools.merge_csv:main',
 
