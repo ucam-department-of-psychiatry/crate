@@ -71,7 +71,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 </dl>
 <dl class="class">
 <dt id="crate_anon.anonymise.models.OptOutMpid">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">OptOutMpid</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.models.OptOutMpid" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">OptOutMpid</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/models.html#OptOutMpid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.models.OptOutMpid" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
 <dt id="crate_anon.anonymise.models.OptOutMpid.mpid">
 <code class="descname">mpid</code><a class="headerlink" href="#crate_anon.anonymise.models.OptOutMpid.mpid" title="Permalink to this definition">¶</a></dt>
@@ -82,7 +82,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 
 <dl class="class">
 <dt id="crate_anon.anonymise.models.OptOutPid">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">OptOutPid</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.models.OptOutPid" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">OptOutPid</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/models.html#OptOutPid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.models.OptOutPid" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="attribute">
 <dt id="crate_anon.anonymise.models.OptOutPid.pid">
 <code class="descname">pid</code><a class="headerlink" href="#crate_anon.anonymise.models.OptOutPid.pid" title="Permalink to this definition">¶</a></dt>
@@ -93,7 +93,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 
 <dl class="class">
 <dt id="crate_anon.anonymise.models.PatientInfo">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">PatientInfo</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.models.PatientInfo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">PatientInfo</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/models.html#PatientInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.models.PatientInfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Design decision in this class:
 - It gets too complicated if you try to make the fieldnames arbitrary and</p>
 <blockquote>
@@ -186,10 +186,10 @@ algorithm; e.g. VARCHAR(128) for SHA-512.</li>
 
 <dl class="class">
 <dt id="crate_anon.anonymise.models.TridRecord">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">TridRecord</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.models.TridRecord" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.models.</code><code class="descname">TridRecord</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/models.html#TridRecord"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.models.TridRecord" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="classmethod">
 <dt id="crate_anon.anonymise.models.TridRecord.new_trid">
-<em class="property">classmethod </em><code class="descname">new_trid</code><span class="sig-paren">(</span><em>session: sqlalchemy.orm.session.Session, pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#crate_anon.anonymise.models.TridRecord.new_trid" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">new_trid</code><span class="sig-paren">(</span><em>session: sqlalchemy.orm.session.Session, pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../../_modules/crate_anon/anonymise/models.html#TridRecord.new_trid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.models.TridRecord.new_trid" title="Permalink to this definition">¶</a></dt>
 <dd><p>We check for existence by inserting and asking the database if it’s
 happy, not by asking the database if it exists (since other processes
 may be doing the same thing at the same time).</p>

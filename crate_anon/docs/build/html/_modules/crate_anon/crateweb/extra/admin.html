@@ -1,0 +1,315 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.crateweb.extra.admin &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.crateweb.extra.admin</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/crateweb/extra/admin.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Type</span>
+
+<span class="kn">from</span> <span class="nn">django.contrib.admin</span> <span class="k">import</span> <span class="n">ModelAdmin</span>
+<span class="kn">from</span> <span class="nn">django.contrib.admin.views.main</span> <span class="k">import</span> <span class="n">ChangeList</span>
+<span class="kn">from</span> <span class="nn">django.forms</span> <span class="k">import</span> <span class="n">ModelForm</span>
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="k">import</span> <span class="n">HttpResponse</span>
+<span class="kn">from</span> <span class="nn">django.http.request</span> <span class="k">import</span> <span class="n">HttpRequest</span>
+<span class="kn">from</span> <span class="nn">django.utils.encoding</span> <span class="k">import</span> <span class="n">force_text</span>
+<span class="kn">from</span> <span class="nn">django.utils.translation</span> <span class="k">import</span> <span class="n">ugettext</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Action-restricted ModelAdmin classes</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">class</span> <span class="nc">ReadOnlyChangeList</span><span class="p">(</span><span class="n">ChangeList</span><span class="p">):</span>
+    <span class="c1"># See ChangeList in django.contrib.admin.views.main</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_popup</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="n">ugettext</span><span class="p">(</span><span class="s1">&#39;Select </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">title</span> <span class="o">=</span> <span class="n">ugettext</span><span class="p">(</span><span class="s1">&#39;Select </span><span class="si">%s</span><span class="s1"> to view&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">title</span> <span class="o">=</span> <span class="n">title</span> <span class="o">%</span> <span class="n">force_text</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opts</span><span class="o">.</span><span class="n">verbose_name</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ReadOnlyModelAdmin"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin">[docs]</a><span class="k">class</span> <span class="nc">ReadOnlyModelAdmin</span><span class="p">(</span><span class="n">ModelAdmin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows view (&quot;change&quot;), but not add/edit/delete.</span>
+
+<span class="sd">    You also need to do this:</span>
+<span class="sd">        my_admin_site.index_template = &#39;admin/viewchange_admin_index.html&#39;</span>
+<span class="sd">    ... to give a modified admin/index.html that says &quot;View/change&quot; not</span>
+<span class="sd">    &quot;Change&quot;.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># http://stackoverflow.com/questions/3068843/permission-to-view-but-not-to-change-django  # noqa</span>
+    <span class="c1"># See also http://stackoverflow.com/questions/6680631/django-admin-separate-read-only-view-and-change-view  # noqa</span>
+    <span class="c1"># django/contrib/admin/templates/admin/change_form.html</span>
+    <span class="c1"># django/contrib/admin/templatetags/admin_modify.py</span>
+    <span class="c1"># https://docs.djangoproject.com/en/1.8/ref/contrib/admin/#django.contrib.ModelAdmin.change_view  # noqa</span>
+
+    <span class="c1"># Remove the tickbox for deletion, and the top/bottom action bars:</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># When you drill down into a single object, use a custom template</span>
+    <span class="c1"># that removes the &#39;save&#39; buttons:</span>
+    <span class="n">change_form_template</span> <span class="o">=</span> <span class="s1">&#39;admin/readonly_view_form.html&#39;</span>
+
+<div class="viewcode-block" id="ReadOnlyModelAdmin.has_add_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_add_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_add_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="c1"># Don&#39;t let the user add objects.</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="ReadOnlyModelAdmin.has_delete_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_delete_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_delete_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="c1"># Don&#39;t let the user delete objects.</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="c1"># Don&#39;t remove has_change_permission, or you won&#39;t see anything.</span>
+    <span class="c1"># def has_change_permission(self, request, obj=None):</span>
+    <span class="c1">#     return False</span>
+
+<div class="viewcode-block" id="ReadOnlyModelAdmin.save_model"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.save_model">[docs]</a>    <span class="k">def</span> <span class="nf">save_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> 
+                   <span class="n">form</span><span class="p">:</span> <span class="n">ModelForm</span><span class="p">,</span> <span class="n">change</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="c1"># Return nothing to make sure user can&#39;t update any data</span>
+        <span class="k">pass</span></div>
+
+    <span class="c1"># Make list say &quot;Select [model] to view&quot; not &quot;... change&quot;</span>
+<div class="viewcode-block" id="ReadOnlyModelAdmin.get_changelist"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.get_changelist">[docs]</a>    <span class="k">def</span> <span class="nf">get_changelist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">ChangeList</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">ReadOnlyChangeList</span></div>
+
+    <span class="c1"># Make single object view say &quot;View [model]&quot;, not &quot;Change [model]&quot;</span>
+    <span class="k">def</span> <span class="nf">change_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                    <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> 
+                    <span class="n">object_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> 
+                    <span class="n">form_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> 
+                    <span class="n">extra_context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HttpResponse</span><span class="p">:</span>
+        <span class="n">extra_context</span> <span class="o">=</span> <span class="n">extra_context</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="c1"># noinspection PyProtectedMember</span>
+        <span class="n">extra_context</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;View </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">force_text</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">verbose_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">change_view</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">object_id</span><span class="p">,</span> <span class="n">form_url</span><span class="p">,</span>
+                                   <span class="n">extra_context</span><span class="o">=</span><span class="n">extra_context</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AddOnlyModelAdmin"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin">[docs]</a><span class="k">class</span> <span class="nc">AddOnlyModelAdmin</span><span class="p">(</span><span class="n">ModelAdmin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows add, but not edit or delete.</span>
+<span class="sd">    Optional extra class attribute:</span>
+<span class="sd">        fields_for_viewing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># When you drill down into a single object, use a custom template</span>
+    <span class="c1"># that removes the &#39;save&#39; buttons:</span>
+    <span class="n">change_form_template</span> <span class="o">=</span> <span class="s1">&#39;admin/readonly_view_form.html&#39;</span>
+
+    <span class="c1"># But keep the default for adding:</span>
+    <span class="n">add_form_template</span> <span class="o">=</span> <span class="s1">&#39;admin/change_form.html&#39;</span>
+
+<div class="viewcode-block" id="AddOnlyModelAdmin.has_delete_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.has_delete_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_delete_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="AddOnlyModelAdmin.get_changelist"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_changelist">[docs]</a>    <span class="k">def</span> <span class="nf">get_changelist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Type</span><span class="p">[</span><span class="n">ChangeList</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">ReadOnlyChangeList</span></div>
+
+    <span class="c1"># This is an add-but-not-edit class.</span>
+    <span class="c1"># http://stackoverflow.com/questions/7860612/django-admin-make-field-editable-in-add-but-not-edit  # noqa</span>
+<div class="viewcode-block" id="AddOnlyModelAdmin.get_readonly_fields"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_readonly_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_readonly_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">obj</span><span class="p">:</span>  <span class="c1"># obj is not None, so this is an edit</span>
+            <span class="c1"># self.__class__ is the derived class</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="s1">&#39;fields_for_viewing&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">fields_for_viewing</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">,</span> <span class="s1">&#39;readonly_fields&#39;</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">readonly_fields</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">fields</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># This is an addition</span>
+            <span class="k">return</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="AddOnlyModelAdmin.get_fields"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">obj</span><span class="p">:</span>  <span class="c1"># edit (view)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">fields_for_viewing</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="n">fields</span></div>
+
+    <span class="c1"># Make single object view say &quot;View [model]&quot;, not &quot;Change [model]&quot;</span>
+    <span class="k">def</span> <span class="nf">change_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                    <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> 
+                    <span class="n">object_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> 
+                    <span class="n">form_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> 
+                    <span class="n">extra_context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HttpResponse</span><span class="p">:</span>
+        <span class="n">extra_context</span> <span class="o">=</span> <span class="n">extra_context</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="c1"># noinspection PyProtectedMember</span>
+        <span class="n">extra_context</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;View </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">force_text</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">verbose_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">change_view</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">object_id</span><span class="p">,</span> <span class="n">form_url</span><span class="p">,</span>
+                                   <span class="n">extra_context</span><span class="o">=</span><span class="n">extra_context</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EditOnlyModelAdmin"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin">[docs]</a><span class="k">class</span> <span class="nc">EditOnlyModelAdmin</span><span class="p">(</span><span class="n">ModelAdmin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows editing, but not add or delete.</span>
+<span class="sd">    Designed for e.g. when you have a fixed set of PKs.</span>
+<span class="sd">    In that situation, ensure the PK field is in readonly_fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="EditOnlyModelAdmin.has_add_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_add_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_add_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="EditOnlyModelAdmin.has_delete_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_delete_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_delete_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div></div>
+
+
+<div class="viewcode-block" id="EditOnceOnlyModelAdmin"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin">[docs]</a><span class="k">class</span> <span class="nc">EditOnceOnlyModelAdmin</span><span class="p">(</span><span class="n">ModelAdmin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Allows editing, but not add or delete.</span>
+<span class="sd">    Designed for e.g. when you have a fixed set of PKs.</span>
+<span class="sd">    In that situation, ensure the PK field is in readonly_fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">change_form_template</span> <span class="o">=</span> <span class="s1">&#39;admin/edit_once_view_form.html&#39;</span>
+
+<div class="viewcode-block" id="EditOnceOnlyModelAdmin.has_add_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_add_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_add_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="EditOnceOnlyModelAdmin.has_delete_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_delete_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_delete_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div></div>
+
+
+<div class="viewcode-block" id="AllStaffReadOnlyModelAdmin"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin">[docs]</a><span class="k">class</span> <span class="nc">AllStaffReadOnlyModelAdmin</span><span class="p">(</span><span class="n">ReadOnlyModelAdmin</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    ReadOnlyModelAdmin but allows access to all staff, not just superusers.</span>
+<span class="sd">    (No easy way to make this work via multiple inheritance.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="AllStaffReadOnlyModelAdmin.has_module_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_module_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_module_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_staff</span></div>
+
+<div class="viewcode-block" id="AllStaffReadOnlyModelAdmin.has_change_permission"><a class="viewcode-back" href="../../../../autodoc/crateweb/extra/admin.html#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_change_permission">[docs]</a>    <span class="k">def</span> <span class="nf">has_change_permission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">,</span> <span class="n">obj</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_staff</span></div></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

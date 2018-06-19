@@ -1,0 +1,952 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.nlp_manager.parse_clinical &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.nlp_manager.parse_clinical</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/nlp_manager/parse_clinical.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span> <span class="n">String</span><span class="p">,</span> <span class="n">Text</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.nlp_definition</span> <span class="k">import</span> <span class="n">NlpDefinition</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.regex_parser</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">BaseNlpParser</span><span class="p">,</span>
+    <span class="n">common_tense</span><span class="p">,</span>
+    <span class="n">compile_regex</span><span class="p">,</span>
+    <span class="n">FN_CONTENT</span><span class="p">,</span>
+    <span class="n">FN_END</span><span class="p">,</span>
+    <span class="n">FN_RELATION</span><span class="p">,</span>
+    <span class="n">FN_RELATION_TEXT</span><span class="p">,</span>
+    <span class="n">FN_START</span><span class="p">,</span>
+    <span class="n">FN_TENSE</span><span class="p">,</span>
+    <span class="n">FN_TENSE_TEXT</span><span class="p">,</span>
+    <span class="n">FN_UNITS</span><span class="p">,</span>
+    <span class="n">FN_VALUE_TEXT</span><span class="p">,</span>
+    <span class="n">FN_VARIABLE_NAME</span><span class="p">,</span>
+    <span class="n">FN_VARIABLE_TEXT</span><span class="p">,</span>
+    <span class="n">HELP_CONTENT</span><span class="p">,</span>
+    <span class="n">HELP_END</span><span class="p">,</span>
+    <span class="n">HELP_RELATION</span><span class="p">,</span>
+    <span class="n">HELP_RELATION_TEXT</span><span class="p">,</span>
+    <span class="n">HELP_START</span><span class="p">,</span>
+    <span class="n">HELP_TENSE</span><span class="p">,</span>
+    <span class="n">HELP_UNITS</span><span class="p">,</span>
+    <span class="n">HELP_VALUE_TEXT</span><span class="p">,</span>
+    <span class="n">HELP_VARIABLE_TEXT</span><span class="p">,</span>
+    <span class="n">MAX_RELATION_LENGTH</span><span class="p">,</span>
+    <span class="n">MAX_RELATION_TEXT_LENGTH</span><span class="p">,</span>
+    <span class="n">MAX_TENSE_LENGTH</span><span class="p">,</span>
+    <span class="n">MAX_UNITS_LENGTH</span><span class="p">,</span>
+    <span class="n">MAX_VALUE_TEXT_LENGTH</span><span class="p">,</span>
+    <span class="n">NumericalResultParser</span><span class="p">,</span>
+    <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+    <span class="n">RELATION</span><span class="p">,</span>
+    <span class="n">SimpleNumericalResultParser</span><span class="p">,</span>
+    <span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+    <span class="n">to_float</span><span class="p">,</span>
+    <span class="n">to_pos_float</span><span class="p">,</span>
+    <span class="n">ValidatorBase</span><span class="p">,</span>
+    <span class="n">WORD_BOUNDARY</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.regex_numbers</span> <span class="k">import</span> <span class="n">SIGNED_FLOAT</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.regex_units</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">assemble_units</span><span class="p">,</span>
+    <span class="n">CM</span><span class="p">,</span>
+    <span class="n">FEET</span><span class="p">,</span>
+    <span class="n">INCHES</span><span class="p">,</span>
+    <span class="n">KG</span><span class="p">,</span>
+    <span class="n">kg_from_st_lb_oz</span><span class="p">,</span>
+    <span class="n">KG_PER_SQ_M</span><span class="p">,</span>
+    <span class="n">LB</span><span class="p">,</span>
+    <span class="n">M</span><span class="p">,</span>
+    <span class="n">m_from_ft_in</span><span class="p">,</span>
+    <span class="n">m_from_m_cm</span><span class="p">,</span>
+    <span class="n">MM_HG</span><span class="p">,</span>
+    <span class="n">STONES</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1">#  Anthropometrics</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Height</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Height"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Height">[docs]</a><span class="k">class</span> <span class="nc">Height</span><span class="p">(</span><span class="n">NumericalResultParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Height. Handles metric and imperial.&quot;&quot;&quot;</span>
+    <span class="n">METRIC_HEIGHT</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (                           # capture group 4</span>
+<span class="s2">            (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )          # capture group 5</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{M}</span><span class="s2"> )                     # capture group 6</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )          # capture group 7</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{CM}</span><span class="s2"> )                    # capture group 8</span>
+<span class="s2">            )</span>
+<span class="s2">            | (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )          # capture group 9</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{M}</span><span class="s2"> )                     # capture group 10</span>
+<span class="s2">            )</span>
+<span class="s2">            | (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )          # capture group 11</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{CM}</span><span class="s2"> )                    # capture group 12</span>
+<span class="s2">            )</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">M</span><span class="o">=</span><span class="n">M</span><span class="p">,</span>
+        <span class="n">CM</span><span class="o">=</span><span class="n">CM</span>
+    <span class="p">)</span>
+    <span class="n">IMPERIAL_HEIGHT</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (                           # capture group 13</span>
+<span class="s2">            (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 14</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{FEET}</span><span class="s2"> )              # capture group 15</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 16</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{INCHES}</span><span class="s2"> )            # capture group 17</span>
+<span class="s2">            )</span>
+<span class="s2">            | (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 18</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{FEET}</span><span class="s2"> )              # capture group 19</span>
+<span class="s2">            )</span>
+<span class="s2">            | (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 20</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{INCHES}</span><span class="s2"> )            # capture group 21</span>
+<span class="s2">            )</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">FEET</span><span class="o">=</span><span class="n">FEET</span><span class="p">,</span>
+        <span class="n">INCHES</span><span class="o">=</span><span class="n">INCHES</span>
+    <span class="p">)</span>
+    <span class="n">HEIGHT</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(?: \b height \b)&quot;</span>
+    <span class="n">REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ( </span><span class="si">{HEIGHT}</span><span class="s2"> )                       # group 1 for &quot;height&quot; or equivalent</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{TENSE_INDICATOR}</span><span class="s2"> )?             # optional group 2 for tense</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{RELATION}</span><span class="s2"> )?                    # optional group 3 for relation</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        (?:</span>
+<span class="s2">            </span><span class="si">{METRIC_HEIGHT}</span><span class="s2"></span>
+<span class="s2">            | </span><span class="si">{IMPERIAL_HEIGHT}</span><span class="s2"></span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">HEIGHT</span><span class="o">=</span><span class="n">HEIGHT</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">TENSE_INDICATOR</span><span class="o">=</span><span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+        <span class="n">RELATION</span><span class="o">=</span><span class="n">RELATION</span><span class="p">,</span>
+        <span class="n">METRIC_HEIGHT</span><span class="o">=</span><span class="n">METRIC_HEIGHT</span><span class="p">,</span>
+        <span class="n">IMPERIAL_HEIGHT</span><span class="o">=</span><span class="n">IMPERIAL_HEIGHT</span><span class="p">,</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">KG_PER_SQ_M</span><span class="o">=</span><span class="n">KG_PER_SQ_M</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">COMPILED_REGEX</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">REGEX</span><span class="p">)</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;Height&quot;</span>
+    <span class="n">PREFERRED_UNIT_COLUMN</span> <span class="o">=</span> <span class="s2">&quot;value_m&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+            <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+            <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+            <span class="n">target_unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">PREFERRED_UNIT_COLUMN</span><span class="p">,</span>
+            <span class="n">regex_str_for_debugging</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">REGEX</span><span class="p">,</span>
+            <span class="n">commit</span><span class="o">=</span><span class="n">commit</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Regex for </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">REGEX</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Height.parse"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Height.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+              <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                                                <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Parser for Height. Specialized for complex unit conversion.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_REGEX</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>  <span class="c1"># watch out: &#39;m&#39;/metres</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Match </span><span class="si">{}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
+            <span class="n">startpos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="n">endpos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+            <span class="n">matching_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># the whole thing</span>
+            <span class="n">variable_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">tense_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">relation_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">metric_expression</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="n">metric_m_and_cm_m</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+            <span class="n">metric_m_and_cm_m_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+            <span class="n">metric_m_and_cm_cm</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+            <span class="n">metric_m_and_cm_cm_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+            <span class="n">metric_m_only_m</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+            <span class="n">metric_m_only_m_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">metric_cm_only_cm</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+            <span class="n">metric_cm_only_cm_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">imperial_expression</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+            <span class="n">imperial_ft_and_in_ft</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">14</span><span class="p">)</span>
+            <span class="n">imperial_ft_and_in_ft_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+            <span class="n">imperial_ft_and_in_in</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+            <span class="n">imperial_ft_and_in_in_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">17</span><span class="p">)</span>
+            <span class="n">imperial_ft_only_ft</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">18</span><span class="p">)</span>
+            <span class="n">imperial_ft_only_ft_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">19</span><span class="p">)</span>
+            <span class="n">imperial_in_only_in</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+            <span class="n">imperial_in_only_in_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">21</span><span class="p">)</span>
+
+            <span class="n">expression</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">value_m</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">metric_expression</span><span class="p">:</span>
+                <span class="n">expression</span> <span class="o">=</span> <span class="n">metric_expression</span>
+                <span class="k">if</span> <span class="n">metric_m_and_cm_m</span> <span class="ow">and</span> <span class="n">metric_m_and_cm_cm</span><span class="p">:</span>
+                    <span class="n">metres</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">metric_m_and_cm_m</span><span class="p">)</span>
+                    <span class="c1"># ... beware: &#39;m&#39; above</span>
+                    <span class="n">cm</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">metric_m_and_cm_cm</span><span class="p">)</span>
+                    <span class="n">value_m</span> <span class="o">=</span> <span class="n">m_from_m_cm</span><span class="p">(</span><span class="n">metres</span><span class="o">=</span><span class="n">metres</span><span class="p">,</span> <span class="n">centimetres</span><span class="o">=</span><span class="n">cm</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">assemble_units</span><span class="p">([</span><span class="n">metric_m_and_cm_m_units</span><span class="p">,</span>
+                                            <span class="n">metric_m_and_cm_cm_units</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">metric_m_only_m</span><span class="p">:</span>
+                    <span class="n">value_m</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">metric_m_only_m</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">metric_m_only_m_units</span>
+                <span class="k">elif</span> <span class="n">metric_cm_only_cm</span><span class="p">:</span>
+                    <span class="n">cm</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">metric_cm_only_cm</span><span class="p">)</span>
+                    <span class="n">value_m</span> <span class="o">=</span> <span class="n">m_from_m_cm</span><span class="p">(</span><span class="n">centimetres</span><span class="o">=</span><span class="n">cm</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">metric_cm_only_cm_units</span>
+            <span class="k">elif</span> <span class="n">imperial_expression</span><span class="p">:</span>
+                <span class="n">expression</span> <span class="o">=</span> <span class="n">imperial_expression</span>
+                <span class="k">if</span> <span class="n">imperial_ft_and_in_ft</span> <span class="ow">and</span> <span class="n">imperial_ft_and_in_in</span><span class="p">:</span>
+                    <span class="n">ft</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">imperial_ft_and_in_ft</span><span class="p">)</span>
+                    <span class="n">inches</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">imperial_ft_and_in_in</span><span class="p">)</span>
+                    <span class="n">value_m</span> <span class="o">=</span> <span class="n">m_from_ft_in</span><span class="p">(</span><span class="n">feet</span><span class="o">=</span><span class="n">ft</span><span class="p">,</span> <span class="n">inches</span><span class="o">=</span><span class="n">inches</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">assemble_units</span><span class="p">([</span><span class="n">imperial_ft_and_in_ft_units</span><span class="p">,</span>
+                                            <span class="n">imperial_ft_and_in_in_units</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">imperial_ft_only_ft</span><span class="p">:</span>
+                    <span class="n">ft</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">imperial_ft_only_ft</span><span class="p">)</span>
+                    <span class="n">value_m</span> <span class="o">=</span> <span class="n">m_from_ft_in</span><span class="p">(</span><span class="n">feet</span><span class="o">=</span><span class="n">ft</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">imperial_ft_only_ft_units</span>
+                <span class="k">elif</span> <span class="n">imperial_in_only_in</span><span class="p">:</span>
+                    <span class="n">inches</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">imperial_in_only_in</span><span class="p">)</span>
+                    <span class="n">value_m</span> <span class="o">=</span> <span class="n">m_from_ft_in</span><span class="p">(</span><span class="n">inches</span><span class="o">=</span><span class="n">inches</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">imperial_in_only_in_units</span>
+
+            <span class="n">tense</span><span class="p">,</span> <span class="n">relation</span> <span class="o">=</span> <span class="n">common_tense</span><span class="p">(</span><span class="n">tense_text</span><span class="p">,</span> <span class="n">relation_text</span><span class="p">)</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">FN_VARIABLE_NAME</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span>
+                <span class="n">FN_CONTENT</span><span class="p">:</span> <span class="n">matching_text</span><span class="p">,</span>
+                <span class="n">FN_START</span><span class="p">:</span> <span class="n">startpos</span><span class="p">,</span>
+                <span class="n">FN_END</span><span class="p">:</span> <span class="n">endpos</span><span class="p">,</span>
+
+                <span class="n">FN_VARIABLE_TEXT</span><span class="p">:</span> <span class="n">variable_text</span><span class="p">,</span>
+                <span class="n">FN_RELATION_TEXT</span><span class="p">:</span> <span class="n">relation_text</span><span class="p">,</span>
+                <span class="n">FN_RELATION</span><span class="p">:</span> <span class="n">relation</span><span class="p">,</span>
+                <span class="n">FN_VALUE_TEXT</span><span class="p">:</span> <span class="n">expression</span><span class="p">,</span>
+                <span class="n">FN_UNITS</span><span class="p">:</span> <span class="n">units</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_unit</span><span class="p">:</span> <span class="n">value_m</span><span class="p">,</span>
+                <span class="n">FN_TENSE_TEXT</span><span class="p">:</span> <span class="n">tense_text</span><span class="p">,</span>
+                <span class="n">FN_TENSE</span><span class="p">:</span> <span class="n">tense</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="c1"># log.critical(result)</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">tablename</span><span class="p">,</span> <span class="n">result</span></div>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;Height&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;her height was 1.6m&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;Height = 1.23 m&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.23</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;her height is 1.5m&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.5</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s1">&#39;&#39;&#39;Height 5&#39;8&quot; &#39;&#39;&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">m_from_ft_in</span><span class="p">(</span><span class="n">feet</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">inches</span><span class="o">=</span><span class="mi">8</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;Height 5 ft 8 in&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">m_from_ft_in</span><span class="p">(</span><span class="n">feet</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">inches</span><span class="o">=</span><span class="mi">8</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;Height 5 feet 8 inches&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">m_from_ft_in</span><span class="p">(</span><span class="n">feet</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">inches</span><span class="o">=</span><span class="mi">8</span><span class="p">)]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detailed_test</span><span class="p">(</span><span class="s2">&quot;Height 5 ft 11 in&quot;</span><span class="p">,</span> <span class="p">[{</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_unit</span><span class="p">:</span> <span class="n">m_from_ft_in</span><span class="p">(</span><span class="n">feet</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">inches</span><span class="o">=</span><span class="mi">11</span><span class="p">),</span>
+            <span class="n">FN_UNITS</span><span class="p">:</span> <span class="s2">&quot;ft in&quot;</span><span class="p">,</span>
+        <span class="p">}],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+        <span class="c1"># *** Height NLP: deal with &quot;tall&quot; and plain &quot;is&quot;, e.g.</span>
+        <span class="c1"># she is 6&#39;2&quot;; she is 1.5m tall</span>
+
+
+<div class="viewcode-block" id="HeightValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.HeightValidator">[docs]</a><span class="k">class</span> <span class="nc">HeightValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Height (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Height</span><span class="o">.</span><span class="n">HEIGHT</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Height</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Weight (mass)</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Weight"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Weight">[docs]</a><span class="k">class</span> <span class="nc">Weight</span><span class="p">(</span><span class="n">NumericalResultParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Weight. Handles metric and imperial.&quot;&quot;&quot;</span>
+    <span class="n">METRIC_WEIGHT</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (                           # capture group 4</span>
+<span class="s2">            ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )          # capture group 5</span>
+<span class="s2">            </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">            ( </span><span class="si">{KG}</span><span class="s2"> )                    # capture group 6</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">KG</span><span class="o">=</span><span class="n">KG</span>
+    <span class="p">)</span>
+    <span class="n">IMPERIAL_WEIGHT</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (                           # capture group 7</span>
+<span class="s2">            (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 8</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{STONES}</span><span class="s2"> )            # capture group 9</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 10</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{LB}</span><span class="s2"> )                # capture group 11</span>
+<span class="s2">            )</span>
+<span class="s2">            | (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 12</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{STONES}</span><span class="s2"> )            # capture group 13</span>
+<span class="s2">            )</span>
+<span class="s2">            | (?:</span>
+<span class="s2">                ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )      # capture group 14</span>
+<span class="s2">                </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">                ( </span><span class="si">{LB}</span><span class="s2"> )                # capture group 15</span>
+<span class="s2">            )</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">STONES</span><span class="o">=</span><span class="n">STONES</span><span class="p">,</span>
+        <span class="n">LB</span><span class="o">=</span><span class="n">LB</span>
+    <span class="p">)</span>
+    <span class="n">WEIGHT</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(?: \b weigh[ts] \b )&quot;</span>  <span class="c1"># weight, weighs</span>
+    <span class="n">REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ( </span><span class="si">{WEIGHT}</span><span class="s2"> )                       # group 1 for &quot;weight&quot; or equivalent</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{TENSE_INDICATOR}</span><span class="s2"> )?             # optional group 2 for tense</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{RELATION}</span><span class="s2"> )?                    # optional group 3 for relation</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        (?:</span>
+<span class="s2">            </span><span class="si">{METRIC_WEIGHT}</span><span class="s2"></span>
+<span class="s2">            | </span><span class="si">{IMPERIAL_WEIGHT}</span><span class="s2"></span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">WEIGHT</span><span class="o">=</span><span class="n">WEIGHT</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">TENSE_INDICATOR</span><span class="o">=</span><span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+        <span class="n">RELATION</span><span class="o">=</span><span class="n">RELATION</span><span class="p">,</span>
+        <span class="n">METRIC_WEIGHT</span><span class="o">=</span><span class="n">METRIC_WEIGHT</span><span class="p">,</span>
+        <span class="n">IMPERIAL_WEIGHT</span><span class="o">=</span><span class="n">IMPERIAL_WEIGHT</span><span class="p">,</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">KG_PER_SQ_M</span><span class="o">=</span><span class="n">KG_PER_SQ_M</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">COMPILED_REGEX</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">REGEX</span><span class="p">)</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;Weight&quot;</span>
+    <span class="n">PREFERRED_UNIT_COLUMN</span> <span class="o">=</span> <span class="s2">&quot;value_kg&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+            <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+            <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+            <span class="n">target_unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">PREFERRED_UNIT_COLUMN</span><span class="p">,</span>
+            <span class="n">regex_str_for_debugging</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">REGEX</span><span class="p">,</span>
+            <span class="n">commit</span><span class="o">=</span><span class="n">commit</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Regex for </span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">REGEX</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Weight.parse"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Weight.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+              <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                                                <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Parser for Weight. Specialized for complex unit conversion.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_REGEX</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Match </span><span class="si">{}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
+            <span class="n">startpos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="n">endpos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+            <span class="n">matching_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># the whole thing</span>
+            <span class="n">variable_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">tense_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">relation_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">metric_expression</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="n">metric_value</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+            <span class="n">metric_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+            <span class="n">imperial_expression</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+            <span class="n">imperial_st_and_lb_st</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+            <span class="n">imperial_st_and_lb_st_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">9</span><span class="p">)</span>
+            <span class="n">imperial_st_and_lb_lb</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+            <span class="n">imperial_st_and_lb_lb_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">11</span><span class="p">)</span>
+            <span class="n">imperial_st_only_st</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">imperial_st_only_st_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">13</span><span class="p">)</span>
+            <span class="n">imperial_lb_only_lb</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">14</span><span class="p">)</span>
+            <span class="n">imperial_lb_only_lb_units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+
+            <span class="n">expression</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">value_kg</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">metric_expression</span><span class="p">:</span>
+                <span class="n">expression</span> <span class="o">=</span> <span class="n">metric_expression</span>
+                <span class="n">value_kg</span> <span class="o">=</span> <span class="n">to_float</span><span class="p">(</span><span class="n">metric_value</span><span class="p">)</span>
+                <span class="n">units</span> <span class="o">=</span> <span class="n">metric_units</span>
+            <span class="k">elif</span> <span class="n">imperial_expression</span><span class="p">:</span>
+                <span class="n">expression</span> <span class="o">=</span> <span class="n">imperial_expression</span>
+                <span class="k">if</span> <span class="n">imperial_st_and_lb_st</span> <span class="ow">and</span> <span class="n">imperial_st_and_lb_lb</span><span class="p">:</span>
+                    <span class="n">st</span> <span class="o">=</span> <span class="n">to_float</span><span class="p">(</span><span class="n">imperial_st_and_lb_st</span><span class="p">)</span>
+                    <span class="n">lb</span> <span class="o">=</span> <span class="n">to_float</span><span class="p">(</span><span class="n">imperial_st_and_lb_lb</span><span class="p">)</span>
+                    <span class="n">value_kg</span> <span class="o">=</span> <span class="n">kg_from_st_lb_oz</span><span class="p">(</span><span class="n">stones</span><span class="o">=</span><span class="n">st</span><span class="p">,</span> <span class="n">pounds</span><span class="o">=</span><span class="n">lb</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">assemble_units</span><span class="p">([</span><span class="n">imperial_st_and_lb_st_units</span><span class="p">,</span>
+                                            <span class="n">imperial_st_and_lb_lb_units</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">imperial_st_only_st</span><span class="p">:</span>
+                    <span class="n">st</span> <span class="o">=</span> <span class="n">to_float</span><span class="p">(</span><span class="n">imperial_st_only_st</span><span class="p">)</span>
+                    <span class="n">value_kg</span> <span class="o">=</span> <span class="n">kg_from_st_lb_oz</span><span class="p">(</span><span class="n">stones</span><span class="o">=</span><span class="n">st</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">imperial_st_only_st_units</span>
+                <span class="k">elif</span> <span class="n">imperial_lb_only_lb</span><span class="p">:</span>
+                    <span class="n">lb</span> <span class="o">=</span> <span class="n">to_float</span><span class="p">(</span><span class="n">imperial_lb_only_lb</span><span class="p">)</span>
+                    <span class="n">value_kg</span> <span class="o">=</span> <span class="n">kg_from_st_lb_oz</span><span class="p">(</span><span class="n">pounds</span><span class="o">=</span><span class="n">lb</span><span class="p">)</span>
+                    <span class="n">units</span> <span class="o">=</span> <span class="n">imperial_lb_only_lb_units</span>
+
+            <span class="c1"># All left as signed float, as you definitely see things like</span>
+            <span class="c1"># &quot;weight -0.3 kg&quot; for weight changes.</span>
+
+            <span class="n">tense</span><span class="p">,</span> <span class="n">relation</span> <span class="o">=</span> <span class="n">common_tense</span><span class="p">(</span><span class="n">tense_text</span><span class="p">,</span> <span class="n">relation_text</span><span class="p">)</span>
+
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">FN_VARIABLE_NAME</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">,</span>
+                <span class="n">FN_CONTENT</span><span class="p">:</span> <span class="n">matching_text</span><span class="p">,</span>
+                <span class="n">FN_START</span><span class="p">:</span> <span class="n">startpos</span><span class="p">,</span>
+                <span class="n">FN_END</span><span class="p">:</span> <span class="n">endpos</span><span class="p">,</span>
+
+                <span class="n">FN_VARIABLE_TEXT</span><span class="p">:</span> <span class="n">variable_text</span><span class="p">,</span>
+                <span class="n">FN_RELATION_TEXT</span><span class="p">:</span> <span class="n">relation_text</span><span class="p">,</span>
+                <span class="n">FN_RELATION</span><span class="p">:</span> <span class="n">relation</span><span class="p">,</span>
+                <span class="n">FN_VALUE_TEXT</span><span class="p">:</span> <span class="n">expression</span><span class="p">,</span>
+                <span class="n">FN_UNITS</span><span class="p">:</span> <span class="n">units</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target_unit</span><span class="p">:</span> <span class="n">value_kg</span><span class="p">,</span>
+                <span class="n">FN_TENSE_TEXT</span><span class="p">:</span> <span class="n">tense_text</span><span class="p">,</span>
+                <span class="n">FN_TENSE</span><span class="p">:</span> <span class="n">tense</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="c1"># log.critical(result)</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">tablename</span><span class="p">,</span> <span class="n">result</span></div>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;Weight&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;her weight was 60.2kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">60.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;Weight = 52.3kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">52.3</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;Weight: 80.8kgs&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">80.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 61kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">61</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 61 kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">61</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 61 kgs&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">61</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 61 kilo&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">61</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 61 kilos&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">61</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 8 stones &quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">kg_from_st_lb_oz</span><span class="p">(</span><span class="n">stones</span><span class="o">=</span><span class="mi">8</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 200 lb&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">kg_from_st_lb_oz</span><span class="p">(</span><span class="n">pounds</span><span class="o">=</span><span class="mi">200</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 200 pounds&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">kg_from_st_lb_oz</span><span class="p">(</span><span class="n">pounds</span><span class="o">=</span><span class="mi">200</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;she weighs 6 st 12 lb&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">kg_from_st_lb_oz</span><span class="p">(</span><span class="n">stones</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">pounds</span><span class="o">=</span><span class="mi">12</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;change in weight -0.4kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.4</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;change in weight - 0.4kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">]),</span>  <span class="c1"># ASCII hyphen (hyphen-minus)</span>
+            <span class="p">(</span><span class="s2">&quot;change in weight ‐ 0.4kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">]),</span>  <span class="c1"># Unicode hyphen</span>
+            <span class="c1"># (&quot;failme&quot;, [999]),</span>
+            <span class="p">(</span><span class="s2">&quot;change in weight −0.4kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.4</span><span class="p">]),</span>  <span class="c1"># Unicode minus</span>
+            <span class="p">(</span><span class="s2">&quot;change in weight –0.4kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.4</span><span class="p">]),</span>  <span class="c1"># en dash</span>
+            <span class="p">(</span><span class="s2">&quot;change in weight —0.4kg&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.4</span><span class="p">]),</span>  <span class="c1"># em dash</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detailed_test</span><span class="p">(</span><span class="s2">&quot;Weight: 80.8kgs&quot;</span><span class="p">,</span> <span class="p">[{</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target_unit</span><span class="p">:</span> <span class="mf">80.8</span><span class="p">,</span>
+            <span class="n">FN_UNITS</span><span class="p">:</span> <span class="s2">&quot;kgs&quot;</span><span class="p">,</span>
+        <span class="p">}],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WeightValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.WeightValidator">[docs]</a><span class="k">class</span> <span class="nc">WeightValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Weight (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Weight</span><span class="o">.</span><span class="n">WEIGHT</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Weight</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># Body mass index (BMI)</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Bmi"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Bmi">[docs]</a><span class="k">class</span> <span class="nc">Bmi</span><span class="p">(</span><span class="n">SimpleNumericalResultParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Body mass index (in kg / m^2).&quot;&quot;&quot;</span>
+    <span class="n">BMI</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?: </span><span class="si">{WORD_BOUNDARY}</span><span class="s2"></span>
+<span class="s2">            (?: BMI | body \s+ mass \s+ index )</span>
+<span class="s2">        </span><span class="si">{WORD_BOUNDARY}</span><span class="s2"> )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">WORD_BOUNDARY</span><span class="o">=</span><span class="n">WORD_BOUNDARY</span><span class="p">)</span>
+    <span class="n">REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ( </span><span class="si">{BMI}</span><span class="s2"> )                          # group for &quot;BMI&quot; or equivalent</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{TENSE_INDICATOR}</span><span class="s2"> )?             # optional group for tense indicator</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{RELATION}</span><span class="s2"> )?                    # optional group for relation</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )                 # group for value</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        (                                  # group for units</span>
+<span class="s2">            </span><span class="si">{KG_PER_SQ_M}</span><span class="s2"></span>
+<span class="s2">        )?</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">BMI</span><span class="o">=</span><span class="n">BMI</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">TENSE_INDICATOR</span><span class="o">=</span><span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+        <span class="n">RELATION</span><span class="o">=</span><span class="n">RELATION</span><span class="p">,</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">KG_PER_SQ_M</span><span class="o">=</span><span class="n">KG_PER_SQ_M</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;BMI&quot;</span>
+    <span class="n">PREFERRED_UNIT_COLUMN</span> <span class="o">=</span> <span class="s2">&quot;value_kg_per_sq_m&quot;</span>
+    <span class="n">UNIT_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">KG_PER_SQ_M</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>       <span class="c1"># preferred unit</span>
+    <span class="p">}</span>
+    <span class="c1"># deal with &quot;a BMI of 30&quot;?</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+            <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+            <span class="n">regex_str</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">REGEX</span><span class="p">,</span>
+            <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+            <span class="n">target_unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">PREFERRED_UNIT_COLUMN</span><span class="p">,</span>
+            <span class="n">units_to_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">UNIT_MAPPING</span><span class="p">,</span>
+            <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+            <span class="n">take_absolute</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;BMI&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;body mass index was 30&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">30</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;his BMI (30) is too high&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">30</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;BMI 25 kg/sq m&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">25</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;BMI was 18.4 kg/m^-2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">18.4</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ACE 79&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;BMI-23&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">23</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BmiValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.BmiValidator">[docs]</a><span class="k">class</span> <span class="nc">BmiValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Bmi (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Bmi</span><span class="o">.</span><span class="n">BMI</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Bmi</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1">#  Bedside investigations: BP</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="Bp"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Bp">[docs]</a><span class="k">class</span> <span class="nc">Bp</span><span class="p">(</span><span class="n">BaseNlpParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Blood pressure, in mmHg. (Since we produce two variables, SBP and DBP,</span>
+<span class="sd">    and we use something a little more complex than</span>
+<span class="sd">    NumeratorOutOfDenominatorParser, we subclass BaseNlpParser directly.)&quot;&quot;&quot;</span>
+    <span class="n">BP</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(?: \b blood \s+ pressure \b | \b B\.?P\.? \b )&quot;</span>
+    <span class="n">SYSTOLIC_BP</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(?: \b systolic \s+ </span><span class="si">{BP}</span><span class="s2"> | \b S\.?B\.?P\.? \b )&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">BP</span><span class="o">=</span><span class="n">BP</span><span class="p">)</span>
+    <span class="n">DIASTOLIC_BP</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;(?: \b diastolic \s+ </span><span class="si">{BP}</span><span class="s2"> | \b D\.?B\.?P\.? \b )&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">BP</span><span class="o">=</span><span class="n">BP</span><span class="p">)</span>
+
+    <span class="n">TWO_NUMBER_BP</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )</span>
+<span class="s2">        \s* (?: \b over \b | \/ ) \s*</span>
+<span class="s2">        ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">)</span>
+    <span class="n">ONE_NUMBER_BP</span> <span class="o">=</span> <span class="n">SIGNED_FLOAT</span>
+
+    <span class="n">COMPILED_BP</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">BP</span><span class="p">)</span>
+    <span class="n">COMPILED_SBP</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">SYSTOLIC_BP</span><span class="p">)</span>
+    <span class="n">COMPILED_DBP</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">DIASTOLIC_BP</span><span class="p">)</span>
+    <span class="n">COMPILED_ONE_NUMBER_BP</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">ONE_NUMBER_BP</span><span class="p">)</span>
+    <span class="n">COMPILED_TWO_NUMBER_BP</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">TWO_NUMBER_BP</span><span class="p">)</span>
+    <span class="n">REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (                               # group for &quot;BP&quot; or equivalent</span>
+<span class="s2">            </span><span class="si">{SYSTOLIC_BP}</span><span class="s2">               # ... from more to less specific</span>
+<span class="s2">            | </span><span class="si">{DIASTOLIC_BP}</span><span class="s2"></span>
+<span class="s2">            | </span><span class="si">{BP}</span><span class="s2"></span>
+<span class="s2">        )</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{TENSE_INDICATOR}</span><span class="s2"> )?         # optional group for tense indicator</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{RELATION}</span><span class="s2"> )?                # optional group for relation</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        (</span>
+<span class="s2">            </span><span class="si">{SIGNED_FLOAT}</span><span class="s2">                      # systolic</span>
+<span class="s2">            (?:</span>
+<span class="s2">                \s* (?: \b over \b | \/ ) \s*   # /</span>
+<span class="s2">                </span><span class="si">{SIGNED_FLOAT}</span><span class="s2">                  # diastolic</span>
+<span class="s2">            )?</span>
+<span class="s2">        )</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        (                              # group for units</span>
+<span class="s2">            </span><span class="si">{MM_HG}</span><span class="s2"></span>
+<span class="s2">        )?</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">BP</span><span class="o">=</span><span class="n">BP</span><span class="p">,</span>
+        <span class="n">SYSTOLIC_BP</span><span class="o">=</span><span class="n">SYSTOLIC_BP</span><span class="p">,</span>
+        <span class="n">DIASTOLIC_BP</span><span class="o">=</span><span class="n">DIASTOLIC_BP</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">TENSE_INDICATOR</span><span class="o">=</span><span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+        <span class="n">RELATION</span><span class="o">=</span><span class="n">RELATION</span><span class="p">,</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">MM_HG</span><span class="o">=</span><span class="n">MM_HG</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">COMPILED_REGEX</span> <span class="o">=</span> <span class="n">compile_regex</span><span class="p">(</span><span class="n">REGEX</span><span class="p">)</span>
+
+    <span class="n">FN_SYSTOLIC_BP_MMHG</span> <span class="o">=</span> <span class="s1">&#39;systolic_bp_mmhg&#39;</span>
+    <span class="n">FN_DIASTOLIC_BP_MMHG</span> <span class="o">=</span> <span class="s1">&#39;diastolic_bp_mmhg&#39;</span>
+
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;BP&quot;</span>
+    <span class="n">UNIT_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">MM_HG</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>       <span class="c1"># preferred unit</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+            <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+            <span class="n">commit</span><span class="o">=</span><span class="n">commit</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">nlpdef</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># only None for debugging!</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tablename</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tablename</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span>
+                <span class="n">cfgsection</span><span class="p">,</span> <span class="s1">&#39;desttable&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">print_info</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Blood pressure finder. Regular expression: </span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">REGEX</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Bp.dest_tables_columns"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Bp.dest_tables_columns">[docs]</a>    <span class="k">def</span> <span class="nf">dest_tables_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Column</span><span class="p">]]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">tablename</span><span class="p">:</span> <span class="p">[</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_CONTENT</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">HELP_CONTENT</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_START</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">HELP_START</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_END</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">HELP_END</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_VARIABLE_TEXT</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">HELP_VARIABLE_TEXT</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_RELATION_TEXT</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="n">MAX_RELATION_TEXT_LENGTH</span><span class="p">),</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="n">HELP_RELATION_TEXT</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_RELATION</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="n">MAX_RELATION_LENGTH</span><span class="p">),</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="n">HELP_RELATION</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_VALUE_TEXT</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="n">MAX_VALUE_TEXT_LENGTH</span><span class="p">),</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="n">HELP_VALUE_TEXT</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_UNITS</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="n">MAX_UNITS_LENGTH</span><span class="p">),</span> <span class="n">doc</span><span class="o">=</span><span class="n">HELP_UNITS</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">FN_SYSTOLIC_BP_MMHG</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Systolic blood pressure in mmHg&quot;</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">FN_DIASTOLIC_BP_MMHG</span><span class="p">,</span> <span class="n">Float</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Diastolic blood pressure in mmHg&quot;</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="n">FN_TENSE</span><span class="p">,</span> <span class="n">String</span><span class="p">(</span><span class="n">MAX_TENSE_LENGTH</span><span class="p">),</span> <span class="n">doc</span><span class="o">=</span><span class="n">HELP_TENSE</span><span class="p">),</span>
+        <span class="p">]}</span></div>
+
+<div class="viewcode-block" id="Bp.parse"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.Bp.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+              <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                                                <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Parser for BP. Specialized because we&#39;re fetching two numbers.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_REGEX</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Match </span><span class="si">{}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span>
+            <span class="n">startpos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="n">endpos</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+            <span class="n">matching_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># the whole thing</span>
+            <span class="n">variable_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">tense_indicator</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">relation_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">value_text</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="n">units</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+            <span class="n">sbp</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">dbp</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_SBP</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">variable_text</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_ONE_NUMBER_BP</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">value_text</span><span class="p">):</span>
+                    <span class="n">sbp</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">value_text</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_DBP</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">variable_text</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_ONE_NUMBER_BP</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">value_text</span><span class="p">):</span>
+                    <span class="n">dbp</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">value_text</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_BP</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">variable_text</span><span class="p">):</span>
+                <span class="n">bpmatch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">COMPILED_TWO_NUMBER_BP</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">value_text</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">bpmatch</span><span class="p">:</span>
+                    <span class="n">sbp</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">bpmatch</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="n">dbp</span> <span class="o">=</span> <span class="n">to_pos_float</span><span class="p">(</span><span class="n">bpmatch</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">sbp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">dbp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># This is OK; e.g. &quot;BP 110&quot;, which we will ignore.</span>
+                <span class="c1"># log.warning(</span>
+                <span class="c1">#     &quot;Failed interpretation: matching_text={matching_text}, &quot;</span>
+                <span class="c1">#     &quot;variable_text={variable_text}, &quot;</span>
+                <span class="c1">#     &quot;tense_indicator={tense_indicator}, &quot;</span>
+                <span class="c1">#     &quot;relation={relation}, &quot;</span>
+                <span class="c1">#     &quot;value_text={value_text}, &quot;</span>
+                <span class="c1">#     &quot;units={units}&quot;.format(</span>
+                <span class="c1">#         matching_text=repr(matching_text),</span>
+                <span class="c1">#         variable_text=repr(variable_text),</span>
+                <span class="c1">#         tense_indicator=repr(tense_indicator),</span>
+                <span class="c1">#         relation=repr(relation),</span>
+                <span class="c1">#         value_text=repr(value_text),</span>
+                <span class="c1">#         units=repr(units),</span>
+                <span class="c1">#     )</span>
+                <span class="c1"># )</span>
+                <span class="k">continue</span>
+
+            <span class="n">tense</span><span class="p">,</span> <span class="n">relation</span> <span class="o">=</span> <span class="n">common_tense</span><span class="p">(</span><span class="n">tense_indicator</span><span class="p">,</span> <span class="n">relation_text</span><span class="p">)</span>
+
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">tablename</span><span class="p">,</span> <span class="p">{</span>
+                <span class="n">FN_CONTENT</span><span class="p">:</span> <span class="n">matching_text</span><span class="p">,</span>
+                <span class="n">FN_START</span><span class="p">:</span> <span class="n">startpos</span><span class="p">,</span>
+                <span class="n">FN_END</span><span class="p">:</span> <span class="n">endpos</span><span class="p">,</span>
+                <span class="n">FN_VARIABLE_TEXT</span><span class="p">:</span> <span class="n">variable_text</span><span class="p">,</span>
+                <span class="n">FN_RELATION_TEXT</span><span class="p">:</span> <span class="n">relation_text</span><span class="p">,</span>
+                <span class="n">FN_RELATION</span><span class="p">:</span> <span class="n">relation</span><span class="p">,</span>
+                <span class="n">FN_VALUE_TEXT</span><span class="p">:</span> <span class="n">value_text</span><span class="p">,</span>
+                <span class="n">FN_UNITS</span><span class="p">:</span> <span class="n">units</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">FN_SYSTOLIC_BP_MMHG</span><span class="p">:</span> <span class="n">sbp</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">FN_DIASTOLIC_BP_MMHG</span><span class="p">:</span> <span class="n">dbp</span><span class="p">,</span>
+                <span class="n">FN_TENSE</span><span class="p">:</span> <span class="n">tense</span><span class="p">,</span>
+            <span class="p">}</span></div>
+
+    <span class="k">def</span> <span class="nf">test_bp_parser</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">test_expected_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span>
+                <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]]</span>
+            <span class="p">],</span>
+            <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Testing parser: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;... regex:</span><span class="se">\n</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">REGEX</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">test_string</span><span class="p">,</span> <span class="n">expected_values</span> <span class="ow">in</span> <span class="n">test_expected_list</span><span class="p">:</span>
+            <span class="n">actual_values</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">FN_SYSTOLIC_BP_MMHG</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">FN_DIASTOLIC_BP_MMHG</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">test_string</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">actual_values</span> <span class="o">==</span> <span class="n">expected_values</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Parser </span><span class="si">{name}</span><span class="s2">: Expected </span><span class="si">{expected}</span><span class="s2">, got </span><span class="si">{actual}</span><span class="s2">, when &quot;</span>
+                <span class="s2">&quot;parsing </span><span class="si">{test_string}</span><span class="s2">; full result=</span><span class="si">{full}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+                    <span class="n">expected</span><span class="o">=</span><span class="n">expected_values</span><span class="p">,</span>
+                    <span class="n">actual</span><span class="o">=</span><span class="n">actual_values</span><span class="p">,</span>
+                    <span class="n">test_string</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">test_string</span><span class="p">),</span>
+                    <span class="n">full</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">test_string</span><span class="p">))),</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;... OK&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_bp_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;BP&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;his blood pressure was 120/80&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">120</span><span class="p">,</span> <span class="mi">80</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;BP 120/80 mmhg&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">120</span><span class="p">,</span> <span class="mi">80</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;systolic BP 120&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">120</span><span class="p">,</span> <span class="kc">None</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;diastolic BP 80&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">80</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;BP-130/70&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">130</span><span class="p">,</span> <span class="mi">70</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;BP 110 /80&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">80</span><span class="p">)]),</span>
+            <span class="p">(</span><span class="s2">&quot;BP 110 /80 -&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">80</span><span class="p">)]),</span>  <span class="c1"># real example</span>
+            <span class="p">(</span><span class="s2">&quot;BP 120 / 70 -&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">120</span><span class="p">,</span> <span class="mi">70</span><span class="p">)]),</span>  <span class="c1"># real example</span>
+            <span class="p">(</span><span class="s2">&quot;BP :115 / 70 -&quot;</span><span class="p">,</span> <span class="p">[(</span><span class="mi">115</span><span class="p">,</span> <span class="mi">70</span><span class="p">)]),</span>  <span class="c1"># real example</span>
+            <span class="p">(</span><span class="s2">&quot;B.P 110&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># real example</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+        <span class="c1"># 1. Unsure if best to take abs value.</span>
+        <span class="c1">#    One reason not to might be if people express changes, e.g.</span>
+        <span class="c1">#    &quot;BP change -40/-10&quot;, but I very much doubt it.</span>
+        <span class="c1">#    Went with abs value using to_pos_float().</span>
+        <span class="c1"># 2. &quot;BP 110&quot; - too unreliable; not definitely a blood pressure.</span>
+
+
+<div class="viewcode-block" id="BpValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_clinical.html#crate_anon.nlp_manager.parse_clinical.BpValidator">[docs]</a><span class="k">class</span> <span class="nc">BpValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Bp (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Bp</span><span class="o">.</span><span class="n">REGEX</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Bp</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1">#  Command-line entry point</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">test_all</span><span class="p">(</span><span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">Height</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">height</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">Weight</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">weight</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">bmi</span> <span class="o">=</span> <span class="n">Bmi</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">bmi</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">bp</span> <span class="o">=</span> <span class="n">Bp</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">bp</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">test_all</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

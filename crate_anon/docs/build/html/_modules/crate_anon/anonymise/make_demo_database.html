@@ -1,0 +1,622 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.anonymise.make_demo_database &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.anonymise.make_demo_database</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/anonymise/make_demo_database.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+
+<span class="sd">Makes a giant test database for anonymisation testing.</span>
+
+<span class="sd">See also:</span>
+
+<span class="sd">    http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/</span>
+<span class="sd">    http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/table/T7/</span>
+
+<span class="sd">After anonymisation, check with:</span>
+
+<span class="sd">    SELECT * FROM anonymous_output.notes WHERE brcid IN (</span>
+<span class="sd">        SELECT brcid</span>
+<span class="sd">        FROM anonymous_mapping.secret_map</span>
+<span class="sd">        WHERE patient_id &lt; 2</span>
+<span class="sd">    );</span>
+<span class="sd">    SELECT * FROM test.patients WHERE patient_id &lt; 2;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.datetimefunc</span> <span class="k">import</span> <span class="n">pendulum_to_datetime</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.logs</span> <span class="k">import</span> <span class="n">configure_logger_for_colour</span>
+<span class="kn">from</span> <span class="nn">pendulum</span> <span class="k">import</span> <span class="n">Pendulum</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">create_engine</span><span class="p">,</span>
+    <span class="n">BigInteger</span><span class="p">,</span>
+    <span class="n">Boolean</span><span class="p">,</span>
+    <span class="n">Column</span><span class="p">,</span>
+    <span class="n">Date</span><span class="p">,</span>
+    <span class="n">DateTime</span><span class="p">,</span>
+    <span class="n">Enum</span><span class="p">,</span>
+    <span class="n">ForeignKey</span><span class="p">,</span>
+    <span class="n">Integer</span><span class="p">,</span>
+    <span class="n">LargeBinary</span><span class="p">,</span>
+    <span class="n">MetaData</span><span class="p">,</span>
+    <span class="n">String</span><span class="p">,</span>
+    <span class="n">Text</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.compiler</span> <span class="k">import</span> <span class="n">compiles</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.ext.declarative</span> <span class="k">import</span> <span class="n">declarative_base</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm</span> <span class="k">import</span> <span class="n">relationship</span><span class="p">,</span> <span class="n">sessionmaker</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.sql</span> <span class="k">import</span> <span class="n">text</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.anonymise.constants</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">CHARSET</span><span class="p">,</span>
+    <span class="n">TABLE_KWARGS</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">metadata</span> <span class="o">=</span> <span class="n">MetaData</span><span class="p">()</span>
+<span class="n">Base</span> <span class="o">=</span> <span class="n">declarative_base</span><span class="p">(</span><span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">)</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Constants</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">CONSOLE_ENCODING</span> <span class="o">=</span> <span class="s1">&#39;utf8&#39;</span>
+<span class="n">REPORT_EVERY</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="n">BASE_DOB</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">year</span><span class="o">=</span><span class="mi">1980</span><span class="p">)</span>
+<span class="n">DT_FORMATS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %b %Y&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 24 Jul 2013</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %B %Y&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 24 July 2013</span>
+    <span class="s2">&quot;%a </span><span class="si">%d</span><span class="s2"> %B %Y&quot;</span><span class="p">,</span>  <span class="c1"># e.g. Wed 24 July 2013</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %B %Y, %H:%M %z&quot;</span><span class="p">,</span>  <span class="c1"># ... e.g. 24 July 2013, 20:04 +0100</span>
+    <span class="s2">&quot;%a </span><span class="si">%d</span><span class="s2"> %B %Y, %H:%M %z&quot;</span><span class="p">,</span>  <span class="c1"># ... e.g. Wed 24 July 2013, 20:04 +0100</span>
+    <span class="s2">&quot;%a </span><span class="si">%d</span><span class="s2"> %B %Y, %H:%M&quot;</span><span class="p">,</span>  <span class="c1"># ... e.g. Wed 24 July 2013, 20:04</span>
+    <span class="s2">&quot;%a </span><span class="si">%d</span><span class="s2"> %b %Y, %H:%M&quot;</span><span class="p">,</span>  <span class="c1"># ... e.g. Wed 24 Jul 2013, 20:04</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %B %Y, %H:%M:%S %z&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %b %Y, %H:%M %z&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2"> %b %Y, %H:%M:%S %z&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;%H:%M&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S%z&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 2013-07-24T20:04:07+0100</span>
+    <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 2013-07-24</span>
+    <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H%M&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 20130724T2004</span>
+    <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 20130724</span>
+    <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">%H%M%S%z&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 20130724200407+0100</span>
+    <span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 20130724</span>
+    <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 2013-07-24T20:03:07Z</span>
+    <span class="s2">&quot;</span><span class="si">%d</span><span class="s2">/%m/%Y %H:%M&quot;</span><span class="p">,</span>  <span class="c1"># e.g. 01/12/2014 09:45</span>
+<span class="p">]</span>
+
+<span class="n">CURRENT_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
+<span class="n">DEFAULT_DOCDIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+    <span class="n">CURRENT_DIR</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">pardir</span><span class="p">,</span> <span class="s2">&quot;testdocs_for_text_extraction&quot;</span><span class="p">))</span>
+<span class="n">DEFAULT_DOCTEST_DOC</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DEFAULT_DOCDIR</span><span class="p">,</span> <span class="s1">&#39;doctest.doc&#39;</span><span class="p">)</span>
+<span class="n">DEFAULT_DOCTEST_DOCX</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DEFAULT_DOCDIR</span><span class="p">,</span> <span class="s1">&#39;doctest.docx&#39;</span><span class="p">)</span>
+<span class="n">DEFAULT_DOCTEST_ODT</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DEFAULT_DOCDIR</span><span class="p">,</span> <span class="s1">&#39;doctest.odt&#39;</span><span class="p">)</span>
+<span class="n">DEFAULT_DOCTEST_PDF</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DEFAULT_DOCDIR</span><span class="p">,</span> <span class="s1">&#39;doctest.pdf&#39;</span><span class="p">)</span>
+
+<span class="n">MAX_EXT_LENGTH_WITH_DOT</span> <span class="o">=</span> <span class="mi">10</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># BLOB type</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">MySQL: http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html</span>
+<span class="sd">    TINYBLOB: up to 2^8 bytes</span>
+<span class="sd">    BLOB: up to 2^16 bytes = 64 KiB</span>
+<span class="sd">    MEDIUMBLOB: up to 2^24 bytes = 16 MiB  &lt;-- minimum for docs</span>
+<span class="sd">    LONGBLOB: up to 2^32 bytes = 4 GiB</span>
+
+<span class="sd">    VARBINARY: up to 65535 = 64 KiB</span>
+
+<span class="sd">SQL Server: https://msdn.microsoft.com/en-us/library/ms188362.aspx</span>
+<span class="sd">    BINARY: up to 8000 bytes = 8 KB</span>
+<span class="sd">    VARBINARY(MAX): up to 2^31 - 1 bytes = 2 GiB &lt;-- minimum for docs</span>
+<span class="sd">    IMAGE: deprecated; up to 2^31 - 1 bytes = 2 GiB</span>
+<span class="sd">        https://msdn.microsoft.com/en-us/library/ms187993.aspx</span>
+
+<span class="sd">SQL Alchemy:</span>
+<span class="sd">    _Binary: base class</span>
+<span class="sd">    LargeBinary: translates to BLOB in MySQL</span>
+<span class="sd">    VARBINARY, as an SQL base data type</span>
+<span class="sd">    dialects.mysql.base.LONGBLOB</span>
+<span class="sd">    dialects.mssql.base.VARBINARY</span>
+
+<span class="sd">Therefore, we can take the LargeBinary type and modify it:</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="c1"># http://docs.sqlalchemy.org/en/latest/core/custom_types.html</span>
+<span class="c1"># noinspection PyUnusedLocal</span>
+<span class="nd">@compiles</span><span class="p">(</span><span class="n">LargeBinary</span><span class="p">,</span> <span class="s1">&#39;mysql&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">compile_blob_mysql</span><span class="p">(</span><span class="n">type_</span><span class="p">,</span> <span class="n">compiler</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;LONGBLOB&quot;</span>  <span class="c1"># would have been &quot;BLOB&quot;</span>
+
+
+<span class="c1"># If this goes wrong for future versions of SQL Server, write another</span>
+<span class="c1"># specializer to produce &quot;VARBINARY(MAX)&quot; instead of &quot;IMAGE&quot;. I haven&#39;t done</span>
+<span class="c1"># that because it may be that SQL Alchemy is reading the SQL Server version</span>
+<span class="c1"># (it definitely executes &quot;select @@version&quot;) and specializing accordingly.</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># A silly enum</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="EnumColours"><a class="viewcode-back" href="../../../autodoc/anonymise/make_demo_database.html#crate_anon.anonymise.make_demo_database.EnumColours">[docs]</a><span class="k">class</span> <span class="nc">EnumColours</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">red</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">green</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">blue</span> <span class="o">=</span> <span class="mi">3</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Randomness</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">coin</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;</span> <span class="n">p</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Tables</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="Patient"><a class="viewcode-back" href="../../../autodoc/anonymise/make_demo_database.html#crate_anon.anonymise.make_demo_database.Patient">[docs]</a><span class="k">class</span> <span class="nc">Patient</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;patient&#39;</span>
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="n">TABLE_KWARGS</span>
+
+    <span class="n">patient_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">autoincrement</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">forename</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mi">50</span><span class="p">))</span>
+    <span class="n">surname</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mi">50</span><span class="p">))</span>
+    <span class="n">dob</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">)</span>
+    <span class="n">nullfield</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">)</span>
+    <span class="n">nhsnum</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">BigInteger</span><span class="p">)</span>
+    <span class="n">phone</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mi">50</span><span class="p">))</span>
+    <span class="n">postcode</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="mi">50</span><span class="p">))</span>
+    <span class="n">optout</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">related_patient_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">)</span>
+    <span class="n">colour</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Enum</span><span class="p">(</span><span class="n">EnumColours</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># new in v0.18.41</span></div>
+
+
+<div class="viewcode-block" id="Note"><a class="viewcode-back" href="../../../autodoc/anonymise/make_demo_database.html#crate_anon.anonymise.make_demo_database.Note">[docs]</a><span class="k">class</span> <span class="nc">Note</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;note&#39;</span>
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="n">TABLE_KWARGS</span>
+
+    <span class="n">note_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">patient_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;patient.patient_id&#39;</span><span class="p">))</span>
+    <span class="n">note</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">)</span>
+    <span class="n">note_datetime</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+
+    <span class="n">patient</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s2">&quot;Patient&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BlobDoc"><a class="viewcode-back" href="../../../autodoc/anonymise/make_demo_database.html#crate_anon.anonymise.make_demo_database.BlobDoc">[docs]</a><span class="k">class</span> <span class="nc">BlobDoc</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;blobdoc&#39;</span>
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="n">TABLE_KWARGS</span>
+
+    <span class="n">blob_doc_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">patient_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;patient.patient_id&#39;</span><span class="p">))</span>
+    <span class="n">blob</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">LargeBinary</span><span class="p">)</span>  <span class="c1"># modified as above!</span>
+    <span class="n">extension</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">(</span><span class="n">MAX_EXT_LENGTH_WITH_DOT</span><span class="p">))</span>
+    <span class="n">blob_datetime</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+
+    <span class="n">patient</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s2">&quot;Patient&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">patient</span><span class="p">:</span> <span class="n">Patient</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">blob_datetime</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">contents</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>  <span class="c1"># will be of type &#39;bytes&#39;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">patient</span><span class="o">=</span><span class="n">patient</span><span class="p">,</span>
+                         <span class="n">blob</span><span class="o">=</span><span class="n">contents</span><span class="p">,</span>
+                         <span class="n">extension</span><span class="o">=</span><span class="n">extension</span><span class="p">,</span>
+                         <span class="n">blob_datetime</span><span class="o">=</span><span class="n">blob_datetime</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FilenameDoc"><a class="viewcode-back" href="../../../autodoc/anonymise/make_demo_database.html#crate_anon.anonymise.make_demo_database.FilenameDoc">[docs]</a><span class="k">class</span> <span class="nc">FilenameDoc</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s1">&#39;filenamedoc&#39;</span>
+    <span class="n">__table_args__</span> <span class="o">=</span> <span class="n">TABLE_KWARGS</span>
+
+    <span class="n">filename_doc_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">patient_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;patient.patient_id&#39;</span><span class="p">))</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Text</span><span class="p">)</span>
+    <span class="n">file_datetime</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">)</span>
+
+    <span class="n">patient</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s2">&quot;Patient&quot;</span><span class="p">)</span></div>
+
+
+<span class="c1"># noinspection PyPep8Naming</span>
+<span class="k">def</span> <span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">default_size</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;url&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="p">(</span>
+            <span class="s2">&quot;SQLAlchemy database URL. Append ?charset=utf8, e.g. &quot;</span>
+            <span class="s2">&quot;mysql+mysqldb://root:password@127.0.0.1:3306/test?charset=utf8 .&quot;</span>
+            <span class="s2">&quot; WARNING: If you get the error &#39;MySQL has gone away&#39;, increase &quot;</span>
+            <span class="s2">&quot;the max_allowed_packet parameter in my.cnf (e.g. to 32M).&quot;</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--size&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default_size</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Make tiny (0), small (1), medium (2), or large (3) database &quot;</span>
+             <span class="s2">&quot;(default=</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">default_size</span><span class="p">))</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--verbose&#39;</span><span class="p">,</span> <span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Be verbose&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--echo&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Echo SQL&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--doctest_doc&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_DOCTEST_DOC</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Test file for .DOC&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--doctest_docx&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_DOCTEST_DOCX</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Test file for .DOCX&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--doctest_odt&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_DOCTEST_ODT</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Test file for .ODT&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--doctest_pdf&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_DOCTEST_PDF</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Test file for .PDF&quot;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="n">nwords</span> <span class="o">=</span> <span class="mi">10000</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">n_patients</span> <span class="o">=</span> <span class="mi">20</span>
+        <span class="n">notes_per_patient</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">words_per_note</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">n_patients</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">notes_per_patient</span> <span class="o">=</span> <span class="mi">5</span>
+        <span class="n">words_per_note</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">n_patients</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">notes_per_patient</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">words_per_note</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="c1"># about 1.4 Gb</span>
+        <span class="n">n_patients</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="n">notes_per_patient</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">words_per_note</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;Bad size parameter&quot;</span>
+    <span class="n">loglevel</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="k">else</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
+    <span class="n">rootlogger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
+    <span class="n">configure_logger_for_colour</span><span class="p">(</span><span class="n">rootlogger</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">loglevel</span><span class="p">)</span>
+
+    <span class="c1"># 0. Announce intentions</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;n_patients=</span><span class="si">{}</span><span class="s2">, notes_per_patient=</span><span class="si">{}</span><span class="s2">, words_per_note=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">n_patients</span><span class="p">,</span> <span class="n">notes_per_patient</span><span class="p">,</span> <span class="n">words_per_note</span><span class="p">))</span>
+
+    <span class="c1"># 1. Get words</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Fetching words.&quot;</span><span class="p">)</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">([</span>
+        <span class="s2">&quot;grep&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-v&quot;</span><span class="p">,</span> <span class="s2">&quot;&#39;s&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;-m&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">nwords</span><span class="p">),</span>
+        <span class="s2">&quot;/usr/share/dict/words&quot;</span>
+    <span class="p">])</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">CONSOLE_ENCODING</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+
+    <span class="c1"># 2. Open database</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Opening database.&quot;</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;URL: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">url</span><span class="p">))</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">url</span><span class="p">,</span> <span class="n">echo</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">echo</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">CHARSET</span><span class="p">)</span>
+    <span class="n">session</span> <span class="o">=</span> <span class="n">sessionmaker</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)()</span>
+
+    <span class="c1"># 3. Create tables</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Creating tables.&quot;</span><span class="p">)</span>
+    <span class="n">metadata</span><span class="o">.</span><span class="n">drop_all</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">checkfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="n">engine</span><span class="p">,</span> <span class="n">checkfirst</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># 4. Insert</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Aiming for a total of </span><span class="si">{}</span><span class="s2"> words in notes.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">n_patients</span> <span class="o">*</span> <span class="n">notes_per_patient</span> <span class="o">*</span> <span class="n">words_per_note</span><span class="p">))</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Inserting data.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Autoincrementing date</span>
+
+    <span class="n">_datetime</span> <span class="o">=</span> <span class="n">Pendulum</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">hour</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">incdatetime</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>
+        <span class="k">nonlocal</span> <span class="n">_datetime</span>
+        <span class="n">_p</span> <span class="o">=</span> <span class="n">_datetime</span>
+        <span class="n">_datetime</span> <span class="o">=</span> <span class="n">_datetime</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pendulum_to_datetime</span><span class="p">(</span><span class="n">_p</span><span class="p">)</span>
+
+    <span class="c1"># Special extra patient</span>
+
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">Patient</span><span class="p">(</span>
+        <span class="n">patient_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">forename</span><span class="o">=</span><span class="s2">&quot;Ronald Gibbet&quot;</span><span class="p">,</span>
+        <span class="n">surname</span><span class="o">=</span><span class="s2">&quot;MacDonald&quot;</span><span class="p">,</span>
+        <span class="n">dob</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">year</span><span class="o">=</span><span class="mi">1911</span><span class="p">),</span>
+        <span class="n">nhsnum</span><span class="o">=</span><span class="mi">123456</span><span class="p">,</span>
+        <span class="n">phone</span><span class="o">=</span><span class="s2">&quot;(01223)-123456&quot;</span><span class="p">,</span>
+        <span class="n">postcode</span><span class="o">=</span><span class="s2">&quot;CB2 3EB&quot;</span><span class="p">,</span>
+        <span class="n">colour</span><span class="o">=</span><span class="n">EnumColours</span><span class="o">.</span><span class="n">red</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p1</span><span class="p">)</span>
+    <span class="n">n1</span> <span class="o">=</span> <span class="n">Note</span><span class="p">(</span>
+        <span class="n">patient</span><span class="o">=</span><span class="n">p1</span><span class="p">,</span>
+        <span class="n">note</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Ronald MacDonald lived on a farm and kept a gibbet for scaring off</span>
+<span class="s2">small animals. He was born on 11 Nov 1911 and was very proud of this.</span>
+<span class="s2">His cat’s name was Flitterwick. It did not like the gibbets.</span>
+<span class="s2">Ronalds other passion was blimping.</span>
+<span class="s2">A typo might be RonaldMacDonald.</span>
+<span class="s2">His phone number was 0122-312-3456, or 01223-123456, or (01223) 123456,</span>
+<span class="s2">or 01223 123 456, or 01223 123456.</span>
+<span class="s2">His NHS number was 123.456 or possibly 12 34 56.</span>
+<span class="s2">His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.</span>
+
+<span class="s2">Some HTML encoding is &amp;amp; and &amp;lt;.</span>
+<span class="s2">An HTML tag is &lt;a href=&quot;http://somewhere&quot;&gt;this link&lt;/a&gt;.</span>
+<span class="s2">Start aspirin 75mg od. Remains on Lipitor 40mg nocte.</span>
+<span class="s2">For haloperidol 2mg po prn max qds.</span>
+<span class="s2">Start amoxicillin 500 mg b.i.d. for 7 days.</span>
+
+<span class="s2">Some numerical results:</span>
+<span class="s2">His CRP is 10. His previous CRP was &lt;13 mg/dl.</span>
+<span class="s2">Sodium 140.</span>
+<span class="s2">TSH 3.5; urea normal.</span>
+<span class="s2">Height 1.82m, weight 75kg, BMI 22.6. BP 135/82.</span>
+<span class="s2">MMSE 28/30. ACE-R 72, ACE-II 73, ACE 73.</span>
+<span class="s2">ESR 16 (H) mm/h.</span>
+<span class="s2">WBC 9.2; neutrophils 4.3; lymphocytes 2.6; eosinophils 0.4; monocytes 1.2;</span>
+<span class="s2">basophils 0.6.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">note_datetime</span><span class="o">=</span><span class="n">incdatetime</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n1</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">doctest_doc</span><span class="p">,</span>
+                     <span class="n">args</span><span class="o">.</span><span class="n">doctest_docx</span><span class="p">,</span>
+                     <span class="n">args</span><span class="o">.</span><span class="n">doctest_odt</span><span class="p">,</span>
+                     <span class="n">args</span><span class="o">.</span><span class="n">doctest_pdf</span><span class="p">):</span>
+        <span class="n">bd</span> <span class="o">=</span> <span class="n">BlobDoc</span><span class="p">(</span><span class="n">patient</span><span class="o">=</span><span class="n">p1</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                     <span class="n">blob_datetime</span><span class="o">=</span><span class="n">incdatetime</span><span class="p">())</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">bd</span><span class="p">)</span>
+        <span class="n">fd</span> <span class="o">=</span> <span class="n">FilenameDoc</span><span class="p">(</span><span class="n">patient</span><span class="o">=</span><span class="n">p1</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="n">filename</span><span class="p">,</span>
+                         <span class="n">file_datetime</span><span class="o">=</span><span class="n">incdatetime</span><span class="p">())</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">Patient</span><span class="p">(</span>
+        <span class="n">patient_id</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">forename</span><span class="o">=</span><span class="s2">&quot;Bob D&#39;Souza&quot;</span><span class="p">,</span>
+        <span class="n">surname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">dob</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">year</span><span class="o">=</span><span class="mi">1911</span><span class="p">),</span>
+        <span class="n">nhsnum</span><span class="o">=</span><span class="mi">234567</span><span class="p">,</span>
+        <span class="n">phone</span><span class="o">=</span><span class="s2">&quot;(01223)-234567&quot;</span><span class="p">,</span>
+        <span class="n">postcode</span><span class="o">=</span><span class="s2">&quot;CB2 3EB&quot;</span><span class="p">,</span>
+        <span class="n">related_patient_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">colour</span><span class="o">=</span><span class="n">EnumColours</span><span class="o">.</span><span class="n">green</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">p2</span><span class="p">)</span>
+    <span class="n">n2</span> <span class="o">=</span> <span class="n">Note</span><span class="p">(</span>
+        <span class="n">patient</span><span class="o">=</span><span class="n">p2</span><span class="p">,</span>
+        <span class="n">note</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Bob D&#39;Souza, also known as Bob, or Mr DSouza, or sometimes Mr D Souza,</span>
+<span class="s2">or the D&#39;Souza bloke down the road, or BobDSouza or BobD&#39;Souza.</span>
+<span class="s2">His phone number was 0122-312-3456, or 01223-123456, or (01223) 123456,</span>
+<span class="s2">or 01223 123 456, or 01223 123456.</span>
+<span class="s2">His NHS number was 123.456 or possibly 12 34 56 or 123456, perhaps.</span>
+<span class="s2">His postcode was CB2 3EB, or possible CB23EB, or CB2, or 3EB.</span>
+<span class="s2">Bob Hope visited Seattle.</span>
+<span class="s2">Bob took venlafaxine 375 M/R od, and is due to start clozapine 75mg bd.</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">,</span>
+        <span class="n">note_datetime</span><span class="o">=</span><span class="n">incdatetime</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n2</span><span class="p">)</span>
+
+    <span class="c1"># A bunch of patients</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">prev_forename</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">prev_surname</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_patients</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span> <span class="o">%</span> <span class="n">REPORT_EVERY</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;patient </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+        <span class="n">forename</span> <span class="o">=</span> <span class="n">words</span><span class="p">[(</span><span class="n">p</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="n">nwords</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">words</span><span class="p">[(</span><span class="n">p</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span> <span class="o">%</span> <span class="n">nwords</span><span class="p">]</span>
+        <span class="n">surname</span> <span class="o">=</span> <span class="n">words</span><span class="p">[(</span><span class="n">p</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="n">nwords</span><span class="p">]</span>
+        <span class="n">dob</span> <span class="o">=</span> <span class="n">BASE_DOB</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">ok_date</span> <span class="o">=</span> <span class="n">dob</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">nhsnum</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">9999999999</span><span class="p">)</span>
+        <span class="n">patient</span> <span class="o">=</span> <span class="n">Patient</span><span class="p">(</span>
+            <span class="n">patient_id</span><span class="o">=</span><span class="n">p</span> <span class="o">+</span> <span class="mi">3</span><span class="p">,</span>
+            <span class="n">forename</span><span class="o">=</span><span class="n">forename</span><span class="p">,</span>
+            <span class="n">surname</span><span class="o">=</span><span class="n">surname</span><span class="p">,</span>
+            <span class="n">dob</span><span class="o">=</span><span class="n">dob</span><span class="p">,</span>
+            <span class="n">nhsnum</span><span class="o">=</span><span class="n">nhsnum</span><span class="p">,</span>
+            <span class="n">phone</span><span class="o">=</span><span class="s2">&quot;123456&quot;</span><span class="p">,</span>
+            <span class="n">postcode</span><span class="o">=</span><span class="s2">&quot;CB2 3EB&quot;</span><span class="p">,</span>
+            <span class="n">related_patient_id</span><span class="o">=</span><span class="n">p</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># one back from patient_id</span>
+            <span class="n">colour</span><span class="o">=</span><span class="n">EnumColours</span><span class="o">.</span><span class="n">blue</span> <span class="k">if</span> <span class="n">coin</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">patient</span><span class="p">)</span>
+        <span class="n">patient_id</span> <span class="o">=</span> <span class="n">patient</span><span class="o">.</span><span class="n">patient_id</span>
+        <span class="n">dates</span> <span class="o">=</span> <span class="s2">&quot;DATES: &quot;</span> <span class="o">+</span> <span class="p">(</span>
+            <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">dob</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span> <span class="k">for</span> <span class="n">fmt</span> <span class="ow">in</span> <span class="n">DT_FORMATS</span><span class="p">])</span> <span class="o">+</span>
+            <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ok_date</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">fmt</span><span class="p">)</span> <span class="k">for</span> <span class="n">fmt</span> <span class="ow">in</span> <span class="n">DT_FORMATS</span><span class="p">])</span>
+        <span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;. &quot;</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="s2">&quot;FORENAME: &quot;</span> <span class="o">+</span> <span class="n">forename</span> <span class="o">+</span> <span class="s2">&quot;. &quot;</span>
+        <span class="n">sname</span> <span class="o">=</span> <span class="s2">&quot;SURNAME: &quot;</span> <span class="o">+</span> <span class="n">surname</span> <span class="o">+</span> <span class="s2">&quot;. &quot;</span>
+        <span class="n">rname</span> <span class="o">=</span> <span class="s2">&quot;RELATIVE: &quot;</span> <span class="o">+</span> <span class="n">prev_forename</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="n">prev_surname</span> <span class="o">+</span> <span class="s2">&quot;. &quot;</span>
+        <span class="n">numbers</span> <span class="o">=</span> <span class="s2">&quot;NUMBERS: </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">. &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">patient_id</span><span class="p">,</span> <span class="n">patient_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                                                 <span class="n">nhsnum</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">notes_per_patient</span><span class="p">):</span>
+            <span class="n">wstr</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">words</span><span class="p">[</span><span class="n">p</span> <span class="o">%</span> <span class="n">nwords</span><span class="p">:(</span><span class="n">p</span> <span class="o">+</span> <span class="n">words_per_note</span><span class="p">)</span> <span class="o">%</span> <span class="n">nwords</span><span class="p">])</span>
+            <span class="n">note</span> <span class="o">=</span> <span class="n">Note</span><span class="p">(</span>
+                <span class="n">patient</span><span class="o">=</span><span class="n">patient</span><span class="p">,</span>
+                <span class="n">note</span><span class="o">=</span><span class="n">fname</span> <span class="o">+</span> <span class="n">sname</span> <span class="o">+</span> <span class="n">rname</span> <span class="o">+</span> <span class="n">numbers</span> <span class="o">+</span> <span class="n">dates</span> <span class="o">+</span> <span class="n">wstr</span><span class="p">,</span>
+                <span class="n">note_datetime</span><span class="o">=</span><span class="n">incdatetime</span><span class="p">()</span>
+            <span class="p">)</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">note</span><span class="p">)</span>
+        <span class="n">prev_forename</span> <span class="o">=</span> <span class="n">forename</span>
+        <span class="n">prev_surname</span> <span class="o">=</span> <span class="n">surname</span>
+
+    <span class="c1"># 5. Commit</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Committing...&quot;</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Done.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 6. Report size</span>
+
+    <span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">dialect</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;mysql&#39;</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Done. Database size:&quot;</span><span class="p">)</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT</span>
+<span class="s2">                table_schema,</span>
+<span class="s2">                table_name,</span>
+<span class="s2">                table_rows,</span>
+<span class="s2">                data_length,</span>
+<span class="s2">                index_length,</span>
+<span class="s2">                ROUND(((data_length + index_length) / (1024 * 1024)), 2)</span>
+<span class="s2">                  AS &quot;Size_MB&quot;</span>
+<span class="s2">            FROM</span>
+<span class="s2">                information_schema.tables</span>
+<span class="s2">            WHERE table_schema = DATABASE()</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">text</span><span class="p">(</span><span class="n">sql</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;schema=</span><span class="si">{}</span><span class="s2">, table=</span><span class="si">{}</span><span class="s2">, rows=</span><span class="si">{}</span><span class="s2">, data_length=</span><span class="si">{}</span><span class="s2">, &quot;</span>
+                <span class="s2">&quot;index_length=</span><span class="si">{}</span><span class="s2">, size_MB=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">r</span><span class="p">)</span>
+            <span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

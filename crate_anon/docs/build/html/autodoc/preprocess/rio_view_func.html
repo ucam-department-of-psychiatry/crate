@@ -63,13 +63,13 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="function">
 <dt id="crate_anon.preprocess.rio_view_func.lookup_from_fragment">
-<code class="descclassname">crate_anon.preprocess.rio_view_func.</code><code class="descname">lookup_from_fragment</code><span class="sig-paren">(</span><em>lookup_table: str</em>, <em>aliased_lookup_table: str</em>, <em>lookup_pk: str</em>, <em>basetable: str</em>, <em>basecolumn: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.preprocess.rio_view_func.lookup_from_fragment" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.preprocess.rio_view_func.</code><code class="descname">lookup_from_fragment</code><span class="sig-paren">(</span><em>lookup_table: str</em>, <em>aliased_lookup_table: str</em>, <em>lookup_pk: str</em>, <em>basetable: str</em>, <em>basecolumn: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/preprocess/rio_view_func.html#lookup_from_fragment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.preprocess.rio_view_func.lookup_from_fragment" title="Permalink to this definition">¶</a></dt>
 <dd><p>For when lookup_pk is really a PK.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row">
-<code class="descclassname">crate_anon.preprocess.rio_view_func.</code><code class="descname">lookup_from_fragment_first_row</code><span class="sig-paren">(</span><em>lookup_table: str</em>, <em>aliased_lookup_table: str</em>, <em>lookup_key: str</em>, <em>lookup_unique_field: str</em>, <em>basetable: str</em>, <em>basecolumn: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.preprocess.rio_view_func.</code><code class="descname">lookup_from_fragment_first_row</code><span class="sig-paren">(</span><em>lookup_table: str</em>, <em>aliased_lookup_table: str</em>, <em>lookup_key: str</em>, <em>lookup_unique_field: str</em>, <em>basetable: str</em>, <em>basecolumn: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/preprocess/rio_view_func.html#lookup_from_fragment_first_row"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row" title="Permalink to this definition">¶</a></dt>
 <dd><p>Modified 2017-01-23, because sometimes the lookup column is not unique,
 e.g. lookup from “Code” to “CodeDescription” in NNNStatus (see also
 rio_views.py). The LEFT JOIN was giving us duplicate rows. We want only
@@ -113,7 +113,7 @@ LIMIT 1</div></blockquote>
 
 <dl class="function">
 <dt id="crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row_outer_apply">
-<code class="descclassname">crate_anon.preprocess.rio_view_func.</code><code class="descname">lookup_from_fragment_first_row_outer_apply</code><span class="sig-paren">(</span><em>lookup_fields: Iterable[str], lookup_table: str, aliased_lookup_table: str, lookup_key: str, basetable: str, basecolumn: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row_outer_apply" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.preprocess.rio_view_func.</code><code class="descname">lookup_from_fragment_first_row_outer_apply</code><span class="sig-paren">(</span><em>lookup_fields: Iterable[str], lookup_table: str, aliased_lookup_table: str, lookup_key: str, basetable: str, basecolumn: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/preprocess/rio_view_func.html#lookup_from_fragment_first_row_outer_apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row_outer_apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>As for lookup_from_fragment_first_row, but works without a unique
 field in the lookup table.</p>
 <p><a class="reference external" href="http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row">http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row</a>  # noqa

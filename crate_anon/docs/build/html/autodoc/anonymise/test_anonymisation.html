@@ -87,40 +87,40 @@ TN = NEGATIVE - FN</dd>
 <p>instead.</p>
 <dl class="function">
 <dt id="crate_anon.anonymise.test_anonymisation.get_docids">
-<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">get_docids</code><span class="sig-paren">(</span><em>args: Any</em>, <em>fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo</em>, <em>from_src: bool = True</em><span class="sig-paren">)</span> &#x2192; List[int]<a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.get_docids" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">get_docids</code><span class="sig-paren">(</span><em>args: Any</em>, <em>fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo</em>, <em>from_src: bool = True</em><span class="sig-paren">)</span> &#x2192; List[int]<a class="reference internal" href="../../_modules/crate_anon/anonymise/test_anonymisation.html#get_docids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.get_docids" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate a limited set of PKs for the documents.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.anonymise.test_anonymisation.get_patientnum_anontext">
-<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">get_patientnum_anontext</code><span class="sig-paren">(</span><em>docid: int</em>, <em>fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[int, NoneType], Union[str, NoneType]]<a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.get_patientnum_anontext" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">get_patientnum_anontext</code><span class="sig-paren">(</span><em>docid: int</em>, <em>fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[int, NoneType], Union[str, NoneType]]<a class="reference internal" href="../../_modules/crate_anon/anonymise/test_anonymisation.html#get_patientnum_anontext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.get_patientnum_anontext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches the anonymised text for a given document PK, plus the associated
 patient ID.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.anonymise.test_anonymisation.get_patientnum_rawtext">
-<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">get_patientnum_rawtext</code><span class="sig-paren">(</span><em>docid: int</em>, <em>fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[int, NoneType], Union[str, NoneType]]<a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.get_patientnum_rawtext" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">get_patientnum_rawtext</code><span class="sig-paren">(</span><em>docid: int</em>, <em>fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[int, NoneType], Union[str, NoneType]]<a class="reference internal" href="../../_modules/crate_anon/anonymise/test_anonymisation.html#get_patientnum_rawtext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.get_patientnum_rawtext" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches the original text for a given document PK, plus the associated
 patient ID.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.anonymise.test_anonymisation.main">
-<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.main" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/test_anonymisation.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.main" title="Permalink to this definition">¶</a></dt>
 <dd><p>Command-line entry point.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.anonymise.test_anonymisation.process_doc">
-<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">process_doc</code><span class="sig-paren">(</span><em>docid: int, args: Any, fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo, csvwriter: Any, first: bool, scrubdict: Dict[int, Dict[str, Any]]</em><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.process_doc" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">process_doc</code><span class="sig-paren">(</span><em>docid: int, args: Any, fieldinfo: crate_anon.anonymise.test_anonymisation.FieldInfo, csvwriter: Any, first: bool, scrubdict: Dict[int, Dict[str, Any]]</em><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../../_modules/crate_anon/anonymise/test_anonymisation.html#process_doc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.process_doc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write the original and anonymised documents to disk, plus some
 counts to a CSV file.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.anonymise.test_anonymisation.test_anon">
-<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">test_anon</code><span class="sig-paren">(</span><em>args: Any</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.test_anon" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.test_anonymisation.</code><code class="descname">test_anon</code><span class="sig-paren">(</span><em>args: Any</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/test_anonymisation.html#test_anon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.test_anonymisation.test_anon" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetch raw and anonymised documents and store them in files for
 comparison, along with some summary information.</p>
 </dd></dl>

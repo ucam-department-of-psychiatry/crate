@@ -1,0 +1,437 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.nlp_manager.parse_gate &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.nlp_manager.parse_gate</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/nlp_manager/parse_gate.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+
+<span class="sd">The pipe encoding (Python -&gt; Java stdin, Java stdout -&gt; Python) is fixed at</span>
+<span class="sd">UTF-8 here and in the Java code.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">shlex</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.dicts</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">rename_keys_in_dict</span><span class="p">,</span>
+    <span class="n">set_null_values_in_dict</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.lists</span> <span class="k">import</span> <span class="n">chunks</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.tsv</span> <span class="k">import</span> <span class="n">tsv_pairs_to_dict</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span> <span class="n">Text</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.base_nlp_parser</span> <span class="k">import</span> <span class="n">BaseNlpParser</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.constants</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">MAX_SQL_FIELD_LEN</span><span class="p">,</span>
+    <span class="n">SqlTypeDbIdentifier</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.nlp_definition</span> <span class="k">import</span> <span class="n">NlpDefinition</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.output_user_config</span> <span class="k">import</span> <span class="n">OutputUserConfig</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Process handling</span>
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Have Python host the client process, communicating with stdin/stdout?</span>
+<span class="c1">#   http://eyalarubas.com/python-subproc-nonblock.html</span>
+<span class="c1">#   http://stackoverflow.com/questions/2715847/python-read-streaming-input-from-subprocess-communicate  # noqa</span>
+<span class="c1"># Java process could be a network server.</span>
+<span class="c1">#   http://docs.oracle.com/javase/tutorial/networking/sockets/clientServer.html</span>
+<span class="c1">#   http://www.tutorialspoint.com/java/java_networking.htm</span>
+<span class="c1"># OK, first one works; that&#39;s easier.</span>
+
+<div class="viewcode-block" id="Gate"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_gate.html#crate_anon.nlp_manager.parse_gate.Gate">[docs]</a><span class="k">class</span> <span class="nc">Gate</span><span class="p">(</span><span class="n">BaseNlpParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class controlling an external process, typically our Java interface to</span>
+<span class="sd">    GATE programs, CrateGatePipeline.java (but it could be any external</span>
+<span class="sd">    program).</span>
+
+<span class="sd">    We send text to it, it parses the text, and it sends us back results, which</span>
+<span class="sd">    we return as dictionaries. The specific text sought depends on the</span>
+<span class="sd">    configuration file and the specific GATE program used.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    PROBLEM when attempting to use KConnect (Bio-YODIE): its source code is</span>
+<span class="s2">    full of direct calls to System.out.println().</span>
+
+<span class="s2">    POTENTIAL SOLUTIONS</span>
+<span class="s2">    - named pipes:</span>
+<span class="s2">        os.mkfifo() - Unix only.</span>
+<span class="s2">        win32pipe - http://stackoverflow.com/questions/286614</span>
+<span class="s2">    - ZeroMQ with some sort of security</span>
+<span class="s2">        - pip install zmq</span>
+<span class="s2">        - some sort of Java binding (jzmq, jeromq...)</span>
+<span class="s2">    - redirect stdout in our Java handler</span>
+<span class="s2">        System.setOut()</span>
+<span class="s2">        ... yes, that works.</span>
+<span class="s2">        Implemented and exposed as --suppress_gate_stdout.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;GATE&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">NlpDefinition</span><span class="p">,</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span> <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">nlpdef</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">cfgsection</span><span class="p">:</span>
+            <span class="c1"># Debugging only</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_external_prog_uses</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_input_terminator</span> <span class="o">=</span> <span class="s1">&#39;input_terminator&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_terminator</span> <span class="o">=</span> <span class="s1">&#39;output_terminator&#39;</span>
+            <span class="n">typepairs</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[str]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_progenvsection</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="n">progargs</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+            <span class="n">logtag</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_external_prog_uses</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">opt_int</span><span class="p">(</span>
+                <span class="n">cfgsection</span><span class="p">,</span> <span class="s1">&#39;max_external_prog_uses&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_input_terminator</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span>
+                <span class="n">cfgsection</span><span class="p">,</span> <span class="s1">&#39;input_terminator&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_terminator</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span>
+                <span class="n">cfgsection</span><span class="p">,</span> <span class="s1">&#39;output_terminator&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">typepairs</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">opt_strlist</span><span class="p">(</span><span class="n">cfgsection</span><span class="p">,</span> <span class="s1">&#39;outputtypemap&#39;</span><span class="p">,</span>
+                                           <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_progenvsection</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span><span class="n">cfgsection</span><span class="p">,</span> <span class="s1">&#39;progenvsection&#39;</span><span class="p">)</span>
+            <span class="n">progargs</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span><span class="n">cfgsection</span><span class="p">,</span> <span class="s1">&#39;progargs&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">logtag</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">get_logtag</span><span class="p">()</span> <span class="ow">or</span> <span class="s1">&#39;.&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_outputtypemap</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[str, OutputUserConfig]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_tablename</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[str, str]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">(</span><span class="n">typepairs</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="n">annottype</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">outputsection</span> <span class="o">=</span> <span class="n">c</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="c1"># 2018-03-27: not clear why we need to force the user to specify</span>
+            <span class="c1"># in lower case! We just said it&#39;s case-insensitive. So ditch this:</span>
+            <span class="c1">#</span>
+            <span class="c1"># if annottype != annottype.lower():</span>
+            <span class="c1">#     raise Exception(</span>
+            <span class="c1">#         &quot;Section {}: annotation types in outputtypemap must be in &quot;  # noqa</span>
+            <span class="c1">#         &quot;lower case: change {}&quot;.format(cfgsection, annottype))</span>
+            <span class="c1">#</span>
+            <span class="c1"># and add this:</span>
+            <span class="n">annottype</span> <span class="o">=</span> <span class="n">annottype</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="c1"># log.critical(outputsection)</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">OutputUserConfig</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">.</span><span class="n">get_parser</span><span class="p">(),</span> <span class="n">outputsection</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_outputtypemap</span><span class="p">[</span><span class="n">annottype</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_tablename</span><span class="p">[</span><span class="n">annottype</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">get_tablename</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progenvsection</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_env</span> <span class="o">=</span> <span class="n">nlpdef</span><span class="o">.</span><span class="n">get_env_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_progenvsection</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="p">[</span><span class="s2">&quot;NLPLOGTAG&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">logtag</span>
+        <span class="c1"># ... We have ensured that this is not empty for real use, because</span>
+        <span class="c1"># passing a &quot;-lt&quot; switch with no parameter will make</span>
+        <span class="c1"># CrateGatePipeline.java complain and stop. The environment variable</span>
+        <span class="c1"># is read via the &quot;progargs&quot; config argument, as follows.</span>
+
+        <span class="n">formatted_progargs</span> <span class="o">=</span> <span class="n">progargs</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_env</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_progargs</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">formatted_progargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_uses</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pipe_encoding</span> <span class="o">=</span> <span class="s1">&#39;utf8&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_p</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># the subprocess</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Sanity checks</span>
+        <span class="k">for</span> <span class="n">ty</span><span class="p">,</span> <span class="n">tn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_tablename</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tn</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">MAX_SQL_FIELD_LEN</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Table name too long (max </span><span class="si">{}</span><span class="s2"> characters)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">MAX_SQL_FIELD_LEN</span><span class="p">))</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">print_info</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;NLP class to talk to GATE apps (https://www.gate.ac.uk/).&quot;</span><span class="p">,</span>
+              <span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># External process control</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">_start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Launch the external process.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progargs</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;launching command: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_p</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="n">args</span><span class="p">,</span>
+                                   <span class="n">stdin</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                   <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span>
+                                   <span class="c1"># stderr=subprocess.PIPE,</span>
+                                   <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                   <span class="n">bufsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># ... don&#39;t ask for stderr to be piped if you don&#39;t want it; firstly,</span>
+        <span class="c1"># there&#39;s a risk that if you don&#39;t consume it, something hangs, and</span>
+        <span class="c1"># secondly if you don&#39;t consume it, you see it on the console, which is</span>
+        <span class="c1"># helpful.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">def</span> <span class="nf">_encode_to_subproc_stdin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Send text to the external program (via its stdin), encoding it in</span>
+<span class="sd">        the process (typically to UTF-8).&quot;&quot;&quot;</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;SENDING: &quot;</span> <span class="o">+</span> <span class="n">text</span><span class="p">)</span>
+        <span class="n">bytes_</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipe_encoding</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_p</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bytes_</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_flush_subproc_stdin</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Flushes what we&#39;re sending to the external program via its stdin.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_p</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_decode_from_subproc_stdout</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Translate what we&#39;ve received from the external program&#39;s stdout,</span>
+<span class="sd">        from its specific encoding (usually UTF-8) to a Python string.&quot;&quot;&quot;</span>
+        <span class="n">bytes_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_p</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">bytes_</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pipe_encoding</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;RECEIVING: &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">text</span>
+
+    <span class="k">def</span> <span class="nf">_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Close down the external process.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_started</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_p</span><span class="o">.</span><span class="n">communicate</span><span class="p">()</span>  <span class="c1"># close p.stdout, wait for the subprocess to exit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_started</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Input processing</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Gate.parse"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_gate.html#crate_anon.nlp_manager.parse_gate.Gate.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+                                            <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        - Send text to the external process, and receive the result.</span>
+<span class="sd">        - Note that associated data is not passed into this function, and is</span>
+<span class="sd">          kept in the Python environment, so we can&#39;t run into any problems</span>
+<span class="sd">          with the transfer to/from the Java program garbling important data.</span>
+<span class="sd">          All we send to the subprocess is the text (and an input_terminator).</span>
+<span class="sd">          Then, we may receive MULTIPLE sets of data back (&quot;your text contains</span>
+<span class="sd">          the following 7 people/drug references/whatever&quot;), followed</span>
+<span class="sd">          eventually by the output_terminator, at which point this set is</span>
+<span class="sd">          complete.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="p">()</span>  <span class="c1"># ensure started</span>
+        <span class="c1"># Send</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;writing: &quot;</span> <span class="o">+</span> <span class="n">text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_encode_to_subproc_stdin</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_encode_to_subproc_stdin</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_encode_to_subproc_stdin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_terminator</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_flush_subproc_stdin</span><span class="p">()</span>  <span class="c1"># required in the Python 3 system</span>
+
+        <span class="c1"># Receive</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decode_from_subproc_stdout</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_output_terminator</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">linesep</span><span class="p">):</span>
+            <span class="c1"># ... iterate until the sentinel output_terminator is received</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>  <span class="c1"># remove trailing newline</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;stdout received: &quot;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">tsv_pairs_to_dict</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;dictionary received: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="p">))</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">annottype</span> <span class="o">=</span> <span class="n">d</span><span class="p">[</span><span class="s1">&#39;_type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;_type information not in data received&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">annottype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_tablename</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Unknown annotation type, skipping: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">annottype</span><span class="p">))</span>
+                <span class="k">continue</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outputtypemap</span><span class="p">[</span><span class="n">annottype</span><span class="p">]</span>
+            <span class="n">rename_keys_in_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">renames</span><span class="p">())</span>
+            <span class="n">set_null_values_in_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">null_literals</span><span class="p">())</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">_type_to_tablename</span><span class="p">[</span><span class="n">annottype</span><span class="p">],</span> <span class="n">d</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_n_uses</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="c1"># Restart subprocess?</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_external_prog_uses</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_n_uses</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;relaunching app after </span><span class="si">{}</span><span class="s2"> uses&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_n_uses</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_finish</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_n_uses</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Test</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Gate.test"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_gate.html#crate_anon.nlp_manager.parse_gate.Gate.test">[docs]</a>    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Test the send function.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_parser</span><span class="p">([</span>
+            <span class="s2">&quot;Bob Hope visited Seattle.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;James Joyce wrote Ulysses.&quot;</span>
+        <span class="p">])</span></div>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Database structure</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_standard_columns</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Column</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;_set&#39;</span><span class="p">,</span> <span class="n">SqlTypeDbIdentifier</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;GATE output set name&quot;</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;_type&#39;</span><span class="p">,</span> <span class="n">SqlTypeDbIdentifier</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;GATE annotation type name&quot;</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;_id&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;GATE annotation ID (not clear this is very useful)&quot;</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;_start&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Start position in the content&quot;</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;_end&#39;</span><span class="p">,</span> <span class="n">Integer</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;End position in the content&quot;</span><span class="p">),</span>
+            <span class="n">Column</span><span class="p">(</span><span class="s1">&#39;_content&#39;</span><span class="p">,</span> <span class="n">Text</span><span class="p">,</span>
+                   <span class="n">doc</span><span class="o">=</span><span class="s2">&quot;Full content marked as relevant.&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_standard_indexes</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Index</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">Index</span><span class="p">(</span><span class="s1">&#39;_idx__set&#39;</span><span class="p">,</span> <span class="s1">&#39;_set&#39;</span><span class="p">,</span> <span class="n">mysql_length</span><span class="o">=</span><span class="n">MAX_SQL_FIELD_LEN</span><span class="p">),</span>
+        <span class="p">]</span>
+
+<div class="viewcode-block" id="Gate.dest_tables_columns"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_gate.html#crate_anon.nlp_manager.parse_gate.Gate.dest_tables_columns">[docs]</a>    <span class="k">def</span> <span class="nf">dest_tables_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Column</span><span class="p">]]:</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[str, List[Column]]</span>
+        <span class="k">for</span> <span class="n">anottype</span><span class="p">,</span> <span class="n">otconfig</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outputtypemap</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">tables</span><span class="p">[</span><span class="n">otconfig</span><span class="o">.</span><span class="n">get_tablename</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_standard_columns</span><span class="p">()</span> <span class="o">+</span>
+                <span class="n">otconfig</span><span class="o">.</span><span class="n">get_columns</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_engine</span><span class="p">())</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">tables</span></div>
+
+    <span class="k">def</span> <span class="nf">dest_tables_indexes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Index</span><span class="p">]]:</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[str, List[Index]]</span>
+        <span class="k">for</span> <span class="n">anottype</span><span class="p">,</span> <span class="n">otconfig</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_outputtypemap</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">tables</span><span class="p">[</span><span class="n">otconfig</span><span class="o">.</span><span class="n">get_tablename</span><span class="p">()]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_standard_indexes</span><span class="p">()</span> <span class="o">+</span>
+                <span class="n">otconfig</span><span class="o">.</span><span class="n">get_indexes</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">tables</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

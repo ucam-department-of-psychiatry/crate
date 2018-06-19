@@ -1,0 +1,1065 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.preprocess.rio_view_func &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.preprocess.rio_view_func</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/preprocess/rio_view_func.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.common.sql</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">sql_string_literal</span><span class="p">,</span>
+    <span class="n">ViewMaker</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.preprocess.rio_constants</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">CRATE_COL_LAST_DOC</span><span class="p">,</span>
+    <span class="n">CRATE_COL_LAST_NOTE</span><span class="p">,</span>
+    <span class="n">CRATE_COL_PK</span><span class="p">,</span>
+    <span class="n">CRATE_COL_RIO_NUMBER</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># RiO view creators: generic</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="lookup_from_fragment"><a class="viewcode-back" href="../../../autodoc/preprocess/rio_view_func.html#crate_anon.preprocess.rio_view_func.lookup_from_fragment">[docs]</a><span class="k">def</span> <span class="nf">lookup_from_fragment</span><span class="p">(</span><span class="n">lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                         <span class="n">aliased_lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                         <span class="n">lookup_pk</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                         <span class="n">basetable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                         <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For when lookup_pk is really a PK.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s2">&quot;LEFT JOIN </span><span class="si">{lookup_table}</span><span class="s2"> </span><span class="si">{aliased_lookup_table}</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;            ON </span><span class="si">{aliased_lookup_table}</span><span class="s2">.</span><span class="si">{lookup_pk}</span><span class="s2"> = &quot;</span>
+        <span class="s2">&quot;</span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">lookup_table</span><span class="o">=</span><span class="n">lookup_table</span><span class="p">,</span>
+            <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+            <span class="n">lookup_pk</span><span class="o">=</span><span class="n">lookup_pk</span><span class="p">,</span>
+            <span class="n">basetable</span><span class="o">=</span><span class="n">basetable</span><span class="p">,</span>
+            <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="lookup_from_fragment_first_row"><a class="viewcode-back" href="../../../autodoc/preprocess/rio_view_func.html#crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row">[docs]</a><span class="k">def</span> <span class="nf">lookup_from_fragment_first_row</span><span class="p">(</span><span class="n">lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                   <span class="n">aliased_lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                   <span class="n">lookup_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                   <span class="n">lookup_unique_field</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                   <span class="n">basetable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                   <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Modified 2017-01-23, because sometimes the lookup column is not unique,</span>
+<span class="sd">    e.g. lookup from &quot;Code&quot; to &quot;CodeDescription&quot; in NNNStatus (see also</span>
+<span class="sd">    rio_views.py). The LEFT JOIN was giving us duplicate rows. We want only</span>
+<span class="sd">    the first match. See</span>
+<span class="sd">    https://www.periscopedata.com/blog/4-ways-to-join-only-the-first-row-in-sql.html</span>
+
+<span class="sd">    We were doing the FROM component as:</span>
+
+<span class="sd">        LEFT JOIN {lookup_table} {aliased_lookup_table}</span>
+<span class="sd">            ON {aliased_lookup_table}.{lookup_pk} = {basetable}.{basecolumn}</span>
+
+<span class="sd">    and we&#39;ll replace that with</span>
+
+<span class="sd">        LEFT JOIN {lookup_table} {aliased_lookup_table}</span>
+<span class="sd">            ON {aliased_lookup_table}.{lookup_pk} = (</span>
+<span class="sd">                SELECT {lookup_pk} FROM {lookup_table}</span>
+<span class="sd">                WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}</span>
+<span class="sd">                ORDER BY {lookup_table}.{lookup_pk}</span>
+<span class="sd">                LIMIT 1</span>
+<span class="sd">            )</span>
+
+<span class="sd">    ... compare to the example of</span>
+
+<span class="sd">        SELECT * FROM users</span>
+<span class="sd">        JOIN widgets ON widgets.id = (</span>
+<span class="sd">            SELECT id FROM widgets</span>
+<span class="sd">            WHERE widgets.user_id = users.id</span>
+<span class="sd">            ORDER BY created_at DESC</span>
+<span class="sd">            LIMIT 1</span>
+<span class="sd">        )</span>
+
+<span class="sd">    Note that SQL Server uses &quot;SELECT TOP 1 ...&quot; not &quot;SELECT ... LIMIT 1&quot;.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s2">&quot;LEFT JOIN </span><span class="si">{lookup_table}</span><span class="s2"> </span><span class="si">{aliased_lookup_table}</span><span class="s2"> &quot;</span>
+        <span class="s2">&quot;ON </span><span class="si">{aliased_lookup_table}</span><span class="s2">.</span><span class="si">{lookup_unique_field}</span><span class="s2"> = (&quot;</span>
+        <span class="s2">&quot; SELECT TOP 1 </span><span class="si">{lookup_unique_field}</span><span class="s2"> FROM </span><span class="si">{lookup_table}</span><span class="s2">&quot;</span>
+        <span class="s2">&quot; WHERE </span><span class="si">{lookup_table}</span><span class="s2">.</span><span class="si">{lookup_key}</span><span class="s2"> = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2">&quot;</span>
+        <span class="s2">&quot; ORDER BY </span><span class="si">{lookup_table}</span><span class="s2">.</span><span class="si">{lookup_unique_field}</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">lookup_table</span><span class="o">=</span><span class="n">lookup_table</span><span class="p">,</span>
+            <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+            <span class="n">lookup_unique_field</span><span class="o">=</span><span class="n">lookup_unique_field</span><span class="p">,</span>
+            <span class="n">lookup_key</span><span class="o">=</span><span class="n">lookup_key</span><span class="p">,</span>
+            <span class="n">basetable</span><span class="o">=</span><span class="n">basetable</span><span class="p">,</span>
+            <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="lookup_from_fragment_first_row_outer_apply"><a class="viewcode-back" href="../../../autodoc/preprocess/rio_view_func.html#crate_anon.preprocess.rio_view_func.lookup_from_fragment_first_row_outer_apply">[docs]</a><span class="k">def</span> <span class="nf">lookup_from_fragment_first_row_outer_apply</span><span class="p">(</span><span class="n">lookup_fields</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                                               <span class="n">lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                               <span class="n">aliased_lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                               <span class="n">lookup_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                               <span class="n">basetable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                               <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    As for lookup_from_fragment_first_row, but works without a unique</span>
+<span class="sd">    field in the lookup table.</span>
+
+<span class="sd">    http://stackoverflow.com/questions/2043259/sql-server-how-to-join-to-first-row  # noqa</span>
+<span class="sd">    http://stackoverflow.com/questions/9275132/real-life-example-when-to-use-outer-cross-apply-in-sql  # noqa</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="s2">&quot;OUTER APPLY (&quot;</span>
+        <span class="s2">&quot; SELECT TOP 1 </span><span class="si">{lookup_fields}</span><span class="s2">&quot;</span>
+        <span class="s2">&quot; FROM </span><span class="si">{lookup_table}</span><span class="s2">&quot;</span>
+        <span class="s2">&quot; WHERE </span><span class="si">{lookup_table}</span><span class="s2">.</span><span class="si">{lookup_key}</span><span class="s2"> = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;) </span><span class="si">{aliased_lookup_table}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">lookup_fields</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lookup_fields</span><span class="p">),</span>
+            <span class="n">lookup_table</span><span class="o">=</span><span class="n">lookup_table</span><span class="p">,</span>
+            <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+            <span class="n">lookup_key</span><span class="o">=</span><span class="n">lookup_key</span><span class="p">,</span>
+            <span class="n">basetable</span><span class="o">=</span><span class="n">basetable</span><span class="p">,</span>
+            <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">)</span>
+    <span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">simple_lookup_join</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                       <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">lookup_pk</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">lookup_fields_aliases</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+                       <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">lookup_table</span><span class="p">,</span> <span class="s2">&quot;Missing lookup_table&quot;</span>
+    <span class="k">assert</span> <span class="n">lookup_pk</span><span class="p">,</span> <span class="s2">&quot;Missing lookup_pk&quot;</span>
+    <span class="k">assert</span> <span class="n">lookup_fields_aliases</span><span class="p">,</span> <span class="s2">&quot;lookup_fields_aliases column_prefix&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">aliased_lookup_table</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">lookup_table</span>
+    <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">alias</span> <span class="ow">in</span> <span class="n">lookup_fields_aliases</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="si">{aliased_lookup_table}</span><span class="s2">.</span><span class="si">{column}</span><span class="s2"> AS </span><span class="si">{alias}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+                <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span>
+                <span class="n">alias</span><span class="o">=</span><span class="n">alias</span><span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="n">lookup_from_fragment_first_row_outer_apply</span><span class="p">(</span>
+        <span class="n">lookup_fields</span><span class="o">=</span><span class="n">lookup_fields_aliases</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span>
+        <span class="n">lookup_table</span><span class="o">=</span><span class="n">lookup_table</span><span class="p">,</span>
+        <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+        <span class="n">lookup_key</span><span class="o">=</span><span class="n">lookup_pk</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">lookup_table</span><span class="p">,</span> <span class="n">lookup_pk</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">standard_rio_code_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                             <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">lookup_table</span><span class="p">,</span> <span class="s2">&quot;Missing lookup_table&quot;</span>
+    <span class="k">assert</span> <span class="n">column_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing column_prefix&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">aliased_lookup_table</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">lookup_table</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Code,</span>
+<span class="s2">        </span><span class="si">{aliased_lookup_table}</span><span class="s2">.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Description</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>  <span class="c1"># noqa</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">lookup_pk</span> <span class="o">=</span> <span class="s1">&#39;Code&#39;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="n">lookup_from_fragment_first_row_outer_apply</span><span class="p">(</span>
+        <span class="n">lookup_fields</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;CodeDescription&#39;</span><span class="p">],</span>
+        <span class="n">lookup_table</span><span class="o">=</span><span class="n">lookup_table</span><span class="p">,</span>
+        <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+        <span class="n">lookup_key</span><span class="o">=</span><span class="n">lookup_pk</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">lookup_table</span><span class="p">,</span> <span class="n">lookup_pk</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">standard_rio_code_lookup_with_national_code</span><span class="p">(</span>
+        <span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">lookup_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">lookup_table</span><span class="p">,</span> <span class="s2">&quot;Missing lookup_table&quot;</span>
+    <span class="k">assert</span> <span class="n">column_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing column_prefix&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">aliased_lookup_table</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">lookup_table</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Code,</span>
+<span class="s2">        </span><span class="si">{aliased_lookup_table}</span><span class="s2">.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Description,</span>
+<span class="s2">        </span><span class="si">{aliased_lookup_table}</span><span class="s2">.NationalCode AS </span><span class="si">{cp}</span><span class="s2">_National_Code</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>  <span class="c1"># noqa</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">lookup_pk</span> <span class="o">=</span> <span class="s1">&#39;Code&#39;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="n">lookup_from_fragment_first_row_outer_apply</span><span class="p">(</span>
+        <span class="n">lookup_fields</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;CodeDescription&#39;</span><span class="p">,</span> <span class="s1">&#39;NationalCode&#39;</span><span class="p">],</span>
+        <span class="n">lookup_table</span><span class="o">=</span><span class="n">lookup_table</span><span class="p">,</span>
+        <span class="n">aliased_lookup_table</span><span class="o">=</span><span class="n">aliased_lookup_table</span><span class="p">,</span>
+        <span class="n">lookup_key</span><span class="o">=</span><span class="n">lookup_pk</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">lookup_table</span><span class="p">,</span> <span class="n">lookup_pk</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">view_formatting_dict</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;basetable&#39;</span><span class="p">:</span> <span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">simple_view_expr</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                     <span class="n">expr</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                     <span class="n">alias</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">expr</span><span class="p">,</span> <span class="s2">&quot;Missing expr&quot;</span>
+    <span class="k">assert</span> <span class="n">alias</span><span class="p">,</span> <span class="s2">&quot;Missing alias&quot;</span>
+    <span class="n">vd</span> <span class="o">=</span> <span class="n">view_formatting_dict</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">)</span>
+    <span class="n">formatted_expr</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">**</span><span class="n">vd</span><span class="p">)</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="n">formatted_expr</span> <span class="o">+</span> <span class="s2">&quot; AS </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">alias</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">simple_view_where</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                      <span class="n">where_clause</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                      <span class="n">index_cols</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">where_clause</span><span class="p">,</span> <span class="s2">&quot;Missing where_clause&quot;</span>
+    <span class="n">index_cols</span> <span class="o">=</span> <span class="n">index_cols</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_where</span><span class="p">(</span><span class="n">where_clause</span><span class="p">)</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">index_cols</span><span class="p">:</span>
+        <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">add_index_only</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                   <span class="n">table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                   <span class="n">column_or_columns</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">table</span><span class="p">,</span> <span class="n">column_or_columns</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># RiO view creators: specific</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">rio_add_user_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                        <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                        <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># NOT VERIFIED IN FULL - insufficient data with just top 1000 rows for</span>
+    <span class="c1"># each table (2016-07-12).</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="n">column_prefix</span> <span class="o">=</span> <span class="n">column_prefix</span> <span class="ow">or</span> <span class="n">basecolumn</span>
+    <span class="n">internal_alias_prefix</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="ow">or</span> <span class="s2">&quot;t_&quot;</span> <span class="o">+</span> <span class="n">column_prefix</span>
+    <span class="c1"># ... table alias</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Code,</span>
+
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genhcp.ConsultantFlag AS </span><span class="si">{cp}</span><span class="s2">_Consultant_Flag,</span>
+
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genperson.Email AS </span><span class="si">{cp}</span><span class="s2">_Email,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genperson.Title AS </span><span class="si">{cp}</span><span class="s2">_Title,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genperson.FirstName AS </span><span class="si">{cp}</span><span class="s2">_First_Name,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genperson.Surname AS </span><span class="si">{cp}</span><span class="s2">_Surname,</span>
+
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prof.Code AS </span><span class="si">{cp}</span><span class="s2">_Resp_Clinician_Profession_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prof.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Resp_Clinician_Profession_Description,</span>
+
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_serviceteam.Code AS </span><span class="si">{cp}</span><span class="s2">_Primary_Team_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_serviceteam.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Primary_Team_Description,</span>
+
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genspec.Code AS </span><span class="si">{cp}</span><span class="s2">_Main_Specialty_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genspec.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Main_Specialty_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genspec.NationalCode AS </span><span class="si">{cp}</span><span class="s2">_Main_Specialty_National_Code,</span>
+
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_profgroup.Code AS </span><span class="si">{cp}</span><span class="s2">_Professional_Group_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_profgroup.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Professional_Group_Description,</span>
+
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genorg.Code AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Type_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_genorg.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Type_Description</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>  <span class="c1"># noqa</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="c1"># - RECP had &quot;speciality&quot; / &quot;specialty&quot; inconsistency.</span>
+    <span class="c1"># - {cp}_location... ?? Presumably from GenLocation, but via what? Seems</span>
+    <span class="c1">#   meaningless. In our snapshut, all are NULL anyway.</span>
+    <span class="c1"># - User codes are keyed to GenUser.GenUserID, but also to several other</span>
+    <span class="c1">#   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID</span>
+    <span class="c1"># - We use unique table aliases here, so that overall we can make &gt;1 sets</span>
+    <span class="c1">#   of different &quot;user&quot; joins simultaneously.</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            GenUser </span><span class="si">{ap}</span><span class="s2">_genuser</span>
+<span class="s2">            LEFT JOIN GenPerson </span><span class="si">{ap}</span><span class="s2">_genperson</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_genperson.GenPersonID = </span><span class="si">{ap}</span><span class="s2">_genuser.GenUserID</span>
+<span class="s2">            LEFT JOIN GenHCP </span><span class="si">{ap}</span><span class="s2">_genhcp</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_genhcp.GenHCPCode = </span><span class="si">{ap}</span><span class="s2">_genuser.GenUserID</span>
+<span class="s2">            LEFT JOIN GenHCPRCProfession </span><span class="si">{ap}</span><span class="s2">_prof</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_prof.Code = </span><span class="si">{ap}</span><span class="s2">_genhcp.RCProfession</span>
+<span class="s2">            LEFT JOIN GenServiceTeam </span><span class="si">{ap}</span><span class="s2">_serviceteam</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_serviceteam.Code = </span><span class="si">{ap}</span><span class="s2">_genhcp.PrimaryTeam</span>
+<span class="s2">            LEFT JOIN GenSpecialty </span><span class="si">{ap}</span><span class="s2">_genspec</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_genspec.Code = </span><span class="si">{ap}</span><span class="s2">_genhcp.MainGenSpecialtyCode</span>
+<span class="s2">            LEFT JOIN GenStaffProfessionalGroup </span><span class="si">{ap}</span><span class="s2">_profgroup</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_profgroup.Code = </span><span class="si">{ap}</span><span class="s2">_genhcp.StaffProfessionalGroup</span>
+<span class="s2">            LEFT JOIN GenOrganisationType </span><span class="si">{ap}</span><span class="s2">_genorg</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_genorg.Code = </span><span class="si">{ap}</span><span class="s2">_genuser.OrganisationType</span>
+<span class="s2">        ) ON </span><span class="si">{ap}</span><span class="s2">_genuser.GenUserID = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="c1"># OTHER THINGS:</span>
+    <span class="c1"># - GenHCP.Occupation is listed in the RiO docs but doesn&#39;t actually seem</span>
+    <span class="c1">#   to exist. (Perhaps explaining why it&#39;s not linked in the RCEP output.)</span>
+    <span class="c1">#   I had tried to link it to CareCoordinatorOccupation.Code.</span>
+    <span class="c1">#   If you use:</span>
+    <span class="c1">#       SELECT *</span>
+    <span class="c1">#       FROM information_schema.columns</span>
+    <span class="c1">#       WHERE column_name LIKE &#39;%Occup%&#39;</span>
+    <span class="c1">#   you only get Client_Demographic_Details.Occupation and</span>
+    <span class="c1">#   Client_Demographic_Details.Partner_Occupation</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfields</span><span class="p">([</span>
+        <span class="p">(</span><span class="s1">&#39;GenHCP&#39;</span><span class="p">,</span> <span class="s1">&#39;GenHCPCode&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenUser&#39;</span><span class="p">,</span> <span class="s1">&#39;GenUserID&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenPerson&#39;</span><span class="p">,</span> <span class="s1">&#39;GenPersonID&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenHCPRCProfession&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenServiceTeam&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenSpecialty&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenStaffProfessionalGroup&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenOrganisationType&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_consultant_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                              <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                              <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                              <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="n">column_prefix</span> <span class="o">=</span> <span class="n">column_prefix</span> <span class="ow">or</span> <span class="n">basecolumn</span>
+    <span class="n">internal_alias_prefix</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="ow">or</span> <span class="s2">&quot;t_&quot;</span> <span class="o">+</span> <span class="n">column_prefix</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_ID,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_cons.Firstname AS </span><span class="si">{cp}</span><span class="s2">_First_Name,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_cons.Surname AS </span><span class="si">{cp}</span><span class="s2">_Surname,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_cons.SpecialtyID AS </span><span class="si">{cp}</span><span class="s2">_Specialty_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_spec.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Specialty_Description</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            GenHospitalConsultant </span><span class="si">{ap}</span><span class="s2">_cons</span>
+<span class="s2">            LEFT JOIN GenSpecialty </span><span class="si">{ap}</span><span class="s2">_spec</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_spec.Code = </span><span class="si">{ap}</span><span class="s2">_cons.SpecialtyID</span>
+<span class="s2">        ) ON </span><span class="si">{ap}</span><span class="s2">_cons.ConsultantID = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfields</span><span class="p">([</span>
+        <span class="p">(</span><span class="s1">&#39;GenHospitalConsultant&#39;</span><span class="p">,</span> <span class="s1">&#39;ConsultantID&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenSpecialty&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_team_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                        <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                        <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="n">column_prefix</span> <span class="o">=</span> <span class="n">column_prefix</span> <span class="ow">or</span> <span class="n">basecolumn</span>
+    <span class="n">internal_alias_prefix</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="ow">or</span> <span class="s2">&quot;t_&quot;</span> <span class="o">+</span> <span class="n">column_prefix</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_team.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_classif.Code AS </span><span class="si">{cp}</span><span class="s2">_Classification_Group_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_classif.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Classification_Group_Description</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            GenServiceTeam </span><span class="si">{ap}</span><span class="s2">_team</span>
+<span class="s2">            INNER JOIN GenServiceTeamClassification </span><span class="si">{ap}</span><span class="s2">_classif</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_classif.Code = </span><span class="si">{ap}</span><span class="s2">_team.ClassificationGroup</span>
+<span class="s2">        ) ON </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> = </span><span class="si">{ap}</span><span class="s2">_team.Code</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfields</span><span class="p">([</span>
+        <span class="p">(</span><span class="s1">&#39;GenServiceTeam&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenServiceTeamClassification&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_carespell_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                             <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                             <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="n">column_prefix</span> <span class="o">=</span> <span class="n">column_prefix</span> <span class="ow">or</span> <span class="n">basecolumn</span>
+    <span class="n">internal_alias_prefix</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="ow">or</span> <span class="s2">&quot;t_&quot;</span> <span class="o">+</span> <span class="n">column_prefix</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_spell.StartDate AS </span><span class="si">{cp}</span><span class="s2">_Start_Date,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_spell.EndDate AS </span><span class="si">{cp}</span><span class="s2">_End_Date,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_spell.MentalHealth AS </span><span class="si">{cp}</span><span class="s2">_Mental_Health,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_spell.GenSpecialtyCode AS </span><span class="si">{cp}</span><span class="s2">_Specialty_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_spec.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Specialty_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_spec.NationalCode AS </span><span class="si">{cp}</span><span class="s2">_Specialty_National_Code</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            ClientCareSpell </span><span class="si">{ap}</span><span class="s2">_spell</span>
+<span class="s2">            INNER JOIN GenSpecialty </span><span class="si">{ap}</span><span class="s2">_spec</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_spec.Code = </span><span class="si">{ap}</span><span class="s2">_spell.GenSpecialtyCode</span>
+<span class="s2">        ) ON </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> = </span><span class="si">{ap}</span><span class="s2">_spell.CareSpellNum</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfields</span><span class="p">([</span>
+        <span class="p">(</span><span class="s1">&#39;ClientCareSpell&#39;</span><span class="p">,</span> <span class="s1">&#39;CareSpellNum&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenSpecialty&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_diagnosis_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                             <span class="n">basecolumn_scheme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">basecolumn_code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">alias_scheme</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">alias_code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">alias_description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Can&#39;t use simple_lookup_join as we have to join on two fields,</span>
+    <span class="c1"># diagnostic scheme and diagnostic code.</span>
+    <span class="k">assert</span> <span class="n">basecolumn_scheme</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn_scheme&quot;</span>
+    <span class="k">assert</span> <span class="n">basecolumn_code</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn_code&quot;</span>
+    <span class="k">assert</span> <span class="n">alias_scheme</span><span class="p">,</span> <span class="s2">&quot;Missing alias_scheme&quot;</span>
+    <span class="k">assert</span> <span class="n">alias_code</span><span class="p">,</span> <span class="s2">&quot;Missing alias_code&quot;</span>
+    <span class="k">assert</span> <span class="n">alias_description</span><span class="p">,</span> <span class="s2">&quot;Missing alias_description&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">internal_alias_prefix</span> <span class="o">=</span> <span class="n">internal_alias_prefix</span> <span class="ow">or</span> <span class="s2">&quot;t&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_scheme}</span><span class="s2"> AS </span><span class="si">{alias_scheme}</span><span class="s2">,</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_code}</span><span class="s2"> AS </span><span class="si">{alias_code}</span><span class="s2">,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_diag.CodeDescription AS </span><span class="si">{alias_description}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn_scheme</span><span class="o">=</span><span class="n">basecolumn_scheme</span><span class="p">,</span>
+        <span class="n">alias_scheme</span><span class="o">=</span><span class="n">alias_scheme</span><span class="p">,</span>
+        <span class="n">basecolumn_code</span><span class="o">=</span><span class="n">basecolumn_code</span><span class="p">,</span>
+        <span class="n">alias_code</span><span class="o">=</span><span class="n">alias_code</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">alias_description</span><span class="o">=</span><span class="n">alias_description</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="c1"># - RECP had &quot;speciality&quot; / &quot;specialty&quot; inconsistency.</span>
+    <span class="c1"># - {cp}_location... ?? Presumably from GenLocation, but via what? Seems</span>
+    <span class="c1">#   meaningless. In our snapshut, all are NULL anyway.</span>
+    <span class="c1"># - User codes are keyed to GenUser.GenUserID, but also to several other</span>
+    <span class="c1">#   tables, e.g. GenHCP.GenHCPCode; GenPerson.GenPersonID</span>
+    <span class="c1"># - We use unique table aliases here, so that overall we can make &gt;1 sets</span>
+    <span class="c1">#   of different &quot;user&quot; joins simultaneously.</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN DiagnosisCode </span><span class="si">{ap}</span><span class="s2">_diag</span>
+<span class="s2">            ON </span><span class="si">{ap}</span><span class="s2">_diag.CodingScheme = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_scheme}</span><span class="s2"></span>
+<span class="s2">            AND </span><span class="si">{ap}</span><span class="s2">_diag.Code = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_code}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn_scheme</span><span class="o">=</span><span class="n">basecolumn_scheme</span><span class="p">,</span>
+        <span class="n">basecolumn_code</span><span class="o">=</span><span class="n">basecolumn_code</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;DiagnosisCode&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;CodingScheme&#39;</span><span class="p">,</span>
+                                                             <span class="s1">&#39;Code&#39;</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_ims_event_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                             <span class="n">basecolumn_event_num</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                             <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># There is a twin key: ClientID and EventNumber</span>
+    <span class="c1"># However, we have made crate_rio_number, so we&#39;ll use that instead.</span>
+    <span class="c1"># Key to the TABLE, not the VIEW.</span>
+    <span class="k">assert</span> <span class="n">basecolumn_event_num</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn_event_num&quot;</span>
+    <span class="k">assert</span> <span class="n">column_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing column_prefix&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_event_num}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Event_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_evt.</span><span class="si">{CRATE_COL_PK}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Inpatient_Stay_PK</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn_event_num</span><span class="o">=</span><span class="n">basecolumn_event_num</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">CRATE_COL_PK</span><span class="o">=</span><span class="n">CRATE_COL_PK</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN ImsEvent </span><span class="si">{ap}</span><span class="s2">_evt</span>
+<span class="s2">            ON </span><span class="si">{ap}</span><span class="s2">_evt.</span><span class="si">{CRATE_COL_RIO_NUMBER}</span><span class="s2"> = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{CRATE_COL_RIO_NUMBER}</span><span class="s2"></span>
+<span class="s2">            AND </span><span class="si">{ap}</span><span class="s2">_evt.EventNumber = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_event_num}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>  <span class="c1"># noqa</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">CRATE_COL_RIO_NUMBER</span><span class="o">=</span><span class="n">CRATE_COL_RIO_NUMBER</span><span class="p">,</span>
+        <span class="n">basecolumn_event_num</span><span class="o">=</span><span class="n">basecolumn_event_num</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;ImsEvent&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">CRATE_COL_RIO_NUMBER</span><span class="p">,</span>
+                                                        <span class="s1">&#39;EventNumber&#39;</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_gp_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                      <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                      <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                      <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">column_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing column_prefix&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.NationalCode AS </span><span class="si">{cp}</span><span class="s2">_National_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.Title AS </span><span class="si">{cp}</span><span class="s2">_Title,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.Forename AS </span><span class="si">{cp}</span><span class="s2">_Forename,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.Surname AS </span><span class="si">{cp}</span><span class="s2">_Surname</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN GenGP </span><span class="si">{ap}</span><span class="s2">_gp</span>
+<span class="s2">            ON </span><span class="si">{ap}</span><span class="s2">_gp.Code = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;GenGP&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_gp_practice_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                               <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                               <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                               <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">column_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing column_prefix&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine1 AS </span><span class="si">{cp}</span><span class="s2">_Address_Line_1,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine2 AS </span><span class="si">{cp}</span><span class="s2">_Address_Line_2,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine3 AS </span><span class="si">{cp}</span><span class="s2">_Address_Line_3,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine4 AS </span><span class="si">{cp}</span><span class="s2">_Address_Line_4,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine5 AS </span><span class="si">{cp}</span><span class="s2">_Address_Line_5,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.PostCode AS </span><span class="si">{cp}</span><span class="s2">_Post_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.NationalCode AS </span><span class="si">{cp}</span><span class="s2">_National_Code</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN GenGPPractice </span><span class="si">{ap}</span><span class="s2">_prac</span>
+<span class="s2">            ON </span><span class="si">{ap}</span><span class="s2">_prac.Code = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;GenGPPractice&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_gp_lookup_with_practice</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                                    <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                    <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                    <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="k">if</span> <span class="n">column_prefix</span><span class="p">:</span>
+        <span class="n">column_prefix</span> <span class="o">+=</span> <span class="s1">&#39;_&#39;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">GP_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">GP_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.NationalCode AS </span><span class="si">{cp}</span><span class="s2">GP_National_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.Title AS </span><span class="si">{cp}</span><span class="s2">GP_Title,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.Forename AS </span><span class="si">{cp}</span><span class="s2">GP_Forename,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_gp.Surname AS </span><span class="si">{cp}</span><span class="s2">GP_Surname,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.Code AS </span><span class="si">{cp}</span><span class="s2">Practice_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">Practice_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine1 AS </span><span class="si">{cp}</span><span class="s2">Practice_Address_Line_1,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine2 AS </span><span class="si">{cp}</span><span class="s2">Practice_Address_Line_2,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine3 AS </span><span class="si">{cp}</span><span class="s2">Practice_Address_Line_3,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine4 AS </span><span class="si">{cp}</span><span class="s2">Practice_Address_Line_4,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.AddressLine5 AS </span><span class="si">{cp}</span><span class="s2">Practice_Address_Line_5,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.PostCode AS </span><span class="si">{cp}</span><span class="s2">Practice_Post_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_prac.NationalCode AS </span><span class="si">{cp}</span><span class="s2">Practice_National_Code</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            GenGP </span><span class="si">{ap}</span><span class="s2">_gp</span>
+<span class="s2">            INNER JOIN GenGPGPPractice  -- linking table</span>
+<span class="s2">                ON GenGPPractice.GenGPCode = </span><span class="si">{ap}</span><span class="s2">_gp.Code</span>
+<span class="s2">            INNER JOIN GenGPPractice </span><span class="si">{ap}</span><span class="s2">_prac</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_prac.Code = GenGPPractice.GenPracticeCode</span>
+<span class="s2">        ) ON </span><span class="si">{ap}</span><span class="s2">_gp.Code = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfields</span><span class="p">([</span>
+        <span class="p">(</span><span class="s1">&#39;GenGP&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenGPPractice&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;GenGPGPPractice&#39;</span><span class="p">,</span> <span class="s1">&#39;GenGPCode&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">where_prognotes_current</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">viewmaker</span><span class="o">.</span><span class="n">progargs</span><span class="o">.</span><span class="n">prognotes_current_only</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_where</span><span class="p">(</span>
+        <span class="s2">&quot;(</span><span class="si">{bt}</span><span class="s2">.EnteredInError &lt;&gt; 1 OR </span><span class="si">{bt}</span><span class="s2">.EnteredInError IS NULL) &quot;</span>
+        <span class="s2">&quot;AND </span><span class="si">{bt}</span><span class="s2">.</span><span class="si">{last_note_col}</span><span class="s2"> = 1&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">bt</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+            <span class="n">last_note_col</span><span class="o">=</span><span class="n">CRATE_COL_LAST_NOTE</span><span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+                                           <span class="s1">&#39;EnteredInError&#39;</span><span class="p">)</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">enforce_same_n_rows_as_base</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># CRATE_COL_LAST_NOTE already indexed</span>
+
+
+<span class="k">def</span> <span class="nf">where_clindocs_current</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">viewmaker</span><span class="o">.</span><span class="n">progargs</span><span class="o">.</span><span class="n">clindocs_current_only</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_where</span><span class="p">(</span>
+        <span class="s2">&quot;</span><span class="si">{bt}</span><span class="s2">.</span><span class="si">{last_doc_col}</span><span class="s2"> = 1 AND </span><span class="si">{bt}</span><span class="s2">.DeletedDate IS NULL&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">bt</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+            <span class="n">last_doc_col</span><span class="o">=</span><span class="n">CRATE_COL_LAST_DOC</span><span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span> <span class="s1">&#39;DeletedDate&#39;</span><span class="p">)</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">enforce_same_n_rows_as_base</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># CRATE_COL_LAST_DOC already indexed</span>
+
+
+<span class="k">def</span> <span class="nf">where_allergies_current</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">viewmaker</span><span class="o">.</span><span class="n">progargs</span><span class="o">.</span><span class="n">allergies_current_only</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">where_not_deleted_flag</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">,</span> <span class="s1">&#39;Deleted&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">where_not_deleted_flag</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span> <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_where</span><span class="p">(</span>
+        <span class="s2">&quot;(</span><span class="si">{table}</span><span class="s2">.</span><span class="si">{col}</span><span class="s2"> IS NULL OR </span><span class="si">{table}</span><span class="s2">.</span><span class="si">{col}</span><span class="s2"> = 0)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">table</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span> <span class="n">col</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span> <span class="n">basecolumn</span><span class="p">)</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">enforce_same_n_rows_as_base</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_bay_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                       <span class="n">basecolumn_ward</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">basecolumn_bay</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                       <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn_ward</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn_ward&quot;</span>
+    <span class="k">assert</span> <span class="n">basecolumn_bay</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn_bay&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="k">if</span> <span class="n">column_prefix</span><span class="p">:</span>
+        <span class="n">column_prefix</span> <span class="o">+=</span> <span class="s1">&#39;_&#39;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_ward}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">Ward_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_ward.WardDescription AS </span><span class="si">{cp}</span><span class="s2">Ward_Description,</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_bay}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">Bay_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_bay.BayDescription AS </span><span class="si">{cp}</span><span class="s2">Bay_Description</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn_ward</span><span class="o">=</span><span class="n">basecolumn_ward</span><span class="p">,</span>
+        <span class="n">basecolumn_bay</span><span class="o">=</span><span class="n">basecolumn_bay</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            ImsBay </span><span class="si">{ap}</span><span class="s2">_bay</span>
+<span class="s2">            INNER JOIN ImsWard </span><span class="si">{ap}</span><span class="s2">_ward</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_ward.WardCode = </span><span class="si">{ap}</span><span class="s2">_bay.WardCode</span>
+<span class="s2">        ) ON </span><span class="si">{ap}</span><span class="s2">_bay.WardCode = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_ward}</span><span class="s2"></span>
+<span class="s2">            AND </span><span class="si">{ap}</span><span class="s2">_bay.BayCode = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn_bay}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn_ward</span><span class="o">=</span><span class="n">basecolumn_ward</span><span class="p">,</span>
+        <span class="n">basecolumn_bay</span><span class="o">=</span><span class="n">basecolumn_bay</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;ImsBay&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;WardCode&#39;</span><span class="p">,</span> <span class="s1">&#39;BayCode&#39;</span><span class="p">])</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;ImsWard&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;WardCode&#39;</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_location_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                            <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">column_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing column_prefix&quot;</span>
+    <span class="k">assert</span> <span class="n">internal_alias_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing internal_alias_prefix&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.NationalCode AS </span><span class="si">{cp}</span><span class="s2">_National_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.AddressLine1 as </span><span class="si">{cp}</span><span class="s2">_Address_1,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.AddressLine2 as </span><span class="si">{cp}</span><span class="s2">_Address_2,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.AddressLine3 as </span><span class="si">{cp}</span><span class="s2">_Address_3,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.AddressLine4 as </span><span class="si">{cp}</span><span class="s2">_Address_4,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.AddressLine5 as </span><span class="si">{cp}</span><span class="s2">_Address_5,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.Postcode as </span><span class="si">{cp}</span><span class="s2">_Post_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loc.LocationType as </span><span class="si">{cp}</span><span class="s2">_Type_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loctype.CodeDescription as </span><span class="si">{cp}</span><span class="s2">_Type_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_loctype.NationalCode as </span><span class="si">{cp}</span><span class="s2">_Type_National_Code</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            GenLocation </span><span class="si">{ap}</span><span class="s2">_loc</span>
+<span class="s2">            INNER JOIN GenLocationType </span><span class="si">{ap}</span><span class="s2">_loctype</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_loctype.Code = </span><span class="si">{ap}</span><span class="s2">_loc.LocationType</span>
+<span class="s2">        ) ON </span><span class="si">{ap}</span><span class="s2">_loc.Code = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>  <span class="c1"># noqa</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;GenLocation&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Code&#39;</span><span class="p">])</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="s1">&#39;GenLocationType&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;Code&#39;</span><span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_org_contact_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                               <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                               <span class="n">column_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                               <span class="n">internal_alias_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">column_prefix</span><span class="p">,</span> <span class="s2">&quot;Missing column_prefix&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> AS </span><span class="si">{cp}</span><span class="s2">_ID,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.ContactType AS </span><span class="si">{cp}</span><span class="s2">_Contact_Type_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_ct.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Contact_Type_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_ct.NationalCode AS </span><span class="si">{cp}</span><span class="s2">_Contact_Type_National_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.Title AS </span><span class="si">{cp}</span><span class="s2">_Title,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.FirstName AS </span><span class="si">{cp}</span><span class="s2">_First_Name,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.Surname AS </span><span class="si">{cp}</span><span class="s2">_Surname,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.JobTitle AS </span><span class="si">{cp}</span><span class="s2">_Job_Title,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.MainPhoneNo AS </span><span class="si">{cp}</span><span class="s2">_Main_Phone_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.OtherPhoneNo AS </span><span class="si">{cp}</span><span class="s2">_Other_Phone_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.FaxNo AS </span><span class="si">{cp}</span><span class="s2">_Fax_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.EmailAddress AS </span><span class="si">{cp}</span><span class="s2">_Email_Address,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.Comments AS </span><span class="si">{cp}</span><span class="s2">_Comments,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_con.OrganisationID AS </span><span class="si">{cp}</span><span class="s2">_Organisation_ID,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.OrganisationCode AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.OrganisationName AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Name,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.OrganisationType AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Type_Code,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_orgtype.CodeDescription AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Type_Description,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.DepartmentName AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Department_Name,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.MainPhoneNo AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Main_Phone_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.OtherPhoneNo AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Other_Phone_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.FaxNo AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Fax_Number,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.EmailAddress AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Email_Address,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.AddressLine1 AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Address_Line_1,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.AddressLine2 AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Address_Line_2,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.AddressLine3 AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Address_Line_3,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.AddressLine4 AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Address_Line_4,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.AddressLine5 AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Address_Line_5,</span>
+<span class="s2">        </span><span class="si">{ap}</span><span class="s2">_org.PostCode AS </span><span class="si">{cp}</span><span class="s2">_Organisation_Post_Code</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+        <span class="n">cp</span><span class="o">=</span><span class="n">column_prefix</span><span class="p">,</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="c1"># Phone/fax/email/comments not in RCEP</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            OrgContact </span><span class="si">{ap}</span><span class="s2">_con</span>
+<span class="s2">            INNER JOIN OrgContactType </span><span class="si">{ap}</span><span class="s2">_ct</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_ct.Code = </span><span class="si">{ap}</span><span class="s2">_con.ContactType</span>
+<span class="s2">            INNER JOIN OrgOrganisation </span><span class="si">{ap}</span><span class="s2">_org</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_org.SequenceID = </span><span class="si">{ap}</span><span class="s2">_con.OrganisationID  -- ?</span>
+<span class="s2">            INNER JOIN OrgType </span><span class="si">{ap}</span><span class="s2">_orgtype</span>
+<span class="s2">                ON </span><span class="si">{ap}</span><span class="s2">_orgtype.Code = </span><span class="si">{ap}</span><span class="s2">_org.OrganisationType</span>
+<span class="s2">        ) ON </span><span class="si">{ap}</span><span class="s2">_con.OrganisationID = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ap</span><span class="o">=</span><span class="n">internal_alias_prefix</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfields</span><span class="p">([</span>
+        <span class="p">(</span><span class="s1">&#39;OrgContact&#39;</span><span class="p">,</span> <span class="s1">&#39;OrganisationID&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;OrgContactType&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;OrgOrganisation&#39;</span><span class="p">,</span> <span class="s1">&#39;SequenceID&#39;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;OrgType&#39;</span><span class="p">,</span> <span class="s1">&#39;Code&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+
+
+<span class="k">def</span> <span class="nf">rio_amend_standard_noncore</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Add user:</span>
+    <span class="n">rio_add_user_lookup</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">,</span> <span class="s2">&quot;type12_UpdatedBy&quot;</span><span class="p">,</span>
+                        <span class="n">column_prefix</span><span class="o">=</span><span class="s2">&quot;Updated_By&quot;</span><span class="p">,</span> <span class="n">internal_alias_prefix</span><span class="o">=</span><span class="s2">&quot;ub&quot;</span><span class="p">)</span>
+    <span class="c1"># Omit deleted:</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_where</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{bt}</span><span class="s2">.type12_DeletedDate IS NULL&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">bt</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfield</span><span class="p">(</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+                                           <span class="s1">&#39;type12_DeletedDate&#39;</span><span class="p">)</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">enforce_same_n_rows_as_base</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<span class="k">def</span> <span class="nf">rio_noncore_yn</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">,</span>
+                   <span class="n">basecolumn</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                   <span class="n">result_alias</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># 1 = yes, 2 = no</span>
+    <span class="c1"># ... clue: &quot;pregnant?&quot; for males, in UserAssesstfkcsa.expectQ</span>
+    <span class="k">assert</span> <span class="n">basecolumn</span><span class="p">,</span> <span class="s2">&quot;Missing basecolumn&quot;</span>
+    <span class="k">assert</span> <span class="n">result_alias</span><span class="p">,</span> <span class="s2">&quot;Missing result_alias&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span>
+        <span class="s2">&quot;CASE &quot;</span>
+        <span class="s2">&quot;WHEN </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> = 1 THEN 1 &quot;</span>  <span class="c1"># 1 = yes</span>
+        <span class="s2">&quot;WHEN </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{basecolumn}</span><span class="s2"> = 2 THEN 0 &quot;</span>  <span class="c1"># 2 = no</span>
+        <span class="s2">&quot;ELSE NULL &quot;</span>
+        <span class="s2">&quot;END &quot;</span>
+        <span class="s2">&quot;AS </span><span class="si">{result_alias}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+            <span class="n">basecolumn</span><span class="o">=</span><span class="n">basecolumn</span><span class="p">,</span>
+            <span class="n">result_alias</span><span class="o">=</span><span class="n">result_alias</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">rio_add_audit_info</span><span class="p">(</span><span class="n">viewmaker</span><span class="p">:</span> <span class="n">ViewMaker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># - In RCEP: lots of tables have Created_Date, Updated_Date with no source</span>
+    <span class="c1">#   column; likely from audit table.</span>
+    <span class="c1"># - Here: Audit_Created_Date, Audit_Updated_Date</span>
+    <span class="n">ap1</span> <span class="o">=</span> <span class="s2">&quot;_au_cr&quot;</span>
+    <span class="n">ap2</span> <span class="o">=</span> <span class="s2">&quot;_au_up&quot;</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_select</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span><span class="si">{ap1}</span><span class="s2">_subq.Audit_Created_Date AS Audit_Created_Date,</span>
+<span class="s2">        </span><span class="si">{ap2}</span><span class="s2">_subq.Audit_Updated_Date AS Audit_Updated_Date</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ap1</span><span class="o">=</span><span class="n">ap1</span><span class="p">,</span>
+        <span class="n">ap2</span><span class="o">=</span><span class="n">ap2</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">add_from</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            SELECT </span><span class="si">{ap1}</span><span class="s2">_audit.RowID,</span>
+<span class="s2">                MIN(</span><span class="si">{ap1}</span><span class="s2">_audit.ActionDateTime) AS Audit_Created_Date</span>
+<span class="s2">            FROM AuditTrail </span><span class="si">{ap1}</span><span class="s2">_audit</span>
+<span class="s2">            INNER JOIN GenTable </span><span class="si">{ap1}</span><span class="s2">_table</span>
+<span class="s2">                ON </span><span class="si">{ap1}</span><span class="s2">_table.TableNumber = </span><span class="si">{ap1}</span><span class="s2">_audit.TableNumber</span>
+<span class="s2">            WHERE </span><span class="si">{ap1}</span><span class="s2">_table.GenTableCode = </span><span class="si">{literal}</span><span class="s2"></span>
+<span class="s2">                AND </span><span class="si">{ap1}</span><span class="s2">_audit.AuditAction = 2  -- INSERT</span>
+<span class="s2">            GROUP BY </span><span class="si">{ap1}</span><span class="s2">_audit.RowID</span>
+<span class="s2">        ) </span><span class="si">{ap1}</span><span class="s2">_subq</span>
+<span class="s2">            ON </span><span class="si">{ap1}</span><span class="s2">_subq.RowID = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{CRATE_COL_PK}</span><span class="s2"></span>
+<span class="s2">        LEFT JOIN (</span>
+<span class="s2">            SELECT </span><span class="si">{ap2}</span><span class="s2">_audit.RowID,</span>
+<span class="s2">                MAX(</span><span class="si">{ap2}</span><span class="s2">_audit.ActionDateTime) AS Audit_Updated_Date</span>
+<span class="s2">            FROM AuditTrail </span><span class="si">{ap2}</span><span class="s2">_audit</span>
+<span class="s2">            INNER JOIN GenTable </span><span class="si">{ap2}</span><span class="s2">_table</span>
+<span class="s2">                ON </span><span class="si">{ap2}</span><span class="s2">_table.TableNumber = </span><span class="si">{ap2}</span><span class="s2">_audit.TableNumber</span>
+<span class="s2">            WHERE </span><span class="si">{ap2}</span><span class="s2">_table.GenTableCode = </span><span class="si">{literal}</span><span class="s2"></span>
+<span class="s2">                AND </span><span class="si">{ap2}</span><span class="s2">_audit.AuditAction = 3  -- UPDATE</span>
+<span class="s2">            GROUP BY </span><span class="si">{ap2}</span><span class="s2">_audit.RowID</span>
+<span class="s2">        ) </span><span class="si">{ap2}</span><span class="s2">_subq</span>
+<span class="s2">            ON </span><span class="si">{ap2}</span><span class="s2">_subq.RowID = </span><span class="si">{basetable}</span><span class="s2">.</span><span class="si">{CRATE_COL_PK}</span><span class="s2"></span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ap1</span><span class="o">=</span><span class="n">ap1</span><span class="p">,</span>
+        <span class="n">ap2</span><span class="o">=</span><span class="n">ap2</span><span class="p">,</span>
+        <span class="n">basetable</span><span class="o">=</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">,</span>
+        <span class="n">literal</span><span class="o">=</span><span class="n">sql_string_literal</span><span class="p">(</span><span class="n">viewmaker</span><span class="o">.</span><span class="n">basetable</span><span class="p">),</span>
+        <span class="n">CRATE_COL_PK</span><span class="o">=</span><span class="n">CRATE_COL_PK</span><span class="p">,</span>
+    <span class="p">))</span>
+    <span class="n">viewmaker</span><span class="o">.</span><span class="n">record_lookup_table_keyfields</span><span class="p">([</span>
+        <span class="p">(</span><span class="s1">&#39;AuditTrail&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;AuditAction&#39;</span><span class="p">,</span> <span class="s1">&#39;RowID&#39;</span><span class="p">,</span> <span class="s1">&#39;TableNumber&#39;</span><span class="p">]),</span>
+        <span class="p">(</span><span class="s1">&#39;GenTable&#39;</span><span class="p">,</span> <span class="s1">&#39;GenTableCode&#39;</span><span class="p">),</span>
+    <span class="p">])</span>
+    <span class="c1"># AuditTrail indexes based on SQL Server recommendations (Query -&gt; Analyze</span>
+    <span class="c1"># Query in Database Engine Tuning Advisor -&gt; ... -&gt; Recommendations -&gt;</span>
+    <span class="c1"># Index Recommendations -&gt; Definition). Specifically:</span>
+    <span class="c1"># CREATE STATISTICS [_dta_stat_1213247377_6_4] ON [dbo].[AuditTrail](</span>
+    <span class="c1">#     [TableNumber], [AuditAction])</span>
+    <span class="c1"># CREATE STATISTICS [_dta_stat_1213247377_5_4] ON [dbo].[AuditTrail](</span>
+    <span class="c1">#     [RowID], [AuditAction])</span>
+    <span class="c1"># CREATE NONCLUSTERED INDEX [_dta_index_AuditTrail_blahblah]</span>
+    <span class="c1">#     ON [dbo].[AuditTrail]</span>
+    <span class="c1"># (</span>
+    <span class="c1"># 	[AuditAction] ASC,</span>
+    <span class="c1"># 	[RowID] ASC,</span>
+    <span class="c1"># 	[TableNumber] ASC</span>
+    <span class="c1"># )</span>
+    <span class="c1"># INCLUDE ( [ActionDateTime]) WITH (SORT_IN_TEMPDB = OFF,</span>
+    <span class="c1">#     IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

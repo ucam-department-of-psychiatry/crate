@@ -1,0 +1,570 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.nlp_manager.build_medex_itself &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.nlp_manager.build_medex_itself</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/nlp_manager/build_medex_itself.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+
+<span class="sd">Script to compile Java source for MedEx-UIMA.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.fileops</span> <span class="k">import</span> <span class="n">purge</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.logs</span> <span class="k">import</span> <span class="n">configure_logger_for_colour</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">DEFAULT_MEDEX_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s1">&#39;~&#39;</span><span class="p">),</span> <span class="s1">&#39;dev&#39;</span><span class="p">,</span>
+                                 <span class="s1">&#39;Medex_UIMA_1.3.6&#39;</span><span class="p">)</span>
+<span class="n">DEFAULT_JAVA</span> <span class="o">=</span> <span class="s1">&#39;java&#39;</span>
+<span class="n">DEFAULT_JAVAC</span> <span class="o">=</span> <span class="s1">&#39;javac&#39;</span>
+
+<span class="n">EXTRA_ROUTES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;i/m&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;i.m.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;i. m.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;intramuscularly&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;intramuscular inj.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;intramuscular injection&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;inh&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;inh.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;i/v&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;i.v.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;i. v.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nasal&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nasally&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nebs&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nebulised&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nebuliser&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nebulized&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nebulizer&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ng&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n/g&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n.g.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n. g.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nasogastric&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nasogastrically&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;nj&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n/j&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n.j.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;n. j.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;p/o&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;p.o.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;p. o.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;pr&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;p/r&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;p.r.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;p. r.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;s/c&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;s.c.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;s. c.&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;top&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;top.&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+<span class="n">EXTRA_FREQUENCIES</span> <span class="o">=</span> <span class="p">[</span>  <span class="c1"># Tuples of (literal, TIMEX3)</span>
+    <span class="c1"># EXTRA FOR UK FREQUENCIES; see</span>
+    <span class="c1"># http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations  # noqa</span>
+    <span class="c1"># TIMEX3 codes:</span>
+    <span class="c1"># http://www.timeml.org/tempeval2/tempeval2-trial/guidelines/timex3guidelines-072009.pdf</span>
+
+    <span class="c1"># qqh, quarta quaque hora</span>
+    <span class="p">(</span><span class="s2">&quot;q.q.h.&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P4H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># qds, quater die sumendum; MUST BE BEFORE COMPETING &quot;qd&quot; (= per day)</span>
+    <span class="c1"># expression, e.g. in frequency_rules:</span>
+    <span class="c1"># expression=&quot;[Qq]\.?[ ]?[Dd]\.?&quot;,val=&quot;R1P24H&quot;</span>
+    <span class="p">(</span><span class="s2">&quot;q.d.s.&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P6H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># tds, ter die sumendum</span>
+    <span class="p">(</span><span class="s2">&quot;t.d.s.&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P8H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># bd, bis die</span>
+    <span class="p">(</span><span class="s2">&quot;b.d.&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P12H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># od, omni die</span>
+    <span class="p">(</span><span class="s2">&quot;o.d.&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P24H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># mane</span>
+    <span class="p">(</span><span class="s2">&quot;mane&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P24H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># om, omni mane</span>
+    <span class="p">(</span><span class="s2">&quot;o.m.&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P24H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># nocte</span>
+    <span class="p">(</span><span class="s2">&quot;nocte&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P24H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># on, omni nocte -- beware also the word &quot;on&quot;...</span>
+    <span class="p">(</span><span class="s2">&quot;o.n.&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P24H&quot;</span><span class="p">),</span>
+
+    <span class="c1"># fortnightly and variants</span>
+    <span class="p">(</span><span class="s2">&quot;fortnightly&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P2W&quot;</span><span class="p">),</span>  <span class="c1"># W: page 9 of TIMEX3 PDF above</span>
+    <span class="p">(</span><span class="s2">&quot;2 weekly&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P2W&quot;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">&quot;two weekly&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P2W&quot;</span><span class="p">),</span>
+
+    <span class="c1"># monthly</span>
+    <span class="p">(</span><span class="s2">&quot;monthly&quot;</span><span class="p">,</span> <span class="s2">&quot;R1P1M&quot;</span><span class="p">),</span>  <span class="c1"># M: page 8 of TIMEX3 PDF above</span>
+<span class="p">]</span>
+<span class="n">DO_NOT_REMOVE_DOTS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;o.n.&#39;</span>
+    <span class="c1"># the word &quot;on&quot; is too confusing; e.g. &quot;Start olanzapine 5mg nocte.&quot; is</span>
+    <span class="c1"># fine; &quot;Start olanzapine 5mg on.&quot; is tolerable, but too easily confused</span>
+    <span class="c1"># with &quot;Start olanzapine 5mg on Tuesday.&quot;</span>
+<span class="p">]</span>
+
+<span class="n">SEM_ENG_TRIGGER_LINE_TRIMMED</span> <span class="o">=</span> <span class="s2">&quot;Map regexlist = new Hashtable();&quot;</span>
+<span class="n">FREQ_RULE_TRIGGER_LINE_TRIMMED</span> <span class="o">=</span> <span class="s2">&quot;FREQUENCY:&quot;</span>
+<span class="n">SOURCE_START_MARKER</span> <span class="o">=</span> <span class="s2">&quot;// START CRATE MODIFICATIONS&quot;</span>
+<span class="n">SOURCE_END_MARKER</span> <span class="o">=</span> <span class="s2">&quot;// END CRATE MODIFICATIONS&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">terminate</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+
+
+<div class="viewcode-block" id="lex_freq"><a class="viewcode-back" href="../../../autodoc/nlp_manager/build_medex_itself.html#crate_anon.nlp_manager.build_medex_itself.lex_freq">[docs]</a><span class="k">def</span> <span class="nf">lex_freq</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;For MedEx&#39;s lexicon.cfg: a frequency line&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\t</span><span class="s2">FREQ&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="lex_route"><a class="viewcode-back" href="../../../autodoc/nlp_manager/build_medex_itself.html#crate_anon.nlp_manager.build_medex_itself.lex_route">[docs]</a><span class="k">def</span> <span class="nf">lex_route</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;For MedEx&#39;s lexicon.cfg: a route line&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\t</span><span class="s2">RUT&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">semantic_rule_engine_line</span><span class="p">(</span><span class="n">frequency</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                              <span class="n">dots_optional</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case</span>
+    <span class="c1"># here</span>
+    <span class="c1"># If you need to put in a \, double it to \\ for Java&#39;s benefit.</span>
+    <span class="n">regex_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">frequency</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39; &#39;</span><span class="p">:</span>
+            <span class="n">regex_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">s+&#39;</span>
+        <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dots_optional</span><span class="p">:</span>
+                <span class="n">regex_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">.?</span><span class="se">\\</span><span class="s1">s*&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">regex_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">.</span><span class="se">\\</span><span class="s1">s*&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">regex_str</span> <span class="o">+=</span> <span class="n">c</span>
+    <span class="k">return</span> <span class="sa">r</span><span class="s1">&#39;        regexlist.put(&quot;^(</span><span class="si">{}</span><span class="s1">)( |$)&quot;, &quot;FREQ&quot;);  // RNC&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">regex_str</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">frequency_rules_line</span><span class="p">(</span><span class="n">frequency</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">timex</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                         <span class="n">dots_optional</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># NB case-sensitive regexes in Rule.java, so offer upper- and lower-case</span>
+    <span class="c1"># alternatives here.</span>
+    <span class="c1"># No need for word boundaries with \b, since at this stage all words have</span>
+    <span class="c1"># already been separated by the tokenization process.</span>
+    <span class="n">regex_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">frequency</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39; &#39;</span><span class="p">:</span>
+            <span class="n">regex_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;\s+&#39;</span>
+        <span class="k">elif</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dots_optional</span><span class="p">:</span>
+                <span class="n">regex_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;\.?\s?&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">regex_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;\.\s?&#39;</span>
+        <span class="k">elif</span> <span class="n">c</span><span class="o">.</span><span class="n">isalpha</span><span class="p">():</span>
+            <span class="c1"># Case-insensitive here.</span>
+            <span class="n">regex_str</span> <span class="o">+=</span> <span class="sa">r</span><span class="s1">&#39;[</span><span class="si">{}{}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span> <span class="n">c</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">regex_str</span> <span class="o">+=</span> <span class="n">c</span>
+    <span class="k">return</span> <span class="sa">r</span><span class="s1">&#39;expression=&quot;</span><span class="si">{}</span><span class="s1">&quot;,val=&quot;</span><span class="si">{}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">regex_str</span><span class="p">,</span> <span class="n">timex</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="add_lines_if_not_in"><a class="viewcode-back" href="../../../autodoc/nlp_manager/build_medex_itself.html#crate_anon.nlp_manager.build_medex_itself.add_lines_if_not_in">[docs]</a><span class="k">def</span> <span class="nf">add_lines_if_not_in</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">lines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Elements of lines should not have their own \n characters.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>  <span class="c1"># will have trailing newlines</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Read </span><span class="si">{}</span><span class="s2"> lines from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">),</span> <span class="n">filename</span><span class="p">))</span>
+    <span class="c1"># print(existing[-5:])</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">terminate</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">existing</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Adding </span><span class="si">{}</span><span class="s2"> line: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">line</span><span class="p">)))</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">terminate</span><span class="p">(</span><span class="n">line</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="add_lines_after_trigger"><a class="viewcode-back" href="../../../autodoc/nlp_manager/build_medex_itself.html#crate_anon.nlp_manager.build_medex_itself.add_lines_after_trigger">[docs]</a><span class="k">def</span> <span class="nf">add_lines_after_trigger</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">trigger</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">start_marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">end_marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">lines</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Elements of lines should not have their own \n characters.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Read </span><span class="si">{}</span><span class="s2"> lines from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">),</span> <span class="n">filename</span><span class="p">))</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">existing</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="n">trigger</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="c1"># ... index now pointing to one after the trigger line</span>
+        <span class="c1"># Excise an existing block of ours?</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="n">existing</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">==</span> <span class="n">terminate</span><span class="p">(</span><span class="n">start_marker</span><span class="p">)):</span>
+            <span class="k">while</span> <span class="p">(</span><span class="n">index</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing</span><span class="p">)</span> <span class="ow">and</span>
+                   <span class="n">existing</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">!=</span> <span class="n">terminate</span><span class="p">(</span><span class="n">end_marker</span><span class="p">)):</span>
+                <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># line after end_marker</span>
+        <span class="c1"># Add stuff</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">terminate</span><span class="p">(</span><span class="n">start_marker</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Adding </span><span class="si">{}</span><span class="s2"> line: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">line</span><span class="p">)))</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">terminate</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">terminate</span><span class="p">(</span><span class="n">end_marker</span><span class="p">))</span>
+        <span class="c1"># Write the rest</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">existing</span><span class="p">[</span><span class="n">index</span><span class="p">:]:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">line</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="replace_in_file"><a class="viewcode-back" href="../../../autodoc/nlp_manager/build_medex_itself.html#crate_anon.nlp_manager.build_medex_itself.replace_in_file">[docs]</a><span class="k">def</span> <span class="nf">replace_in_file</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">changes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+                    <span class="n">count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">encoding</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;utf8&#39;</span><span class="p">,</span>
+                    <span class="n">backup_suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;~&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Replaces all old by new in file filename.&quot;&quot;&quot;</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Replacing code in file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+    <span class="c1"># Read contents</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span> <span class="k">as</span> <span class="n">input_file</span><span class="p">:</span>
+        <span class="n">original_content</span> <span class="o">=</span> <span class="n">input_file</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="c1"># Replace</span>
+    <span class="n">new_content</span> <span class="o">=</span> <span class="n">original_content</span>
+    <span class="k">for</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="ow">in</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">new_content</span> <span class="o">=</span> <span class="n">new_content</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span>
+    <span class="c1"># Check for differences</span>
+    <span class="k">if</span> <span class="n">new_content</span> <span class="o">==</span> <span class="n">original_content</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... nothing to do&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="c1"># Make backup, if different</span>
+    <span class="n">backup_name</span> <span class="o">=</span> <span class="n">filename</span> <span class="o">+</span> <span class="n">backup_suffix</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">backup_name</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... backup is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">backup_name</span><span class="p">)))</span>
+    <span class="c1"># Write out new</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">)</span> <span class="k">as</span> <span class="n">output_file</span><span class="p">:</span>
+        <span class="n">output_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">new_content</span><span class="p">)</span></div>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Arguments</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Compile MedEx-UIMA itself (in Java)&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--medexdir&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_MEDEX_DIR</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Root directory of MedEx installation (default: </span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">DEFAULT_MEDEX_DIR</span><span class="p">))</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--javac&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_JAVAC</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Java compiler (default: </span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">DEFAULT_JAVAC</span><span class="p">))</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s1">&#39;--deletefirst&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Delete existing .class files first (optional)&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;--verbose&#39;</span><span class="p">,</span> <span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Be verbose&quot;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Logging</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">loglevel</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="k">else</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
+    <span class="n">rootlogger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
+    <span class="n">configure_logger_for_colour</span><span class="p">(</span><span class="n">rootlogger</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">loglevel</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Add lexicon entries</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">lexfilename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;resources&#39;</span><span class="p">,</span> <span class="s1">&#39;lexicon.cfg&#39;</span><span class="p">)</span>
+    <span class="n">lexlines</span> <span class="o">=</span> <span class="p">[</span><span class="n">lex_route</span><span class="p">(</span><span class="n">route</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">route</span> <span class="ow">in</span> <span class="n">EXTRA_ROUTES</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">EXTRA_FREQUENCIES</span><span class="p">:</span>
+        <span class="n">lexlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lex_freq</span><span class="p">(</span><span class="n">frequency</span><span class="p">))</span>
+        <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">frequency</span><span class="p">:</span>
+            <span class="n">lexlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lex_freq</span><span class="p">(</span><span class="n">frequency</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;. &#39;</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">frequency</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DO_NOT_REMOVE_DOTS</span><span class="p">:</span>
+                <span class="n">lexlines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lex_freq</span><span class="p">(</span><span class="n">frequency</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)))</span>
+    <span class="c1"># Need to add variants, e.g. &quot;om&quot; for &quot;o.m.&quot;?</span>
+    <span class="n">add_lines_if_not_in</span><span class="p">(</span><span class="n">lexfilename</span><span class="p">,</span> <span class="n">lexlines</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Add frequency tags to SemanticRuleEngine.java</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">semengfilename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;src&#39;</span><span class="p">,</span> <span class="s1">&#39;org&#39;</span><span class="p">,</span> <span class="s1">&#39;apache&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;medex&#39;</span><span class="p">,</span> <span class="s1">&#39;SemanticRuleEngine.java&#39;</span><span class="p">)</span>
+    <span class="n">semlines</span> <span class="o">=</span> <span class="p">[</span><span class="n">semantic_rule_engine_line</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span>
+                                          <span class="n">frequency</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DO_NOT_REMOVE_DOTS</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">EXTRA_FREQUENCIES</span><span class="p">]</span>
+    <span class="n">add_lines_after_trigger</span><span class="p">(</span><span class="n">semengfilename</span><span class="p">,</span> <span class="n">SEM_ENG_TRIGGER_LINE_TRIMMED</span><span class="p">,</span>
+                            <span class="n">SOURCE_START_MARKER</span><span class="p">,</span> <span class="n">SOURCE_END_MARKER</span><span class="p">,</span>
+                            <span class="n">semlines</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Add frequency tags to frequency_rules</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">freqrulefilename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;resources&#39;</span><span class="p">,</span> <span class="s1">&#39;TIMEX&#39;</span><span class="p">,</span>
+                                    <span class="s1">&#39;rules&#39;</span><span class="p">,</span> <span class="s1">&#39;frequency_rules&#39;</span><span class="p">)</span>
+    <span class="n">frlines</span> <span class="o">=</span> <span class="p">[</span><span class="n">frequency_rules_line</span><span class="p">(</span><span class="n">frequency</span><span class="p">,</span> <span class="n">timex</span><span class="p">,</span>
+                                    <span class="n">frequency</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DO_NOT_REMOVE_DOTS</span><span class="p">)</span>
+               <span class="k">for</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">timex</span> <span class="ow">in</span> <span class="n">EXTRA_FREQUENCIES</span><span class="p">]</span>
+    <span class="n">add_lines_after_trigger</span><span class="p">(</span><span class="n">freqrulefilename</span><span class="p">,</span> <span class="n">FREQ_RULE_TRIGGER_LINE_TRIMMED</span><span class="p">,</span>
+                            <span class="n">SOURCE_START_MARKER</span><span class="p">,</span> <span class="n">SOURCE_END_MARKER</span><span class="p">,</span>
+                            <span class="n">frlines</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Fix bugs! Argh.</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">bugfixes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;src&#39;</span><span class="p">,</span> <span class="s1">&#39;org&#39;</span><span class="p">,</span> <span class="s1">&#39;apache&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;NLPTools&#39;</span><span class="p">,</span> <span class="s1">&#39;Document.java&#39;</span><span class="p">),</span>
+            <span class="s2">&quot;changes&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;comment&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Medex confuses &amp; and &amp;&amp;, leading to</span>
+
+<span class="s2">Exception in thread &quot;main&quot; java.lang.StringIndexOutOfBoundsException: String index out of range: 2</span>
+<span class="s2">    at java.lang.String.charAt(Unknown Source)</span>
+<span class="s2">    at org.apache.NLPTools.Document.&lt;init&gt;(Document.java:134)</span>
+<span class="s2">    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:256)</span>
+<span class="s2">    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:302)</span>
+<span class="s2">    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:128)</span>
+<span class="s2">    at CrateMedexPipeline.main(CrateMedexPipeline.java:320)</span>
+<span class="s2">                    &quot;&quot;&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
+                    <span class="s2">&quot;wrong&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;while(cur_pos&lt;llen &amp; (txt.charAt(cur_pos)==&#39; &#39; || txt.charAt(cur_pos)==&#39;\n&#39; || txt.charAt(cur_pos)==&#39;\r&#39;) ){&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
+                    <span class="s2">&quot;right&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;while(cur_pos&lt;llen &amp;&amp; (txt.charAt(cur_pos)==&#39; &#39; || txt.charAt(cur_pos)==&#39;\n&#39; || txt.charAt(cur_pos)==&#39;\r&#39;) ){&quot;</span>  <span class="c1"># noqa</span>
+                    <span class="c1"># -----------------------------^</span>
+                <span class="p">},</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+        <span class="c1"># ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;filename&quot;</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;src&#39;</span><span class="p">,</span> <span class="s1">&#39;org&#39;</span><span class="p">,</span> <span class="s1">&#39;apache&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;algorithms&#39;</span><span class="p">,</span> <span class="s1">&#39;SuffixArray.java&#39;</span><span class="p">),</span>
+            <span class="s2">&quot;changes&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;comment&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        </span>
+<span class="s2">java.lang.StringIndexOutOfBoundsException: String index out of range: 1</span>
+<span class="s2">    at java.lang.String.charAt(Unknown Source)</span>
+<span class="s2">    at org.apache.algorithms.SuffixArray.construct_tree_word(SuffixArray.java:375)</span>
+<span class="s2">    at org.apache.algorithms.SuffixArray.re_build(SuffixArray.java:97)</span>
+<span class="s2">    at org.apache.algorithms.SuffixArray.&lt;init&gt;(SuffixArray.java:60)</span>
+<span class="s2">    at org.apache.medex.MedTagger.medtagging(MedTagger.java:359)</span>
+<span class="s2">    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)</span>
+<span class="s2">    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:302)</span>
+<span class="s2">    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:128)</span>
+<span class="s2">    at CrateMedexPipeline.main(CrateMedexPipeline.java:320)</span>
+
+<span class="s2">Offending code in SuffixArray.java:</span>
+
+<span class="s2">    for (int i=0;i&lt;this.N;i++){</span>
+<span class="s2">        int pos=this.SA[i];</span>
+<span class="s2">        if (this.otext.charAt(pos) != &#39; &#39; &amp;&amp; this.otext.charAt(pos) != &#39;</span><span class="se">\n</span><span class="s2">&#39; &amp;&amp; this.otext.charAt(pos) != this.end_char &amp;&amp; (pos == 0 || (this.otext.charAt(pos-1) == &#39; &#39; || this.otext.charAt(pos-1) == &#39;</span><span class="se">\n</span><span class="s2">&#39;))){</span>
+<span class="s2">            this.insert_SF_tree(this.SA[i], 0, 0); //# 0 denote the root in __SA;</span>
+<span class="s2">        }</span>
+<span class="s2">    }</span>
+<span class="s2">    </span>
+<span class="s2">The bug may relate to what&#39;s in SA[i]... but as a simple fix:</span>
+<span class="s2">        </span>
+<span class="s2">                    &quot;&quot;&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
+                    <span class="s2">&quot;wrong&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;if (this.otext.charAt(pos) != &#39; &#39; &amp;&amp; this.otext.charAt(pos) != &#39;\n&#39; &amp;&amp; this.otext.charAt(pos) != this.end_char &amp;&amp; (pos == 0 || (this.otext.charAt(pos-1) == &#39; &#39; || this.otext.charAt(pos-1) == &#39;\n&#39;))){&quot;</span><span class="p">,</span>  <span class="c1"># noqa</span>
+                    <span class="s2">&quot;right&quot;</span><span class="p">:</span> <span class="sa">r</span><span class="s2">&quot;if (pos &lt; this.otext.length() &amp;&amp; this.otext.charAt(pos) != &#39; &#39; &amp;&amp; this.otext.charAt(pos) != &#39;\n&#39; &amp;&amp; this.otext.charAt(pos) != this.end_char &amp;&amp; (pos == 0 || (this.otext.charAt(pos-1) == &#39; &#39; || this.otext.charAt(pos-1) == &#39;\n&#39;))){&quot;</span>  <span class="c1"># noqa</span>
+                    <span class="c1"># -------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</span>
+                <span class="p">},</span>
+            <span class="p">],</span>
+        <span class="p">},</span>
+    <span class="p">]</span>  <span class="c1"># type: List[Dict[str, Union[str, List[Dict[str, str]]]]]</span>
+
+    <span class="n">_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+
+<span class="s2">BUGS IN MEDEX-UIMA NOT YET FIXED:</span>
+
+<span class="s2">java.lang.ArrayIndexOutOfBoundsException: -1</span>
+<span class="s2">    at java.util.Vector.elementData(Unknown Source)</span>
+<span class="s2">    at java.util.Vector.get(Unknown Source)</span>
+<span class="s2">    at org.apache.NLPTools.SentenceBoundary.detect_boundaries(SentenceBoundary.java:329)</span>
+<span class="s2">    at org.apache.medex.MedTagger.medtagging(MedTagger.java:354)</span>
+<span class="s2">    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)</span>
+<span class="s2">    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:312)</span>
+<span class="s2">    at CrateMedexPipeline.runPipeline(CrateMedexPipeline.java:138)</span>
+<span class="s2">    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:112)</span>
+<span class="s2">    at CrateMedexPipeline.main(CrateMedexPipeline.java:330)</span>
+
+<span class="s2">java.lang.NullPointerException</span>
+<span class="s2">    at org.apache.algorithms.SuffixArray.search(SuffixArray.java:636)</span>
+<span class="s2">    at org.apache.medex.MedTagger.medtagging(MedTagger.java:362)</span>
+<span class="s2">    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)</span>
+<span class="s2">    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:312)</span>
+<span class="s2">    at CrateMedexPipeline.runPipeline(CrateMedexPipeline.java:138)</span>
+<span class="s2">    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:112)</span>
+<span class="s2">    at CrateMedexPipeline.main(CrateMedexPipeline.java:330)</span>
+
+<span class="s2">... frankly, it&#39;s just badly written. That&#39;s clearly why it uses the &quot;catch</span>
+<span class="s2">all exceptions&quot; strategy, but one would imagine the errors are unintentional</span>
+<span class="s2">(certainly the &amp;/&amp;&amp; one!) or else they wouldn&#39;t print a stack trace and chug</span>
+<span class="s2">on.</span>
+
+<span class="s2">    &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+
+    <span class="k">for</span> <span class="n">bf</span> <span class="ow">in</span> <span class="n">bugfixes</span><span class="p">:</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">bf</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[Tuple[str, str]]</span>
+        <span class="k">for</span> <span class="n">change</span> <span class="ow">in</span> <span class="n">bf</span><span class="p">[</span><span class="s2">&quot;changes&quot;</span><span class="p">]:</span>
+            <span class="n">changes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">change</span><span class="p">[</span><span class="s2">&quot;wrong&quot;</span><span class="p">],</span> <span class="n">change</span><span class="p">[</span><span class="s2">&quot;right&quot;</span><span class="p">]))</span>
+        <span class="n">replace_in_file</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">changes</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Clean up first?</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">deletefirst</span><span class="p">:</span>
+        <span class="n">purge</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;*.class&#39;</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Compile</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="n">bindir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;bin&#39;</span><span class="p">)</span>
+    <span class="n">classpath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">pathsep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;src&#39;</span><span class="p">),</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">,</span> <span class="s1">&#39;lib&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">),</span>  <span class="c1"># jar files</span>
+    <span class="p">])</span>
+    <span class="n">classpath_options</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;-classpath&#39;</span><span class="p">,</span> <span class="n">classpath</span><span class="p">]</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">medexdir</span><span class="p">)</span>
+    <span class="n">cmdargs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">javac</span><span class="p">]</span> <span class="o">+</span>
+        <span class="n">classpath_options</span> <span class="o">+</span>
+        <span class="p">[</span><span class="s1">&#39;src/org/apache/medex/Main.java&#39;</span><span class="p">]</span> <span class="o">+</span>
+        <span class="c1"># ... compiling this compiles everything else necessary</span>
+        <span class="p">[</span><span class="s1">&#39;-d&#39;</span><span class="p">,</span> <span class="n">bindir</span><span class="p">]</span>  <span class="c1"># put the binaries here</span>
+    <span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Executing command: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cmdargs</span><span class="p">))</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmdargs</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

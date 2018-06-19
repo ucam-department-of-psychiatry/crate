@@ -66,58 +66,58 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 than a database table.</p>
 <dl class="class">
 <dt id="crate_anon.anonymise.dd.DataDictionary">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.dd.</code><code class="descname">DataDictionary</code><span class="sig-paren">(</span><em>config: Config</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.dd.</code><code class="descname">DataDictionary</code><span class="sig-paren">(</span><em>config: Config</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class representing an entire data dictionary.</p>
 <dl class="method">
 <dt id="crate_anon.anonymise.dd.DataDictionary.check_against_source_db">
-<code class="descname">check_against_source_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.check_against_source_db" title="Permalink to this definition">¶</a></dt>
+<code class="descname">check_against_source_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.check_against_source_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.check_against_source_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check DD validity against the source database.
 Also caches SQLAlchemy source column type</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.dd.DataDictionary.check_valid">
-<code class="descname">check_valid</code><span class="sig-paren">(</span><em>prohibited_fieldnames: List[str] = None</em>, <em>check_against_source_db: bool = True</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.check_valid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">check_valid</code><span class="sig-paren">(</span><em>prohibited_fieldnames: List[str] = None</em>, <em>check_against_source_db: bool = True</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.check_valid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.check_valid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check DD validity, internally +/- against the source database.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_table_for_src_db_table">
-<code class="descname">get_dest_table_for_src_db_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_table_for_src_db_table" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_dest_table_for_src_db_table</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_dest_table_for_src_db_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_table_for_src_db_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database/table, return the single or the first
 destination table.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_tables">
-<code class="descname">get_dest_tables</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_dest_tables</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_dest_tables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of all destination tables.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_tables_for_src_db_table">
-<code class="descname">get_dest_tables_for_src_db_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_for_src_db_table" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_dest_tables_for_src_db_table</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_dest_tables_for_src_db_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_for_src_db_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database/table, return a SortedSet of destination
 tables.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_tables_with_patient_info">
-<code class="descname">get_dest_tables_with_patient_info</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_with_patient_info" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_dest_tables_with_patient_info</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_dest_tables_with_patient_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_with_patient_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of destination table names that have patient
 information.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_fieldnames_for_src_table">
-<code class="descname">get_fieldnames_for_src_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_fieldnames_for_src_table" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_fieldnames_for_src_table</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_fieldnames_for_src_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_fieldnames_for_src_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name/table, return a SortedSet of source
 fields.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_int_pk_ddr">
-<code class="descname">get_int_pk_ddr</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_int_pk_ddr" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_int_pk_ddr</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_int_pk_ddr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_int_pk_ddr" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name and table, return the DD row
 for the integer PK for that table.</p>
 <p>Will return None if no such data dictionary row.</p>
@@ -125,28 +125,28 @@ for the integer PK for that table.</p>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_int_pk_name">
-<code class="descname">get_int_pk_name</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_int_pk_name" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_int_pk_name</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_int_pk_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_int_pk_name" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name and table, return the field name
 of the integer PK for that table.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_optout_defining_fields">
-<code class="descname">get_optout_defining_fields</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_optout_defining_fields" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_optout_defining_fields</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_optout_defining_fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_optout_defining_fields" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of (src_db, src_table, src_field, pidfield,
 mpidfield) tuples.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_patient_src_tables_with_active_dest">
-<code class="descname">get_patient_src_tables_with_active_dest</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_patient_src_tables_with_active_dest" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_patient_src_tables_with_active_dest</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_patient_src_tables_with_active_dest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_patient_src_tables_with_active_dest" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name, return a SortedSet of source
 tables that have an active destination table.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_pk_ddr">
-<code class="descname">get_pk_ddr</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_pk_ddr" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_pk_ddr</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_pk_ddr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_pk_ddr" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name and table, return the DD row
 for the PK for that table, whether integer or not.</p>
 <p>Will return None if no such data dictionary row.</p>
@@ -154,119 +154,119 @@ for the PK for that table, whether integer or not.</p>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_rows_for_dest_table">
-<code class="descname">get_rows_for_dest_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_rows_for_dest_table" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_rows_for_dest_table</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_rows_for_dest_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_rows_for_dest_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given destination table, return a SortedSet of DD rows.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_rows_for_src_table">
-<code class="descname">get_rows_for_src_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_rows_for_src_table" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_rows_for_src_table</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_rows_for_src_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_rows_for_src_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name/table, return a SortedSet of DD
 rows.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_scrub_from_db_table_pairs">
-<code class="descname">get_scrub_from_db_table_pairs</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_db_table_pairs" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_scrub_from_db_table_pairs</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_scrub_from_db_table_pairs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_db_table_pairs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of (source database name, source table) tuples
 where those fields contain scrub_src (scrub-from) information.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_scrub_from_rows">
-<code class="descname">get_scrub_from_rows</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_rows" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_scrub_from_rows</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_scrub_from_rows"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_rows" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of DD rows for all fields containing scrub_src
 (scrub-from) information.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_source_databases">
-<code class="descname">get_source_databases</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_source_databases" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_source_databases</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_source_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_source_databases" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of source database names.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs">
-<code class="descname">get_src_db_tablepairs</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_db_tablepairs</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_db_tablepairs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of (source database name, source table) tuples.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_int_pk">
-<code class="descname">get_src_db_tablepairs_w_int_pk</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_int_pk" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_db_tablepairs_w_int_pk</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_db_tablepairs_w_int_pk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_int_pk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of (source database name, source table) tuples.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_pt_info">
-<code class="descname">get_src_db_tablepairs_w_pt_info</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_pt_info" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_db_tablepairs_w_pt_info</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_db_tablepairs_w_pt_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_pt_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of (source database name, source table) tuples.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_for_dest_table">
-<code class="descname">get_src_dbs_tables_for_dest_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_for_dest_table" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_dbs_tables_for_dest_table</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_dbs_tables_for_dest_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_for_dest_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given destination table, return a SortedSet of (dbname, table)
 tuples.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk">
-<code class="descname">get_src_dbs_tables_with_no_pt_info_int_pk</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_dbs_tables_with_no_pt_info_int_pk</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of (source database name, source table) tuples
 where the table has no patient information and has an integer PK.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk">
-<code class="descname">get_src_dbs_tables_with_no_pt_info_no_pk</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_dbs_tables_with_no_pt_info_no_pk</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a SortedSet of (source database name, source table) tuples
 where the table has no patient information and no integer PK.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_tables">
-<code class="descname">get_src_tables</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_tables</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_tables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name, return a SortedSet of source
 tables.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_active_dest">
-<code class="descname">get_src_tables_with_active_dest</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_active_dest" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_tables_with_active_dest</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_tables_with_active_dest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_active_dest" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name, return a SortedSet of source
 tables.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_patient_info">
-<code class="descname">get_src_tables_with_patient_info</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_patient_info" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_src_tables_with_patient_info</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_src_tables_with_patient_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_patient_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name, return a SortedSet of source
 tables that have patient information.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.dd.DataDictionary.get_tsv">
-<code class="descname">get_tsv</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_tsv" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_tsv</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.get_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_tsv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the DD in TSV format.</p>
 </dd></dl>
 
 <dl class="attribute">
 <dt id="crate_anon.anonymise.dd.DataDictionary.has_active_destination">
-<code class="descname">has_active_destination</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.has_active_destination" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_active_destination</code><a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.has_active_destination"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.has_active_destination" title="Permalink to this definition">¶</a></dt>
 <dd><p>For a given source database name and table: does it have an active
 destination?</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.dd.DataDictionary.read_from_file">
-<code class="descname">read_from_file</code><span class="sig-paren">(</span><em>filename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.read_from_file" title="Permalink to this definition">¶</a></dt>
+<code class="descname">read_from_file</code><span class="sig-paren">(</span><em>filename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.read_from_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.read_from_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read DD from file.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.dd.DataDictionary.read_from_source_databases">
-<code class="descname">read_from_source_databases</code><span class="sig-paren">(</span><em>report_every: int = 100</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.read_from_source_databases" title="Permalink to this definition">¶</a></dt>
+<code class="descname">read_from_source_databases</code><span class="sig-paren">(</span><em>report_every: int = 100</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/dd.html#DataDictionary.read_from_source_databases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.read_from_source_databases" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a draft DD from a source database.</p>
 </dd></dl>
 

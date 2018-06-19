@@ -63,7 +63,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="class">
 <dt id="crate_anon.anonymise.ddr.DataDictionaryRow">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.ddr.</code><code class="descname">DataDictionaryRow</code><span class="sig-paren">(</span><em>config: Config</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.ddr.</code><code class="descname">DataDictionaryRow</code><span class="sig-paren">(</span><em>config: Config</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/ddr.html#DataDictionaryRow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class representing a single row of a data dictionary.</p>
 <dl class="attribute">
 <dt id="crate_anon.anonymise.ddr.DataDictionaryRow.alter_method">
@@ -73,33 +73,33 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 
 <dl class="method">
 <dt id="crate_anon.anonymise.ddr.DataDictionaryRow.check_valid">
-<code class="descname">check_valid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.check_valid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">check_valid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/ddr.html#DataDictionaryRow.check_valid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.check_valid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Check internal validity and complain if invalid, showing the source
 of the problem.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.ddr.DataDictionaryRow.get_signature">
-<code class="descname">get_signature</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.get_signature" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_signature</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/ddr.html#DataDictionaryRow.get_signature"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.get_signature" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a signature based on the source database/table/field.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.ddr.DataDictionaryRow.get_tsv">
-<code class="descname">get_tsv</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.get_tsv" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_tsv</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/ddr.html#DataDictionaryRow.get_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.get_tsv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a TSV row for writing.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.ddr.DataDictionaryRow.set_from_dict">
-<code class="descname">set_from_dict</code><span class="sig-paren">(</span><em>valuedict: Dict[str, Any]</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.set_from_dict" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_from_dict</code><span class="sig-paren">(</span><em>valuedict: Dict[str, Any]</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/ddr.html#DataDictionaryRow.set_from_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.set_from_dict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set internal fields from a dict of elements representing a row from the
 TSV data dictionary file.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.ddr.DataDictionaryRow.set_from_src_db_info">
-<code class="descname">set_from_src_db_info</code><span class="sig-paren">(</span><em>db: str</em>, <em>table: str</em>, <em>field: str</em>, <em>datatype_sqltext: str</em>, <em>sqla_coltype: sqlalchemy.sql.type_api.TypeEngine</em>, <em>dbconf: DatabaseSafeConfig</em>, <em>comment=None</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.set_from_src_db_info" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_from_src_db_info</code><span class="sig-paren">(</span><em>db: str</em>, <em>table: str</em>, <em>field: str</em>, <em>datatype_sqltext: str</em>, <em>sqla_coltype: sqlalchemy.sql.type_api.TypeEngine</em>, <em>dbconf: DatabaseSafeConfig</em>, <em>comment=None</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/ddr.html#DataDictionaryRow.set_from_src_db_info"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.ddr.DataDictionaryRow.set_from_src_db_info" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a draft data dictionary row from a field in the source database.</p>
 </dd></dl>
 

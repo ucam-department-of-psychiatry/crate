@@ -457,24 +457,24 @@ as</p>
 </ul>
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_medex.Medex">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_medex.</code><code class="descname">Medex</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_medex.</code><code class="descname">Medex</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_medex.html#Medex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class controlling a Medex-UIMA external process, via our custom
 Java interface, CrateMedexPipeline.java.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_medex.Medex.dest_tables_columns">
-<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_medex.html#Medex.dest_tables_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
 </dd></dl>
 
 <dl class="staticmethod">
 <dt id="crate_anon.nlp_manager.parse_medex.Medex.frequency_and_timex">
-<em class="property">static </em><code class="descname">frequency_and_timex</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[str, NoneType], Union[str, NoneType]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.frequency_and_timex" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">frequency_and_timex</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[str, NoneType], Union[str, NoneType]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_medex.html#Medex.frequency_and_timex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.frequency_and_timex" title="Permalink to this definition">¶</a></dt>
 <dd><p>Splits e.g. b.i.d.(R1P12H)</p>
 </dd></dl>
 
 <dl class="staticmethod">
 <dt id="crate_anon.nlp_manager.parse_medex.Medex.get_text_start_end">
-<em class="property">static </em><code class="descname">get_text_start_end</code><span class="sig-paren">(</span><em>medex_str: Union[str, NoneType]</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[str, NoneType], Union[int, NoneType], Union[int, NoneType]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.get_text_start_end" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">get_text_start_end</code><span class="sig-paren">(</span><em>medex_str: Union[str, NoneType]</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[str, NoneType], Union[int, NoneType], Union[int, NoneType]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_medex.html#Medex.get_text_start_end"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.get_text_start_end" title="Permalink to this definition">¶</a></dt>
 <dd><p>MedEx returns ‘drug’, ‘strength’, etc. as “aspirin[7,14]”, where the
 text is followed by the start position (zero-indexed) and the end
 position (one beyond the last character) (zero-indexed).</p>
@@ -482,7 +482,7 @@ position (one beyond the last character) (zero-indexed).</p>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_medex.Medex.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_medex.html#Medex.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.parse" title="Permalink to this definition">¶</a></dt>
 <dd><ul class="simple">
 <li>Send text to the external process, and receive the result.</li>
 <li>Note that associated data is not passed into this function, and is
@@ -498,7 +498,7 @@ complete.</li>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_medex.Medex.test">
-<code class="descname">test</code><span class="sig-paren">(</span><em>verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.test" title="Permalink to this definition">¶</a></dt>
+<code class="descname">test</code><span class="sig-paren">(</span><em>verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_medex.html#Medex.test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test the send function.</p>
 </dd></dl>
 
@@ -506,7 +506,7 @@ complete.</li>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_medex.PseudoTempDir">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_medex.</code><code class="descname">PseudoTempDir</code><span class="sig-paren">(</span><em>name: str</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.PseudoTempDir" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_medex.</code><code class="descname">PseudoTempDir</code><span class="sig-paren">(</span><em>name: str</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_medex.html#PseudoTempDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.PseudoTempDir" title="Permalink to this definition">¶</a></dt>
 <dd><p>This class exists so that a TemporaryDirectory and a manually specified
 directory can be addressed via the same (very simple!) interface.</p>
 </dd></dl>

@@ -1,0 +1,1434 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.crateweb.research.models &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.crateweb.research.models</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/crateweb/research/models.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.dbfunc</span> <span class="k">import</span> <span class="n">dictfetchall</span><span class="p">,</span> <span class="n">get_fieldnames_from_cursor</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.django.fields.jsonclassfield</span> <span class="k">import</span> <span class="n">JsonClassField</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.excel</span> <span class="k">import</span> <span class="n">excel_to_bytes</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.exceptions</span> <span class="k">import</span> <span class="n">add_info_to_exception</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.hash</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">get_longest_supported_hasher_output_length</span><span class="p">,</span>
+    <span class="n">hash64</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.json.serialize</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">json_encode</span><span class="p">,</span>
+    <span class="n">METHOD_STRIP_UNDERSCORE</span><span class="p">,</span>
+    <span class="n">register_for_json</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.reprfunc</span> <span class="k">import</span> <span class="n">simple_repr</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.sql.sql_grammar</span> <span class="k">import</span> <span class="n">format_sql</span><span class="p">,</span> <span class="n">SqlGrammar</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.tsv</span> <span class="k">import</span> <span class="n">make_tsv_row</span>
+<span class="kn">from</span> <span class="nn">django.db</span> <span class="k">import</span> <span class="n">connections</span><span class="p">,</span> <span class="n">DatabaseError</span><span class="p">,</span> <span class="n">models</span>
+<span class="kn">from</span> <span class="nn">django.db.models</span> <span class="k">import</span> <span class="n">QuerySet</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="k">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">django.http.request</span> <span class="k">import</span> <span class="n">HttpRequest</span>
+<span class="kn">from</span> <span class="nn">django.db.backends.utils</span> <span class="k">import</span> <span class="n">CursorWrapper</span>
+<span class="kn">from</span> <span class="nn">openpyxl.cell.cell</span> <span class="k">import</span> <span class="n">ILLEGAL_CHARACTERS_RE</span>
+<span class="kn">from</span> <span class="nn">openpyxl.workbook.workbook</span> <span class="k">import</span> <span class="n">Workbook</span>
+<span class="kn">from</span> <span class="nn">openpyxl.worksheet.worksheet</span> <span class="k">import</span> <span class="n">Worksheet</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.anonymise.models</span> <span class="k">import</span> <span class="n">PatientInfoConstants</span>
+<span class="kn">from</span> <span class="nn">crate_anon.common.sql</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">ColumnId</span><span class="p">,</span>
+    <span class="n">columns_to_table_column_hierarchy</span><span class="p">,</span>
+    <span class="n">escape_percent_for_python_dbapi</span><span class="p">,</span>
+    <span class="n">make_grammar</span><span class="p">,</span>
+    <span class="n">sql_string_literal</span><span class="p">,</span>
+    <span class="n">SqlArgsTupleType</span><span class="p">,</span>
+    <span class="n">TableId</span><span class="p">,</span>
+    <span class="n">translate_sql_qmark_to_percent</span><span class="p">,</span>
+    <span class="n">WhereCondition</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.crateweb.research.html_functions</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">HtmlElementCounter</span><span class="p">,</span>
+    <span class="n">N_CSS_HIGHLIGHT_CLASSES</span><span class="p">,</span>
+    <span class="n">prettify_sql_html</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.crateweb.research.research_db_info</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">RESEARCH_DB_CONNECTION_NAME</span><span class="p">,</span>
+    <span class="n">research_database_info</span><span class="p">,</span>
+    <span class="n">SingleResearchDatabase</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.crateweb.research.sql_writer</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">add_to_select</span><span class="p">,</span>
+    <span class="n">SelectElement</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Hacking django-pyodbc-azure, to stop it calling cursor.nextset() every time</span>
+<span class="c1"># you ask it to do cursor.fetchone()</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">DJANGO_PYODBC_AZURE_ENGINE</span> <span class="o">=</span> <span class="s1">&#39;sql_server.pyodbc&#39;</span>
+
+
+<span class="k">def</span> <span class="nf">replacement_sqlserver_pyodbc_cursorwrapper_fetchone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+    <span class="c1"># To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py</span>
+    <span class="c1">#</span>
+    <span class="c1"># log.critical(&quot;Using monkeypatched fetchone(); self: {}; self.cursor: &quot;</span>
+    <span class="c1">#              &quot;{}&quot;.format(repr(self), repr(self.cursor)))</span>
+    <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="c1"># BUT DO NOT CALL self.cursor.nextset()</span>
+    <span class="k">return</span> <span class="n">row</span>
+
+
+<span class="k">def</span> <span class="nf">hack_django_pyodbc_azure_cursorwrapper</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># I thought I wanted to modify an INSTANCE, not a CLASS.</span>
+    <span class="c1"># - https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/</span>
+    <span class="c1"># To modify a class, we do</span>
+    <span class="c1">#       SomeClass.method = newmethod</span>
+    <span class="c1"># But to modify an instance, we use</span>
+    <span class="c1">#       instance.method = types.MethodType(newmethod, instance)</span>
+    <span class="c1"># However, it turned out the instance was actually part of a long chain</span>
+    <span class="c1"># of cursor wrappers, including the Django debug toolbar; classes included</span>
+    <span class="c1">#       debug_toolbar.panels.sql.tracking.NormalCursorWrapper</span>
+    <span class="c1">#       django.db.backends.utils.CursorDebugWrapper</span>
+    <span class="c1"># and actually, modifying the class is a sensible thing.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># noinspection PyUnresolvedReferences</span>
+        <span class="kn">from</span> <span class="nn">sql_server.pyodbc.base</span> <span class="k">import</span> <span class="n">CursorWrapper</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Monkey-patching sql_server.pyodbc.base.CursorWrapper.&quot;</span>
+                 <span class="s2">&quot;fetchone to disable automatic call to cursor.nextset()&quot;</span><span class="p">)</span>
+        <span class="n">CursorWrapper</span><span class="o">.</span><span class="n">fetchone</span> <span class="o">=</span> <span class="n">replacement_sqlserver_pyodbc_cursorwrapper_fetchone</span>  <span class="c1"># noqa</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="k">return</span>
+
+
+<span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="s1">&#39;DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET&#39;</span><span class="p">,</span>
+           <span class="kc">True</span><span class="p">):</span>
+    <span class="c1"># http://stackoverflow.com/questions/5601590/how-to-define-a-default-value-for-a-custom-django-setting  # noqa</span>
+    <span class="n">hack_django_pyodbc_azure_cursorwrapper</span><span class="p">()</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Cursors</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">debug_query</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">connections</span><span class="p">[</span><span class="n">RESEARCH_DB_CONNECTION_NAME</span><span class="p">]</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT &#39;debug&#39;&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">get_executed_researchdb_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                   <span class="n">args</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CursorWrapper</span><span class="p">:</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">args</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">connections</span><span class="p">[</span><span class="n">RESEARCH_DB_CONNECTION_NAME</span><span class="p">]</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span> <span class="ow">or</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">DatabaseError</span> <span class="k">as</span> <span class="n">exception</span><span class="p">:</span>
+        <span class="n">add_info_to_exception</span><span class="p">(</span><span class="n">exception</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;sql&#39;</span><span class="p">:</span> <span class="n">sql</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">:</span> <span class="n">args</span><span class="p">})</span>
+        <span class="k">raise</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="k">return</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">closing</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Data going to Excel files</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">ILLEGAL_CHARACTERS_REPLACED_WITH</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="gen_excel_row_elements"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.gen_excel_row_elements">[docs]</a><span class="k">def</span> <span class="nf">gen_excel_row_elements</span><span class="p">(</span><span class="n">worksheet</span><span class="p">:</span> <span class="n">Worksheet</span><span class="p">,</span>
+                           <span class="n">row</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reasons for this function:</span>
+
+<span class="sd">    1.  Need a tuple/list/generator, as openpyxl checks its types manually.</span>
+
+<span class="sd">    - We want to have a Worksheet object from openpyxl, and say something like</span>
+<span class="sd">        ws.append(row)</span>
+<span class="sd">      where &quot;row&quot; has come from a database query.</span>
+<span class="sd">    - However, openpyxl doesn&#39;t believe in duck-typing; see Worksheet.append()</span>
+<span class="sd">      in openpyxl/worksheet/worksheet.py.</span>
+<span class="sd">      So sometimes the plain append works (e.g. from MySQL results), but</span>
+<span class="sd">      sometimes it fails, e.g. when the row is of type pyodbc.Row.</span>
+<span class="sd">    - So we must coerce it to a tuple, list, or generator.</span>
+<span class="sd">    - A generator will be the most efficient.</span>
+
+<span class="sd">    2.  If a string fails certain checks, openpyxl will raise an</span>
+<span class="sd">        IllegalCharacterError exception. We need to work around that. We&#39;ll use</span>
+<span class="sd">        the &quot;forgiveness, not permission&quot; maxim.</span>
+<span class="sd">        Specifically, it dislikes strings matching its ILLEGAL_CHARACTERS_RE,</span>
+<span class="sd">        which contains unprintable low characters matching this:</span>
+<span class="sd">            r&#39;[\000-\010]|[\013-\014]|[\016-\037]&#39;</span>
+<span class="sd">        ... note the use of octal; \037 is decimal 31.</span>
+
+<span class="sd">        openpyxl gets to its Cell.check_string() function for these types:</span>
+<span class="sd">            STRING_TYPES = (basestring, unicode, bytes)</span>
+<span class="sd">        ... which in Python 3, means (str, str, bytes).</span>
+<span class="sd">        So we should check str and bytes. (For bytes, we&#39;ll follow its method</span>
+<span class="sd">        of converting to str in the encoding of the worksheet&#39;s choice.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
+            <span class="c1"># Convert to str using the worksheet&#39;s encoding.</span>
+            <span class="n">element</span> <span class="o">=</span> <span class="n">element</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">worksheet</span><span class="o">.</span><span class="n">encoding</span><span class="p">)</span>
+            <span class="c1"># ... or: str(element, encoding)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">ILLEGAL_CHARACTERS_RE</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="n">ILLEGAL_CHARACTERS_REPLACED_WITH</span><span class="p">,</span>
+                                            <span class="n">element</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">element</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Query highlighting class</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">HIGHLIGHT_FWD_REF</span> <span class="o">=</span> <span class="s2">&quot;Highlight&quot;</span>
+
+
+<div class="viewcode-block" id="Highlight"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.Highlight">[docs]</a><span class="k">class</span> <span class="nc">Highlight</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents the highlighting of a query.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># automatic</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">)</span>
+    <span class="n">colour</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveSmallIntegerField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s2">&quot;Colour number&quot;</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">255</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s2">&quot;Text to highlight&quot;</span><span class="p">)</span>
+    <span class="n">active</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;colour=</span><span class="si">{}</span><span class="s2">, text=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colour</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_safe_colour</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">colour</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">colour</span><span class="p">,</span> <span class="n">N_CSS_HIGHLIGHT_CLASSES</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">as_ordered_dict</span><span class="p">(</span><span class="n">highlight_list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">HIGHLIGHT_FWD_REF</span><span class="p">]]:</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">highlight</span> <span class="ow">in</span> <span class="n">highlight_list</span><span class="p">:</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="n">highlight</span><span class="o">.</span><span class="n">get_safe_colour</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">d</span><span class="p">:</span>
+                <span class="n">d</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[HIGHLIGHT_FWD_REF]</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">highlight</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_active_highlights</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QuerySet</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Highlight</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">deactivate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Query class</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">QUERY_FWD_REF</span> <span class="o">=</span> <span class="s2">&quot;Query&quot;</span>
+
+
+<div class="viewcode-block" id="Query"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.Query">[docs]</a><span class="k">class</span> <span class="nc">Query</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to query the research database.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">app_label</span> <span class="o">=</span> <span class="s2">&quot;research&quot;</span>
+
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># automatic</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">)</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;SQL query&#39;</span><span class="p">)</span>
+    <span class="n">sql_hash</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigIntegerField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;64-bit non-cryptographic hash of SQL query&#39;</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">JsonClassField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;SQL arguments (as JSON)&#39;</span><span class="p">,</span> <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># ... https://github.com/shrubberysoft/django-picklefield</span>
+    <span class="n">raw</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;SQL is raw, not parameter-substituted&#39;</span><span class="p">)</span>
+    <span class="n">qmark</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Parameter-substituted SQL uses ?, not </span><span class="si">%s</span><span class="s1">, &#39;</span>
+        <span class="s1">&#39;as placeholders&#39;</span><span class="p">)</span>
+    <span class="n">active</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># see save() below</span>
+    <span class="n">created</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">deleted</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">&quot;Deleted from the user&#39;s perspective. &quot;</span>
+                     <span class="s2">&quot;Audited queries are never properly deleted.&quot;</span><span class="p">)</span>
+    <span class="n">audited</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">simple_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;user&#39;</span><span class="p">,</span> <span class="s1">&#39;sql&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="s1">&#39;raw&#39;</span><span class="p">,</span> <span class="s1">&#39;qmark&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;active&#39;</span><span class="p">,</span> <span class="s1">&#39;created&#39;</span><span class="p">,</span> <span class="s1">&#39;deleted&#39;</span><span class="p">,</span> <span class="s1">&#39;audited&#39;</span><span class="p">])</span>
+
+<div class="viewcode-block" id="Query.save"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.Query.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Custom save method.</span>
+<span class="sd">        Ensures that only one Query has active == True for a given user.</span>
+<span class="sd">        Also sets the hash.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">active</span><span class="p">:</span>
+            <span class="n">Query</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>\
+                         <span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sql_hash</span> <span class="o">=</span> <span class="n">hash64</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Fetching</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_active_query_or_none</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">QUERY_FWD_REF</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Query</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">Query</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_active_query_id_or_none</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">query</span> <span class="o">=</span> <span class="n">Query</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">except</span> <span class="n">Query</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Activating, deleting, auditing</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mark_audited</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audited</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audited</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mark_deleted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
+            <span class="c1"># log.debug(&quot;pointless&quot;)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># log.debug(&quot;about to save&quot;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="c1"># log.debug(&quot;saved&quot;)</span>
+
+<div class="viewcode-block" id="Query.delete_if_permitted"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.Query.delete_if_permitted">[docs]</a>    <span class="k">def</span> <span class="nf">delete_if_permitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;If a query has been audited, it isn&#39;t properly deleted.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;already flagged as deleted&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audited</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;marking as deleted&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mark_deleted</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># actually delete</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;actually deleting&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">audit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">count_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">n_records</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+              <span class="n">failed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">fail_msg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">QueryAudit</span><span class="p">(</span><span class="n">query</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">count_only</span><span class="o">=</span><span class="n">count_only</span><span class="p">,</span>
+                       <span class="n">n_records</span><span class="o">=</span><span class="n">n_records</span><span class="p">,</span>
+                       <span class="n">failed</span><span class="o">=</span><span class="n">failed</span><span class="p">,</span>
+                       <span class="n">fail_msg</span><span class="o">=</span><span class="n">fail_msg</span><span class="p">)</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_audited</span><span class="p">()</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># SQL queries</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">get_original_sql</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="c1"># noinspection PyTypeChecker</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span>
+
+<div class="viewcode-block" id="Query.get_sql_args_for_django"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.Query.get_sql_args_for_django">[docs]</a>    <span class="k">def</span> <span class="nf">get_sql_args_for_django</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get sql/args in a format suitable for Django, with %s placeholders,</span>
+<span class="sd">        or as escaped raw SQL.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw</span><span class="p">:</span>
+            <span class="c1"># noinspection PyTypeChecker</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="n">escape_percent_for_python_dbapi</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">)</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">qmark</span><span class="p">:</span>
+                <span class="c1"># noinspection PyTypeChecker</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="n">translate_sql_qmark_to_percent</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sql</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sql</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sql</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">args</span>
+        <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span></div>
+
+<div class="viewcode-block" id="Query.get_executed_cursor"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.Query.get_executed_cursor">[docs]</a>    <span class="k">def</span> <span class="nf">get_executed_cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sql_append_raw</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CursorWrapper</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get cursor with a query executed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_sql_args_for_django</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">sql_append_raw</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="n">sql_append_raw</span>
+        <span class="k">return</span> <span class="n">get_executed_researchdb_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+    <span class="c1"># def gen_rows(self,</span>
+    <span class="c1">#              firstrow: int = 0,</span>
+    <span class="c1">#              lastrow: int = None) -&gt; Generator[List[Any], None, None]:</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Generate rows from the query.</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     if firstrow &gt; 0 or lastrow is not None:</span>
+    <span class="c1">#         sql_append_raw = &quot; LIMIT {f},{n}&quot;.format(</span>
+    <span class="c1">#             f=firstrow,</span>
+    <span class="c1">#             n=(lastrow - firstrow + 1),</span>
+    <span class="c1">#         )</span>
+    <span class="c1">#         # zero-indexed;</span>
+    <span class="c1">#         # http://dev.mysql.com/doc/refman/5.0/en/select.html</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         sql_append_raw = None</span>
+    <span class="c1">#     with self.get_executed_cursor(sql_append_raw) as cursor:</span>
+    <span class="c1">#         row = cursor.fetchone()</span>
+    <span class="c1">#         while row is not None:</span>
+    <span class="c1">#             yield row</span>
+    <span class="c1">#             row = cursor.fetchone()</span>
+
+    <span class="k">def</span> <span class="nf">make_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executed_cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">fieldnames</span> <span class="o">=</span> <span class="n">get_fieldnames_from_cursor</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span>
+            <span class="n">tsv</span> <span class="o">=</span> <span class="n">make_tsv_row</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">)</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">while</span> <span class="n">row</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">tsv</span> <span class="o">+=</span> <span class="n">make_tsv_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">tsv</span>
+
+    <span class="k">def</span> <span class="nf">make_excel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="n">wb</span> <span class="o">=</span> <span class="n">Workbook</span><span class="p">()</span>
+        <span class="n">wb</span><span class="o">.</span><span class="n">remove_sheet</span><span class="p">(</span><span class="n">wb</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>  <span class="c1"># remove the autocreated blank sheet</span>
+        <span class="n">sheetname</span> <span class="o">=</span> <span class="s2">&quot;query_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="n">sheetname</span><span class="p">)</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executed_cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">fieldnames</span> <span class="o">=</span> <span class="n">get_fieldnames_from_cursor</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span>
+            <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">)</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">while</span> <span class="n">row</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gen_excel_row_elements</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">row</span><span class="p">))</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+                <span class="c1"># BUG in django-pyodbc-azure==1.10.4.0 (providing</span>
+                <span class="c1"># sql_server/*), 2017-02-17: this causes</span>
+                <span class="c1"># ProgrammingError &quot;No results. Previous SQL was not a query.&quot;</span>
+                <span class="c1"># The problem relates to sql_server/pyodbc/base.py</span>
+                <span class="c1"># CursorWrapper.fetchone() calling self.cursor.nextset(); if</span>
+                <span class="c1"># you comment this out, it works fine.</span>
+                <span class="c1"># Related:</span>
+                <span class="c1"># - https://github.com/pymssql/pymssql/issues/98</span>
+
+        <span class="n">sql_ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;SQL&quot;</span><span class="p">)</span>
+        <span class="n">sql_ws</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s2">&quot;SQL&quot;</span><span class="p">,</span> <span class="s2">&quot;Executed_at&quot;</span><span class="p">])</span>
+        <span class="n">sql_ws</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">get_original_sql</span><span class="p">(),</span> <span class="n">now</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">excel_to_bytes</span><span class="p">(</span><span class="n">wb</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Query.dictfetchall"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.Query.dictfetchall">[docs]</a>    <span class="k">def</span> <span class="nf">dictfetchall</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Generates all results as a list of OrderedDicts.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executed_cursor</span><span class="p">()</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dictfetchall</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Query auditing class</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="QueryAudit"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.QueryAudit">[docs]</a><span class="k">class</span> <span class="nc">QueryAudit</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Audit log for a query.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># automatic</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;Query&#39;</span><span class="p">)</span>
+    <span class="n">when</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">count_only</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">n_records</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># ... not PositiveIntegerField; SQL Server gives -1, for example</span>
+    <span class="n">failed</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">fail_msg</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;QueryAudit id=</span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Lookup class for secret RID-to-PID conversion</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># class PidLookupRouter(object):</span>
+<span class="c1">#     # https://docs.djangoproject.com/en/1.8/topics/db/multi-db/</span>
+<span class="c1">#     # https://newcircle.com/s/post/1242/django_multiple_database_support</span>
+<span class="c1">#     # noinspection PyMethodMayBeStatic,PyUnusedLocal</span>
+<span class="c1">#     def db_for_read(self, model: Type[models.Model], **hints) -&gt; Optional[str]:  # noqa</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         read model PidLookup -&gt; look at database secret</span>
+<span class="c1">#         &quot;&quot;&quot;</span>
+<span class="c1">#         # log.debug(&quot;PidLookupRouter: {}&quot;.format(model._meta.model_name))</span>
+<span class="c1">#         # if model._meta.model_name == PidLookup._meta.model_name:</span>
+<span class="c1">#         if model == PidLookup:</span>
+<span class="c1">#             return &#39;secret&#39;</span>
+<span class="c1">#         return None</span>
+<span class="c1">#</span>
+<span class="c1">#     # noinspection PyUnusedLocal</span>
+<span class="c1">#     @staticmethod</span>
+<span class="c1">#     def allow_migrate(db: str, app_label: str, model_name: str = None,</span>
+<span class="c1">#                       **hints) -&gt; bool:</span>
+<span class="c1">#         # 2017-02-12, to address bug:</span>
+<span class="c1">#         # - https://code.djangoproject.com/ticket/27054</span>
+<span class="c1">#         # See also:</span>
+<span class="c1">#         # - https://docs.djangoproject.com/en/1.10/topics/db/multi-db/#using-other-management-commands  # noqa</span>
+<span class="c1">#         return db == &#39;default&#39;</span>
+
+
+<div class="viewcode-block" id="PidLookup"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PidLookup">[docs]</a><span class="k">class</span> <span class="nc">PidLookup</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Lookup class for secret RID-to-PID conversion.</span>
+<span class="sd">    Used via one or other of the &#39;secret&#39; database connections.</span>
+<span class="sd">    Intended for READ-ONLY access to that table.</span>
+
+<span class="sd">    Since we have fixed the tablenames for the anonymiser, we remove the</span>
+<span class="sd">    settings.SECRET_MAP option. See PatientInfo in</span>
+<span class="sd">    crate_anon/anonymise/models.py. Moreover, we fix the maximum length,</span>
+<span class="sd">    regardless of the specifics of the config used.</span>
+
+<span class="sd">    Use as e.g. Lookup(pid=XXX)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pid</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveIntegerField</span><span class="p">(</span>
+        <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="n">PatientInfoConstants</span><span class="o">.</span><span class="n">PID_FIELDNAME</span><span class="p">)</span>
+    <span class="n">mpid</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveIntegerField</span><span class="p">(</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="n">PatientInfoConstants</span><span class="o">.</span><span class="n">MPID_FIELDNAME</span><span class="p">)</span>
+    <span class="n">rid</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="n">PatientInfoConstants</span><span class="o">.</span><span class="n">RID_FIELDNAME</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="n">get_longest_supported_hasher_output_length</span><span class="p">())</span>
+    <span class="n">mrid</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="n">PatientInfoConstants</span><span class="o">.</span><span class="n">MRID_FIELDNAME</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="n">get_longest_supported_hasher_output_length</span><span class="p">())</span>
+    <span class="n">trid</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveIntegerField</span><span class="p">(</span>
+        <span class="n">db_column</span><span class="o">=</span><span class="n">PatientInfoConstants</span><span class="o">.</span><span class="n">TRID_FIELDNAME</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">managed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">db_table</span> <span class="o">=</span> <span class="n">PatientInfoConstants</span><span class="o">.</span><span class="n">SECRET_MAP_TABLENAME</span>
+
+    <span class="c1"># https://stackoverflow.com/questions/12158463/how-can-i-make-a-model-read-only  # noqa</span>
+<div class="viewcode-block" id="PidLookup.save"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PidLookup.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span></div>
+
+    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span></div>
+
+
+<span class="k">def</span> <span class="nf">get_pid_lookup</span><span class="p">(</span><span class="n">dbinfo</span><span class="p">:</span> <span class="n">SingleResearchDatabase</span><span class="p">,</span>
+                   <span class="n">pid</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">mpid</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">trid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">rid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">mrid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PidLookup</span><span class="p">]:</span>
+    <span class="n">dbalias</span> <span class="o">=</span> <span class="n">dbinfo</span><span class="o">.</span><span class="n">secret_lookup_db</span>
+    <span class="k">assert</span> <span class="n">dbalias</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">PidLookup</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">using</span><span class="p">(</span><span class="n">dbalias</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">trid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lookup</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">trid</span><span class="o">=</span><span class="n">trid</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">rid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lookup</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">rid</span><span class="o">=</span><span class="n">rid</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mrid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lookup</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mrid</span><span class="o">=</span><span class="n">mrid</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">pid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lookup</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">pid</span><span class="o">=</span><span class="n">pid</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mpid</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">lookup</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">mpid</span><span class="o">=</span><span class="n">mpid</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;no input&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lookup</span>
+
+
+<span class="k">def</span> <span class="nf">get_mpid</span><span class="p">(</span><span class="n">dbinfo</span><span class="p">:</span> <span class="n">SingleResearchDatabase</span><span class="p">,</span>
+             <span class="n">trid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="n">rid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="n">mrid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">lookup</span> <span class="o">=</span> <span class="n">get_pid_lookup</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">=</span><span class="n">dbinfo</span><span class="p">,</span> <span class="n">trid</span><span class="o">=</span><span class="n">trid</span><span class="p">,</span> <span class="n">rid</span><span class="o">=</span><span class="n">rid</span><span class="p">,</span> <span class="n">mrid</span><span class="o">=</span><span class="n">mrid</span><span class="p">)</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="k">return</span> <span class="n">lookup</span><span class="o">.</span><span class="n">mpid</span>
+
+
+<span class="k">def</span> <span class="nf">get_pid</span><span class="p">(</span><span class="n">dbinfo</span><span class="p">:</span> <span class="n">SingleResearchDatabase</span><span class="p">,</span>
+            <span class="n">trid</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">rid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">mrid</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="n">lookup</span> <span class="o">=</span> <span class="n">get_pid_lookup</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">=</span><span class="n">dbinfo</span><span class="p">,</span> <span class="n">trid</span><span class="o">=</span><span class="n">trid</span><span class="p">,</span> <span class="n">rid</span><span class="o">=</span><span class="n">rid</span><span class="p">,</span> <span class="n">mrid</span><span class="o">=</span><span class="n">mrid</span><span class="p">)</span>
+    <span class="c1"># noinspection PyTypeChecker</span>
+    <span class="k">return</span> <span class="n">lookup</span><span class="o">.</span><span class="n">pid</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Patient Explorer multi-query class</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">1. Patient ID query</span>
+
+<span class="sd">- Single database is easy; we can use RID or TRID, and therefore TRID for</span>
+<span class="sd">  performance.</span>
+<span class="sd">  Note that UNION gives only DISTINCT results by default (&quot;UNION ALL&quot; gives</span>
+<span class="sd">  everything).</span>
+<span class="sd">  ... http://stackoverflow.com/questions/49925/what-is-the-difference-between-union-and-union-all</span>
+
+<span class="sd">    -- Clear, but extensibility of boolean logic less clear:</span>
+<span class="sd">    SELECT trid</span>
+<span class="sd">        FROM diagnosis_table</span>
+<span class="sd">        WHERE diagnosis LIKE &#39;F20%&#39;</span>
+<span class="sd">    INTERSECT</span>
+<span class="sd">    SELECT trid</span>
+<span class="sd">        FROM progress_note_table</span>
+<span class="sd">        WHERE note LIKE &#39;%schizophreni%&#39; OR note LIKE &#39;%depression%&#39;</span>
+<span class="sd">    ORDER BY trid</span>
+<span class="sd">    ... logic across tables requires careful arrangement of UNION vs. INTERSECT</span>
+<span class="sd">    ... logic for multiple fields within one table can be done with AND/OR</span>
+
+<span class="sd">    -- Slower (?), but simpler to manipulate logic?</span>
+<span class="sd">    SELECT DISTINCT something.trid</span>
+<span class="sd">    FROM diagnosis_table INNER JOIN progress_note_table</span>
+<span class="sd">    ON diagnosis_table.trid = progress_note_table.trid</span>
+<span class="sd">    WHERE</span>
+<span class="sd">        diagnosis_table.diagnosis LIKE &#39;F20%&#39;</span>
+<span class="sd">        AND (progress_note_table.note LIKE &#39;%schizophreni%&#39;</span>
+<span class="sd">             OR progress_note_table.notenote LIKE &#39;%depression%&#39;)</span>
+<span class="sd">    ORDER BY something.trid</span>
+<span class="sd">    -- ... boolean logic can all be encapsulated in a single WHERE clause</span>
+<span class="sd">    -- ... can also share existing join code</span>
+<span class="sd">    -- ... ?reasonable speed since the TRID fields will be indexed</span>
+<span class="sd">    -- ... preferable.</span>
+
+<span class="sd">1b. Which ID for the patient ID query</span>
+
+<span class="sd">    ... the TRID (for speed, inc. sorting) of the first database</span>
+<span class="sd">    ... can use the TRID from the first &quot;where clause&quot; table</span>
+<span class="sd">        (don&#39;t have to join to a master patient table)</span>
+<span class="sd">    ... join everything across databases as before</span>
+
+<span class="sd">2. Results queries</span>
+
+<span class="sd">    -- Something like:</span>
+
+<span class="sd">    SELECT rid, date_of_note, note</span>
+<span class="sd">    FROM progress_note_table</span>
+<span class="sd">    WHERE trid IN ( ... patient_id_query ... )</span>
+<span class="sd">    ORDER BY trid</span>
+
+<span class="sd">    SELECT rid, date_of_diagnosis, diagnosis, diagnosis_description</span>
+<span class="sd">    FROM diagnosis_table</span>
+<span class="sd">    WHERE trid IN ( ... patient_id_query ... )</span>
+<span class="sd">    ORDER BY trid</span>
+
+
+<span class="sd">This means we will repeat the patient_id_query, which may be inefficient.</span>
+<span class="sd">Options:</span>
+<span class="sd">- store the TRIDs in Python, then pass them as arguments</span>
+<span class="sd">  ... at which point the SQL string/packet length becomes relevant;</span>
+<span class="sd">  ... http://stackoverflow.com/questions/1869753/maximum-size-for-a-sql-server-query-in-clause-is-there-a-better-approach</span>
+<span class="sd">  ... http://stackoverflow.com/questions/16335011/what-is-maximum-query-size-for-mysql</span>
+<span class="sd">  ... http://stackoverflow.com/questions/96553/practical-limit-to-length-of-sql-query-specifically-mysql</span>
+<span class="sd">- let the database worry about it</span>
+<span class="sd">  ... probably best for now!</span>
+
+
+<span class="sd">3. Display</span>
+
+<span class="sd">    One patient per page, with multiple results tables.</span>
+
+<span class="sd">===========</span>
+
+<span class="sd">- Boolean logic on patient selection</span>
+<span class="sd">    ... within</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># PatientMultiQuery</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="nd">@register_for_json</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">METHOD_STRIP_UNDERSCORE</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">PatientMultiQuery</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">output_columns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ColumnId</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">patient_conditions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">WhereCondition</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">manual_patient_id_query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span> <span class="o">=</span> <span class="n">output_columns</span> <span class="ow">or</span> <span class="p">[]</span>  <span class="c1"># type: List[ColumnId]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span> <span class="o">=</span> <span class="n">patient_conditions</span> <span class="ow">or</span> <span class="p">[]</span>  <span class="c1"># type: List[WhereCondition]  # noqa</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span> <span class="o">=</span> <span class="n">manual_patient_id_query</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="s2">&quot;&lt;</span><span class="si">{qualname}</span><span class="s2">(&quot;</span>
+            <span class="s2">&quot;output_columns=</span><span class="si">{output_columns}</span><span class="s2">, &quot;</span>
+            <span class="s2">&quot;patient_conditions=</span><span class="si">{patient_conditions}</span><span class="s2">, &quot;</span>
+            <span class="s2">&quot;manual_patient_id_query=</span><span class="si">{manual_patient_id_query}</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;) at </span><span class="si">{addr}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">qualname</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__qualname__</span><span class="p">,</span>
+                <span class="n">output_columns</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span><span class="p">),</span>
+                <span class="n">patient_conditions</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="p">),</span>
+                <span class="n">manual_patient_id_query</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span><span class="p">),</span>
+                <span class="n">addr</span><span class="o">=</span><span class="nb">hex</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)),</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="s1">&#39;PatientMultiQuery&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_output_columns</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_patient_conditions</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">_manual_patient_id_query</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        WARNING: Python&#39;s hash() function converts the result of __hash__()</span>
+<span class="sd">        to the integer width of the host machine, so 64-bit results can get</span>
+<span class="sd">        down-converted to 32 bits. Use hash64() directly if you want a 64-bit</span>
+<span class="sd">        result.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hash64</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">hash64</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">hash64</span><span class="p">(</span><span class="n">json_encode</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">output_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ColumnId</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_output_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ok_to_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_output_columns</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_patient_id_query</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">patient_conditions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">WhereCondition</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">manual_patient_id_query</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span>
+
+    <span class="k">def</span> <span class="nf">add_output_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_id</span><span class="p">:</span> <span class="n">ColumnId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">column_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">clear_output_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">add_patient_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">where</span><span class="p">:</span> <span class="n">WhereCondition</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">where</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">where</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">clear_patient_conditions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">set_override_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span> <span class="o">=</span> <span class="n">query</span>
+
+    <span class="k">def</span> <span class="nf">_get_select_mrid_column</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ColumnId</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_linked_mrid_column</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">table_id</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_patient_id_query</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="p">:</span>
+            <span class="n">mrid_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_select_mrid_column</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">mrid_col</span> <span class="ow">and</span> <span class="n">mrid_col</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">patient_id_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">with_order_by</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="c1"># Returns an SQL SELECT statement based on the list of WHERE conditions</span>
+        <span class="c1"># already stored, joined with AND by default.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span><span class="p">:</span>
+            <span class="c1"># User has specified one manually.</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_manual_patient_id_query</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+
+        <span class="n">grammar</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">grammar</span>
+        <span class="n">select_mrid_column</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_select_mrid_column</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">select_mrid_column</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;PatientMultiQuery.patient_id_query(): invalid &quot;</span>
+                <span class="s2">&quot;select_mrid_column: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">select_mrid_column</span><span class="p">)))</span>
+            <span class="c1"># One way this can happen: (1) a user saves a PMQ; (2) the</span>
+            <span class="c1"># administrator removes one of the databases!</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">mrid_alias</span> <span class="o">=</span> <span class="s2">&quot;_mrid&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">add_to_select</span><span class="p">(</span>
+            <span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">grammar</span><span class="o">=</span><span class="n">grammar</span><span class="p">,</span>
+            <span class="n">select_elements</span><span class="o">=</span><span class="p">[</span><span class="n">SelectElement</span><span class="p">(</span><span class="n">column_id</span><span class="o">=</span><span class="n">select_mrid_column</span><span class="p">,</span>
+                                           <span class="n">alias</span><span class="o">=</span><span class="n">mrid_alias</span><span class="p">)],</span>
+            <span class="n">distinct</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">where_conditions</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_patient_conditions</span> <span class="o">+</span> <span class="p">[</span><span class="n">WhereCondition</span><span class="p">(</span>
+                <span class="n">column_id</span><span class="o">=</span><span class="n">select_mrid_column</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="s2">&quot;IS NOT NULL&quot;</span><span class="p">)]),</span>
+            <span class="n">where_type</span><span class="o">=</span><span class="s2">&quot;AND&quot;</span><span class="p">,</span>
+            <span class="n">magic_join</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">formatted</span><span class="o">=</span><span class="kc">False</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">with_order_by</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot; ORDER BY &quot;</span> <span class="o">+</span> <span class="n">mrid_alias</span>
+            <span class="c1"># ... ORDER BY is important for consistency across runs</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">format_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+        <span class="c1"># log.critical(sql)</span>
+        <span class="k">return</span> <span class="n">sql</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">all_full_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">TableId</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_queries</span><span class="p">(</span><span class="n">mrids</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">all_queries_specific_patients</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">mrids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">TableId</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_queries</span><span class="p">(</span><span class="n">mrids</span><span class="o">=</span><span class="n">mrids</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">all_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">mrids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">TableId</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span>
+                                                           <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="n">queries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">table_columns_map</span> <span class="o">=</span> <span class="n">columns_to_table_column_hierarchy</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_output_columns</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">table</span><span class="p">,</span> <span class="n">columns</span> <span class="ow">in</span> <span class="n">table_columns_map</span><span class="p">:</span>
+            <span class="n">table_sql_args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">make_query</span><span class="p">(</span><span class="n">table_id</span><span class="o">=</span><span class="n">table</span><span class="p">,</span>
+                                             <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">,</span>
+                                             <span class="n">mrids</span><span class="o">=</span><span class="n">mrids</span><span class="p">)</span>
+            <span class="n">queries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table_sql_args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">queries</span>
+
+    <span class="k">def</span> <span class="nf">where_patient_clause</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_id</span><span class="p">:</span> <span class="n">TableId</span><span class="p">,</span>
+                             <span class="n">grammar</span><span class="p">:</span> <span class="n">SqlGrammar</span><span class="p">,</span>
+                             <span class="n">mrids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SqlArgsTupleType</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns (sql, args).&quot;&quot;&quot;</span>
+        <span class="n">mrid_column</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_mrid_column_from_table</span><span class="p">(</span>
+            <span class="n">table_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mrids</span><span class="p">:</span>
+            <span class="n">in_clause</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;?&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">mrids</span><span class="p">))</span>
+            <span class="c1"># ... see notes for translate_sql_qmark_to_percent()</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">mrids</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># If we haven&#39;t specified specific patients, use our patient-</span>
+            <span class="c1"># finding query.</span>
+            <span class="n">in_clause</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_id_query</span><span class="p">(</span><span class="n">with_order_by</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># ... SQL Server moans if you use use ORDER BY in a subquery:</span>
+            <span class="c1"># &quot;The ORDER BY clause is invalid in views, inline functions,</span>
+            <span class="c1"># derived tables, subqueries, ... unless TOP, OFFSET or FOR XML</span>
+            <span class="c1"># is specified.&quot;</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{mrid}</span><span class="s2"> IN (</span><span class="si">{in_clause}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">mrid</span><span class="o">=</span><span class="n">mrid_column</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">),</span>
+            <span class="n">in_clause</span><span class="o">=</span><span class="n">in_clause</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span>
+
+    <span class="k">def</span> <span class="nf">make_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">table_id</span><span class="p">:</span> <span class="n">TableId</span><span class="p">,</span>
+                   <span class="n">columns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ColumnId</span><span class="p">],</span>
+                   <span class="n">mrids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">TableId</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">columns</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No columns specified&quot;</span><span class="p">)</span>
+        <span class="n">grammar</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">grammar</span>
+        <span class="n">mrid_column</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_mrid_column_from_table</span><span class="p">(</span>
+            <span class="n">table_id</span><span class="p">)</span>
+        <span class="n">all_columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">mrid_column</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_columns</span><span class="p">:</span>
+                <span class="n">all_columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="n">where_clause</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">where_patient_clause</span><span class="p">(</span><span class="n">table_id</span><span class="p">,</span> <span class="n">grammar</span><span class="p">,</span>
+                                                       <span class="n">mrids</span><span class="p">)</span>
+        <span class="n">select_elements</span> <span class="o">=</span> <span class="p">[</span><span class="n">SelectElement</span><span class="p">(</span><span class="n">column_id</span><span class="o">=</span><span class="n">col</span><span class="p">)</span>
+                           <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">all_columns</span><span class="p">]</span>
+        <span class="n">where_conditions</span> <span class="o">=</span> <span class="p">[</span><span class="n">WhereCondition</span><span class="p">(</span><span class="n">raw_sql</span><span class="o">=</span><span class="n">where_clause</span><span class="p">)]</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">add_to_select</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                            <span class="n">grammar</span><span class="o">=</span><span class="n">grammar</span><span class="p">,</span>
+                            <span class="n">select_elements</span><span class="o">=</span><span class="n">select_elements</span><span class="p">,</span>
+                            <span class="n">where_conditions</span><span class="o">=</span><span class="n">where_conditions</span><span class="p">,</span>
+                            <span class="n">magic_join</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">formatted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table_id</span><span class="p">,</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Display</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">output_cols_html</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">grammar</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">grammar</span>
+        <span class="k">return</span> <span class="n">prettify_sql_html</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">column_id</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">)</span>
+             <span class="k">for</span> <span class="n">column_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_columns</span><span class="p">]))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">pt_conditions_html</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">grammar</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">grammar</span>
+        <span class="k">return</span> <span class="n">prettify_sql_html</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">AND &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+            <span class="n">wc</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="n">grammar</span><span class="p">)</span> <span class="k">for</span> <span class="n">wc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_conditions</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">summary_html</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element_counter</span><span class="p">:</span> <span class="n">HtmlElementCounter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">collapser</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">element_counter</span><span class="o">.</span><span class="n">overflow_div</span><span class="p">(</span><span class="n">contents</span><span class="o">=</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">outcols</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_cols_html</span>
+        <span class="n">manual_query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">manual_patient_id_query</span>
+        <span class="k">if</span> <span class="n">manual_query</span><span class="p">:</span>
+            <span class="n">manual_or_auto</span> <span class="o">=</span> <span class="s2">&quot; (MANUAL)&quot;</span>
+            <span class="n">ptselect</span> <span class="o">=</span> <span class="n">prettify_sql_html</span><span class="p">(</span><span class="n">manual_query</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">manual_or_auto</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">ptselect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pt_conditions_html</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            Output columns:&lt;br&gt;</span>
+<span class="s2">            </span><span class="si">{outcols}</span><span class="s2"></span>
+<span class="s2">            Patient selection:&lt;br&gt;</span>
+<span class="s2">            </span><span class="si">{ptselect}</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">outcols</span><span class="o">=</span><span class="n">collapser</span><span class="p">(</span><span class="n">outcols</span><span class="p">),</span>
+            <span class="n">manual_or_auto</span><span class="o">=</span><span class="n">manual_or_auto</span><span class="p">,</span>
+            <span class="n">ptselect</span><span class="o">=</span><span class="n">collapser</span><span class="p">(</span><span class="n">ptselect</span><span class="p">),</span>
+        <span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Data finder: COUNT(*) for all patient tables</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">gen_data_finder_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mrids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates (table_identifier, sql, args).</span>
+<span class="sd">        When executed, query gives:</span>
+<span class="sd">            research_id, table_name, n_records, min_date, max_date</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">grammar</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">grammar</span>
+        <span class="n">mrid_alias</span> <span class="o">=</span> <span class="s1">&#39;master_research_id&#39;</span>
+        <span class="n">table_name_alias</span> <span class="o">=</span> <span class="s1">&#39;table_name&#39;</span>
+        <span class="n">n_records_alias</span> <span class="o">=</span> <span class="s1">&#39;n_records&#39;</span>
+        <span class="n">min_date_alias</span> <span class="o">=</span> <span class="s1">&#39;min_date&#39;</span>
+        <span class="n">max_date_alias</span> <span class="o">=</span> <span class="s1">&#39;max_date&#39;</span>
+        <span class="k">for</span> <span class="n">table_id</span> <span class="ow">in</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_mrid_linkable_patient_tables</span><span class="p">():</span>  <span class="c1"># noqa</span>
+            <span class="n">mrid_col</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_mrid_column_from_table</span><span class="p">(</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">table_id</span><span class="p">)</span>
+            <span class="n">date_col</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_default_date_column</span><span class="p">(</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">table_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">date_col</span><span class="p">:</span>
+                <span class="n">min_date</span> <span class="o">=</span> <span class="s2">&quot;MIN(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">date_col</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">))</span>
+                <span class="n">max_date</span> <span class="o">=</span> <span class="s2">&quot;MAX(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">date_col</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">min_date</span> <span class="o">=</span> <span class="s2">&quot;NULL&quot;</span>
+                <span class="n">max_date</span> <span class="o">=</span> <span class="s2">&quot;NULL&quot;</span>
+                <span class="c1"># ... OK (at least in MySQL) to do:</span>
+                <span class="c1"># SELECT col1, COUNT(*), NULL FROM table GROUP BY col1;</span>
+            <span class="n">where_clause</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">where_patient_clause</span><span class="p">(</span>
+                <span class="n">table_id</span><span class="p">,</span> <span class="n">grammar</span><span class="p">,</span> <span class="n">mrids</span><span class="p">)</span>
+            <span class="n">table_identifier</span> <span class="o">=</span> <span class="n">table_id</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">)</span>
+            <span class="n">select_elements</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">SelectElement</span><span class="p">(</span><span class="n">column_id</span><span class="o">=</span><span class="n">mrid_col</span><span class="p">,</span> <span class="n">alias</span><span class="o">=</span><span class="n">mrid_alias</span><span class="p">),</span>
+                <span class="n">SelectElement</span><span class="p">(</span><span class="n">raw_select</span><span class="o">=</span><span class="n">sql_string_literal</span><span class="p">(</span><span class="n">table_identifier</span><span class="p">),</span>
+                              <span class="n">alias</span><span class="o">=</span><span class="n">table_name_alias</span><span class="p">),</span>
+                <span class="n">SelectElement</span><span class="p">(</span><span class="n">raw_select</span><span class="o">=</span><span class="s1">&#39;COUNT(*)&#39;</span><span class="p">,</span>
+                              <span class="n">from_table_for_raw_select</span><span class="o">=</span><span class="n">table_id</span><span class="p">,</span>
+                              <span class="n">alias</span><span class="o">=</span><span class="n">n_records_alias</span><span class="p">),</span>
+                <span class="n">SelectElement</span><span class="p">(</span><span class="n">raw_select</span><span class="o">=</span><span class="n">min_date</span><span class="p">,</span>
+                              <span class="n">from_table_for_raw_select</span><span class="o">=</span><span class="n">table_id</span><span class="p">,</span>
+                              <span class="n">alias</span><span class="o">=</span><span class="n">min_date_alias</span><span class="p">),</span>
+                <span class="n">SelectElement</span><span class="p">(</span><span class="n">raw_select</span><span class="o">=</span><span class="n">max_date</span><span class="p">,</span>
+                              <span class="n">from_table_for_raw_select</span><span class="o">=</span><span class="n">table_id</span><span class="p">,</span>
+                              <span class="n">alias</span><span class="o">=</span><span class="n">max_date_alias</span><span class="p">),</span>
+            <span class="p">]</span>
+            <span class="n">where_conditions</span> <span class="o">=</span> <span class="p">[</span><span class="n">WhereCondition</span><span class="p">(</span><span class="n">raw_sql</span><span class="o">=</span><span class="n">where_clause</span><span class="p">)]</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="n">add_to_select</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                <span class="n">grammar</span><span class="o">=</span><span class="n">grammar</span><span class="p">,</span>
+                                <span class="n">select_elements</span><span class="o">=</span><span class="n">select_elements</span><span class="p">,</span>
+                                <span class="n">where_conditions</span><span class="o">=</span><span class="n">where_conditions</span><span class="p">,</span>
+                                <span class="n">magic_join</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                <span class="n">formatted</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">GROUP BY &quot;</span> <span class="o">+</span> <span class="n">mrid_col</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">)</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">ORDER BY &quot;</span> <span class="o">+</span> <span class="n">mrid_alias</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="n">format_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">table_identifier</span><span class="p">,</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Monster data: SELECT * for all patient tables</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">gen_monster_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mrids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">TableId</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+        <span class="n">grammar</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">grammar</span>
+        <span class="k">for</span> <span class="n">table_id</span> <span class="ow">in</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_mrid_linkable_patient_tables</span><span class="p">():</span>  <span class="c1"># noqa</span>
+            <span class="n">mrid_col</span> <span class="o">=</span> <span class="n">research_database_info</span><span class="o">.</span><span class="n">get_mrid_column_from_table</span><span class="p">(</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">table_id</span><span class="p">)</span>
+            <span class="n">where_clause</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">where_patient_clause</span><span class="p">(</span>
+                <span class="n">table_id</span><span class="p">,</span> <span class="n">grammar</span><span class="p">,</span> <span class="n">mrids</span><span class="p">)</span>
+            <span class="c1"># We add the WHERE using our magic query machine, to get the joins</span>
+            <span class="c1"># right:</span>
+            <span class="n">select_elements</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">SelectElement</span><span class="p">(</span><span class="n">raw_select</span><span class="o">=</span><span class="s1">&#39;*&#39;</span><span class="p">,</span>
+                              <span class="n">from_table_for_raw_select</span><span class="o">=</span><span class="n">table_id</span><span class="p">),</span>
+            <span class="p">]</span>
+            <span class="n">where_conditions</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">WhereCondition</span><span class="p">(</span><span class="n">raw_sql</span><span class="o">=</span><span class="n">where_clause</span><span class="p">,</span>
+                               <span class="n">from_table_for_raw_sql</span><span class="o">=</span><span class="n">mrid_col</span><span class="o">.</span><span class="n">table_id</span><span class="p">),</span>
+            <span class="p">]</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="n">add_to_select</span><span class="p">(</span>
+                <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                <span class="n">grammar</span><span class="o">=</span><span class="n">grammar</span><span class="p">,</span>
+                <span class="n">select_elements</span><span class="o">=</span><span class="n">select_elements</span><span class="p">,</span>
+                <span class="n">where_conditions</span><span class="o">=</span><span class="n">where_conditions</span><span class="p">,</span>
+                <span class="n">magic_join</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">formatted</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot; ORDER BY &quot;</span> <span class="o">+</span> <span class="n">mrid_col</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">)</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="n">format_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">table_id</span><span class="p">,</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># PatientExplorer</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">PATIENT_EXPLORER_FWD_REF</span> <span class="o">=</span> <span class="s2">&quot;PatientExplorer&quot;</span>
+
+
+<div class="viewcode-block" id="PatientExplorer"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PatientExplorer">[docs]</a><span class="k">class</span> <span class="nc">PatientExplorer</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class to explore the research database on a per-patient basis.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">app_label</span> <span class="o">=</span> <span class="s2">&quot;research&quot;</span>
+
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># automatic</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">)</span>
+    <span class="n">patient_multiquery</span> <span class="o">=</span> <span class="n">JsonClassField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;PatientMultiQuery as JSON&#39;</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># type: PatientMultiQuery</span>
+    <span class="n">pmq_hash</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BigIntegerField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;64-bit non-cryptographic hash of JSON of &#39;</span>
+                     <span class="s1">&#39;patient_multiquery&#39;</span><span class="p">)</span>
+    <span class="n">active</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># see save() below</span>
+    <span class="n">created</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">deleted</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">&quot;Deleted from the user&#39;s perspective. &quot;</span>
+                     <span class="s2">&quot;Audited queries are never properly deleted.&quot;</span><span class="p">)</span>
+    <span class="n">audited</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span> <span class="o">=</span> <span class="n">PatientMultiQuery</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;PatientExplorer id=</span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PatientExplorer.save"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PatientExplorer.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Custom save method. Ensures that only one PatientExplorer has</span>
+<span class="sd">        active == True for a given user.</span>
+<span class="sd">        Also sets the hash.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">active</span><span class="p">:</span>
+            <span class="n">PatientExplorer</span><span class="o">.</span><span class="n">objects</span>\
+                <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>\
+                <span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">active</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pmq_hash</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">hash64</span>
+        <span class="c1"># Beware: Python&#39;s hash() function will downconvert to 32 bits on 32-bit</span>
+        <span class="c1"># machines; use pmq.hash64() directly, not hash(pmq).</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Fetching</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_active_pe_or_none</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">PATIENT_EXPLORER_FWD_REF</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">PatientExplorer</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">PatientExplorer</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_active_pe_id_or_none</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">HttpRequest</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pe</span> <span class="o">=</span> <span class="n">PatientExplorer</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">pe</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">except</span> <span class="n">PatientExplorer</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Activating, deleting, auditing</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">activate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mark_audited</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audited</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audited</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">mark_deleted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
+            <span class="c1"># log.debug(&quot;pointless&quot;)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="c1"># log.debug(&quot;about to save&quot;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="c1"># log.debug(&quot;saved&quot;)</span>
+
+<div class="viewcode-block" id="PatientExplorer.delete_if_permitted"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PatientExplorer.delete_if_permitted">[docs]</a>    <span class="k">def</span> <span class="nf">delete_if_permitted</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;If a PE has been audited, it isn&#39;t properly deleted.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">deleted</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;already flagged as deleted&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audited</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;marking as deleted&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mark_deleted</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># actually delete</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;actually deleting&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">audit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">count_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">n_records</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+              <span class="n">failed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">fail_msg</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">PatientExplorerAudit</span><span class="p">(</span><span class="n">patient_explorer</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">count_only</span><span class="o">=</span><span class="n">count_only</span><span class="p">,</span>
+                                 <span class="n">n_records</span><span class="o">=</span><span class="n">n_records</span><span class="p">,</span>
+                                 <span class="n">failed</span><span class="o">=</span><span class="n">failed</span><span class="p">,</span>
+                                 <span class="n">fail_msg</span><span class="o">=</span><span class="n">fail_msg</span><span class="p">)</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mark_audited</span><span class="p">()</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Using the internal PatientMultiQuery</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">all_queries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">mrids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">TableId</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span>
+                                                           <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">all_queries</span><span class="p">(</span><span class="n">mrids</span><span class="o">=</span><span class="n">mrids</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PatientExplorer.get_executed_cursor"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PatientExplorer.get_executed_cursor">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_executed_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CursorWrapper</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get cursor with a query executed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">translate_sql_qmark_to_percent</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">get_executed_researchdb_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">get_patient_mrids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">patient_id_query</span><span class="p">(</span><span class="n">with_order_by</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="c1"># log.critical(sql)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executed_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()]</span>
+
+    <span class="k">def</span> <span class="nf">get_zipped_tsv_binary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="c1"># Don&#39;t pass giant result sets around beyond what&#39;s necessary.</span>
+        <span class="c1"># Use cursor.fetchone()</span>
+        <span class="n">grammar</span> <span class="o">=</span> <span class="n">make_grammar</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">RESEARCH_DB_DIALECT</span><span class="p">)</span>
+        <span class="n">memfile</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">()</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="n">memfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">table_id</span><span class="p">,</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">all_queries</span><span class="p">():</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executed_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+                <span class="n">fieldnames</span> <span class="o">=</span> <span class="n">get_fieldnames_from_cursor</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span>
+                <span class="n">tsv</span> <span class="o">=</span> <span class="n">make_tsv_row</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">)</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+                <span class="k">while</span> <span class="n">row</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">tsv</span> <span class="o">+=</span> <span class="n">make_tsv_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+                    <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">table_id</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="n">grammar</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.tsv&quot;</span>
+            <span class="n">z</span><span class="o">.</span><span class="n">writestr</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">tsv</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">))</span>
+        <span class="n">z</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">memfile</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PatientExplorer.get_xlsx_binary"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PatientExplorer.get_xlsx_binary">[docs]</a>    <span class="k">def</span> <span class="nf">get_xlsx_binary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Other notes:</span>
+<span class="sd">        - cell size</span>
+<span class="sd">          http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust</span>
+<span class="sd">          ... and the &quot;auto_size&quot; / &quot;bestFit&quot; options don&#39;t really do the job,</span>
+<span class="sd">              according to the interweb</span>
+<span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+        <span class="n">wb</span> <span class="o">=</span> <span class="n">Workbook</span><span class="p">()</span>
+        <span class="n">wb</span><span class="o">.</span><span class="n">remove_sheet</span><span class="p">(</span><span class="n">wb</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>  <span class="c1"># remove the autocreated blank sheet</span>
+        <span class="n">sqlsheet_rows</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;Table&quot;</span><span class="p">,</span> <span class="s2">&quot;SQL&quot;</span><span class="p">,</span> <span class="s2">&quot;Args&quot;</span><span class="p">,</span> <span class="s2">&quot;Executed_at&quot;</span><span class="p">]]</span>
+        <span class="k">for</span> <span class="n">table_id</span><span class="p">,</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">all_queries</span><span class="p">():</span>
+            <span class="n">sqlsheet_rows</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">table_id</span><span class="p">),</span> <span class="n">sql</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+                                  <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()])</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">table_id</span><span class="p">))</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executed_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+                <span class="n">fieldnames</span> <span class="o">=</span> <span class="n">get_fieldnames_from_cursor</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span>
+                <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">)</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+                <span class="k">while</span> <span class="n">row</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gen_excel_row_elements</span><span class="p">(</span><span class="n">ws</span><span class="p">,</span> <span class="n">row</span><span class="p">))</span>
+                    <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="n">sql_ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="s2">&quot;SQL&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">sqlsheet_rows</span><span class="p">:</span>
+            <span class="n">sql_ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">excel_to_bytes</span><span class="p">(</span><span class="n">wb</span><span class="p">)</span></div>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Using the internal PatientMultiQuery</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">get_patient_id_query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">with_order_by</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">patient_id_query</span><span class="p">(</span>
+            <span class="n">with_order_by</span><span class="o">=</span><span class="n">with_order_by</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Display</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">summary_html</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="c1"># Nasty hack. We want collapsing things, so we want HTML element IDs.</span>
+        <span class="c1"># We could build the HTML table in code for the Patient Explorer</span>
+        <span class="c1"># chooser, but I was trying to do it in Django templates.</span>
+        <span class="c1"># However, it&#39;s not easy to pass parameters (such as an</span>
+        <span class="c1"># HtmlElementCounter) back to Python from Django templates.</span>
+        <span class="c1"># So we can hack it a bit:</span>
+        <span class="n">element_counter</span> <span class="o">=</span> <span class="n">HtmlElementCounter</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;pe_</span><span class="si">{}</span><span class="s2">_&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">summary_html</span><span class="p">(</span>
+            <span class="n">element_counter</span><span class="o">=</span><span class="n">element_counter</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_patient_id_query</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">has_patient_id_query</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_output_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">has_output_columns</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Data finder</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data_finder_excel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Performs a SELECT COUNT(*)</span>
+<span class="sd">        Returns (fieldnames, rows).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fieldnames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">wb</span> <span class="o">=</span> <span class="n">Workbook</span><span class="p">()</span>
+        <span class="n">wb</span><span class="o">.</span><span class="n">remove_sheet</span><span class="p">(</span><span class="n">wb</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>  <span class="c1"># remove the autocreated blank sheet</span>
+        <span class="n">all_ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="s2">&quot;All_patients&quot;</span><span class="p">)</span>
+        <span class="n">sql_ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="s2">&quot;SQL&quot;</span><span class="p">)</span>
+        <span class="n">sql_ws</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="s2">&quot;Table&quot;</span><span class="p">,</span> <span class="s2">&quot;SQL&quot;</span><span class="p">,</span> <span class="s2">&quot;Args&quot;</span><span class="p">,</span> <span class="s2">&quot;Executed_at&quot;</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">table_identifier</span><span class="p">,</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span> <span class="ow">in</span> \
+                <span class="bp">self</span><span class="o">.</span><span class="n">patient_multiquery</span><span class="o">.</span><span class="n">gen_data_finder_queries</span><span class="p">():</span>
+            <span class="n">sql_ws</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">table_identifier</span><span class="p">,</span>
+                           <span class="n">format_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">),</span>
+                           <span class="nb">repr</span><span class="p">(</span><span class="n">args</span><span class="p">),</span>
+                           <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()])</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_executed_cursor</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="k">as</span> <span class="n">cursor</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">fieldnames</span><span class="p">:</span>
+                    <span class="n">fieldnames</span> <span class="o">=</span> <span class="n">get_fieldnames_from_cursor</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span>
+                    <span class="n">all_ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">)</span>
+                <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+                <span class="k">while</span> <span class="n">row</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">mrid</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">mrid</span> <span class="ow">in</span> <span class="n">wb</span><span class="p">:</span>
+                        <span class="n">ws</span> <span class="o">=</span> <span class="n">wb</span><span class="p">[</span><span class="n">mrid</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="n">mrid</span><span class="p">)</span>
+                        <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fieldnames</span><span class="p">)</span>
+                    <span class="n">rowtuple</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+                    <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowtuple</span><span class="p">)</span>
+                    <span class="n">all_ws</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rowtuple</span><span class="p">)</span>
+                    <span class="n">row</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">excel_to_bytes</span><span class="p">(</span><span class="n">wb</span><span class="p">)</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># PatientExplorer auditing class</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="PatientExplorerAudit"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PatientExplorerAudit">[docs]</a><span class="k">class</span> <span class="nc">PatientExplorerAudit</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Audit log for a PatientExplorer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># automatic</span>
+    <span class="n">patient_explorer</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="s1">&#39;PatientExplorer&#39;</span><span class="p">)</span>
+    <span class="n">when</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">count_only</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">n_records</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># ... not PositiveIntegerField; SQL Server gives -1, for example</span>
+    <span class="n">failed</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">fail_msg</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;PatientExplorerAudit id=</span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

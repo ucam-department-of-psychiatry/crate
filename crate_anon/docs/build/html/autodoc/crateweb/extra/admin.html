@@ -63,32 +63,32 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="class">
 <dt id="crate_anon.crateweb.extra.admin.AddOnlyModelAdmin">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">AddOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">AddOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AddOnlyModelAdmin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Allows add, but not edit or delete.
 Optional extra class attribute:</p>
 <blockquote>
 <div>fields_for_viewing</div></blockquote>
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_changelist">
-<code class="descname">get_changelist</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; Type[django.contrib.admin.views.main.ChangeList]<a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_changelist" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_changelist</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; Type[django.contrib.admin.views.main.ChangeList]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AddOnlyModelAdmin.get_changelist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_changelist" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the ChangeList class for use on the changelist page.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_fields">
-<code class="descname">get_fields</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_fields" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_fields</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AddOnlyModelAdmin.get_fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_fields" title="Permalink to this definition">¶</a></dt>
 <dd><p>Hook for specifying fields.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_readonly_fields">
-<code class="descname">get_readonly_fields</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_readonly_fields" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_readonly_fields</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AddOnlyModelAdmin.get_readonly_fields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.get_readonly_fields" title="Permalink to this definition">¶</a></dt>
 <dd><p>Hook for specifying custom readonly fields.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.has_delete_permission">
-<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AddOnlyModelAdmin.has_delete_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AddOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to change the given
 Django model instance, the default implementation doesn’t examine the
 <cite>obj</cite> parameter.</p>
@@ -102,12 +102,12 @@ request has permission to delete <em>any</em> object of the given type.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">AllStaffReadOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">AllStaffReadOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AllStaffReadOnlyModelAdmin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
 <dd><p>ReadOnlyModelAdmin but allows access to all staff, not just superusers.
 (No easy way to make this work via multiple inheritance.)</p>
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_change_permission">
-<code class="descname">has_change_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_change_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_change_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AllStaffReadOnlyModelAdmin.has_change_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_change_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to change the given
 Django model instance, the default implementation doesn’t examine the
 <cite>obj</cite> parameter.</p>
@@ -119,7 +119,7 @@ request has permission to change <em>any</em> object of the given type.</p>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_module_permission">
-<code class="descname">has_module_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_module_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_module_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#AllStaffReadOnlyModelAdmin.has_module_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.AllStaffReadOnlyModelAdmin.has_module_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has any permission in the given
 app label.</p>
 <p>Can be overridden by the user in subclasses. In such case it should
@@ -133,20 +133,20 @@ does not restrict access to the add, change or delete views. Use
 
 <dl class="class">
 <dt id="crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">EditOnceOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">EditOnceOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#EditOnceOnlyModelAdmin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Allows editing, but not add or delete.
 Designed for e.g. when you have a fixed set of PKs.
 In that situation, ensure the PK field is in readonly_fields.</p>
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_add_permission">
-<code class="descname">has_add_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_add_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_add_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#EditOnceOnlyModelAdmin.has_add_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_add_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to add an object.
 Can be overridden by the user in subclasses.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_delete_permission">
-<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#EditOnceOnlyModelAdmin.has_delete_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnceOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to change the given
 Django model instance, the default implementation doesn’t examine the
 <cite>obj</cite> parameter.</p>
@@ -160,20 +160,20 @@ request has permission to delete <em>any</em> object of the given type.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.extra.admin.EditOnlyModelAdmin">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">EditOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">EditOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#EditOnlyModelAdmin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Allows editing, but not add or delete.
 Designed for e.g. when you have a fixed set of PKs.
 In that situation, ensure the PK field is in readonly_fields.</p>
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_add_permission">
-<code class="descname">has_add_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_add_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_add_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#EditOnlyModelAdmin.has_add_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_add_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to add an object.
 Can be overridden by the user in subclasses.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_delete_permission">
-<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#EditOnlyModelAdmin.has_delete_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.EditOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to change the given
 Django model instance, the default implementation doesn’t examine the
 <cite>obj</cite> parameter.</p>
@@ -187,7 +187,7 @@ request has permission to delete <em>any</em> object of the given type.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">ReadOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.extra.admin.</code><code class="descname">ReadOnlyModelAdmin</code><span class="sig-paren">(</span><em>model</em>, <em>admin_site</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#ReadOnlyModelAdmin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin" title="Permalink to this definition">¶</a></dt>
 <dd><p>Allows view (“change”), but not add/edit/delete.</p>
 <dl class="docutils">
 <dt>You also need to do this:</dt>
@@ -197,20 +197,20 @@ request has permission to delete <em>any</em> object of the given type.</p>
 “Change”.</p>
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.get_changelist">
-<code class="descname">get_changelist</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; Type[django.contrib.admin.views.main.ChangeList]<a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.get_changelist" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_changelist</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; Type[django.contrib.admin.views.main.ChangeList]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#ReadOnlyModelAdmin.get_changelist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.get_changelist" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the ChangeList class for use on the changelist page.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_add_permission">
-<code class="descname">has_add_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_add_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_add_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#ReadOnlyModelAdmin.has_add_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_add_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to add an object.
 Can be overridden by the user in subclasses.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_delete_permission">
-<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
+<code class="descname">has_delete_permission</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj=None</em><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#ReadOnlyModelAdmin.has_delete_permission"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.has_delete_permission" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True if the given request has permission to change the given
 Django model instance, the default implementation doesn’t examine the
 <cite>obj</cite> parameter.</p>
@@ -222,7 +222,7 @@ request has permission to delete <em>any</em> object of the given type.</p>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.save_model">
-<code class="descname">save_model</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj</em>, <em>form: django.forms.models.ModelForm</em>, <em>change: bool</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.save_model" title="Permalink to this definition">¶</a></dt>
+<code class="descname">save_model</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>obj</em>, <em>form: django.forms.models.ModelForm</em>, <em>change: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/extra/admin.html#ReadOnlyModelAdmin.save_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.extra.admin.ReadOnlyModelAdmin.save_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given a model instance save it to the database.</p>
 </dd></dl>
 

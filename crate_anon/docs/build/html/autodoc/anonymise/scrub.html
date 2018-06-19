@@ -64,16 +64,16 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <p>Scrubber classes for CRATE anonymiser.</p>
 <dl class="class">
 <dt id="crate_anon.anonymise.scrub.NonspecificScrubber">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">NonspecificScrubber</code><span class="sig-paren">(</span><em>replacement_text: str</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher</em>, <em>anonymise_codes_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_word_boundaries_only: bool = True</em>, <em>blacklist: crate_anon.anonymise.scrub.WordList = None</em>, <em>scrub_all_numbers_of_n_digits: List[int] = None</em>, <em>scrub_all_uk_postcodes: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">NonspecificScrubber</code><span class="sig-paren">(</span><em>replacement_text: str</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher</em>, <em>anonymise_codes_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_word_boundaries_only: bool = True</em>, <em>blacklist: crate_anon.anonymise.scrub.WordList = None</em>, <em>scrub_all_numbers_of_n_digits: List[int] = None</em>, <em>scrub_all_uk_postcodes: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#NonspecificScrubber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="crate_anon.anonymise.scrub.NonspecificScrubber.get_hash">
-<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber.get_hash" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#NonspecificScrubber.get_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber.get_hash" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a hash of the scrubber itself.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.NonspecificScrubber.scrub">
-<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber.scrub" title="Permalink to this definition">¶</a></dt>
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#NonspecificScrubber.scrub"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber.scrub" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a scrubbed version of the text.</p>
 </dd></dl>
 
@@ -81,12 +81,12 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 
 <dl class="class">
 <dt id="crate_anon.anonymise.scrub.PersonalizedScrubber">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">PersonalizedScrubber</code><span class="sig-paren">(</span><em>replacement_text_patient: str</em>, <em>replacement_text_third_party: str</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher</em>, <em>anonymise_codes_at_word_boundaries_only: bool = True</em>, <em>anonymise_dates_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_numeric_boundaries_only: bool = True</em>, <em>anonymise_strings_at_word_boundaries_only: bool = True</em>, <em>min_string_length_for_errors: int = 4</em>, <em>min_string_length_to_scrub_with: int = 3</em>, <em>scrub_string_suffixes: List[str] = None</em>, <em>string_max_regex_errors: int = 0</em>, <em>whitelist: crate_anon.anonymise.scrub.WordList = None</em>, <em>nonspecific_scrubber: crate_anon.anonymise.scrub.NonspecificScrubber = None</em>, <em>debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">PersonalizedScrubber</code><span class="sig-paren">(</span><em>replacement_text_patient: str</em>, <em>replacement_text_third_party: str</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher</em>, <em>anonymise_codes_at_word_boundaries_only: bool = True</em>, <em>anonymise_dates_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_numeric_boundaries_only: bool = True</em>, <em>anonymise_strings_at_word_boundaries_only: bool = True</em>, <em>min_string_length_for_errors: int = 4</em>, <em>min_string_length_to_scrub_with: int = 3</em>, <em>scrub_string_suffixes: List[str] = None</em>, <em>string_max_regex_errors: int = 0</em>, <em>whitelist: crate_anon.anonymise.scrub.WordList = None</em>, <em>nonspecific_scrubber: crate_anon.anonymise.scrub.NonspecificScrubber = None</em>, <em>debug: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#PersonalizedScrubber"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber" title="Permalink to this definition">¶</a></dt>
 <dd><p>Accepts patient-specific (patient and third-party) information, and
 uses that to scrub text.</p>
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.add_value">
-<code class="descname">add_value</code><span class="sig-paren">(</span><em>value: Any</em>, <em>scrub_method: crate_anon.anonymise.constants.SCRUBMETHOD</em>, <em>patient: bool = True</em>, <em>clear_cache: bool = True</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.add_value" title="Permalink to this definition">¶</a></dt>
+<code class="descname">add_value</code><span class="sig-paren">(</span><em>value: Any</em>, <em>scrub_method: crate_anon.anonymise.constants.SCRUBMETHOD</em>, <em>patient: bool = True</em>, <em>clear_cache: bool = True</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#PersonalizedScrubber.add_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.add_value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a specific value via a specific scrub_method.</p>
 <p>The patient flag controls whether it’s treated as a patient value or
 a third-party value.</p>
@@ -94,32 +94,32 @@ a third-party value.</p>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_hash">
-<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_hash" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#PersonalizedScrubber.get_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_hash" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a hash of the scrubber itself.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_patient_regex_string">
-<code class="descname">get_patient_regex_string</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_patient_regex_string" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_patient_regex_string</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#PersonalizedScrubber.get_patient_regex_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_patient_regex_string" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the string version of the patient regex, sorted.</p>
 </dd></dl>
 
 <dl class="staticmethod">
 <dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_scrub_method">
-<em class="property">static </em><code class="descname">get_scrub_method</code><span class="sig-paren">(</span><em>datatype_long: str, scrub_method: Union[crate_anon.anonymise.constants.SCRUBMETHOD, NoneType]</em><span class="sig-paren">)</span> &#x2192; crate_anon.anonymise.constants.SCRUBMETHOD<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_scrub_method" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">get_scrub_method</code><span class="sig-paren">(</span><em>datatype_long: str, scrub_method: Union[crate_anon.anonymise.constants.SCRUBMETHOD, NoneType]</em><span class="sig-paren">)</span> &#x2192; crate_anon.anonymise.constants.SCRUBMETHOD<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#PersonalizedScrubber.get_scrub_method"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_scrub_method" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the default scrub method for a given SQL datatype,
 unless overridden.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_tp_regex_string">
-<code class="descname">get_tp_regex_string</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_tp_regex_string" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_tp_regex_string</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#PersonalizedScrubber.get_tp_regex_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_tp_regex_string" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the string version of the third-party regex, sorted.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.scrub">
-<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Union[str, NoneType]<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.scrub" title="Permalink to this definition">¶</a></dt>
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Union[str, NoneType]<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#PersonalizedScrubber.scrub"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.scrub" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scrub some text and return the scrubbed result.</p>
 </dd></dl>
 
@@ -127,17 +127,17 @@ unless overridden.</p>
 
 <dl class="class">
 <dt id="crate_anon.anonymise.scrub.ScrubberBase">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">ScrubberBase</code><span class="sig-paren">(</span><em>hasher: cardinal_pythonlib.hash.GenericHasher</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">ScrubberBase</code><span class="sig-paren">(</span><em>hasher: cardinal_pythonlib.hash.GenericHasher</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#ScrubberBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scrubber base class.</p>
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.ScrubberBase.get_hash">
-<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase.get_hash" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#ScrubberBase.get_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase.get_hash" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a hash of the scrubber itself.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.ScrubberBase.scrub">
-<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase.scrub" title="Permalink to this definition">¶</a></dt>
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#ScrubberBase.scrub"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase.scrub" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a scrubbed version of the text.</p>
 </dd></dl>
 
@@ -145,22 +145,22 @@ unless overridden.</p>
 
 <dl class="class">
 <dt id="crate_anon.anonymise.scrub.WordList">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">WordList</code><span class="sig-paren">(</span><em>filenames: Iterable[str] = None</em>, <em>words: Iterable[str] = None</em>, <em>replacement_text: str = '[---]'</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher = None</em>, <em>suffixes: List[str] = None</em>, <em>at_word_boundaries_only: bool = True</em>, <em>max_errors: int = 0</em>, <em>regex_method: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.WordList" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">WordList</code><span class="sig-paren">(</span><em>filenames: Iterable[str] = None</em>, <em>words: Iterable[str] = None</em>, <em>replacement_text: str = '[---]'</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher = None</em>, <em>suffixes: List[str] = None</em>, <em>at_word_boundaries_only: bool = True</em>, <em>max_errors: int = 0</em>, <em>regex_method: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#WordList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.WordList" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
 <dt id="crate_anon.anonymise.scrub.WordList.clear_cache">
-<code class="descname">clear_cache</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.clear_cache" title="Permalink to this definition">¶</a></dt>
+<code class="descname">clear_cache</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#WordList.clear_cache"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.clear_cache" title="Permalink to this definition">¶</a></dt>
 <dd><p>Clear cached information.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.WordList.get_hash">
-<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.get_hash" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#WordList.get_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.get_hash" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a hash of the scrubber itself.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.scrub.WordList.scrub">
-<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.scrub" title="Permalink to this definition">¶</a></dt>
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/scrub.html#WordList.scrub"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.scrub" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a scrubbed version of the text.</p>
 </dd></dl>
 

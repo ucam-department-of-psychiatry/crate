@@ -63,31 +63,31 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.Bmi">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Bmi</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bmi" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Bmi</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Bmi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bmi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Body mass index (in kg / m^2).</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.BmiValidator">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">BmiValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.BmiValidator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">BmiValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#BmiValidator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.BmiValidator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validator for Bmi (see ValidatorBase for explanation).</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.Bp">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Bp</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bp" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Bp</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Bp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Blood pressure, in mmHg. (Since we produce two variables, SBP and DBP,
 and we use something a little more complex than
 NumeratorOutOfDenominatorParser, we subclass BaseNlpParser directly.)</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_clinical.Bp.dest_tables_columns">
-<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bp.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Bp.dest_tables_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bp.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_clinical.Bp.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bp.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Bp.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Bp.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parser for BP. Specialized because we’re fetching two numbers.</p>
 </dd></dl>
 
@@ -95,17 +95,17 @@ NumeratorOutOfDenominatorParser, we subclass BaseNlpParser directly.)</p>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.BpValidator">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">BpValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.BpValidator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">BpValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#BpValidator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.BpValidator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validator for Bp (see ValidatorBase for explanation).</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.Height">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Height</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False, debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Height" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Height</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False, debug: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Height"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Height" title="Permalink to this definition">¶</a></dt>
 <dd><p>Height. Handles metric and imperial.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_clinical.Height.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Height.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Height.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Height.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parser for Height. Specialized for complex unit conversion.</p>
 </dd></dl>
 
@@ -113,17 +113,17 @@ NumeratorOutOfDenominatorParser, we subclass BaseNlpParser directly.)</p>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.HeightValidator">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">HeightValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.HeightValidator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">HeightValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#HeightValidator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.HeightValidator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validator for Height (see ValidatorBase for explanation).</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.Weight">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Weight</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False, debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Weight" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">Weight</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False, debug: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Weight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Weight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Weight. Handles metric and imperial.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_clinical.Weight.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Weight.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#Weight.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.Weight.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parser for Weight. Specialized for complex unit conversion.</p>
 </dd></dl>
 
@@ -131,7 +131,7 @@ NumeratorOutOfDenominatorParser, we subclass BaseNlpParser directly.)</p>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_clinical.WeightValidator">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">WeightValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.WeightValidator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_clinical.</code><code class="descname">WeightValidator</code><span class="sig-paren">(</span><em>nlpdef: Union[crate_anon.nlp_manager.nlp_definition.NlpDefinition, NoneType], cfgsection: Union[str, NoneType], commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_clinical.html#WeightValidator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_clinical.WeightValidator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validator for Weight (see ValidatorBase for explanation).</p>
 </dd></dl>
 

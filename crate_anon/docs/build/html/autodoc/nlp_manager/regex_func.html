@@ -63,21 +63,21 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="function">
 <dt id="crate_anon.nlp_manager.regex_func.at_start_wb">
-<code class="descclassname">crate_anon.nlp_manager.regex_func.</code><code class="descname">at_start_wb</code><span class="sig-paren">(</span><em>regex_str: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.nlp_manager.regex_func.at_start_wb" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.regex_func.</code><code class="descname">at_start_wb</code><span class="sig-paren">(</span><em>regex_str: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_func.html#at_start_wb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_func.at_start_wb" title="Permalink to this definition">¶</a></dt>
 <dd><p>With word boundary at start. Beware, though; e.g. “3kg” is reasonable, and
 this does NOT have a word boundary in.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.regex_func.at_wb_start_end">
-<code class="descclassname">crate_anon.nlp_manager.regex_func.</code><code class="descname">at_wb_start_end</code><span class="sig-paren">(</span><em>regex_str: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.nlp_manager.regex_func.at_wb_start_end" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.regex_func.</code><code class="descname">at_wb_start_end</code><span class="sig-paren">(</span><em>regex_str: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_func.html#at_wb_start_end"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_func.at_wb_start_end" title="Permalink to this definition">¶</a></dt>
 <dd><p>Caution using this. Digits do not end a word, so “mm3” will not match if
 your “mm” group ends in a word boundary.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.regex_func.get_regex_dict_match">
-<code class="descclassname">crate_anon.nlp_manager.regex_func.</code><code class="descname">get_regex_dict_match</code><span class="sig-paren">(</span><em>text: Union[str, NoneType], regex_to_value_dict: Dict[Pattern[~AnyStr], Any], default: Any = None</em><span class="sig-paren">)</span> &#x2192; Tuple[bool, Any]<a class="headerlink" href="#crate_anon.nlp_manager.regex_func.get_regex_dict_match" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.regex_func.</code><code class="descname">get_regex_dict_match</code><span class="sig-paren">(</span><em>text: Union[str, NoneType], regex_to_value_dict: Dict[Pattern[~AnyStr], Any], default: Any = None</em><span class="sig-paren">)</span> &#x2192; Tuple[bool, Any]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_func.html#get_regex_dict_match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_func.get_regex_dict_match" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns (matched, result).</p>
 </dd></dl>
 

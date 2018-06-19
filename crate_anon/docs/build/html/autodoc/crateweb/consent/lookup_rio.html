@@ -63,13 +63,13 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="function">
 <dt id="crate_anon.crateweb.consent.lookup_rio.gen_opt_out_pids_mpids_rio_generic">
-<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">gen_opt_out_pids_mpids_rio_generic</code><span class="sig-paren">(</span><em>source_db: str</em>, <em>raw_rio: bool = False</em>, <em>cpft_datamart: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, str], NoneType], NoneType]<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.gen_opt_out_pids_mpids_rio_generic" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">gen_opt_out_pids_mpids_rio_generic</code><span class="sig-paren">(</span><em>source_db: str</em>, <em>raw_rio: bool = False</em>, <em>cpft_datamart: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, str], NoneType], NoneType]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/consent/lookup_rio.html#gen_opt_out_pids_mpids_rio_generic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.gen_opt_out_pids_mpids_rio_generic" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates (pid, mpid) tuples.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic">
-<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">get_latest_consent_mode_from_rio_generic</code><span class="sig-paren">(</span><em>nhs_number: int, source_db: str, decisions: List[str], raw_rio: bool = False, cpft_datamart: bool = False</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.crateweb.consent.models.ConsentMode, NoneType]<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">get_latest_consent_mode_from_rio_generic</code><span class="sig-paren">(</span><em>nhs_number: int, source_db: str, decisions: List[str], raw_rio: bool = False, cpft_datamart: bool = False</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.crateweb.consent.models.ConsentMode, NoneType]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/consent/lookup_rio.html#get_latest_consent_mode_from_rio_generic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shared function as very similar for the various copies of RiO data.</p>
 <p>In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.
 This is processed regularly into the CPFT Data Warehouse, so that
@@ -178,7 +178,7 @@ identifiable information, except PatientOverview_RiO:</p>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_crate_preprocessed">
-<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_crate_preprocessed</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str]</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_crate_preprocessed" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_crate_preprocessed</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str]</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/consent/lookup_rio.html#lookup_cpft_rio_crate_preprocessed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_crate_preprocessed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Here, we use the version of RiO preprocessed by the CRATE preprocessor.
 This is almost identical to the RCEP version, saving us some thought and
 lots of repetition of complex JOIN code to deal with the raw RiO database.</p>
@@ -218,7 +218,7 @@ CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  – ignored</p>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_generic">
-<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_generic</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str], as_crate_not_rcep: bool</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_generic" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_generic</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str], as_crate_not_rcep: bool</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/consent/lookup_rio.html#lookup_cpft_rio_generic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_generic" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>Main:</dt>
 <dd><dl class="first last docutils">
@@ -367,7 +367,7 @@ Contact_Details – NVARCHAR(80)</p>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_rcep">
-<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_rcep</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str]</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_rcep" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_rcep</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str]</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/consent/lookup_rio.html#lookup_cpft_rio_rcep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_rcep" title="Permalink to this definition">¶</a></dt>
 <dd><p>RiO notes, 2015-05-19
 … ADDENDUM 2017-02-27: this is the RiO database as modified by Servelec’s</p>
 <blockquote>

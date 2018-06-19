@@ -63,21 +63,21 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="class">
 <dt id="crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.research_db_info.</code><code class="descname">ResearchDatabaseInfo</code><a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.research_db_info.</code><code class="descname">ResearchDatabaseInfo</code><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/research_db_info.html#ResearchDatabaseInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetches schema information from the research database.
 Class primarily exists to be able to use &#64;cached_property.
 … replaced by &#64;lru_cache
 … replaced by &#64;django_cache_function</p>
 <dl class="method">
 <dt id="crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.get_linked_mrid_column">
-<code class="descname">get_linked_mrid_column</code><span class="sig-paren">(</span><em>table: crate_anon.common.sql.TableId</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.common.sql.ColumnId, NoneType]<a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.get_linked_mrid_column" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_linked_mrid_column</code><span class="sig-paren">(</span><em>table: crate_anon.common.sql.TableId</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.common.sql.ColumnId, NoneType]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/research_db_info.html#ResearchDatabaseInfo.get_linked_mrid_column"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.get_linked_mrid_column" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns either the MRID column in the schema containing the table
 specified, or one that can be linked to it automatically.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.tables_containing_field">
-<code class="descname">tables_containing_field</code><span class="sig-paren">(</span><em>fieldname: str</em><span class="sig-paren">)</span> &#x2192; List[crate_anon.common.sql.TableId]<a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.tables_containing_field" title="Permalink to this definition">¶</a></dt>
+<code class="descname">tables_containing_field</code><span class="sig-paren">(</span><em>fieldname: str</em><span class="sig-paren">)</span> &#x2192; List[crate_anon.common.sql.TableId]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/research_db_info.html#ResearchDatabaseInfo.tables_containing_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.tables_containing_field" title="Permalink to this definition">¶</a></dt>
 <dd><p>We won’t use a SELECT on INFORMATION_SCHEMA here, since we already
 have the information.</p>
 </dd></dl>
@@ -86,12 +86,12 @@ have the information.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.research.research_db_info.SingleResearchDatabase">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.research_db_info.</code><code class="descname">SingleResearchDatabase</code><span class="sig-paren">(</span><em>index: int</em>, <em>grammar: cardinal_pythonlib.sql.sql_grammar.SqlGrammar</em>, <em>rdb_info: crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo</em>, <em>connection</em>, <em>vendor</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.SingleResearchDatabase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.research_db_info.</code><code class="descname">SingleResearchDatabase</code><span class="sig-paren">(</span><em>index: int</em>, <em>grammar: cardinal_pythonlib.sql.sql_grammar.SqlGrammar</em>, <em>rdb_info: crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo</em>, <em>connection</em>, <em>vendor</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/research_db_info.html#SingleResearchDatabase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.SingleResearchDatabase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Represents, and adds information to, a single entry from the
 RESEARCH_DB_INFO list. (It’s a list because it’s ordered.)</p>
 <dl class="method">
 <dt id="crate_anon.crateweb.research.research_db_info.SingleResearchDatabase.get_default_date_field">
-<code class="descname">get_default_date_field</code><span class="sig-paren">(</span><em>table_id: crate_anon.common.sql.TableId</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.common.sql.ColumnId, NoneType]<a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.SingleResearchDatabase.get_default_date_field" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_default_date_field</code><span class="sig-paren">(</span><em>table_id: crate_anon.common.sql.TableId</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.common.sql.ColumnId, NoneType]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/research_db_info.html#SingleResearchDatabase.get_default_date_field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.research_db_info.SingleResearchDatabase.get_default_date_field" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets the default date column for the specified table, or None
 if none exists.</p>
 </dd></dl>

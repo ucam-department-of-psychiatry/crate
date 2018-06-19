@@ -63,7 +63,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="function">
 <dt id="crate_anon.common.sql.escape_percent_for_python_dbapi">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_percent_for_python_dbapi</code><span class="sig-paren">(</span><em>sql: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.common.sql.escape_percent_for_python_dbapi" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_percent_for_python_dbapi</code><span class="sig-paren">(</span><em>sql: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#escape_percent_for_python_dbapi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.escape_percent_for_python_dbapi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Escapes % by converting it to %%.
 Use this for SQL within Python where % characters are used for argument
 placeholders.</p>
@@ -71,7 +71,7 @@ placeholders.</p>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.escape_percent_in_literal">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_percent_in_literal</code><span class="sig-paren">(</span><em>sql: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.common.sql.escape_percent_in_literal" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_percent_in_literal</code><span class="sig-paren">(</span><em>sql: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#escape_percent_in_literal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.escape_percent_in_literal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Escapes % by converting it to %.
 Use this for LIKE clauses.
 <a class="reference external" href="http://dev.mysql.com/doc/refman/5.7/en/string-literals.html">http://dev.mysql.com/doc/refman/5.7/en/string-literals.html</a></p>
@@ -79,28 +79,28 @@ Use this for LIKE clauses.
 
 <dl class="function">
 <dt id="crate_anon.common.sql.escape_quote_in_literal">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_quote_in_literal</code><span class="sig-paren">(</span><em>s: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.common.sql.escape_quote_in_literal" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_quote_in_literal</code><span class="sig-paren">(</span><em>s: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#escape_quote_in_literal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.escape_quote_in_literal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Escape ‘. We could use ‘’ or ‘.
 Let’s use . for consistency with percent escaping.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.escape_sql_string_literal">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_sql_string_literal</code><span class="sig-paren">(</span><em>s: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.common.sql.escape_sql_string_literal" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">escape_sql_string_literal</code><span class="sig-paren">(</span><em>s: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#escape_sql_string_literal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.escape_sql_string_literal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Escapes SQL string literal fragments against quotes and parameter
 substitution.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.get_column_names">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">get_column_names</code><span class="sig-paren">(</span><em>engine: sqlalchemy.engine.base.Engine</em>, <em>tablename: str</em>, <em>to_lower: bool = False</em>, <em>sort: bool = False</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="headerlink" href="#crate_anon.common.sql.get_column_names" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">get_column_names</code><span class="sig-paren">(</span><em>engine: sqlalchemy.engine.base.Engine</em>, <em>tablename: str</em>, <em>to_lower: bool = False</em>, <em>sort: bool = False</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#get_column_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.get_column_names" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads columns names afresh from the database (in case metadata is out of
 date).</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.get_first_from_table">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">get_first_from_table</code><span class="sig-paren">(</span><em>parsed: pyparsing.ParseResults</em>, <em>match_db: str = ''</em>, <em>match_schema: str = ''</em>, <em>match_table: str = ''</em><span class="sig-paren">)</span> &#x2192; crate_anon.common.sql.TableId<a class="headerlink" href="#crate_anon.common.sql.get_first_from_table" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">get_first_from_table</code><span class="sig-paren">(</span><em>parsed: pyparsing.ParseResults</em>, <em>match_db: str = ''</em>, <em>match_schema: str = ''</em>, <em>match_table: str = ''</em><span class="sig-paren">)</span> &#x2192; crate_anon.common.sql.TableId<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#get_first_from_table"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.get_first_from_table" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given a set of parsed results from a SELECT statement,
 returns the (db, schema, table) tuple
 representing the first table in the FROM clause.</p>
@@ -109,13 +109,13 @@ representing the first table in the FROM clause.</p>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.get_index_names">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">get_index_names</code><span class="sig-paren">(</span><em>engine: sqlalchemy.engine.base.Engine</em>, <em>tablename: str</em>, <em>to_lower: bool = False</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="headerlink" href="#crate_anon.common.sql.get_index_names" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">get_index_names</code><span class="sig-paren">(</span><em>engine: sqlalchemy.engine.base.Engine</em>, <em>tablename: str</em>, <em>to_lower: bool = False</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#get_index_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.get_index_names" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reads index names from the database.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.parser_add_from_tables">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">parser_add_from_tables</code><span class="sig-paren">(</span><em>parsed: pyparsing.ParseResults, join_info_list: List[crate_anon.common.sql.JoinInfo], grammar: cardinal_pythonlib.sql.sql_grammar.SqlGrammar</em><span class="sig-paren">)</span> &#x2192; pyparsing.ParseResults<a class="headerlink" href="#crate_anon.common.sql.parser_add_from_tables" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">parser_add_from_tables</code><span class="sig-paren">(</span><em>parsed: pyparsing.ParseResults, join_info_list: List[crate_anon.common.sql.JoinInfo], grammar: cardinal_pythonlib.sql.sql_grammar.SqlGrammar</em><span class="sig-paren">)</span> &#x2192; pyparsing.ParseResults<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#parser_add_from_tables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.parser_add_from_tables" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>joininfo: list of dictionaries with keys:</dt>
 <dd>table, join_type, join_condition</dd>
@@ -125,7 +125,7 @@ representing the first table in the FROM clause.</p>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.sql_fragment_cast_to_int">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">sql_fragment_cast_to_int</code><span class="sig-paren">(</span><em>expr: str</em>, <em>big: bool = True</em>, <em>dialect: sqlalchemy.engine.interfaces.Dialect = None</em>, <em>viewmaker: crate_anon.common.sql.ViewMaker = None</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.common.sql.sql_fragment_cast_to_int" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">sql_fragment_cast_to_int</code><span class="sig-paren">(</span><em>expr: str</em>, <em>big: bool = True</em>, <em>dialect: sqlalchemy.engine.interfaces.Dialect = None</em>, <em>viewmaker: crate_anon.common.sql.ViewMaker = None</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#sql_fragment_cast_to_int"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.sql_fragment_cast_to_int" title="Permalink to this definition">¶</a></dt>
 <dd><p>For Microsoft SQL Server.
 Conversion to INT:
 - <a class="reference external" href="http://stackoverflow.com/questions/2000045">http://stackoverflow.com/questions/2000045</a>
@@ -190,7 +190,7 @@ Nor are unusual LIKE clauses; see</p>
 
 <dl class="function">
 <dt id="crate_anon.common.sql.translate_sql_qmark_to_percent">
-<code class="descclassname">crate_anon.common.sql.</code><code class="descname">translate_sql_qmark_to_percent</code><span class="sig-paren">(</span><em>sql: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.common.sql.translate_sql_qmark_to_percent" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.common.sql.</code><code class="descname">translate_sql_qmark_to_percent</code><span class="sig-paren">(</span><em>sql: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/common/sql.html#translate_sql_qmark_to_percent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.common.sql.translate_sql_qmark_to_percent" title="Permalink to this definition">¶</a></dt>
 <dd><p>MySQL likes ‘?’ as a placeholder.
 - <a class="reference external" href="https://dev.mysql.com/doc/refman/5.7/en/sql-syntax-prepared-statements.html">https://dev.mysql.com/doc/refman/5.7/en/sql-syntax-prepared-statements.html</a></p>
 <p>Python DBAPI allows several: ‘%s’, ‘?’, ‘:1’, ‘:name’, ‘%(name)s’.

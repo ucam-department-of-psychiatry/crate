@@ -63,25 +63,25 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="class">
 <dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">NumeratorOutOfDenominatorParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>variable_name: str</em>, <em>variable_regex_str: str</em>, <em>expected_denominator: int</em>, <em>numerator_text_fieldname: str = 'numerator_text'</em>, <em>numerator_fieldname: str = 'numerator'</em>, <em>denominator_text_fieldname: str = 'denominator_text'</em>, <em>denominator_fieldname: str = 'denominator'</em>, <em>correct_numerator_fieldname: str = None</em>, <em>take_absolute: bool = True</em>, <em>commit: bool = False</em>, <em>debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">NumeratorOutOfDenominatorParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>variable_name: str</em>, <em>variable_regex_str: str</em>, <em>expected_denominator: int</em>, <em>numerator_text_fieldname: str = 'numerator_text'</em>, <em>numerator_fieldname: str = 'numerator'</em>, <em>denominator_text_fieldname: str = 'denominator_text'</em>, <em>denominator_fieldname: str = 'denominator'</em>, <em>correct_numerator_fieldname: str = None</em>, <em>take_absolute: bool = True</em>, <em>commit: bool = False</em>, <em>debug: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumeratorOutOfDenominatorParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
 Integer denominator, expected to be positive.
 Otherwise similar to SimpleNumericalResultParser.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.dest_tables_columns">
-<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumeratorOutOfDenominatorParser.dest_tables_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumeratorOutOfDenominatorParser.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Default parser for NumeratorOutOfDenominatorParser.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.test_numerator_denominator_parser">
-<code class="descname">test_numerator_denominator_parser</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, List[Tuple[float, float]]]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.test_numerator_denominator_parser" title="Permalink to this definition">¶</a></dt>
+<code class="descname">test_numerator_denominator_parser</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, List[Tuple[float, float]]]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumeratorOutOfDenominatorParser.test_numerator_denominator_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.test_numerator_denominator_parser" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>test_expected_list: list of tuples of (a) test string and</dt>
 <dd>(b) list of expected numerical (numerator, denominator) results, which
@@ -94,30 +94,30 @@ can be an empty list</dd>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">NumericalResultParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>variable: str</em>, <em>target_unit: str</em>, <em>regex_str_for_debugging: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">NumericalResultParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>variable: str</em>, <em>target_unit: str</em>, <em>regex_str_for_debugging: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumericalResultParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>DO NOT USE DIRECTLY. Base class for generic numerical results, where
 a SINGLE variable is produced.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.dest_tables_columns">
-<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumericalResultParser.dest_tables_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumericalResultParser.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Default parser for NumericalResultParser.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.set_tablename">
-<code class="descname">set_tablename</code><span class="sig-paren">(</span><em>tablename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.set_tablename" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_tablename</code><span class="sig-paren">(</span><em>tablename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumericalResultParser.set_tablename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.set_tablename" title="Permalink to this definition">¶</a></dt>
 <dd><p>In case a friend class wants to override.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.test_numerical_parser">
-<code class="descname">test_numerical_parser</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, List[float]]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.test_numerical_parser" title="Permalink to this definition">¶</a></dt>
+<code class="descname">test_numerical_parser</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, List[float]]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#NumericalResultParser.test_numerical_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.test_numerical_parser" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="docutils">
 <dt>test_expected_list: list of tuples of (a) test string and</dt>
 <dd>(b) list of expected numerical (float) results, which can be an
@@ -130,13 +130,13 @@ empty list</dd>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">SimpleNumericalResultParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition, cfgsection: str, regex_str: str, variable: str, target_unit: str, units_to_factor: Dict[str, float], take_absolute: bool = False, commit: bool = False, debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">SimpleNumericalResultParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition, cfgsection: str, regex_str: str, variable: str, target_unit: str, units_to_factor: Dict[str, float], take_absolute: bool = False, commit: bool = False, debug: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#SimpleNumericalResultParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>Base class for simple single-format numerical results. Use this when
 not only do you have a single variable to produce, but you have a single
 regex (in a standard format) that can produce it.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#SimpleNumericalResultParser.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Default parser for SimpleNumericalResultParser.</p>
 </dd></dl>
 
@@ -144,7 +144,7 @@ regex (in a standard format) that can produce it.</p>
 
 <dl class="class">
 <dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">ValidatorBase</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition, cfgsection: str, regex_str_list: List[str], validated_variable: str, commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">ValidatorBase</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition, cfgsection: str, regex_str_list: List[str], validated_variable: str, commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#ValidatorBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase" title="Permalink to this definition">¶</a></dt>
 <dd><p>DO NOT USE DIRECTLY. Base class for validating regex parser sensitivity.
 The validator will find fields that refer to the variable, whether or not
 they meet the other criteria of the actual NLP processors (i.e. whether or
@@ -316,25 +316,25 @@ the CRP class looks for things like “CRP is 6” or “CRP 20 mg/L”, whereas
 the CRP validator looks for things like “CRP”.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.dest_tables_columns">
-<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#ValidatorBase.dest_tables_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#ValidatorBase.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parser for ValidatorBase.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.set_tablename">
-<code class="descname">set_tablename</code><span class="sig-paren">(</span><em>tablename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.set_tablename" title="Permalink to this definition">¶</a></dt>
+<code class="descname">set_tablename</code><span class="sig-paren">(</span><em>tablename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#ValidatorBase.set_tablename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.set_tablename" title="Permalink to this definition">¶</a></dt>
 <dd><p>In case a friend class wants to override.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.test_validator">
-<code class="descname">test_validator</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, bool]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.test_validator" title="Permalink to this definition">¶</a></dt>
+<code class="descname">test_validator</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, bool]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#ValidatorBase.test_validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.test_validator" title="Permalink to this definition">¶</a></dt>
 <dd><p>The ‘bool’ part of test_expected_list is: should it match any?
 … noting that “match anywhere” is the “search” function, whereas</p>
 <blockquote>
@@ -346,7 +346,7 @@ the CRP validator looks for things like “CRP”.</p>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.regex_parser.common_tense">
-<code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">common_tense</code><span class="sig-paren">(</span><em>tense_text: str</em>, <em>relation_text: str</em><span class="sig-paren">)</span> &#x2192; Tuple[str, str]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.common_tense" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">common_tense</code><span class="sig-paren">(</span><em>tense_text: str</em>, <em>relation_text: str</em><span class="sig-paren">)</span> &#x2192; Tuple[str, str]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/regex_parser.html#common_tense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.common_tense" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sort out tense, if known, and impute that “CRP was 72” means that
 relation was EQ in the PAST, etc.</p>
 <p>Returns (tense, relation).</p>

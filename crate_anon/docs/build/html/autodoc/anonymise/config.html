@@ -114,29 +114,29 @@ modules start.</p>
 </ul>
 <dl class="class">
 <dt id="crate_anon.anonymise.config.Config">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">Config</code><span class="sig-paren">(</span><em>open_databases: bool = True</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.config.Config" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">Config</code><span class="sig-paren">(</span><em>open_databases: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.Config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class representing the main configuration.</p>
 <dl class="method">
 <dt id="crate_anon.anonymise.config.Config.check_valid">
-<code class="descname">check_valid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.config.Config.check_valid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">check_valid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#Config.check_valid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.Config.check_valid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Raise exception if config is invalid.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.config.Config.encrypt_master_pid">
-<code class="descname">encrypt_master_pid</code><span class="sig-paren">(</span><em>mpid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; Union[str, NoneType]<a class="headerlink" href="#crate_anon.anonymise.config.Config.encrypt_master_pid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">encrypt_master_pid</code><span class="sig-paren">(</span><em>mpid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; Union[str, NoneType]<a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#Config.encrypt_master_pid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.Config.encrypt_master_pid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encrypt a master PID, producing a master RID.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.config.Config.encrypt_primary_pid">
-<code class="descname">encrypt_primary_pid</code><span class="sig-paren">(</span><em>pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.config.Config.encrypt_primary_pid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">encrypt_primary_pid</code><span class="sig-paren">(</span><em>pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#Config.encrypt_primary_pid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.Config.encrypt_primary_pid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Encrypt a primary PID, producing a RID.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.config.Config.hash_object">
-<code class="descname">hash_object</code><span class="sig-paren">(</span><em>l: Any</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.config.Config.hash_object" title="Permalink to this definition">¶</a></dt>
+<code class="descname">hash_object</code><span class="sig-paren">(</span><em>l: Any</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#Config.hash_object"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.Config.hash_object" title="Permalink to this definition">¶</a></dt>
 <dd><p>Hashes a list with Python’s built-in hash function.</p>
 <p>We could use Python’s build-in hash() function, which produces a 64-bit
 unsigned integer (calculated from: sys.maxint).
@@ -147,7 +147,7 @@ dictionary attack. Thus, we should use a better version.</p>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.config.Config.init_row_counts">
-<code class="descname">init_row_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.config.Config.init_row_counts" title="Permalink to this definition">¶</a></dt>
+<code class="descname">init_row_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#Config.init_row_counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.Config.init_row_counts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initialize row counts for all source tables.</p>
 </dd></dl>
 
@@ -155,14 +155,14 @@ dictionary attack. Thus, we should use a better version.</p>
 
 <dl class="class">
 <dt id="crate_anon.anonymise.config.DatabaseSafeConfig">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">DatabaseSafeConfig</code><span class="sig-paren">(</span><em>parser: crate_anon.common.extendedconfigparser.ExtendedConfigParser</em>, <em>section: str</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.config.DatabaseSafeConfig" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">DatabaseSafeConfig</code><span class="sig-paren">(</span><em>parser: crate_anon.common.extendedconfigparser.ExtendedConfigParser</em>, <em>section: str</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#DatabaseSafeConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.DatabaseSafeConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class representing non-sensitive configuration information about a
 source database.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.anonymise.config.get_extra_hasher">
-<code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">get_extra_hasher</code><span class="sig-paren">(</span><em>parser: crate_anon.common.extendedconfigparser.ExtendedConfigParser</em>, <em>section: str</em><span class="sig-paren">)</span> &#x2192; cardinal_pythonlib.hash.GenericHasher<a class="headerlink" href="#crate_anon.anonymise.config.get_extra_hasher" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">get_extra_hasher</code><span class="sig-paren">(</span><em>parser: crate_anon.common.extendedconfigparser.ExtendedConfigParser</em>, <em>section: str</em><span class="sig-paren">)</span> &#x2192; cardinal_pythonlib.hash.GenericHasher<a class="reference internal" href="../../_modules/crate_anon/anonymise/config.html#get_extra_hasher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.config.get_extra_hasher" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read from a configparser section.</p>
 </dd></dl>
 

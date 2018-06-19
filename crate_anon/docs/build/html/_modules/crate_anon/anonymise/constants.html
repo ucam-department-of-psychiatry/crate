@@ -1,0 +1,1036 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.anonymise.constants &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.anonymise.constants</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/anonymise/anon_constants.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+
+<span class="sd">Shared constants for CRATE anonymiser.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">enum</span> <span class="k">import</span> <span class="n">unique</span>
+
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Integer</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.enumlike</span> <span class="k">import</span> <span class="n">StrEnum</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.version</span> <span class="k">import</span> <span class="n">VERSION</span><span class="p">,</span> <span class="n">VERSION_DATE</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Logging</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">LOG_DATEFMT</span> <span class="o">=</span> <span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span>
+
+<span class="n">LOG_COLORS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;DEBUG&#39;</span><span class="p">:</span> <span class="s1">&#39;cyan&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;INFO&#39;</span><span class="p">:</span> <span class="s1">&#39;green&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;WARNING&#39;</span><span class="p">:</span> <span class="s1">&#39;yellow&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;ERROR&#39;</span><span class="p">:</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CRITICAL&#39;</span><span class="p">:</span> <span class="s1">&#39;red,bg_white&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Cosmetic</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">BIGSEP</span> <span class="o">=</span> <span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">20</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+<span class="n">SEP</span> <span class="o">=</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">20</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Defaults for command-line options</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">DEFAULT_REPORT_EVERY</span> <span class="o">=</span> <span class="mi">100000</span>  <span class="c1"># 100k</span>
+<span class="n">DEFAULT_CHUNKSIZE</span> <span class="o">=</span> <span class="mi">100000</span>  <span class="c1"># 100k</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Environment</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">CONFIG_ENV_VAR</span> <span class="o">=</span> <span class="s1">&#39;CRATE_ANON_CONFIG&#39;</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Data dictionary</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">DATEFORMAT_ISO8601</span> <span class="o">=</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S%z&quot;</span>  <span class="c1"># e.g. 2013-07-24T20:04:07+0100</span>
+<span class="n">DEFAULT_INDEX_LEN</span> <span class="o">=</span> <span class="mi">20</span>  <span class="c1"># for data types where it&#39;s mandatory</span>
+<span class="n">DEFAULT_MAX_ROWS_BEFORE_COMMIT</span> <span class="o">=</span> <span class="mi">1000</span>
+<span class="n">DEFAULT_MAX_BYTES_BEFORE_COMMIT</span> <span class="o">=</span> <span class="mi">80</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>
+
+<span class="n">LONGTEXT</span> <span class="o">=</span> <span class="s2">&quot;LONGTEXT&quot;</span>
+
+<span class="n">MAX_PID_STR</span> <span class="o">=</span> <span class="s2">&quot;9&quot;</span> <span class="o">*</span> <span class="mi">10</span>  <span class="c1"># e.g. NHS numbers are 10-digit</span>
+
+<span class="c1"># Better overall than string.maketrans:</span>
+<span class="n">ODD_CHARS_TRANSLATE</span> <span class="o">=</span> <span class="p">[</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">256</span><span class="p">)]</span>
+<span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="s1">&#39;()/ &#39;</span><span class="p">:</span>
+    <span class="n">ODD_CHARS_TRANSLATE</span><span class="p">[</span><span class="nb">ord</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">32</span><span class="p">):</span>
+    <span class="n">ODD_CHARS_TRANSLATE</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">127</span><span class="p">,</span> <span class="mi">256</span><span class="p">):</span>
+    <span class="n">ODD_CHARS_TRANSLATE</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span>
+<span class="n">ODD_CHARS_TRANSLATE</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ODD_CHARS_TRANSLATE</span><span class="p">)</span>
+
+<span class="n">TridType</span> <span class="o">=</span> <span class="n">Integer</span>
+<span class="n">MAX_TRID</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span>
+<span class="c1"># https://dev.mysql.com/doc/refman/5.0/en/numeric-type-overview.html</span>
+<span class="c1"># Maximum INT UNSIGNED is              4294967295 == 2 ** 32 - 1.</span>
+<span class="c1"># INT range is                        -2147483648 == -(2 **  31) to</span>
+<span class="c1">#                                     +2147483647 == 2 ** 31 - 1</span>
+<span class="c1"># ... note that this is inadequate for 10-digit NHS numbers.</span>
+<span class="c1"># Maximum BIGINT UNSIGNED is 18446744073709551615 == 2 ** 64 - 1.</span>
+<span class="c1"># BIGINT range is            -9223372036854775808 == -(2 ** 63) to</span>
+<span class="c1">#                            +9223372036854775807 == 2 ** 64 - 1</span>
+
+
+<div class="viewcode-block" id="ALTERMETHOD"><a class="viewcode-back" href="../../../autodoc/anonymise/constants.html#crate_anon.anonymise.constants.ALTERMETHOD">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">ALTERMETHOD</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">BINARY_TO_TEXT</span> <span class="o">=</span> <span class="s2">&quot;binary_to_text&quot;</span>
+    <span class="n">FILENAME_FORMAT_TO_TEXT</span> <span class="o">=</span> <span class="s2">&quot;filename_format_to_text&quot;</span>  <span class="c1"># new in v0.18.18</span>
+    <span class="n">FILENAME_TO_TEXT</span> <span class="o">=</span> <span class="s2">&quot;filename_to_text&quot;</span>
+    <span class="n">HASH</span> <span class="o">=</span> <span class="s2">&quot;hash&quot;</span>
+    <span class="c1"># HTML_ESCAPE = &quot;html_escape&quot;</span>
+    <span class="n">HTML_UNESCAPE</span> <span class="o">=</span> <span class="s2">&quot;html_unescape&quot;</span>
+    <span class="n">HTML_UNTAG</span> <span class="o">=</span> <span class="s2">&quot;html_untag&quot;</span>
+    <span class="n">SCRUBIN</span> <span class="o">=</span> <span class="s2">&quot;scrub&quot;</span>
+    <span class="n">SKIP_IF_TEXT_EXTRACT_FAILS</span> <span class="o">=</span> <span class="s2">&quot;skip_if_extract_fails&quot;</span>
+    <span class="n">TRUNCATEDATE</span> <span class="o">=</span> <span class="s2">&quot;truncate_date&quot;</span></div>
+
+
+<div class="viewcode-block" id="DECISION"><a class="viewcode-back" href="../../../autodoc/anonymise/constants.html#crate_anon.anonymise.constants.DECISION">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">DECISION</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">OMIT</span> <span class="o">=</span> <span class="s2">&quot;OMIT&quot;</span>
+    <span class="n">INCLUDE</span> <span class="o">=</span> <span class="s2">&quot;include&quot;</span></div>
+
+
+<div class="viewcode-block" id="INDEX"><a class="viewcode-back" href="../../../autodoc/anonymise/constants.html#crate_anon.anonymise.constants.INDEX">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">INDEX</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">NORMAL</span> <span class="o">=</span> <span class="s2">&quot;I&quot;</span>
+    <span class="n">UNIQUE</span> <span class="o">=</span> <span class="s2">&quot;U&quot;</span>
+    <span class="n">FULLTEXT</span> <span class="o">=</span> <span class="s2">&quot;F&quot;</span></div>
+
+
+<div class="viewcode-block" id="SCRUBMETHOD"><a class="viewcode-back" href="../../../autodoc/anonymise/constants.html#crate_anon.anonymise.constants.SCRUBMETHOD">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">SCRUBMETHOD</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">WORDS</span> <span class="o">=</span> <span class="s2">&quot;words&quot;</span>
+    <span class="n">PHRASE</span> <span class="o">=</span> <span class="s2">&quot;phrase&quot;</span>
+    <span class="n">NUMERIC</span> <span class="o">=</span> <span class="s2">&quot;number&quot;</span>
+    <span class="n">DATE</span> <span class="o">=</span> <span class="s2">&quot;date&quot;</span>
+    <span class="n">CODE</span> <span class="o">=</span> <span class="s2">&quot;code&quot;</span></div>
+
+
+<div class="viewcode-block" id="SCRUBSRC"><a class="viewcode-back" href="../../../autodoc/anonymise/constants.html#crate_anon.anonymise.constants.SCRUBSRC">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">SCRUBSRC</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">PATIENT</span> <span class="o">=</span> <span class="s2">&quot;patient&quot;</span>
+    <span class="n">THIRDPARTY</span> <span class="o">=</span> <span class="s2">&quot;thirdparty&quot;</span>
+    <span class="n">THIRDPARTY_XREF_PID</span> <span class="o">=</span> <span class="s2">&quot;thirdparty_xref_pid&quot;</span></div>
+
+
+<div class="viewcode-block" id="SRCFLAG"><a class="viewcode-back" href="../../../autodoc/anonymise/constants.html#crate_anon.anonymise.constants.SRCFLAG">[docs]</a><span class="nd">@unique</span>
+<span class="k">class</span> <span class="nc">SRCFLAG</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+    <span class="n">PK</span> <span class="o">=</span> <span class="s2">&quot;K&quot;</span>
+    <span class="n">ADD_SRC_HASH</span> <span class="o">=</span> <span class="s2">&quot;H&quot;</span>
+    <span class="n">PRIMARY_PID</span> <span class="o">=</span> <span class="s2">&quot;P&quot;</span>
+    <span class="n">DEFINES_PRIMARY_PIDS</span> <span class="o">=</span> <span class="s2">&quot;*&quot;</span>
+    <span class="n">MASTER_PID</span> <span class="o">=</span> <span class="s2">&quot;M&quot;</span>
+    <span class="n">CONSTANT</span> <span class="o">=</span> <span class="s2">&quot;C&quot;</span>
+    <span class="n">ADDITION_ONLY</span> <span class="o">=</span> <span class="s2">&quot;A&quot;</span>
+    <span class="n">OPT_OUT</span> <span class="o">=</span> <span class="s2">&quot;!&quot;</span>
+    <span class="n">REQUIRED_SCRUBBER</span> <span class="o">=</span> <span class="s2">&quot;R&quot;</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Databases</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">CHARSET</span> <span class="o">=</span> <span class="s1">&#39;utf8&#39;</span>
+<span class="n">TABLE_KWARGS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># MySQL:</span>
+    <span class="s1">&#39;mysql_charset&#39;</span><span class="p">:</span> <span class="n">CHARSET</span><span class="p">,</span>
+    <span class="s1">&#39;mysql_engine&#39;</span><span class="p">:</span> <span class="s1">&#39;InnoDB&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">MAX_IDENTIFIER_LENGTH</span> <span class="o">=</span> <span class="mi">64</span>
+<span class="c1"># MySQL: 64 -- http://dev.mysql.com/doc/refman/5.7/en/identifiers.html</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Demo config</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># noinspection PyPep8</span>
+<span class="n">DEMO_CONFIG</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;# Configuration file for CRATE anonymiser (crate_anonymise).</span>
+<span class="s2"># Version </span><span class="si">{VERSION}</span><span class="s2"> (</span><span class="si">{VERSION_DATE}</span><span class="s2">).</span>
+<span class="s2">#</span>
+<span class="s2"># Boolean values can be 0/1, Y/N, T/F, True/False.</span>
+
+<span class="s2"># =============================================================================</span>
+<span class="s2"># Main settings</span>
+<span class="s2"># =============================================================================</span>
+
+<span class="s2">[main]</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Data dictionary</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Specify a data dictionary in TSV (tab-separated value) format, with a header</span>
+<span class="s2"># row. SEE HELP FOR DETAILS.</span>
+
+<span class="s2">data_dictionary_filename = testdd.tsv</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Critical field types</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># We need to know PID and MPID types from the config so that we can set up our</span>
+<span class="s2"># secret mapping tables. You can leave these blank, in which case they will be</span>
+<span class="s2"># assumed to be large integers, using SQLAlchemy&#39;s BigInteger (e.g.</span>
+<span class="s2"># SQL Server&#39;s BIGINT). If you do specify them, you may specify EITHER</span>
+<span class="s2"># &quot;BigInteger&quot; or a string type such as &quot;String(50)&quot;.</span>
+
+<span class="s2">sqlatype_pid =</span>
+<span class="s2">sqlatype_mpid =</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Encryption phrases/passwords</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">    # PID-to-RID hashing method. Options are:</span>
+<span class="s2">    # - HMAC_MD5 - produces a 32-character digest</span>
+<span class="s2">    # - HMAC_SHA256 - produces a 64-character digest</span>
+<span class="s2">    # - HMAC_SHA512 - produces a 128-character digest</span>
+<span class="s2">hash_method = HMAC_MD5</span>
+
+<span class="s2">per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME</span>
+
+<span class="s2">master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME</span>
+
+<span class="s2">change_detection_encryption_phrase = YETANOTHER</span>
+
+<span class="s2">    # If you are using the &quot;</span><span class="si">{ALTERMETHOD.HASH}</span><span class="s2">&quot; field alteration method</span>
+<span class="s2">    # (see above), you need to list the hash methods here, for internal</span>
+<span class="s2">    # initialization order/performance reasons.</span>
+<span class="s2">extra_hash_config_sections =</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Text extraction</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">    # extract_text_extensions_permitted and extract_text_extensions_prohibited</span>
+<span class="s2">    # govern what kinds of files are accepted for text extraction. It is very</span>
+<span class="s2">    # likely that you&#39;ll want to apply such restrictions; for example, if your</span>
+<span class="s2">    # database contains .jpg files, it&#39;s a waste of trying to extract text from</span>
+<span class="s2">    # them (and in theory, if your text extraction tool provided sufficient</span>
+<span class="s2">    # detail, such as binary-encoding the JPEG, you might leak identifiable</span>
+<span class="s2">    # information, such as a photo).</span>
+<span class="s2">    #</span>
+<span class="s2">    # - The &quot;permitted&quot; and &quot;prohibited&quot; settings are both lists of strings.</span>
+<span class="s2">    # - If the &quot;permitted&quot; list is not empty then a file will be processed</span>
+<span class="s2">    #   only if its extension is in the permitted list. Otherwise, it will be</span>
+<span class="s2">    #   processed only if it is not in the prohibited list.</span>
+<span class="s2">    # - The extensions must include the &quot;.&quot; prefix.</span>
+<span class="s2">    # - Case sensitivity is controlled by the extra flag.</span>
+
+<span class="s2">extract_text_extensions_case_sensitive = False</span>
+<span class="s2">extract_text_extensions_permitted =</span>
+<span class="s2">extract_text_extensions_prohibited =</span>
+
+<span class="s2">    # Use the plainest possible layout for text extraction?</span>
+<span class="s2">    # False = better for human layout. Table example from DOCX:</span>
+<span class="s2">    #     +---------+---------+</span>
+<span class="s2">    #     | AAA AAA | BBB BBB |</span>
+<span class="s2">    #     | AAA AAA | BBB BBB |</span>
+<span class="s2">    #     +---------+---------+</span>
+<span class="s2">    # True = good for natural language processing. Table example from DOCX:</span>
+<span class="s2">    #     ---------------------</span>
+<span class="s2">    #       AAA AAA</span>
+<span class="s2">    #       AAA AAA</span>
+<span class="s2">    #     ---------------------</span>
+<span class="s2">    #                 BBB BBB</span>
+<span class="s2">    #                 BBB BBB</span>
+<span class="s2">    #     ---------------------</span>
+<span class="s2">    # ... note the absence of vertical interruptions, and that text from one</span>
+<span class="s2">    # cell remains contiguous.</span>
+<span class="s2">extract_text_plain = False</span>
+
+<span class="s2">    # Default width to word-wrap extracted text to</span>
+<span class="s2">extract_text_width = 80</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Anonymisation</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">    # Patient information will be replaced with this. For example, XXXXXX or</span>
+<span class="s2">    # [___] or [__PPP__] or [__ZZZ__]; the bracketed forms can be a bit easier</span>
+<span class="s2">    # to spot, and work better if they directly abut other text.</span>
+<span class="s2">replace_patient_info_with = [__PPP__]</span>
+
+<span class="s2">    # Third-party information will be replaced by this.</span>
+<span class="s2">    # For example, YYYYYY or [...] or [__TTT__] or [__QQQ__].</span>
+<span class="s2">replace_third_party_info_with = [__TTT__]</span>
+
+<span class="s2">    # For fields marked as scrub_src = </span><span class="si">{SCRUBSRC.THIRDPARTY_XREF_PID}</span><span class="s2">,</span>
+<span class="s2">    # how deep should we recurse? The default is 1. Beware making this too</span>
+<span class="s2">    # large; the recursion trawls a lot of information (and also uses an</span>
+<span class="s2">    # extra simultaneous database cursor for each recursion).</span>
+<span class="s2">thirdparty_xref_max_depth = 1</span>
+
+<span class="s2">    # Things to be removed irrespective of patient-specific information will be</span>
+<span class="s2">    # replaced by this (for example, if you opt to remove all things looking</span>
+<span class="s2">    # like telephone numbers). For example, ZZZZZZ or [~~~].</span>
+<span class="s2">replace_nonspecific_info_with = [~~~]</span>
+
+<span class="s2">    # Strings to append to every &quot;scrub from&quot; string.</span>
+<span class="s2">    # For example, include &quot;s&quot; if you want to scrub &quot;Roberts&quot; whenever you</span>
+<span class="s2">    # scrub &quot;Robert&quot;.</span>
+<span class="s2">    # Applies to </span><span class="si">{SCRUBMETHOD.WORDS}</span><span class="s2">, but not to </span><span class="si">{SCRUBMETHOD.PHRASE}</span><span class="s2">.</span>
+<span class="s2">    # Multiline field: https://docs.python.org/2/library/configparser.html</span>
+<span class="s2">scrub_string_suffixes =</span>
+<span class="s2">    s</span>
+
+<span class="s2">    # Specify maximum number of errors (insertions, deletions, substitutions)</span>
+<span class="s2">    # in string regex matching. Beware using a high number! Suggest 1-2.</span>
+<span class="s2">string_max_regex_errors = 1</span>
+
+<span class="s2">    # Is there a minimum length to apply string_max_regex_errors? For example,</span>
+<span class="s2">    # if you allow one typo and someone is called Ian, all instances of &#39;in&#39; or</span>
+<span class="s2">    # &#39;an&#39; will be wiped. Note that this apply to scrub-source data.</span>
+<span class="s2">min_string_length_for_errors = 4</span>
+
+<span class="s2">    # Is there a minimum length of string to scrub WITH? For example, if you</span>
+<span class="s2">    # specify 2, you allow two-letter names such as Al to be scrubbed, but you</span>
+<span class="s2">    # allow initials through, and therefore prevent e.g. &#39;A&#39; from being</span>
+<span class="s2">    # scrubbed from the destination. Note that this applies to scrub-source</span>
+<span class="s2">    # data.</span>
+<span class="s2">min_string_length_to_scrub_with = 2</span>
+
+<span class="s2">    # WHITELIST.</span>
+<span class="s2">    # Are there any words not to scrub? For example, &quot;the&quot;, &quot;road&quot;, &quot;street&quot;</span>
+<span class="s2">    # often appear in addresses, but you might not want them removed. Be</span>
+<span class="s2">    # careful in case these could be names (e.g. &quot;Lane&quot;).</span>
+<span class="s2">    # Specify these as a list of FILENAMES, where the files contain words; e.g.</span>
+<span class="s2">    #</span>
+<span class="s2">    # whitelist_filenames = /some/path/short_english_words.txt</span>
+<span class="s2">    #</span>
+<span class="s2">    # Here&#39;s a suggestion for some of the sorts of words you might include:</span>
+<span class="s2">    #     am</span>
+<span class="s2">    #     an</span>
+<span class="s2">    #     as</span>
+<span class="s2">    #     at</span>
+<span class="s2">    #     bd</span>
+<span class="s2">    #     by</span>
+<span class="s2">    #     he</span>
+<span class="s2">    #     if</span>
+<span class="s2">    #     is</span>
+<span class="s2">    #     it</span>
+<span class="s2">    #     me</span>
+<span class="s2">    #     mg</span>
+<span class="s2">    #     od</span>
+<span class="s2">    #     of</span>
+<span class="s2">    #     on</span>
+<span class="s2">    #     or</span>
+<span class="s2">    #     re</span>
+<span class="s2">    #     so</span>
+<span class="s2">    #     to</span>
+<span class="s2">    #     us</span>
+<span class="s2">    #     we</span>
+<span class="s2">    #     her</span>
+<span class="s2">    #     him</span>
+<span class="s2">    #     tds</span>
+<span class="s2">    #     she</span>
+<span class="s2">    #     the</span>
+<span class="s2">    #     you</span>
+<span class="s2">    #     road</span>
+<span class="s2">    #     street</span>
+<span class="s2">whitelist_filenames =</span>
+
+<span class="s2">    # BLACKLIST</span>
+<span class="s2">    # Are there any words you always want to remove?</span>
+<span class="s2">    # Specify these as a list of filenames, e.g</span>
+<span class="s2">    #</span>
+<span class="s2">    # blacklist_filenames = /some/path/boy_names.txt</span>
+<span class="s2">    #     /some/path/girl_names.txt</span>
+<span class="s2">    #     /some/path/common_surnames.txt</span>
+<span class="s2">blacklist_filenames =</span>
+
+<span class="s2">    # Nonspecific scrubbing of numbers of a certain length?</span>
+<span class="s2">    # For example, scrubbing all 11-digit numbers will remove modern UK</span>
+<span class="s2">    # telephone numbers in conventional format. To do this, specify</span>
+<span class="s2">    # scrub_all_numbers_of_n_digits = 11. You could scrub both 10- and 11-digit</span>
+<span class="s2">    # numbers by specifying both numbers (in multiline format, as above);</span>
+<span class="s2">    # 10-digit numbers would include all NHS numbers. Avoid using this for</span>
+<span class="s2">    # short numbers; you may lose valuable numeric data!</span>
+<span class="s2">scrub_all_numbers_of_n_digits =</span>
+
+<span class="s2">    # Nonspecific scrubbing of UK postcodes?</span>
+<span class="s2">    # See https://www.mrs.org.uk/pdf/postcodeformat.pdf ; these can look like</span>
+<span class="s2">    # FORMAT    EXAMPLE</span>
+<span class="s2">    # AN NAA    M1 1AA</span>
+<span class="s2">    # ANN NAA   M60 1NW</span>
+<span class="s2">    # AAN NAA   CR2 6XH</span>
+<span class="s2">    # AANN NAA  DN55 1PT</span>
+<span class="s2">    # ANA NAA   W1A 1HQ</span>
+<span class="s2">    # AANA NAA  EC1A 1BB</span>
+<span class="s2">scrub_all_uk_postcodes = False</span>
+
+<span class="s2">    # Anonymise at word boundaries? True is more conservative; False is more</span>
+<span class="s2">    # liberal and will deal with accidental word concatenation. With ID</span>
+<span class="s2">    # numbers, beware if you use a prefix, e.g. if people write &#39;M123456&#39; or</span>
+<span class="s2">    # &#39;R123456&#39;; in that case you will need</span>
+<span class="s2">    #       anonymise_numbers_at_word_boundaries_only = False.</span>
+<span class="s2">anonymise_codes_at_word_boundaries_only = True</span>
+<span class="s2">    # ... applies to </span><span class="si">{SCRUBMETHOD.CODE}</span><span class="s2"></span>
+<span class="s2">anonymise_dates_at_word_boundaries_only = True</span>
+<span class="s2">    # ... applies to </span><span class="si">{SCRUBMETHOD.DATE}</span><span class="s2"></span>
+<span class="s2">anonymise_numbers_at_word_boundaries_only = False</span>
+<span class="s2">    # ... applies to </span><span class="si">{SCRUBMETHOD.NUMERIC}</span><span class="s2"></span>
+<span class="s2">anonymise_numbers_at_numeric_boundaries_only = True</span>
+<span class="s2">    # ... applies to </span><span class="si">{SCRUBMETHOD.NUMERIC}</span><span class="s2"></span>
+<span class="s2">    # ... if True, will not scrub &quot;234&quot; from &quot;123456&quot;</span>
+<span class="s2">    # ... setting this to False is extremely conservative</span>
+<span class="s2">anonymise_strings_at_word_boundaries_only = True</span>
+<span class="s2">    # ... applies to </span><span class="si">{SCRUBMETHOD.WORDS}</span><span class="s2"> and </span><span class="si">{SCRUBMETHOD.PHRASE}</span><span class="s2"></span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Output fields and formatting</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">    # Research ID field name. This will be a VARCHAR of length determined by</span>
+<span class="s2">    # hash_method. Used to replace patient ID fields from source tables.</span>
+<span class="s2">research_id_fieldname = brcid</span>
+
+<span class="s2">    # Transient integer research ID (TRID) fieldname.</span>
+<span class="s2">    # An unsigned integer field with this name will be added to every table</span>
+<span class="s2">    # containing a primary patient ID (in the source) or research ID (in the</span>
+<span class="s2">    # destination).</span>
+<span class="s2">trid_fieldname = trid</span>
+
+<span class="s2">    # Similarly, used to replace master patient ID fields in source tables:</span>
+<span class="s2">master_research_id_fieldname = nhshash</span>
+
+<span class="s2">    # Change-detection hash fieldname. This will be a VARCHAR of length</span>
+<span class="s2">    # determined by hash_method.</span>
+<span class="s2">source_hash_fieldname = _src_hash</span>
+
+<span class="s2">    # Date-to-text conversion formats</span>
+<span class="s2">date_to_text_format = %Y-%m-</span><span class="si">%d</span><span class="s2"></span>
+<span class="s2">    # ... ISO-8601, e.g. 2013-07-24</span>
+<span class="s2">datetime_to_text_format = %Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%S</span>
+<span class="s2">    # ... ISO-8601, e.g. 2013-07-24T20:04:07</span>
+
+<span class="s2">    # Append source table/field to the comment? Boolean.</span>
+<span class="s2">append_source_info_to_comment = True</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Destination database configuration</span>
+<span class="s2"># See the [destination_database] section for connection details.</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">    # Specify the maximum number of rows to be processed before a COMMIT is</span>
+<span class="s2">    # issued on the database transaction. This prevents the transaction growing</span>
+<span class="s2">    # too large.</span>
+<span class="s2">    # Default is </span><span class="si">{DEFAULT_MAX_ROWS_BEFORE_COMMIT}</span><span class="s2">.</span>
+<span class="s2">max_rows_before_commit = </span><span class="si">{DEFAULT_MAX_ROWS_BEFORE_COMMIT}</span><span class="s2"></span>
+
+<span class="s2">    # Specify the maximum number of source-record bytes (approximately!) that</span>
+<span class="s2">    # are processed before a COMMIT is issued on the database transaction. This</span>
+<span class="s2">    # prevents the transaction growing too large. The COMMIT will be issued</span>
+<span class="s2">    # *after* this limit has been met/exceeded, so it may be exceeded if the</span>
+<span class="s2">    # transaction just before the limit takes the cumulative total over the</span>
+<span class="s2">    # limit.</span>
+<span class="s2">    # Default is </span><span class="si">{DEFAULT_MAX_BYTES_BEFORE_COMMIT}</span><span class="s2">.</span>
+<span class="s2">max_bytes_before_commit = </span><span class="si">{DEFAULT_MAX_BYTES_BEFORE_COMMIT}</span><span class="s2"></span>
+
+<span class="s2">    # We need a temporary table name for incremental updates. This can&#39;t be the</span>
+<span class="s2">    # name of a real destination table. It lives in the destination database.</span>
+<span class="s2">temporary_tablename = _temp_table</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Choose databases (defined in their own sections).</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">    # Source database list. Can be lots.</span>
+<span class="s2">source_databases =</span>
+<span class="s2">    mysourcedb1</span>
+<span class="s2">    mysourcedb2</span>
+
+<span class="s2">    # Destination database. Just one.</span>
+<span class="s2">destination_database = my_destination_database</span>
+
+<span class="s2">    # Admin database. Just one.</span>
+<span class="s2">admin_database = my_admin_database</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">    # Limit the number of patients to be processed? Specify 0 (the default) for</span>
+<span class="s2">    # no limit.</span>
+<span class="s2">debug_max_n_patients =</span>
+
+<span class="s2">    # Specify a list of patient IDs, for debugging? If specified, this</span>
+<span class="s2">    # list will be used directly (overriding the patient ID source specified in</span>
+<span class="s2">    # the data dictionary, and overriding debug_max_n_patients).</span>
+<span class="s2">debug_pid_list =</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Opting out entirely</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2"># Patients who elect to opt out entirely have their PIDs stored in the OptOut</span>
+<span class="s2"># table of the admin database. ENTRIES ARE NEVER REMOVED FROM THIS LIST BY</span>
+<span class="s2"># CRATE. It can be populated in three ways:</span>
+<span class="s2">#   1. Manually, by adding a PID to the column opt_out.pid).</span>
+<span class="s2">#   2. By maintaining a text file list of integer PIDs. Any PIDs in this file</span>
+<span class="s2">#      are added to the opt-out list.</span>
+<span class="s2">#   3. By flagging a source database field as indicating an opt-out, using the</span>
+<span class="s2">#      src_flags = &quot;</span><span class="si">{SRCFLAG.OPT_OUT}</span><span class="s2">&quot; marker.</span>
+
+<span class="s2">    # If you set this, each line of the file(s) is scanned for an integer,</span>
+<span class="s2">    # taken to the PID of a patient who wishes to opt out.</span>
+<span class="s2">optout_pid_filenames =</span>
+
+<span class="s2">    # If you set this, each line of the file(s) is scanned for an integer,</span>
+<span class="s2">    # taken to the MPID of a patient who wishes to opt out.</span>
+<span class="s2">optout_mpid_filenames =</span>
+
+<span class="s2">    # If you mark a field in the data dictionary as an opt-out field (see</span>
+<span class="s2">    # above), that says &quot;the field tells you whether the patient opts out or</span>
+<span class="s2">    # not&quot;. But is it &quot;opt out&quot; or &quot;not&quot;? If the actual value matches one</span>
+<span class="s2">    # below, then it&#39;s &quot;opt out&quot;. Specify a LIST OF PYTHON VALUES; for example:</span>
+<span class="s2">    #       optout_col_values = [True, 1, &#39;1&#39;, &#39;Yes&#39;, &#39;yes&#39;, &#39;Y&#39;, &#39;y&#39;]</span>
+<span class="s2">optout_col_values =</span>
+
+<span class="s2"># =============================================================================</span>
+<span class="s2"># Destination database details. User should have WRITE access.</span>
+<span class="s2"># =============================================================================</span>
+<span class="s2"># Use SQLAlchemy URLs: see</span>
+<span class="s2">#       http://docs.sqlalchemy.org/en/latest/core/engines.html</span>
+<span class="s2"># You may need to install additional drivers, e.g.</span>
+<span class="s2">#       pip install SOME_DRIVER</span>
+<span class="s2"># ... see the documentation.</span>
+
+<span class="s2">[my_destination_database]</span>
+
+<span class="s2">url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8</span>
+
+<span class="s2"># =============================================================================</span>
+<span class="s2"># Administrative database. User should have WRITE access.</span>
+<span class="s2"># =============================================================================</span>
+
+<span class="s2">[my_admin_database]</span>
+
+<span class="s2">url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8</span>
+
+<span class="s2"># =============================================================================</span>
+<span class="s2"># SOURCE DATABASE DETAILS BELOW HERE.</span>
+<span class="s2"># User should have READ access only for safety.</span>
+<span class="s2"># =============================================================================</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Source database example 1</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">[mysourcedb1]</span>
+
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="s2">    # CONNECTION DETAILS</span>
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+
+<span class="s2">url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8</span>
+
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="s2">    # INPUT FIELDS, FOR THE AUTOGENERATION OF DATA DICTIONARIES</span>
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="s2">    # - For field specifications, fields can either be specified as &quot;column&quot;</span>
+<span class="s2">    #   (to match any table) or &quot;table.column&quot;, to match a specific table.</span>
+<span class="s2">    #   They are case-insensitive.</span>
+<span class="s2">    #   Wildcards (*, ?) may also be used (as per Python&#39;s fnmatch).</span>
+
+<span class="s2">    # By default, most fields (except PKs and patient ID codes) are marked</span>
+<span class="s2">    # as &quot;OMIT&quot;, pending human review. If you want to live dangerously, set</span>
+<span class="s2">    # this to False, and they will be marked as &quot;include&quot; from the outset.</span>
+<span class="s2">ddgen_omit_by_default = True</span>
+
+<span class="s2">    # You can specify additional fields to omit...</span>
+<span class="s2">ddgen_omit_fields =</span>
+
+<span class="s2">    # ... or include. &quot;Omit&quot; overrides &quot;include&quot;.</span>
+<span class="s2">    # If a field contains scrubbing source information, it will also be omitted</span>
+<span class="s2">    # pending human review, regardless of other settings.</span>
+<span class="s2">ddgen_include_fields =</span>
+
+<span class="s2">    # Allow the absence of patient info? Used to copy databases; WILL NOT</span>
+<span class="s2">    # ANONYMISE. Boolean; default is False.</span>
+<span class="s2">ddgen_allow_no_patient_info = False</span>
+
+<span class="s2">    # Specify the (typically integer) patient identifier present in EVERY</span>
+<span class="s2">    # table. It will be replaced by the research ID in the destination</span>
+<span class="s2">    # database.</span>
+<span class="s2">ddgen_per_table_pid_field = patient_id</span>
+
+<span class="s2">    # Add every instance of a per-table PID field to the patient scrubber?</span>
+<span class="s2">    # This is a very conservative setting, and should be unnecessary as the</span>
+<span class="s2">    # single master &quot;PID-defining&quot; column (see ddgen_pid_defining_fieldnames)</span>
+<span class="s2">    # should be enough.</span>
+<span class="s2">    # (Note that per-table PIDs are always replaced by RIDs - this setting</span>
+<span class="s2">    # governs whether the scrubber used to scrub free-text fields also</span>
+<span class="s2">    # works through every single per-table PID).</span>
+<span class="s2">ddgen_add_per_table_pids_to_scrubber = False</span>
+
+<span class="s2">    # Master patient ID fieldname. Used for e.g. NHS numbers.</span>
+<span class="s2">ddgen_master_pid_fieldname = nhsnum</span>
+
+<span class="s2">    # Blacklist any tables when creating new data dictionaries?</span>
+<span class="s2">    # This is case-insensitive, and you can use */? wildcards (as per Python&#39;s</span>
+<span class="s2">    # fnmatch module).</span>
+<span class="s2">ddgen_table_blacklist =</span>
+
+<span class="s2">    # Whitelist any tables? (Whitelists override blacklists.)</span>
+<span class="s2">ddgen_table_whitelist =</span>
+
+<span class="s2">    # List any fields that all tables MUST contain. If a table doesn&#39;t contain</span>
+<span class="s2">    # all of the field(s) listed here, it will be skipped.</span>
+<span class="s2">ddgen_table_require_field_absolute =</span>
+
+<span class="s2">    # List any fields that are required conditional on other fields.</span>
+<span class="s2">    # List them as one or more pairs: &quot;A, B&quot; where B is required if A is</span>
+<span class="s2">    # present (or the table will be skipped).</span>
+<span class="s2">ddgen_table_require_field_conditional =</span>
+
+<span class="s2">    # Blacklist any fields (regardless of their table) when creating new data</span>
+<span class="s2">    # dictionaries? Wildcards of */? operate as above.</span>
+<span class="s2">ddgen_field_blacklist =</span>
+
+<span class="s2">    # Whitelist any fields? (Whitelists override blacklists.)</span>
+<span class="s2">ddgen_field_whitelist =</span>
+
+<span class="s2">    # Fieldnames assumed to be their table&#39;s PK:</span>
+<span class="s2">ddgen_pk_fields =</span>
+
+<span class="s2">    # Assume that content stays constant?</span>
+<span class="s2">    # (Applies </span><span class="si">{SRCFLAG.CONSTANT}</span><span class="s2"> to PK fields; q.v.)</span>
+<span class="s2">    # This is the default; then ddgen_constant_content_tables and</span>
+<span class="s2">    # ddgen_nonconstant_content_tables can override (of which,</span>
+<span class="s2">    # ddgen_nonconstant_content_tables takes priority if a table matches both).</span>
+<span class="s2">ddgen_constant_content = False</span>
+
+<span class="s2">    # Table-specific overrides for ddgen_constant_content, as above.</span>
+<span class="s2">ddgen_constant_content_tables =</span>
+<span class="s2">ddgen_nonconstant_content_tables =</span>
+
+<span class="s2">    # Assume that records can only be added, not deleted?</span>
+<span class="s2">ddgen_addition_only = False</span>
+
+<span class="s2">    # Table-specific overrides for ddgen_addition_only, similarly.</span>
+<span class="s2">ddgen_addition_only_tables =</span>
+<span class="s2">ddgen_deletion_possible_tables =</span>
+
+<span class="s2">    # Predefine field(s) that define the existence of patient IDs? UNUSUAL.</span>
+<span class="s2">ddgen_pid_defining_fieldnames =</span>
+
+<span class="s2">    # Default fields to scrub from</span>
+<span class="s2">ddgen_scrubsrc_patient_fields =</span>
+<span class="s2">ddgen_scrubsrc_thirdparty_fields =</span>
+<span class="s2">ddgen_scrubsrc_thirdparty_xref_pid_fields =</span>
+
+<span class="s2">    # Are any scrub_src fields required (mandatory), i.e. must have non-NULL</span>
+<span class="s2">    # data in at least one row (or the patient will be skipped)?</span>
+<span class="s2">ddgen_required_scrubsrc_fields =</span>
+
+<span class="s2">    # Override default scrubbing methods</span>
+<span class="s2">ddgen_scrubmethod_code_fields =</span>
+<span class="s2">ddgen_scrubmethod_date_fields =</span>
+<span class="s2">ddgen_scrubmethod_number_fields =</span>
+<span class="s2">ddgen_scrubmethod_phrase_fields =</span>
+
+<span class="s2">    # Known safe fields, exempt from scrubbing</span>
+<span class="s2">ddgen_safe_fields_exempt_from_scrubbing =</span>
+
+<span class="s2">    # Define minimum text field length for scrubbing (shorter is assumed safe)</span>
+<span class="s2">ddgen_min_length_for_scrubbing = 4</span>
+
+<span class="s2">    # Other default manipulations</span>
+<span class="s2">ddgen_truncate_date_fields =</span>
+
+<span class="s2">    # Fields containing filenames, which files should be converted to text</span>
+<span class="s2">ddgen_filename_to_text_fields =</span>
+
+<span class="s2">    # Fields containing raw binary data from files (binary large objects;</span>
+<span class="s2">    # BLOBs), whose contents should be converted to text -- paired with fields</span>
+<span class="s2">    # in the same table containing their file extension (e.g. &quot;pdf&quot;, &quot;.PDF&quot;) or</span>
+<span class="s2">    # a filename having that extension.</span>
+<span class="s2">    # Specify it as a list of comma-joined pairs, e.g.</span>
+<span class="s2">    #     ddgen_binary_to_text_field_pairs = binary1field, ext1field</span>
+<span class="s2">    #         binary2field, ext2field</span>
+<span class="s2">    #         ...</span>
+<span class="s2">    # The first (binaryfield) can be specified as column or table.column,</span>
+<span class="s2">    # but the second must be column only.</span>
+<span class="s2">ddgen_binary_to_text_field_pairs =</span>
+
+<span class="s2">    # Specify any text-extraction rows for which you also want to set the flag</span>
+<span class="s2">    # &quot;</span><span class="si">{ALTERMETHOD.SKIP_IF_TEXT_EXTRACT_FAILS}</span><span class="s2">&quot;:</span>
+<span class="s2">ddgen_skip_row_if_extract_text_fails_fields =</span>
+
+<span class="s2">    # Automatic renaming of tables</span>
+<span class="s2">    # (Typical use: you make a view with a suffix &quot;_x&quot; as a working step, then</span>
+<span class="s2">    # you want the suffix removed for users.)</span>
+<span class="s2">ddgen_rename_tables_remove_suffixes =</span>
+<span class="s2">    </span>
+<span class="s2">    # Fields that are used as patient opt-out fields:</span>
+<span class="s2">ddgen_patient_opt_out_fields =</span>
+
+<span class="s2">    # Are there any fields you want hashed, in addition to the normal PID/MPID</span>
+<span class="s2">    # fields? Specify these a list of FIELDSPEC, EXTRA_HASH_NAME pairs.</span>
+<span class="s2">    # For example:</span>
+<span class="s2">    #       ddgen_extra_hash_fields = CaseNumber*, case_number_hashdef</span>
+<span class="s2">    # where case_number_hashdef is an extra hash definition (see</span>
+<span class="s2">    # &quot;extra_hash_config_sections&quot;, and &quot;alter_method&quot; in the data dictionary).</span>
+<span class="s2">    #</span>
+<span class="s2">ddgen_extra_hash_fields =</span>
+
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="s2">    # DESTINATION INDEXING</span>
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+
+<span class="s2">    # Fields to apply an index to</span>
+<span class="s2">ddgen_index_fields =</span>
+
+<span class="s2">    # Allow full-text index creation? Default true. Disable for databases that</span>
+<span class="s2">    # don&#39;t support them?</span>
+<span class="s2">ddgen_allow_fulltext_indexing = True</span>
+
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="s2">    # DATA DICTIONARY MANIPULATION TO DESTINATION TABLE/FIELD NAMES</span>
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+
+<span class="s2">    # Force all destination tables/fields to lower case?</span>
+<span class="s2">    # Boolean; default is True.</span>
+<span class="s2">ddgen_force_lower_case = True</span>
+
+<span class="s2">    # Convert spaces in table/fieldnames (yuk!) to underscores? Default: true.</span>
+<span class="s2">ddgen_convert_odd_chars_to_underscore = True</span>
+
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="s2">    # PROCESSING OPTIONS, TO LIMIT DATA QUANTITY FOR TESTING</span>
+<span class="s2">    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+
+<span class="s2">    # Specify 0 (the default) for no limit, or a number of rows (e.g. 1000) to</span>
+<span class="s2">    # apply to any tables listed in debug_limited_tables. For those tables,</span>
+<span class="s2">    # only this many rows will be taken from the source database. Use this, for</span>
+<span class="s2">    # example, to reduce the number of large documents fetched.</span>
+<span class="s2">    # If you run a multiprocess/multithreaded anonymisation, this limit applies</span>
+<span class="s2">    # per *process* (or task), not overall.</span>
+<span class="s2">    # Note that these limits DO NOT APPLY to the fetching of patient-</span>
+<span class="s2">    # identifiable information for anonymisation -- when a patient is</span>
+<span class="s2">    # processed, all identifiable information for that patient is trawled.</span>
+<span class="s2">debug_row_limit =</span>
+
+<span class="s2">    # List of tables to which to apply debug_row_limit (see above).</span>
+<span class="s2">debug_limited_tables =</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Source database example 2</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">[mysourcedb2]</span>
+
+<span class="s2">url = mysql+mysqldb://username:password@127.0.0.1:3306/source2_databasename?charset=utf8</span>
+
+<span class="s2">ddgen_force_lower_case = True</span>
+<span class="s2">ddgen_per_table_pid_field = patient_id</span>
+<span class="s2">ddgen_master_pid_fieldname = nhsnum</span>
+<span class="s2">ddgen_table_blacklist =</span>
+<span class="s2">ddgen_field_blacklist =</span>
+<span class="s2">ddgen_table_require_field_absolute =</span>
+<span class="s2">ddgen_table_require_field_conditional =</span>
+<span class="s2">ddgen_pk_fields =</span>
+<span class="s2">ddgen_constant_content = False</span>
+<span class="s2">ddgen_scrubsrc_patient_fields =</span>
+<span class="s2">ddgen_scrubsrc_thirdparty_fields =</span>
+<span class="s2">ddgen_scrubmethod_code_fields =</span>
+<span class="s2">ddgen_scrubmethod_date_fields =</span>
+<span class="s2">ddgen_scrubmethod_number_fields =</span>
+<span class="s2">ddgen_scrubmethod_phrase_fields =</span>
+<span class="s2">ddgen_safe_fields_exempt_from_scrubbing =</span>
+<span class="s2">ddgen_min_length_for_scrubbing = 4</span>
+<span class="s2">ddgen_truncate_date_fields =</span>
+<span class="s2">ddgen_filename_to_text_fields =</span>
+<span class="s2">ddgen_binary_to_text_field_pairs =</span>
+
+<span class="s2"># -----------------------------------------------------------------------------</span>
+<span class="s2"># Source database example 3</span>
+<span class="s2"># -----------------------------------------------------------------------------</span>
+
+<span class="s2">[camcops]</span>
+<span class="s2"># Example for the CamCOPS anonymisation staging database</span>
+
+<span class="s2">url = mysql+mysqldb://username:password@127.0.0.1:3306/camcops_databasename?charset=utf8</span>
+
+<span class="s2"># FOR EXAMPLE:</span>
+<span class="s2">ddgen_force_lower_case = True</span>
+<span class="s2">ddgen_per_table_pid_field = _patient_idnum1</span>
+<span class="s2">ddgen_pid_defining_fieldnames = _patient_idnum1</span>
+<span class="s2">ddgen_master_pid_fieldname = _patient_idnum2</span>
+
+<span class="s2">ddgen_table_blacklist =</span>
+
+<span class="s2">ddgen_field_blacklist = _patient_iddesc1</span>
+<span class="s2">    _patient_idshortdesc1</span>
+<span class="s2">    _patient_iddesc2</span>
+<span class="s2">    _patient_idshortdesc2</span>
+<span class="s2">    _patient_iddesc3</span>
+<span class="s2">    _patient_idshortdesc3</span>
+<span class="s2">    _patient_iddesc4</span>
+<span class="s2">    _patient_idshortdesc4</span>
+<span class="s2">    _patient_iddesc5</span>
+<span class="s2">    _patient_idshortdesc5</span>
+<span class="s2">    _patient_iddesc6</span>
+<span class="s2">    _patient_idshortdesc6</span>
+<span class="s2">    _patient_iddesc7</span>
+<span class="s2">    _patient_idshortdesc7</span>
+<span class="s2">    _patient_iddesc8</span>
+<span class="s2">    _patient_idshortdesc8</span>
+<span class="s2">    id</span>
+<span class="s2">    patient_id</span>
+<span class="s2">    _device</span>
+<span class="s2">    _era</span>
+<span class="s2">    _current</span>
+<span class="s2">    _when_removed_exact</span>
+<span class="s2">    _when_removed_batch_utc</span>
+<span class="s2">    _removing_user</span>
+<span class="s2">    _preserving_user</span>
+<span class="s2">    _forcibly_preserved</span>
+<span class="s2">    _predecessor_pk</span>
+<span class="s2">    _successor_pk</span>
+<span class="s2">    _manually_erased</span>
+<span class="s2">    _manually_erased_at</span>
+<span class="s2">    _manually_erasing_user</span>
+<span class="s2">    _addition_pending</span>
+<span class="s2">    _removal_pending</span>
+<span class="s2">    _move_off_tablet</span>
+
+<span class="s2">ddgen_table_require_field_absolute =</span>
+<span class="s2">ddgen_table_require_field_conditional =</span>
+<span class="s2">ddgen_pk_fields = _pk</span>
+<span class="s2">ddgen_constant_content = False</span>
+
+<span class="s2">ddgen_scrubsrc_patient_fields = _patient_forename</span>
+<span class="s2">    _patient_surname</span>
+<span class="s2">    _patient_dob</span>
+<span class="s2">    _patient_idnum1</span>
+<span class="s2">    _patient_idnum2</span>
+<span class="s2">    _patient_idnum3</span>
+<span class="s2">    _patient_idnum4</span>
+<span class="s2">    _patient_idnum5</span>
+<span class="s2">    _patient_idnum6</span>
+<span class="s2">    _patient_idnum7</span>
+<span class="s2">    _patient_idnum8</span>
+
+<span class="s2">ddgen_scrubsrc_thirdparty_fields =</span>
+
+<span class="s2">ddgen_scrubmethod_code_fields =</span>
+<span class="s2">ddgen_scrubmethod_date_fields = _patient_dob</span>
+<span class="s2">ddgen_scrubmethod_number_fields =</span>
+<span class="s2">ddgen_scrubmethod_phrase_fields =</span>
+
+<span class="s2">ddgen_safe_fields_exempt_from_scrubbing = _device</span>
+<span class="s2">    _era</span>
+<span class="s2">    _when_added_exact</span>
+<span class="s2">    _adding_user</span>
+<span class="s2">    _when_removed_exact</span>
+<span class="s2">    _removing_user</span>
+<span class="s2">    _preserving_user</span>
+<span class="s2">    _manually_erased_at</span>
+<span class="s2">    _manually_erasing_user</span>
+<span class="s2">    when_last_modified</span>
+<span class="s2">    when_created</span>
+<span class="s2">    when_firstexit</span>
+<span class="s2">    clinician_specialty</span>
+<span class="s2">    clinician_name</span>
+<span class="s2">    clinician_post</span>
+<span class="s2">    clinician_professional_registration</span>
+<span class="s2">    clinician_contact_details</span>
+<span class="s2"># ... now some task-specific ones</span>
+<span class="s2">    bdi_scale</span>
+<span class="s2">    pause_start_time</span>
+<span class="s2">    pause_end_time</span>
+<span class="s2">    trial_start_time</span>
+<span class="s2">    cue_start_time</span>
+<span class="s2">    target_start_time</span>
+<span class="s2">    detection_start_time</span>
+<span class="s2">    iti_start_time</span>
+<span class="s2">    iti_end_time</span>
+<span class="s2">    trial_end_time</span>
+<span class="s2">    response_time</span>
+<span class="s2">    target_time</span>
+<span class="s2">    choice_time</span>
+<span class="s2">    discharge_date</span>
+<span class="s2">    discharge_reason_code</span>
+<span class="s2">    diagnosis_psych_1_icd10code</span>
+<span class="s2">    diagnosis_psych_1_description</span>
+<span class="s2">    diagnosis_psych_2_icd10code</span>
+<span class="s2">    diagnosis_psych_2_description</span>
+<span class="s2">    diagnosis_psych_3_icd10code</span>
+<span class="s2">    diagnosis_psych_3_description</span>
+<span class="s2">    diagnosis_psych_4_icd10code</span>
+<span class="s2">    diagnosis_psych_4_description</span>
+<span class="s2">    diagnosis_medical_1</span>
+<span class="s2">    diagnosis_medical_2</span>
+<span class="s2">    diagnosis_medical_3</span>
+<span class="s2">    diagnosis_medical_4</span>
+<span class="s2">    category_start_time</span>
+<span class="s2">    category_response_time</span>
+<span class="s2">    category_chosen</span>
+<span class="s2">    gamble_fixed_option</span>
+<span class="s2">    gamble_lottery_option_p</span>
+<span class="s2">    gamble_lottery_option_q</span>
+<span class="s2">    gamble_start_time</span>
+<span class="s2">    gamble_response_time</span>
+<span class="s2">    likelihood</span>
+
+<span class="s2">ddgen_min_length_for_scrubbing = 4</span>
+
+<span class="s2">ddgen_truncate_date_fields = _patient_dob</span>
+<span class="s2">ddgen_filename_to_text_fields =</span>
+<span class="s2">ddgen_binary_to_text_field_pairs =</span>
+
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>  <span class="c1"># noqa</span>
+    <span class="n">SCRUBSRC</span><span class="o">=</span><span class="n">SCRUBSRC</span><span class="p">,</span>
+    <span class="n">INDEX</span><span class="o">=</span><span class="n">INDEX</span><span class="p">,</span>
+    <span class="n">SCRUBMETHOD</span><span class="o">=</span><span class="n">SCRUBMETHOD</span><span class="p">,</span>
+    <span class="n">ALTERMETHOD</span><span class="o">=</span><span class="n">ALTERMETHOD</span><span class="p">,</span>
+    <span class="n">SRCFLAG</span><span class="o">=</span><span class="n">SRCFLAG</span><span class="p">,</span>
+    <span class="n">LONGTEXT</span><span class="o">=</span><span class="n">LONGTEXT</span><span class="p">,</span>
+    <span class="n">DEFAULT_MAX_ROWS_BEFORE_COMMIT</span><span class="o">=</span><span class="n">DEFAULT_MAX_ROWS_BEFORE_COMMIT</span><span class="p">,</span>
+    <span class="n">DEFAULT_MAX_BYTES_BEFORE_COMMIT</span><span class="o">=</span><span class="n">DEFAULT_MAX_BYTES_BEFORE_COMMIT</span><span class="p">,</span>
+    <span class="n">DECISION</span><span class="o">=</span><span class="n">DECISION</span><span class="p">,</span>
+    <span class="n">VERSION</span><span class="o">=</span><span class="n">VERSION</span><span class="p">,</span>
+    <span class="n">VERSION_DATE</span><span class="o">=</span><span class="n">VERSION_DATE</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># For the style:</span>
+<span class="c1">#       [source_databases]</span>
+<span class="c1">#       source1 = blah</span>
+<span class="c1">#       source2 = thing</span>
+<span class="c1"># ... you can&#39;t have multiple keys with the same name.</span>
+<span class="c1"># http://stackoverflow.com/questions/287757</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

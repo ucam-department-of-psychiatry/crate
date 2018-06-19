@@ -63,11 +63,11 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="class">
 <dt id="crate_anon.nlp_manager.input_field_config.InputFieldConfig">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.input_field_config.</code><code class="descname">InputFieldConfig</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>section: str</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.input_field_config.</code><code class="descname">InputFieldConfig</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>section: str</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/input_field_config.html#InputFieldConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class defining configuration for an input field (containing text).</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_src_pks">
-<code class="descname">gen_src_pks</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[int, Union[str, NoneType]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_src_pks" title="Permalink to this definition">¶</a></dt>
+<code class="descname">gen_src_pks</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[int, Union[str, NoneType]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/input_field_config.html#InputFieldConfig.gen_src_pks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_src_pks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate integer PKs from the source table specified for the
 InputFieldConfig.
 Timing is subsumed under TIMING_DELETE_WHERE_NO_SOURCE.</p>
@@ -75,7 +75,7 @@ Timing is subsumed under TIMING_DELETE_WHERE_NO_SOURCE.</p>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_text">
-<code class="descname">gen_text</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_text" title="Permalink to this definition">¶</a></dt>
+<code class="descname">gen_text</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/input_field_config.html#InputFieldConfig.gen_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate text strings from the input database.
 Yields tuple of (text, dict), where the dict is a column-to-value
 mapping for all other fields (source reference fields, copy fields).</p>
@@ -83,27 +83,27 @@ mapping for all other fields (source reference fields, copy fields).</p>
 
 <dl class="staticmethod">
 <dt id="crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_core_columns_for_dest">
-<em class="property">static </em><code class="descname">get_core_columns_for_dest</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List[sqlalchemy.sql.schema.Column]<a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_core_columns_for_dest" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">get_core_columns_for_dest</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List[sqlalchemy.sql.schema.Column]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/input_field_config.html#InputFieldConfig.get_core_columns_for_dest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_core_columns_for_dest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Core columns in destination tables, primarily referring to the
 source.</p>
 </dd></dl>
 
 <dl class="staticmethod">
 <dt id="crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_core_indexes_for_dest">
-<em class="property">static </em><code class="descname">get_core_indexes_for_dest</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List[sqlalchemy.sql.schema.Index]<a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_core_indexes_for_dest" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">get_core_indexes_for_dest</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List[sqlalchemy.sql.schema.Index]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/input_field_config.html#InputFieldConfig.get_core_indexes_for_dest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_core_indexes_for_dest" title="Permalink to this definition">¶</a></dt>
 <dd><p>Indexes for columns, primarily referring to the source.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_count">
-<code class="descname">get_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_count" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_count</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/input_field_config.html#InputFieldConfig.get_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_count" title="Permalink to this definition">¶</a></dt>
 <dd><p>Counts records in the input table for the given InputFieldConfig.
 Used for progress monitoring.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_progress_record">
-<code class="descname">get_progress_record</code><span class="sig-paren">(</span><em>srcpkval: int</em>, <em>srcpkstr: str = None</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.nlp_manager.models.NlpRecord, NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_progress_record" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_progress_record</code><span class="sig-paren">(</span><em>srcpkval: int</em>, <em>srcpkstr: str = None</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.nlp_manager.models.NlpRecord, NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/input_field_config.html#InputFieldConfig.get_progress_record"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.input_field_config.InputFieldConfig.get_progress_record" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fetch a progress record (NlpRecord) for the given source record, if one
 exists.</p>
 </dd></dl>

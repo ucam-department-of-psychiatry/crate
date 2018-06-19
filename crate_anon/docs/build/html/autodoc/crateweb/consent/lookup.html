@@ -63,13 +63,13 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="function">
 <dt id="crate_anon.crateweb.consent.lookup.gen_opt_out_pids_mpids">
-<code class="descclassname">crate_anon.crateweb.consent.lookup.</code><code class="descname">gen_opt_out_pids_mpids</code><span class="sig-paren">(</span><em>source_db: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[Union[int, str], Union[int, str]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.crateweb.consent.lookup.gen_opt_out_pids_mpids" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.consent.lookup.</code><code class="descname">gen_opt_out_pids_mpids</code><span class="sig-paren">(</span><em>source_db: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[Union[int, str], Union[int, str]], NoneType], NoneType]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/consent/lookup.html#gen_opt_out_pids_mpids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.consent.lookup.gen_opt_out_pids_mpids" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates (pid, mpid) tuples.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.consent.lookup.lookup_consent">
-<code class="descclassname">crate_anon.crateweb.consent.lookup.</code><code class="descname">lookup_consent</code><span class="sig-paren">(</span><em>nhs_number: int, decisions: List[str], source_db: str = None</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.crateweb.consent.models.ConsentMode, NoneType]<a class="headerlink" href="#crate_anon.crateweb.consent.lookup.lookup_consent" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.consent.lookup.</code><code class="descname">lookup_consent</code><span class="sig-paren">(</span><em>nhs_number: int, decisions: List[str], source_db: str = None</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.crateweb.consent.models.ConsentMode, NoneType]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/consent/lookup.html#lookup_consent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.consent.lookup.lookup_consent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the latest ConsentMode for this patient from the primary clinical
 source, or None. Writes to decisions.</p>
 </dd></dl>

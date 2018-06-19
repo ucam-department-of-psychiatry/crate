@@ -113,7 +113,7 @@ nlp_manager.py about 4-5% * 8 [from top]</p>
 </dl>
 <dl class="function">
 <dt id="crate_anon.nlp_manager.nlp_manager.delete_where_no_source">
-<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">delete_where_no_source</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>ifconfig: crate_anon.nlp_manager.input_field_config.InputFieldConfig</em>, <em>report_every: int = 100000</em>, <em>chunksize: int = 100000</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.delete_where_no_source" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">delete_where_no_source</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>ifconfig: crate_anon.nlp_manager.input_field_config.InputFieldConfig</em>, <em>report_every: int = 100000</em>, <em>chunksize: int = 100000</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/nlp_manager.html#delete_where_no_source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.delete_where_no_source" title="Permalink to this definition">¶</a></dt>
 <dd><p>Delete destination records where source records no longer exist.</p>
 <ul class="simple">
 <li>Can’t do this in a single SQL command, since the engine can’t necessarily
@@ -198,32 +198,32 @@ OR (a.a2 IS NULL AND b.b2 IS NULL)</p>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.nlp_manager.drop_remake">
-<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">drop_remake</code><span class="sig-paren">(</span><em>progargs</em>, <em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>incremental: bool = False</em>, <em>skipdelete: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.drop_remake" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">drop_remake</code><span class="sig-paren">(</span><em>progargs</em>, <em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>incremental: bool = False</em>, <em>skipdelete: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/nlp_manager.html#drop_remake"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.drop_remake" title="Permalink to this definition">¶</a></dt>
 <dd><p>Drop output tables and recreate them.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.nlp_manager.main">
-<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.main" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/nlp_manager.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.main" title="Permalink to this definition">¶</a></dt>
 <dd><p>Command-line entry point.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.nlp_manager.process_nlp">
-<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">process_nlp</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>incremental: bool = False</em>, <em>report_every: int = 500</em>, <em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.process_nlp" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">process_nlp</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>incremental: bool = False</em>, <em>report_every: int = 500</em>, <em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/nlp_manager.html#process_nlp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.process_nlp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main NLP processing function. Fetch text, send it to the GATE app
 (storing the results), and make a note in the progress database.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.nlp_manager.show_dest_counts">
-<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">show_dest_counts</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.show_dest_counts" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">show_dest_counts</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/nlp_manager.html#show_dest_counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.show_dest_counts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Show the number of records in all destination tables.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.nlp_manager.nlp_manager.show_source_counts">
-<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">show_source_counts</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.show_source_counts" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">show_source_counts</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/nlp_manager.html#show_source_counts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.show_source_counts" title="Permalink to this definition">¶</a></dt>
 <dd><p>Show the number of records in all source tables.</p>
 </dd></dl>
 

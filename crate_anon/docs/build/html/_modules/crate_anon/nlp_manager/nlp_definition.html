@@ -1,0 +1,393 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.nlp_manager.nlp_definition &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.nlp_manager.nlp_definition</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/nlp_manager/nlp_definition.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Imports</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.datetimefunc</span> <span class="k">import</span> <span class="n">get_now_utc_notz_datetime</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.lists</span> <span class="k">import</span> <span class="n">chunks</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.engine.base</span> <span class="k">import</span> <span class="n">Engine</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.orm.session</span> <span class="k">import</span> <span class="n">Session</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.schema</span> <span class="k">import</span> <span class="n">MetaData</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.anonymise.dbholder</span> <span class="k">import</span> <span class="n">DatabaseHolder</span>
+<span class="kn">from</span> <span class="nn">crate_anon.common.extendedconfigparser</span> <span class="k">import</span> <span class="n">ExtendedConfigParser</span>
+<span class="kn">from</span> <span class="nn">crate_anon.common.sql</span> <span class="k">import</span> <span class="n">TransactionSizeLimiter</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.constants</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_MAX_BYTES_BEFORE_COMMIT</span><span class="p">,</span>
+    <span class="n">DEFAULT_MAX_ROWS_BEFORE_COMMIT</span><span class="p">,</span>
+    <span class="n">DEFAULT_TEMPORARY_TABLENAME</span><span class="p">,</span>
+    <span class="n">HashClass</span><span class="p">,</span>
+    <span class="n">MAX_SQL_FIELD_LEN</span><span class="p">,</span>
+    <span class="n">NLP_CONFIG_ENV_VAR</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># if sys.version_info.major &gt;= 3 and sys.version_info.minor &gt;= 5:</span>
+<span class="c1">#     from crate_anon.nlp_manager import input_field_config</span>
+<span class="c1">#     from crate_anon.nlp_manager import base_nlp_parser  # SEE NEXT LINES</span>
+
+<span class="c1"># - see PEP0484 / forward references</span>
+<span class="c1"># - some circular imports work under Python 3.5 but not 3.4:</span>
+<span class="c1">#   https://docs.python.org/3/whatsnew/3.5.html#other-language-changes</span>
+<span class="c1">#   https://bugs.python.org/issue17636</span>
+<span class="c1"># - see also:</span>
+<span class="c1">#   http://stackoverflow.com/questions/6351805/cyclic-module-dependencies-and-relative-imports-in-python  # noqa</span>
+<span class="c1">#   http://stackoverflow.com/questions/35776791/type-hinting-union-with-forward-references  # noqa</span>
+<span class="c1"># - OK, still problems.</span>
+<span class="c1">#   Let&#39;s strip this back to something sensible.</span>
+<span class="c1">#   Does BaseNlpParser really need to know about NlpDefinition?</span>
+<span class="c1">#   - Not directly.</span>
+<span class="c1">#   - For typing, if it stores a reference (optional).</span>
+<span class="c1">#   - It could also be given subcomponents instead.</span>
+<span class="c1">#   Does NlpDefinition really need to know about BaseNlpParser?</span>
+<span class="c1">#   - Yes, but only for delayed imports.</span>
+<span class="c1"># - For now, solved by weakening type hints for NlpDefinition.</span>
+<span class="c1"># - # noinspection PyUnresolvedReferences</span>
+<span class="c1">#   ... see http://codeoptimism.com/blog/pycharm-suppress-inspections-list/</span>
+<span class="c1">#   for a full list.</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Config class</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="NlpDefinition"><a class="viewcode-back" href="../../../autodoc/nlp_manager/nlp_definition.html#crate_anon.nlp_manager.nlp_definition.NlpDefinition">[docs]</a><span class="k">class</span> <span class="nc">NlpDefinition</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class representing NLP master configuration as read from config file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># noinspection PyUnresolvedReferences</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nlpname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">logtag</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read config from file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># DELAYED IMPORTS (to make life simpler for classes deriving from</span>
+        <span class="c1"># NlpParser and using NlpDefinition -- they can now do it directly,</span>
+        <span class="c1"># not just via forward reference).</span>
+        <span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.all_processors</span> <span class="k">import</span> <span class="n">make_processor</span>
+        <span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.input_field_config</span> <span class="k">import</span> <span class="n">InputFieldConfig</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nlpname</span> <span class="o">=</span> <span class="n">nlpname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logtag</span> <span class="o">=</span> <span class="n">logtag</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading config for section: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nlpname</span><span class="p">))</span>
+        <span class="c1"># Get filename</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_config_filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">NLP_CONFIG_ENV_VAR</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config_filename</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">AssertionError</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="s2">&quot;You must set the </span><span class="si">{}</span><span class="s2"> environment variable to point to a CRATE &quot;</span>
+                <span class="s2">&quot;anonymisation config file. Run crate_print_demo_anon_config &quot;</span>
+                <span class="s2">&quot;to see a specimen config.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">NLP_CONFIG_ENV_VAR</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Read config from file.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span> <span class="o">=</span> <span class="n">ExtendedConfigParser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">optionxform</span> <span class="o">=</span> <span class="nb">str</span>  <span class="c1"># make it case-sensitive</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Reading config file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_config_filename</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="n">codecs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_config_filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="s2">&quot;utf8&quot;</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="n">nlpname</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No section named </span><span class="si">{}</span><span class="s2"> present&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">nlpname</span><span class="p">))</span>
+
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># Our own stuff</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_databases</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[str, DatabaseHolder]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_progressdb_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span><span class="n">nlpname</span><span class="p">,</span> <span class="s1">&#39;progressdb&#39;</span><span class="p">,</span>
+                                             <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_progdb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_database</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_progressdb_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_temporary_tablename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span>
+            <span class="n">nlpname</span><span class="p">,</span> <span class="s1">&#39;temporary_tablename&#39;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_TEMPORARY_TABLENAME</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hashphrase</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_str</span><span class="p">(</span><span class="n">nlpname</span><span class="p">,</span> <span class="s1">&#39;hashphrase&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hasher</span> <span class="o">=</span> <span class="n">HashClass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hashphrase</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_rows_before_commit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_int</span><span class="p">(</span>
+            <span class="n">nlpname</span><span class="p">,</span> <span class="s1">&#39;max_rows_before_commit&#39;</span><span class="p">,</span> <span class="n">DEFAULT_MAX_ROWS_BEFORE_COMMIT</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_bytes_before_commit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_int</span><span class="p">(</span>
+            <span class="n">nlpname</span><span class="p">,</span> <span class="s1">&#39;max_bytes_before_commit&#39;</span><span class="p">,</span>
+            <span class="n">DEFAULT_MAX_BYTES_BEFORE_COMMIT</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_now</span> <span class="o">=</span> <span class="n">get_now_utc_notz_datetime</span><span class="p">()</span>
+
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># Input field definitions</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputfielddefs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_strlist</span><span class="p">(</span><span class="n">nlpname</span><span class="p">,</span> <span class="s1">&#39;inputfielddefs&#39;</span><span class="p">,</span>
+                                                <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputfieldmap</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[str, InputFieldConfig]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputfielddefs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputfieldmap</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inputfieldmap</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">InputFieldConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># NLP processors</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_processors</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[BaseNlpParser]</span>
+        <span class="n">processorpairs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">opt_strlist</span><span class="p">(</span><span class="n">nlpname</span><span class="p">,</span> <span class="s1">&#39;processors&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                          <span class="n">lower</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">proctype</span><span class="p">,</span> <span class="n">procname</span> <span class="ow">in</span> <span class="n">chunks</span><span class="p">(</span><span class="n">processorpairs</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">require_section</span><span class="p">(</span><span class="n">procname</span><span class="p">)</span>
+                <span class="n">processor</span> <span class="o">=</span> <span class="n">make_processor</span><span class="p">(</span><span class="n">proctype</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">procname</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_processors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">processor</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s2">&quot;Bad &#39;processors&#39; specification&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># Transaction sizes, for early commit</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transaction_limiters</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[Session, TransactionSizeLimiter]  # noqa</span>
+        <span class="c1"># dictionary of session -&gt; TransactionSizeLimiter</span>
+
+    <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nlpname</span>
+
+    <span class="k">def</span> <span class="nf">get_logtag</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logtag</span>
+
+    <span class="k">def</span> <span class="nf">get_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ExtendedConfigParser</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span>
+
+    <span class="k">def</span> <span class="nf">hash</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hasher</span><span class="o">.</span><span class="n">hash</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_temporary_tablename</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_temporary_tablename</span>
+
+    <span class="k">def</span> <span class="nf">set_echo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">echo</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_progdb</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">echo</span> <span class="o">=</span> <span class="n">echo</span>
+        <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_databases</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">echo</span> <span class="o">=</span> <span class="n">echo</span>
+        <span class="c1"># Now, SQLAlchemy will mess things up by adding an additional handler.</span>
+        <span class="c1"># So, bye-bye:</span>
+        <span class="k">for</span> <span class="n">logname</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;sqlalchemy.engine.base.Engine&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;sqlalchemy.engine.base.OptionEngine&#39;</span><span class="p">):</span>
+            <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">logname</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">handlers</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[logging.Handler]</span>
+
+    <span class="k">def</span> <span class="nf">require_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">has_section</span><span class="p">(</span><span class="n">section</span><span class="p">):</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Missing config section: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">opt_str</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">get_str</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span>
+                                    <span class="n">required</span><span class="o">=</span><span class="n">required</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">opt_strlist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="n">lower</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">as_words</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">get_str_list</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">as_words</span><span class="o">=</span><span class="n">as_words</span><span class="p">,</span>
+                                         <span class="n">lower</span><span class="o">=</span><span class="n">lower</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="n">required</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">opt_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                <span class="n">default</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">getint</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="n">default</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">opt_bool</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">getboolean</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">option</span><span class="p">,</span> <span class="n">fallback</span><span class="o">=</span><span class="n">default</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_database</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name_and_cfg_section</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                     <span class="n">with_session</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                     <span class="n">with_conn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="n">reflect</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DatabaseHolder</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">name_and_cfg_section</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_databases</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_databases</span><span class="p">[</span><span class="n">name_and_cfg_section</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">name_and_cfg_section</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">MAX_SQL_FIELD_LEN</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">get_database</span><span class="p">(</span><span class="n">name_and_cfg_section</span><span class="p">,</span>
+                                       <span class="n">with_session</span><span class="o">=</span><span class="n">with_session</span><span class="p">,</span>
+                                       <span class="n">with_conn</span><span class="o">=</span><span class="n">with_conn</span><span class="p">,</span>
+                                       <span class="n">reflect</span><span class="o">=</span><span class="n">reflect</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_databases</span><span class="p">[</span><span class="n">name_and_cfg_section</span><span class="p">]</span> <span class="o">=</span> <span class="n">db</span>
+        <span class="k">return</span> <span class="n">db</span>
+
+    <span class="k">def</span> <span class="nf">get_env_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                     <span class="n">parent_env</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parser</span><span class="o">.</span><span class="n">get_env_dict</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">parent_env</span><span class="o">=</span><span class="n">parent_env</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_progdb_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Session</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progdb</span><span class="o">.</span><span class="n">session</span>
+
+    <span class="k">def</span> <span class="nf">get_progdb_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Engine</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progdb</span><span class="o">.</span><span class="n">engine</span>
+
+    <span class="k">def</span> <span class="nf">get_progdb_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MetaData</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_progdb</span><span class="o">.</span><span class="n">metadata</span>
+
+<div class="viewcode-block" id="NlpDefinition.commit_all"><a class="viewcode-back" href="../../../autodoc/nlp_manager/nlp_definition.html#crate_anon.nlp_manager.nlp_definition.NlpDefinition.commit_all">[docs]</a>    <span class="k">def</span> <span class="nf">commit_all</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Execute a COMMIT on all databases (destination + progress).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_progdb_session</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_databases</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">commit</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">session</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">get_transation_limiter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransactionSizeLimiter</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">session</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transaction_limiters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_transaction_limiters</span><span class="p">[</span><span class="n">session</span><span class="p">]</span> <span class="o">=</span> <span class="n">TransactionSizeLimiter</span><span class="p">(</span>
+                <span class="n">session</span><span class="p">,</span>
+                <span class="n">max_rows_before_commit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_rows_before_commit</span><span class="p">,</span>
+                <span class="n">max_bytes_before_commit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_bytes_before_commit</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transaction_limiters</span><span class="p">[</span><span class="n">session</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">notify_transaction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
+                           <span class="n">n_rows</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_bytes</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                           <span class="n">force_commit</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_transation_limiter</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+        <span class="n">tl</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="n">n_rows</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">n_bytes</span><span class="o">=</span><span class="n">n_bytes</span><span class="p">,</span> <span class="n">force_commit</span><span class="o">=</span><span class="n">force_commit</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">commit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session</span><span class="p">:</span> <span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_transation_limiter</span><span class="p">(</span><span class="n">session</span><span class="p">)</span>
+        <span class="n">tl</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="c1"># noinspection PyUnresolvedReferences</span>
+    <span class="k">def</span> <span class="nf">get_processors</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;base_nlp_parser.BaseNlpParser&#39;</span><span class="p">]:</span>  <span class="c1"># typing / circular reference problem  # noqa</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_processors</span>
+
+    <span class="c1"># noinspection PyUnresolvedReferences</span>
+    <span class="k">def</span> <span class="nf">get_ifconfigs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterable</span><span class="p">[</span><span class="s1">&#39;input_field_config.InputFieldConfig&#39;</span><span class="p">]:</span>  <span class="c1"># typing / circular reference problem  # noqa</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputfieldmap</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">get_now</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_now</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,468 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.crateweb.research.forms &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.crateweb.research.forms</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/crateweb/research/forms.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.django.forms</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">MultipleIntAreaField</span><span class="p">,</span>
+    <span class="n">MultipleWordAreaField</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">django</span> <span class="k">import</span> <span class="n">forms</span>
+<span class="kn">from</span> <span class="nn">django.forms</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">BooleanField</span><span class="p">,</span>
+    <span class="n">CharField</span><span class="p">,</span>
+    <span class="n">ChoiceField</span><span class="p">,</span>
+    <span class="n">DateField</span><span class="p">,</span>
+    <span class="n">FileField</span><span class="p">,</span>
+    <span class="n">FloatField</span><span class="p">,</span>
+    <span class="n">IntegerField</span><span class="p">,</span>
+    <span class="n">ModelForm</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.crateweb.research.models</span> <span class="k">import</span> <span class="n">Highlight</span><span class="p">,</span> <span class="n">Query</span>
+<span class="kn">from</span> <span class="nn">crate_anon.crateweb.research.research_db_info</span> <span class="k">import</span> <span class="n">SingleResearchDatabase</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">crate_anon.common.sql</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">SQL_OPS_MULTIPLE_VALUES</span><span class="p">,</span>
+    <span class="n">SQL_OPS_VALUE_UNNECESSARY</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_DATE</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_FLOAT</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_INTEGER</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_UNKNOWN</span><span class="p">,</span>
+    <span class="n">QB_STRING_TYPES</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">AddQueryForm</span><span class="p">(</span><span class="n">ModelForm</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Query</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;sql&#39;</span><span class="p">]</span>
+        <span class="n">widgets</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;sql&#39;</span><span class="p">:</span> <span class="n">forms</span><span class="o">.</span><span class="n">Textarea</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;cols&#39;</span><span class="p">:</span> <span class="mi">80</span><span class="p">}),</span>
+        <span class="p">}</span>
+
+
+<span class="k">class</span> <span class="nc">BlankQueryForm</span><span class="p">(</span><span class="n">ModelForm</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Query</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<span class="k">class</span> <span class="nc">AddHighlightForm</span><span class="p">(</span><span class="n">ModelForm</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Highlight</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;colour&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">BlankHighlightForm</span><span class="p">(</span><span class="n">ModelForm</span><span class="p">):</span>
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Highlight</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+
+
+<div class="viewcode-block" id="DatabasePickerForm"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.DatabasePickerForm">[docs]</a><span class="k">class</span> <span class="nc">DatabasePickerForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">ChoiceField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Database&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                 <span class="n">dbinfolist</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">SingleResearchDatabase</span><span class="p">],</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;database&#39;</span><span class="p">]</span>  <span class="c1"># type: ChoiceField</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[(</span><span class="n">d</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">description</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dbinfolist</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PidLookupForm"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.PidLookupForm">[docs]</a><span class="k">class</span> <span class="nc">PidLookupForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">rids</span> <span class="o">=</span> <span class="n">MultipleWordAreaField</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">mrids</span> <span class="o">=</span> <span class="n">MultipleWordAreaField</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">trids</span> <span class="o">=</span> <span class="n">MultipleIntAreaField</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                 <span class="n">dbinfo</span><span class="p">:</span> <span class="n">SingleResearchDatabase</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">rids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;rids&#39;</span><span class="p">]</span>  <span class="c1"># type: MultipleIntAreaField</span>
+        <span class="n">mrids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;mrids&#39;</span><span class="p">]</span>  <span class="c1"># type: MultipleIntAreaField</span>
+        <span class="n">trids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;trids&#39;</span><span class="p">]</span>  <span class="c1"># type: MultipleIntAreaField</span>
+        <span class="n">rids</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> (RID)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">rid_field</span><span class="p">,</span>
+                                           <span class="n">dbinfo</span><span class="o">.</span><span class="n">rid_description</span><span class="p">)</span>
+        <span class="n">mrids</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> (MRID)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">mrid_field</span><span class="p">,</span>
+                                             <span class="n">dbinfo</span><span class="o">.</span><span class="n">mrid_description</span><span class="p">)</span>
+        <span class="n">trids</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2"> (TRID)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">trid_field</span><span class="p">,</span>
+                                             <span class="n">dbinfo</span><span class="o">.</span><span class="n">trid_description</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RidLookupForm"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.RidLookupForm">[docs]</a><span class="k">class</span> <span class="nc">RidLookupForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">pids</span> <span class="o">=</span> <span class="n">MultipleWordAreaField</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">mpids</span> <span class="o">=</span> <span class="n">MultipleWordAreaField</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                 <span class="n">dbinfo</span><span class="p">:</span> <span class="n">SingleResearchDatabase</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">pids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;pids&#39;</span><span class="p">]</span>  <span class="c1"># type: MultipleIntAreaField</span>
+        <span class="n">mpids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;mpids&#39;</span><span class="p">]</span>  <span class="c1"># type: MultipleIntAreaField</span>
+        <span class="n">pids</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> (PID)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">pid_description</span><span class="p">)</span>
+        <span class="n">mpids</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> (MPID)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">mpid_description</span><span class="p">)</span></div>
+
+
+<span class="n">DEFAULT_MIN_TEXT_FIELD_LENGTH</span> <span class="o">=</span> <span class="mi">100</span>
+
+
+<span class="k">class</span> <span class="nc">FieldPickerInfo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">type_</span><span class="p">:</span> <span class="n">Type</span><span class="p">,</span>
+                 <span class="n">permits_empty_id</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_</span> <span class="o">=</span> <span class="n">type_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">permits_empty_id</span> <span class="o">=</span> <span class="n">permits_empty_id</span>
+
+
+<div class="viewcode-block" id="SQLHelperTextAnywhereForm"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.SQLHelperTextAnywhereForm">[docs]</a><span class="k">class</span> <span class="nc">SQLHelperTextAnywhereForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">fkname</span> <span class="o">=</span> <span class="n">ChoiceField</span><span class="p">(</span><span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">patient_id</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;ID value (to restrict to a single patient)&quot;</span><span class="p">,</span>
+                           <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">fragment</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;String fragment to find&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">use_fulltext_index</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Use full-text indexing where available &quot;</span>
+        <span class="s2">&quot;(faster, but requires whole words)&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">min_length</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Minimum &#39;width&#39; of textual field to include (e.g. </span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">DEFAULT_MIN_TEXT_FIELD_LENGTH</span>
+        <span class="p">),</span>
+        <span class="n">min_value</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">include_content</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Include content from fields where found (slower)&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">include_datetime</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Include date/time from where known&quot;</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+            <span class="n">fk_options</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">FieldPickerInfo</span><span class="p">],</span>
+            <span class="n">fk_label</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Field name containing patient research ID&quot;</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fk_options</span> <span class="o">=</span> <span class="n">fk_options</span>
+        <span class="c1"># Set the choices available for fkname</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;fkname&#39;</span><span class="p">]</span>  <span class="c1"># type: ChoiceField</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[(</span><span class="n">opt</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">description</span><span class="p">)</span> <span class="k">for</span> <span class="n">opt</span> <span class="ow">in</span> <span class="n">fk_options</span><span class="p">]</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">fk_label</span>
+
+<div class="viewcode-block" id="SQLHelperTextAnywhereForm.clean"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.SQLHelperTextAnywhereForm.clean">[docs]</a>    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="n">cleaned_data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+        <span class="n">fieldname</span> <span class="o">=</span> <span class="n">cleaned_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fkname&quot;</span><span class="p">)</span>
+        <span class="n">pidvalue</span> <span class="o">=</span> <span class="n">cleaned_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;patient_id&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fieldname</span><span class="p">:</span>
+            <span class="n">opt</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">o</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fk_options</span> <span class="k">if</span> <span class="n">o</span><span class="o">.</span><span class="n">value</span> <span class="o">==</span> <span class="n">fieldname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">pidvalue</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">_</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">type_</span><span class="p">(</span><span class="n">pidvalue</span><span class="p">)</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span>
+                        <span class="s2">&quot;For field </span><span class="si">{!r}</span><span class="s2">, the ID value must be of &quot;</span>
+                        <span class="s2">&quot;type </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="n">opt</span><span class="o">.</span><span class="n">type_</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_check_permits_empty_id_for_blank_id</span><span class="p">(</span><span class="n">opt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">cleaned_data</span></div>
+
+    <span class="k">def</span> <span class="nf">_check_permits_empty_id_for_blank_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                             <span class="n">opt</span><span class="p">:</span> <span class="n">FieldPickerInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Exists as a function so ClinicianAllTextFromPidForm can override it.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">opt</span><span class="o">.</span><span class="n">permits_empty_id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span>
+                <span class="s2">&quot;For this ID type (</span><span class="si">{}</span><span class="s2">), you must specify an ID &quot;</span>
+                <span class="s2">&quot;value&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">value</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ClinicianAllTextFromPidForm"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.ClinicianAllTextFromPidForm">[docs]</a><span class="k">class</span> <span class="nc">ClinicianAllTextFromPidForm</span><span class="p">(</span><span class="n">SQLHelperTextAnywhereForm</span><span class="p">):</span>
+    <span class="n">patient_id</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;ID value&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># ... the clinician view always requires an ID (no &quot;patient browsing&quot;;</span>
+    <span class="c1"># that&#39;s in the domain of research as it might yield patients that aren&#39;t</span>
+    <span class="c1"># being cared for by this clinician)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                         <span class="n">fk_label</span><span class="o">=</span><span class="s2">&quot;Field name containing patient ID&quot;</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">inccontent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;include_content&#39;</span><span class="p">]</span>  <span class="c1"># type: BooleanField</span>
+        <span class="n">incdate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;include_datetime&#39;</span><span class="p">]</span>  <span class="c1"># type: BooleanField</span>
+
+        <span class="c1"># Hide include_content/include_datetime (always true here)</span>
+        <span class="c1"># inccontent.widget = inccontent.hidden_widget  # ... nope!</span>
+        <span class="n">inccontent</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">HiddenInput</span><span class="p">()</span>  <span class="c1"># yes, this works</span>
+        <span class="n">incdate</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="n">forms</span><span class="o">.</span><span class="n">HiddenInput</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_check_permits_empty_id_for_blank_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                             <span class="n">opt</span><span class="p">:</span> <span class="n">FieldPickerInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span></div>
+
+
+<span class="k">def</span> <span class="nf">html_form_date_to_python</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">int_validator</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>  <span class="c1"># may raise ValueError, TypeError</span>
+
+
+<span class="k">def</span> <span class="nf">float_validator</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>  <span class="c1"># may raise ValueError, TypeError</span>
+
+
+<div class="viewcode-block" id="QueryBuilderForm"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.QueryBuilderForm">[docs]</a><span class="k">class</span> <span class="nc">QueryBuilderForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+    <span class="c1"># See also querybuilder.js</span>
+
+    <span class="n">database</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Schema&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Schema&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Table&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">column</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Column&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">datatype</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Data type&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">offer_where</span> <span class="o">=</span> <span class="n">BooleanField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Offer WHERE?&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="c1"># BooleanField generally needs &quot;required=False&quot;, or you can&#39;t have False!</span>
+    <span class="n">where_op</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;WHERE comparison&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">date_value</span> <span class="o">=</span> <span class="n">DateField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Date value (e.g. 1900-01-31)&quot;</span><span class="p">,</span>
+                           <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">int_value</span> <span class="o">=</span> <span class="n">IntegerField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Integer value&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">float_value</span> <span class="o">=</span> <span class="n">FloatField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Float value&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">string_value</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;String value&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">file</span> <span class="o">=</span> <span class="n">FileField</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;File (for IN)&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_values_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_datatype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;datatype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">is_datatype_unknown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_datatype</span><span class="p">()</span> <span class="o">==</span> <span class="n">QB_DATATYPE_UNKNOWN</span>
+
+    <span class="k">def</span> <span class="nf">offering_where</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_datatype_unknown</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;offer_where&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_value_fieldname</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">datatype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_datatype</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">QB_DATATYPE_INTEGER</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;int_value&quot;</span>
+        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">QB_DATATYPE_FLOAT</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;float_value&quot;</span>
+        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">QB_DATATYPE_DATE</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;date_value&quot;</span>
+        <span class="k">if</span> <span class="n">datatype</span> <span class="ow">in</span> <span class="n">QB_STRING_TYPES</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;string_value&quot;</span>
+        <span class="k">if</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">QB_DATATYPE_UNKNOWN</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid field type&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_cleaned_where_value</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="c1"># Only call this if you&#39;ve already cleaned/validated the form!</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_value_fieldname</span><span class="p">()]</span>
+
+<div class="viewcode-block" id="QueryBuilderForm.clean"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.QueryBuilderForm.clean">[docs]</a>    <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Check the WHERE information is sufficient.</span>
+        <span class="k">if</span> <span class="s1">&#39;submit_select&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="ow">or</span> <span class="s1">&#39;submit_select_star&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="c1"># Form submitted via the &quot;Add&quot; method, so no checks required.</span>
+            <span class="c1"># http://stackoverflow.com/questions/866272/how-can-i-build-multiple-submit-buttons-django-form  # noqa</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">offering_where</span><span class="p">():</span>
+            <span class="k">return</span>
+        <span class="n">cleaned_data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;where_op&#39;</span><span class="p">]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s1">&#39;where_op&#39;</span><span class="p">,</span>
+                           <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Must specify comparison&quot;</span><span class="p">))</span>
+
+        <span class="c1"># No need for a value for NULL-related comparisons. But otherwise:</span>
+        <span class="n">where_op</span> <span class="o">=</span> <span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;where_op&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">where_op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SQL_OPS_VALUE_UNNECESSARY</span> <span class="o">+</span> <span class="n">SQL_OPS_MULTIPLE_VALUES</span><span class="p">:</span>
+            <span class="c1"># Can&#39;t take 0 or many parameters, so need the standard single</span>
+            <span class="c1"># value:</span>
+            <span class="n">value_fieldname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_value_fieldname</span><span class="p">()</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">cleaned_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">value_fieldname</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span>
+                    <span class="n">value_fieldname</span><span class="p">,</span>
+                    <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Must specify WHERE condition&quot;</span><span class="p">))</span>
+
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># Special processing for file upload operations</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="k">if</span> <span class="n">where_op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">SQL_OPS_MULTIPLE_VALUES</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">fileobj</span> <span class="o">=</span> <span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+        <span class="c1"># ... is an instance of InMemoryUploadedFile</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">fileobj</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Must specify file&quot;</span><span class="p">))</span>
+            <span class="k">return</span>
+
+        <span class="n">datatype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_datatype</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">datatype</span> <span class="ow">in</span> <span class="n">QB_STRING_TYPES</span><span class="p">:</span>
+            <span class="n">form_to_python_fn</span> <span class="o">=</span> <span class="nb">str</span>
+        <span class="k">elif</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">QB_DATATYPE_DATE</span><span class="p">:</span>
+            <span class="n">form_to_python_fn</span> <span class="o">=</span> <span class="n">html_form_date_to_python</span>
+        <span class="k">elif</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">QB_DATATYPE_INTEGER</span><span class="p">:</span>
+            <span class="n">form_to_python_fn</span> <span class="o">=</span> <span class="n">int_validator</span>
+        <span class="k">elif</span> <span class="n">datatype</span> <span class="o">==</span> <span class="n">QB_DATATYPE_FLOAT</span><span class="p">:</span>
+            <span class="n">form_to_python_fn</span> <span class="o">=</span> <span class="n">float_validator</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Safe defaults</span>
+            <span class="n">form_to_python_fn</span> <span class="o">=</span> <span class="nb">str</span>
+        <span class="c1"># Or: http://www.dabeaz.com/generators/Generators.pdf</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_values_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fileobj</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf8&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+            <span class="n">raw_item</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">raw_item</span> <span class="ow">or</span> <span class="n">raw_item</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">form_to_python_fn</span><span class="p">(</span><span class="n">raw_item</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span>
+                    <span class="s2">&quot;File contains bad value: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">raw_item</span><span class="p">))))</span>
+                <span class="k">return</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">file_values_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">file_values_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_error</span><span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="n">forms</span><span class="o">.</span><span class="n">ValidationError</span><span class="p">(</span>
+                <span class="s2">&quot;No values found in file&quot;</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="ManualPeQueryForm"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/forms.html#crate_anon.crateweb.research.forms.ManualPeQueryForm">[docs]</a><span class="k">class</span> <span class="nc">ManualPeQueryForm</span><span class="p">(</span><span class="n">forms</span><span class="o">.</span><span class="n">Form</span><span class="p">):</span>
+    <span class="n">sql</span> <span class="o">=</span> <span class="n">CharField</span><span class="p">(</span>
+        <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">widget</span><span class="o">=</span><span class="n">forms</span><span class="o">.</span><span class="n">Textarea</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;rows&#39;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s1">&#39;cols&#39;</span><span class="p">:</span> <span class="mi">80</span><span class="p">})</span>
+    <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

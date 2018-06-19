@@ -1,0 +1,968 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.anonymise.dd &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.anonymise.dd</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/anonymise/dd.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+
+<span class="sd">Data dictionary classes for CRATE anonymiser.</span>
+
+<span class="sd">Data dictionary as a TSV file, for ease of editing by multiple authors, rather</span>
+<span class="sd">than a database table.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Imports</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="k">import</span> <span class="n">lru_cache</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="p">(</span><span class="n">AbstractSet</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span>
+                    <span class="n">Union</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.rnc_db</span> <span class="k">import</span> <span class="n">is_sqltype_integer</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.sqlalchemy.schema</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">is_sqlatype_integer</span><span class="p">,</span>
+    <span class="n">is_sqlatype_string</span><span class="p">,</span>
+    <span class="n">is_sqlatype_text_over_one_char</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">sortedcontainers</span> <span class="k">import</span> <span class="n">SortedSet</span>
+<span class="kn">import</span> <span class="nn">sqlalchemy.exc</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy</span> <span class="k">import</span> <span class="n">Column</span><span class="p">,</span> <span class="n">Table</span>
+<span class="kn">from</span> <span class="nn">sqlalchemy.sql.sqltypes</span> <span class="k">import</span> <span class="n">String</span><span class="p">,</span> <span class="n">TypeEngine</span>
+
+<span class="c1"># don&#39;t import config: circular dependency would have to be sorted out</span>
+<span class="kn">from</span> <span class="nn">crate_anon.anonymise.constants</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">TABLE_KWARGS</span><span class="p">,</span>
+    <span class="n">SRCFLAG</span><span class="p">,</span>
+    <span class="n">TridType</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.anonymise.ddr</span> <span class="k">import</span> <span class="n">DataDictionaryRow</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">crate_anon.anonymise.config</span> <span class="k">import</span> <span class="n">Config</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># DataDictionary</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="DataDictionary"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary">[docs]</a><span class="k">class</span> <span class="nc">DataDictionary</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class representing an entire data dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="s2">&quot;Config&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set defaults.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[DataDictionaryRow]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cached_srcdb_table_pairs</span> <span class="o">=</span> <span class="n">SortedSet</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_definers</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="DataDictionary.read_from_file"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.read_from_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read DD from file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[DataDictionaryRow]</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Opening data dictionary: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">))</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">tsvfile</span><span class="p">:</span>
+            <span class="n">tsv</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">tsvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">tsv</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="ow">in</span> <span class="n">headers</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">DataDictionaryRow</span><span class="o">.</span><span class="n">ROWNAMES</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Bad data dictionary file. Must be a tab-separated value &quot;</span>
+                    <span class="s2">&quot;(TSV) file with the following row headings:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;but yours are:</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                    <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DataDictionaryRow</span><span class="o">.</span><span class="n">ROWNAMES</span><span class="p">),</span>
+                        <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Data dictionary has correct header. Loading content...&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">tsv</span><span class="p">:</span>
+                <span class="n">valuedict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">headers</span><span class="p">,</span> <span class="n">values</span><span class="p">))</span>
+                <span class="n">ddr</span> <span class="o">=</span> <span class="n">DataDictionaryRow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">set_from_dict</span><span class="p">(</span><span class="n">valuedict</span><span class="p">)</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">check_valid</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s2">&quot;Offending input: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">valuedict</span><span class="p">))</span>
+                    <span class="k">raise</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ddr</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;... content loaded.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_caches</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DataDictionary.read_from_source_databases"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.read_from_source_databases">[docs]</a>    <span class="k">def</span> <span class="nf">read_from_source_databases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">report_every</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a draft DD from a source database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Reading information for draft data dictionary&quot;</span><span class="p">)</span>
+        <span class="n">existing_signatures</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">get_signature</span><span class="p">()</span> <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pretty_dbname</span><span class="p">,</span> <span class="n">db</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... database nice name = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pretty_dbname</span><span class="p">))</span>
+            <span class="n">cfg</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">srccfg</span>
+            <span class="n">meta</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">metadata</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">meta</span><span class="o">.</span><span class="n">sorted_tables</span><span class="p">:</span>
+                <span class="n">tablename</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... ... table: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tablename</span><span class="p">))</span>
+                <span class="n">new_rows</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[DataDictionaryRow]</span>
+                <span class="n">is_patient_table</span> <span class="o">=</span> <span class="kc">False</span>
+
+                <span class="c1"># Skip table?</span>
+                <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">is_table_blacklisted</span><span class="p">(</span><span class="n">tablename</span><span class="p">):</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping blacklisted table: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">tablename</span><span class="p">))</span>
+                    <span class="k">continue</span>
+                <span class="n">all_col_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">does_table_fail_minimum_fields</span><span class="p">(</span><span class="n">all_col_names</span><span class="p">):</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping table </span><span class="si">{}</span><span class="s2"> because it fails minimum &quot;</span>
+                              <span class="s2">&quot;field requirements&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+                    <span class="k">continue</span>
+
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">t</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">if</span> <span class="n">report_every</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">%</span> <span class="n">report_every</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;... reading source field number &quot;</span>
+                                  <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                    <span class="n">columnname</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span>
+                    <span class="c1"># import pdb; pdb.set_trace()</span>
+                    <span class="c1"># log.critical(&quot;str(coltype) == {}&quot;.format(str(c.type)))</span>
+                    <span class="c1"># log.critical(&quot;repr(coltype) == {}&quot;.format(repr(c.type)))</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">datatype_sqltext</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="n">sqlalchemy</span><span class="o">.</span><span class="n">exc</span><span class="o">.</span><span class="n">CompileError</span><span class="p">:</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s2">&quot;Column that failed was: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="nb">repr</span><span class="p">(</span><span class="n">c</span><span class="p">)))</span>
+                        <span class="k">raise</span>
+                    <span class="n">sqla_coltype</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">type</span>
+                    <span class="c1"># Do not manipulate the case of SOURCE tables/columns.</span>
+                    <span class="c1"># If you do, they can fail to match the SQLAlchemy</span>
+                    <span class="c1"># introspection and cause a crash.</span>
+                    <span class="c1"># Changed to be a destination manipulation (2016-06-04).</span>
+                    <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">is_field_blacklisted</span><span class="p">(</span><span class="n">columnname</span><span class="p">):</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping blacklisted column: </span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">tablename</span><span class="p">,</span> <span class="n">columnname</span><span class="p">))</span>
+                        <span class="k">continue</span>
+                    <span class="n">comment</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>  <span class="c1"># currently unsupported by SQLAlchemy</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">append_source_info_to_comment</span><span class="p">:</span>
+                        <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot;[from </span><span class="si">{t}</span><span class="s2">.</span><span class="si">{f}</span><span class="s2">]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">t</span><span class="o">=</span><span class="n">tablename</span><span class="p">,</span>
+                            <span class="n">f</span><span class="o">=</span><span class="n">columnname</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="n">ddr</span> <span class="o">=</span> <span class="n">DataDictionaryRow</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">set_from_src_db_info</span><span class="p">(</span>
+                        <span class="n">pretty_dbname</span><span class="p">,</span> <span class="n">tablename</span><span class="p">,</span> <span class="n">columnname</span><span class="p">,</span>
+                        <span class="n">datatype_sqltext</span><span class="p">,</span>
+                        <span class="n">sqla_coltype</span><span class="p">,</span>
+                        <span class="n">dbconf</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>
+                        <span class="n">comment</span><span class="o">=</span><span class="n">comment</span><span class="p">)</span>
+
+                    <span class="c1"># If we have this one already, skip ASAP</span>
+                    <span class="n">sig</span> <span class="o">=</span> <span class="n">ddr</span><span class="o">.</span><span class="n">get_signature</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">sig</span> <span class="ow">in</span> <span class="n">existing_signatures</span><span class="p">:</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Skipping duplicated column: </span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">tablename</span><span class="p">,</span> <span class="n">columnname</span><span class="p">))</span>
+                        <span class="k">continue</span>
+                    <span class="n">existing_signatures</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">sig</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">contains_patient_info</span><span class="p">():</span>
+                        <span class="n">is_patient_table</span> <span class="o">=</span> <span class="kc">True</span>
+
+                    <span class="c1"># Checking validity slows us down, and we are after all</span>
+                    <span class="c1"># creating these programmatically!</span>
+                    <span class="c1"># ddr.check_valid(self.config)</span>
+
+                    <span class="n">new_rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ddr</span><span class="p">)</span>
+
+                <span class="c1"># Now, table-wide checks across all columns:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">is_patient_table</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="n">new_rows</span><span class="p">:</span>
+                        <span class="n">ddr</span><span class="o">.</span><span class="n">remove_scrub_from_alter_methods</span><span class="p">()</span>
+                        <span class="c1"># Pointless to scrub in a non-patient table</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">new_rows</span><span class="p">)</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... done&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear_caches</span><span class="p">()</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Revising draft data dictionary&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">from_file</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># Don&#39;t scrub_in non-patient tables</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span>
+                    <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables_with_patient_info</span><span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">)):</span>
+                <span class="n">ddr</span><span class="o">.</span><span class="n">_scrub</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... done&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">sort</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Sorting data dictionary&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rows</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">,</span>
+            <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">attrgetter</span><span class="p">(</span><span class="s2">&quot;src_db_lowercase&quot;</span><span class="p">,</span>
+                                    <span class="s2">&quot;src_table_lowercase&quot;</span><span class="p">,</span>
+                                    <span class="s2">&quot;src_field_lowercase&quot;</span><span class="p">))</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... done&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DataDictionary.check_against_source_db"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.check_against_source_db">[docs]</a>    <span class="k">def</span> <span class="nf">check_against_source_db</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check DD validity against the source database.</span>
+<span class="sd">        Also caches SQLAlchemy source column type</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">ensure_no_type_mismatch</span><span class="p">(</span><span class="n">ddr</span><span class="p">:</span> <span class="n">DataDictionaryRow</span><span class="p">,</span>
+                                    <span class="n">config_sqlatype</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">TypeEngine</span><span class="p">,</span> <span class="n">String</span><span class="p">],</span>
+                                    <span class="n">human_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rowtype</span> <span class="o">=</span> <span class="n">ddr</span><span class="o">.</span><span class="n">get_src_sqla_coltype</span><span class="p">()</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">is_sqlatype_integer</span><span class="p">(</span><span class="n">rowtype</span><span class="p">)</span> <span class="ow">and</span>
+                    <span class="n">is_sqlatype_integer</span><span class="p">(</span><span class="n">config_sqlatype</span><span class="p">)):</span>
+                <span class="c1"># Good enough. The only integer type we use for PID/MPID is</span>
+                <span class="c1"># BigInteger, so any integer type should fit.</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">is_sqlatype_string</span><span class="p">(</span><span class="n">rowtype</span><span class="p">)</span> <span class="ow">and</span>
+                    <span class="n">is_sqlatype_string</span><span class="p">(</span><span class="n">config_sqlatype</span><span class="p">)):</span>
+                <span class="c1"># noinspection PyUnresolvedReferences</span>
+                <span class="k">if</span> <span class="n">rowtype</span><span class="o">.</span><span class="n">length</span> <span class="o">&lt;=</span> <span class="n">config_sqlatype</span><span class="o">.</span><span class="n">length</span><span class="p">:</span>
+                    <span class="k">return</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Source column </span><span class="si">{}</span><span class="s2"> is marked as a </span><span class="si">{}</span><span class="s2"> field but its type is </span><span class="si">{}</span><span class="s2">, &quot;</span>
+                <span class="s2">&quot;while the config thinks it should be </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">get_signature</span><span class="p">(),</span>
+                    <span class="n">human_type</span><span class="p">,</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">get_src_sqla_coltype</span><span class="p">(),</span>
+                    <span class="n">config_sqlatype</span><span class="p">))</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking DD: source tables...&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_databases</span><span class="p">():</span>
+            <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">sources</span><span class="p">[</span><span class="n">d</span><span class="p">]</span>
+
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+
+                <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_tables_for_src_db_table</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Source table </span><span class="si">{d}</span><span class="s2">.</span><span class="si">{t}</span><span class="s2"> maps to &gt;1 destination &quot;</span>
+                        <span class="s2">&quot;table: </span><span class="si">{dt}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dt</span><span class="p">)))</span>
+
+                <span class="n">rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_rows_for_src_table</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+                <span class="n">fieldnames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_fieldnames_for_src_table</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">table_names</span><span class="p">:</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="s2">&quot;Source database </span><span class="si">{d}</span><span class="s2"> has tables: </span><span class="si">{tables}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                            <span class="n">d</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">d</span><span class="p">),</span> <span class="n">tables</span><span class="o">=</span><span class="n">db</span><span class="o">.</span><span class="n">table_names</span><span class="p">))</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="s2">&quot;Table </span><span class="si">{t}</span><span class="s2"> missing from source database &quot;</span>
+                        <span class="s2">&quot;</span><span class="si">{d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">d</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">d</span><span class="p">)))</span>
+
+                <span class="c1"># We may need to cross-reference rows, so all rows need to know</span>
+                <span class="c1"># their type.</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">src_field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;Column </span><span class="si">{c}</span><span class="s2"> missing from table </span><span class="si">{t}</span><span class="s2"> in source &quot;</span>
+                            <span class="s2">&quot;database </span><span class="si">{d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">c</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">src_field</span><span class="p">),</span>
+                                                  <span class="n">t</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">t</span><span class="p">),</span>
+                                                  <span class="n">d</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="n">d</span><span class="p">)))</span>
+                    <span class="n">sqla_coltype</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">db</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="n">t</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">src_field</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+                    <span class="n">r</span><span class="o">.</span><span class="n">set_src_sqla_coltype</span><span class="p">(</span><span class="n">sqla_coltype</span><span class="p">)</span>  <span class="c1"># CACHES TYPE HERE</span>
+
+                <span class="c1"># We have to iterate twice, but shouldn&#39;t iterate more than</span>
+                <span class="c1"># that, for speed.</span>
+                <span class="n">n_pks</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">needs_pidfield</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+                    <span class="c1"># Needs PID field in table?</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">omit</span> <span class="ow">and</span> <span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">being_scrubbed</span><span class="p">()</span> <span class="ow">or</span> <span class="n">r</span><span class="o">.</span><span class="n">master_pid</span><span class="p">):</span>
+                        <span class="n">needs_pidfield</span> <span class="o">=</span> <span class="kc">True</span>
+
+                    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">primary_pid</span><span class="p">:</span>
+                        <span class="n">ensure_no_type_mismatch</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pidtype</span><span class="p">,</span>
+                                                <span class="s2">&quot;primary PID&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">master_pid</span><span class="p">:</span>
+                        <span class="n">ensure_no_type_mismatch</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">mpidtype</span><span class="p">,</span>
+                                                <span class="s2">&quot;master PID&quot;</span><span class="p">)</span>
+
+                    <span class="c1"># Too many PKs?</span>
+                    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">pk</span><span class="p">:</span>
+                        <span class="n">n_pks</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">if</span> <span class="n">n_pks</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                <span class="s2">&quot;Table </span><span class="si">{d}</span><span class="s2">.</span><span class="si">{t}</span><span class="s2"> has &gt;1 source PK set&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                    <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">))</span>
+
+                    <span class="c1"># Duff alter method?</span>
+                    <span class="k">for</span> <span class="n">am</span> <span class="ow">in</span> <span class="n">r</span><span class="o">.</span><span class="n">get_alter_methods</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">am</span><span class="o">.</span><span class="n">extract_from_blob</span><span class="p">:</span>
+                            <span class="n">extrow</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+                                <span class="p">(</span><span class="n">r2</span> <span class="k">for</span> <span class="n">r2</span> <span class="ow">in</span> <span class="n">rows</span>
+                                    <span class="k">if</span> <span class="n">r2</span><span class="o">.</span><span class="n">src_field</span> <span class="o">==</span> <span class="n">am</span><span class="o">.</span><span class="n">extract_ext_field</span><span class="p">),</span>
+                                <span class="kc">None</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">extrow</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                    <span class="s2">&quot;alter_method = </span><span class="si">{am}</span><span class="s2">, but field </span><span class="si">{f}</span><span class="s2"> not &quot;</span>
+                                    <span class="s2">&quot;found in the same table&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                        <span class="n">am</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">alter_method</span><span class="p">,</span>
+                                        <span class="n">f</span><span class="o">=</span><span class="n">am</span><span class="o">.</span><span class="n">extract_ext_field</span><span class="p">))</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_sqlatype_text_over_one_char</span><span class="p">(</span>
+                                    <span class="n">extrow</span><span class="o">.</span><span class="n">get_src_sqla_coltype</span><span class="p">()):</span>
+                                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                                    <span class="s2">&quot;alter_method = </span><span class="si">{am}</span><span class="s2">, but field </span><span class="si">{f}</span><span class="s2">, which&quot;</span>
+                                    <span class="s2">&quot; should contain an extension or filename,&quot;</span>
+                                    <span class="s2">&quot; is not text of &gt;1 character&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                        <span class="n">am</span><span class="o">=</span><span class="n">r</span><span class="o">.</span><span class="n">alter_method</span><span class="p">,</span>
+                                        <span class="n">f</span><span class="o">=</span><span class="n">am</span><span class="o">.</span><span class="n">extract_ext_field</span><span class="p">))</span>
+
+                <span class="k">if</span> <span class="n">needs_pidfield</span><span class="p">:</span>
+                    <span class="c1"># Test changed from an error to a warning 2016-11-11.</span>
+                    <span class="c1"># We don&#39;t really care about validating against the ddgen</span>
+                    <span class="c1"># options; if a user has done their data dictionary</span>
+                    <span class="c1"># manually, it may not be relevant.</span>
+                    <span class="n">expected_pidfield</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">srccfg</span><span class="o">.</span><span class="n">ddgen_per_table_pid_field</span>
+                    <span class="k">if</span> <span class="n">expected_pidfield</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fieldnames</span><span class="p">:</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="s2">&quot;Source table </span><span class="si">{d}</span><span class="s2">.</span><span class="si">{t}</span><span class="s2"> has a scrub_in or &quot;</span>
+                            <span class="s2">&quot;src_flags=</span><span class="si">{f}</span><span class="s2"> field but no master patient ID &quot;</span>
+                            <span class="s2">&quot;field (expected to be: </span><span class="si">{p}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                                <span class="n">d</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">SRCFLAG</span><span class="o">.</span><span class="n">MASTER_PID</span><span class="p">,</span>
+                                <span class="n">p</span><span class="o">=</span><span class="n">expected_pidfield</span><span class="p">))</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;... source tables checked.&quot;</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="DataDictionary.check_valid"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.check_valid">[docs]</a>    <span class="k">def</span> <span class="nf">check_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                    <span class="n">prohibited_fieldnames</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">check_against_source_db</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check DD validity, internally +/- against the source database.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">prohibited_fieldnames</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">prohibited_fieldnames</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[str]</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Checking data dictionary...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty data dictionary&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_tables</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Empty data dictionary after removing &quot;</span>
+                             <span class="s2">&quot;redundant tables&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Individual rows will already have been checked with their own</span>
+        <span class="c1"># check_valid() method. But now we check collective consistency.</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking DD: prohibited flags...&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_source_databases</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+                <span class="c1"># This will have excluded all tables where all rows are</span>
+                <span class="c1"># omitted. So now we have only active tables, for which we</span>
+                <span class="c1"># cannot combine certain flags.</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_rows_for_src_table</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">add_src_hash</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">omit</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Do not set omit on src_flags=</span><span class="si">{}</span><span class="s2"> &quot;</span>
+                                         <span class="s2">&quot;fields&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">SRCFLAG</span><span class="o">.</span><span class="n">ADD_SRC_HASH</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">constant</span> <span class="ow">and</span> <span class="n">r</span><span class="o">.</span><span class="n">omit</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Do not set omit on src_flags=</span><span class="si">{}</span><span class="s2"> &quot;</span>
+                                         <span class="s2">&quot;fields&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">SRCFLAG</span><span class="o">.</span><span class="n">CONSTANT</span><span class="p">))</span>
+                <span class="c1"># We used to prohibit these combinations at all times, in the</span>
+                <span class="c1"># DataDictionaryRow class, but it&#39;s inconvenient to have to</span>
+                <span class="c1"># alter these flags if you want to omit the whole table.</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking DD: prohibited fieldnames...&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">prohibited_fieldnames</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+                <span class="n">r</span><span class="o">.</span><span class="n">check_prohibited_fieldnames</span><span class="p">(</span><span class="n">prohibited_fieldnames</span><span class="p">)</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking DD: source tables...&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_optout_defining_fields</span><span class="p">():</span>
+            <span class="p">(</span><span class="n">src_db</span><span class="p">,</span> <span class="n">src_table</span><span class="p">,</span> <span class="n">optout_colname</span><span class="p">,</span> <span class="n">pid_colname</span><span class="p">,</span> <span class="n">mpid_colname</span><span class="p">)</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pid_colname</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">mpid_colname</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Field </span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2"> has src_flags=</span><span class="si">{}</span><span class="s2"> set, but that table does &quot;</span>
+                    <span class="s2">&quot;not have a primary patient ID field or a master patient &quot;</span>
+                    <span class="s2">&quot;ID field&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src_db</span><span class="p">,</span> <span class="n">src_table</span><span class="p">,</span> <span class="n">optout_colname</span><span class="p">,</span>
+                                      <span class="n">SRCFLAG</span><span class="o">.</span><span class="n">OPT_OUT</span><span class="p">))</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking DD: destination tables...&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_tables</span><span class="p">():</span>
+            <span class="n">sdt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_src_dbs_tables_for_dest_table</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sdt</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Destination table </span><span class="si">{t}</span><span class="s2"> is mapped to by multiple source &quot;</span>
+                    <span class="s2">&quot;databases: </span><span class="si">{s}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
+                        <span class="n">s</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sdt</span><span class="p">]),</span>
+                    <span class="p">))</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking DD: duplicate source/destination rows?&quot;</span><span class="p">)</span>
+        <span class="n">src_sigs</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[str]</span>
+        <span class="n">dst_sigs</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[str]</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="n">src_sigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get_signature</span><span class="p">())</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">r</span><span class="o">.</span><span class="n">omit</span><span class="p">:</span>
+                <span class="n">dst_sigs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">get_dest_signature</span><span class="p">())</span>
+        <span class="c1"># noinspection PyArgumentList</span>
+        <span class="n">src_duplicates</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">item</span> <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">src_sigs</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># noinspection PyArgumentList</span>
+        <span class="n">dst_duplicates</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">item</span> <span class="k">for</span> <span class="n">item</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">dst_sigs</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">src_duplicates</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Duplicate source rows: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">src_duplicates</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">dst_duplicates</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Duplicate source rows: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">dst_duplicates</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">check_against_source_db</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_against_source_db</span><span class="p">()</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Checking DD: global checks...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_definers</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="mi">1</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">defines_primary_pids</span> <span class="k">else</span> <span class="mi">0</span>
+                               <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_definers</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">db</span><span class="o">.</span><span class="n">srccfg</span><span class="o">.</span><span class="n">ddgen_allow_no_patient_info</span>
+                    <span class="k">for</span> <span class="n">pretty_dbname</span><span class="p">,</span> <span class="n">db</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">sources</span><span class="o">.</span><span class="n">items</span><span class="p">()]):</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;NO PATIENT-DEFINING FIELD! DATABASE(S) WILL &quot;</span>
+                            <span class="s2">&quot;BE COPIED, NOT ANONYMISED.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Must have at least one field with &quot;</span>
+                    <span class="s2">&quot;src_flags=</span><span class="si">{}</span><span class="s2"> set.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">SRCFLAG</span><span class="o">.</span><span class="n">DEFINES_PRIMARY_PIDS</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_definers</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Unusual: &gt;1 field with src_flags=</span><span class="si">{}</span><span class="s2"> set.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">SRCFLAG</span><span class="o">.</span><span class="n">DEFINES_PRIMARY_PIDS</span><span class="p">))</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;... DD checked.&quot;</span><span class="p">)</span></div>
+
+    <span class="c1"># =========================================================================</span>
+    <span class="c1"># Whole-DD operations</span>
+    <span class="c1"># =========================================================================</span>
+
+<div class="viewcode-block" id="DataDictionary.get_tsv"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_tsv">[docs]</a>    <span class="k">def</span> <span class="nf">get_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the DD in TSV format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DataDictionaryRow</span><span class="o">.</span><span class="n">ROWNAMES</span><span class="p">)]</span> <span class="o">+</span>
+            <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">get_tsv</span><span class="p">()</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">]</span>
+        <span class="p">)</span></div>
+
+    <span class="c1"># =========================================================================</span>
+    <span class="c1"># Global DD queries</span>
+    <span class="c1"># =========================================================================</span>
+
+<div class="viewcode-block" id="DataDictionary.get_source_databases"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_source_databases">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_source_databases</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of source database names.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+             <span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span>
+             <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+             <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">required</span><span class="p">()</span>
+         <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_scrub_from_db_table_pairs"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_db_table_pairs">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_scrub_from_db_table_pairs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of (source database name, source table) tuples</span>
+<span class="sd">        where those fields contain scrub_src (scrub-from) information.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">scrub_src</span>
+        <span class="p">])</span></div>
+        <span class="c1"># even if omit flag set</span>
+
+<div class="viewcode-block" id="DataDictionary.get_src_db_tablepairs"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_db_tablepairs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of (source database name, source table) tuples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_src_db_tablepairs_w_pt_info"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_pt_info">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_db_tablepairs_w_pt_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of (source database name, source table) tuples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">contains_patient_info</span><span class="p">()</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_src_db_tablepairs_w_int_pk"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_int_pk">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_db_tablepairs_w_int_pk</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of (source database name, source table) tuples.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_int_pk_ddr</span><span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_dbs_tables_with_no_pt_info_no_pk</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of (source database name, source table) tuples</span>
+<span class="sd">        where the table has no patient information and no integer PK.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs</span><span class="p">()</span> <span class="o">-</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs_w_pt_info</span><span class="p">()</span> <span class="o">-</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs_w_int_pk</span><span class="p">()</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_dbs_tables_with_no_pt_info_int_pk</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of (source database name, source table) tuples</span>
+<span class="sd">        where the table has no patient information and has an integer PK.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs</span><span class="p">()</span> <span class="o">-</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs_w_pt_info</span><span class="p">())</span> <span class="o">&amp;</span>  <span class="c1"># &amp; is intersection</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs_w_int_pk</span><span class="p">()</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_dest_tables"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_dest_tables">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_dest_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of all destination tables.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span><span class="o">.</span><span class="n">dest_table</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ddr</span><span class="o">.</span><span class="n">omit</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_dest_tables_with_patient_info"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_with_patient_info">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_dest_tables_with_patient_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of destination table names that have patient</span>
+<span class="sd">        information.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span><span class="o">.</span><span class="n">dest_table</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">contains_patient_info</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ddr</span><span class="o">.</span><span class="n">omit</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_optout_defining_fields"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_optout_defining_fields">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_optout_defining_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of (src_db, src_table, src_field, pidfield,</span>
+<span class="sd">        mpidfield) tuples.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_field</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_pid_name</span><span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_mpid_name</span><span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">opt_out_info</span>
+        <span class="p">])</span></div>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_mandatory_scrubber_sigs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="nb">set</span><span class="p">([</span><span class="n">ddr</span><span class="o">.</span><span class="n">get_signature</span><span class="p">()</span> <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+                    <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">required_scrubber</span><span class="p">])</span>
+
+    <span class="c1"># =========================================================================</span>
+    <span class="c1"># Queries by source DB</span>
+    <span class="c1"># =========================================================================</span>
+
+<div class="viewcode-block" id="DataDictionary.get_src_tables"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_tables">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name, return a SortedSet of source</span>
+<span class="sd">        tables.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span> <span class="n">ddr</span><span class="o">.</span><span class="n">required</span><span class="p">()</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_src_tables_with_active_dest"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_active_dest">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_tables_with_active_dest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name, return a SortedSet of source</span>
+<span class="sd">        tables.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ddr</span><span class="o">.</span><span class="n">omit</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_src_tables_with_patient_info"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_patient_info">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_tables_with_patient_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name, return a SortedSet of source</span>
+<span class="sd">        tables that have patient information.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span> <span class="n">ddr</span><span class="o">.</span><span class="n">contains_patient_info</span><span class="p">()</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_patient_src_tables_with_active_dest"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_patient_src_tables_with_active_dest">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_patient_src_tables_with_active_dest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name, return a SortedSet of source</span>
+<span class="sd">        tables that have an active destination table.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables_with_active_dest</span><span class="p">(</span><span class="n">src_db</span><span class="p">)</span> <span class="o">&amp;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables_with_patient_info</span><span class="p">(</span><span class="n">src_db</span><span class="p">)</span>
+        <span class="p">)</span></div>
+
+    <span class="c1"># =========================================================================</span>
+    <span class="c1"># Queries by source DB/table</span>
+    <span class="c1"># =========================================================================</span>
+
+<div class="viewcode-block" id="DataDictionary.get_dest_tables_for_src_db_table"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_for_src_db_table">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_dest_tables_for_src_db_table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database/table, return a SortedSet of destination</span>
+<span class="sd">        tables.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span><span class="o">.</span><span class="n">dest_table</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span>
+                <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span> <span class="ow">and</span>
+                <span class="ow">not</span> <span class="n">ddr</span><span class="o">.</span><span class="n">omit</span><span class="p">)</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_dest_table_for_src_db_table"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_dest_table_for_src_db_table">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_dest_table_for_src_db_table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database/table, return the single or the first</span>
+<span class="sd">        destination table.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_tables_for_src_db_table</span><span class="p">(</span><span class="n">src_db</span><span class="p">,</span> <span class="n">src_table</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_rows_for_src_table"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_rows_for_src_table">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_rows_for_src_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">DataDictionaryRow</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name/table, return a SortedSet of DD</span>
+<span class="sd">        rows.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_fieldnames_for_src_table"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_fieldnames_for_src_table">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_fieldnames_for_src_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">DataDictionaryRow</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name/table, return a SortedSet of source</span>
+<span class="sd">        fields.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span><span class="o">.</span><span class="n">src_field</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_scrub_from_rows"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_rows">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_scrub_from_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">DataDictionaryRow</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Return a SortedSet of DD rows for all fields containing scrub_src</span>
+<span class="sd">        (scrub-from) information.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">scrub_src</span> <span class="ow">and</span>
+                <span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span>
+                <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span><span class="p">)</span>
+        <span class="p">])</span></div>
+        <span class="c1"># even if omit flag set</span>
+
+<div class="viewcode-block" id="DataDictionary.get_pk_ddr"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_pk_ddr">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_pk_ddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DataDictionaryRow</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name and table, return the DD row</span>
+<span class="sd">        for the PK for that table, whether integer or not.</span>
+
+<span class="sd">        Will return None if no such data dictionary row.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">pk</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">ddr</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_int_pk_ddr"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_int_pk_ddr">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_int_pk_ddr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> \
+            <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DataDictionaryRow</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name and table, return the DD row</span>
+<span class="sd">        for the integer PK for that table.</span>
+
+<span class="sd">        Will return None if no such data dictionary row.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">pk</span> <span class="ow">and</span>
+                    <span class="n">is_sqltype_integer</span><span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_datatype</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">ddr</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_int_pk_name"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_int_pk_name">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_int_pk_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name and table, return the field name</span>
+<span class="sd">        of the integer PK for that table.&quot;&quot;&quot;</span>
+        <span class="n">ddr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_int_pk_ddr</span><span class="p">(</span><span class="n">src_db</span><span class="p">,</span> <span class="n">src_table</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ddr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_field</span></div>
+
+<div class="viewcode-block" id="DataDictionary.has_active_destination"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.has_active_destination">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">has_active_destination</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;For a given source database name and table: does it have an active</span>
+<span class="sd">        destination?&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span> <span class="ow">and</span>
+                    <span class="ow">not</span> <span class="n">ddr</span><span class="o">.</span><span class="n">omit</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_pid_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">primary_pid</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_field</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_mpid_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">src_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span> <span class="o">==</span> <span class="n">src_db</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span> <span class="o">==</span> <span class="n">src_table</span> <span class="ow">and</span>
+                    <span class="n">ddr</span><span class="o">.</span><span class="n">master_pid</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_field</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="c1"># =========================================================================</span>
+    <span class="c1"># Queries by destination table</span>
+    <span class="c1"># =========================================================================</span>
+
+<div class="viewcode-block" id="DataDictionary.get_src_dbs_tables_for_dest_table"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_for_dest_table">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_src_dbs_tables_for_dest_table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">dest_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given destination table, return a SortedSet of (dbname, table)</span>
+<span class="sd">        tuples.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">src_db</span><span class="p">,</span> <span class="n">ddr</span><span class="o">.</span><span class="n">src_table</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">dest_table</span> <span class="o">==</span> <span class="n">dest_table</span>
+        <span class="p">])</span></div>
+
+<div class="viewcode-block" id="DataDictionary.get_rows_for_dest_table"><a class="viewcode-back" href="../../../autodoc/anonymise/dd.html#crate_anon.anonymise.dd.DataDictionary.get_rows_for_dest_table">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_rows_for_dest_table</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">dest_table</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbstractSet</span><span class="p">[</span><span class="n">DataDictionaryRow</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;For a given destination table, return a SortedSet of DD rows.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">SortedSet</span><span class="p">([</span>
+            <span class="n">ddr</span>
+            <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">dest_table</span> <span class="o">==</span> <span class="n">dest_table</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">ddr</span><span class="o">.</span><span class="n">omit</span>
+        <span class="p">])</span></div>
+
+    <span class="c1"># =========================================================================</span>
+    <span class="c1"># SQLAlchemy Table objects</span>
+    <span class="c1"># =========================================================================</span>
+
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">get_dest_sqla_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tablename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Table</span><span class="p">:</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">destdb</span><span class="o">.</span><span class="n">metadata</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[Column]</span>
+        <span class="k">for</span> <span class="n">ddr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_rows_for_dest_table</span><span class="p">(</span><span class="n">tablename</span><span class="p">):</span>
+            <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ddr</span><span class="o">.</span><span class="n">get_dest_sqla_column</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">add_src_hash</span><span class="p">:</span>
+                <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_srchash_sqla_column</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">ddr</span><span class="o">.</span><span class="n">primary_pid</span><span class="p">:</span>
+                <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_trid_sqla_column</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">Table</span><span class="p">(</span><span class="n">tablename</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="o">*</span><span class="n">columns</span><span class="p">,</span> <span class="o">**</span><span class="n">TABLE_KWARGS</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_srchash_sqla_column</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Column</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">source_hash_fieldname</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">SqlTypeEncryptedPid</span><span class="p">,</span>
+            <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Hashed amalgamation of all source fields&#39;</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_trid_sqla_column</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Column</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Column</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">trid_fieldname</span><span class="p">,</span>
+            <span class="n">TridType</span><span class="p">,</span>
+            <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">doc</span><span class="o">=</span><span class="s1">&#39;Transient integer research ID (TRID)&#39;</span>
+        <span class="p">)</span>
+
+    <span class="c1"># =========================================================================</span>
+    <span class="c1"># Clear caches</span>
+    <span class="c1"># =========================================================================</span>
+
+    <span class="k">def</span> <span class="nf">cached_funcs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_source_databases</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_scrub_from_db_table_pairs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs_w_pt_info</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_db_tablepairs_w_int_pk</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_dbs_tables_with_no_pt_info_no_pk</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_dbs_tables_with_no_pt_info_int_pk</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_tables</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_tables_with_patient_info</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_optout_defining_fields</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_mandatory_scrubber_sigs</span><span class="p">,</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables_with_active_dest</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_tables_with_patient_info</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_patient_src_tables_with_active_dest</span><span class="p">,</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_tables_for_src_db_table</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_table_for_src_db_table</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_rows_for_src_table</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_fieldnames_for_src_table</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_scrub_from_rows</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_pk_ddr</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_int_pk_ddr</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_int_pk_name</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_active_destination</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_pid_name</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_mpid_name</span><span class="p">,</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_src_dbs_tables_for_dest_table</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_rows_for_dest_table</span><span class="p">,</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_dest_sqla_table</span><span class="p">,</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">clear_caches</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_funcs</span><span class="p">():</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">cache_clear</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">debug_cache_hits</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cached_funcs</span><span class="p">():</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="n">cache_info</span><span class="p">()))</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

@@ -63,7 +63,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="class">
 <dt id="crate_anon.crateweb.research.models.Highlight">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">Highlight</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.research.models.Highlight" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">Highlight</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#Highlight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.Highlight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Represents the highlighting of a query.</p>
 <dl class="exception">
 <dt id="crate_anon.crateweb.research.models.Highlight.DoesNotExist">
@@ -79,7 +79,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 
 <dl class="class">
 <dt id="crate_anon.crateweb.research.models.PatientExplorer">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">PatientExplorer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">PatientExplorer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PatientExplorer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class to explore the research database on a per-patient basis.</p>
 <dl class="exception">
 <dt id="crate_anon.crateweb.research.models.PatientExplorer.DoesNotExist">
@@ -100,19 +100,19 @@ Returns (fieldnames, rows).</p>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.PatientExplorer.delete_if_permitted">
-<code class="descname">delete_if_permitted</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.delete_if_permitted" title="Permalink to this definition">¶</a></dt>
+<code class="descname">delete_if_permitted</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PatientExplorer.delete_if_permitted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.delete_if_permitted" title="Permalink to this definition">¶</a></dt>
 <dd><p>If a PE has been audited, it isn’t properly deleted.</p>
 </dd></dl>
 
 <dl class="staticmethod">
 <dt id="crate_anon.crateweb.research.models.PatientExplorer.get_executed_cursor">
-<em class="property">static </em><code class="descname">get_executed_cursor</code><span class="sig-paren">(</span><em>sql: str</em>, <em>args: List[Any] = None</em><span class="sig-paren">)</span> &#x2192; django.db.backends.utils.CursorWrapper<a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.get_executed_cursor" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="descname">get_executed_cursor</code><span class="sig-paren">(</span><em>sql: str</em>, <em>args: List[Any] = None</em><span class="sig-paren">)</span> &#x2192; django.db.backends.utils.CursorWrapper<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PatientExplorer.get_executed_cursor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.get_executed_cursor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get cursor with a query executed</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.PatientExplorer.get_xlsx_binary">
-<code class="descname">get_xlsx_binary</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bytes<a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.get_xlsx_binary" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_xlsx_binary</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bytes<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PatientExplorer.get_xlsx_binary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.get_xlsx_binary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Other notes:
 - cell size</p>
 <blockquote>
@@ -125,7 +125,7 @@ Returns (fieldnames, rows).</p>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.PatientExplorer.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.save" title="Permalink to this definition">¶</a></dt>
+<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PatientExplorer.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorer.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Custom save method. Ensures that only one PatientExplorer has
 active == True for a given user.
 Also sets the hash.</p>
@@ -135,7 +135,7 @@ Also sets the hash.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.research.models.PatientExplorerAudit">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">PatientExplorerAudit</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorerAudit" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">PatientExplorerAudit</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PatientExplorerAudit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PatientExplorerAudit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Audit log for a PatientExplorer.</p>
 <dl class="exception">
 <dt id="crate_anon.crateweb.research.models.PatientExplorerAudit.DoesNotExist">
@@ -151,7 +151,7 @@ Also sets the hash.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.research.models.PidLookup">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">PidLookup</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.research.models.PidLookup" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">PidLookup</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PidLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PidLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Lookup class for secret RID-to-PID conversion.
 Used via one or other of the ‘secret’ database connections.
 Intended for READ-ONLY access to that table.</p>
@@ -172,7 +172,7 @@ regardless of the specifics of the config used.</p>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.PidLookup.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.research.models.PidLookup.save" title="Permalink to this definition">¶</a></dt>
+<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#PidLookup.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.PidLookup.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Saves the current instance. Override this in a subclass if you want to
 control the saving process.</p>
 <p>The ‘force_insert’ and ‘force_update’ parameters can be used to insist
@@ -184,7 +184,7 @@ non-SQL backends), respectively. Normally, they should not be set.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.research.models.Query">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">Query</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.research.models.Query" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">Query</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#Query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.Query" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class to query the research database.</p>
 <dl class="exception">
 <dt id="crate_anon.crateweb.research.models.Query.DoesNotExist">
@@ -198,32 +198,32 @@ non-SQL backends), respectively. Normally, they should not be set.</p>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.Query.delete_if_permitted">
-<code class="descname">delete_if_permitted</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.research.models.Query.delete_if_permitted" title="Permalink to this definition">¶</a></dt>
+<code class="descname">delete_if_permitted</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#Query.delete_if_permitted"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.Query.delete_if_permitted" title="Permalink to this definition">¶</a></dt>
 <dd><p>If a query has been audited, it isn’t properly deleted.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.Query.dictfetchall">
-<code class="descname">dictfetchall</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List[Dict[str, Any]]<a class="headerlink" href="#crate_anon.crateweb.research.models.Query.dictfetchall" title="Permalink to this definition">¶</a></dt>
+<code class="descname">dictfetchall</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; List[Dict[str, Any]]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#Query.dictfetchall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.Query.dictfetchall" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates all results as a list of OrderedDicts.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.Query.get_executed_cursor">
-<code class="descname">get_executed_cursor</code><span class="sig-paren">(</span><em>sql_append_raw: str = None</em><span class="sig-paren">)</span> &#x2192; django.db.backends.utils.CursorWrapper<a class="headerlink" href="#crate_anon.crateweb.research.models.Query.get_executed_cursor" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_executed_cursor</code><span class="sig-paren">(</span><em>sql_append_raw: str = None</em><span class="sig-paren">)</span> &#x2192; django.db.backends.utils.CursorWrapper<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#Query.get_executed_cursor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.Query.get_executed_cursor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get cursor with a query executed</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.Query.get_sql_args_for_django">
-<code class="descname">get_sql_args_for_django</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Tuple[str, Union[List[Any], NoneType]]<a class="headerlink" href="#crate_anon.crateweb.research.models.Query.get_sql_args_for_django" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_sql_args_for_django</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Tuple[str, Union[List[Any], NoneType]]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#Query.get_sql_args_for_django"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.Query.get_sql_args_for_django" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get sql/args in a format suitable for Django, with %s placeholders,
 or as escaped raw SQL.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.crateweb.research.models.Query.save">
-<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.research.models.Query.save" title="Permalink to this definition">¶</a></dt>
+<code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#Query.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.Query.save" title="Permalink to this definition">¶</a></dt>
 <dd><p>Custom save method.
 Ensures that only one Query has active == True for a given user.
 Also sets the hash.</p>
@@ -233,7 +233,7 @@ Also sets the hash.</p>
 
 <dl class="class">
 <dt id="crate_anon.crateweb.research.models.QueryAudit">
-<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">QueryAudit</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.crateweb.research.models.QueryAudit" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">QueryAudit</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#QueryAudit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.QueryAudit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Audit log for a query.</p>
 <dl class="exception">
 <dt id="crate_anon.crateweb.research.models.QueryAudit.DoesNotExist">
@@ -249,7 +249,7 @@ Also sets the hash.</p>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.models.gen_excel_row_elements">
-<code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">gen_excel_row_elements</code><span class="sig-paren">(</span><em>worksheet: openpyxl.worksheet.worksheet.Worksheet</em>, <em>row: Iterable</em><span class="sig-paren">)</span> &#x2192; Generator[[Any, NoneType], NoneType]<a class="headerlink" href="#crate_anon.crateweb.research.models.gen_excel_row_elements" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.models.</code><code class="descname">gen_excel_row_elements</code><span class="sig-paren">(</span><em>worksheet: openpyxl.worksheet.worksheet.Worksheet</em>, <em>row: Iterable</em><span class="sig-paren">)</span> &#x2192; Generator[[Any, NoneType], NoneType]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/models.html#gen_excel_row_elements"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.models.gen_excel_row_elements" title="Permalink to this definition">¶</a></dt>
 <dd><blockquote>
 <div><p>Reasons for this function:</p>
 <ol class="arabic simple">

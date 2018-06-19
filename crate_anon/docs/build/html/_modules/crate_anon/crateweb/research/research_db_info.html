@@ -1,0 +1,1128 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.crateweb.research.research_db_info &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.crateweb.research.research_db_info</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/crateweb/research/research_db_info.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="k">import</span> <span class="n">OrderedDict</span>
+<span class="c1"># from functools import lru_cache</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.dbfunc</span> <span class="k">import</span> <span class="n">dictfetchall</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.django.django_constants</span> <span class="k">import</span> <span class="n">ConnectionVendors</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.django.function_cache</span> <span class="k">import</span> <span class="n">django_cache_function</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.excel</span> <span class="k">import</span> <span class="n">excel_to_bytes</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.json.serialize</span> <span class="k">import</span> <span class="n">METHOD_NO_ARGS</span><span class="p">,</span> <span class="n">register_for_json</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.logs</span> <span class="k">import</span> <span class="n">BraceStyleAdapter</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.reprfunc</span> <span class="k">import</span> <span class="n">auto_repr</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.sql.sql_grammar</span> <span class="k">import</span> <span class="n">SqlGrammar</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.sqlalchemy.dialect</span> <span class="k">import</span> <span class="n">SqlaDialectName</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.sqlalchemy.schema</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">MSSQL_DEFAULT_SCHEMA</span><span class="p">,</span>
+    <span class="n">POSTGRES_DEFAULT_SCHEMA</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.tsv</span> <span class="k">import</span> <span class="n">dictlist_to_tsv</span>
+<span class="kn">from</span> <span class="nn">django.db</span> <span class="k">import</span> <span class="n">connections</span>
+<span class="kn">from</span> <span class="nn">django.db.backends.base.base</span> <span class="k">import</span> <span class="n">BaseDatabaseWrapper</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="k">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">openpyxl</span> <span class="k">import</span> <span class="n">Workbook</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.common.sql</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">ColumnId</span><span class="p">,</span>
+    <span class="n">is_sql_column_type_textual</span><span class="p">,</span>
+    <span class="n">make_grammar</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_DATE</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_FLOAT</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_INTEGER</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_STRING</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_STRING_FULLTEXT</span><span class="p">,</span>
+    <span class="n">QB_DATATYPE_UNKNOWN</span><span class="p">,</span>
+    <span class="n">SchemaId</span><span class="p">,</span>
+    <span class="n">SqlArgsTupleType</span><span class="p">,</span>
+    <span class="n">SQLTYPES_FLOAT</span><span class="p">,</span>
+    <span class="n">SQLTYPES_WITH_DATE</span><span class="p">,</span>
+    <span class="n">SQLTYPES_TEXT</span><span class="p">,</span>
+    <span class="n">SQLTYPES_INTEGER</span><span class="p">,</span>
+    <span class="n">TableId</span><span class="p">,</span>
+    <span class="n">translate_sql_qmark_to_percent</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.crateweb.config.constants</span> <span class="k">import</span> <span class="n">ResearchDbInfoKeys</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">BraceStyleAdapter</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">))</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Constants</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">RESEARCH_DB_CONNECTION_NAME</span> <span class="o">=</span> <span class="s1">&#39;research&#39;</span>
+
+<span class="n">SUPPORTED_DIALECTS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">MSSQL</span><span class="p">,</span>
+    <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">MYSQL</span><span class="p">,</span>
+    <span class="c1"># SqlaDialectName.POSTGRES,  # no grammar yet</span>
+<span class="p">]</span>
+
+
+<span class="k">class</span> <span class="nc">PatientFieldPythonTypes</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">PID</span> <span class="o">=</span> <span class="nb">int</span>
+    <span class="n">MPID</span> <span class="o">=</span> <span class="nb">int</span>
+    <span class="n">RID</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">MRID</span> <span class="o">=</span> <span class="nb">str</span>
+    <span class="n">TRID</span> <span class="o">=</span> <span class="nb">int</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Information about the research database</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">class</span> <span class="nc">ColumnInfo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># See also querybuilder.js</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table_catalog</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;table_catalog&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table_schema</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;table_schema&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;table_name&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;column_name&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_nullable</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;is_nullable&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_type</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;column_type&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">column_comment</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;column_comment&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indexed</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;indexed&#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indexed_fulltext</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;indexed_fulltext&#39;</span><span class="p">))</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">basetype</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_type</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">querybuilder_type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a string that is defined in querybuilder.js</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">basetype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">basetype</span>
+        <span class="k">if</span> <span class="n">basetype</span> <span class="ow">in</span> <span class="n">SQLTYPES_FLOAT</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">QB_DATATYPE_FLOAT</span>
+        <span class="k">if</span> <span class="n">basetype</span> <span class="ow">in</span> <span class="n">SQLTYPES_WITH_DATE</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">QB_DATATYPE_DATE</span>
+        <span class="k">if</span> <span class="n">basetype</span> <span class="ow">in</span> <span class="n">SQLTYPES_TEXT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">indexed_fulltext</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">QB_DATATYPE_STRING_FULLTEXT</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">QB_DATATYPE_STRING</span>
+        <span class="k">if</span> <span class="n">basetype</span> <span class="ow">in</span> <span class="n">SQLTYPES_INTEGER</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">QB_DATATYPE_INTEGER</span>
+        <span class="k">return</span> <span class="n">QB_DATATYPE_UNKNOWN</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">column_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColumnId</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ColumnId</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_catalog</span><span class="p">,</span>
+                        <span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_schema</span><span class="p">,</span>
+                        <span class="n">table</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
+                        <span class="n">column</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">column_name</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">table_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TableId</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">TableId</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_catalog</span><span class="p">,</span>
+                       <span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_schema</span><span class="p">,</span>
+                       <span class="n">table</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">auto_repr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sort_attrs</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">column_id</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SingleResearchDatabase"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/research_db_info.html#crate_anon.crateweb.research.research_db_info.SingleResearchDatabase">[docs]</a><span class="k">class</span> <span class="nc">SingleResearchDatabase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents, and adds information to, a single entry from the</span>
+<span class="sd">    RESEARCH_DB_INFO list. (It&#39;s a list because it&#39;s ordered.)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">grammar</span><span class="p">:</span> <span class="n">SqlGrammar</span><span class="p">,</span>
+                 <span class="n">rdb_info</span><span class="p">:</span> <span class="s2">&quot;ResearchDatabaseInfo&quot;</span><span class="p">,</span>
+                 <span class="n">connection</span><span class="p">,</span>
+                 <span class="n">vendor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">RESEARCH_DB_INFO</span><span class="p">)</span>
+        <span class="n">infodict</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">RESEARCH_DB_INFO</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_first_db</span> <span class="o">=</span> <span class="n">index</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">grammar</span> <span class="o">=</span> <span class="n">grammar</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rdb_info</span> <span class="o">=</span> <span class="n">rdb_info</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">NAME</span><span class="p">]</span>  <span class="c1"># type: str</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">DESCRIPTION</span><span class="p">]</span>  <span class="c1"># type: str  # noqa</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">database</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">DATABASE</span><span class="p">]</span>  <span class="c1"># type: str</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">schema_name</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">SCHEMA</span><span class="p">]</span>  <span class="c1"># type: str</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">trid_field</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">TRID_FIELD</span><span class="p">]</span>  <span class="c1"># type: str  # noqa</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rid_field</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">RID_FIELD</span><span class="p">]</span>  <span class="c1"># type: str  # noqa</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rid_family</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">RID_FAMILY</span><span class="p">]</span>  <span class="c1"># type: int  # noqa</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mrid_table</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">MRID_TABLE</span><span class="p">]</span>  <span class="c1"># type: str  # noqa</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mrid_field</span> <span class="o">=</span> <span class="n">infodict</span><span class="p">[</span><span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">MRID_FIELD</span><span class="p">]</span>  <span class="c1"># type: str  # noqa</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Key </span><span class="si">{}</span><span class="s2"> is missing from settings.RESEARCH_DB_INFO &quot;</span>
+                           <span class="s2">&quot;for this dict: </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">infodict</span><span class="p">))</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>  <span class="c1"># no blanks</span>
+        <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^\w+$&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s2">&quot;Database name </span><span class="si">{!r}</span><span class="s2"> should contain only alphanumeric/underscore &quot;</span> 
+            <span class="s2">&quot;characters&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span>  <span class="c1"># no blanks  # noqa</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>  <span class="c1"># may be blank</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_name</span>  <span class="c1"># no blanks  # noqa</span>
+
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trid_field</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>  <span class="c1"># may be blank</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rid_field</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rid_field</span>  <span class="c1"># no blanks</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rid_family</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>  <span class="c1"># may be blank</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">rid_family</span> <span class="o">&gt;</span> <span class="mi">0</span>  <span class="c1"># positive integers only</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mrid_table</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>  <span class="c1"># may be blank</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mrid_field</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>  <span class="c1"># may be blank</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pid_pseudo_field</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">PID_PSEUDO_FIELD</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpid_pseudo_field</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">MPID_PSEUDO_FIELD</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pid_pseudo_field</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>  <span class="c1"># may be blank unless it&#39;s a lookup DB  # noqa</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpid_pseudo_field</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>  <span class="c1"># may be blank unless it&#39;s a lookup DB  # noqa</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">pid_description</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">PID_DESCRIPTION</span><span class="p">,</span>
+            <span class="s1">&#39;Patient ID (PID) for database &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span>
+        <span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpid_description</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">MPID_DESCRIPTION</span><span class="p">,</span>
+            <span class="s1">&#39;Master patient ID (MPID)&#39;</span>
+        <span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rid_description</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">RID_DESCRIPTION</span><span class="p">,</span>
+            <span class="s1">&#39;Research ID (RID) for database &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span>
+        <span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mrid_description</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">MRID_DESCRIPTION</span><span class="p">,</span>
+            <span class="s1">&#39;Master research ID (MRID)&#39;</span>
+        <span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trid_description</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">TRID_DESCRIPTION</span><span class="p">,</span>
+            <span class="s1">&#39;Transient research ID (TRID) for database &#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span>
+        <span class="p">)</span>  <span class="c1"># type: str</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pid_description</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpid_description</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rid_description</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mrid_description</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trid_description</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">secret_lookup_db</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">SECRET_LOOKUP_DB</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">secret_lookup_db</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">secret_lookup_db</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">secret_lookup_db</span> <span class="ow">in</span> <span class="n">settings</span><span class="o">.</span><span class="n">DATABASES</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Research database named </span><span class="si">{!r}</span><span class="s2"> in settings.RESEARCH_DB_INFO &quot;</span>
+                <span class="s2">&quot;has an invalid secret_lookup_db: </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">secret_lookup_db</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^\w+$&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pid_pseudo_field</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s2">&quot;The research database named </span><span class="si">{!r}</span><span class="s2"> should have a &quot;</span>
+                <span class="s2">&quot;pid_pseudo_field containing only alphanumeric/underscore &quot;</span>
+                <span class="s2">&quot;characters (it&#39;s </span><span class="si">{!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">pid_pseudo_field</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;^\w+$&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpid_pseudo_field</span><span class="p">),</span> <span class="p">(</span>
+                <span class="s2">&quot;The research database named </span><span class="si">{!r}</span><span class="s2"> should have a &quot;</span>
+                <span class="s2">&quot;mpid_pseudo_field containing only alphanumeric/underscore &quot;</span>
+                <span class="s2">&quot;characters (it&#39;s </span><span class="si">{!r}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">mpid_pseudo_field</span><span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">date_fields_by_table</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">DATE_FIELDS_BY_TABLE</span><span class="p">,</span> <span class="p">{}</span>
+        <span class="p">)</span>  <span class="c1"># type: Dict[str, str]</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date_fields_by_table</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_fields_by_table</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Bad key </span><span class="si">{!r}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2"> for database named </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">k</span><span class="p">,</span> <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">DATE_FIELDS_BY_TABLE</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Bad value </span><span class="si">{!r}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2"> for database named </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">v</span><span class="p">,</span> <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">DATE_FIELDS_BY_TABLE</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_date_fields</span> <span class="o">=</span> <span class="n">infodict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">DEFAULT_DATE_FIELDS</span><span class="p">,</span> <span class="p">[]</span>
+        <span class="p">)</span>  <span class="c1"># type: List[str]</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_date_fields</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_date_fields</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span><span class="p">,</span> <span class="p">(</span>
+                <span class="s2">&quot;Bad item </span><span class="si">{!r}</span><span class="s2"> for </span><span class="si">{}</span><span class="s2"> for database named </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">v</span><span class="p">,</span> <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">DEFAULT_DATE_FIELDS</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema_id</span> <span class="o">=</span> <span class="n">SchemaId</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">database</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_name</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_id</span>
+
+        <span class="c1"># Now discover the schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema_infodictlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_schema_infodictlist</span><span class="p">(</span>
+            <span class="n">connection</span><span class="p">,</span> <span class="n">vendor</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">colinfolist</span> <span class="o">=</span> <span class="p">[</span><span class="n">ColumnInfo</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_infodictlist</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">schema_identifier</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_id</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grammar</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">eligible_for_query_builder</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_first_db</span><span class="p">:</span>
+            <span class="c1"># First one: always eligible</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">first_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rdb_info</span><span class="o">.</span><span class="n">first_dbinfo</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">first_db</span><span class="o">.</span><span class="n">talks_to_world</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">talks_to_world</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">can_communicate_directly</span><span class="p">(</span><span class="n">first_db</span><span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">talks_to_world</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_mrid</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_mrid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mrid_table</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mrid_field</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">can_communicate_directly</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">other</span><span class="p">:</span> <span class="s2">&quot;SingleResearchDatabase&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_id</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">schema_id</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rid_family</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">rid_family</span>
+
+<div class="viewcode-block" id="SingleResearchDatabase.get_default_date_field"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/research_db_info.html#crate_anon.crateweb.research.research_db_info.SingleResearchDatabase.get_default_date_field">[docs]</a>    <span class="k">def</span> <span class="nf">get_default_date_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_id</span><span class="p">:</span> <span class="n">TableId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ColumnId</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the default date column for the specified table, or None</span>
+<span class="sd">        if none exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">table_id</span><span class="o">.</span><span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_fields_by_table</span><span class="p">:</span>
+            <span class="c1"># We&#39;ve been told about a specific date column for this table.</span>
+            <span class="n">column_id</span> <span class="o">=</span> <span class="n">ColumnId</span><span class="p">(</span>
+                <span class="n">db</span><span class="o">=</span><span class="n">table_id</span><span class="o">.</span><span class="n">db</span><span class="p">,</span>
+                <span class="n">schema</span><span class="o">=</span><span class="n">table_id</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">table_id</span><span class="o">.</span><span class="n">table</span><span class="p">,</span>
+                <span class="n">column</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">date_fields_by_table</span><span class="p">[</span><span class="n">table_id</span><span class="o">.</span><span class="n">table</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="c1"># Now, does it actually exist?</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_present</span><span class="p">(</span><span class="n">column_id</span><span class="p">):</span>
+                <span class="c1"># Yes.</span>
+                <span class="k">return</span> <span class="n">column_id</span>
+            <span class="c1"># No.</span>
+        <span class="k">for</span> <span class="n">datecolname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_date_fields</span><span class="p">:</span>
+            <span class="n">column_id</span> <span class="o">=</span> <span class="n">ColumnId</span><span class="p">(</span>
+                <span class="n">db</span><span class="o">=</span><span class="n">table_id</span><span class="o">.</span><span class="n">db</span><span class="p">,</span>
+                <span class="n">schema</span><span class="o">=</span><span class="n">table_id</span><span class="o">.</span><span class="n">schema</span><span class="p">,</span>
+                <span class="n">table</span><span class="o">=</span><span class="n">table_id</span><span class="o">.</span><span class="n">table</span><span class="p">,</span>
+                <span class="n">column</span><span class="o">=</span><span class="n">datecolname</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">column_present</span><span class="p">(</span><span class="n">column_id</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">column_id</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    <span class="k">def</span> <span class="nf">column_present</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column_id</span><span class="p">:</span> <span class="n">ColumnId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ci</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">colinfolist</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ci</span><span class="o">.</span><span class="n">column_id</span> <span class="o">==</span> <span class="n">column_id</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Fetching schema info from the database</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_schema_query_microsoft</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span>
+            <span class="n">db_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">schema_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">SqlArgsTupleType</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">schema_names</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No schema_names specified (for SQL Server &quot;</span>
+                             <span class="s2">&quot;database)&quot;</span><span class="p">)</span>
+        <span class="c1"># SQL Server INFORMATION_SCHEMA.COLUMNS:</span>
+        <span class="c1"># - https://msdn.microsoft.com/en-us/library/ms188348.aspx</span>
+        <span class="c1"># Re fulltext indexes:</span>
+        <span class="c1"># - http://stackoverflow.com/questions/16280918/how-to-find-full-text-indexing-on-database-in-sql-server-2008  # noqa</span>
+        <span class="c1"># - sys.fulltext_indexes: https://msdn.microsoft.com/en-us/library/ms186903.aspx  # noqa</span>
+        <span class="c1"># - sys.fulltext_catalogs: https://msdn.microsoft.com/en-us/library/ms188779.aspx  # noqa</span>
+        <span class="c1"># - sys.fulltext_index_columns: https://msdn.microsoft.com/en-us/library/ms188335.aspx  # noqa</span>
+        <span class="n">schema_placeholder</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;?&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">schema_names</span><span class="p">))</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">translate_sql_qmark_to_percent</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">SELECT</span>
+<span class="s2">    ? AS table_catalog,</span>
+<span class="s2">    d.table_schema,</span>
+<span class="s2">    d.table_name,</span>
+<span class="s2">    d.column_name,</span>
+<span class="s2">    d.is_nullable,</span>
+<span class="s2">    d.column_type,</span>
+<span class="s2">    d.column_comment,</span>
+<span class="s2">    CASE WHEN COUNT(d.index_id) &gt; 0 THEN 1 ELSE 0 END AS indexed,</span>
+<span class="s2">    CASE WHEN COUNT(d.fulltext_index_object_id) &gt; 0 THEN 1 ELSE 0 END AS indexed_fulltext</span>
+<span class="s2">FROM (</span>
+<span class="s2">    SELECT</span>
+<span class="s2">        s.name AS table_schema,</span>
+<span class="s2">        ta.name AS table_name,</span>
+<span class="s2">        c.name AS column_name,</span>
+<span class="s2">        c.is_nullable,</span>
+<span class="s2">        UPPER(ty.name) + &#39;(&#39; + CONVERT(VARCHAR(100), c.max_length) + &#39;)&#39; AS column_type,</span>
+<span class="s2">        CONVERT(VARCHAR(1000), x.value) AS column_comment, -- x.value is of type SQL_VARIANT</span>
+<span class="s2">        i.index_id,</span>
+<span class="s2">        fi.object_id AS fulltext_index_object_id</span>
+<span class="s2">    FROM [</span><span class="si">{db_name}</span><span class="s2">].sys.tables ta</span>
+<span class="s2">    INNER JOIN [</span><span class="si">{db_name}</span><span class="s2">].sys.schemas s ON ta.schema_id = s.schema_id</span>
+<span class="s2">    INNER JOIN [</span><span class="si">{db_name}</span><span class="s2">].sys.columns c ON c.object_id = ta.object_id</span>
+<span class="s2">    INNER JOIN [</span><span class="si">{db_name}</span><span class="s2">].sys.types ty ON ty.system_type_id = c.system_type_id</span>
+<span class="s2">    LEFT JOIN [</span><span class="si">{db_name}</span><span class="s2">].sys.extended_properties x ON (</span>
+<span class="s2">        x.major_id = c.object_id</span>
+<span class="s2">        AND x.minor_id = c.column_id</span>
+<span class="s2">    )</span>
+<span class="s2">    LEFT JOIN [</span><span class="si">{db_name}</span><span class="s2">].sys.index_columns i ON (</span>
+<span class="s2">        i.object_id = c.object_id</span>
+<span class="s2">        AND i.column_id = c.column_id</span>
+<span class="s2">    )</span>
+<span class="s2">    LEFT JOIN [</span><span class="si">{db_name}</span><span class="s2">].sys.fulltext_index_columns fi ON (</span>
+<span class="s2">        fi.object_id = c.object_id</span>
+<span class="s2">        AND fi.column_id = c.column_id</span>
+<span class="s2">    )</span>
+<span class="s2">    WHERE s.name IN (</span><span class="si">{schema_placeholder}</span><span class="s2">)</span>
+<span class="s2">    AND ty.user_type_id = ty.system_type_id  -- restricts to system data types; eliminates &#39;sysname&#39; type</span>
+<span class="s2">) AS d</span>
+<span class="s2">GROUP BY</span>
+<span class="s2">    table_schema,</span>
+<span class="s2">    table_name,</span>
+<span class="s2">    column_name,</span>
+<span class="s2">    is_nullable,</span>
+<span class="s2">    column_type,</span>
+<span class="s2">    column_comment</span>
+<span class="s2">ORDER BY</span>
+<span class="s2">    table_schema,</span>
+<span class="s2">    table_name,</span>
+<span class="s2">    column_name</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">db_name</span><span class="o">=</span><span class="n">db_name</span><span class="p">,</span>  <span class="c1"># noqa</span>
+                   <span class="n">schema_placeholder</span><span class="o">=</span><span class="n">schema_placeholder</span><span class="p">))</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">db_name</span><span class="p">]</span> <span class="o">+</span> <span class="n">schema_names</span>
+        <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_schema_query_mysql</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">db_and_schema_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SqlArgsTupleType</span><span class="p">:</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># Method A. Stupidly slow, e.g. 47s for the query.</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># It&#39;s the EXISTS stuff that&#39;s slow.</span>
+        <span class="c1">#</span>
+        <span class="c1"># sql = translate_sql_qmark_to_percent(&quot;&quot;&quot;</span>
+        <span class="c1">#     SELECT</span>
+        <span class="c1">#         c.table_schema,</span>
+        <span class="c1">#         c.table_name,</span>
+        <span class="c1">#         c.column_name,</span>
+        <span class="c1">#         c.is_nullable,</span>
+        <span class="c1">#         c.column_type,  /* MySQL: e.g. varchar(32) */</span>
+        <span class="c1">#         c.column_comment,  /* MySQL */</span>
+        <span class="c1">#         EXISTS (</span>
+        <span class="c1">#             SELECT *</span>
+        <span class="c1">#             FROM information_schema.statistics s</span>
+        <span class="c1">#             WHERE s.table_schema = c.table_schema</span>
+        <span class="c1">#             AND s.table_name = c.table_name</span>
+        <span class="c1">#             AND s.column_name = c.column_name</span>
+        <span class="c1">#         ) AS indexed,</span>
+        <span class="c1">#         EXISTS (</span>
+        <span class="c1">#             SELECT *</span>
+        <span class="c1">#             FROM information_schema.statistics s</span>
+        <span class="c1">#             WHERE s.table_schema = c.table_schema</span>
+        <span class="c1">#             AND s.table_name = c.table_name</span>
+        <span class="c1">#             AND s.column_name = c.column_name</span>
+        <span class="c1">#             AND s.index_type LIKE &#39;FULLTEXT%&#39;</span>
+        <span class="c1">#         ) AS indexed_fulltext</span>
+        <span class="c1">#     FROM</span>
+        <span class="c1">#         information_schema.columns c</span>
+        <span class="c1">#     WHERE</span>
+        <span class="c1">#         c.table_schema IN ({schema_placeholder})</span>
+        <span class="c1">#     ORDER BY</span>
+        <span class="c1">#         c.table_schema,</span>
+        <span class="c1">#         c.table_name,</span>
+        <span class="c1">#         c.column_name</span>
+        <span class="c1"># &quot;&quot;&quot;.format(</span>
+        <span class="c1">#     schema_placeholder=&quot;,&quot;.join([&quot;?&quot;] * len(schemas)),</span>
+        <span class="c1"># ))</span>
+        <span class="c1"># args = schemas</span>
+        <span class="c1">#</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># Method B. Much faster, e.g. 0.35s for the same thing.</span>
+        <span class="c1"># ---------------------------------------------------------------------</span>
+        <span class="c1"># http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins  # noqa</span>
+        <span class="c1"># (Note that EXISTS() above returns 0 or 1.)</span>
+        <span class="c1"># The LEFT JOIN below will produce NULL values for the index</span>
+        <span class="c1"># columns for non-indexed fields.</span>
+        <span class="c1"># However, you can have more than one index on a column, in which</span>
+        <span class="c1"># case the column appears in two rows.</span>
+        <span class="c1">#</span>
+        <span class="c1"># MySQL&#39;s INFORMATION_SCHEMA.COLUMNS:</span>
+        <span class="c1"># - https://dev.mysql.com/doc/refman/5.7/en/tables-table.html</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">translate_sql_qmark_to_percent</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">SELECT</span>
+<span class="s2">    &#39;&#39; AS table_catalog,</span>
+<span class="s2">    d.table_schema,</span>
+<span class="s2">    d.table_name,</span>
+<span class="s2">    d.column_name,</span>
+<span class="s2">    d.is_nullable,</span>
+<span class="s2">    d.column_type,</span>
+<span class="s2">    d.column_comment,</span>
+<span class="s2">    d.indexed,</span>
+<span class="s2">    MAX(d.indexed_fulltext) AS indexed_fulltext</span>
+<span class="s2">FROM (</span>
+<span class="s2">    SELECT</span>
+<span class="s2">        -- c.table_catalog,  -- will always be &#39;def&#39;</span>
+<span class="s2">        c.table_schema,</span>
+<span class="s2">        c.table_name,</span>
+<span class="s2">        c.column_name,</span>
+<span class="s2">        c.is_nullable,</span>
+<span class="s2">        c.column_type,  /* MySQL: e.g. varchar(32) */</span>
+<span class="s2">        c.column_comment,  /* MySQL */</span>
+<span class="s2">        /* s.index_name, */</span>
+<span class="s2">        /* s.index_type, */</span>
+<span class="s2">        IF(s.index_type IS NOT NULL, 1, 0) AS indexed,</span>
+<span class="s2">        IF(s.index_type LIKE &#39;FULLTEXT%&#39;, 1, 0) AS indexed_fulltext</span>
+<span class="s2">    FROM</span>
+<span class="s2">        information_schema.columns c</span>
+<span class="s2">        LEFT JOIN information_schema.statistics s</span>
+<span class="s2">        ON (</span>
+<span class="s2">            c.table_schema = s.table_schema</span>
+<span class="s2">            AND c.table_name = s.table_name</span>
+<span class="s2">            AND c.column_name = s.column_name</span>
+<span class="s2">        )</span>
+<span class="s2">    WHERE</span>
+<span class="s2">        c.table_schema = ?</span>
+<span class="s2">) AS d  /* &quot;Every derived table must have its own alias&quot; */</span>
+<span class="s2">GROUP BY</span>
+<span class="s2">    table_catalog,</span>
+<span class="s2">    table_schema,</span>
+<span class="s2">    table_name,</span>
+<span class="s2">    column_name,</span>
+<span class="s2">    is_nullable,</span>
+<span class="s2">    column_type,</span>
+<span class="s2">    column_comment,</span>
+<span class="s2">    indexed</span>
+<span class="s2">ORDER BY</span>
+<span class="s2">    table_catalog,</span>
+<span class="s2">    table_schema,</span>
+<span class="s2">    table_name,</span>
+<span class="s2">    column_name</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">db_and_schema_name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_schema_query_postgres</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+                               <span class="n">schema_names</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">SqlArgsTupleType</span><span class="p">:</span>
+        <span class="c1"># A PostgreSQL connection is always to a single database.</span>
+        <span class="c1"># http://stackoverflow.com/questions/10335561/use-database-name-command-in-postgresql  # noqa</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">schema_names</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No schema_names specified (for PostgreSQL &quot;</span>
+                             <span class="s2">&quot;database)&quot;</span><span class="p">)</span>
+        <span class="c1"># http://dba.stackexchange.com/questions/75015</span>
+        <span class="c1"># http://stackoverflow.com/questions/14713774</span>
+        <span class="c1"># Note that creating a GIN index looks like:</span>
+        <span class="c1">#       ALTER TABLE t ADD COLUMN tsv_mytext TSVECTOR;</span>
+        <span class="c1">#       UPDATE t SET tsv_mytext = to_tsvector(mytext);</span>
+        <span class="c1">#       CREATE INDEX idx_t_mytext_gin ON t USING GIN(tsv_mytext);</span>
+        <span class="n">schema_placeholder</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;?&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">schema_names</span><span class="p">))</span>
+        <span class="c1"># PostgreSQL INFORMATION_SCHEMA.COLUMNS:</span>
+        <span class="c1"># - https://www.postgresql.org/docs/9.1/static/infoschema-columns.html</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">translate_sql_qmark_to_percent</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">SELECT</span>
+<span class="s2">    &#39;&#39; AS table_catalog,</span>
+<span class="s2">    d.table_schema,</span>
+<span class="s2">    d.table_name,</span>
+<span class="s2">    d.column_name,</span>
+<span class="s2">    d.is_nullable,</span>
+<span class="s2">    d.column_type,</span>
+<span class="s2">    d.column_comment,</span>
+<span class="s2">    CASE WHEN COUNT(d.indrelid) &gt; 0 THEN 1 ELSE 0 END AS indexed,</span>
+<span class="s2">    MAX(d.indexed_fulltext) AS indexed_fulltext</span>
+<span class="s2">FROM (</span>
+<span class="s2">    SELECT</span>
+<span class="s2">        -- c.table_catalog,  -- will always be the connection&#39;s database name</span>
+<span class="s2">        c.table_schema,</span>
+<span class="s2">        c.table_name,</span>
+<span class="s2">        c.column_name,</span>
+<span class="s2">        a.attnum as column_seq_num,</span>
+<span class="s2">        c.is_nullable,</span>
+<span class="s2">        pg_catalog.format_type(a.atttypid, a.atttypmod) as column_type,</span>
+<span class="s2">        pgd.description AS column_comment,</span>
+<span class="s2">        i.indrelid,</span>
+<span class="s2">        CASE</span>
+<span class="s2">            WHEN pg_get_indexdef(indexrelid) ~ &#39;USING (gin |gist )&#39; THEN 1</span>
+<span class="s2">            ELSE 0</span>
+<span class="s2">        END AS indexed_fulltext</span>
+<span class="s2">    FROM pg_catalog.pg_statio_all_tables AS t</span>
+<span class="s2">    INNER JOIN information_schema.columns c ON (</span>
+<span class="s2">        c.table_schema = t.schemaname</span>
+<span class="s2">        AND c.table_name = t.relname</span>
+<span class="s2">    )</span>
+<span class="s2">    INNER JOIN pg_catalog.pg_attribute a ON (  -- one row per column</span>
+<span class="s2">        a.attrelid = t.relid</span>
+<span class="s2">        AND a.attname = c.column_name</span>
+<span class="s2">    )</span>
+<span class="s2">    LEFT JOIN pg_catalog.pg_index AS i ON (</span>
+<span class="s2">        i.indrelid = t.relid  -- match on table</span>
+<span class="s2">        AND i.indkey[0] = a.attnum  -- match on column sequence number</span>
+<span class="s2">        AND i.indnatts = 1  -- one column in the index</span>
+<span class="s2">    )</span>
+<span class="s2">    LEFT JOIN pg_catalog.pg_description pgd ON (</span>
+<span class="s2">        pgd.objoid = t.relid</span>
+<span class="s2">        AND pgd.objsubid = c.ordinal_position</span>
+<span class="s2">    )</span>
+<span class="s2">    WHERE t.schemaname IN (</span><span class="si">{schema_placeholder}</span><span class="s2">)</span>
+<span class="s2">) AS d</span>
+<span class="s2">GROUP BY</span>
+<span class="s2">    table_catalog,</span>
+<span class="s2">    table_schema,</span>
+<span class="s2">    table_name,</span>
+<span class="s2">    column_name,</span>
+<span class="s2">    is_nullable,</span>
+<span class="s2">    column_type,</span>
+<span class="s2">    column_comment</span>
+<span class="s2">ORDER BY</span>
+<span class="s2">    table_catalog,</span>
+<span class="s2">    table_schema,</span>
+<span class="s2">    table_name,</span>
+<span class="s2">    column_name</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">schema_placeholder</span><span class="o">=</span><span class="n">schema_placeholder</span><span class="p">))</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">schema_names</span>
+        <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">args</span>
+
+    <span class="k">def</span> <span class="nf">get_schema_infodictlist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">connection</span><span class="p">:</span> <span class="n">BaseDatabaseWrapper</span><span class="p">,</span>
+                                <span class="n">vendor</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">db_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">database</span>
+        <span class="n">schema_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_name</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Fetching/caching database structure (for database </span><span class="si">{!r}</span><span class="s2">, &quot;</span>
+                  <span class="s2">&quot;schema </span><span class="si">{!r}</span><span class="s2">)...&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">db_name</span><span class="p">,</span> <span class="n">schema_name</span><span class="p">))</span>
+        <span class="c1"># The db/schema names are guaranteed to be strings by __init__().</span>
+        <span class="k">if</span> <span class="n">vendor</span> <span class="o">==</span> <span class="n">ConnectionVendors</span><span class="o">.</span><span class="n">MICROSOFT</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">db_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No db_name specified; required for MSSQL&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">schema_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No schema_name specified; required for MSSQL&quot;</span><span class="p">)</span>  <span class="c1"># noqa</span>
+            <span class="n">sql</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema_query_microsoft</span><span class="p">(</span><span class="n">db_name</span><span class="p">,</span> <span class="p">[</span><span class="n">schema_name</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">vendor</span> <span class="o">==</span> <span class="n">ConnectionVendors</span><span class="o">.</span><span class="n">POSTGRESQL</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;db_name specified; must be &#39;&#39; for PostgreSQL&quot;</span><span class="p">)</span>  <span class="c1"># noqa</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">schema_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No schema_name specified; required for PostgreSQL&quot;</span><span class="p">)</span>  <span class="c1"># noqa</span>
+            <span class="n">sql</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema_query_postgres</span><span class="p">([</span><span class="n">schema_name</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">vendor</span> <span class="o">==</span> <span class="n">ConnectionVendors</span><span class="o">.</span><span class="n">MYSQL</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;db_name specified; must be &#39;&#39; for MySQL&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">schema_name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No schema_name specified; required for MySQL&quot;</span><span class="p">)</span>  <span class="c1"># noqa</span>
+            <span class="n">sql</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema_query_mysql</span><span class="p">(</span><span class="n">db_and_schema_name</span><span class="o">=</span><span class="n">schema_name</span><span class="p">)</span>  <span class="c1"># noqa</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Don&#39;t know how to get metadata for &quot;</span>
+                <span class="s2">&quot;connection.vendor==&#39;</span><span class="si">{}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">vendor</span><span class="p">))</span>
+        <span class="c1"># We execute this one directly, rather than using the Query class,</span>
+        <span class="c1"># since this is a system rather than a per-user query.</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;sql = </span><span class="si">{}</span><span class="s2">, args = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="nb">repr</span><span class="p">(</span><span class="n">args</span><span class="p">)))</span>
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">dictfetchall</span><span class="p">(</span><span class="n">cursor</span><span class="p">)</span>  <span class="c1"># list of OrderedDicts</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;results = </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">results</span><span class="p">)))</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;... done&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;SingleResearchDatabase.get_schema_infodictlist(): no results &quot;</span>
+                <span class="s2">&quot;for database/schema </span><span class="si">{!r}</span><span class="s2"> database - misconfigured?&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">schema_identifier</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">results</span></div>
+        <span class="c1"># Re passing multiple values to SQL via args:</span>
+        <span class="c1"># - Don&#39;t circumvent the parameter protection against SQL injection.</span>
+        <span class="c1"># - Too much hassle to use Django&#39;s ORM model here, though that would</span>
+        <span class="c1">#   also be possible.</span>
+        <span class="c1"># - http://stackoverflow.com/questions/907806</span>
+        <span class="c1"># - Similarly via SQLAlchemy reflection/inspection.</span>
+
+
+<div class="viewcode-block" id="ResearchDatabaseInfo"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/research_db_info.html#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo">[docs]</a><span class="nd">@register_for_json</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">METHOD_NO_ARGS</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ResearchDatabaseInfo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Fetches schema information from the research database.</span>
+<span class="sd">    Class primarily exists to be able to use @cached_property.</span>
+<span class="sd">    ... replaced by @lru_cache</span>
+<span class="sd">    ... replaced by @django_cache_function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># We fetch the dialect at first request; this enables us to import the</span>
+    <span class="c1"># class without Django configured.</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">RESEARCH_DB_DIALECT</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span> <span class="ow">in</span> <span class="n">SUPPORTED_DIALECTS</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Unsupported dialect: </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dialect</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">grammar</span> <span class="o">=</span> <span class="n">make_grammar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dialect</span><span class="p">)</span>  <span class="c1"># not expensive</span>
+
+        <span class="n">connection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_connection</span><span class="p">()</span>
+        <span class="n">vendor</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">vendor</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[SingleResearchDatabase]</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">RESEARCH_DB_INFO</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SingleResearchDatabase</span><span class="p">(</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
+                <span class="n">grammar</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">grammar</span><span class="p">,</span>
+                <span class="n">rdb_info</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span>
+                <span class="n">connection</span><span class="o">=</span><span class="n">connection</span><span class="p">,</span>
+                <span class="n">vendor</span><span class="o">=</span><span class="n">vendor</span>
+            <span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;No research databases configured in RESEARCH_DB_INFO&quot;</span>
+        <span class="p">)</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">)),</span> <span class="p">(</span>
+            <span class="s2">&quot;Duplicate database names in </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dbinfo_for_contact_lookup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dbinfo_by_name</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">RESEARCH_DB_FOR_CONTACT_LOOKUP</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;In your settings, RESEARCH_DB_FOR_CONTACT_LOOKUP specifies &quot;</span>
+                <span class="s2">&quot;</span><span class="si">{!r}</span><span class="s2"> but there is no database with that name in &quot;</span>
+                <span class="s2">&quot;RESEARCH_DB_INFO&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">settings</span><span class="o">.</span><span class="n">RESEARCH_DB_FOR_CONTACT_LOOKUP</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfo_for_contact_lookup</span><span class="o">.</span><span class="n">secret_lookup_db</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Research database </span><span class="si">{!r}</span><span class="s2"> is set as your &quot;</span>
+            <span class="s2">&quot;RESEARCH_DB_FOR_CONTACT_LOOKUP but has no </span><span class="si">{!r}</span><span class="s2"> attribute&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">dbinfo_for_contact_lookup</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">ResearchDbInfoKeys</span><span class="o">.</span><span class="n">SECRET_LOOKUP_DB</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Classmethods, staticmethods</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">_connection</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseDatabaseWrapper</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">connections</span><span class="p">[</span><span class="n">RESEARCH_DB_CONNECTION_NAME</span><span class="p">]</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">uses_database_level</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_offers_db_above_schema</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_connection</span><span class="p">())</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">format_db_schema</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">uses_database_level</span><span class="p">():</span>
+            <span class="k">return</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">schema</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">schema</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_offers_db_above_schema</span><span class="p">(</span><span class="n">connection</span><span class="p">:</span> <span class="n">BaseDatabaseWrapper</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">connection</span><span class="o">.</span><span class="n">vendor</span> <span class="ow">in</span> <span class="p">[</span><span class="n">ConnectionVendors</span><span class="o">.</span><span class="n">MICROSOFT</span><span class="p">]</span>
+        <span class="c1"># not MySQL (&quot;database&quot; concept = &quot;schema&quot; concept)</span>
+        <span class="c1"># not PostgreSQL (only one database per connection)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Whole-database/schema information</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">single_research_db</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">single_research_db_with_secret_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dbs_with_secret_map</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">dbs_with_secret_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SingleResearchDatabase</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">db</span> <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span> <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">secret_lookup_db</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_get_dbinfo_by_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SingleResearchDatabase</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_dbinfo_by_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SingleResearchDatabase</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No research database named </span><span class="si">{!r}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">get_dbinfo_by_schema_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">schema_id</span><span class="p">:</span> <span class="n">SchemaId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SingleResearchDatabase</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">schema_id</span> <span class="o">==</span> <span class="n">schema_id</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">first_dbinfo</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SingleResearchDatabase</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dbinfo_by_index</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">first_dbinfo_with_secret_map</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SingleResearchDatabase</span><span class="p">]:</span>
+        <span class="n">dbs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbs_with_secret_map</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dbs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">dbs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">researchdb_schemas</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">SchemaId</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">schema_id</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">get_default_database_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">dialect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span>
+        <span class="k">if</span> <span class="n">dialect</span> <span class="o">==</span> <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">MSSQL</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">settings</span><span class="o">.</span><span class="n">DATABASES</span><span class="p">[</span><span class="n">RESEARCH_DB_CONNECTION_NAME</span><span class="p">][</span><span class="s1">&#39;NAME&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">dialect</span> <span class="o">==</span> <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">POSTGRES</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">elif</span> <span class="n">dialect</span> <span class="o">==</span> <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">MYSQL</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bad settings.RESEARCH_DB_DIALECT&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_default_schema_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">dialect</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dialect</span>
+        <span class="k">if</span> <span class="n">dialect</span> <span class="o">==</span> <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">MSSQL</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">MSSQL_DEFAULT_SCHEMA</span>
+        <span class="k">elif</span> <span class="n">dialect</span> <span class="o">==</span> <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">POSTGRES</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">POSTGRES_DEFAULT_SCHEMA</span>
+        <span class="k">elif</span> <span class="n">dialect</span> <span class="o">==</span> <span class="n">SqlaDialectName</span><span class="o">.</span><span class="n">MYSQL</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">settings</span><span class="o">.</span><span class="n">DATABASES</span><span class="p">[</span><span class="n">RESEARCH_DB_CONNECTION_NAME</span><span class="p">][</span><span class="s1">&#39;NAME&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Bad settings.RESEARCH_DB_DIALECT&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_db_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="n">SchemaId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SingleResearchDatabase</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span> <span class="k">if</span> <span class="n">d</span><span class="o">.</span><span class="n">schema_id</span> <span class="o">==</span> <span class="n">schema</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No such database/schema: {!}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">schema</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grammar</span><span class="p">)</span>
+            <span class="p">))</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Database-wide fields and descriptions</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="k">def</span> <span class="nf">get_rid_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">TableId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColumnId</span><span class="p">:</span>
+        <span class="c1"># RID column in the specified table (which may or may not exist)</span>
+        <span class="n">dbinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_info</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">column_id</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">rid_field</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_trid_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">TableId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColumnId</span><span class="p">:</span>
+        <span class="c1"># TRID column in the specified table (which may or may not exist)</span>
+        <span class="n">dbinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_info</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">column_id</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">trid_field</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_mrid_column_from_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="n">SchemaId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColumnId</span><span class="p">:</span>
+        <span class="c1"># MRID column in the MRID master table</span>
+        <span class="n">dbinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_info</span><span class="p">(</span><span class="n">schema</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">schema</span><span class="o">.</span><span class="n">column_id</span><span class="p">(</span><span class="n">table</span><span class="o">=</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">mrid_table</span><span class="p">,</span>
+                                <span class="n">column</span><span class="o">=</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">mrid_field</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_mrid_column_from_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">TableId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColumnId</span><span class="p">:</span>
+        <span class="c1"># MRID column in the MRID master table</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mrid_column_from_schema</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema_id</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ResearchDatabaseInfo.get_linked_mrid_column"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/research_db_info.html#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.get_linked_mrid_column">[docs]</a>    <span class="k">def</span> <span class="nf">get_linked_mrid_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">TableId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ColumnId</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns either the MRID column in the schema containing the table</span>
+<span class="sd">        specified, or one that can be linked to it automatically.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mrid_in_same_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mrid_column_from_table</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mrid_in_same_db</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">mrid_in_same_db</span>
+        <span class="c1"># OK. So our table isn&#39;t from a database with an MRID table, but it</span>
+        <span class="c1"># might be linked to one.</span>
+        <span class="n">table_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_info</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema_id</span><span class="p">)</span>
+        <span class="n">first_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_dbinfo</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">first_db</span><span class="o">.</span><span class="n">talks_to_world</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">table_db</span><span class="o">.</span><span class="n">talks_to_world</span> <span class="ow">or</span>
+                <span class="n">table_db</span><span class="o">.</span><span class="n">can_communicate_directly</span><span class="p">(</span><span class="n">first_db</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_mrid_column_from_schema</span><span class="p">(</span><span class="n">first_db</span><span class="o">.</span><span class="n">schema_id</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">get_default_date_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">TableId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ColumnId</span><span class="p">]:</span>
+        <span class="n">dbinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_info</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dbinfo</span><span class="o">.</span><span class="n">get_default_date_field</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Table/column information</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=None)</span>
+    <span class="k">def</span> <span class="nf">get_schema_infodictlist</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[Dict[str, Any]]</span>
+        <span class="k">for</span> <span class="n">dbinfo</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">:</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dbinfo</span><span class="o">.</span><span class="n">schema_infodictlist</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=None)</span>
+    <span class="k">def</span> <span class="nf">get_colinfolist</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ColumnInfo</span><span class="p">]:</span>
+        <span class="n">colinfolist</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># type: List[ColumnInfo]</span>
+        <span class="k">for</span> <span class="n">dbi</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dbinfolist</span><span class="p">:</span>
+            <span class="n">colinfolist</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dbi</span><span class="o">.</span><span class="n">colinfolist</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">colinfolist</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=None)</span>
+    <span class="k">def</span> <span class="nf">get_colinfolist_by_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+        <span class="n">colinfolist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist</span><span class="p">()</span>
+        <span class="n">table_to_colinfolist</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colinfolist</span><span class="p">:</span>
+            <span class="n">table_id</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">table_id</span>
+            <span class="k">if</span> <span class="n">table_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">table_to_colinfolist</span><span class="p">:</span>
+                <span class="n">table_to_colinfolist</span><span class="p">[</span><span class="n">table_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">table_to_colinfolist</span><span class="p">[</span><span class="n">table_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">table_to_colinfolist</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=None)</span>
+    <span class="k">def</span> <span class="nf">get_colinfolist_by_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">SchemaId</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">ColumnInfo</span><span class="p">]]:</span>
+        <span class="n">colinfolist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist</span><span class="p">()</span>
+        <span class="n">schema_to_colinfolist</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># type: Dict[SchemaId, List[ColumnInfo]]</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colinfolist</span><span class="p">:</span>
+            <span class="n">table_id</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">table_id</span>
+            <span class="n">schema</span> <span class="o">=</span> <span class="n">table_id</span><span class="o">.</span><span class="n">schema_id</span>
+            <span class="k">if</span> <span class="n">schema</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">schema_to_colinfolist</span><span class="p">:</span>
+                <span class="n">schema_to_colinfolist</span><span class="p">[</span><span class="n">schema</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">schema_to_colinfolist</span><span class="p">[</span><span class="n">schema</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">schema_to_colinfolist</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+
+<div class="viewcode-block" id="ResearchDatabaseInfo.tables_containing_field"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/research_db_info.html#crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo.tables_containing_field">[docs]</a>    <span class="k">def</span> <span class="nf">tables_containing_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fieldname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TableId</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        We won&#39;t use a SELECT on INFORMATION_SCHEMA here, since we already</span>
+<span class="sd">        have the information.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist</span><span class="p">()</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">column</span><span class="o">.</span><span class="n">column_name</span> <span class="o">==</span> <span class="n">fieldname</span><span class="p">:</span>
+                <span class="n">table_id</span> <span class="o">=</span> <span class="n">column</span><span class="o">.</span><span class="n">table_id</span>
+                <span class="k">if</span> <span class="n">table_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">table_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span></div>
+
+    <span class="k">def</span> <span class="nf">text_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_id</span><span class="p">:</span> <span class="n">TableId</span><span class="p">,</span>
+                     <span class="n">min_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ColumnInfo</span><span class="p">]:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">column</span><span class="o">.</span><span class="n">table_id</span> <span class="o">!=</span> <span class="n">table_id</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_sql_column_type_textual</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">column_type</span><span class="p">,</span>
+                                              <span class="n">min_length</span><span class="p">):</span>
+                <span class="c1"># log.debug(&quot;Skipping {!r}&quot;, column)</span>
+                <span class="k">continue</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="c1"># log.debug(&quot;text_columns for {} with min_length={}: [{}]&quot;, table_id,</span>
+        <span class="c1">#           min_length, &quot;, &quot;.join(str(x) for x in results))</span>
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=1000)</span>
+    <span class="k">def</span> <span class="nf">all_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table_id</span><span class="p">:</span> <span class="n">TableId</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">ColumnInfo</span><span class="p">]:</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">column</span><span class="o">.</span><span class="n">table_id</span> <span class="o">!=</span> <span class="n">table_id</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+
+    <span class="k">def</span> <span class="nf">get_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dictlist_to_tsv</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_schema_infodictlist</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">get_excel</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+        <span class="n">wb</span> <span class="o">=</span> <span class="n">Workbook</span><span class="p">()</span>
+        <span class="n">wb</span><span class="o">.</span><span class="n">remove_sheet</span><span class="p">(</span><span class="n">wb</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>  <span class="c1"># remove the autocreated blank sheet</span>
+        <span class="n">schema_colinfolist_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist_by_schema</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">schema</span><span class="p">,</span> <span class="n">colinfolist</span> <span class="ow">in</span> <span class="n">schema_colinfolist_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">ws</span> <span class="o">=</span> <span class="n">wb</span><span class="o">.</span><span class="n">create_sheet</span><span class="p">(</span><span class="n">title</span><span class="o">=</span><span class="n">schema</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grammar</span><span class="p">))</span>
+            <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                <span class="s2">&quot;table_catalog&quot;</span><span class="p">,</span> <span class="s2">&quot;table_schema&quot;</span><span class="p">,</span> <span class="s2">&quot;table_name&quot;</span><span class="p">,</span> <span class="s2">&quot;column_name&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;is_nullable&quot;</span><span class="p">,</span> <span class="s2">&quot;column_type&quot;</span><span class="p">,</span> <span class="s2">&quot;column_comment&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;indexed&quot;</span><span class="p">,</span> <span class="s2">&quot;indexed_fulltext&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;basetype&quot;</span><span class="p">,</span> <span class="s2">&quot;full_identifier&quot;</span>
+            <span class="p">])</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">colinfolist</span><span class="p">:</span>  <span class="c1"># type: ColumnInfo</span>
+                <span class="n">ws</span><span class="o">.</span><span class="n">append</span><span class="p">([</span>
+                    <span class="n">c</span><span class="o">.</span><span class="n">table_catalog</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">table_schema</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span>
+                    <span class="n">c</span><span class="o">.</span><span class="n">column_name</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">is_nullable</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">column_type</span><span class="p">,</span>
+                    <span class="n">c</span><span class="o">.</span><span class="n">column_comment</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">indexed</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">indexed_fulltext</span><span class="p">,</span>
+                    <span class="n">c</span><span class="o">.</span><span class="n">basetype</span><span class="p">,</span> <span class="n">c</span><span class="o">.</span><span class="n">column_id</span><span class="o">.</span><span class="n">identifier</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">grammar</span><span class="p">),</span>
+                <span class="p">])</span>
+        <span class="k">return</span> <span class="n">excel_to_bytes</span><span class="p">(</span><span class="n">wb</span><span class="p">)</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=None)</span>
+    <span class="k">def</span> <span class="nf">get_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TableId</span><span class="p">]:</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist</span><span class="p">():</span>
+            <span class="n">tables</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">column</span><span class="o">.</span><span class="n">table_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">tables</span><span class="p">))</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=1000)</span>
+    <span class="k">def</span> <span class="nf">table_contains_rid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">TableId</span><span class="p">):</span>
+        <span class="n">target_rid_column</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_rid_column</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_colinfolist</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">column</span><span class="o">.</span><span class="n">column_id</span> <span class="o">==</span> <span class="n">target_rid_column</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="nf">table_contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="n">TableId</span><span class="p">,</span> <span class="n">column</span><span class="p">:</span> <span class="n">ColumnId</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_columns</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">column_id</span> <span class="o">==</span> <span class="n">column</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="c1"># @lru_cache(maxsize=None)</span>
+    <span class="k">def</span> <span class="nf">get_mrid_linkable_patient_tables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">TableId</span><span class="p">]:</span>
+        <span class="n">eligible_tables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tables</span><span class="p">():</span>
+            <span class="n">dbinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_db_info</span><span class="p">(</span><span class="n">table</span><span class="o">.</span><span class="n">schema_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dbinfo</span><span class="o">.</span><span class="n">has_mrid</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_contains_rid</span><span class="p">(</span><span class="n">table</span><span class="p">):</span>
+                <span class="n">eligible_tables</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">eligible_tables</span><span class="p">))</span></div>
+
+
+<span class="n">research_database_info</span> <span class="o">=</span> <span class="n">ResearchDatabaseInfo</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

@@ -64,42 +64,42 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <p>Patient class for CRATE anonymiser.</p>
 <dl class="class">
 <dt id="crate_anon.anonymise.patient.Patient">
-<em class="property">class </em><code class="descclassname">crate_anon.anonymise.patient.</code><code class="descname">Patient</code><span class="sig-paren">(</span><em>pid: Union[int, str], debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.patient.Patient" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.patient.</code><code class="descname">Patient</code><span class="sig-paren">(</span><em>pid: Union[int, str], debug: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#Patient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.Patient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class representing a patient-specific information, such as PIDs, RIDs,
 and scrubbers.</p>
 <dl class="method">
 <dt id="crate_anon.anonymise.patient.Patient.get_mpid">
-<code class="descname">get_mpid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Union[int, str]<a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_mpid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_mpid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Union[int, str]<a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#Patient.get_mpid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_mpid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the master patient ID (MPID).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.patient.Patient.get_mrid">
-<code class="descname">get_mrid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_mrid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_mrid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#Patient.get_mrid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_mrid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the master RID (encrypted MPID).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.patient.Patient.get_pid">
-<code class="descname">get_pid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Union[int, str]<a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_pid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_pid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Union[int, str]<a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#Patient.get_pid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_pid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the patient ID (PID).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.patient.Patient.get_rid">
-<code class="descname">get_rid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_rid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_rid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#Patient.get_rid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_rid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the RID (encrypted PID).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.patient.Patient.get_trid">
-<code class="descname">get_trid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_trid" title="Permalink to this definition">¶</a></dt>
+<code class="descname">get_trid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#Patient.get_trid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.Patient.get_trid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the transient integer RID (TRID).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.anonymise.patient.Patient.unchanged">
-<code class="descname">unchanged</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.anonymise.patient.Patient.unchanged" title="Permalink to this definition">¶</a></dt>
+<code class="descname">unchanged</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; bool<a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#Patient.unchanged"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.Patient.unchanged" title="Permalink to this definition">¶</a></dt>
 <dd><p>Has the scrubber changed, compared to the previous hashed version in
 the admin database?</p>
 </dd></dl>
@@ -108,7 +108,7 @@ the admin database?</p>
 
 <dl class="function">
 <dt id="crate_anon.anonymise.patient.gen_all_values_for_patient">
-<code class="descclassname">crate_anon.anonymise.patient.</code><code class="descname">gen_all_values_for_patient</code><span class="sig-paren">(</span><em>dbname: str, tablename: str, fields: List[str], pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; Generator[[List[Any], NoneType], NoneType]<a class="headerlink" href="#crate_anon.anonymise.patient.gen_all_values_for_patient" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.anonymise.patient.</code><code class="descname">gen_all_values_for_patient</code><span class="sig-paren">(</span><em>dbname: str, tablename: str, fields: List[str], pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; Generator[[List[Any], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/anonymise/patient.html#gen_all_values_for_patient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.anonymise.patient.gen_all_values_for_patient" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generate all sensitive (scrub_src) values for a given patient, from a given
 source table. Used to build the scrubber.</p>
 <blockquote>

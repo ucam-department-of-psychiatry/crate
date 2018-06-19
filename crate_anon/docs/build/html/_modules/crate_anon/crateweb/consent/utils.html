@@ -1,0 +1,301 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.crateweb.consent.utils &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.crateweb.consent.utils</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/crateweb/consent/utils.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="c1"># from functools import lru_cache</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">cardinal_pythonlib.django.function_cache</span> <span class="k">import</span> <span class="n">django_cache_function</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="k">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">django.core.exceptions</span> <span class="k">import</span> <span class="n">ValidationError</span>
+<span class="kn">from</span> <span class="nn">django.template.loader</span> <span class="k">import</span> <span class="n">render_to_string</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Read files</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">read_static_file_contents</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">LOCAL_STATIC_DIR</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># CSS, plus assistance for PDF/e-mail rendering to HTML</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">pdf_css</span><span class="p">(</span><span class="n">patient</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">contents</span> <span class="o">=</span> <span class="n">read_static_file_contents</span><span class="p">(</span><span class="s1">&#39;base.css&#39;</span><span class="p">)</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;fontsize&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">PATIENT_FONTSIZE</span>
+                     <span class="k">if</span> <span class="n">patient</span> <span class="k">else</span> <span class="n">settings</span><span class="o">.</span><span class="n">RESEARCHER_FONTSIZE</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">contents</span> <span class="o">+=</span> <span class="n">render_to_string</span><span class="p">(</span><span class="s1">&#39;pdf.css&#39;</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">contents</span>
+
+
+<span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="c1"># @lru_cache(maxsize=None)</span>
+<span class="k">def</span> <span class="nf">pdf_template_dict</span><span class="p">(</span><span class="n">patient</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;css&#39;</span><span class="p">:</span> <span class="n">pdf_css</span><span class="p">(</span><span class="n">patient</span><span class="p">),</span>
+        <span class="s1">&#39;PDF_LOGO_ABS_URL&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">PDF_LOGO_ABS_URL</span><span class="p">,</span>
+        <span class="s1">&#39;PDF_LOGO_WIDTH&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">PDF_LOGO_WIDTH</span><span class="p">,</span>
+        <span class="s1">&#39;TRAFFIC_LIGHT_RED_ABS_URL&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">TRAFFIC_LIGHT_RED_ABS_URL</span><span class="p">,</span>
+        <span class="s1">&#39;TRAFFIC_LIGHT_YELLOW_ABS_URL&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">TRAFFIC_LIGHT_YELLOW_ABS_URL</span><span class="p">,</span>
+        <span class="s1">&#39;TRAFFIC_LIGHT_GREEN_ABS_URL&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">TRAFFIC_LIGHT_GREEN_ABS_URL</span><span class="p">,</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">render_pdf_html_to_string</span><span class="p">(</span><span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                              <span class="n">context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                              <span class="n">patient</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">context</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pdf_template_dict</span><span class="p">(</span><span class="n">patient</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">render_to_string</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">email_css</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">contents</span> <span class="o">=</span> <span class="n">read_static_file_contents</span><span class="p">(</span><span class="s1">&#39;base.css&#39;</span><span class="p">)</span>
+    <span class="n">contents</span> <span class="o">+=</span> <span class="n">render_to_string</span><span class="p">(</span><span class="s1">&#39;email.css&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">contents</span>
+
+
+<span class="nd">@django_cache_function</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="c1"># @lru_cache(maxsize=None)</span>
+<span class="k">def</span> <span class="nf">email_template_dict</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;css&#39;</span><span class="p">:</span> <span class="n">email_css</span><span class="p">(),</span>
+    <span class="p">}</span>
+
+
+<span class="k">def</span> <span class="nf">render_email_html_to_string</span><span class="p">(</span><span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                <span class="n">context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="n">context</span> <span class="o">=</span> <span class="n">context</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">email_template_dict</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">render_to_string</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># E-mail addresses</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">get_domain_from_email</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="c1"># Very simple version...</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">email</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Bad e-mail address: no domain&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">validate_researcher_email_domain</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">settings</span><span class="o">.</span><span class="n">VALID_RESEARCHER_EMAIL_DOMAINS</span><span class="p">:</span>
+        <span class="c1"># Anything goes.</span>
+        <span class="k">return</span>
+    <span class="n">domain</span> <span class="o">=</span> <span class="n">get_domain_from_email</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">valid_domain</span> <span class="ow">in</span> <span class="n">settings</span><span class="o">.</span><span class="n">VALID_RESEARCHER_EMAIL_DOMAINS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">domain</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">valid_domain</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="k">return</span>
+    <span class="k">raise</span> <span class="n">ValidationError</span><span class="p">(</span><span class="s2">&quot;Invalid researcher e-mail domain&quot;</span><span class="p">)</span>
+
+
+<span class="n">APPROX_EMAIL_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>  <span class="c1"># http://emailregex.com/</span>
+    <span class="sa">r</span><span class="s2">&quot;(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">make_forename_surname_email_address</span><span class="p">(</span><span class="n">forename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                        <span class="n">surname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                        <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                                        <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">forename</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">surname</span><span class="p">:</span>  <span class="c1"># in case one is None</span>
+        <span class="k">return</span> <span class="n">default</span>
+    <span class="n">forename</span> <span class="o">=</span> <span class="n">forename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">surname</span> <span class="o">=</span> <span class="n">surname</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">forename</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">surname</span><span class="p">:</span>  <span class="c1"># in case one is empty</span>
+        <span class="k">return</span> <span class="n">default</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">forename</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Initial only; that won&#39;t do.</span>
+        <span class="k">return</span> <span class="n">default</span>
+    <span class="c1"># Other duff things we see: John Smith (CALT), where &quot;Smith (CALT)&quot; is the</span>
+    <span class="c1"># surname and CALT is Cambridge Adult Locality Team. This can map to</span>
+    <span class="c1"># something unpredictable, like JohnSmithOT@cpft.nhs.uk, so we can&#39;t use</span>
+    <span class="c1"># it.</span>
+    <span class="c1"># Formal definition is at http://stackoverflow.com/questions/2049502/what-characters-are-allowed-in-email-address  # noqa</span>
+    <span class="c1"># See also: http://emailregex.com/</span>
+    <span class="n">attempt</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.</span><span class="si">{}</span><span class="s2">@</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">forename</span><span class="p">,</span> <span class="n">surname</span><span class="p">,</span> <span class="n">domain</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">APPROX_EMAIL_REGEX</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">attempt</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">attempt</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">default</span>
+
+
+<span class="k">def</span> <span class="nf">make_cpft_email_address</span><span class="p">(</span><span class="n">forename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">surname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                            <span class="n">default</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">make_forename_surname_email_address</span><span class="p">(</span><span class="n">forename</span><span class="p">,</span> <span class="n">surname</span><span class="p">,</span>
+                                               <span class="s2">&quot;cpft.nhs.uk&quot;</span><span class="p">,</span> <span class="n">default</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Date/time</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="days_to_years"><a class="viewcode-back" href="../../../../autodoc/crateweb/consent/utils.html#crate_anon.crateweb.consent.utils.days_to_years">[docs]</a><span class="k">def</span> <span class="nf">days_to_years</span><span class="p">(</span><span class="n">days</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dp</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    For &quot;consent after discharge&quot;, primarily.</span>
+<span class="sd">    Returns the number of years to specified number of dp.</span>
+<span class="sd">    Assumes 365 days/year, not 365.24.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">years</span> <span class="o">=</span> <span class="n">days</span> <span class="o">/</span> <span class="mi">365</span>
+        <span class="k">if</span> <span class="n">years</span> <span class="o">%</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># needs decimals</span>
+            <span class="k">return</span> <span class="s2">&quot;{:.</span><span class="si">{precision}</span><span class="s2">f}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">years</span><span class="p">,</span> <span class="n">precision</span><span class="o">=</span><span class="n">dp</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">years</span><span class="p">))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;?&quot;</span></div>
+
+
+<span class="k">def</span> <span class="nf">latest_date</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">]:</span>
+    <span class="n">latest</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">d</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">latest</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">latest</span> <span class="o">=</span> <span class="n">d</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">latest</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">latest</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">latest</span>
+
+
+<span class="k">def</span> <span class="nf">to_date</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">,</span>
+                              <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">d</span>  <span class="c1"># datetime.date, or None</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

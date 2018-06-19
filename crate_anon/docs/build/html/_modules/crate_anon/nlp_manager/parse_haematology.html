@@ -1,0 +1,693 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.nlp_manager.parse_haematology &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.nlp_manager.parse_haematology</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/nlp_manager/parse_haematology.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="k">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.nlp_definition</span> <span class="k">import</span> <span class="n">NlpDefinition</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.regex_parser</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+    <span class="n">RELATION</span><span class="p">,</span>
+    <span class="n">SimpleNumericalResultParser</span><span class="p">,</span>
+    <span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+    <span class="n">ValidatorBase</span><span class="p">,</span>
+    <span class="n">WORD_BOUNDARY</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.regex_numbers</span> <span class="k">import</span> <span class="n">SIGNED_FLOAT</span>
+<span class="kn">from</span> <span class="nn">crate_anon.nlp_manager.regex_units</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">BILLION_PER_L</span><span class="p">,</span>
+    <span class="n">CELLS_PER_CUBIC_MM</span><span class="p">,</span>
+    <span class="n">MG_PER_DL</span><span class="p">,</span>
+    <span class="n">MG_PER_L</span><span class="p">,</span>
+    <span class="n">MM_PER_H</span><span class="p">,</span>
+    <span class="n">PERCENT</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1">#  Erythrocyte sedimentation rate (ESR)</span>
+<span class="c1"># =============================================================================</span>
+
+<div class="viewcode-block" id="Esr"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.Esr">[docs]</a><span class="k">class</span> <span class="nc">Esr</span><span class="p">(</span><span class="n">SimpleNumericalResultParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Erythrocyte sedimentation rate (ESR).&quot;&quot;&quot;</span>
+    <span class="n">ESR</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?: </span><span class="si">{WORD_BOUNDARY}</span><span class="s2"></span>
+<span class="s2">            (?: (?: Erythrocyte [\s]+ sed(?:\.|imentation)? [\s]+ rate)</span>
+<span class="s2">                | (?:ESR) )</span>
+<span class="s2">        </span><span class="si">{WORD_BOUNDARY}</span><span class="s2"> )</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">WORD_BOUNDARY</span><span class="o">=</span><span class="n">WORD_BOUNDARY</span><span class="p">)</span>
+    <span class="n">REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        ( </span><span class="si">{ESR}</span><span class="s2"> )                           # group for &quot;ESR&quot; or equivalent</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{TENSE_INDICATOR}</span><span class="s2"> )?              # optional group for tense indicator</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{RELATION}</span><span class="s2"> )?                     # optional group for relation</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        ( </span><span class="si">{SIGNED_FLOAT}</span><span class="s2"> )                  # group for value</span>
+<span class="s2">        </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">        (                                   # optional group for units</span>
+<span class="s2">            </span><span class="si">{MM_PER_H}</span><span class="s2">                          # good</span>
+<span class="s2">            | </span><span class="si">{MG_PER_DL}</span><span class="s2">                       # bad</span>
+<span class="s2">            | </span><span class="si">{MG_PER_L}</span><span class="s2">                        # bad</span>
+<span class="s2">        )?</span>
+<span class="s2">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">ESR</span><span class="o">=</span><span class="n">ESR</span><span class="p">,</span>
+        <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+        <span class="n">TENSE_INDICATOR</span><span class="o">=</span><span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+        <span class="n">RELATION</span><span class="o">=</span><span class="n">RELATION</span><span class="p">,</span>
+        <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+        <span class="n">MM_PER_H</span><span class="o">=</span><span class="n">MM_PER_H</span><span class="p">,</span>
+        <span class="n">MG_PER_DL</span><span class="o">=</span><span class="n">MG_PER_DL</span><span class="p">,</span>
+        <span class="n">MG_PER_L</span><span class="o">=</span><span class="n">MG_PER_L</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;ESR&quot;</span>
+    <span class="n">PREFERRED_UNIT_COLUMN</span> <span class="o">=</span> <span class="s2">&quot;value_mm_h&quot;</span>
+    <span class="n">UNIT_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">MM_PER_H</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>       <span class="c1"># preferred unit</span>
+        <span class="c1"># not MG_PER_DL, MG_PER_L</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+            <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+            <span class="n">regex_str</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">REGEX</span><span class="p">,</span>
+            <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+            <span class="n">target_unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">PREFERRED_UNIT_COLUMN</span><span class="p">,</span>
+            <span class="n">units_to_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">UNIT_MAPPING</span><span class="p">,</span>
+            <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+            <span class="n">take_absolute</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;ESR (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;ESR 6 (should succeed)&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR = 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR 6 mm/h&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR &lt;10&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR &lt;10 mm/hr&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR &gt;100&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">100</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR &gt;100 mm/hour&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">100</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR was 62&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">62</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR was 62 mm/h&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">62</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR was 62 (H) mm/h&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">62</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR was 62 mg/dl (should fail, wrong units)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;Erythrocyte sed. rate was 19&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">19</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;his erythrocyte sedimentation rate was 19&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">19</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;erythrocyte sedimentation rate was 19&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">19</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR 1.9 mg/L&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># wrong units</span>
+            <span class="p">(</span><span class="s2">&quot;ESR 1.9 (H) mg/L&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># wrong units</span>
+            <span class="p">(</span><span class="s2">&quot;ESR        |       1.9 (H)      | mg/L&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;my ESR was 15, but his ESR was 89!&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">15</span><span class="p">,</span> <span class="mi">89</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;ESR-18&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">18</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EsrValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.EsrValidator">[docs]</a><span class="k">class</span> <span class="nc">EsrValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Esr (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Esr</span><span class="o">.</span><span class="n">ESR</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Esr</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1">#  White blood cell count and differential</span>
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Do NOT accept my handwritten abbreviations with slashed zeros, e.g.</span>
+<span class="c1">#       L0 lymphocytes</span>
+<span class="c1">#       N0 neutrophils</span>
+<span class="c1">#       M0 monocytes</span>
+<span class="c1">#       B0 basophils</span>
+<span class="c1">#       E0 eosinophils</span>
+<span class="c1"># ... too likely that these are interpreted in wrong contexts, particularly</span>
+<span class="c1"># if we are not allowing units, like &quot;M0 3&quot;: macrophages 3 x 10^9/L, or part</span>
+<span class="c1"># of &quot;T2 N0 M0 ...&quot; cancer staging?</span>
+
+<div class="viewcode-block" id="WbcBase"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.WbcBase">[docs]</a><span class="k">class</span> <span class="nc">WbcBase</span><span class="p">(</span><span class="n">SimpleNumericalResultParser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;DO NOT USE DIRECTLY. White cell count base class.&quot;&quot;&quot;</span>
+    <span class="n">PREFERRED_UNIT_COLUMN</span> <span class="o">=</span> <span class="s2">&quot;value_billion_per_l&quot;</span>
+    <span class="n">UNIT_MAPPING</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">BILLION_PER_L</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>     <span class="c1"># preferred unit: 10^9 / L</span>
+        <span class="n">CELLS_PER_CUBIC_MM</span><span class="p">:</span> <span class="mf">0.001</span><span class="p">,</span>  <span class="c1"># 1000 cells/mm^3 -&gt; 1 x 10^9 / L</span>
+        <span class="c1"># but NOT percent (too hard to interpret relative differentials</span>
+        <span class="c1"># reliably)</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">cell_type_regex_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">variable</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+            <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+            <span class="n">regex_str</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">make_wbc_regex</span><span class="p">(</span><span class="n">cell_type_regex_text</span><span class="p">),</span>
+            <span class="n">variable</span><span class="o">=</span><span class="n">variable</span><span class="p">,</span>
+            <span class="n">target_unit</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">PREFERRED_UNIT_COLUMN</span><span class="p">,</span>
+            <span class="n">units_to_factor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">UNIT_MAPPING</span><span class="p">,</span>
+            <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+            <span class="n">take_absolute</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">make_wbc_regex</span><span class="p">(</span><span class="n">cell_type_regex_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            (</span><span class="si">{CELL_TYPE}</span><span class="s2">)                   # group for cell type name</span>
+<span class="s2">            </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">            (</span><span class="si">{TENSE_INDICATOR}</span><span class="s2">)?            # optional group for tense indicator</span>
+<span class="s2">            </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">            (</span><span class="si">{RELATION}</span><span class="s2">)?                   # optional group for relation</span>
+<span class="s2">            </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">            (</span><span class="si">{SIGNED_FLOAT}</span><span class="s2">)                # group for value</span>
+<span class="s2">            </span><span class="si">{OPTIONAL_RESULTS_IGNORABLES}</span><span class="s2"></span>
+<span class="s2">            (                               # optional units, good and bad</span>
+<span class="s2">                </span><span class="si">{BILLION_PER_L}</span><span class="s2">                 # good</span>
+<span class="s2">                | </span><span class="si">{CELLS_PER_CUBIC_MM}</span><span class="s2">          # good</span>
+<span class="s2">                | </span><span class="si">{PERCENT}</span><span class="s2">                     # bad, so we can ignore it</span>
+<span class="s2">            )?</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">CELL_TYPE</span><span class="o">=</span><span class="n">cell_type_regex_text</span><span class="p">,</span>
+            <span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="o">=</span><span class="n">OPTIONAL_RESULTS_IGNORABLES</span><span class="p">,</span>
+            <span class="n">TENSE_INDICATOR</span><span class="o">=</span><span class="n">TENSE_INDICATOR</span><span class="p">,</span>
+            <span class="n">RELATION</span><span class="o">=</span><span class="n">RELATION</span><span class="p">,</span>
+            <span class="n">SIGNED_FLOAT</span><span class="o">=</span><span class="n">SIGNED_FLOAT</span><span class="p">,</span>
+            <span class="n">BILLION_PER_L</span><span class="o">=</span><span class="n">BILLION_PER_L</span><span class="p">,</span>
+            <span class="n">CELLS_PER_CUBIC_MM</span><span class="o">=</span><span class="n">CELLS_PER_CUBIC_MM</span><span class="p">,</span>
+            <span class="n">PERCENT</span><span class="o">=</span><span class="n">PERCENT</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1"># WBC</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Wbc"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.Wbc">[docs]</a><span class="k">class</span> <span class="nc">Wbc</span><span class="p">(</span><span class="n">WbcBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;White cell count (WBC, WCC).&quot;&quot;&quot;</span>
+    <span class="n">WBC</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?: \b (?:</span>
+<span class="s2">            (?:                 # White blood cells, white cell count, etc.</span>
+<span class="s2">                White\b [\s]* (?:\bblood\b)? [\s]* \bcell[s]?\b</span>
+<span class="s2">                [\s]* (?:\bcount\b)? [\s]*</span>
+<span class="s2">                (?:     # optional suffix WBC, (WBC), (WBCC), (WCC), etc.</span>
+<span class="s2">                    [\(]? (?: WBC | WBCC | WCC) [\)]?</span>
+<span class="s2">                )?</span>
+<span class="s2">            )</span>
+<span class="s2">            | (?:               # just WBC(s), WBCC, WCC</span>
+<span class="s2">                (?: WBC[s]? | WBCC | WCC )</span>
+<span class="s2">            )</span>
+<span class="s2">        ) \b )</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;WBC&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+                         <span class="n">cell_type_regex_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">WBC</span><span class="p">,</span>
+                         <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;WBC (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;WBC 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;WBC = 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;WBC 6 x 10^9/L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;WBC 6 x 10 ^ 9 / L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;WCC 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;white cells 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;white cells 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;white cells 9800/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;white cells 9800 cell/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;white cells 9800 cells/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;white cells 9800 per cubic mm&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;white cells 17,600/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">17.6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;WBC – 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>  <span class="c1"># en dash</span>
+            <span class="p">(</span><span class="s2">&quot;WBC—6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>  <span class="c1"># em dash</span>
+            <span class="p">(</span><span class="s2">&quot;WBC -- 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>  <span class="c1"># double hyphen used as dash</span>
+            <span class="p">(</span><span class="s2">&quot;WBC - 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;WBC-6.5&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.5</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="WbcValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.WbcValidator">[docs]</a><span class="k">class</span> <span class="nc">WbcValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Wbc (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Wbc</span><span class="o">.</span><span class="n">WBC</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Wbc</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1">#  Neutrophils</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Neutrophils"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.Neutrophils">[docs]</a><span class="k">class</span> <span class="nc">Neutrophils</span><span class="p">(</span><span class="n">WbcBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Neutrophil count (absolute).&quot;&quot;&quot;</span>
+    <span class="n">NEUTROPHILS</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?:</span>
+<span class="s2">            (?: \b absolute \s* )?</span>
+<span class="s2">            \b (?: Neut(?:r(?:o(?:phil)?)?)?s? | N0 ) \b</span>
+<span class="s2">            (?: \s* count \b )?</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;neutrophils&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+                         <span class="n">cell_type_regex_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NEUTROPHILS</span><span class="p">,</span>
+                         <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;neutrophils (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;absolute neutrophil count 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;neuts = 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;N0 6 x 10^9/L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;neutrophil count 6 x 10 ^ 9 / L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;neutrs 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;neutrophil 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;neutrophils 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;n0 9800/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;absolute neutrophils 9800 cell/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;neutrophils count 9800 cells/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;n0 9800 per cubic mm&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;n0 17,600/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">17.6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;neuts-17&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">17</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="NeutrophilsValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.NeutrophilsValidator">[docs]</a><span class="k">class</span> <span class="nc">NeutrophilsValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Neutrophils (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Neutrophils</span><span class="o">.</span><span class="n">NEUTROPHILS</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Neutrophils</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1">#  Lymphocytes</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Lymphocytes"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.Lymphocytes">[docs]</a><span class="k">class</span> <span class="nc">Lymphocytes</span><span class="p">(</span><span class="n">WbcBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lymphocyte count (absolute).&quot;&quot;&quot;</span>
+    <span class="n">LYMPHOCYTES</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?:</span>
+<span class="s2">            (?: \b absolute \s* )?</span>
+<span class="s2">            \b Lymph(?:o(?:cyte)?)?s? \b</span>
+<span class="s2">            (?: \s* count \b )?</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;lymphocytes&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+                         <span class="n">cell_type_regex_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">LYMPHOCYTES</span><span class="p">,</span>
+                         <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;lymphocytes (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;absolute lymphocyte count 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;lymphs = 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;L0 6 x 10^9/L (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;lymphocyte count 6 x 10 ^ 9 / L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;lymphs 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;lymph 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;lympho 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;lymphos 9800/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;absolute lymphocytes 9800 cell/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;lymphocytes count 9800 cells/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;l0 9800 per cubic mm (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;l0 17,600/mm3 (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;lymphs-6.3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.3</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LymphocytesValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.LymphocytesValidator">[docs]</a><span class="k">class</span> <span class="nc">LymphocytesValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Lymphocytes (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Lymphocytes</span><span class="o">.</span><span class="n">LYMPHOCYTES</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Lymphocytes</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1">#  Monocytes</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Monocytes"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.Monocytes">[docs]</a><span class="k">class</span> <span class="nc">Monocytes</span><span class="p">(</span><span class="n">WbcBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Monocyte count (absolute).&quot;&quot;&quot;</span>
+    <span class="n">MONOCYTES</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?:</span>
+<span class="s2">            (?: \b absolute \s* )?</span>
+<span class="s2">            \b Mono(?:cyte)?s? \b</span>
+<span class="s2">            (?: \s* count \b )?</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;monocytes&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+                         <span class="n">cell_type_regex_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">MONOCYTES</span><span class="p">,</span>
+                         <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;monocytes (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;absolute monocyte count 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;monos = 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;M0 6 x 10^9/L (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;monocyte count 6 x 10 ^ 9 / L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;monos 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;mono 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;monos 9800/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;absolute mono 9800 cell/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;monocytes count 9800 cells/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;m0 9800 per cubic mm (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;m0 17,600/mm3 (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;monocytes-5.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">5.2</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MonocytesValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.MonocytesValidator">[docs]</a><span class="k">class</span> <span class="nc">MonocytesValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Monocytes (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Monocytes</span><span class="o">.</span><span class="n">MONOCYTES</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Monocytes</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1">#  Basophils</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Basophils"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.Basophils">[docs]</a><span class="k">class</span> <span class="nc">Basophils</span><span class="p">(</span><span class="n">WbcBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Basophil count (absolute).&quot;&quot;&quot;</span>
+    <span class="n">BASOPHILS</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?:</span>
+<span class="s2">            (?: \b absolute \s* )?</span>
+<span class="s2">            \b Baso(?:phil)?s? \b</span>
+<span class="s2">            (?: \s* count \b )?</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;basophils&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+                         <span class="n">cell_type_regex_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">BASOPHILS</span><span class="p">,</span>
+                         <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;basophils (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;absolute basophil count 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;basos = 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;B0 6 x 10^9/L (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;basophil count 6 x 10 ^ 9 / L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;basos 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;baso 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;basos 9800/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;absolute basophil 9800 cell/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;basophils count 9800 cells/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;b0 9800 per cubic mm (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;b0 17,600/mm3 (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;basophils-5.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">5.2</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BasophilsValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.BasophilsValidator">[docs]</a><span class="k">class</span> <span class="nc">BasophilsValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Basophils (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Basophils</span><span class="o">.</span><span class="n">BASOPHILS</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Basophils</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># -----------------------------------------------------------------------------</span>
+<span class="c1">#  Eosinophils</span>
+<span class="c1"># -----------------------------------------------------------------------------</span>
+
+<div class="viewcode-block" id="Eosinophils"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.Eosinophils">[docs]</a><span class="k">class</span> <span class="nc">Eosinophils</span><span class="p">(</span><span class="n">WbcBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Eosinophil count (absolute).&quot;&quot;&quot;</span>
+    <span class="n">EOSINOPHILS</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        (?:</span>
+<span class="s2">            (?: \b absolute \s* )?</span>
+<span class="s2">            \b Eo(?:sin(?:o(?:phil)?)?)?s? \b</span>
+<span class="s2">            (?: \s* count \b )?</span>
+<span class="s2">        )</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;eosinophils&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">,</span>
+                         <span class="n">cell_type_regex_text</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EOSINOPHILS</span><span class="p">,</span>
+                         <span class="n">variable</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">NAME</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">test_numerical_parser</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;eosinophils (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>  <span class="c1"># should fail; no values</span>
+            <span class="p">(</span><span class="s2">&quot;absolute eosinophil count 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;eos = 6&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;E0 6 x 10^9/L (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;eosinophil count 6 x 10 ^ 9 / L&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mi">6</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;eosins 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;eosino 6.2&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">6.2</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;eosinos 9800/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;absolute eosinophil 9800 cell/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;eosinophils count 9800 cells/mm3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">9.8</span><span class="p">]),</span>
+            <span class="p">(</span><span class="s2">&quot;e0 9800 per cubic mm (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;e0 17,600/mm3 (should fail)&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="p">(</span><span class="s2">&quot;eosinophils-5.3&quot;</span><span class="p">,</span> <span class="p">[</span><span class="mf">5.3</span><span class="p">]),</span>
+        <span class="p">],</span> <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="EosinophilsValidator"><a class="viewcode-back" href="../../../autodoc/nlp_manager/parse_haematology.html#crate_anon.nlp_manager.parse_haematology.EosinophilsValidator">[docs]</a><span class="k">class</span> <span class="nc">EosinophilsValidator</span><span class="p">(</span><span class="n">ValidatorBase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Validator for Eosinophils (see ValidatorBase for explanation).&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nlpdef</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NlpDefinition</span><span class="p">],</span>
+                 <span class="n">cfgsection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+                 <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">nlpdef</span><span class="o">=</span><span class="n">nlpdef</span><span class="p">,</span>
+                         <span class="n">cfgsection</span><span class="o">=</span><span class="n">cfgsection</span><span class="p">,</span>
+                         <span class="n">regex_str_list</span><span class="o">=</span><span class="p">[</span><span class="n">Eosinophils</span><span class="o">.</span><span class="n">EOSINOPHILS</span><span class="p">],</span>
+                         <span class="n">validated_variable</span><span class="o">=</span><span class="n">Eosinophils</span><span class="o">.</span><span class="n">NAME</span><span class="p">,</span>
+                         <span class="n">commit</span><span class="o">=</span><span class="n">commit</span><span class="p">)</span></div>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1">#  Command-line entry point</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="k">def</span> <span class="nf">test_all</span><span class="p">(</span><span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># ESR</span>
+    <span class="n">esr</span> <span class="o">=</span> <span class="n">Esr</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">esr</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+    <span class="c1"># WBC and differential</span>
+    <span class="n">wbc</span> <span class="o">=</span> <span class="n">Wbc</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">wbc</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">n0</span> <span class="o">=</span> <span class="n">Neutrophils</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">n0</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">l0</span> <span class="o">=</span> <span class="n">Lymphocytes</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">l0</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">m0</span> <span class="o">=</span> <span class="n">Monocytes</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">m0</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">b0</span> <span class="o">=</span> <span class="n">Basophils</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">b0</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+    <span class="n">e0</span> <span class="o">=</span> <span class="n">Eosinophils</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">e0</span><span class="o">.</span><span class="n">test</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">test_all</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

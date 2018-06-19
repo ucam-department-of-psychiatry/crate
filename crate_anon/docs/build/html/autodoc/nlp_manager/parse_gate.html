@@ -65,7 +65,7 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 UTF-8 here and in the Java code.</p>
 <dl class="class">
 <dt id="crate_anon.nlp_manager.parse_gate.Gate">
-<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_gate.</code><code class="descname">Gate</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_gate.</code><code class="descname">Gate</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_gate.html#Gate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class controlling an external process, typically our Java interface to
 GATE programs, CrateGatePipeline.java (but it could be any external
 program).</p>
@@ -74,13 +74,13 @@ we return as dictionaries. The specific text sought depends on the
 configuration file and the specific GATE program used.</p>
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_gate.Gate.dest_tables_columns">
-<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_gate.html#Gate.dest_tables_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_gate.Gate.parse">
-<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate.parse" title="Permalink to this definition">¶</a></dt>
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_gate.html#Gate.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate.parse" title="Permalink to this definition">¶</a></dt>
 <dd><ul class="simple">
 <li>Send text to the external process, and receive the result.</li>
 <li>Note that associated data is not passed into this function, and is
@@ -96,7 +96,7 @@ complete.</li>
 
 <dl class="method">
 <dt id="crate_anon.nlp_manager.parse_gate.Gate.test">
-<code class="descname">test</code><span class="sig-paren">(</span><em>verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate.test" title="Permalink to this definition">¶</a></dt>
+<code class="descname">test</code><span class="sig-paren">(</span><em>verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../_modules/crate_anon/nlp_manager/parse_gate.html#Gate.test"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.nlp_manager.parse_gate.Gate.test" title="Permalink to this definition">¶</a></dt>
 <dd><p>Test the send function.</p>
 </dd></dl>
 

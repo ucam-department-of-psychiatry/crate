@@ -63,148 +63,148 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <hr class="docutils" />
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.all_text_from_pid">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">all_text_from_pid</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.all_text_from_pid" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">all_text_from_pid</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#all_text_from_pid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.all_text_from_pid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Picks a database, then redirects to all_text_from_pid_with_db.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.all_text_from_pid_with_db">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">all_text_from_pid_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.all_text_from_pid_with_db" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">all_text_from_pid_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#all_text_from_pid_with_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.all_text_from_pid_with_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Clinician view to look up a patient’s RID from their PID and display
 text from any field.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.common_find_text">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">common_find_text</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest, dbinfo: crate_anon.crateweb.research.research_db_info.SingleResearchDatabase, form_class: Type[crate_anon.crateweb.research.forms.SQLHelperTextAnywhereForm], default_values: Dict[str, Any], permit_pid_search: bool, html_filename: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.common_find_text" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">common_find_text</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest, dbinfo: crate_anon.crateweb.research.research_db_info.SingleResearchDatabase, form_class: Type[crate_anon.crateweb.research.forms.SQLHelperTextAnywhereForm], default_values: Dict[str, Any], permit_pid_search: bool, html_filename: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#common_find_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.common_find_text" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates SQL to find text anywhere in the database(s) via a UNION query.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.get_highlight_descriptions">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">get_highlight_descriptions</code><span class="sig-paren">(</span><em>highlight_dict: Dict[int, List[crate_anon.crateweb.research.models.Highlight]]</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="headerlink" href="#crate_anon.crateweb.research.views.get_highlight_descriptions" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">get_highlight_descriptions</code><span class="sig-paren">(</span><em>highlight_dict: Dict[int, List[crate_anon.crateweb.research.models.Highlight]]</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#get_highlight_descriptions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.get_highlight_descriptions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of length up to N_CSS_HIGHLIGHT_CLASSES of HTML
 elements illustrating the highlights.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.highlight_edit_select">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">highlight_edit_select</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.highlight_edit_select" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">highlight_edit_select</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#highlight_edit_select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.highlight_edit_select" title="Permalink to this definition">¶</a></dt>
 <dd><p>Edit or select highlighting for current query.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.pid_rid_lookup">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pid_rid_lookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>with_db_url_name: str</em>, <em>html_filename: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.pid_rid_lookup" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pid_rid_lookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>with_db_url_name: str</em>, <em>html_filename: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#pid_rid_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.pid_rid_lookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Common functionality for pidlookup, ridlookup.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.pid_rid_lookup_with_db">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pid_rid_lookup_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em>, <em>form_html_filename: str</em>, <em>formclass: Any</em>, <em>result_html_filename: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.pid_rid_lookup_with_db" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pid_rid_lookup_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em>, <em>form_html_filename: str</em>, <em>formclass: Any</em>, <em>result_html_filename: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#pid_rid_lookup_with_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.pid_rid_lookup_with_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Common functionality for pidlookup_with_db, ridlookup_with_db.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.pidlookup">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pidlookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.pidlookup" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pidlookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#pidlookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.pidlookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Look up PID information from RID information.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.pidlookup_with_db">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pidlookup_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.pidlookup_with_db" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">pidlookup_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#pidlookup_with_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.pidlookup_with_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Look up PID information from RID information, for a specific database.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_build">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_build</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_build" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_build</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_build"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_build" title="Permalink to this definition">¶</a></dt>
 <dd><p>Assisted query builder, based on the data dictionary.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_count">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_count</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_count" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_count</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_count" title="Permalink to this definition">¶</a></dt>
 <dd><p>View COUNT(*) from specific query.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_count_current">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_count_current</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_count_current" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_count_current</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_count_current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_count_current" title="Permalink to this definition">¶</a></dt>
 <dd><p>View COUNT(*) from current query.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_edit_select">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_edit_select</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_edit_select" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_edit_select</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_edit_select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_edit_select" title="Permalink to this definition">¶</a></dt>
 <dd><p>Edit or select SQL for current query.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_results">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_results</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_results" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_results</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_results" title="Permalink to this definition">¶</a></dt>
 <dd><p>View results of chosen query, in tabular format</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_results_recordwise">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_results_recordwise</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_results_recordwise" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_results_recordwise</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_results_recordwise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_results_recordwise" title="Permalink to this definition">¶</a></dt>
 <dd><p>View results of chosen query, in tabular format</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_submit">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_submit</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>sql: str</em>, <em>run: bool = False</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_submit" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_submit</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>sql: str</em>, <em>run: bool = False</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_submit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_submit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ancillary function to add a query, and redirect to the editing or
 run page.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.query_tsv">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_tsv</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.query_tsv" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">query_tsv</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query_id: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#query_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.query_tsv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Download TSV of current query.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.render_lookup">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">render_lookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbinfo: crate_anon.crateweb.research.research_db_info.SingleResearchDatabase</em>, <em>result_html_filename: str</em>, <em>trids: List[int] = None</em>, <em>rids: List[str] = None</em>, <em>mrids: List[str] = None</em>, <em>pids: List[int] = None</em>, <em>mpids: List[int] = None</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.render_lookup" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">render_lookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbinfo: crate_anon.crateweb.research.research_db_info.SingleResearchDatabase</em>, <em>result_html_filename: str</em>, <em>trids: List[int] = None</em>, <em>rids: List[str] = None</em>, <em>mrids: List[str] = None</em>, <em>pids: List[int] = None</em>, <em>mpids: List[int] = None</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#render_lookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.render_lookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shows the output of a PID/RID lookup.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.render_resultcount">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">render_resultcount</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query: crate_anon.crateweb.research.models.Query</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.render_resultcount" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">render_resultcount</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>query: crate_anon.crateweb.research.models.Query</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#render_resultcount"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.render_resultcount" title="Permalink to this definition">¶</a></dt>
 <dd><p>Displays the number of rows that a given query will fetch.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.ridlookup">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">ridlookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.ridlookup" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">ridlookup</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#ridlookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.ridlookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Look up RID information from PID information.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.ridlookup_with_db">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">ridlookup_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.ridlookup_with_db" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">ridlookup_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#ridlookup_with_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.ridlookup_with_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Look up RID information from PID information, for a specific database.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.sqlhelper_text_anywhere">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">sqlhelper_text_anywhere</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.sqlhelper_text_anywhere" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">sqlhelper_text_anywhere</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#sqlhelper_text_anywhere"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.sqlhelper_text_anywhere" title="Permalink to this definition">¶</a></dt>
 <dd><p>Picks a database, then redirects to sqlhelper_text_anywhere_with_db.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.sqlhelper_text_anywhere_with_db">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">sqlhelper_text_anywhere_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="headerlink" href="#crate_anon.crateweb.research.views.sqlhelper_text_anywhere_with_db" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">sqlhelper_text_anywhere_with_db</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em>, <em>dbname: str</em><span class="sig-paren">)</span> &#x2192; django.http.response.HttpResponse<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#sqlhelper_text_anywhere_with_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.sqlhelper_text_anywhere_with_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates SQL to find text anywhere in the database(s) via a UNION query.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.textfinder_sql">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">textfinder_sql</code><span class="sig-paren">(</span><em>patient_id_fieldname: str</em>, <em>fragment: str</em>, <em>min_length: int</em>, <em>use_fulltext_index: bool</em>, <em>include_content: bool</em>, <em>include_datetime: bool</em>, <em>patient_id_value: Union[int</em>, <em>str] = None</em>, <em>extra_fieldname: str = None</em>, <em>extra_value: Union[int</em>, <em>str] = None</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.crateweb.research.views.textfinder_sql" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">textfinder_sql</code><span class="sig-paren">(</span><em>patient_id_fieldname: str</em>, <em>fragment: str</em>, <em>min_length: int</em>, <em>use_fulltext_index: bool</em>, <em>include_content: bool</em>, <em>include_datetime: bool</em>, <em>patient_id_value: Union[int</em>, <em>str] = None</em>, <em>extra_fieldname: str = None</em>, <em>extra_value: Union[int</em>, <em>str] = None</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#textfinder_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.textfinder_sql" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns SQL to find the text in fragment across all tables that contain the
 field indicated by patient_id_fieldname, where the length of the text field
 is at least min_length.</p>
@@ -216,7 +216,7 @@ patient_id_value: restrict to a single patient</p>
 
 <dl class="function">
 <dt id="crate_anon.crateweb.research.views.validate_blank_form">
-<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">validate_blank_form</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.research.views.validate_blank_form" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">crate_anon.crateweb.research.views.</code><code class="descname">validate_blank_form</code><span class="sig-paren">(</span><em>request: django.http.request.HttpRequest</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../../../_modules/crate_anon/crateweb/research/views.html#validate_blank_form"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.research.views.validate_blank_form" title="Permalink to this definition">¶</a></dt>
 <dd><p>Checks that the request is (a) a POST request, and (b) passes CRSF
 validation.</p>
 </dd></dl>

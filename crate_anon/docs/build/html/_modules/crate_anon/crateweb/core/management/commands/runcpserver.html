@@ -1,0 +1,425 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>crate_anon.crateweb.core.management.commands.runcpserver &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../../../../" src="../../../../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for crate_anon.crateweb.core.management.commands.runcpserver</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/crateweb/core/management/commands/runcpserver.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+
+<span class="sd">Django management command framework for CherryPy based on:</span>
+<span class="sd">    https://lincolnloop.com/blog/2008/mar/25/serving-django-cherrypy/</span>
+<span class="sd">    Idea and code snippets borrowed from</span>
+<span class="sd">        http://www.xhtml.net/scripts/Django-CherryPy-server-DjangoCerise</span>
+<span class="sd">    Adapted to run as a management command.</span>
+<span class="sd">Some bugs fixed by RNC.</span>
+<span class="sd">Then rewritten by RNC.</span>
+<span class="sd">Then modified to serve CRATE, with static files, etc.</span>
+<span class="sd">Then daemonizing code removed:</span>
+<span class="sd">    https://code.djangoproject.com/ticket/4996</span>
+
+<span class="sd">TEST COMMAND:</span>
+<span class="sd">./manage.py runcpserver --port 8080 --ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem --ssl_private_key /etc/ssl/private/ssl-cert-snakeoil.key</span>
+<span class="sd">&quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+
+<span class="kn">from</span> <span class="nn">argparse</span> <span class="k">import</span> <span class="n">ArgumentParser</span><span class="p">,</span> <span class="n">Namespace</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="c1"># import errno</span>
+<span class="c1"># import os</span>
+<span class="c1"># import signal</span>
+<span class="c1"># import time</span>
+<span class="c1"># try:</span>
+<span class="c1">#     import grp</span>
+<span class="c1">#     import pwd</span>
+<span class="c1">#     unix = True</span>
+<span class="c1"># except ImportError:</span>
+<span class="c1">#     grp = None</span>
+<span class="c1">#     pwd = None</span>
+<span class="c1">#     unix = False</span>
+
+<span class="kn">import</span> <span class="nn">cherrypy</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="k">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">django.core.management.base</span> <span class="k">import</span> <span class="n">BaseCommand</span>
+<span class="kn">from</span> <span class="nn">django.utils</span> <span class="k">import</span> <span class="n">translation</span>
+
+<span class="kn">from</span> <span class="nn">crate_anon.crateweb.config.wsgi</span> <span class="k">import</span> <span class="n">application</span> <span class="k">as</span> <span class="n">wsgi_application</span>
+<span class="c1"># COULD ALSO USE:</span>
+<span class="c1">#   from django.core.handlers.wsgi import WSGIHandler</span>
+<span class="c1">#   wsgi_application = WSGIHandler()</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<span class="n">CRATE_STATIC_URL_PATH</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">STATIC_URL</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="n">NEED_UNIX</span> <span class="o">=</span> <span class="s2">&quot;Need UNIX for group/user operations&quot;</span>
+<span class="n">DEFAULT_ROOT</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">FORCE_SCRIPT_NAME</span>
+
+
+<div class="viewcode-block" id="Command"><a class="viewcode-back" href="../../../../../../autodoc/crateweb/core/management/commands/runcpserver.html#crate_anon.crateweb.core.management.commands.runcpserver.Command">[docs]</a><span class="k">class</span> <span class="nc">Command</span><span class="p">(</span><span class="n">BaseCommand</span><span class="p">):</span>
+    <span class="n">help</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;Run this project in a CherryPy webserver. To do this, &quot;</span>
+            <span class="s2">&quot;CherryPy is required (pip install cherrypy).&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Command.add_arguments"><a class="viewcode-back" href="../../../../../../autodoc/crateweb/core/management/commands/runcpserver.html#crate_anon.crateweb.core.management.commands.runcpserver.Command.add_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">add_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">:</span> <span class="n">ArgumentParser</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s1">&#39;--host&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;hostname to listen on (default: 127.0.0.1)&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s1">&#39;--port&#39;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">8088</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;port to listen on (default: 8088)&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--server_name&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;CherryPy&#39;s SERVER_NAME environ entry (default: localhost)&quot;</span><span class="p">)</span>
+        <span class="c1"># parser.add_argument(</span>
+        <span class="c1">#     &quot;--daemonize&quot;, action=&quot;store_true&quot;,</span>
+        <span class="c1">#     help=&quot;whether to detach from terminal (default: False)&quot;)</span>
+        <span class="c1"># parser.add_argument(</span>
+        <span class="c1">#     &quot;--pidfile&quot;, type=str,</span>
+        <span class="c1">#     help=&quot;write the spawned process ID to this file&quot;)</span>
+        <span class="c1"># parser.add_argument(</span>
+        <span class="c1">#     &quot;--workdir&quot;, type=str,</span>
+        <span class="c1">#     help=&quot;change to this directory when daemonizing&quot;)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--threads&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of threads for server to use (default: 10)&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--ssl_certificate&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;SSL certificate file &quot;</span>
+                 <span class="s2">&quot;(e.g. /etc/ssl/certs/ssl-cert-snakeoil.pem)&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--ssl_private_key&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;SSL private key file &quot;</span>
+                 <span class="s2">&quot;(e.g. /etc/ssl/private/ssl-cert-snakeoil.key)&quot;</span><span class="p">)</span>
+        <span class="c1"># parser.add_argument(</span>
+        <span class="c1">#     &quot;--server_user&quot;, type=str, default=&quot;www-data&quot;,</span>
+        <span class="c1">#     help=&quot;user to run daemonized process (default: www-data)&quot;)</span>
+        <span class="c1"># parser.add_argument(</span>
+        <span class="c1">#     &quot;--server_group&quot;, type=str, default=&quot;www-data&quot;,</span>
+        <span class="c1">#     help=&quot;group to run daemonized process (default: www-data)&quot;)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--log_screen&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;log_screen&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;log access requests etc. to terminal (default)&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--no_log_screen&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;log_screen&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_false&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;don&#39;t log access requests etc. to terminal&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--debug_static&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;show debug info for static file requests&quot;</span><span class="p">)</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--root_path&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">DEFAULT_ROOT</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Root path to serve CRATE at. Default: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">DEFAULT_ROOT</span><span class="p">))</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">log_screen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+        <span class="c1"># parser.add_argument(</span>
+        <span class="c1">#     &quot;--stop&quot;, action=&quot;store_true&quot;,</span>
+        <span class="c1">#     help=&quot;stop server&quot;)</span>
+
+<div class="viewcode-block" id="Command.handle"><a class="viewcode-back" href="../../../../../../autodoc/crateweb/core/management/commands/runcpserver.html#crate_anon.crateweb.core.management.commands.runcpserver.Command.handle">[docs]</a>    <span class="k">def</span> <span class="nf">handle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">):</span>
+        <span class="n">opts</span> <span class="o">=</span> <span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">options</span><span class="p">)</span>
+        <span class="c1"># Activate the current language, because it won&#39;t get activated later.</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">translation</span><span class="o">.</span><span class="n">activate</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">LANGUAGE_CODE</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="c1"># noinspection PyTypeChecker</span>
+        <span class="n">runcpserver</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># def change_uid_gid(uid, gid=None):</span>
+<span class="c1">#     &quot;&quot;&quot;Try to change UID and GID to the provided values.</span>
+<span class="c1">#     UID and GID are given as names like &#39;nobody&#39; not integer.</span>
+<span class="c1">#</span>
+<span class="c1">#     Src: http://mail.mems-exchange.org/durusmail/quixote-users/4940/1/</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     if not unix:</span>
+<span class="c1">#         raise OSError(NEED_UNIX)</span>
+<span class="c1">#     if not os.geteuid() == 0:</span>
+<span class="c1">#         # Do not try to change the gid/uid if not root.</span>
+<span class="c1">#         return</span>
+<span class="c1">#     (uid, gid) = get_uid_gid(uid, gid)</span>
+<span class="c1">#     os.setgid(gid)</span>
+<span class="c1">#     os.setuid(uid)</span>
+
+
+<span class="c1"># def get_uid_gid(uid, gid=None):</span>
+<span class="c1">#     &quot;&quot;&quot;Try to change UID and GID to the provided values.</span>
+<span class="c1">#     UID and GID are given as names like &#39;nobody&#39; not integer.</span>
+<span class="c1">#</span>
+<span class="c1">#     Src: http://mail.mems-exchange.org/durusmail/quixote-users/4940/1/</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     if not unix:</span>
+<span class="c1">#         raise OSError(NEED_UNIX)</span>
+<span class="c1">#     uid, default_grp = pwd.getpwnam(uid)[2:4]</span>
+<span class="c1">#     if gid is None:</span>
+<span class="c1">#         gid = default_grp</span>
+<span class="c1">#     else:</span>
+<span class="c1">#         try:</span>
+<span class="c1">#             gid = grp.getgrnam(gid)[2]</span>
+<span class="c1">#         except KeyError:</span>
+<span class="c1">#             gid = default_grp</span>
+<span class="c1">#     return uid, gid</span>
+
+
+<span class="c1"># def still_alive(pid):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Poll for process with given pid up to 10 times waiting .25 seconds in</span>
+<span class="c1">#     between each poll.</span>
+<span class="c1">#     Returns False if the process no longer exists otherwise, True.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     for n in range(10):</span>
+<span class="c1">#         time.sleep(0.25)</span>
+<span class="c1">#         try:</span>
+<span class="c1">#             # poll the process state</span>
+<span class="c1">#             os.kill(pid, 0)</span>
+<span class="c1">#         except OSError as e:</span>
+<span class="c1">#             if e[0] == errno.ESRCH:</span>
+<span class="c1">#                 # process has died</span>
+<span class="c1">#                 return False</span>
+<span class="c1">#             else:</span>
+<span class="c1">#                 raise  # TODO</span>
+<span class="c1">#     return True</span>
+
+
+<span class="c1"># def stop_server(pidfile):</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     Stop process whose pid was written to supplied pidfile.</span>
+<span class="c1">#     First try SIGTERM and if it fails, SIGKILL.</span>
+<span class="c1">#     If process is still running, an exception is raised.</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     if os.path.exists(pidfile):</span>
+<span class="c1">#         pid = int(open(pidfile).read())</span>
+<span class="c1">#         try:</span>
+<span class="c1">#             os.kill(pid, signal.SIGTERM)</span>
+<span class="c1">#         except OSError:  # process does not exist</span>
+<span class="c1">#             os.remove(pidfile)</span>
+<span class="c1">#             return</span>
+<span class="c1">#         if still_alive(pid):</span>
+<span class="c1">#             # process didn&#39;t exit cleanly, make one last effort to kill it</span>
+<span class="c1">#             os.kill(pid, signal.SIGKILL)</span>
+<span class="c1">#             if still_alive(pid):</span>
+<span class="c1">#                 raise OSError(&quot;Process {} did not stop.&quot;.format(pid))</span>
+<span class="c1">#         os.remove(pidfile)</span>
+
+
+<div class="viewcode-block" id="Missing"><a class="viewcode-back" href="../../../../../../autodoc/crateweb/core/management/commands/runcpserver.html#crate_anon.crateweb.core.management.commands.runcpserver.Missing">[docs]</a><span class="k">class</span> <span class="nc">Missing</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Basic web interface to say &quot;not here&quot;.&quot;&quot;&quot;</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;/&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="c1"># Anything so as to prevent complaints about an empty config.</span>
+            <span class="s1">&#39;tools.sessions.on&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="nd">@cherrypy</span><span class="o">.</span><span class="n">expose</span>
+    <span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s2">&quot;[CherryPy server says:] Nothing to see here. Wrong URL path.&quot;</span></div>
+
+
+<span class="c1"># noinspection PyUnresolvedReferences</span>
+<div class="viewcode-block" id="start_server"><a class="viewcode-back" href="../../../../../../autodoc/crateweb/core/management/commands/runcpserver.html#crate_anon.crateweb.core.management.commands.runcpserver.start_server">[docs]</a><span class="k">def</span> <span class="nf">start_server</span><span class="p">(</span><span class="n">opts</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Start CherryPy server</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># if opts.daemonize and opts.server_user and opts.server_group:</span>
+    <span class="c1">#     # ensure the that the daemon runs as specified user</span>
+    <span class="c1">#     change_uid_gid(opts.server_user, opts.server_group)</span>
+
+    <span class="n">cherrypy</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="s1">&#39;server.socket_host&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
+        <span class="s1">&#39;server.socket_port&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+        <span class="s1">&#39;server.thread_pool&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">threads</span><span class="p">,</span>
+        <span class="s1">&#39;server.server_name&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">server_name</span><span class="p">,</span>
+        <span class="s1">&#39;server.log_screen&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">log_screen</span><span class="p">,</span>
+    <span class="p">})</span>
+    <span class="k">if</span> <span class="n">opts</span><span class="o">.</span><span class="n">ssl_certificate</span> <span class="ow">and</span> <span class="n">opts</span><span class="o">.</span><span class="n">ssl_private_key</span><span class="p">:</span>
+        <span class="n">cherrypy</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;server.ssl_module&#39;</span><span class="p">:</span> <span class="s1">&#39;builtin&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;server.ssl_certificate&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">ssl_certificate</span><span class="p">,</span>
+            <span class="s1">&#39;server.ssl_private_key&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">ssl_private_key</span><span class="p">,</span>
+        <span class="p">})</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting on host: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opts</span><span class="o">.</span><span class="n">host</span><span class="p">))</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting on port: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opts</span><span class="o">.</span><span class="n">port</span><span class="p">))</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Static files will be served from filesystem path: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">settings</span><span class="o">.</span><span class="n">STATIC_ROOT</span><span class="p">))</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Static files will be served at URL path: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">CRATE_STATIC_URL_PATH</span><span class="p">))</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CRATE will be at: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opts</span><span class="o">.</span><span class="n">root_path</span><span class="p">))</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Thread pool size: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opts</span><span class="o">.</span><span class="n">threads</span><span class="p">))</span>
+
+    <span class="n">static_config</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;/&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;tools.staticdir.root&#39;</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">STATIC_ROOT</span><span class="p">,</span>
+            <span class="s1">&#39;tools.staticdir.debug&#39;</span><span class="p">:</span> <span class="n">opts</span><span class="o">.</span><span class="n">debug_static</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">CRATE_STATIC_URL_PATH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;tools.staticdir.on&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s1">&#39;tools.staticdir.dir&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">}</span>
+    <span class="n">cherrypy</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="n">Missing</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">static_config</span><span class="p">)</span>
+    <span class="n">cherrypy</span><span class="o">.</span><span class="n">tree</span><span class="o">.</span><span class="n">graft</span><span class="p">(</span><span class="n">wsgi_application</span><span class="p">,</span> <span class="n">opts</span><span class="o">.</span><span class="n">root_path</span><span class="p">)</span>
+
+    <span class="c1"># noinspection PyBroadException,PyPep8</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cherrypy</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">cherrypy</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">block</span><span class="p">()</span>
+    <span class="k">except</span><span class="p">:</span>  <span class="c1"># 2017-03-13: shouldn&#39;t restrict to KeyboardInterrupt!</span>
+        <span class="n">cherrypy</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span></div>
+
+
+<span class="k">def</span> <span class="nf">runcpserver</span><span class="p">(</span><span class="n">opts</span><span class="p">:</span> <span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># if opts.stop:</span>
+    <span class="c1">#     if not opts.pidfile:</span>
+    <span class="c1">#         raise ValueError(&quot;Must specify --pidfile to use --stop&quot;)</span>
+    <span class="c1">#     print(&#39;stopping server&#39;)</span>
+    <span class="c1">#     stop_server(opts.pidfile)</span>
+    <span class="c1">#     return True</span>
+
+    <span class="c1"># if opts.daemonize:</span>
+    <span class="c1">#     if not opts.pidfile:</span>
+    <span class="c1">#         opts.pidfile = &#39;/var/run/cpserver_{}.pid&#39;.format(opts.port)</span>
+    <span class="c1">#     stop_server(opts.pidfile)</span>
+    <span class="c1">#</span>
+    <span class="c1">#     if opts.workdir:</span>
+    <span class="c1">#         become_daemon(our_home_dir=opts.workdir)</span>
+    <span class="c1">#     else:</span>
+    <span class="c1">#         become_daemon()</span>
+    <span class="c1">#</span>
+    <span class="c1">#     fp = open(opts.pidfile, &#39;w&#39;)</span>
+    <span class="c1">#     fp.write(&quot;{}\n&quot;.format(os.getpid()))</span>
+    <span class="c1">#     fp.close()</span>
+
+    <span class="c1"># Start the webserver</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;starting server with options </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opts</span><span class="p">))</span>
+    <span class="n">start_server</span><span class="p">(</span><span class="n">opts</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">command</span> <span class="o">=</span> <span class="n">Command</span><span class="p">()</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">ArgumentParser</span><span class="p">()</span>
+    <span class="n">command</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">parser</span><span class="p">)</span>
+    <span class="n">cmdargs</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">runcpserver</span><span class="p">(</span><span class="n">cmdargs</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>
