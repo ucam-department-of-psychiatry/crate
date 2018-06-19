@@ -1,0 +1,607 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.4.19. crate_anon.nlp_manager.parse_medex &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="15.4.20. crate_anon.nlp_manager.regex_func" href="regex_func.html" />
+    <link rel="prev" title="15.4.18. crate_anon.nlp_manager.parse_haematology" href="parse_haematology.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="regex_func.html" title="15.4.20. crate_anon.nlp_manager.regex_func"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="parse_haematology.html" title="15.4.18. crate_anon.nlp_manager.parse_haematology"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.4. crate_anon.nlp_manager</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.nlp_manager.parse_medex">
+<span id="crate-anon-nlp-manager-parse-medex"></span><h1>15.4.19. crate_anon.nlp_manager.parse_medex<a class="headerlink" href="#module-crate_anon.nlp_manager.parse_medex" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<ul>
+<li><p class="first">MedEx-UIMA
+… can’t find Python version of MedEx (which preceded MedEx-UIMA)
+… paper on Python version is <a class="reference external" href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2995636/">https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2995636/</a></p>
+<blockquote>
+<div><p>… uses Python NLTK</p>
+</div></blockquote>
+<p>… see notes in Documents/CRATE directory
+… MedEx-UIMA is in Java, and resolutely uses a file-based processing</p>
+<blockquote>
+<div><p>system; Main.java calls MedTagger.java (MedTagger.run_batch_medtag), and
+even in its core MedTagger.medtagging() function it’s making files in
+directories; that’s deep in the core of its NLP thinking so we can’t
+change that behaviour without creating a fork.
+So the obvious way to turn this into a proper “live” pipeline would be
+for the calling code to</p>
+<blockquote>
+<div><p>fire up a receiving process - Python launching custom Java
+create its own temporary directory - Python
+receive data - Python
+stash it on disk - Python
+call the MedEx function - Python -&gt; stdout -&gt; custom Java -&gt; MedEx
+return the results - custom Java signals “done” -&gt; Python reads stdin?
+and clean up - Python</p>
+</div></blockquote>
+<p>Not terribly elegant, but might be fast enough (and almost certainly
+much faster than reloading Java regularly!).</p>
+</div></blockquote>
+<p>… output comes from its MedTagger.print_result() function
+… would need a per-process-unique temporary directory, since it scans all</p>
+<blockquote>
+<div><p>files in the input directory (and similarly one output directory); would
+do that in Python</p>
+</div></blockquote>
+</li>
+</ul>
+<p>MedEx-UIMA is firmly (and internally) wedded to a file-based processing
+system. So we need to:</p>
+<blockquote>
+<div><ul class="simple">
+<li>create a process-specific pair of temporary directories;</li>
+<li>fire up a receiving process</li>
+<li>pass data (1) to file and (2) signal that there’s data available;</li>
+<li>await a “data ready” reply and read the data from disk;</li>
+<li>clean up (delete files) in readiness for next data chunk.</li>
+</ul>
+</div></blockquote>
+<p>NOTE ALSO that MedEx’s MedTagger class writes to stdout (though not
+stderr). Option 1: move our logs to stdout and use stderr for signalling.
+Option 2: keep things as they are and just use a stdout signal that’s
+not used by MedEx. Went with option 2; simpler and more consistent esp.
+for logging.</p>
+<p>How do we clean up the temporary directories?
+- __del__ is not the opposite of __init__</p>
+<blockquote>
+<div><a class="reference external" href="http://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/">http://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/</a></div></blockquote>
+<ul class="simple">
+<li><a class="reference external" href="http://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python">http://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python</a>  # noqa</li>
+</ul>
+<p>PROBLEMS:
+-   NLP works fine, but UK-style abbreviations e.g. “qds” not recognized where</p>
+<blockquote>
+<div><p>“q.i.d.” is. US abbreviations: e.g.
+<a class="reference external" href="http://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html">http://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html</a></p>
+<p>Places to look, and things to try adding:</p>
+<blockquote>
+<div><p>resources/TIMEX/norm_patterns/NormFREQword</p>
+<blockquote>
+<div>qds=&gt;R1P6H</div></blockquote>
+<p>resources/TIMEX/rules/frequency_rules</p>
+<blockquote>
+<div><p>//QID ( 4 times a day
+expression=”[Qq].?[Ii].?[Dd].?[ ]*((.*?))”,val=”R1P6H”</p>
+<p>// RNC: qds
+expression=”[Qq].?[Dd].?[Ss].?[ ]*((.*?))”,val=”R1P6H”</p>
+</div></blockquote>
+<p>… looked like it was correct, but not working
+… are this files compiled in, rather than being read live?
+… do I have the user or the developer version?</p>
+</div></blockquote>
+<p>… not there yet.
+Probably need to recompile. See MedEx’s Readme.txt</p>
+<p>reference to expression/val (as in frequency_rules)
+TIMEX.Rule._add_rule()</p>
+<blockquote>
+<div><p>… from TIMEX.Rule.Rule via a directory walker
+… from TIMEX.ProcessingEngine.ProcessingEngine()</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>… via semi-hardcoded file location relative to class’s location</dt>
+<dd>… via rule_dir, set to …/TIMEX/rules</dd>
+</dl>
+</div></blockquote>
+</div></blockquote>
+<p>Detect a file being accessed:</p>
+<blockquote>
+<div>sudo apt install inotify-tools
+inotifywait -m FILE</div></blockquote>
+<p>… frequency_rules IS opened.</p>
+<p>OVERALL SEQUENCE:</p>
+<p>org.apache.medex.Main [OR: CrateNedexPipeline.java]
+org.apache.medex.MedTagger.run_batch_medtag
+… creeates an org.apache.NLPTools.Document</p>
+<blockquote>
+<div>… not obviously doing frequency stuff, or drug recognition</div></blockquote>
+<dl class="docutils">
+<dt>… then runs org.apache.medex.MedTagger.medtagging(doc)</dt>
+<dd><p class="first">… this does most of the heavy lifting, I think
+… uses ProcessingEngine freq_norm_engine</p>
+<blockquote>
+<div>… org.apache.TIMEX.ProcessingEngine
+… but it may be that this just does frequency NORMALIZATION, not frequency finding</div></blockquote>
+<dl class="last docutils">
+<dt>… uses SemanticRuleEngine rule_engine</dt>
+<dd>… which is org.apache.medex.SemanticRuleEngine
+… see all the regexlist.put(…, “FREQ”) calls
+… note double-escaping \ for Java’s benefit</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<ul>
+<li><p class="first">Rebuilding MedEx:</p>
+<p>export MEDEX_HOME=~/dev/MedEx_UIMA_1.3.6  # or similar
+cd ${MEDEX_HOME}
+# OPTIONAL # find . -name “<a href="#id1"><span class="problematic" id="id2">*</span></a>.class” -exec rm {} ;  # remove old compiled files
+javac </p>
+<blockquote>
+<div><p>-classpath “${MEDEX_HOME}/src:${MEDEX_HOME}/lib/<a href="#id3"><span class="problematic" id="id4">*</span></a>” src/org/apache/medex/Main.java -d bin</p>
+</div></blockquote>
+<p># … will also compile dependencies</p>
+<p>See build_medex_itself.py</p>
+</li>
+<li><p class="first">YES. If you add to org.apache.medex.SemanticRuleEngine, with extra entries
+in the “regexlist.put(…)” sequence, new frequencies appear in the output.</p>
+<p>To get them normalized as well, add them to frequency_rules.</p>
+<p>Specifics:
+(a) SemanticRuleEngine.java</p>
+<blockquote>
+<div><p>// EXTRA FOR UK FREQUENCIES (see <a class="reference external" href="http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations">http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations</a>)
+// NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case here
+regexlist.put(“^(q.?q.?h.?)( <a href="#id23"><span class="problematic" id="id24">|$)&quot;, &quot;FREQ&quot;);  // qqh, quarta quaque hora (RNC)
+regexlist.put(&quot;^(q\\.?d\\.?s\\.?)( |$)&quot;, &quot;FREQ&quot;);  // qds, quater die sumendum (RNC); must go before existing competing expression: regexlist.put(&quot;^q(\\.|</span></a>)\d+( <a href="#id5"><span class="problematic" id="id6">|</span></a>$)”,”FREQ”);
+regexlist.put(“^(t.?d.?s.?)( <a href="#id7"><span class="problematic" id="id8">|</span></a>$)”, “FREQ”);  // tds, ter die sumendum (RNC)
+regexlist.put(“^(b.?d.?)( <a href="#id9"><span class="problematic" id="id10">|</span></a>$)”, “FREQ”);  // bd, bis die (RNC)
+regexlist.put(“^(o.?d.?)( <a href="#id11"><span class="problematic" id="id12">|</span></a>$)”, “FREQ”);  // od, omni die (RNC)
+regexlist.put(“^(mane)( <a href="#id13"><span class="problematic" id="id14">|</span></a>$)”, “FREQ”);  // mane (RNC)
+regexlist.put(“^(o.?m.?)( <a href="#id15"><span class="problematic" id="id16">|</span></a>$)”, “FREQ”);  // om, omni mane (RNC)
+regexlist.put(“^(nocte)( <a href="#id17"><span class="problematic" id="id18">|</span></a>$)”, “FREQ”);  // nocte (RNC)
+regexlist.put(“^(o.?n.?)( <a href="#id19"><span class="problematic" id="id20">|</span></a>$)”, “FREQ”);  // on, omni nocte (RNC)
+regexlist.put(“^(fortnightly)( <a href="#id21"><span class="problematic" id="id22">|</span></a>$)”, “FREQ”);  // fortnightly (RNC)
+regexlist.put(“^((?:2|two)s+weekly)b”, “FREQ”);  // fortnightly (RNC)
+regexlist.put(“argh”, “FREQ”);  // fortnightly (RNC)
+// ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
+// NECESSITY, NOT FREQUENCY: prn (pro re nata)
+// TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)</p>
+</div></blockquote>
+<ol class="loweralpha simple" start="2">
+<li>frequency_rules</li>
+</ol>
+</li>
+</ul>
+<p>// EXTRA FOR UK FREQUENCIES (see <a class="reference external" href="http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations">http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations</a>)
+// NB case-sensitive regexes in Rule.java, so offer upper- and lower-case alternatives here
+// qqh, quarta quaque hora (RNC)
+expression=”b[Qq].?[Qq].?[Hh].?b”,val=”R1P4H”
+// qds, quater die sumendum (RNC); MUST BE BEFORE COMPETING “qd” (= per day) expression: expression=”[Qq].?[ ]?[Dd].?”,val=”R1P24H”
+expression=”b[Qq].?[Dd].?[Ss].?b”,val=”R1P6H”
+// tds, ter die sumendum (RNC)
+expression=”b[Tt].?[Dd].?[Ss].?b”,val=”R1P8H”
+// bd, bis die (RNC)
+expression=”b[Bb].?[Dd].?b”,val=”R1P12H”
+// od, omni die (RNC)
+expression=”b[Oo].?[Dd].?b”,val=”R1P24H”
+// mane (RNC)
+expression=”b[Mm][Aa][Nn][Ee]b”,val=”R1P24H”
+// om, omni mane (RNC)
+expression=”b[Oo].?[Mm].?b”,val=”R1P24H”
+// nocte (RNC)
+expression=”b[Nn][Oo][Cc][Tt][Ee]b”,val=”R1P24H”
+// on, omni nocte (RNC)
+expression=”b[Oo].?[Nn].?b”,val=”R1P24H”
+// fortnightly and variants (RNC); unsure if TIMEX3 format is right
+expression=”b[Ff][Oo][Rr][Tt][Nn][Ii][Gg][Hh][Tt][Ll][Yy]b”,val=”R1P2WEEK”
+expression=”b(?:2|[Tt][Ww][Oo])s+[Ww][Ee][Ee][Kk][Ll][Yy]b”,val=”R1P2WEEK”
+// monthly (RNC)
+expression=”b[Mm][Oo][Nn][Tt][Hh][Ll][Yy]b”,val=”R1P1MONTH”
+//
+// ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
+// NECESSITY, NOT FREQUENCY: prn (pro re nata)
+// TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)</p>
+<blockquote>
+<div><ol class="loweralpha" start="3">
+<li><p class="first">source:</p>
+<p><a class="reference external" href="http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations">http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations</a></p>
+</li>
+</ol>
+</div></blockquote>
+<ul>
+<li><p class="first">How about routes of administration?</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>MedTagger.printResult()</dt>
+<dd><p class="first last">route is in FStr_list[5]</p>
+</dd>
+<dt>… called from MedTagger.medtagging()</dt>
+<dd><p class="first">route is in FStr_list_final[5]
+before that, is in FStr (separated by n)</p>
+<blockquote class="last">
+<div><p>… from formatDruglist
+…
+… from logs, appears first next to “input for tagger” at</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>which point it’s in</dt>
+<dd><p class="first last">sent_token_array[j] (e.g. “po”)
+sent_tag_array[j] (e.g. “RUT” = route)</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>… from tag_dict
+… from filter_tags
+… from (Document) doc.filtered_drug_tag()
+…
+… ?from MedTagger.medtagging() calling doc.add_drug_tag()
+… no, not really; is in this bit:</p>
+<blockquote>
+<div><p>SuffixArray sa = new SuffixArray(…);
+Vector&lt;SuffixArrayResult&gt; result = sa.search();</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>… and then each element of result has a “semantic_type”</dt>
+<dd><p class="first last">member that can be “RUT”</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd>
+<dt>… SuffixArray.search()</dt>
+<dd><p class="first">semantic_type=this.lex.sem_list().get(i);</p>
+<dl class="last docutils">
+<dt>… where lex comes from MedTagger:</dt>
+<dd><p class="first last">this.lex = new Lexicon(this.lex_fname);</p>
+</dd>
+</dl>
+</dd>
+<dt>… Lexicon.sem_list() returns Lexicon.semantic_list</dt>
+<dd><p class="first last">… Lexicon.Lexicon() constructs using MedTagger’s this.lex_fname
+… which is lexicon.cfg</p>
+</dd>
+<dt>… aha! There it is. If a line in lexicon.cfg has a RUT tag, it’ll</dt>
+<dd><dl class="first docutils">
+<dt>appear as a route. So:</dt>
+<dd><p class="first last">grep “RUT$” lexicon.cfg | sort</p>
+</dd>
+</dl>
+<p class="last">bedside     RUT
+by mouth    RUT
+drip        RUT
+gt  RUT
+g tube      RUT
+g-tube      RUT
+gtube       RUT
+im injection        RUT
+im  RUT
+inhalation  RUT
+inhalatn    RUT
+inhaled     RUT
+intramuscular       RUT
+intravenously       RUT
+intravenous RUT
+iv  RUT
+j tube      RUT
+j-tube      RUT
+jtube       RUT
+nare        RUT
+nares       RUT
+naris       RUT
+neb RUT
+nostril     RUT
+orally      RUT
+oral        RUT
+ou  RUT
+patch       DDF-DOSEUNIT-RUT
+per gt      RUT
+per mouth   RUT
+per os      RUT
+per rectum  RUT
+per tube    RUT
+p. g        RUT
+pgt RUT
+png RUT
+pnj RUT
+p.o RUT
+po  RUT
+sc  RUT
+sl  RUT
+sq  RUT
+subc        RUT
+subcu       RUT
+subcutaneously      RUT
+subcutaneous        RUT
+subcut      RUT
+subling     RUT
+sublingual  RUT
+sub q       RUT
+subq        RUT
+swallow     RUT
+swish and spit      RUT
+sw&amp;spit     RUT
+sw&amp;swall    RUT
+topically   RUT
+topical     RUT
+topical tp  RUT
+trans       RUT
+with spacer RUT</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Looks like these are not using synonyms. Note also format is routetRUT
+Note also that the first element is always forced to lower case (in</p>
+<blockquote>
+<div><p>Lexicon.Lexicon()), so presumably it’s case-insensitive.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>There’s no specific comment format (though any line that doesn’t resolve</dt>
+<dd><p class="first last">to two items when split on a tab looks like it’s ignored).</p>
+</dd>
+</dl>
+<p>So we might want to add more; use</p>
+<blockquote>
+<div><p>build_medex_itself.py –extraroutes &gt;&gt; lexicon.cfg</p>
+</div></blockquote>
+</li>
+<li><p class="first">Note that all frequencies and routes must be in the lexicon.
+And all frequencies must be in SemanticRuleEngine.java (and, to be
+normalized, frequency_rules).</p>
+</li>
+<li><p class="first">USEFUL BIT FOR CHECKING RESULTS:</p>
+<dl class="docutils">
+<dt>SELECT</dt>
+<dd><p class="first last">sentence_text,
+drug, generic_name,
+form, strength, dose_amount,
+route, frequency, frequency_timex3,
+duration, necessity</p>
+</dd>
+</dl>
+<p>FROM anonymous_output.drugs;</p>
+</li>
+<li><p class="first">ENCODING
+- Pipe encoding (to Java’s stdin, from Java’s stdout) encoding is the less</p>
+<blockquote>
+<div><p>important as we’re only likely to send/receive ASCII. It’s hard-coded
+to UTF-8.</p>
+</div></blockquote>
+<ul>
+<li><p class="first">File encoding is vital and is hard-coded to UTF-8 here and in the
+receiving Java.</p>
+</li>
+<li><p class="first">We have no direct influence over the MedTagger code for output (unless we
+modify it). The output function is MedTagger.print_result(), which
+(line 2040 of MedTagger.java) calls out.write(stuff).
+The out variable is set by</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>this.out = new BufferedWriter(new FileWriter(output_dir</dt>
+<dd><ul class="first last simple">
+<li>File.separator + doc.fname()));</li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+<p>That form of the FileWriter constructor, FileWriter(String fileName),
+uses the “default character encoding”, as per</p>
+<blockquote>
+<div><p><a class="reference external" href="https://docs.oracle.com/javase/7/docs/api/java/io/FileWriter.html">https://docs.oracle.com/javase/7/docs/api/java/io/FileWriter.html</a></p>
+</div></blockquote>
+<p>That default is given by System.getProperty(“file.encoding”).
+However, we don’t have to do something daft like asking the Java to
+report its file encoding to Python through a pipe; instead, we can set
+the Java default encoding. It can’t be done dynamically, but it can be
+done at JVM launch:</p>
+<blockquote>
+<div><p><a class="reference external" href="http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding">http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding</a></p>
+</div></blockquote>
+<p>Therefore, we should have a Java parameter specified in the config file
+as</p>
+<blockquote>
+<div><p>-Dfile.encoding=UTF-8</p>
+</div></blockquote>
+</li>
+</ul>
+</li>
+</ul>
+<dl class="class">
+<dt id="crate_anon.nlp_manager.parse_medex.Medex">
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_medex.</code><code class="descname">Medex</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class controlling a Medex-UIMA external process, via our custom
+Java interface, CrateMedexPipeline.java.</p>
+<dl class="method">
+<dt id="crate_anon.nlp_manager.parse_medex.Medex.dest_tables_columns">
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="crate_anon.nlp_manager.parse_medex.Medex.frequency_and_timex">
+<em class="property">static </em><code class="descname">frequency_and_timex</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[str, NoneType], Union[str, NoneType]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.frequency_and_timex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits e.g. b.i.d.(R1P12H)</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="crate_anon.nlp_manager.parse_medex.Medex.get_text_start_end">
+<em class="property">static </em><code class="descname">get_text_start_end</code><span class="sig-paren">(</span><em>medex_str: Union[str, NoneType]</em><span class="sig-paren">)</span> &#x2192; Tuple[Union[str, NoneType], Union[int, NoneType], Union[int, NoneType]]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.get_text_start_end" title="Permalink to this definition">¶</a></dt>
+<dd><p>MedEx returns ‘drug’, ‘strength’, etc. as “aspirin[7,14]”, where the
+text is followed by the start position (zero-indexed) and the end
+position (one beyond the last character) (zero-indexed).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.parse_medex.Medex.parse">
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.parse" title="Permalink to this definition">¶</a></dt>
+<dd><ul class="simple">
+<li>Send text to the external process, and receive the result.</li>
+<li>Note that associated data is not passed into this function, and is
+kept in the Python environment, so we can’t run into any problems
+with the transfer to/from the Java program garbling important data.
+All we send to the subprocess is the text (and an input_terminator).
+Then, we may receive MULTIPLE sets of data back (“your text contains
+the following 7 people/drug references/whatever”), followed
+eventually by the output_terminator, at which point this set is
+complete.</li>
+</ul>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.parse_medex.Medex.test">
+<code class="descname">test</code><span class="sig-paren">(</span><em>verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.Medex.test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test the send function.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.nlp_manager.parse_medex.PseudoTempDir">
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.parse_medex.</code><code class="descname">PseudoTempDir</code><span class="sig-paren">(</span><em>name: str</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.parse_medex.PseudoTempDir" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class exists so that a TemporaryDirectory and a manually specified
+directory can be addressed via the same (very simple!) interface.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../anonymise/_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="parse_haematology.html"
+                        title="previous chapter">15.4.18. crate_anon.nlp_manager.parse_haematology</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="regex_func.html"
+                        title="next chapter">15.4.20. crate_anon.nlp_manager.regex_func</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/nlp_manager/parse_medex.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="regex_func.html" title="15.4.20. crate_anon.nlp_manager.regex_func"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="parse_haematology.html" title="15.4.18. crate_anon.nlp_manager.parse_haematology"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.4. crate_anon.nlp_manager</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

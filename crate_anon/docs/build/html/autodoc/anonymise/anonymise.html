@@ -1,0 +1,357 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.1.3. crate_anon.anonymise.anonymise &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="15.1.4. crate_anon.anonymise.anonymise_cli" href="anonymise_cli.html" />
+    <link rel="prev" title="15.1.2. crate_anon.anonymise.anonregex" href="anonregex.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="anonymise_cli.html" title="15.1.4. crate_anon.anonymise.anonymise_cli"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="anonregex.html" title="15.1.2. crate_anon.anonymise.anonregex"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.anonymise.anonymise">
+<span id="crate-anon-anonymise-anonymise"></span><h1>15.1.3. crate_anon.anonymise.anonymise<a class="headerlink" href="#module-crate_anon.anonymise.anonymise" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p>Anonymise multiple SQL-based databases using a data dictionary.</p>
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.anonymise">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">anonymise</code><span class="sig-paren">(</span><em>args: Any</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.anonymise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main entry point.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.commit_admindb">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">commit_admindb</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.commit_admindb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a COMMIT on the admin database, which is using ORM sessions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.commit_destdb">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">commit_destdb</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.commit_destdb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a COMMIT on the destination database, and reset row counts.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.create_indexes">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">create_indexes</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.create_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create indexes for the destination tables.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.delete_dest_rows_with_no_src_row">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">delete_dest_rows_with_no_src_row</code><span class="sig-paren">(</span><em>srcdbname: str</em>, <em>src_table: str</em>, <em>report_every: int = 100000</em>, <em>chunksize: int = 100000</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.delete_dest_rows_with_no_src_row" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database/table, delete any rows in the corresponding
+destination table where there is no corresponding source row.</p>
+<ul class="simple">
+<li>Can’t do this in a single SQL command, since the engine can’t
+necessarily see both databases.</li>
+<li>Can’t do this in a multiprocess way, because we’re trying to do a
+DELETE WHERE NOT IN.</li>
+<li>However, we can get stupidly long query lists if we try to SELECT all
+the values and use a DELETE FROM x WHERE y NOT IN (v1, v2, v3, …)
+query. This crashes the MySQL connection, etc.</li>
+<li>Therefore, we need a temporary table in the destination.</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.drop_remake">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">drop_remake</code><span class="sig-paren">(</span><em>incremental: bool = False</em>, <em>skipdelete: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.drop_remake" title="Permalink to this definition">¶</a></dt>
+<dd><p>Drop and rebuild (a) mapping table, (b) destination tables.
+If incremental is True, doesn’t drop tables; just deletes destination
+information where source information no longer exists.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.estimate_count_patients">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">estimate_count_patients</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="headerlink" href="#crate_anon.anonymise.anonymise.estimate_count_patients" title="Permalink to this definition">¶</a></dt>
+<dd><p>We can’t easily and quickly get the total number of patients, because they
+may be defined in multiple tables across multiple databases. We shouldn’t
+fetch them all into Python in case there are billions, and it’s a waste of
+effort to stash them in a temporary table and count unique rows, because
+this is all only for a progress indicator. So we approximate:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.gen_index_row_sets_by_table">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">gen_index_row_sets_by_table</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, List[crate_anon.anonymise.ddr.DataDictionaryRow]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.anonymise.anonymise.gen_index_row_sets_by_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate (table, list-of-DD-rows-for-indexed-fields) tuples for all tables
+requiring indexing.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.gen_nonpatient_tables_with_int_pk">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">gen_nonpatient_tables_with_int_pk</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, str, str], NoneType], NoneType]<a class="headerlink" href="#crate_anon.anonymise.anonymise.gen_nonpatient_tables_with_int_pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate (source db name, source table, PK name) tuples for all tables that
+(a) don’t contain patient information and
+(b) do have an integer PK.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.gen_nonpatient_tables_without_int_pk">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">gen_nonpatient_tables_without_int_pk</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, str], NoneType], NoneType]<a class="headerlink" href="#crate_anon.anonymise.anonymise.gen_nonpatient_tables_without_int_pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate (source db name, source table) tuples for all tables that
+(a) don’t contain patient information and
+(b) don’t have an integer PK.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.gen_patient_ids">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">gen_patient_ids</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; Generator[[int, NoneType], NoneType]<a class="headerlink" href="#crate_anon.anonymise.anonymise.gen_patient_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate patient IDs.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>sources: dictionary</dt>
+<dd>key: db name
+value: rnc_db database object</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.gen_pks">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">gen_pks</code><span class="sig-paren">(</span><em>srcdbname: str</em>, <em>tablename: str</em>, <em>pkname: str</em><span class="sig-paren">)</span> &#x2192; Generator[[int, NoneType], NoneType]<a class="headerlink" href="#crate_anon.anonymise.anonymise.gen_pks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate PK values from a table.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.gen_rows">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">gen_rows</code><span class="sig-paren">(</span><em>dbname: str, sourcetable: str, sourcefields: Iterable[str], pid: Union[int, str] = None, intpkname: str = None, tasknum: int = 0, ntasks: int = 1, debuglimit: int = 0</em><span class="sig-paren">)</span> &#x2192; Generator[[List[Any], NoneType], NoneType]<a class="headerlink" href="#crate_anon.anonymise.anonymise.gen_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates rows from a source table
+… each row being a list of values
+… each value corresponding to a field in sourcefields.</p>
+<p>… optionally restricted to a single patient</p>
+<p>If the table has a PK and we’re operating in a multitasking situation,
+generate just the rows for this task (thread/process).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.identical_record_exists_by_hash">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">identical_record_exists_by_hash</code><span class="sig-paren">(</span><em>dest_table: str</em>, <em>pkfield: str</em>, <em>pkvalue: int</em>, <em>hashvalue: str</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.anonymise.anonymise.identical_record_exists_by_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given PK in a given destination table, is there a record with the
+specified value for its source hash?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.identical_record_exists_by_pk">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">identical_record_exists_by_pk</code><span class="sig-paren">(</span><em>dest_table: str</em>, <em>pkfield: str</em>, <em>pkvalue: int</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.anonymise.anonymise.identical_record_exists_by_pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given PK in a given destination table, does a record exist?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.opting_out_mpid">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">opting_out_mpid</code><span class="sig-paren">(</span><em>mpid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.anonymise.anonymise.opting_out_mpid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does this patient wish to opt out?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.opting_out_pid">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">opting_out_pid</code><span class="sig-paren">(</span><em>pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; bool<a class="headerlink" href="#crate_anon.anonymise.anonymise.opting_out_pid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Does this patient wish to opt out?</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.patient_processing_fn">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">patient_processing_fn</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em>, <em>incremental: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.patient_processing_fn" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Iterate through patient IDs;</dt>
+<dd>build the scrubber for each patient;
+process source data for that patient, scrubbing it;
+insert the patient into the mapping table in the admin database.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.process_nonpatient_tables">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">process_nonpatient_tables</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em>, <em>incremental: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.process_nonpatient_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies all non-patient tables.
+If they have an integer PK, the work may be parallelized.
+If not, whole tables are assigned to different processes in parallel mode.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.process_patient_tables">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">process_patient_tables</code><span class="sig-paren">(</span><em>tasknum: int = 0</em>, <em>ntasks: int = 1</em>, <em>incremental: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.process_patient_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process all patient tables, optionally in a parallel-processing fashion.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.process_table">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">process_table</code><span class="sig-paren">(</span><em>sourcedbname: str</em>, <em>sourcetable: str</em>, <em>patient: crate_anon.anonymise.patient.Patient = None</em>, <em>incremental: bool = False</em>, <em>intpkname: str = None</em>, <em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.process_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process a table. This can either be a patient table (in which case the
+patient’s scrubber is applied and only rows for that patient are processed)
+or not (in which case the table is just copied).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.show_dest_counts">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">show_dest_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.show_dest_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the number of records in all destination tables.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.show_source_counts">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">show_source_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.show_source_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the number of records in all source tables.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.wipe_and_recreate_destination_db">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">wipe_and_recreate_destination_db</code><span class="sig-paren">(</span><em>incremental: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.wipe_and_recreate_destination_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Drop and recreate all destination tables (as specified in the DD) in the
+destination database.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.anonymise.wipe_opt_out_patients">
+<code class="descclassname">crate_anon.anonymise.anonymise.</code><code class="descname">wipe_opt_out_patients</code><span class="sig-paren">(</span><em>report_every: int = 1000</em>, <em>chunksize: int = 10000</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.anonymise.wipe_opt_out_patients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete any data from patients that have opted out (after their data was
+processed on a previous occasion).
+(Slightly complicated by the fact that the destination database can’t
+necessarily ‘see’ the mapping database, so we need to cache the RID keys in
+the destination database temporarily.)</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="anonregex.html"
+                        title="previous chapter">15.1.2. crate_anon.anonymise.anonregex</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="anonymise_cli.html"
+                        title="next chapter">15.1.4. crate_anon.anonymise.anonymise_cli</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/anonymise/anonymise.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="anonymise_cli.html" title="15.1.4. crate_anon.anonymise.anonymise_cli"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="anonregex.html" title="15.1.2. crate_anon.anonymise.anonregex"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

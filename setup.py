@@ -320,6 +320,7 @@ setup(
             # Documentation
 
             'crate_docs=crate_anon.tools.launch_docs:main',
+            'crate_help=crate_anon.tools.launch_docs:main',  # synonym
 
             # Preprocessing
 

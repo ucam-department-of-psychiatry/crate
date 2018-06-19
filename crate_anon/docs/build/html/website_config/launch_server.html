@@ -1,0 +1,242 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>8.4. Launch the CRATE web server &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.5. Configuring for Apache" href="apache.html" />
+    <link rel="prev" title="8.3. Manage the CRATE web server" href="django_manage.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="apache.html" title="8.5. Configuring for Apache"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="django_manage.html" title="8.3. Manage the CRATE web server"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">8. Configuring the CRATE web interface</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="launch-the-crate-web-server">
+<h1>8.4. Launch the CRATE web server<a class="headerlink" href="#launch-the-crate-web-server" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="crate-launch-cherrypy-server">
+<span id="id1"></span><h2>8.4.1. crate_launch_cherrypy_server<a class="headerlink" href="#crate-launch-cherrypy-server" title="Permalink to this headline">¶</a></h2>
+<p>This is the standard cross-platform production server for CRATE, using
+<a class="reference external" href="https://cherrypy.org/">CherryPy</a>.</p>
+<p>Options as of 2016-07-21:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: crate_launch_cherrypy_server runcpserver [-h] [--version]
+                                                [-v {0,1,2,3}]
+                                                [--settings SETTINGS]
+                                                [--pythonpath PYTHONPATH]
+                                                [--traceback] [--no-color]
+                                                [--host HOST] [--port PORT]
+                                                [--server_name SERVER_NAME]
+                                                [--threads THREADS]
+                                                [--ssl_certificate SSL_CERTIFICATE]
+                                                [--ssl_private_key SSL_PRIVATE_KEY]
+                                                [--log_screen]
+                                                [--no_log_screen]
+                                                [--debug_static]
+                                                [--root_path ROOT_PATH]
+
+Run this project in a CherryPy webserver. To do this, CherryPy is required
+(pip install cherrypy).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program&#39;s version number and exit
+  -v {0,1,2,3}, --verbosity {0,1,2,3}
+                        Verbosity level; 0=minimal output, 1=normal output,
+                        2=verbose output, 3=very verbose output
+  --settings SETTINGS   The Python path to a settings module, e.g.
+                        &quot;myproject.settings.main&quot;. If this isn&#39;t provided, the
+                        DJANGO_SETTINGS_MODULE environment variable will be
+                        used.
+  --pythonpath PYTHONPATH
+                        A directory to add to the Python path, e.g.
+                        &quot;/home/djangoprojects/myproject&quot;.
+  --traceback           Raise on CommandError exceptions
+  --no-color            Don&#39;t colorize the command output.
+  --host HOST           hostname to listen on (default: 127.0.0.1)
+  --port PORT           port to listen on (default: 8088)
+  --server_name SERVER_NAME
+                        CherryPy&#39;s SERVER_NAME environ entry (default:
+                        localhost)
+  --threads THREADS     Number of threads for server to use (default: 10)
+  --ssl_certificate SSL_CERTIFICATE
+                        SSL certificate file (e.g. /etc/ssl/certs/ssl-cert-
+                        snakeoil.pem)
+  --ssl_private_key SSL_PRIVATE_KEY
+                        SSL private key file (e.g. /etc/ssl/private/ssl-cert-
+                        snakeoil.key)
+  --log_screen          log access requests etc. to terminal (default)
+  --no_log_screen       don&#39;t log access requests etc. to terminal
+  --debug_static        show debug info for static file requests
+  --root_path ROOT_PATH
+                        Root path to serve CRATE at. Default: /crate
+</pre></div>
+</div>
+</div>
+<div class="section" id="crate-launch-django-server">
+<h2>8.4.2. crate_launch_django_server<a class="headerlink" href="#crate-launch-django-server" title="Permalink to this headline">¶</a></h2>
+<p>This is a lightweight test server, using <a class="reference external" href="https://www.djangoproject.com/">Django</a> itself.</p>
+<p>Options as of 2016-07-21:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: crate_launch_django_server runserver [-h] [--version] [-v {0,1,2,3}]
+                                            [--settings SETTINGS]
+                                            [--pythonpath PYTHONPATH]
+                                            [--traceback] [--no-color]
+                                            [--ipv6] [--nothreading]
+                                            [--noreload] [--nostatic]
+                                            [--insecure]
+                                            [addrport]
+
+Starts a lightweight Web server for development and also serves static files.
+
+positional arguments:
+  addrport              Optional port number, or ipaddr:port
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program&#39;s version number and exit
+  -v {0,1,2,3}, --verbosity {0,1,2,3}
+                        Verbosity level; 0=minimal output, 1=normal output,
+                        2=verbose output, 3=very verbose output
+  --settings SETTINGS   The Python path to a settings module, e.g.
+                        &quot;myproject.settings.main&quot;. If this isn&#39;t provided, the
+                        DJANGO_SETTINGS_MODULE environment variable will be
+                        used.
+  --pythonpath PYTHONPATH
+                        A directory to add to the Python path, e.g.
+                        &quot;/home/djangoprojects/myproject&quot;.
+  --traceback           Raise on CommandError exceptions
+  --no-color            Don&#39;t colorize the command output.
+  --ipv6, -6            Tells Django to use an IPv6 address.
+  --nothreading         Tells Django to NOT use threading.
+  --noreload            Tells Django to NOT use the auto-reloader.
+  --nostatic            Tells Django to NOT automatically serve static files
+                        at STATIC_URL.
+  --insecure            Allows serving static files even if DEBUG is False.
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Configuring the CRATE web interface</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Configuring the web front end</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_config_file.html">8.2. Web config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="django_manage.html">8.3. Manage the CRATE web server</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.4. Launch the CRATE web server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apache.html">8.5. Configuring for Apache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_celery.html">8.6. Launch Celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows_service.html">8.7. CRATE Windows service</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="django_manage.html"
+                        title="previous chapter">8.3. Manage the CRATE web server</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="apache.html"
+                        title="next chapter">8.5. Configuring for Apache</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/website_config/launch_server.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="apache.html" title="8.5. Configuring for Apache"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="django_manage.html" title="8.3. Manage the CRATE web server"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >8. Configuring the CRATE web interface</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

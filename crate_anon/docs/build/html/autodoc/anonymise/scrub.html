@@ -1,0 +1,262 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.1.17. crate_anon.anonymise.scrub &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="15.1.18. crate_anon.anonymise.test_anonymisation" href="test_anonymisation.html" />
+    <link rel="prev" title="15.1.16. crate_anon.anonymise.patient" href="patient.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="test_anonymisation.html" title="15.1.18. crate_anon.anonymise.test_anonymisation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="patient.html" title="15.1.16. crate_anon.anonymise.patient"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.anonymise.scrub">
+<span id="crate-anon-anonymise-scrub"></span><h1>15.1.17. crate_anon.anonymise.scrub<a class="headerlink" href="#module-crate_anon.anonymise.scrub" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p>Scrubber classes for CRATE anonymiser.</p>
+<dl class="class">
+<dt id="crate_anon.anonymise.scrub.NonspecificScrubber">
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">NonspecificScrubber</code><span class="sig-paren">(</span><em>replacement_text: str</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher</em>, <em>anonymise_codes_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_word_boundaries_only: bool = True</em>, <em>blacklist: crate_anon.anonymise.scrub.WordList = None</em>, <em>scrub_all_numbers_of_n_digits: List[int] = None</em>, <em>scrub_all_uk_postcodes: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="crate_anon.anonymise.scrub.NonspecificScrubber.get_hash">
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber.get_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a hash of the scrubber itself.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.NonspecificScrubber.scrub">
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.NonspecificScrubber.scrub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a scrubbed version of the text.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.anonymise.scrub.PersonalizedScrubber">
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">PersonalizedScrubber</code><span class="sig-paren">(</span><em>replacement_text_patient: str</em>, <em>replacement_text_third_party: str</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher</em>, <em>anonymise_codes_at_word_boundaries_only: bool = True</em>, <em>anonymise_dates_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_word_boundaries_only: bool = True</em>, <em>anonymise_numbers_at_numeric_boundaries_only: bool = True</em>, <em>anonymise_strings_at_word_boundaries_only: bool = True</em>, <em>min_string_length_for_errors: int = 4</em>, <em>min_string_length_to_scrub_with: int = 3</em>, <em>scrub_string_suffixes: List[str] = None</em>, <em>string_max_regex_errors: int = 0</em>, <em>whitelist: crate_anon.anonymise.scrub.WordList = None</em>, <em>nonspecific_scrubber: crate_anon.anonymise.scrub.NonspecificScrubber = None</em>, <em>debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts patient-specific (patient and third-party) information, and
+uses that to scrub text.</p>
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.add_value">
+<code class="descname">add_value</code><span class="sig-paren">(</span><em>value: Any</em>, <em>scrub_method: crate_anon.anonymise.constants.SCRUBMETHOD</em>, <em>patient: bool = True</em>, <em>clear_cache: bool = True</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.add_value" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a specific value via a specific scrub_method.</p>
+<p>The patient flag controls whether it’s treated as a patient value or
+a third-party value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_hash">
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a hash of the scrubber itself.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_patient_regex_string">
+<code class="descname">get_patient_regex_string</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_patient_regex_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the string version of the patient regex, sorted.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_scrub_method">
+<em class="property">static </em><code class="descname">get_scrub_method</code><span class="sig-paren">(</span><em>datatype_long: str, scrub_method: Union[crate_anon.anonymise.constants.SCRUBMETHOD, NoneType]</em><span class="sig-paren">)</span> &#x2192; crate_anon.anonymise.constants.SCRUBMETHOD<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_scrub_method" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the default scrub method for a given SQL datatype,
+unless overridden.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.get_tp_regex_string">
+<code class="descname">get_tp_regex_string</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.get_tp_regex_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the string version of the third-party regex, sorted.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.PersonalizedScrubber.scrub">
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Union[str, NoneType]<a class="headerlink" href="#crate_anon.anonymise.scrub.PersonalizedScrubber.scrub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scrub some text and return the scrubbed result.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.anonymise.scrub.ScrubberBase">
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">ScrubberBase</code><span class="sig-paren">(</span><em>hasher: cardinal_pythonlib.hash.GenericHasher</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scrubber base class.</p>
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.ScrubberBase.get_hash">
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase.get_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a hash of the scrubber itself.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.ScrubberBase.scrub">
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.ScrubberBase.scrub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a scrubbed version of the text.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.anonymise.scrub.WordList">
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.scrub.</code><code class="descname">WordList</code><span class="sig-paren">(</span><em>filenames: Iterable[str] = None</em>, <em>words: Iterable[str] = None</em>, <em>replacement_text: str = '[---]'</em>, <em>hasher: cardinal_pythonlib.hash.GenericHasher = None</em>, <em>suffixes: List[str] = None</em>, <em>at_word_boundaries_only: bool = True</em>, <em>max_errors: int = 0</em>, <em>regex_method: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.scrub.WordList" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="crate_anon.anonymise.scrub.WordList.clear_cache">
+<code class="descname">clear_cache</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.clear_cache" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clear cached information.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.WordList.get_hash">
+<code class="descname">get_hash</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.get_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a hash of the scrubber itself.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.scrub.WordList.scrub">
+<code class="descname">scrub</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.scrub.WordList.scrub" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a scrubbed version of the text.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="patient.html"
+                        title="previous chapter">15.1.16. crate_anon.anonymise.patient</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="test_anonymisation.html"
+                        title="next chapter">15.1.18. crate_anon.anonymise.test_anonymisation</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/anonymise/scrub.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="test_anonymisation.html" title="15.1.18. crate_anon.anonymise.test_anonymisation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="patient.html" title="15.1.16. crate_anon.anonymise.patient"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,244 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>6.7. Run the anonymiser &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="7. Natural language processing (NLP)" href="../nlp/index.html" />
+    <link rel="prev" title="6.6. Data dictionary (DD)" href="data_dictionary.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../nlp/index.html" title="7. Natural language processing (NLP)"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="data_dictionary.html" title="6.6. Data dictionary (DD)"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">6. Anonymisation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="run-the-anonymiser">
+<h1>6.7. Run the anonymiser<a class="headerlink" href="#run-the-anonymiser" title="Permalink to this headline">¶</a></h1>
+<p>Now you’ve created and edited your config file and data dictionary, you can run
+the anonymiser in one of the following ways:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crate_anonymise --full
+crate_anonymise --incremental
+crate_anonymise_multiprocess --full
+crate_anonymise_multiprocess --incremental
+</pre></div>
+</div>
+<p>The ‘multiprocess’ versions are faster (if you have a multi-core/-CPU
+computer). The ‘full’ option destroys the destination database and starts
+again. The ‘incremental’ one brings the destination database up to date
+(creating it if necessary). The default is ‘incremental’, for safety reasons.</p>
+<p>Get more help with</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crate_anonymise --help
+</pre></div>
+</div>
+<div class="section" id="crate-anonymise">
+<h2>6.7.1. crate_anonymise<a class="headerlink" href="#crate-anonymise" title="Permalink to this headline">¶</a></h2>
+<p>This runs a single-process anonymiser.</p>
+<p>Options as of 2017-02-28:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: crate_anonymise [-h] [--version] [--democonfig] [--config CONFIG]
+                       [--verbose] [--reportevery [REPORTEVERY]]
+                       [--chunksize [CHUNKSIZE]] [--process [PROCESS]]
+                       [--nprocesses [NPROCESSES]]
+                       [--processcluster PROCESSCLUSTER] [--draftdd]
+                       [--incrementaldd] [--debugscrubbers] [--savescrubbers]
+                       [--count] [--dropremake] [--optout]
+                       [--nonpatienttables] [--patienttables] [--index]
+                       [--skip_dd_check] [-i | -f] [--skipdelete]
+                       [--seed SEED] [--echo]
+                       [--checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]]
+
+Database anonymiser. Version 0.18.12 (2017-02-26). By Rudolf Cardinal.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --version             show program&#39;s version number and exit
+  --democonfig          Print a demo config file
+  --config CONFIG       Config file (overriding environment variable
+                        CRATE_ANON_CONFIG)
+  --verbose, -v         Be verbose
+  --reportevery [REPORTEVERY]
+                        Report insert progress every n rows in verbose mode
+                        (default 100000)
+  --chunksize [CHUNKSIZE]
+                        Number of records copied in a chunk when copying PKs
+                        from one database to another (default 100000)
+  --process [PROCESS]   For multiprocess mode: specify process number
+  --nprocesses [NPROCESSES]
+                        For multiprocess mode: specify total number of
+                        processes (launched somehow, of which this is to be
+                        one)
+  --processcluster PROCESSCLUSTER
+                        Process cluster name
+  --draftdd             Print a draft data dictionary
+  --incrementaldd       Print an INCREMENTAL draft data dictionary
+  --debugscrubbers      Report sensitive scrubbing information, for debugging
+  --savescrubbers       Saves sensitive scrubbing information in admin
+                        database, for debugging
+  --count               Count records in source/destination databases, then
+                        stop
+  --dropremake          Drop/remake destination tables, then stop
+  --optout              Build opt-out list, then stop
+  --nonpatienttables    Process non-patient tables only
+  --patienttables       Process patient tables only
+  --index               Create indexes only
+  --skip_dd_check       Skip data dictionary validity check
+  -i, --incremental     Process only new/changed information, where possible
+                        (* default)
+  -f, --full            Drop and remake everything
+  --skipdelete          For incremental updates, skip deletion of rows present
+                        in the destination but not the source
+  --seed SEED           String to use as the basis of the seed for the random
+                        number generator used for the transient integer RID
+                        (TRID). Leave blank to use the default seed (system
+                        time).
+  --echo                Echo SQL
+  --checkextractor [CHECKEXTRACTOR [CHECKEXTRACTOR ...]]
+                        File extensions to check for availability of a text
+                        extractor (use a &#39;.&#39; prefix, and use the special
+                        extension &#39;None&#39; to check the fallback processor
+</pre></div>
+</div>
+</div>
+<div class="section" id="crate-anonymise-multiprocess">
+<h2>6.7.2. crate_anonymise_multiprocess<a class="headerlink" href="#crate-anonymise-multiprocess" title="Permalink to this headline">¶</a></h2>
+<p>This runs multiple copies of <code class="docutils literal notranslate"><span class="pre">crate_anonymise</span></code> in parallel.</p>
+<p>Options as of 2017-02-28:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: crate_anonymise_multiprocess [-h] [--nproc [NPROC]] [--verbose]
+
+Runs the CRATE anonymiser in parallel. Version 0.18.12 (2017-02-26). Note that
+all arguments not specified here are passed to the underlying script (see
+crate_anonymise --help).
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --nproc [NPROC], -n [NPROC]
+                        Number of processes (default on this machine: 8)
+  --verbose, -v         Be verbose
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">6. Anonymisation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">6.1. Overview of anonymisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_prerequisites.html">6.2. Data and database prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ancillary.html">6.3. Ancillary tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocessing.html">6.4. Preprocessing tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anon_config.html">6.5. The anonymiser config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_dictionary.html">6.6. Data dictionary (DD)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">6.7. Run the anonymiser</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="data_dictionary.html"
+                        title="previous chapter">6.6. Data dictionary (DD)</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../nlp/index.html"
+                        title="next chapter">7. Natural language processing (NLP)</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/anonymisation/anonymise.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../nlp/index.html" title="7. Natural language processing (NLP)"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="data_dictionary.html" title="6.6. Data dictionary (DD)"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >6. Anonymisation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,409 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.6.5. crate_anon.tools.winservice &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="16. Change log/history" href="../../changelog.html" />
+    <link rel="prev" title="15.6.4. crate_anon.tools.print_crateweb_demo_config" href="print_crateweb_demo_config.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../changelog.html" title="16. Change log/history"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="print_crateweb_demo_config.html" title="15.6.4. crate_anon.tools.print_crateweb_demo_config"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.6. crate_anon.tools</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.tools.winservice">
+<span id="crate-anon-tools-winservice"></span><h1>15.6.5. crate_anon.tools.winservice<a class="headerlink" href="#module-crate_anon.tools.winservice" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p>Run the CRATE web service as a Windows service.</p>
+<dl class="docutils">
+<dt>Details:</dt>
+<dd><p class="first"><a class="reference external" href="http://stackoverflow.com/questions/32404">http://stackoverflow.com/questions/32404</a>
+<a class="reference external" href="http://www.chrisumbel.com/article/windows_services_in_python">http://www.chrisumbel.com/article/windows_services_in_python</a>
+<a class="reference external" href="http://code.activestate.com/recipes/551780-win-services-helper/">http://code.activestate.com/recipes/551780-win-services-helper/</a>
+<a class="reference external" href="http://docs.activestate.com/activepython/2.4/pywin32/PyWin32.HTML">http://docs.activestate.com/activepython/2.4/pywin32/PyWin32.HTML</a></p>
+<blockquote>
+<div><a class="reference external" href="http://docs.activestate.com/activepython/2.4/pywin32/modules.html">http://docs.activestate.com/activepython/2.4/pywin32/modules.html</a></div></blockquote>
+<dl class="docutils">
+<dt>source:</dt>
+<dd>…venv…/Lib/site-packages/win32/lib/win32serviceutil.py</dd>
+</dl>
+<p class="last"><a class="reference external" href="http://docs.activestate.com/activepython/3.3/pywin32/servicemanager.html">http://docs.activestate.com/activepython/3.3/pywin32/servicemanager.html</a>
+<a class="reference external" href="http://timgolden.me.uk/pywin32-docs/contents.html">http://timgolden.me.uk/pywin32-docs/contents.html</a></p>
+</dd>
+<dt>Synopsis:</dt>
+<dd><ul class="first last simple">
+<li>INSTALL: run this script with “install” argument, as administrator</li>
+<li>RUN: use Windows service manager, or NET START CRATE</li>
+<li>STOP: use Windows service manager, or NET STOP CRATE</li>
+<li>STATUS: SC QUERY CRATE</li>
+<li><dl class="first docutils">
+<dt>DEBUG: run this script with “debug” argument</dt>
+<dd>Log messages are sent to the console.
+Press CTRL-C to abort.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>If the debug script succeeds but the start command doesn’t…</dt>
+<dd><ul class="first last">
+<li><p class="first">Find the service in the Windows service manage.</p>
+</li>
+<li><p class="first">Right-click it and inspect its properties. You’ll see the name of the
+actual program being run, e.g.</p>
+<blockquote>
+<div><p>D:venvscrateLibsite-packageswin32pythonservice.exe</p>
+</div></blockquote>
+</li>
+<li><p class="first">Try running this from the command line (outside any virtual 
+environment).</p>
+</li>
+<li><dl class="first docutils">
+<dt>In my case this failed with:</dt>
+<dd><p class="first last">pythonservice.exe - Unable to Locate Component
+This application has failed to start because pywintypes34.dll was not
+found. Re-installing the application may fix this problem.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>That DLL was in:</dt>
+<dd><p class="first last">D:venvscrateLibsite-packagespypiwin32_system32</p>
+</dd>
+</dl>
+<p>… so add that to the system PATH
+… and reboot
+… and then it’s happy.</p>
+</li>
+<li><p class="first">However, that’s not ideal for a virtual environment!</p>
+</li>
+<li><p class="first">Looking at win32serviceutil.py, it seems we could do better by
+specifying _exe_name_ (to replace the default PythonService.exe) and
+_exe_args_. The sequence</p>
+<blockquote>
+<div><p>myscript.py install
+-&gt; win32serviceutil.HandleCommandLine()</p>
+<blockquote>
+<div><p>… fishes things out of cls._exe_name_, etc.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>-&gt; win32serviceutil.InstallService()</dt>
+<dd><p class="first last">… builds a command line
+… by default:
+“d:venvscratelibsite-packageswin32PythonService.exe”</p>
+</dd>
+</dl>
+<p>-&gt; win32service.CreateService()</p>
+</div></blockquote>
+</li>
+<li><p class="first">So how, in the normal situation, does PythonService.exe find our
+script?</p>
+</li>
+<li><p class="first">At this point, see also <a class="reference external" href="http://stackoverflow.com/questions/34696815">http://stackoverflow.com/questions/34696815</a></p>
+</li>
+<li><p class="first">Source code is:
+<a class="reference external" href="https://github.com/tjguk/pywin32/blob/master/win32/src/PythonService.cpp">https://github.com/tjguk/pywin32/blob/master/win32/src/PythonService.cpp</a></p>
+</li>
+<li><p class="first">Starting a service directly with PrepareToHostSingle:
+<a class="reference external" href="https://mail.python.org/pipermail/python-win32/2008-April/007299.html">https://mail.python.org/pipermail/python-win32/2008-April/007299.html</a>
+<a class="reference external" href="https://mail.python.org/pipermail/python-win32/2010-May/010487.html">https://mail.python.org/pipermail/python-win32/2010-May/010487.html</a></p>
+</li>
+<li><p class="first">SUCCESS! Method is:</p>
+<p>In service class:</p>
+<blockquote>
+<div><p>_exe_name_ = sys.executable  # python.exe in the virtualenv
+_exe_args_ = ‘”{}”’.format(os.path.realpath(__file__))  # this script</p>
+</div></blockquote>
+<p>In main:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>if len(sys.argv) == 1:</dt>
+<dd><dl class="first last docutils">
+<dt>try:</dt>
+<dd><p class="first last">print(“Trying to start service directly…”)
+evtsrc_dll = os.path.abspath(servicemanager.__file__)
+servicemanager.PrepareToHostSingle(CratewebService)  # CLASS
+servicemanager.Initialize(‘aservice’, evtsrc_dll)
+servicemanager.StartServiceCtrlDispatcher()</p>
+</dd>
+<dt>except win32service.error as details:</dt>
+<dd><p class="first">print(“Failed: {}”.format(details))
+# print(repr(details.__dict__))
+errnum = details.winerror
+if errnum == winerror.ERROR_FAILED_SERVICE_CONTROLLER_CONNECT:</p>
+<blockquote class="last">
+<div><p>win32serviceutil.usage()</p>
+</div></blockquote>
+</dd>
+</dl>
+</dd>
+<dt>else:</dt>
+<dd><p class="first last">win32serviceutil.HandleCommandLine(CratewebService)  # CLASS</p>
+</dd>
+</dl>
+</div></blockquote>
+</li>
+<li><p class="first">Now, if you run it directly with no arguments, from a command prompt, 
+it will fail and print the usage message, but if you run it from the
+service manager (with no arguments), it’ll start the service. Everything
+else seems to work. Continues to work when the PATH doesn’t include the
+virtual environment.</p>
+</li>
+<li><p class="first">However, it breaks the “debug” option. The “debug” option reads the
+registry about the INSTALLED service to establish the name of the program
+that it runs. It assumes PythonService.exe.</p>
+</li>
+</ul>
+</dd>
+<dt>Script parameters:</dt>
+<dd><p class="first">If you run this script with no parameters, you’ll see this:</p>
+<p>Usage: ‘crate_windows_service-script.py [options] install|update|remove|start […]|stop|restart […]|debug […]’
+Options for ‘install’ and ‘update’ commands only:</p>
+<blockquote>
+<div><p>–username domainusername : The Username the service is to run under
+–password password : The password for the username
+–startup [manual|auto|disabled|delayed] : How the service starts, default = manual
+–interactive : Allow the service to interact with the desktop.
+–perfmonini file: .ini file to use for registering performance monitor data
+–perfmondll file: .dll file to use when querying the service for</p>
+<blockquote>
+<div>performance data, default = perfmondata.dll</div></blockquote>
+</div></blockquote>
+<dl class="last docutils">
+<dt>Options for ‘start’ and ‘stop’ commands only:</dt>
+<dd><dl class="first last docutils">
+<dt>–wait seconds: Wait for the service to actually start or stop.</dt>
+<dd>If you specify –wait with the ‘stop’ option, the service
+and all dependent services will be stopped, each waiting
+the specified period.</dd>
+</dl>
+</dd>
+<dt>Windows functions:</dt>
+<dd><ul class="first last simple">
+<li>CreateEvent: <a class="reference external" href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms682396(v=vs.85).aspx">https://msdn.microsoft.com/en-us/library/windows/desktop/ms682396(v=vs.85).aspx</a></li>
+<li>WaitForSingleObject: <a class="reference external" href="https://msdn.microsoft.com/en-us/library/windows/desktop/ms687032(v=vs.85).aspx">https://msdn.microsoft.com/en-us/library/windows/desktop/ms687032(v=vs.85).aspx</a></li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="section" id="problems-killing-things">
+<h2>15.6.5.1. Problems killing things<a class="headerlink" href="#problems-killing-things" title="Permalink to this headline">¶</a></h2>
+<p>We had this:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>def terminate(self):</dt>
+<dd><dl class="first last docutils">
+<dt>if not self.running:</dt>
+<dd>return</dd>
+<dt>if WINDOWS:</dt>
+<dd><p class="first"># Under Windows, terminate() is an alias for kill(), which is
+# the hard kill. This is the soft kill:
+# <a class="reference external" href="https://docs.python.org/3.4/library/subprocess.html">https://docs.python.org/3.4/library/subprocess.html</a></p>
+<p># SOMETHING GOES SERIOUSLY AWRY HERE.
+# - Tracebacks are from a slightly irrelevant place.
+# - Not all instances of OSError are caught.
+# - Running two processes, you get messages like:
+#       * process 1/2: sending CTRL-C
+#       * process 2/2: failed to send CTRL-C…
+#   without the other expected pair of messages.
+# DOES THIS MEAN A BUG IN SUBPROCESS?
+# Not sure. Removed “send_signal” code.</p>
+<p># try:
+#     # Ctrl-C is generally “softer” than Ctrl-Break.
+#     # Specifically: CherryPy prints exiting message upon Ctrl-C
+#     # and just stops on Ctrl-Break.
+#     self.warning(“Asking process to stop (sending CTRL-C)”)
+#     self.process.send_signal(CTRL_C_EVENT)
+#     # self.warning(“Asking process to stop (sending CTRL-BREAK)”)
+#     # self.process.send_signal(CTRL_BREAK_EVENT)
+# except OSError:
+#     # In practice: “OSError: [WinError 6] The handle is invalid”
+#     self.warning(“Failed to send CTRL-C; using hard kill”)
+#     self.process.terminate()  # hard kill under Windows</p>
+<p>self.warning(“Can’t terminate nicely; using hard kill”)
+self.process.terminate()  # hard kill under Windows</p>
+<p class="last"># The PROBLEM is that Celery processes live on.</p>
+</dd>
+<dt>else:</dt>
+<dd>self.warning(“Asking process to stop (SIGTERM)”)
+self.process.terminate()  # soft kill under POSIX</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<p>However, the CTRL-C/CTRL-BREAK method failed, and a hard kill left Celery
+stuff running (because it killed the root, not child, processes, I presume).
+Looked at django-windows-tools,</p>
+<blockquote>
+<div><a class="reference external" href="https://pypi.python.org/pypi/django-windows-tools">https://pypi.python.org/pypi/django-windows-tools</a>
+<a class="reference external" href="https://github.com/antoinemartin/django-windows-tools">https://github.com/antoinemartin/django-windows-tools</a></div></blockquote>
+<p>but it crashed in a print statement – Python 2 only at present (2016-05-11,
+version 0.1.1). However, its process management is instructive; it uses
+“multiprocessing”, not “subprocess”. The multiprocessing module calls Python
+functions. And its docs explicitly note that terminate() leaves descendant
+processes orphaned.</p>
+<dl class="docutils">
+<dt>See in particular</dt>
+<dd><a class="reference external" href="http://stackoverflow.com/questions/7085604/sending-c-to-python-subprocess-objects-on-windows">http://stackoverflow.com/questions/7085604/sending-c-to-python-subprocess-objects-on-windows</a>
+<a class="reference external" href="http://stackoverflow.com/questions/140111/sending-an-arbitrary-signal-in-windows">http://stackoverflow.com/questions/140111/sending-an-arbitrary-signal-in-windows</a></dd>
+<dt>Python bug?</dt>
+<dd><a class="reference external" href="http://bugs.python.org/issue3905">http://bugs.python.org/issue3905</a>
+<a class="reference external" href="http://bugs.python.org/issue13368">http://bugs.python.org/issue13368</a></dd>
+<dt>Maybe a subprocess bug. Better luck with</dt>
+<dd>ctypes.windll.kernel32.GenerateConsoleCtrlEvent</dd>
+<dt>Current method tries a variety of things under Windows:</dt>
+<dd>CTRL-C -&gt; CTRL-BREAK -&gt; TASKKILL /T -&gt; TASKKILL /T /F -&gt; kill()</dd>
+</dl>
+<p>… which are progressively less graceful in terms of child processes getting
+to clean up. Still, it works (usually at one of the two TASKKILL stages).</p>
+</div>
+<div class="section" id="the-specified-service-is-marked-for-deletion">
+<h2>15.6.5.2. “The specified service is marked for deletion”<a class="headerlink" href="#the-specified-service-is-marked-for-deletion" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://stackoverflow.com/questions/20561990">http://stackoverflow.com/questions/20561990</a></p>
+<dl class="class">
+<dt id="crate_anon.tools.winservice.CratewebService">
+<em class="property">class </em><code class="descclassname">crate_anon.tools.winservice.</code><code class="descname">CratewebService</code><span class="sig-paren">(</span><em>args: List[Any] = None</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.tools.winservice.CratewebService" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../anonymise/_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="print_crateweb_demo_config.html"
+                        title="previous chapter">15.6.4. crate_anon.tools.print_crateweb_demo_config</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../../changelog.html"
+                        title="next chapter">16. Change log/history</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/tools/winservice.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../../changelog.html" title="16. Change log/history"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="print_crateweb_demo_config.html" title="15.6.4. crate_anon.tools.print_crateweb_demo_config"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.6. crate_anon.tools</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

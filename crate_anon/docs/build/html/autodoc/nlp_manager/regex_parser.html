@@ -1,0 +1,448 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.4.22. crate_anon.nlp_manager.regex_parser &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="15.4.23. crate_anon.nlp_manager.regex_test" href="regex_test.html" />
+    <link rel="prev" title="15.4.21. crate_anon.nlp_manager.regex_numbers" href="regex_numbers.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="regex_test.html" title="15.4.23. crate_anon.nlp_manager.regex_test"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="regex_numbers.html" title="15.4.21. crate_anon.nlp_manager.regex_numbers"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.4. crate_anon.nlp_manager</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.nlp_manager.regex_parser">
+<span id="crate-anon-nlp-manager-regex-parser"></span><h1>15.4.22. crate_anon.nlp_manager.regex_parser<a class="headerlink" href="#module-crate_anon.nlp_manager.regex_parser" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<dl class="class">
+<dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser">
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">NumeratorOutOfDenominatorParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>variable_name: str</em>, <em>variable_regex_str: str</em>, <em>expected_denominator: int</em>, <em>numerator_text_fieldname: str = 'numerator_text'</em>, <em>numerator_fieldname: str = 'numerator'</em>, <em>denominator_text_fieldname: str = 'denominator_text'</em>, <em>denominator_fieldname: str = 'denominator'</em>, <em>correct_numerator_fieldname: str = None</em>, <em>take_absolute: bool = True</em>, <em>commit: bool = False</em>, <em>debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for X-out-of-Y numerical results, e.g. for MMSE/ACE.
+Integer denominator, expected to be positive.
+Otherwise similar to SimpleNumericalResultParser.</p>
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.dest_tables_columns">
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.parse">
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default parser for NumeratorOutOfDenominatorParser.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.test_numerator_denominator_parser">
+<code class="descname">test_numerator_denominator_parser</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, List[Tuple[float, float]]]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumeratorOutOfDenominatorParser.test_numerator_denominator_parser" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>test_expected_list: list of tuples of (a) test string and</dt>
+<dd>(b) list of expected numerical (numerator, denominator) results, which
+can be an empty list</dd>
+</dl>
+<p>Returns: none; will assert on failure</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser">
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">NumericalResultParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>cfgsection: str</em>, <em>variable: str</em>, <em>target_unit: str</em>, <em>regex_str_for_debugging: str</em>, <em>commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>DO NOT USE DIRECTLY. Base class for generic numerical results, where
+a SINGLE variable is produced.</p>
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.dest_tables_columns">
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.parse">
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default parser for NumericalResultParser.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.set_tablename">
+<code class="descname">set_tablename</code><span class="sig-paren">(</span><em>tablename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.set_tablename" title="Permalink to this definition">¶</a></dt>
+<dd><p>In case a friend class wants to override.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.NumericalResultParser.test_numerical_parser">
+<code class="descname">test_numerical_parser</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, List[float]]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.NumericalResultParser.test_numerical_parser" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>test_expected_list: list of tuples of (a) test string and</dt>
+<dd>(b) list of expected numerical (float) results, which can be an
+empty list</dd>
+</dl>
+<p>Returne: none; will assert on failure</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser">
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">SimpleNumericalResultParser</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition, cfgsection: str, regex_str: str, variable: str, target_unit: str, units_to_factor: Dict[str, float], take_absolute: bool = False, commit: bool = False, debug: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Base class for simple single-format numerical results. Use this when
+not only do you have a single variable to produce, but you have a single
+regex (in a standard format) that can produce it.</p>
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser.parse">
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em>, <em>debug: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.SimpleNumericalResultParser.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default parser for SimpleNumericalResultParser.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase">
+<em class="property">class </em><code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">ValidatorBase</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition, cfgsection: str, regex_str_list: List[str], validated_variable: str, commit: bool = False</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase" title="Permalink to this definition">¶</a></dt>
+<dd><p>DO NOT USE DIRECTLY. Base class for validating regex parser sensitivity.
+The validator will find fields that refer to the variable, whether or not
+they meet the other criteria of the actual NLP processors (i.e. whether or
+not they contain a valid value). More explanation below.</p>
+<dl class="docutils">
+<dt>Suppose we’re validating C-reactive protein (CRP). Key concepts:</dt>
+<dd><ul class="first last">
+<li><p class="first">source (true state of the world): Pr present, Ab absent</p>
+</li>
+<li><p class="first">software decision: Y yes, N no</p>
+</li>
+<li><dl class="first docutils">
+<dt>signal detection theory classification:</dt>
+<dd><p class="first last">hit = Pr &amp; Y = true positive
+miss = Pr &amp; N = false negative
+false alarm = Ab &amp; Y = false positive
+correct rejection = Ab &amp; N = true negative</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>common SDT metrics:</dt>
+<dd><p class="first last">positive predictive value, PPV = P(Pr | Y) = precision (*)
+negative predictive value, NPV = P(Ab | N)
+sensitivity = P(Y | Pr) = recall (*) = true positive rate
+specificity = P(N | Ab) = true negative rate
+(*) common names used in the NLP context.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>other common classifier metric:</dt>
+<dd><dl class="first docutils">
+<dt>F_beta score = (1 + beta^2) * precision * recall /</dt>
+<dd><p class="first last">((beta^2 * precision) + recall)</p>
+</dd>
+</dl>
+<p class="last">… which measures performance when you value recall beta times as
+much as precision; e.g. the F1 score when beta = 1. See
+<a class="reference external" href="https://en.wikipedia.org/wiki/F1_score">https://en.wikipedia.org/wiki/F1_score</a></p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Working from source to NLP, we can see there are a few types of “absent”:</dt>
+<dd><ul class="first last">
+<li><ol class="first upperalpha simple" start="24">
+<li>unselected database field containing text</li>
+</ol>
+<blockquote>
+<div><ul>
+<li><ol class="first upperalpha simple" start="17">
+<li>field contains “CRP”, “C-reactive protein”, etc.; something</li>
+</ol>
+<blockquote>
+<div><p>that a human (or as a proxy: a machine) would judge as
+containing a textual reference to CRP.
+- Pr. Present: a human would judge that a CRP value is present,</p>
+<blockquote>
+<div><p>e.g. “today her CRP is 7, which I am not concerned about.”
+- H.  Hit: software reports the value.
+- M.  Miss: software misses the value.</p>
+<blockquote>
+<div><p>(maybe: “his CRP was twenty-one”.)</p>
+</div></blockquote>
+</div></blockquote>
+<ul>
+<li><dl class="first docutils">
+<dt>Ab1. Absent: reference to CRP, but no numerical information,</dt>
+<dd><p class="first">e.g. “her CRP was normal”.
+- FA1. False alarm: software reports a numerical value.</p>
+<blockquote>
+<div><p>(maybe: “my CRP was 7 hours behind my boss’s deadline”)</p>
+</div></blockquote>
+<ul class="last simple">
+<li>CR1. Correct rejection: software doesn’t report a value.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><dl class="first docutils">
+<dt>Ab2. field contains no reference to CRP at all.</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>FA2. False alarm: software reports a numerical value.</dt>
+<dd>(a bit hard to think of examples…)</dd>
+</dl>
+</li>
+<li>CR2. Correct rejection: software doesn’t report a value.</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</dd>
+<dt>From NLP backwards to source:</dt>
+<dd><ul class="first last">
+<li><ol class="first upperalpha simple" start="25">
+<li>Software says value present.</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><ol class="first upperalpha" start="8">
+<li>Hit: value is present.</li>
+</ol>
+</li>
+<li>FA. False alarm: value is absent.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><ol class="first upperalpha simple" start="14">
+<li>Software says value absent.</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li>CR. Correct rejection: value is absent.</li>
+<li><ol class="first upperalpha" start="13">
+<li>Miss: value is present.</li>
+</ol>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</dd>
+<dt>The key metrics are:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>precision = positive predictive value = P(Pr | Y)</dt>
+<dd>… relatively easy to check; find all the “Y” records and check
+manually that they’re correct.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>sensitivity = recall = P(Y | Pr)</dt>
+<dd>… Here, we want a sample that is enriched for “symptom actually
+present”, for human reasons. For example, if 0.1% of text entries
+refer to CRP, then to assess 100 “Pr” samples we would have to
+review 100,000 text records, 99,900 of which are completely
+irrelevant. So we want an automated way of finding “Pr” records.
+That’s what the validator classes do.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>You can enrich for “Pr” records with SQL, e.g.</dt>
+<dd><dl class="first last docutils">
+<dt>SELECT textfield FROM sometable WHERE (</dt>
+<dd>textfield LIKE ‘%CRP%’
+OR textfield LIKE ‘%C-reactive protein%’);</dd>
+</dl>
+</dd>
+</dl>
+<p>or similar, but really we want the best “CRP detector” possible. That is
+probably to use a regex, either in SQL (… “WHERE textfield REGEX
+‘myregex’”) or using these validator classes. (The main NLP regexes don’t
+distinguish between “CRP present, no valid value” and “CRP absent”,
+because regexes either match or don’t.)</p>
+<p>Each validator class implements the core variable-finding part of its
+corresponding NLP regex class, but without the value or units. For example,
+the CRP class looks for things like “CRP is 6” or “CRP 20 mg/L”, whereas
+the CRP validator looks for things like “CRP”.</p>
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.dest_tables_columns">
+<code class="descname">dest_tables_columns</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, List[sqlalchemy.sql.schema.Column]]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.dest_tables_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of {tablename: destination_columns}.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.parse">
+<code class="descname">parse</code><span class="sig-paren">(</span><em>text: str</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, Dict[str, Any]], NoneType], NoneType]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parser for ValidatorBase.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.set_tablename">
+<code class="descname">set_tablename</code><span class="sig-paren">(</span><em>tablename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.set_tablename" title="Permalink to this definition">¶</a></dt>
+<dd><p>In case a friend class wants to override.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.nlp_manager.regex_parser.ValidatorBase.test_validator">
+<code class="descname">test_validator</code><span class="sig-paren">(</span><em>test_expected_list: List[Tuple[str, bool]], verbose: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.ValidatorBase.test_validator" title="Permalink to this definition">¶</a></dt>
+<dd><p>The ‘bool’ part of test_expected_list is: should it match any?
+… noting that “match anywhere” is the “search” function, whereas</p>
+<blockquote>
+<div>“match” matches at the beginning:
+<a class="reference external" href="https://docs.python.org/3/library/re.html#re.regex.match">https://docs.python.org/3/library/re.html#re.regex.match</a></div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.nlp_manager.regex_parser.common_tense">
+<code class="descclassname">crate_anon.nlp_manager.regex_parser.</code><code class="descname">common_tense</code><span class="sig-paren">(</span><em>tense_text: str</em>, <em>relation_text: str</em><span class="sig-paren">)</span> &#x2192; Tuple[str, str]<a class="headerlink" href="#crate_anon.nlp_manager.regex_parser.common_tense" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort out tense, if known, and impute that “CRP was 72” means that
+relation was EQ in the PAST, etc.</p>
+<p>Returns (tense, relation).</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../anonymise/_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="regex_numbers.html"
+                        title="previous chapter">15.4.21. crate_anon.nlp_manager.regex_numbers</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="regex_test.html"
+                        title="next chapter">15.4.23. crate_anon.nlp_manager.regex_test</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/nlp_manager/regex_parser.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="regex_test.html" title="15.4.23. crate_anon.nlp_manager.regex_test"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="regex_numbers.html" title="15.4.21. crate_anon.nlp_manager.regex_numbers"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.4. crate_anon.nlp_manager</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

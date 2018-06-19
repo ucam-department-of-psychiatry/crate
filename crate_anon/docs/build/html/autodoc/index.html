@@ -1,0 +1,271 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15. Automatic documentation of source code &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="15.1. crate_anon.anonymise" href="anonymise/_index.html" />
+    <link rel="prev" title="14. Common relevant TCP/IP ports" href="../misc/tcpip_ports.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="anonymise/_index.html" title="15.1. crate_anon.anonymise"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../misc/tcpip_ports.html" title="14. Common relevant TCP/IP ports"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="automatic-documentation-of-source-code">
+<h1>15. Automatic documentation of source code<a class="headerlink" href="#automatic-documentation-of-source-code" title="Permalink to this headline">¶</a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="anonymise/_index.html">15.1. crate_anon.anonymise</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/altermethod.html">15.1.1. crate_anon.anonymise.altermethod</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/anonregex.html">15.1.2. crate_anon.anonymise.anonregex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/anonymise.html">15.1.3. crate_anon.anonymise.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/anonymise_cli.html">15.1.4. crate_anon.anonymise.anonymise_cli</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/config.html">15.1.5. crate_anon.anonymise.config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/config_singleton.html">15.1.6. crate_anon.anonymise.config_singleton</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/constants.html">15.1.7. crate_anon.anonymise.constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/dbholder.html">15.1.8. crate_anon.anonymise.dbholder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/dd.html">15.1.9. crate_anon.anonymise.dd</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/ddr.html">15.1.10. crate_anon.anonymise.ddr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/eponyms.html">15.1.11. crate_anon.anonymise.eponyms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/fetch_wordlists.html">15.1.12. crate_anon.anonymise.fetch_wordlists</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/launch_multiprocess_anonymiser.html">15.1.13. crate_anon.anonymise.launch_multiprocess_anonymiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/make_demo_database.html">15.1.14. crate_anon.anonymise.make_demo_database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/models.html">15.1.15. crate_anon.anonymise.models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/patient.html">15.1.16. crate_anon.anonymise.patient</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/scrub.html">15.1.17. crate_anon.anonymise.scrub</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/test_anonymisation.html">15.1.18. crate_anon.anonymise.test_anonymisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/test_extract_text.html">15.1.19. crate_anon.anonymise.test_extract_text</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="common/_index.html">15.2. crate_anon.common</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="common/contenttypes.html">15.2.1. crate_anon.common.contenttypes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="common/extendedconfigparser.html">15.2.2. crate_anon.common.extendedconfigparser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="common/formatting.html">15.2.3. crate_anon.common.formatting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="common/parallel.html">15.2.4. crate_anon.common.parallel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="common/sql.html">15.2.5. crate_anon.common.sql</a></li>
+<li class="toctree-l2"><a class="reference internal" href="common/stringfunc.html">15.2.6. crate_anon.common.stringfunc</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="crateweb/_index.html">15.3. crate_anon.crateweb</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/config/apps.html">15.3.1. crate_anon.crateweb.config.apps</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/config/constants.html">15.3.2. crate_anon.crateweb.config.constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/config/settings.html">15.3.3. crate_anon.crateweb.config.settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/config/urls.html">15.3.4. crate_anon.crateweb.config.urls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/config/wsgi.html">15.3.5. crate_anon.crateweb.config.wsgi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/management/commands/fetch_optouts.html">15.3.6. crate_anon.crateweb.consent.management.commands.fetch_optouts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/management/commands/lookup_consent.html">15.3.7. crate_anon.crateweb.consent.management.commands.lookup_consent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/management/commands/lookup_patient.html">15.3.8. crate_anon.crateweb.consent.management.commands.lookup_patient</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/management/commands/populate.html">15.3.9. crate_anon.crateweb.consent.management.commands.populate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/management/commands/test_email.html">15.3.10. crate_anon.crateweb.consent.management.commands.test_email</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/celery.html">15.3.11. crate_anon.crateweb.consent.celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/forms.html">15.3.12. crate_anon.crateweb.consent.forms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/lookup.html">15.3.13. crate_anon.crateweb.consent.lookup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/lookup_crs.html">15.3.14. crate_anon.crateweb.consent.lookup_crs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/lookup_dummy.html">15.3.15. crate_anon.crateweb.consent.lookup_dummy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/lookup_rio.html">15.3.16. crate_anon.crateweb.consent.lookup_rio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/models.html">15.3.17. crate_anon.crateweb.consent.models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/storage.html">15.3.18. crate_anon.crateweb.consent.storage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/tasks.html">15.3.19. crate_anon.crateweb.consent.tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/teamlookup.html">15.3.20. crate_anon.crateweb.consent.teamlookup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/teamlookup_dummy.html">15.3.21. crate_anon.crateweb.consent.teamlookup_dummy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/teamlookup_rio.html">15.3.22. crate_anon.crateweb.consent.teamlookup_rio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/utils.html">15.3.23. crate_anon.crateweb.consent.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/consent/views.html">15.3.24. crate_anon.crateweb.consent.views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/core/management/commands/runcpserver.html">15.3.25. crate_anon.crateweb.core.management.commands.runcpserver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/core/admin.html">15.3.26. crate_anon.crateweb.core.admin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/core/auth_views.html">15.3.27. crate_anon.crateweb.core.auth_views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/core/constants.html">15.3.28. crate_anon.crateweb.core.constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/core/middleware.html">15.3.29. crate_anon.crateweb.core.middleware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/core/utils.html">15.3.30. crate_anon.crateweb.core.utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/core/views.html">15.3.31. crate_anon.crateweb.core.views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/extra/admin.html">15.3.32. crate_anon.crateweb.extra.admin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/extra/pdf.html">15.3.33. crate_anon.crateweb.extra.pdf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/extra/salutation.html">15.3.34. crate_anon.crateweb.extra.salutation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/context_processors.html">15.3.35. crate_anon.crateweb.research.context_processors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/forms.html">15.3.36. crate_anon.crateweb.research.forms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/html_functions.html">15.3.37. crate_anon.crateweb.research.html_functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/models.html">15.3.38. crate_anon.crateweb.research.models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/research_db_info.html">15.3.39. crate_anon.crateweb.research.research_db_info</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/sql_writer.html">15.3.40. crate_anon.crateweb.research.sql_writer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/tests.html">15.3.41. crate_anon.crateweb.research.tests</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/research/views.html">15.3.42. crate_anon.crateweb.research.views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/userprofile/forms.html">15.3.43. crate_anon.crateweb.userprofile.forms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/userprofile/models.html">15.3.44. crate_anon.crateweb.userprofile.models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/userprofile/views.html">15.3.45. crate_anon.crateweb.userprofile.views</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/manage.html">15.3.46. crate_anon.crateweb.manage</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/all_processors.html">15.4.1. crate_anon.nlp_manager.all_processors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/base_nlp_parser.html">15.4.2. crate_anon.nlp_manager.base_nlp_parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/build_gate_java_interface.html">15.4.3. crate_anon.nlp_manager.build_gate_java_interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/build_medex_itself.html">15.4.4. crate_anon.nlp_manager.build_medex_itself</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/build_medex_java_interface.html">15.4.5. crate_anon.nlp_manager.build_medex_java_interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/constants.html">15.4.6. crate_anon.nlp_manager.constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/input_field_config.html">15.4.7. crate_anon.nlp_manager.input_field_config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/launch_multiprocess_nlp.html">15.4.8. crate_anon.nlp_manager.launch_multiprocess_nlp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/models.html">15.4.9. crate_anon.nlp_manager.models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/nlp_definition.html">15.4.10. crate_anon.nlp_manager.nlp_definition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/nlp_manager.html">15.4.11. crate_anon.nlp_manager.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/number.html">15.4.12. crate_anon.nlp_manager.number</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/output_user_config.html">15.4.13. crate_anon.nlp_manager.output_user_config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/parse_biochemistry.html">15.4.14. crate_anon.nlp_manager.parse_biochemistry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/parse_clinical.html">15.4.15. crate_anon.nlp_manager.parse_clinical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/parse_cognitive.html">15.4.16. crate_anon.nlp_manager.parse_cognitive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/parse_gate.html">15.4.17. crate_anon.nlp_manager.parse_gate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/parse_haematology.html">15.4.18. crate_anon.nlp_manager.parse_haematology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/parse_medex.html">15.4.19. crate_anon.nlp_manager.parse_medex</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/regex_func.html">15.4.20. crate_anon.nlp_manager.regex_func</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/regex_numbers.html">15.4.21. crate_anon.nlp_manager.regex_numbers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/regex_parser.html">15.4.22. crate_anon.nlp_manager.regex_parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/regex_test.html">15.4.23. crate_anon.nlp_manager.regex_test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/regex_units.html">15.4.24. crate_anon.nlp_manager.regex_units</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/test_all_regex.html">15.4.25. crate_anon.nlp_manager.test_all_regex</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="preprocess/_index.html">15.5. crate_anon.preprocess</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/ddhint.html">15.5.1. crate_anon.preprocess.ddhint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/postcodes.html">15.5.2. crate_anon.preprocess.postcodes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/preprocess_pcmis.html">15.5.3. crate_anon.preprocess.preprocess_pcmis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/preprocess_rio.html">15.5.4. crate_anon.preprocess.preprocess_rio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/rio_constants.html">15.5.5. crate_anon.preprocess.rio_constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/rio_ddgen.html">15.5.6. crate_anon.preprocess.rio_ddgen</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/rio_pk.html">15.5.7. crate_anon.preprocess.rio_pk</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/rio_view_func.html">15.5.8. crate_anon.preprocess.rio_view_func</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/rio_views.html">15.5.9. crate_anon.preprocess.rio_views</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tools/_index.html">15.6. crate_anon.tools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tools/launch_celery.html">15.6.1. crate_anon.tools.launch_celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/launch_cherrypy_server.html">15.6.2. crate_anon.tools.launch_cherrypy_server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/launch_flower.html">15.6.3. crate_anon.tools.launch_flower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/print_crateweb_demo_config.html">15.6.4. crate_anon.tools.print_crateweb_demo_config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/winservice.html">15.6.5. crate_anon.tools.winservice</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">15. Automatic documentation of source code</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="anonymise/_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../misc/tcpip_ports.html"
+                        title="previous chapter">14. Common relevant TCP/IP ports</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="anonymise/_index.html"
+                        title="next chapter">15.1. crate_anon.anonymise</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/autodoc/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="anonymise/_index.html" title="15.1. crate_anon.anonymise"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../misc/tcpip_ports.html" title="14. Common relevant TCP/IP ports"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

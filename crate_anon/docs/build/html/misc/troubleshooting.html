@@ -1,0 +1,888 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>11. Troubleshooting &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="12. Technical notes" href="technical_notes.html" />
+    <link rel="prev" title="10. Ancillary tools" href="ancillary_tools.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="technical_notes.html" title="12. Technical notes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ancillary_tools.html" title="10. Ancillary tools"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="troubleshooting">
+<h1>11. Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="general">
+<h2>11.1. General<a class="headerlink" href="#general" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="importerror-no-module-named-mysqldb-pyodbc">
+<h3>11.1.1. ImportError: No module named ‘{mysqldb, pyodbc, …}’<a class="headerlink" href="#importerror-no-module-named-mysqldb-pyodbc" title="Permalink to this headline">¶</a></h3>
+<p>You haven’t installed the right drivers for the database URL(s) that you have
+specified in your CRATE configuration file. Make sure the virtualenv is
+activated (see <a class="reference internal" href="../installation/installation.html#activate-venv"><span class="std std-ref">Activating your virtual environment</span></a>), and
+then install it (see <a class="reference internal" href="../installation/database_drivers.html#database-drivers"><span class="std std-ref">Database drivers</span></a>).</p>
+</div>
+<div class="section" id="which-python-modules-should-be-installed">
+<h3>11.1.2. Which Python modules should be installed?<a class="headerlink" href="#which-python-modules-should-be-installed" title="Permalink to this headline">¶</a></h3>
+<p>Use <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">freeze</span></code> to show what you have installed. For a Windows installation
+using SQL Server, the list below works. The ones you have to install manually
+are marked with <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">MANUAL</span></code>; CRATE installs the others.</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>amqp==2.1.3
+appdirs==1.4.0
+arrow==0.10.0
+Babel==2.3.4
+beautifulsoup4==4.5.3
+billiard==3.5.0.2
+cardinal-pythonlib==0.2.13
+celery==4.0.1
+chardet==3.0.2
+cheroot==5.1.0
+CherryPy==10.0.0
+colorama==0.3.7
+colorlog==2.10.0
+crate-anon==0.18.32
+distro==1.0.2
+Django==1.10.5
+django-debug-toolbar==1.6
+django-extensions==1.7.6
+django-picklefield==0.3.2
+django-pyodbc-azure==1.10.4.0  # MANUAL: for Django to talk to SQL Server
+django-sslserver==0.19
+et-xmlfile==1.0.1
+flower==0.9.1
+gunicorn==19.6.0
+jdcal==1.3
+kombu==4.0.1
+mmh3==2.3.1  # MANUAL: to speed up hashing
+openpyxl==2.4.2
+packaging==16.8
+pdfkit==0.6.1
+portend==1.8
+prettytable==0.7.2
+psutil==5.0.1
+Pygments==2.2.0
+pyhashxx==0.1.3
+pyodbc==4.0.3  # MANUAL: for ODBC database connections
+pyparsing==2.1.10
+PyPDF2==1.26.0
+pypiwin32==219
+python-dateutil==2.6.0
+pytz==2016.10
+regex==2017.1.17
+semver==2.7.5
+six==1.10.0
+sortedcontainers==1.5.7
+SQLAlchemy==1.1.5
+sqlparse==0.2.2
+tempora==1.6.1
+tornado==4.2
+typing==3.5.3.0
+vine==1.1.3
+Werkzeug==0.11.15
+xlrd==1.0.0
+</pre></div>
+</div>
+</div>
+<div class="section" id="pretty-colours-all-gone-anonymiser-nlp-etc">
+<h3>11.1.3. Pretty colours all gone (anonymiser, NLP, etc.)<a class="headerlink" href="#pretty-colours-all-gone-anonymiser-nlp-etc" title="Permalink to this headline">¶</a></h3>
+<p>That’s what happens when you pipe the tool through <code class="docutils literal notranslate"><span class="pre">tee</span></code>.</p>
+</div>
+</div>
+<div class="section" id="crate-anonymiser">
+<h2>11.2. CRATE anonymiser<a class="headerlink" href="#crate-anonymiser" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="crate-uses-lots-of-memory">
+<h3>11.2.1. CRATE uses lots of memory<a class="headerlink" href="#crate-uses-lots-of-memory" title="Permalink to this headline">¶</a></h3>
+<p>A normal run should see CRATE using roughly 60–80 Mb per process. Values much
+in excess of this likely relate to the text extraction process, which uses
+third-party software over which CRATE has no control (I’ve seen &gt;1 Gb)
+<a class="footnote-reference" href="#debugginghighmemusage" id="id1">[1]</a>.</p>
+</div>
+<div class="section" id="file-is-not-a-zip-file">
+<h3>11.2.2. “File is not a zip file”<a class="headerlink" href="#file-is-not-a-zip-file" title="Permalink to this headline">¶</a></h3>
+<p>In full: “Caught exception from document_to_text: File is not a zip file” when
+extracting text from DOCX documents</p>
+<p>This error usually appears with encrypted, password-protected DOCX files. The
+anonymiser will not be able to read these, and this error can be ignored.</p>
+</div>
+<div class="section" id="unrtf-has-stopped-working">
+<h3>11.2.3. “UnRtf: … has stopped working”<a class="headerlink" href="#unrtf-has-stopped-working" title="Permalink to this headline">¶</a></h3>
+<p>If a third-party program is used by CRATE for text extraction and fails, you
+may get lots of messages from Windows like “UnRtf: convert document in RTF
+format to other formats has stopped working. Windows can check online for a
+solution to the problem…”</p>
+<p>To disable this in Windows Server 2008, run the Server Manager, and in the main
+page scroll down to a section titled Resources and Support. There should be a
+“Windows Error Reporting” section. It’s probably set to “Ask me about sending
+reports every time an error occurs”; change this to “I don’t want to
+participate, and don’t ask me again”.</p>
+<p>That gets rid of the options to tell Microsoft, but it still pops up some
+“close or debug?” dialog boxes. To fix that, add the following registry
+entries <a class="footnote-reference" href="#disabledebugcloseapplication" id="id2">[2]</a>:</p>
+<div class="highlight-registry notranslate"><div class="highlight"><pre><span></span><span class="na">HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “ForceQueue”</span><span class="o">=</span><span class="nv">dword</span><span class="p">:</span><span class="m">00000000</span>
+<span class="na">HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontShowUI”</span><span class="o">=</span><span class="nv">dword</span><span class="p">:</span><span class="m">00000001</span>
+<span class="na">HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting : “DontSendAdditionalData”</span><span class="o">=</span><span class="nv">dword</span><span class="p">:</span><span class="m">00000001</span>
+<span class="na">HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\Windows Error Reporting\Consent : “DefaultConsent”</span><span class="o">=</span><span class="nv">dword</span><span class="p">:</span><span class="m">00000002</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="crate-nlp">
+<h2>11.3. CRATE NLP<a class="headerlink" href="#crate-nlp" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="how-can-i-update-a-source-file-in-kconnect-bio-yodie">
+<h3>11.3.1. How can I update a source file in KConnect/Bio-YODIE<a class="headerlink" href="#how-can-i-update-a-source-file-in-kconnect-bio-yodie" title="Permalink to this headline">¶</a></h3>
+<p>Example: replacing <cite>plugins/Tagger_ConText/src/gate/context/ContextFeaturesTagger.java</cite>.</p>
+<ul class="simple">
+<li>Make sure Apache Ant is installed <a class="footnote-reference" href="#installapacheant" id="id3">[3]</a>.</li>
+<li>Replace the source file.</li>
+<li>Delete the existing <cite>.jar</cite> file.</li>
+<li>Run <code class="docutils literal notranslate"><span class="pre">ant</span> <span class="pre">build</span></code>.</li>
+<li>If it fails, check the <cite>build.properties</cite> file, which contains local
+variables such as directories (e.g. <cite>gate.home</cite>); edit this and try again.</li>
+</ul>
+</div>
+</div>
+<div class="section" id="crate-web-site">
+<h2>11.4. CRATE web site<a class="headerlink" href="#crate-web-site" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="crate-launch-cherrypy-server-cant-find-its-config-files">
+<h3>11.4.1. crate_launch_cherrypy_server can’t find its config files<a class="headerlink" href="#crate-launch-cherrypy-server-cant-find-its-config-files" title="Permalink to this headline">¶</a></h3>
+<p>Use forward slashes (<code class="docutils literal notranslate"><span class="pre">/</span></code>) rather than backslashes (<code class="docutils literal notranslate"><span class="pre">\</span></code>) for filename paths
+in the environment variable <cite>CRATE_CHERRYPY_ARGS</cite> (e.g.
+<code class="docutils literal notranslate"><span class="pre">C:/somepath/somefile.ext</span></code>) or escape the backslashes by doubling them (e.g.
+<code class="docutils literal notranslate"><span class="pre">C:\\somepath\\somefile.ext</span></code>).</p>
+</div>
+<div class="section" id="port-443-not-free-on-127-0-0-1">
+<h3>11.4.2. Port 443 not free on ‘127.0.0.1’<a class="headerlink" href="#port-443-not-free-on-127-0-0-1" title="Permalink to this headline">¶</a></h3>
+<p>Problem: Under Windows Server: <cite>OSError(“Port 443 not free on ‘127.0.0.1’”)</cite></p>
+<p>If you launch the CRATE web server on port 443 (for HTTPS) and get this error,
+something else is probably using port 443. If that’s unexpected to you, it’s
+because Microsoft uses it by default <a class="footnote-reference" href="#win443unavailable" id="id4">[13]</a>. Try:</p>
+<div class="highlight-bat notranslate"><div class="highlight"><pre><span></span>netstat -ban
+</pre></div>
+</div>
+<p>to see what’s using it. In our case we had this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span> Proto  Local Address      Foreign Address    State
+...
+[svchost.exe]
+ TCP    0.0.0.0:443        0.0.0.0            LISTENING
+...
+[svchost.exe]
+ TCP    [::]:443           [::]:0             LISTENING
+</pre></div>
+</div>
+<p>That is, svchost.exe is using port 443. One question now is: which actual
+program is using this port via svchost.exe (which is a service host program
+that does all sorts of things) <a class="footnote-reference" href="#svchost" id="id5">[14]</a>? A possibility relates to VMWare
+<a class="footnote-reference" href="#vmware443" id="id6">[15]</a>.</p>
+<p>If you have sufficient control over your machine to wrest port 443 away from
+whatever’s using it, fine. Otherwise, you may need to use an alternative port.
+A common choice might be 8443 <a class="footnote-reference" href="#port8443" id="id7">[16]</a>.</p>
+</div>
+<div class="section" id="your-connection-is-not-private-browser-error">
+<h3>11.4.3. “Your connection is not private…” browser error<a class="headerlink" href="#your-connection-is-not-private-browser-error" title="Permalink to this headline">¶</a></h3>
+<p>You will always get this error until you get a proper HTTPS certificate. This
+error occurs when you self-sign a certificate. Browers will offer you a way
+round, usually in small print [e.g. in Chrome: <span class="menuselection">Advanced ‣
+Proceed… (unsafe)</span>].</p>
+</div>
+<div class="section" id="forbidden-csrf-verification-failed">
+<h3>11.4.4. 403 Forbidden: CSRF verification failed<a class="headerlink" href="#forbidden-csrf-verification-failed" title="Permalink to this headline">¶</a></h3>
+<p>There are at least two possible reasons:</p>
+<ul class="simple">
+<li>Your browser must enable cookies, at least for ‘same-origin’ requests; this
+is a critical part of CRATE’s security to prevent cross-site request
+forgeries. If you’re using Firefox, try Chrome <a class="footnote-reference" href="#csrffirefox" id="id8">[7]</a>.</li>
+<li>By default, the CRATE web site uses only HTTPS (secure HTTP). This is
+governed by the <cite>CRATE_HTTPS</cite> parameter in CRATE’s own
+<cite>crateweb/config/settings.py</cite>. When <cite>CRATE_HTTPS</cite> is <cite>True</cite>, then CSRF
+cookies are only permitted over HTTPS, so if you use plain HTTP, you will see
+this error. A quick hack is to set <code class="docutils literal notranslate"><span class="pre">CRATE_HTTPS</span> <span class="pre">=</span> <span class="pre">False</span></code> in your local
+settings, but this is a bad idea; set up HTTPS properly instead, as above.</li>
+</ul>
+</div>
+<div class="section" id="unknown-invalid-or-unsupported-option-in-a-getsockopt-or-setsockopt-call">
+<h3>11.4.5. “Unknown, invalid, or unsupported option… in a getsockopt or setsockopt call”<a class="headerlink" href="#unknown-invalid-or-unsupported-option-in-a-getsockopt-or-setsockopt-call" title="Permalink to this headline">¶</a></h3>
+<p>Problem: the front end might produce the error: “An unknown, invalid, or
+unsupported option or level was specified in a getsockopt or setsockopt call”
+while initiating a back-end task.</p>
+<p>This is due to a bug in the Python <a class="reference external" href="https://en.wikipedia.org/wiki/Advanced_Message_Queuing_Protocol">AMQP</a> package version 2.1.4 <a class="footnote-reference" href="#amqp214bug" id="id9">[4]</a>.
+(AMQP is a protocol used by <a class="reference external" href="http://www.celeryproject.org/">Celery</a> to talk to a message broker such as
+<a class="reference external" href="https://www.rabbitmq.com/">RabbitMQ</a>; CRATE uses Celery to manage its back-end asynchronous tasks, like
+sending e-mails.)</p>
+<p>Solution: downgrade AMQP. From the activated CRATE virtual environment:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip uninstall amqp
+pip install -Iv <span class="nv">amqp</span><span class="o">==</span><span class="m">2</span>.1.3
+</pre></div>
+</div>
+<p>This change has been hardcoded into CRATE’s setup scripts to prevent Celery
+from picking the buggy version of the Python <cite>amqp</cite> package. As a consequence,
+other requirements are also downgraded (<cite>celery</cite> to 4.0.1; <cite>kombu</cite> to 4.0.1).</p>
+</div>
+<div class="section" id="static-files-not-served-via-cherrypy">
+<h3>11.4.6. Static files not served via CherryPy<a class="headerlink" href="#static-files-not-served-via-cherrypy" title="Permalink to this headline">¶</a></h3>
+<p>Problem: Static files are not served (e.g. broken icons rather than plus/minus
+symbols; broken-looking admin site) when using the CherryPy server for CRATE.</p>
+<p>Solution: You should specify either (1) <code class="docutils literal notranslate"><span class="pre">FORCE_SCRIPT_NAME</span> <span class="pre">=</span> <span class="pre">&quot;/crate&quot;</span></code> in
+your config file, or (2) <code class="docutils literal notranslate"><span class="pre">--root_path</span> <span class="pre">/crate</span></code> in your <cite>CRATE_CHERRYPY_ARGS</cite>
+environment variable. (The default value for the latter is taken from the
+former.)</p>
+<p>The cause of the problem is as follows: if you don’t do this, then
+<cite>https://mysite/</cite> is meant to be your site, while
+<cite>https://mysite/crate_static/</cite> is meant to be your static root. However, the
+latter comes under the former, so Django says “it’s for me” then “it doesn’t
+exist”. If you use <cite>https://mysite/crate/</cite> as your site root, with
+<cite>https://mysite/crate_static/</cite> as your static root, then the software is happy.</p>
+</div>
+<div class="section" id="i-cant-restart-the-crate-windows-service-cleanly">
+<h3>11.4.7. I can’t restart the CRATE Windows Service cleanly<a class="headerlink" href="#i-cant-restart-the-crate-windows-service-cleanly" title="Permalink to this headline">¶</a></h3>
+<p>There may be a problem whereby the CRATE web service doesn’t entirely shut down
+when its service is stopped. You can manually kill leftover processes (which
+will appear as <cite>python.exe</cite> or <cite>python.exe *32</cite>) using taskmgr.</p>
+<p>This should be fixed now.</p>
+</div>
+<div class="section" id="no-connection-could-be-made-because-the-target-machine-actively-refused-it">
+<h3>11.4.8. “No connection could be made because the target machine actively refused it”<a class="headerlink" href="#no-connection-could-be-made-because-the-target-machine-actively-refused-it" title="Permalink to this headline">¶</a></h3>
+<p>Problem: From the front end, you see: “No connection could be made because the
+target machine actively refused it”.</p>
+<p>Check that RabbitMQ is running. Check also CRATE’s Celery log. If RabbitMQ is
+not running, you’ll see something like this in CRATE’s Celery log, giving a
+little more detail:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[2017-02-25 23:50:11,433: Error/MainProcess] consumer: Cannot connect to amqp://guest:**@127.0.0.1:5672//: [WinError 10061] No connection could be made because the target machine actively refused it.
+</pre></div>
+</div>
+<p>This indicates that Celery (called by CRATE) is looking for RabbitMQ on port
+5672, finding it, but being refused access. Make sure RabbitMQ is installed and
+its service started. Run <code class="docutils literal notranslate"><span class="pre">rabbitmqctl</span></code>, which on Windows machines is typically
+typically at</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>C:\Program Files\RabbitMQ Server\rabbitmq_server-3.6.6\sbin\rabbitmqctl.bat
+</pre></div>
+</div>
+<p>Specifically, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>rabbitmqctl status
+</pre></div>
+</div>
+<p>If you see this unhappy output:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Status of node &#39;rabbit@cpft-crate-p01&#39; ...
+Error: unable to connect to node &#39;rabbit@cpft-crate-p01&#39;: nodedown
+
+DIAGNOSTICS
+===========
+
+attempted to contact: [&#39;rabbit@cpft-crate-p01&#39;]
+
+rabbit@cpft-crate-p01:
+  * connected to epmd (port 4369) on cpft-crate-p01
+  * epmd reports: node &#39;rabbit&#39; not running at all
+                  other nodes on cpft-crate-p01: [&#39;RabbitMQ&#39;]
+  * suggestion: start the node
+
+current node details:
+- node name: &#39;rabbitmq-cli-11@cpft-crate-p01&#39;
+- home dir: P:\
+- cookie hash: &lt;...some hash...&gt;
+</pre></div>
+</div>
+<p>… then one possibility is that RabbitMQ was improperly installed. This can
+happen if installed by a non-administrative user <a class="footnote-reference" href="#rabbitmqwinquirks" id="id10">[18]</a>, or if
+your Windows variables <cite>HOMEDRIVE</cite> and <cite>HOMESHARE</cite> are pointing to a network
+drive <a class="footnote-reference" href="#homedrivehomeshare" id="id11">[19]</a>. From an <strong>administrative</strong> command prompt, this
+was one solution:</p>
+<div class="highlight-bat notranslate"><div class="highlight"><pre><span></span><span class="c1">REM Remove the old installation:</span>
+net stop rabbitmq
+“C:\Program Files\RabbitMQ Server\uninstall.exe”
+
+<span class="c1">REM Set environment variables for the new installation:</span>
+<span class="k">SET</span> <span class="nv">HOMEDRIVE</span><span class="p">=</span>C:\
+<span class="k">SET</span> <span class="nv">HOMESHARE</span><span class="p">=</span>C:\Users
+<span class="k">SET</span> <span class="nv">ERLANG_HOME</span><span class="p">=</span>C:\Program Files\erl8.2
+
+<span class="c1">REM Now reinstall:</span>
+C<span class="p">:</span><span class="nl">\some_download_dir\rabbitmq-server-3.6.6.exe</span>
+<span class="c1">REM ... and watch the detailed output closely to make sure there are no errors</span>
+
+C<span class="p">:</span><span class="nl">\Program</span><span class="c1"> Files\RabbitMQ Server\rabbitmq_server_3.6.6\sbin\rabbitmqctl.bat status</span>
+</pre></div>
+</div>
+<p>Here’s some happy output:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Status of node &#39;rabbit@cpft-crate-p01&#39; ...
+[{pid,55372},
+ {running_applications,[{rabbit,&quot;RabbitMQ&quot;,&quot;3.6.6&quot;},
+                        {rabbit_common,[],&quot;3.6.6&quot;},
+                        {mnesia,&quot;MNESIA  CXC 138 12&quot;,&quot;4.14.2&quot;},
+                        {ranch,&quot;Socket acceptor pool for TCP protocols.&quot;,
+                               &quot;1.2.1&quot;},
+                        {xmerl,&quot;XML parser&quot;,&quot;1.3.12&quot;},
+                        {os_mon,&quot;CPO  CXC 138 46&quot;,&quot;2.4.1&quot;},
+                        {sasl,&quot;SASL  CXC 138 11&quot;,&quot;3.0.2&quot;},
+                        {stdlib,&quot;ERTS  CXC 138 10&quot;,&quot;3.2&quot;},
+                        {kernel,&quot;ERTS  CXC 138 10&quot;,&quot;5.1.1&quot;}]},
+ {os,{win32,nt}},
+ {erlang_version,&quot;Erlang/OTP 19 [erts-8.2] [64-bit] [smp:24:24] [async-threads:64]\n&quot;},
+ {memory,[{total,63923600},
+          {connection_readers,0},
+          {connection_writers,0},
+          {connection_channels,0},
+          {connection_other,0},
+          {queue_procs,2736},
+          {queue_slave_procs,0},
+          {plugins,0},
+          {other_proc,23674272},
+          {mnesia,61784},
+          {mgmt_db,0},
+          {msg_index,42592},
+          {other_ets,1003792},
+          {binary,22848},
+          {code,17795673},
+          {atom,752561},
+          {other_system,20567342}]},
+ {alarms,[]},
+
+{listeners,[{clustering,25672,&quot;::&quot;},{amqp,5672,&quot;::&quot;},{amqp,5672,&quot;0.0.0.0&quot;}]},
+ {vm_memory_high_watermark,0.4},
+ {vm_memory_limit,41174066790},
+ {disk_free_limit,50000000},
+ {disk_free,8951801614336},
+ {file_descriptors,[{total_limit,8092},
+                    {total_used,2},
+                    {sockets_limit,7280},
+                    {sockets_used,0}]},
+ {processes,[{limit,1048576},{used,179}]},
+ {run_queue,0},
+ {uptime,28},
+ {kernel,{net_ticktime,60}}]
+</pre></div>
+</div>
+<p>If you see something like that, all should be well.</p>
+</div>
+</div>
+<div class="section" id="mysql">
+<h2>11.5. MySQL<a class="headerlink" href="#mysql" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="cant-connect-to-mysql-even-manually">
+<h3>11.5.1. Can’t connect to MySQL, even manually<a class="headerlink" href="#cant-connect-to-mysql-even-manually" title="Permalink to this headline">¶</a></h3>
+<p>See <a class="reference external" href="https://dev.mysql.com/doc/refman/5.5/en/problems-connecting.html">https://dev.mysql.com/doc/refman/5.5/en/problems-connecting.html</a>.</p>
+</div>
+<div class="section" id="how-do-i-reconfigure-mysql">
+<h3>11.5.2. How do I reconfigure MySQL?<a class="headerlink" href="#how-do-i-reconfigure-mysql" title="Permalink to this headline">¶</a></h3>
+<p>Edit the MySQL configuration file.</p>
+<ul>
+<li><p class="first">Under Ubuntu Linux this is usually <cite>/etc/mysql/my.cnf</cite>.</p>
+</li>
+<li><p class="first">Under Windows it can be in several locations <a class="footnote-reference" href="#mysqlcfglocation" id="id12">[11]</a>. If you’re
+not sure where yours is, find <cite>mysqld</cite> (typically <code class="docutils literal notranslate"><span class="pre">C:\Program</span>
+<span class="pre">Files\MySQL\MySQL</span> <span class="pre">Server</span> <span class="pre">5.7\bin\mysqld.exe</span></code>) and run <code class="docutils literal notranslate"><span class="pre">mysqld</span> <span class="pre">--verbose</span>
+<span class="pre">--help</span> <span class="pre">&gt;</span> <span class="pre">helpoutput.txt</span></code> and inspect the resulting file <cite>helpoutput.txt</cite>
+(which is quite long). There’ll be a pair of lines like:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Default options are read from the following files in the given order:
+C:\Windows\my.ini C:\Windows\my.cnf C:\my.ini C:\my.cnf C:\Program Files\MySQL\MySQL Server 5.7\my.ini C:\Program Files\MySQL\MySQL Server 5.7\my.cnf
+</pre></div>
+</div>
+</li>
+<li><p class="first">Note that on our main test system (Windows Server 2008 R2, MySQL 5.7) the
+only file existing was <code class="docutils literal notranslate"><span class="pre">C:\ProgramData\MySQL\MySQL</span> <span class="pre">Server</span> <span class="pre">5.7\my.ini</span></code>, but
+this was busy being ignored when mysqld was run manually (see below for why –
+it can be specified directly as an argument to the Windows service, so a
+manual call to <code class="docutils literal notranslate"><span class="pre">mysqld</span></code> doesn’t see the same file, which is confusing).</p>
+</li>
+<li><p class="first">For running MySQL systems, you can also view the configuration filename via
+MySQL Workbench (under Server Status), but what you see here can be wrong.
+For example, we’ve had it showing <code class="docutils literal notranslate"><span class="pre">C:\Program</span> <span class="pre">Files\MySQL\MySQL</span> <span class="pre">Server</span>
+<span class="pre">5.0\my.ini</span></code>, when there was no such directory (we were using MySQL 5.7), and
+the actual file was <code class="docutils literal notranslate"><span class="pre">C:\my.ini</span></code>.</p>
+</li>
+</ul>
+<p>Restart MySQL.</p>
+<ul class="simple">
+<li>Under Ubuntu Linux, use <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">service</span> <span class="pre">mysql</span> <span class="pre">restart</span></code>.</li>
+<li>Under Windows, restart the MySQL service in the Services tool (it’s typically
+called e.g. <cite>MySQL57</cite>).</li>
+</ul>
+<p>If MySQL fails to restart, run the <code class="docutils literal notranslate"><span class="pre">mysqld</span></code> program manually so you can see
+why.</p>
+<ul class="simple">
+<li>If it sits there appearing to do nothing, it’s probably happy; check the log
+files, on Windows usually called <cite>HOSTNAME.err</cite> in the database data
+directory (where <em>HOSTNAME</em> is the name of your computer).</li>
+<li>You can run <code class="docutils literal notranslate"><span class="pre">mysqld</span> <span class="pre">--console</span> <span class="pre">--standalone</span> <span class="pre">--log-error-verbosity</span> <span class="pre">3</span></code> to get
+it to write to the console. These options also allow you to abort it with
+CTRL-C.</li>
+<li>Under Ubuntu, precede that with <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">-u</span> <span class="pre">mysql</span> <span class="pre">bash</span></code> to get a shell running
+as the <cite>mysql</cite> user.</li>
+<li>You might also try <code class="docutils literal notranslate"><span class="pre">mysqld</span> <span class="pre">--print-defaults</span></code> to see its options.</li>
+<li>Under Ubuntu, try also <code class="docutils literal notranslate"><span class="pre">journalctl</span> <span class="pre">-xe</span> <span class="pre">|</span> <span class="pre">grep</span> <span class="pre">-i</span> <span class="pre">mysql</span> <span class="pre">|</span> <span class="pre">less</span></code> (sometimes
+<cite>apparmor</cite> will block access to MySQL files, if you’ve moved them from their
+default location, which can be very confusing; in this case, you’ll need to
+edit <cite>/etc/apparmor.d/usr.sbin.mysqld</cite> or
+<cite>/etc/apparmor.d/local/usr.sbin.mysqld</cite>).</li>
+</ul>
+<p>If the Windows service is stuck in the ‘starting’ state, for example after
+you’ve reconfigured MySQL:</p>
+<ul class="simple">
+<li>To kill a dead/stuck service: (1) Check the service short name by
+double-clicking it in Services. Let’s support it’s <cite>MySQL57</cite>. (2) <code class="docutils literal notranslate"><span class="pre">sc</span>
+<span class="pre">queryex</span> <span class="pre">MySQL57</span></code> to see its process ID or PID. (3) <code class="docutils literal notranslate"><span class="pre">taskkill</span> <span class="pre">/f</span> <span class="pre">/pid</span>
+<span class="pre">PIDNUM</span></code> (where <em>PIDNUM</em> is the process ID from the previous step).</li>
+<li>Inspect the Properties of the malfunctioning service carefully. These include
+a “path to executable” option, which can look like this: <code class="docutils literal notranslate"><span class="pre">&quot;C:\Program</span>
+<span class="pre">Files\MySQL\MySQL</span> <span class="pre">Server</span> <span class="pre">5.7\bin\mysqld.exe&quot;</span>
+<span class="pre">--defaults-file=&quot;C:\ProgramData\MySQL\MySQL</span> <span class="pre">Server</span> <span class="pre">5.7\my.ini&quot;</span> <span class="pre">MySQL57</span></code>. This
+gives you the service name and also the hidden configuration path!</li>
+<li>To reinstall the service: <code class="docutils literal notranslate"><span class="pre">mysqld</span> <span class="pre">--install</span></code> <a class="footnote-reference" href="#mysqlinstallwinservice" id="id13">[12]</a>.
+The default service name is ‘MySQL’, but you can override this. You’re
+probably best being explicit, like this: <code class="docutils literal notranslate"><span class="pre">mysqld</span> <span class="pre">--install</span> <span class="pre">MySQL57</span>
+<span class="pre">--defaults-file=&quot;C:\my.ini&quot;</span></code></li>
+<li>After creating a service, start it manually; if it fails, check
+<span class="menuselection">Event Viewer ‣ Windows Logs ‣ Application</span>.</li>
+<li>If MySQL fails to start and you see errors like <cite>The innodb_system data file
+‘ibdata1’ must be writable</cite>, the first thing to check is that another copy of
+<cite>mysqld</cite> is not already running.</li>
+<li>To delete a defunct service: <code class="docutils literal notranslate"><span class="pre">sc</span> <span class="pre">delete</span> <span class="pre">servicename</span></code>. Exercise extreme
+caution with this!</li>
+</ul>
+<p>Your target is a happy MySQL installation that restarts automatically when you
+reboot.</p>
+</div>
+<div class="section" id="table-names-are-always-lower-case-using-mysql-under-windows">
+<h3>11.5.3. Table names are always lower case using MySQL under Windows<a class="headerlink" href="#table-names-are-always-lower-case-using-mysql-under-windows" title="Permalink to this headline">¶</a></h3>
+<p>Under Windows, MySQL converts table names to lower case by default (but is
+happy with mixed-case column names, and is happy with table and column names
+being mixed case under Linux). This is because of the default setting for
+<code class="docutils literal notranslate"><span class="pre">lower_case_table_names</span></code> in <cite>my.ini</cite> or <cite>my.cnf</cite>. In turn, this is because
+Windows can use a case-insensitive file system (and since tables can be stored
+by the name, this would result in an almighty mess) <a class="footnote-reference" href="#mysqlidcasesens" id="id14">[5]</a>.
+However, when using NTFS, Windows filenames are case-sensitive
+<a class="footnote-reference" href="#ntfscasesens" id="id15">[6]</a>. Therefore, under Windows with NTFS, you have more options for
+<code class="docutils literal notranslate"><span class="pre">lower_case_table_names</span></code>. Note, however, that it also affects the
+case-sensitivity of table names using SQL (but not of column names). So you’re
+probably better off always using <code class="docutils literal notranslate"><span class="pre">lower_case_table_names</span> <span class="pre">=</span> <span class="pre">1</span></code>, as per the
+MySQL advice. This is the default behaviour under Windows.</p>
+</div>
+<div class="section" id="got-a-packet-bigger-than-max-allowed-packet-bytes-or-mysql-has-gone-away">
+<h3>11.5.4. “Got a packet bigger than ‘max_allowed_packet’ bytes” or “MySQL has gone away”<a class="headerlink" href="#got-a-packet-bigger-than-max-allowed-packet-bytes-or-mysql-has-gone-away" title="Permalink to this headline">¶</a></h3>
+<p>Problem: <cite>sqlalchem.exc.OperationalError:
+(mysql.connector.errors.OperationalError)… Got a packet bigger than
+‘max_allowed_packet’ bytes</cite> <em>or</em> <cite>MySQL has gone away</cite> when sending large
+packets.</p>
+<p>Using large “chunks” is efficient but you have to configure MySQL to allow it.
+The <code class="docutils literal notranslate"><span class="pre">max_allowed_packet</span></code> setting in the MySQL configuration file (see above)
+governs this. Try changing the default, e.g. from</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>max_allowed_packet=4M  # too small!
+</pre></div>
+</div>
+<p>to</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>max_allowed_packet=40M
+</pre></div>
+</div>
+<p>and restart MySQL (as above). You can also view current settings using MySQL
+Workbench (<span class="menuselection">Management ‣ Status and System Variables ‣
+System Variables</span>; search for <code class="docutils literal notranslate"><span class="pre">max_allowed_packet</span></code>).</p>
+<p>If you can’t get this working, reduce the <code class="docutils literal notranslate"><span class="pre">--chunksize</span></code> parameter to the
+CRATE anonymiser.</p>
+</div>
+</div>
+<div class="section" id="sql-server">
+<h2>11.6. SQL Server<a class="headerlink" href="#sql-server" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="connection-is-busy-with-results-for-another-command">
+<h3>11.6.1. […] “Connection is busy with results for another command” […]<a class="headerlink" href="#connection-is-busy-with-results-for-another-command" title="Permalink to this headline">¶</a></h3>
+<p>If you see this with Microsoft SQL Server via ODBC/pyodbc, you need to enable
+Multiple Active Result Sets (MARS), because for some reason Microsoft think
+it’s unusual to want more than one cursor open (more than one simultaneous
+query) to a single database at once. There are several ways:</p>
+<ul class="simple">
+<li>(DOESN’T WORK.) Append <code class="docutils literal notranslate"><span class="pre">;MultipleActiveResultSets=True</span></code> to the connection
+URL, e.g. <code class="docutils literal notranslate"><span class="pre">mssql+pyodbc://&#64;MYDSN;MultipleActiveResultSets=True</span></code>. However,
+although this is documented <a class="footnote-reference" href="#enablingmars" id="id16">[8]</a>, it didn’t work via pyodbc
+<a class="footnote-reference" href="#enablingmarsmethodfailed" id="id17">[9]</a>!</li>
+<li>(WORKS.) Run the command: <code class="docutils literal notranslate"><span class="pre">odbcconf</span> <span class="pre">/a</span> <span class="pre">{CONFIGSYSDSN</span> <span class="pre">&quot;SQL</span> <span class="pre">Server</span> <span class="pre">Native</span> <span class="pre">Client</span>
+<span class="pre">11.0&quot;</span> <span class="pre">&quot;DSN=MY_DSN|MARS_Connection=Yes&quot;}</span></code> (replacing the driver and DSN names
+with your own). You can re-run the ODBC configuration wizard, and it should
+now say <cite>Multiple Active Result Sets(MARS): YES</cite> where it said <cite>… NO</cite>
+before. This does work. Use <code class="docutils literal notranslate"><span class="pre">CONFIGDSN</span></code> instead of <code class="docutils literal notranslate"><span class="pre">CONFIGSYSDSN</span></code> if you
+are using a user DSN. Your changes should be visible if you restart the ODBC
+control panel (e.g. with <code class="docutils literal notranslate"><span class="pre">odbccp32.cpl</span></code>) and go through the configuration
+wizard again; the MARS option (which you can’t edit) should have changed from
+“No” to “Yes”.</li>
+<li>There’s also a registry hack <a class="footnote-reference" href="#marsregistry" id="id18">[10]</a>.</li>
+</ul>
+</div>
+<div class="section" id="the-data-types-nvarchar-max-and-ntext-are-incompatible">
+<h3>11.6.2. “The data types nvarchar(max) and ntext are incompatible…”<a class="headerlink" href="#the-data-types-nvarchar-max-and-ntext-are-incompatible" title="Permalink to this headline">¶</a></h3>
+<p>Problem: Using SQL Server, you get an error from the CRATE web front end saying
+“The data types nvarchar(max) and ntext are incompatible in the equal to
+operator.”</p>
+<p>Solution: Upgrade pyodbc.</p>
+<p>(This error occurs with pyodbc 3.1.1 but not with pyodbc 4.0.3, for example.)
+The error relates to pyodbc passing text parameters to SQL Server as NTEXT
+rather than NVARCHAR(MAX).</p>
+</div>
+<div class="section" id="a-default-full-text-catalog-does-not-exist-in-database">
+<h3>11.6.3. “A default full-text catalog does not exist in database…”<a class="headerlink" href="#a-default-full-text-catalog-does-not-exist-in-database" title="Permalink to this headline">¶</a></h3>
+<p>Problem: Using SQL Server: “A default full-text catalog does not exist in database ‘XXX’ or user does not have permission to perform this action.”</p>
+<p>Assuming the user does have permission, this means <strong>you need to run this SQL
+beforehand:</strong></p>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="n">USE</span> <span class="n">mydatabase</span><span class="p">;</span>
+<span class="k">CREATE</span> <span class="n">FULLTEXT</span> <span class="k">CATALOG</span> <span class="n">default_fulltext_catalog</span> <span class="k">AS</span> <span class="k">DEFAULT</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>See <a class="reference external" href="https://technet.microsoft.com/en-us/library/dd283095(v=sql.100).aspx">https://technet.microsoft.com/en-us/library/dd283095(v=sql.100).aspx</a>.</p>
+</div>
+<div class="section" id="new-tables-are-named-like-mydb-servernameusername-mytable">
+<h3>11.6.4. New tables are named like mydb.[SERVERNAMEUSERNAME].mytable<a class="headerlink" href="#new-tables-are-named-like-mydb-servernameusername-mytable" title="Permalink to this headline">¶</a></h3>
+<p>Problem: Under SQL Server, new tables (e.g. from NLP) look like
+<cite>mydatabase.[SERVERNAMEUSERNAME].tablename</cite> rather than
+<cite>mydatabase.dbo.tablename</cite>.</p>
+<p>Under Microsoft SQL Server, the standard full notation for a table is
+<cite>database.schema.table</cite>. The default schema is often <cite>dbo</cite>, so tables look like
+<cite>mydatabase.dbo.mytable</cite>. However <a class="footnote-reference" href="#sqlserverschemas" id="id19">[17]</a>:</p>
+<blockquote>
+<div>The default schema for a user can be defined by using the
+<code class="docutils literal notranslate"><span class="pre">DEFAULT_SCHEMA</span></code> option of <code class="docutils literal notranslate"><span class="pre">CREATE</span> <span class="pre">USER</span></code> or <code class="docutils literal notranslate"><span class="pre">ALTER</span> <span class="pre">USER</span></code>. If no
+default schema is defined for a user account, SQL Server will assume
+<code class="docutils literal notranslate"><span class="pre">dbo</span></code> is the default schema. <strong>It is important [to] note that if the user
+is authenticated by SQL Server as a member of a group in the Windows
+operating system, no default schema will be associated with the user. If
+the user creates an object, a new schema will be created and named the same
+as the user, and the object will be associated with that user schema.</strong></div></blockquote>
+<p>So, for example, if your username is <cite>RCardinal</cite> and you authenticate to SQL
+Server via Windows authentication, and then create a table, it is likely to be
+called something like <code class="docutils literal notranslate"><span class="pre">[mydatabase].[myserver\RCardinal].[mytable]</span></code>. You can
+try this:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>USE mydatabase;
+SELECT name, type_desc, default_schema_name FROM sys.database_principals;
+
+USE mydatabase;
+ALTER USER [myserver\RCardinal] WITH DEFAULT_SCHEMA = dbo;
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="windows">
+<h2>11.7. Windows<a class="headerlink" href="#windows" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="control-panel-looks-blank-in-windows-2008-server">
+<h3>11.7.1. Control Panel looks blank in Windows 2008 Server<a class="headerlink" href="#control-panel-looks-blank-in-windows-2008-server" title="Permalink to this headline">¶</a></h3>
+<p>This isn’t a CRATE problem. However, it’s something we encountered as a problem
+when using CRATE. If your Control Panel looks blank, (1) run <code class="docutils literal notranslate"><span class="pre">gpedit.msc</span></code>
+(Local Group Policy Editor), then <span class="menuselection">User Configuration ‣
+Administrative Templates ‣ Control Panel</span>. Check the settings there.</p>
+<p>When that doesn’t work, I’m a bit stuck; try running <code class="docutils literal notranslate"><span class="pre">.cpl</span></code> items from the
+command line instead.</p>
+</div>
+</div>
+<div class="section" id="medex-uima">
+<h2>11.8. MedEx-UIMA<a class="headerlink" href="#medex-uima" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="medex-uima-gives-java-errors">
+<h3>11.8.1. MedEx-UIMA gives Java errors<a class="headerlink" href="#medex-uima-gives-java-errors" title="Permalink to this headline">¶</a></h3>
+<p>Yes. Frankly, it’s just fairly badly written, from a programmer’s perspective.
+I’ve fixed a few of its bugs in a nasty patch-based way; see
+<code class="docutils literal notranslate"><span class="pre">build_medex_itself.py</span></code>. MedEx takes the approach of allowing bugs to throw
+exceptions, catching its own exceptions, printing the stack trace, and carrying
+on regardless; this can be off-putting, but I’ve not bothered to fix all its
+bugs. CRATE will abort if any exceptions make it out of MedEx, but you can just
+ignore ones that you see. Here are a couple I fixed:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Exception in thread &quot;main&quot; java.lang.StringIndexOutOfBoundsException: String index out of range: 2
+    at java.lang.String.charAt(Unknown Source)
+    at org.apache.NLPTools.Document.&lt;init&gt;(Document.java:134)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:256)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:302)
+    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:128)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:320)
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>java.lang.StringIndexOutOfBoundsException: String index out of range: 1
+    at java.lang.String.charAt(Unknown Source)
+    at org.apache.algorithms.SuffixArray.construct_tree_word(SuffixArray.java:375)
+    at org.apache.algorithms.SuffixArray.re_build(SuffixArray.java:97)
+    at org.apache.algorithms.SuffixArray.&lt;init&gt;(SuffixArray.java:60)
+    at org.apache.medex.MedTagger.medtagging(MedTagger.java:359)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:302)
+    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:128)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:320)
+</pre></div>
+</div>
+<p>(the first being an example of using &amp; when they meant &amp;&amp; in a logic test).
+Here are a couple of MedEx bugs I haven’t fixed, so you might see them:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>java.lang.ArrayIndexOutOfBoundsException: -1
+    at java.util.Vector.elementData(Unknown Source)
+    at java.util.Vector.get(Unknown Source)
+    at org.apache.NLPTools.SentenceBoundary.detect_boundaries(SentenceBoundary.java:329)
+    at org.apache.medex.MedTagger.medtagging(MedTagger.java:354)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:312)
+    at CrateMedexPipeline.runPipeline(CrateMedexPipeline.java:138)
+    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:112)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:330)
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>java.lang.NullPointerException
+    at org.apache.algorithms.SuffixArray.search(SuffixArray.java:636)
+    at org.apache.medex.MedTagger.medtagging(MedTagger.java:362)
+    at org.apache.medex.MedTagger.run_batch_medtag(MedTagger.java:264)
+    at CrateMedexPipeline.processInput(CrateMedexPipeline.java:312)
+    at CrateMedexPipeline.runPipeline(CrateMedexPipeline.java:138)
+    at CrateMedexPipeline.&lt;init&gt;(CrateMedexPipeline.java:112)
+    at CrateMedexPipeline.main(CrateMedexPipeline.java:330)
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>java.lang.NullPointerException
+</pre></div>
+</div>
+</div>
+<div class="section" id="crate-reports-an-encoding-error-when-talking-to-medex">
+<h3>11.8.2. CRATE reports an encoding error when talking to MedEx<a class="headerlink" href="#crate-reports-an-encoding-error-when-talking-to-medex" title="Permalink to this headline">¶</a></h3>
+<p>You have probably missed out the <code class="docutils literal notranslate"><span class="pre">-Dfile.encoding=UTF-8</span></code> setting for Java in
+your config file; see the example.</p>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="debugginghighmemusage" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>For tracking it down:
+<a class="reference external" href="https://www.huyng.com/posts/python-performance-analysis">https://www.huyng.com/posts/python-performance-analysis</a>;
+<a class="reference external" href="http://chase-seibert.github.io/blog/2013/08/03/diagnosing-memory-leaks-python.html">http://chase-seibert.github.io/blog/2013/08/03/diagnosing-memory-leaks-python.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="disabledebugcloseapplication" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td><a class="reference external" href="http://stackoverflow.com/questions/396369/how-do-i-disable-the-debug-close-application-dialog-on-windows-vista">http://stackoverflow.com/questions/396369/how-do-i-disable-the-debug-close-application-dialog-on-windows-vista</a>;
+<a class="reference external" href="https://msdn.microsoft.com/en-us/library/windows/desktop/bb513638(v=vs.85).aspx">https://msdn.microsoft.com/en-us/library/windows/desktop/bb513638(v=vs.85).aspx</a>;
+<a class="reference external" href="http://stackoverflow.com/questions/3561545/how-to-terminate-a-program-when-it-crashes-which-should-just-fail-a-unit-test/3637710#3637710">http://stackoverflow.com/questions/3561545/how-to-terminate-a-program-when-it-crashes-which-should-just-fail-a-unit-test/3637710#3637710</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="installapacheant" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td>Apache Ant uses <cite>build.xml</cite> files to build Java <cite>.jar</cite> files from Java
+<cite>.java</cite> source files. From <a class="reference external" href="https://ant.apache.org">https://ant.apache.org</a>, menuselection:<cite>Download
+–&gt; Binary distributions</cite>, fetch <cite>apache-ant-1.10.1.zip</cite> or similar, and
+unzip it (e.g. to <code class="docutils literal notranslate"><span class="pre">C:\Program</span> <span class="pre">Files</span></code>). Set the <cite>JAVA_HOME</cite> environment
+variable to the Java JDK root directory. Set the <cite>ANT_HOME</cite> environment
+variable to the Apache Ant root directory.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="amqp214bug" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id9">[4]</a></td><td><a class="reference external" href="https://github.com/celery/py-amqp/issues/135">https://github.com/celery/py-amqp/issues/135</a>;
+<a class="reference external" href="http://stackoverflow.com/questions/41775353">http://stackoverflow.com/questions/41775353</a>;
+<a class="reference external" href="https://github.com/celery/py-amqp/issues/130">https://github.com/celery/py-amqp/issues/130</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="mysqlidcasesens" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id14">[5]</a></td><td><a class="reference external" href="http://dev.mysql.com/doc/refman/5.7/en/identifier-case-sensitivity.html">http://dev.mysql.com/doc/refman/5.7/en/identifier-case-sensitivity.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="ntfscasesens" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id15">[6]</a></td><td><a class="reference external" href="https://support.microsoft.com/en-us/kb/100625">https://support.microsoft.com/en-us/kb/100625</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="csrffirefox" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id8">[7]</a></td><td>Or maybe see <a class="reference external" href="http://superuser.com/questions/461608">http://superuser.com/questions/461608</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="enablingmars" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id16">[8]</a></td><td><a class="reference external" href="https://msdn.microsoft.com/en-us/library/h32h3abf(v=vs.110).aspx">https://msdn.microsoft.com/en-us/library/h32h3abf(v=vs.110).aspx</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="enablingmarsmethodfailed" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id17">[9]</a></td><td>Connection string emitted by SQLAlchemy (found by placing a trace within
+<cite>sqlalchemy.engine.default.DefaultDialect.connect</cite>):
+<code class="docutils literal notranslate"><span class="pre">dsn=MY_DSN;MultipleActiveResultSets=True;Trusted_Connection=Yes</span></code>.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="marsregistry" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id18">[10]</a></td><td><a class="reference external" href="http://serverfault.com/questions/302169">http://serverfault.com/questions/302169</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="mysqlcfglocation" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id12">[11]</a></td><td><a class="reference external" href="http://dev.mysql.com/doc/refman/5.7/en/option-files.html">http://dev.mysql.com/doc/refman/5.7/en/option-files.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="mysqlinstallwinservice" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id13">[12]</a></td><td><a class="reference external" href="http://dev.mysql.com/doc/refman/5.7/en/windows-start-service.html">http://dev.mysql.com/doc/refman/5.7/en/windows-start-service.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="win443unavailable" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[13]</a></td><td><a class="reference external" href="https://helpdesk.stone-ware.com/portal/helpcenter/articles/port-443-80-not-available-on-windows-server">https://helpdesk.stone-ware.com/portal/helpcenter/articles/port-443-80-not-available-on-windows-server</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="svchost" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[14]</a></td><td><a class="reference external" href="https://en.wikipedia.org/wiki/Svchost.exe">https://en.wikipedia.org/wiki/Svchost.exe</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="vmware443" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id6">[15]</a></td><td><a class="reference external" href="http://superuser.com/questions/125455/why-is-the-system-process-listening-on-port-443">http://superuser.com/questions/125455/why-is-the-system-process-listening-on-port-443</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="port8443" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id7">[16]</a></td><td><a class="reference external" href="http://www.speedguide.net/port.php?port=8443">http://www.speedguide.net/port.php?port=8443</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="sqlserverschemas" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id19">[17]</a></td><td><a class="reference external" href="https://technet.microsoft.com/en-us/library/dd283095(v=sql.100).aspx">https://technet.microsoft.com/en-us/library/dd283095(v=sql.100).aspx</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="rabbitmqwinquirks" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id10">[18]</a></td><td><a class="reference external" href="https://www.rabbitmq.com/windows-quirks.html">https://www.rabbitmq.com/windows-quirks.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="homedrivehomeshare" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id11">[19]</a></td><td><a class="reference external" href="https://github.com/rabbitmq/rabbitmq-server/issues/625">https://github.com/rabbitmq/rabbitmq-server/issues/625</a></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">11. Troubleshooting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#general">11.1. General</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#crate-anonymiser">11.2. CRATE anonymiser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#crate-nlp">11.3. CRATE NLP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#crate-web-site">11.4. CRATE web site</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mysql">11.5. MySQL</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#sql-server">11.6. SQL Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#windows">11.7. Windows</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#medex-uima">11.8. MedEx-UIMA</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ancillary_tools.html"
+                        title="previous chapter">10. Ancillary tools</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="technical_notes.html"
+                        title="next chapter">12. Technical notes</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/misc/troubleshooting.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="technical_notes.html" title="12. Technical notes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ancillary_tools.html" title="10. Ancillary tools"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

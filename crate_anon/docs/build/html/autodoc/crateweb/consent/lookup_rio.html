@@ -1,0 +1,496 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.3.16. crate_anon.crateweb.consent.lookup_rio &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="15.3.17. crate_anon.crateweb.consent.models" href="models.html" />
+    <link rel="prev" title="15.3.15. crate_anon.crateweb.consent.lookup_dummy" href="lookup_dummy.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="models.html" title="15.3.17. crate_anon.crateweb.consent.models"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="lookup_dummy.html" title="15.3.15. crate_anon.crateweb.consent.lookup_dummy"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../_index.html" accesskey="U">15.3. crate_anon.crateweb</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.crateweb.consent.lookup_rio">
+<span id="crate-anon-crateweb-consent-lookup-rio"></span><h1>15.3.16. crate_anon.crateweb.consent.lookup_rio<a class="headerlink" href="#module-crate_anon.crateweb.consent.lookup_rio" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<dl class="function">
+<dt id="crate_anon.crateweb.consent.lookup_rio.gen_opt_out_pids_mpids_rio_generic">
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">gen_opt_out_pids_mpids_rio_generic</code><span class="sig-paren">(</span><em>source_db: str</em>, <em>raw_rio: bool = False</em>, <em>cpft_datamart: bool = False</em><span class="sig-paren">)</span> &#x2192; Generator[[Tuple[str, str], NoneType], NoneType]<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.gen_opt_out_pids_mpids_rio_generic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates (pid, mpid) tuples.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic">
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">get_latest_consent_mode_from_rio_generic</code><span class="sig-paren">(</span><em>nhs_number: int, source_db: str, decisions: List[str], raw_rio: bool = False, cpft_datamart: bool = False</em><span class="sig-paren">)</span> &#x2192; Union[crate_anon.crateweb.consent.models.ConsentMode, NoneType]<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shared function as very similar for the various copies of RiO data.</p>
+<p>In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.
+This is processed regularly into the CPFT Data Warehouse, so that
+contains very fresh data and is a good choice.</p>
+<p>For CPFT’s custom consent mode, built into RiO v6, the table copy in
+the Data Warehouse is:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>SELECT</dt>
+<dd><p class="first">[ClientID]  – VARCHAR(15) NOT NULL; RiO number as text
+,[AssessmentDate]  – DATETIME
+,[ReferralNumber]  – NVARCHAR(20); a small integer as text
+,[ResearchContact]  – NVARCHAR(20); ‘RED’, ‘YELLOW’, ‘GREEN’
+,[OptOut]</p>
+<blockquote>
+<div>– BIT; 1 for opt out; NULL (or potentially 0?) for not
+– opted out</div></blockquote>
+<dl class="last docutils">
+<dt>,[OptOutFromMedicalResearch_AfterDetailsRemoved]</dt>
+<dd>– VARCHAR(1); ‘Y’ for opt out; 9 for not opted out
+– identical information to OptOut; OptOut is the simpler</dd>
+<dt>,[PersonActingonBehalf_of_Patient]</dt>
+<dd>– NTEXT, e.g. ‘Mr Smith’ or NULL</dd>
+<dt>,[PersonActingonBehalf_of_Patient_Relation]</dt>
+<dd>– NTEXT, e.g. ‘Husband’ or NULL or ‘N/A’ or ‘n/a’</dd>
+<dt>,[Personactingonbehalf_address]</dt>
+<dd>– NTEXT, e.g. an address or NULL or ‘N/A’ or ‘n/a’</dd>
+<dt>,[WhoMakesDecisionFor_Patient]</dt>
+<dd><p class="first">– NVARCHAR(40), e.g. one of:
+–  ‘16 or over, has capacity’
+–  ‘16 or over, lacks capacity’
+–  ‘Under 16, “Gillick competent”’</p>
+<blockquote>
+<div>– note left/right double quotes</div></blockquote>
+<p class="last">–  ‘Under 16, parent/guardian consent’</p>
+</dd>
+</dl>
+</dd>
+<dt>FROM [CPFT_DATAMART].[dbo].[ConsentToResearch]</dt>
+<dd>– NB this is on a different CPFT server; see databases.txt</dd>
+</dl>
+</div></blockquote>
+<p>Note also: the CPFT_DATAMART database does not provide patient-
+identifiable information, except PatientOverview_RiO:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>SELECT</dt>
+<dd><p class="first">[NHSNumber]     – VARCHAR(15); NHS number as text
+,[ClientID]     – VARCHAR(15) NOT NULL; RiO number as text
+,[PatientName]  – VARCHAR(202); e.g. ‘Smith, John’
+,[Surname]      – VARCHAR(100); e.g. ‘Smith’
+,[DOB]          – DATETIME; time part is zero
+,[TeamStartDate]    – DATETIME
+,[TeamName]         – NVARCHAR(50)
+,[ReferralNumber]   – INT NOT NULL; a small integer
+,[LastAttendedApptDate_WithTeam]    – DATE
+,[FutureAppts_WithTeam]     – DATE; just one despite the name
+,[HCPs]</p>
+<blockquote class="last">
+<div>– NVARCHAR(MAX); semicolon-delimited list; e.g.
+– ‘; Alice Smith’
+– ‘; Alice Smith; Bob Jones’
+– ‘; Unknown Consultant’</div></blockquote>
+</dd>
+</dl>
+<p>FROM [CPFT_DATAMART].[dbo].[PatientOverviewRiO]</p>
+</div></blockquote>
+<p>In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>SELECT</dt>
+<dd><p class="first">[ClientID]  – VARCHAR(15); RiO number as text
+,[AssessmentDate]  – DATETIME
+,[system_ValidationData]  – NTEXT; XML style
+,[ResearchContact]  – NVARCHAR(20); ‘RED’, ‘YELLOW’, ‘GREEN’, NULL
+,[useemail]  – BIT (1, 0, NULL)
+,[optout]  – BIT
+,[capname]  – NTEXT
+,[capaddress]  – NTEXT
+,[caprelation]  – NTEXT
+,[capacity]  – VARCHAR(20); e.g. ‘a’, ‘b’
+,[type12_NoteID]  – INT NOT NULL; small integer
+,[type12_OriginalNoteID]  – INT; usually NULL
+,[type12_DeletedDate]  – DATETIME; NULL if not deleted
+,[type12_UpdatedBy]  – NVARCHAR(20); username
+,[type12_UpdatedDate]  – DATETIME
+,[formref]  – NVARCHAR(20); typically a small integer as text</p>
+<p class="last">– If it’s been preprocessed, also these:
+,[crate_pk]         – in CRATE preprocessed version only; BIGINT
+,[crate_rio_number] – in CRATE preprocessed version only; BIGINT</p>
+</dd>
+</dl>
+<p>FROM [dbo].[UserAssessconsentrd]</p>
+</div></blockquote>
+<p>The NHS number table is:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>SELECT</dt>
+<dd>[ClientID]  – VARCHAR(15); RiO number as text
+,[NNN]  – CHAR(10); NHS number as text
+– and lots more</dd>
+</dl>
+<p>FROM [dbo].ClientIndex]</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_crate_preprocessed">
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_crate_preprocessed</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str]</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_crate_preprocessed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Here, we use the version of RiO preprocessed by the CRATE preprocessor.
+This is almost identical to the RCEP version, saving us some thought and
+lots of repetition of complex JOIN code to deal with the raw RiO database.</p>
+<p>However, the CRATE preprocessor does this with views.
+We would need to index the underlying tables; however, the CRATE
+processor has also done this for us for the lookup tables, so we
+don’t need so many.</p>
+<p>USE my_database_name;</p>
+<p>CREATE INDEX _idx_cdd_nhs ON ClientIndex (NNN);  – already in RiO source</p>
+<p>CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  – already in RiO source  # noqa
+CREATE INDEX _idx_cnh_eff ON ClientName (EffectiveDate);  – ignored
+CREATE INDEX _idx_cnh_end ON ClientName (EndDate);  – ignored</p>
+<p>CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  – already in RiO source as part of composite index  # noqa
+CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  – ignored
+CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  – ignored</p>
+<p>CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  – already in RiO source as part of composite index  # noqa</p>
+<p>CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  – already in RiO source  # noqa
+CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  – ignored  # noqa
+CREATE INDEX _idx_cgh_to ON ClientHealthCareProvider (ToDate);  – ignored</p>
+<p>CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  – preprocessor adds this  # noqa
+CREATE INDEX _idx_cc_start ON CPACareCoordinator (StartDate);  – ignored
+CREATE INDEX _idx_cc_end ON CPACareCoordinator (EndDate);  – ignored</p>
+<p>CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  – already in RiO source as part of composite index  # noqa
+CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  – ignored  # noqa
+CREATE INDEX _idx_ref_removal ON AmsReferral (RemovalDateTime);  – ignored</p>
+<p>CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  – already in RiO source as part of composite index  # noqa
+CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  – ignored
+CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  – ignored</p>
+<p>CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  – already in RiO source as part of composite index  # noqa
+CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  – ignored
+CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  – ignored</p>
+<p>… or alternative RiO number indexes on CRATE_COL_RIO_NUMBER field.</p>
+<p>Then, the only field name differences from RCEP are:</p>
+<blockquote>
+<div>Client_Name_History.End_Date  – not <a href="#id1"><span class="problematic" id="id2">End_Date_</span></a></div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_generic">
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_generic</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str], as_crate_not_rcep: bool</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_generic" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Main:</dt>
+<dd><dl class="first last docutils">
+<dt>Client_Demographic_Details</dt>
+<dd>Client_ID – PK; RiO number; integer in VARCHAR(15) field
+Date_of_Birth – DATETIME
+Date_of_Death – DATETIME; NULL if not dead
+Death_Flag – INT; 0 for alive, 1 for dead
+Deleted_Flag – INT; 0 normally; 1 for deleted
+NHS_Number – CHAR(10)
+Gender_Code – ‘F’, ‘M’, ‘U’, ‘X’
+Gender_Description – ‘Male’, ‘Female’, …</dd>
+</dl>
+</dd>
+</dl>
+<p>Then, linked to it:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>Client_Name_History</dt>
+<dd><p class="first">Client_ID – integer in VARCHAR(15)
+Effective_Date – DATETIME
+<a href="#id3"><span class="problematic" id="id4">End_Date_</span></a>  – DATETIME, typically NULL</p>
+<blockquote>
+<div>– in the CRATE version, this is End_Date instead</div></blockquote>
+<dl class="docutils">
+<dt>Name_Type_Code  – ‘1’ for ‘usual name’, ‘2’ for ‘Alias’, ‘3’</dt>
+<dd>for ‘Preferred name’, ‘4’ for ‘Birth name’, ‘5’ for
+‘Maiden name’, ‘7’ for ‘Other’, ‘CM’ for ‘Client Merge’;
+NVARCHAR(10)</dd>
+</dl>
+<p>Name_Type_Description  – e.g. ‘Usual name’, ‘Alias’
+Deleted_Flag – INT</p>
+<p class="last">title
+Given_Name_1  – through to Given_Name_5
+Family_Name
+suffix
+…</p>
+</dd>
+<dt>Client_Address_History</dt>
+<dd><p class="first">Client_ID – integer in VARCHAR(15)
+Address_Type_Code – e.g. ‘PRIMARY’ but also ‘CA’, ‘FCH’…
+Address_Type_Description
+Address_From_Date – DATETIME
+Address_To_Date – DATETIME; NULL for active ones</p>
+<p class="last">Address_Line_1
+Address_Line_2
+Address_Line_3
+Address_Line_4
+Address_Line_5
+Post_Code
+… – no e-mail address field</p>
+</dd>
+<dt>Client_GP_History</dt>
+<dd><p class="first">Client_ID – integer in VARCHAR(15)
+GP_From_Date – DATETIME
+GP_To_Date – DATETIME; NULL for active ones</p>
+<p class="last">GP_Name – e.g. ‘Smith JT’
+GP_Practice_Address_Line1
+GP_Practice_Address_Line2
+GP_Practice_Address_Line3
+GP_Practice_Address_Line4
+GP_Practice_Address_Line5
+GP_Practice_Post_code
+…</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>CPFT clinician details/?discharged info appear to be here:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>CPA_CareCoordinator</dt>
+<dd><p class="first">Client_ID – integer in VARCHAR(15)
+Start_Date – DATETIME
+End_Date – DATETIME
+End_Reason_Code
+End_Reason_Description
+End_Reason_National_Code</p>
+<p class="last">Care_Coordinator_User_title
+Care_Coordinator_User_first_name
+Care_Coordinator_User_surname
+Care_Coordinator_User_email
+Care_Coordinator_User_Consultant_Flag – INT; 0 or 1 (or NULL?)</p>
+</dd>
+<dt>Main_Referral_Data</dt>
+<dd><p class="first">Client_ID – integer in VARCHAR(15)
+Referral_Received_Date – DATETIME
+Removal_DateTime – DATETIME
+# Care_Spell_Start_Date
+# Care_Spell_End_Date – never non-NULL in our data set
+# Discharge_HCP – ??user closing the referral</p>
+<p class="last">Referred_Consultant_User_title
+Referred_Consultant_User_first_name
+Referred_Consultant_User_surname
+Referred_Consultant_User_email
+Referred_Consultant_User_Consultant_Flag  – 0, 1, NULL</p>
+</dd>
+<dt>Referral_Staff_History</dt>
+<dd><p class="first">Client_ID – integer in VARCHAR(15)
+Start_Date – DATETIME
+End_Date – DATETIME
+Current_At_Discharge – INT – ? – 1 or NULL</p>
+<p class="last">HCP_User_title
+HCP_User_first_name
+HCP_User_surname
+HCP_User_email
+HCP_User_Consultant_Flag  – 0, 1, NULL</p>
+</dd>
+<dt>Referral_Team_History</dt>
+<dd><blockquote class="first">
+<div>– similar, but for teams; no individual info</div></blockquote>
+<p>Client_ID – integer in VARCHAR(15)
+Start_Date – DATETIME
+End_Date – DATETIME
+Current_At_Discharge – INT – ? – 1 or NULL</p>
+<p>Team_Code – NVARCHAR – e.g. ‘TCGMH712’
+Team_Description – NVARCHAR – e.g. ‘George Mackenzie’
+Team_Classification_Group_Code – NVARCHAR – e.g. ‘FS’
+Team_Classification_Group_Description – NVARCHAR – e.g.</p>
+<blockquote class="last">
+<div>‘Forensic Service’</div></blockquote>
+</dd>
+</dl>
+</div></blockquote>
+<p>Not obviously relevant:</p>
+<blockquote>
+<div>Client_CPA – records CPA start/end, etc.
+Client_Professional_Contacts – empty table!</div></blockquote>
+<p>Added 2017-02-27:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>Client_Communications_History – email/phone</dt>
+<dd><p class="first">Client_ID – integer in VARCHAR(15)
+Method_Code – NVARCHAR(10); ‘1’ for ‘Telephone number’, ‘3’</p>
+<blockquote>
+<div>for ‘Email address’, ‘4’ for ‘Minicom/textphone number’</div></blockquote>
+<p>Method_Description
+Context_Code – e.g. ‘1’ for ‘Communication address at home’,</p>
+<blockquote>
+<div>other codes for ‘Vacation home…’, etc.</div></blockquote>
+<p class="last">Context_Description
+Contact_Details – NVARCHAR(80)</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_rcep">
+<code class="descclassname">crate_anon.crateweb.consent.lookup_rio.</code><code class="descname">lookup_cpft_rio_rcep</code><span class="sig-paren">(</span><em>lookup: crate_anon.crateweb.consent.models.PatientLookup, decisions: List[str], secret_decisions: List[str]</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.crateweb.consent.lookup_rio.lookup_cpft_rio_rcep" title="Permalink to this definition">¶</a></dt>
+<dd><p>RiO notes, 2015-05-19
+… ADDENDUM 2017-02-27: this is the RiO database as modified by Servelec’s</p>
+<blockquote>
+<div>RiO CRIS Extraction Program (RCEP). See also lookup_cpft_rio_raw().</div></blockquote>
+<p>For speed, RiO-RCEP needs these indexes:</p>
+<p>USE my_database_name;</p>
+<p>CREATE INDEX _idx_cdd_nhs ON Client_Demographic_Details (NHS_Number);</p>
+<p>CREATE INDEX _idx_cnh_id ON Client_Name_History (Client_ID);
+CREATE INDEX _idx_cnh_eff ON Client_Name_History (Effective_Date);
+CREATE INDEX _idx_cnh_end ON Client_Name_History (<a href="#id5"><span class="problematic" id="id6">End_Date_</span></a>);</p>
+<p>CREATE INDEX _idx_cah_id ON Client_Address_History (Client_ID);
+CREATE INDEX _idx_cah_from ON Client_Address_History (Address_From_Date);
+CREATE INDEX _idx_cah_to ON Client_Address_History (Address_To_Date);</p>
+<p>CREATE INDEX _idx_cch_id ON Client_Communications_History (Client_ID);</p>
+<p>CREATE INDEX _idx_cgh_id ON Client_GP_History (Client_ID);
+CREATE INDEX _idx_cgh_from ON Client_GP_History (GP_From_Date);
+CREATE INDEX _idx_cgh_to ON Client_GP_History (GP_To_Date);</p>
+<p>CREATE INDEX _idx_cc_id ON CPA_CareCoordinator (Client_ID);
+CREATE INDEX _idx_cc_start ON CPA_CareCoordinator (Start_Date);
+CREATE INDEX _idx_cc_end ON CPA_CareCoordinator (End_Date);</p>
+<p>CREATE INDEX _idx_ref_id ON Main_Referral_Data (Client_ID);
+CREATE INDEX _idx_ref_recv ON Main_Referral_Data (Referral_Received_Date);
+CREATE INDEX _idx_ref_removal ON Main_Referral_Data (Removal_DateTime);</p>
+<p>CREATE INDEX _idx_rsh_id ON Referral_Staff_History (Client_ID);
+CREATE INDEX _idx_rsh_start ON Referral_Staff_History (Start_Date);
+CREATE INDEX _idx_rsh_end ON Referral_Staff_History (End_Date);</p>
+<p>CREATE INDEX _idx_rth_id ON Referral_Team_History (Client_ID);
+CREATE INDEX _idx_rth_start ON Referral_Team_History (Start_Date);
+CREATE INDEX _idx_rth_end ON Referral_Team_History (End_Date);</p>
+<p>– CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../anonymise/_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="lookup_dummy.html"
+                        title="previous chapter">15.3.15. crate_anon.crateweb.consent.lookup_dummy</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="models.html"
+                        title="next chapter">15.3.17. crate_anon.crateweb.consent.models</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../../_sources/autodoc/crateweb/consent/lookup_rio.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="models.html" title="15.3.17. crate_anon.crateweb.consent.models"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="lookup_dummy.html" title="15.3.15. crate_anon.crateweb.consent.lookup_dummy"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../_index.html" >15.3. crate_anon.crateweb</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

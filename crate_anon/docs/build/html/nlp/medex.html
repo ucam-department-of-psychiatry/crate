@@ -1,0 +1,216 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>7.6. MedEx-UIMA drug NLP &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8. Configuring the CRATE web interface" href="../website_config/index.html" />
+    <link rel="prev" title="7.5. GATE NLP applications" href="gate.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../website_config/index.html" title="8. Configuring the CRATE web interface"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="gate.html" title="7.5. GATE NLP applications"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">7. Natural language processing (NLP)</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="medex-uima-drug-nlp">
+<span id="medex-nlp"></span><h1>7.6. MedEx-UIMA drug NLP<a class="headerlink" href="#medex-uima-drug-nlp" title="Permalink to this headline">¶</a></h1>
+<p>MedEx-UIMA NLP (for drugs and drug doses) <a class="footnote-reference" href="#medexpub" id="id1">[1]</a> is supported via an
+external program. MedEx-UIMA runs in Java. CRATE supplies an external front-end
+Java program (<cite>CrateMedexPipeline.java</cite>) that loads the MedEx app, sends text to
+it (via a temporary disk file, for reasons relating to MedEx-UIMA’s internal
+workings), and returns answers.</p>
+<div class="section" id="installation">
+<h2>7.6.1. Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Download it from <a class="reference external" href="https://sbmi.uth.edu/ccb/resources/medex.htm">https://sbmi.uth.edu/ccb/resources/medex.htm</a></li>
+<li>CRATE provides Java code (see <cite>CrateMedexPipeline.java</cite>) to talk to
+MedEx-UIMA. Use <code class="docutils literal notranslate"><span class="pre">crate_nlp_build_medex_java_interface</span></code> to build this before
+you use it for the first time.</li>
+<li>CRATE fixes some bugs in MedEx-UIMA. Run <code class="docutils literal notranslate"><span class="pre">crate_nlp_build_medex_itself</span></code> to
+rebuild MedEx and fix them.</li>
+</ul>
+</div>
+<div class="section" id="crate-nlp-build-medex-java-interface">
+<h2>7.6.2. crate_nlp_build_medex_java_interface<a class="headerlink" href="#crate-nlp-build-medex-java-interface" title="Permalink to this headline">¶</a></h2>
+<p>Options as of 2017-02-28:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: crate_nlp_build_medex_java_interface [-h] [--builddir BUILDDIR]
+                                            [--medexdir MEDEXDIR]
+                                            [--java JAVA] [--javac JAVAC]
+                                            [--verbose] [--launch]
+
+Compile Java classes for CRATE&#39;s interface to MedEx-UIMA
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --builddir BUILDDIR  Output directory for compiled .class files (default: /h
+                       ome/rudolf/Documents/code/crate/crate_anon/nlp_manager/
+                       compiled_nlp_classes)
+  --medexdir MEDEXDIR  Root directory of MedEx installation (default:
+                       /home/rudolf/dev/Medex_UIMA_1.3.6)
+  --java JAVA          Java executable (default: java)
+  --javac JAVAC        Java compiler (default: javac)
+  --verbose, -v        Be verbose (use twice for extra verbosity)
+  --launch             Launch script in demonstration mode (having previously
+                       compiled it)
+</pre></div>
+</div>
+</div>
+<div class="section" id="crate-nlp-build-medex-itself">
+<h2>7.6.3. crate_nlp_build_medex_itself<a class="headerlink" href="#crate-nlp-build-medex-itself" title="Permalink to this headline">¶</a></h2>
+<p>This program builds MedEx and implements some bug fixes and improvements for
+the UK.</p>
+<p>Options as of 2017-02-28:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: crate_nlp_build_medex_itself [-h] [--medexdir MEDEXDIR] [--javac JAVAC]
+                                    [--deletefirst] [--verbose]
+
+Compile MedEx-UIMA itself (in Java)
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --medexdir MEDEXDIR  Root directory of MedEx installation (default:
+                       /home/rudolf/dev/Medex_UIMA_1.3.6)
+  --javac JAVAC        Java compiler (default: javac)
+  --deletefirst        Delete existing .class files first (optional)
+  --verbose, -v        Be verbose
+</pre></div>
+</div>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="medexpub" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td>MedEx UIMA reference publication:
+<a class="reference external" href="https://www.ncbi.nlm.nih.gov/pubmed/25954575">https://www.ncbi.nlm.nih.gov/pubmed/25954575</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="medexdl" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label">[2]</td><td>MedEx-UIMA downloads: <a class="reference external" href="https://sbmi.uth.edu/ccb/resources/medex.htm">https://sbmi.uth.edu/ccb/resources/medex.htm</a></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">7. Natural language processing (NLP)</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">7.1. Overview of NLP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="nlp_config.html">7.2. NLP config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run_nlp.html">7.3. Run the NLP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="crate_python_regex.html">7.4. CRATE’s Python regex NLP</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gate.html">7.5. GATE NLP applications</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">7.6. MedEx-UIMA drug NLP</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="gate.html"
+                        title="previous chapter">7.5. GATE NLP applications</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="../website_config/index.html"
+                        title="next chapter">8. Configuring the CRATE web interface</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/nlp/medex.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="../website_config/index.html" title="8. Configuring the CRATE web interface"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="gate.html" title="7.5. GATE NLP applications"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >7. Natural language processing (NLP)</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

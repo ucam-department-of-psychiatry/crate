@@ -1,0 +1,663 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>16. Change log/history &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="17. Things to do" href="misc/to_do.html" />
+    <link rel="prev" title="15.6.5. crate_anon.tools.winservice" href="autodoc/tools/winservice.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="misc/to_do.html" title="17. Things to do"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="autodoc/tools/winservice.html" title="15.6.5. crate_anon.tools.winservice"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CRATE  documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="change-log-history">
+<h1>16. Change log/history<a class="headerlink" href="#change-log-history" title="Permalink to this headline">¶</a></h1>
+<p><strong>2015-02-18</strong></p>
+<ul class="simple">
+<li>Started.</li>
+</ul>
+<p><strong>v0.03, 2015-03-19</strong></p>
+<ul class="simple">
+<li>Bug fix for incremental update (previous version inserted rather than
+updating when the source content had changed); search for
+update_on_duplicate_key.</li>
+<li>Checks for missing/extra fields in destination.</li>
+<li>“No separator” allowed for get_date_regex_elements(), allowing anonymisation
+of e.g. 19Mar2015, 19800101.</li>
+<li>New default at_word_boundaries_only=False for get_date_regex_elements(),
+allowing anonymisation of ISO8601-format dates (e.g. 1980-10-01T0000), etc.</li>
+<li>Similar option for get_code_regex_elements().</li>
+<li>Similar option for get_string_regex_elements().</li>
+<li>Options in config to control these.</li>
+<li>Fuzzy matching for get_string_regex_elements(); string_max_regex_errors
+option in config. The downside is the potential for greedy matching; for
+example, if you anonymise “Ronald MacDonald” with “Ronald” and “MacDonald”,
+you can end up with “XXX MacXXX”, as the regex greedy-matches “Donald” to
+“Ronald” with a typo, and therefore fails to process the whole “MacDonald”.
+On the other hand, this protects against simple typos, which are probably
+more common.</li>
+<li>Audit database/table.</li>
+<li>Create an incremental update to the data dictionary (i.e. existing DD plus
+any new fields in the source, with safe draft entries).</li>
+<li>Data dictionary optimizations.</li>
+</ul>
+<p><strong>v0.04, 2015-04-25</strong></p>
+<ul class="simple">
+<li>Whole bunch of stuff to cope with a limited computer talking to SQL Server
+with some idiosyncrasies.</li>
+</ul>
+<p><strong>v0.05, 2015-05-01</strong></p>
+<ul class="simple">
+<li>Ability to vary audit/secret map tablenames.</li>
+<li>Made date element separators broader in anonymisation regex.</li>
+<li>min_string_length_for_errors option</li>
+<li>min_string_length_to_scrub_with option</li>
+<li>words_not_to_scrub option</li>
+<li>bugfix: date regex couldn’t cope with years prior to 1900</li>
+<li>gen_all_values_for_patient() was inefficient in that it would process the
+same source table multiple times to retrieve different fields.</li>
+<li>ddgen_index_fields option</li>
+<li>simplification of get_anon_fragments_from_string()</li>
+<li>SCRUBMETHOD.CODE, particularly for postcodes. (Not very different from
+SCRUBMETHOD.NUMERIC, but a little different.)</li>
+<li>debug_row_limit applies to patient-based tables (as a per-thread limit); was
+previously implemented as a per-patient limit, which was silly.</li>
+<li>Indirection step in config for destination/admin databases.</li>
+<li>ddgen_allow_fulltext_indexing option, for old MySQL versions.</li>
+</ul>
+<p><strong>v0.06, 2015-06-25</strong></p>
+<ul class="simple">
+<li>Option: replace_nonspecific_info_with</li>
+<li>Option: scrub_all_numbers_of_n_digits</li>
+<li>Option: scrub_all_uk_postcodes</li>
+</ul>
+<p><strong>v0.06, 2015-07-14</strong></p>
+<ul class="simple">
+<li>bugfix: if a source scrub-from value was a number with value ‘.’, the regex
+went haywire… so regex builders now check for blanks.</li>
+</ul>
+<p><strong>v0.07, 2015-07-16</strong></p>
+<ul class="simple">
+<li>regex.ENHANCEMATCH flag tried unsuccessfully (segmentation fault, i.e.
+internal error in regex module, likely because generated regular expressions
+got too complicated for it).</li>
+</ul>
+<p><strong>v0.08, 2015-07-20</strong></p>
+<ul class="simple">
+<li>SCRUBMETHOD.WORDS renamed SCRUBMETHOD.WORDS</li>
+<li>SCRUBMETHOD.PHRASE added</li>
+<li>ddgen_scrubmethod_phrase_fields added</li>
+</ul>
+<p><strong>v0.09, 2015-07-28</strong></p>
+<ul class="simple">
+<li>debug_max_n_patients option, used with gen_patient_ids(), to reduce the
+number of patients processed for “full rebuild” debugging.</li>
+<li>debug_pid_list option, similarly</li>
+</ul>
+<p><strong>v0.10, 2015-09-02 to 2015-09-13</strong></p>
+<ul class="simple">
+<li>Opt-out mechanism.</li>
+<li>Default hasher changed to SHA256.</li>
+<li>Bugfix to datatypes in delete_dest_rows_with_no_src_row().</li>
+</ul>
+<p><strong>v0.11, 2015-09-16</strong></p>
+<ul class="simple">
+<li>Split main source code for simplicity.</li>
+</ul>
+<p><strong>v0.12, 2015-09-21</strong></p>
+<ul class="simple">
+<li>Database interface renamed from mysqldb to mysql, to allow for PyMySQL support as well (backend details otherwise irrelevant to front-end application).</li>
+</ul>
+<p><strong>v0.13, 2015-10-06</strong></p>
+<ul class="simple">
+<li>Added TRID.</li>
+</ul>
+<p><strong>v0.14.0, 2016-03-10</strong></p>
+<ul class="simple">
+<li>Code cleanup.</li>
+<li>HMAC for RID generation, replacing simpler hashes, for improved security.
+Default becomes HMAC_MD5.</li>
+<li>New option: secret_trid_cache_tablename</li>
+<li>Removed option: words_not_to_scrub</li>
+<li>New options: whitelist_filenames (replaces words_not_to_scrub),
+blacklist_filenames.</li>
+<li>Transition from cardinal_pythonlib.rnc_db to SQLAlchemy for anonymiser
+database interface.</li>
+<li>Environment variable changed from CRATE_LOCAL_SETTINGS to
+CRATE_WEB_LOCAL_SETTINGS and coded into crate_anon/config/constants.py.</li>
+<li>Web front end now happy getting structure from SQL Server and PostgreSQL.</li>
+<li>Windows support. Windows XP not supported as Erlang (and thus RabbitMQ) won’t
+run on it from the distributed binaries. Windows 10 works fine.</li>
+<li>Semantic versioning.</li>
+</ul>
+<p><strong>v0.16.0, 2016-06-04</strong></p>
+<ul class="simple">
+<li>Fixes to work properly with SQL Server, including proper automatic conversion
+of VARCHAR(MAX) and NVARCHAR(MAX) to MySQL TEXT fields. Note: also needs
+SQLAlchemy 1.1 or higher <a class="footnote-reference" href="#f1" id="id1">[1]</a>, currently available only via (1) fetching
+source via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/zzzeek/sqlalchemy</span></code> and changing
+into the ‘sqlalchemy’ directory this will create; (2) activating your CRATE
+virtual environment; (3) <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">.</span></code> to install SQLAlchemy from your
+source copy. Further note: as of v0.18.2, this is done via PyPI again.</li>
+<li>Opt-out management (1) manually; (2) via disk file; (3) via database fields.</li>
+</ul>
+<p><strong>v0.17.0, 2016-06-25</strong></p>
+<ul class="simple">
+<li>ONS Postcode Database.</li>
+<li>RiO preprocessor.</li>
+<li>Third-party patient cross-referencing for anonymisation.</li>
+<li>The ‘required scrubber’ flag, as a safety measure.</li>
+<li>Recordwise view of results in web interface.</li>
+<li>Static type checking.</li>
+</ul>
+<p><strong>v0.18.0, 2016-09-29</strong></p>
+<ul class="simple">
+<li>Regular expression NLP tools for simple numerical results (CRP, ESR, WBC and
+differential, Na, MMSE).</li>
+</ul>
+<p><strong>v0.18.1, 2016-11-04</strong></p>
+<ul class="simple">
+<li>v0.18.1 (2016-11-04): new anonymise_numbers_at_numeric_boundaries_only
+option, to prevent e.g. ‘23’ being scrubbed from ‘1234’ unless you really
+want to.</li>
+<li>More built-in NLP tools by now (height, weight, BMI, BP, TSH). MedEx support.</li>
+</ul>
+<p><strong>v0.18.2 to v0.18.8, 2016-11-11 to 2016-11-13</strong></p>
+<ul class="simple">
+<li>Too many version numbers here because git connection unavailable for remote
+development.</li>
+<li>Requirement upgraded to SQLAlchemy 1.1.3, now SQLAlchemy 1.1 and higher are
+available from PyPI.</li>
+<li>Support for non-integer PKs for NLP, to allow us to operate with tables we
+have only read-only access to. This is a bit tricky. To parallelize, it helps
+to be able to convert a non-integer to an integer for use with the modulo
+operator, %. In addition, we store PK values to speed up incremental updates.
+It becomes messy if we have to cope with lots and lots of types of PKs. Also,
+Python’s hash() function is inconsistent across invocations <a class="footnote-reference" href="#f2" id="id2">[2]</a>. This is
+not a cryptographic application, so we can use anything simple and fast
+<a class="footnote-reference" href="#f3" id="id3">[3]</a>. It looks like MurmurHash3 is suitable (hash DDoS attacks are not
+relevant here) <a class="footnote-reference" href="#f4" id="id4">[4]</a>. However, the problem then is with collisions <a class="footnote-reference" href="#f5" id="id5">[5]</a>.
+We want to ask “has this PK been processed before?” Realistically, the only
+types of PKs are integers and strings; it would be crazy to use
+floating-point numbers or BLOBs or something. So let’s put a cap at
+VARCHAR(n), where n comes from MAX_STRING_PK_LENGTH; store a 64-bit integer
+hash for speed, and then use the hash to say quickly “no, not processed” and
+check the original PK if processed. If the PK field is integer, we can just
+use the integer field for the PK itself. Note that the delete_where_no_source
+function may be imperfect now under hash collisions (and it may be imperfect
+in other ways too).</li>
+<li>This system not implemented for anonymisation; it just gets too confusing
+(PIDs, MPIDs, uniqueness of PID for TRID generation, etc.).</li>
+<li>However, mmh3 requires a Visual C++ 10.0 compiler for Windows. An alternative
+would be to require pymmh3 but load mmh3 if available, but pymmh3 isn’t on
+PyPI. Another is xxHash <a class="footnote-reference" href="#xxhash" id="id6">[6]</a>, but that also requires VC++ under
+Windows; pyhashxx installs but the interface isn’t fantastic. Others include
+FNV and siphash <a class="footnote-reference" href="#siphash" id="id7">[7]</a>. The xxHash page compares quality and speed and
+xxHash beats FNV for both (and MurmurHash for speed); siphash not listed.
+Installation of siphash is fine. Other comparisons at <a class="footnote-reference" href="#hashcomparisons" id="id8">[8]</a>.
+Let’s use xxhash (needs VC++) and pyhashxx as a fallback… only pyhashxx
+only supports 32-bit hashing. The pyhash module doesn’t install under Windows
+Server 2003, and nor does xxh, while lz4tools needs VC++. OK. Upshot: use
+mmh3 but fall back to some baked in Python implementations (from
+StackOverflow and pymmh3, with some bugfixes) if mmh3 not available.</li>
+<li>NLP <code class="docutils literal notranslate"><span class="pre">delete_where_no_source</span></code> then failed as expected with large databases,
+so reworked to be OK regardless of size (using temporary tables).</li>
+<li>Python 3.5 can handle circular imports (for type hints) that Python 3.4
+can’t, so some delayed and version-conditional imports to sort that out in
+the NLP code.</li>
+<li>Provide source/destination record counts from NLP manager, and better
+progress indicator for anonymiser.</li>
+<li>Optional NLP record limit for debugging.</li>
+<li>Speed increases by not requesting unnecessary ORDER BY conditions.</li>
+<li>Commit-every options for NLP (every n bytes and/or every n rows).</li>
+<li>Regex NLP for ACE, mini-ACE, MOCA.</li>
+<li>Timing framework for NLP (for when it’s dreadfully slow and you think the
+problem might be the source database).</li>
+<li>Significant NLP performance enhancement by altering progress DB lookup methods.</li>
+</ul>
+<p><strong>v0.18.9, 2016-12-02</strong></p>
+<ul>
+<li><p class="first">Regex NLP: option in SimpleNumericalResultParser to take absolute values,
+e.g. to deal with text like “Na-142, K-4.1, CRP-97”, which use “-” simply as
+punctuation, rather than as a minus sign. Failing to account for these would
+distort results.</p>
+</li>
+<li><p class="first">No attempt is made to specify maximum or minimum values, which can easily be
+excluded as required from the resulting data set. One could of course use the
+SQL ABS() function to deal with negative values post hoc, but some things
+have no physical meaning when negative, such as a white cell count or CRP
+value, so it’s preferable to fix these at source to reduce the chance of user
+error through not noticing negative values.</p>
+</li>
+<li><p class="first">The “take_absolute” option is applied to: CRP, sodium, TSH, BMI, MMSE, ACE,
+mini-ACE, MOCA, ESR, and white cell/differential counts. (NLP processors for
+height, BP already enforced positive values. Weight must be able to handle
+negatives, like “weight change –0.4kg”.)</p>
+</li>
+<li><p class="first">Similarly, hyphen followed by whitespace treated as ignorable in regex NLP
+(e.g. in “weight - 48 kg”; though spaces are meaningful for mathematical
+operations (“a – b = c”), it is syntactically wrong to use “- 4” as a unary
+minus sign to indicate a negative number (–4) and much more likely that this
+context means a dash.</p>
+</li>
+<li><p class="first">En and em dashes, and a double-hyphen as a dash (“–”) treated as ignorables
+in regex NLP.</p>
+</li>
+<li><p class="first">At present, Unicode minus signs (−) are not handled. For reference <a class="footnote-reference" href="#dashes" id="id9">[9]</a>:</p>
+<blockquote>
+<div><table border="1" class="docutils">
+<colgroup>
+<col width="16%" />
+<col width="12%" />
+<col width="30%" />
+<col width="42%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">name</th>
+<th class="head">character</th>
+<th class="head">code</th>
+<th class="head">handling</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>hyphen-minus</td>
+<td><ul class="first last simple">
+<li></li>
+</ul>
+</td>
+<td>Unicode 002D or ASCII 45</td>
+<td>minus sign if context correct</td>
+</tr>
+<tr class="row-odd"><td>formal hyphen</td>
+<td>‐</td>
+<td>Unicode 2010</td>
+<td>not handled at present</td>
+</tr>
+<tr class="row-even"><td>minus sign</td>
+<td>−</td>
+<td>Unicode 2212</td>
+<td>not handled at present</td>
+</tr>
+<tr class="row-odd"><td>en dash</td>
+<td>–</td>
+<td>Unicode 2013</td>
+<td>treated as ignorable <a class="footnote-reference" href="#ignoreendash" id="id10">[10]</a></td>
+</tr>
+<tr class="row-even"><td>em dash</td>
+<td>—</td>
+<td>Unicode 2014</td>
+<td>treated as ignorable</td>
+</tr>
+</tbody>
+</table>
+</div></blockquote>
+</li>
+<li><p class="first">Improved regex self-testing, including new test framework in
+crate_anon/nlp_manager/test_all_regex.py.</p>
+</li>
+</ul>
+<p><strong>v0.18.10, 2016-12-11</strong></p>
+<ul class="simple">
+<li>Full support for SQL Server as the backend.</li>
+<li>Hot-swapping databases (compare MySQL <a class="footnote-reference" href="#mysqlrenamedb" id="id11">[11]</a>): you can rename
+databases, so this seems OK <a class="footnote-reference" href="#sqlserverrenamedb" id="id12">[12]</a>.</li>
+<li>Full-text indexing: optional in SQL Server 2008, 2012, 2014 and 2016
+<a class="footnote-reference" href="#sqlserverfulltext" id="id13">[13]</a>; basic SELECT syntax is <code class="docutils literal notranslate"><span class="pre">WHERE</span> <span class="pre">CONTAINS(fieldname,</span>
+<span class="pre">&quot;word&quot;)</span></code>, and index creation with <code class="docutils literal notranslate"><span class="pre">CREATE</span> <span class="pre">FULLTEXT</span> <span class="pre">INDEX</span> <span class="pre">ON</span> <span class="pre">table_name</span>
+<span class="pre">(column_name)</span> <span class="pre">KEY</span> <span class="pre">INDEX</span> <span class="pre">index_name</span> <span class="pre">...</span></code>. Added to crate_anon/common/sqla.py.</li>
+<li>Support for SQL query building, with user-configurable selector mechanism.
+See Transact-SQL syntax reference <a class="footnote-reference" href="#tsql" id="id14">[14]</a>. We use the Django setting
+<code class="docutils literal notranslate"><span class="pre">settings.RESEARCH_DB_DIALECT</span></code> to govern this.</li>
+</ul>
+<p><strong>v0.18.11, 2016-12-19</strong></p>
+<ul class="simple">
+<li>Tweaks/bugfixes for RiO preprocessor, and for anonymisation to SQL Server
+databases.</li>
+<li>Local help HTML offered via web front end.</li>
+</ul>
+<p><strong>v0.18.12, 2017-02-26</strong></p>
+<ul class="simple">
+<li>More fixes for SQL Server, including full-text indexing.</li>
+<li>Completed changes to CPFT consent materials to reflect ethics revision (Major
+Amendment 2, 12/EE/0407).</li>
+</ul>
+<p><strong>v0.18.13, 2017-03-04</strong></p>
+<ul class="simple">
+<li>Final update/PyPI push for CPFT consent materials.</li>
+</ul>
+<p><strong>v0.18.14, 2017-03-05</strong></p>
+<ul class="simple">
+<li>Extra debug options for consent-to-contact templates.</li>
+<li>Multi-column FULLTEXT indexes under SQL Server.</li>
+</ul>
+<p><strong>v0.18.15-v0.18.16, 2017-03-06 to 2017-03-13</strong></p>
+<ul class="simple">
+<li>Full-text finder generates CONTAINS(column, ‘word’) properly for SQL Server.</li>
+<li>Bugfix to Patient Explorer (wasn’t offering WHERE options always).</li>
+<li>“Table browser” views in Patient Explorer</li>
+<li>Bugfix to Windows service. Problem: a Python process was occasionally being
+“left over” by the Windows service, i.e. not being killed properly. Process
+Explorer indicated it was the one launched as “python
+launch_cherrypy_server.py”. The Windows event log has a message reading
+“Process 1/2 (Django/CherryPy) (PID=62516): Subprocess finished cleanly
+(return code 0).” The problem was probably that in
+crate_anon/crateweb/core/management/commands/runcpserver.py, the
+cherrypy.engine.stop() call was only made upon a KeyboardInterrupt exception,
+and not on other exceptions. Solution: broadened to all exceptions.</li>
+</ul>
+<p><strong>v0.18.17, 2017-03-17</strong></p>
+<ul class="simple">
+<li>Removed erroneous debugging code from
+crate_anon.nlp_manager.parse_medex.Medex.parse</li>
+<li>If you mis-configured the Java interface to a GATE application, it crashed
+quickly, which was helpful. If you mis-configured the Java interface to
+MedEx, it tried repeatedly. Now it crashes quickly.</li>
+</ul>
+<p><strong>v0.18.18 to v0.18.23, 2017-04-28</strong></p>
+<ul class="simple">
+<li>Paper published on 2017-04-26 as <strong>Cardinal (2017), BMC Medical Informatics
+and Decision Making 17:50; http://www.pubmed.com/28441940;
+https://dx.doi.org/10.1186/s12911-017-0437-1.</strong></li>
+<li>Support for configurable paths for finding on-disk documents (e.g. from a
+combination of a fixed root directory, a patient ID, and a filename).</li>
+</ul>
+<p><strong>v0.18.23 to v0.18.33, 2017-05-02</strong></p>
+<ul class="simple">
+<li>NLP “value_text” field (FN_VALUE_TEXT in code) given maximum length, rather
+than 50, for the regex parsers, as it was overflowing (e.g. when a lot of
+whitespace was present). See
+regex_parser.NumericalResultParser.dest_tables_columns.</li>
+<li>Supports more simple text file types (.csv, .msg, .htm).</li>
+<li>New option: ddgen_rename_tables_remove_suffixes.</li>
+<li>Bugfix to CRATE GATE handler’s stdout-suppression switch.</li>
+<li>New option: ddgen_extra_hash_fields.</li>
+<li><strong>PCMIS preprocessor.</strong></li>
+<li><strong>Support non-integer PIDs and MPIDs.</strong> Note that the hashing is based on a
+string representation, so if you have one database using an integer NHS
+number, and another using a string NHS number, the same number will hash to
+the same result if you use the same key.</li>
+<li>Hashing of additional fields, initially to support the PCMIS CaseNumber (as
+well as PatientId).</li>
+</ul>
+<p><strong>v0.18.34 to v0.18.39, 2017-06-05</strong></p>
+<ul class="simple">
+<li>For SLAM BRC GATE pharmacotherapy app: add support for output columns whose
+SQL column name is different to the GATE tag (e.g. when “dose-value” must be
+changed to “dose_value”); see <strong>``renames``</strong> option. GATE output fields now
+preserve case. Another option (null_literals) to allow GATE output of ‘null’
+to be changed to an SQL NULL. Also added _set column to GATE output.</li>
+</ul>
+<p><strong>v0.18.40, 2017-07-20</strong></p>
+<ul class="simple">
+<li>Fixed Python type-checking bug in crate_anon/anonymise/crateconfigparser.py
+(ExtendedConfigParser.get_pyvalue_list); changed from Generic to Any.</li>
+</ul>
+<p><strong>v0.18.41, 2017-07-21</strong></p>
+<ul class="simple">
+<li>Support for MySQL ENUM types. However, see
+<a class="reference external" href="http://komlenic.com/244/8-reasons-why-mysqls-enum-data-type-is-evil/">http://komlenic.com/244/8-reasons-why-mysqls-enum-data-type-is-evil/</a> also!</li>
+</ul>
+<p><strong>To v0.18.46, 2017-07-28 to 2017-08-05</strong></p>
+<ul class="simple">
+<li>Fix to coerce_to_date (for date types), renamed to coerce_to_datetime.</li>
+<li>NLP bug fixed relating to a missing ‘pytz’ import.</li>
+<li>Fixes to NLP, including accepting views (not just tables) as input. Note that
+under SQL Server, you should not have to specify ‘dbo’ anywhere in the config
+(but consider setting ALTER USER… WITH DEFAULT SCHEMA as above).</li>
+<li>Manual and 2017 paper distributed with package.</li>
+<li>Shift some core stuff to cardinal_pythonlib to reduce code duplication with
+other projects.</li>
+</ul>
+<p><strong>v0.18.48, 2017-11-06</strong></p>
+<ul class="simple">
+<li>Clinician view: find text across a database, for an identified patient.</li>
+<li>Clinician view: look up (M)RIDs from (M)PIDs. Intended purpose for this and
+the preceding function: “My clinical front end won’t tell me if my patient’s
+ever had mirtazapine. I want to ask the research database.” (As per CO’L
+request 2017-05-04.)</li>
+<li>Code to generate and test demonstration databases improved.</li>
+</ul>
+<p><strong>v0.18.49, 2018-01-07, 2018-03-21, 2018-03-27, published 2018-04-20</strong></p>
+<ul class="simple">
+<li>Use flashtext (rather than regex) for blacklisting words; this is much faster
+and allows large blacklists (e.g. a long list of all known
+forenames/surnames).</li>
+<li>Provides the crate_fetch_wordlists tool to fetch names and English words (and
+perform in-A-not-B functions, e.g. to generate a list of names that are not
+English words).</li>
+<li>Extend CRATE’s GATE pipeline to include or exclude GATE sets, since some
+applications produce results just in one set, and some produce them twice
+(e.g. in the unnamed set, named “”, and in a specific named set).</li>
+<li>Medical eponym list.</li>
+</ul>
+<p><strong>v0.18.50, 2018-05-04, in progress</strong></p>
+<ul class="simple">
+<li><cite>IllegalCharacterError</cite> possible from
+<cite>crate_anon.crateweb.research.models.make_excel()</cite>; was raised by <cite>openpyxl</cite>.
+The problem may be that the Excel file format itself prohibits some Unicode
+characters; certainly <cite>openpyxl</cite> does <a class="footnote-reference" href="#excelcharacters" id="id15">[15]</a>. See
+<cite>gen_excel_row_elements()</cite> for bugfix. Not all queries require this, but
+anything that allows unrestricted textual/binary content does.</li>
+</ul>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="f1" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><a class="reference external" href="https://bitbucket.org/zzzeek/sqlalchemy/issues/3504">https://bitbucket.org/zzzeek/sqlalchemy/issues/3504</a>;
+<a class="reference external" href="http://docs.sqlalchemy.org/en/latest/changelog/migration_11.html#change-3504">http://docs.sqlalchemy.org/en/latest/changelog/migration_11.html#change-3504</a>;
+<a class="reference external" href="http://docs.sqlalchemy.org/en/latest/changelog/changelog_11.html#change-1.1.0b1">http://docs.sqlalchemy.org/en/latest/changelog/changelog_11.html#change-1.1.0b1</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="f2" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id2">[2]</a></td><td><a class="reference external" href="https://docs.python.org/3/reference/datamodel.html#object.__hash__">https://docs.python.org/3/reference/datamodel.html#object.__hash__</a>;
+<a class="reference external" href="http://stackoverflow.com/questions/27522626/hash-function-in-python-3-3-returns-different-results-between-sessions">http://stackoverflow.com/questions/27522626/hash-function-in-python-3-3-returns-different-results-between-sessions</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="f3" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id3">[3]</a></td><td>See also <a class="reference external" href="http://stackoverflow.com/questions/5400275/fast-large-width-non-cryptographic-string-hashing-in-python">http://stackoverflow.com/questions/5400275/fast-large-width-non-cryptographic-string-hashing-in-python</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="f4" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id4">[4]</a></td><td><a class="reference external" href="https://pypi.python.org/pypi/mmh3/2.2">https://pypi.python.org/pypi/mmh3/2.2</a>;
+<a class="reference external" href="https://en.wikipedia.org/wiki/MurmurHash">https://en.wikipedia.org/wiki/MurmurHash</a>; see how it works using the less
+fast Python version at <a class="reference external" href="https://github.com/wc-duck/pymmh3">https://github.com/wc-duck/pymmh3</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="f5" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id5">[5]</a></td><td><a class="reference external" href="http://preshing.com/20110504/hash-collision-probabilities/">http://preshing.com/20110504/hash-collision-probabilities/</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="xxhash" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id6">[6]</a></td><td><a class="reference external" href="https://cyan4973.github.io/xxHash/">https://cyan4973.github.io/xxHash/</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="siphash" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id7">[7]</a></td><td><a class="reference external" href="https://www.131002.net/siphash/">https://www.131002.net/siphash/</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="hashcomparisons" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id8">[8]</a></td><td><a class="reference external" href="https://github.com/rurban/perl-hash-stats#number-of-collisions-with-crc32">https://github.com/rurban/perl-hash-stats#number-of-collisions-with-crc32</a>;
+<a class="reference external" href="http://fastcompression.blogspot.co.uk/2012/04/selecting-checksum-algorithm.html">http://fastcompression.blogspot.co.uk/2012/04/selecting-checksum-algorithm.html</a>;
+<a class="reference external" href="http://softwareengineering.stackexchange.com/questions/49550/which-hashing-algorithm-is-best-for-uniqueness-and-speed">http://softwareengineering.stackexchange.com/questions/49550/which-hashing-algorithm-is-best-for-uniqueness-and-speed</a>;
+<a class="reference external" href="http://aras-p.info/blog/2016/08/02/Hash-Functions-all-the-way-down/">http://aras-p.info/blog/2016/08/02/Hash-Functions-all-the-way-down/</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="dashes" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id9">[9]</a></td><td><a class="reference external" href="https://www.cs.tut.fi/~jkorpela/dashes.html">https://www.cs.tut.fi/~jkorpela/dashes.html</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="ignoreendash" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id10">[10]</a></td><td>Possible that we may need to treat this as a minus sign in some contexts
+later, but this is not implemented yet.</td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="mysqlrenamedb" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id11">[11]</a></td><td><a class="reference external" href="http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name">http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="sqlserverrenamedb" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id12">[12]</a></td><td><a class="reference external" href="https://msdn.microsoft.com/en-GB/library/ms345378.aspx">https://msdn.microsoft.com/en-GB/library/ms345378.aspx</a>;
+<a class="reference external" href="https://www.mssqltips.com/sqlservertip/1891/best-practice-for-renaming-a-sql-server-database/">https://www.mssqltips.com/sqlservertip/1891/best-practice-for-renaming-a-sql-server-database/</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="sqlserverfulltext" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id13">[13]</a></td><td><a class="reference external" href="https://technet.microsoft.com/en-us/library/cc721269(v=sql.100).aspx">https://technet.microsoft.com/en-us/library/cc721269(v=sql.100).aspx</a>;
+<a class="reference external" href="https://msdn.microsoft.com/en-us/library/ms142571(v=sql.120).aspx">https://msdn.microsoft.com/en-us/library/ms142571(v=sql.120).aspx</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="tsql" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id14">[14]</a></td><td><a class="reference external" href="https://msdn.microsoft.com/en-us/library/bb510741.aspx">https://msdn.microsoft.com/en-us/library/bb510741.aspx</a></td></tr>
+</tbody>
+</table>
+<table class="docutils footnote" frame="void" id="excelcharacters" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id15">[15]</a></td><td><a class="reference external" href="https://stackoverflow.com/questions/28837057/pandas-writing-an-excel-file-containing-unicode-illegalcharactererror">https://stackoverflow.com/questions/28837057/pandas-writing-an-excel-file-containing-unicode-illegalcharactererror</a>;
+<a class="reference external" href="https://openpyxl.readthedocs.io/en/2.5/_modules/openpyxl/utils/exceptions.html">https://openpyxl.readthedocs.io/en/2.5/_modules/openpyxl/utils/exceptions.html</a>;
+in particular, see check_string() in
+<a class="reference external" href="http://openpyxl.readthedocs.io/en/stable/_modules/openpyxl/cell/cell.html">http://openpyxl.readthedocs.io/en/stable/_modules/openpyxl/cell/cell.html</a></td></tr>
+</tbody>
+</table>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="autodoc/tools/winservice.html"
+                        title="previous chapter">15.6.5. crate_anon.tools.winservice</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="misc/to_do.html"
+                        title="next chapter">17. Things to do</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/changelog.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="misc/to_do.html" title="17. Things to do"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="autodoc/tools/winservice.html" title="15.6.5. crate_anon.tools.winservice"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">CRATE  documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

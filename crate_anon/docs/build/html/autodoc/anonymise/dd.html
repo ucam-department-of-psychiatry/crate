@@ -1,0 +1,368 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.1.9. crate_anon.anonymise.dd &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="15.1.10. crate_anon.anonymise.ddr" href="ddr.html" />
+    <link rel="prev" title="15.1.8. crate_anon.anonymise.dbholder" href="dbholder.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ddr.html" title="15.1.10. crate_anon.anonymise.ddr"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="dbholder.html" title="15.1.8. crate_anon.anonymise.dbholder"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.anonymise.dd">
+<span id="crate-anon-anonymise-dd"></span><h1>15.1.9. crate_anon.anonymise.dd<a class="headerlink" href="#module-crate_anon.anonymise.dd" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p>Data dictionary classes for CRATE anonymiser.</p>
+<p>Data dictionary as a TSV file, for ease of editing by multiple authors, rather
+than a database table.</p>
+<dl class="class">
+<dt id="crate_anon.anonymise.dd.DataDictionary">
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.dd.</code><code class="descname">DataDictionary</code><span class="sig-paren">(</span><em>config: Config</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class representing an entire data dictionary.</p>
+<dl class="method">
+<dt id="crate_anon.anonymise.dd.DataDictionary.check_against_source_db">
+<code class="descname">check_against_source_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.check_against_source_db" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check DD validity against the source database.
+Also caches SQLAlchemy source column type</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.dd.DataDictionary.check_valid">
+<code class="descname">check_valid</code><span class="sig-paren">(</span><em>prohibited_fieldnames: List[str] = None</em>, <em>check_against_source_db: bool = True</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.check_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check DD validity, internally +/- against the source database.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_table_for_src_db_table">
+<code class="descname">get_dest_table_for_src_db_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_table_for_src_db_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database/table, return the single or the first
+destination table.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_tables">
+<code class="descname">get_dest_tables</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of all destination tables.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_tables_for_src_db_table">
+<code class="descname">get_dest_tables_for_src_db_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_for_src_db_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database/table, return a SortedSet of destination
+tables.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_dest_tables_with_patient_info">
+<code class="descname">get_dest_tables_with_patient_info</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_dest_tables_with_patient_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of destination table names that have patient
+information.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_fieldnames_for_src_table">
+<code class="descname">get_fieldnames_for_src_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_fieldnames_for_src_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name/table, return a SortedSet of source
+fields.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_int_pk_ddr">
+<code class="descname">get_int_pk_ddr</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_int_pk_ddr" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name and table, return the DD row
+for the integer PK for that table.</p>
+<p>Will return None if no such data dictionary row.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_int_pk_name">
+<code class="descname">get_int_pk_name</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_int_pk_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name and table, return the field name
+of the integer PK for that table.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_optout_defining_fields">
+<code class="descname">get_optout_defining_fields</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_optout_defining_fields" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of (src_db, src_table, src_field, pidfield,
+mpidfield) tuples.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_patient_src_tables_with_active_dest">
+<code class="descname">get_patient_src_tables_with_active_dest</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_patient_src_tables_with_active_dest" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name, return a SortedSet of source
+tables that have an active destination table.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_pk_ddr">
+<code class="descname">get_pk_ddr</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_pk_ddr" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name and table, return the DD row
+for the PK for that table, whether integer or not.</p>
+<p>Will return None if no such data dictionary row.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_rows_for_dest_table">
+<code class="descname">get_rows_for_dest_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_rows_for_dest_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given destination table, return a SortedSet of DD rows.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_rows_for_src_table">
+<code class="descname">get_rows_for_src_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_rows_for_src_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name/table, return a SortedSet of DD
+rows.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_scrub_from_db_table_pairs">
+<code class="descname">get_scrub_from_db_table_pairs</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_db_table_pairs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of (source database name, source table) tuples
+where those fields contain scrub_src (scrub-from) information.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_scrub_from_rows">
+<code class="descname">get_scrub_from_rows</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_scrub_from_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of DD rows for all fields containing scrub_src
+(scrub-from) information.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_source_databases">
+<code class="descname">get_source_databases</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_source_databases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of source database names.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs">
+<code class="descname">get_src_db_tablepairs</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of (source database name, source table) tuples.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_int_pk">
+<code class="descname">get_src_db_tablepairs_w_int_pk</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_int_pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of (source database name, source table) tuples.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_pt_info">
+<code class="descname">get_src_db_tablepairs_w_pt_info</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_db_tablepairs_w_pt_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of (source database name, source table) tuples.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_for_dest_table">
+<code class="descname">get_src_dbs_tables_for_dest_table</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_for_dest_table" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given destination table, return a SortedSet of (dbname, table)
+tuples.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk">
+<code class="descname">get_src_dbs_tables_with_no_pt_info_int_pk</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_int_pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of (source database name, source table) tuples
+where the table has no patient information and has an integer PK.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk">
+<code class="descname">get_src_dbs_tables_with_no_pt_info_no_pk</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_dbs_tables_with_no_pt_info_no_pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a SortedSet of (source database name, source table) tuples
+where the table has no patient information and no integer PK.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_tables">
+<code class="descname">get_src_tables</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name, return a SortedSet of source
+tables.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_active_dest">
+<code class="descname">get_src_tables_with_active_dest</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_active_dest" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name, return a SortedSet of source
+tables.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_patient_info">
+<code class="descname">get_src_tables_with_patient_info</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_src_tables_with_patient_info" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name, return a SortedSet of source
+tables that have patient information.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.dd.DataDictionary.get_tsv">
+<code class="descname">get_tsv</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.get_tsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the DD in TSV format.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="crate_anon.anonymise.dd.DataDictionary.has_active_destination">
+<code class="descname">has_active_destination</code><a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.has_active_destination" title="Permalink to this definition">¶</a></dt>
+<dd><p>For a given source database name and table: does it have an active
+destination?</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.dd.DataDictionary.read_from_file">
+<code class="descname">read_from_file</code><span class="sig-paren">(</span><em>filename: str</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.read_from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read DD from file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.dd.DataDictionary.read_from_source_databases">
+<code class="descname">read_from_source_databases</code><span class="sig-paren">(</span><em>report_every: int = 100</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.dd.DataDictionary.read_from_source_databases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a draft DD from a source database.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="dbholder.html"
+                        title="previous chapter">15.1.8. crate_anon.anonymise.dbholder</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ddr.html"
+                        title="next chapter">15.1.10. crate_anon.anonymise.ddr</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/anonymise/dd.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ddr.html" title="15.1.10. crate_anon.anonymise.ddr"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="dbholder.html" title="15.1.8. crate_anon.anonymise.dbholder"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

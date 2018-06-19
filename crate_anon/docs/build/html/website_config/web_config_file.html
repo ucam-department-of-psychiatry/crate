@@ -1,0 +1,609 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>8.2. Web config file &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.3. Manage the CRATE web server" href="django_manage.html" />
+    <link rel="prev" title="8.1. Configuring the web front end" href="overview.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="django_manage.html" title="8.3. Manage the CRATE web server"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="8.1. Configuring the web front end"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">8. Configuring the CRATE web interface</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="web-config-file">
+<span id="id1"></span><h1>8.2. Web config file<a class="headerlink" href="#web-config-file" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="specimen-config-file">
+<h2>8.2.1. Specimen config file<a class="headerlink" href="#specimen-config-file" title="Permalink to this headline">¶</a></h2>
+<p>To obtain a specimen file, use</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>crate_print_demo_crateweb_config
+</pre></div>
+</div>
+<p>Specimen config as of 2017-02-28:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env python</span>
+<span class="c1"># crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">===============================================================================</span>
+<span class="sd">    Copyright (C) 2015-2017 Rudolf Cardinal (rudolf@pobox.com).</span>
+
+<span class="sd">    This file is part of CRATE.</span>
+
+<span class="sd">    CRATE is free software: you can redistribute it and/or modify</span>
+<span class="sd">    it under the terms of the GNU General Public License as published by</span>
+<span class="sd">    the Free Software Foundation, either version 3 of the License, or</span>
+<span class="sd">    (at your option) any later version.</span>
+
+<span class="sd">    CRATE is distributed in the hope that it will be useful,</span>
+<span class="sd">    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="sd">    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</span>
+<span class="sd">    GNU General Public License for more details.</span>
+
+<span class="sd">    You should have received a copy of the GNU General Public License</span>
+<span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+<span class="sd">===============================================================================</span>
+
+<span class="sd">Site-specific Django settings for CRATE web front end.</span>
+<span class="sd">Put the secret stuff here.</span>
+
+<span class="sd">SPECIMEN FILE ONLY - edit to your own requirements.</span>
+<span class="sd">IT WILL NOT WORK until you&#39;ve edited it.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span>
+    <span class="s2">&quot;Well done - CRATE has found your crate_local_settings.py file at {}. &quot;</span>
+    <span class="s2">&quot;However, you need to configure it for your institution&#39;s set-up, and &quot;</span>
+    <span class="s2">&quot;remove this line.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)))</span>
+
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Site URL configuration</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">DJANGO_SITE_ROOT_ABSOLUTE_URL</span> <span class="o">=</span> <span class="s2">&quot;http://mymachine.mydomain&quot;</span>  <span class="c1"># example for Apache  # noqa</span>
+<span class="c1"># DJANGO_SITE_ROOT_ABSOLUTE_URL = &quot;http://localhost:8000&quot;  # for the Django dev server  # noqa</span>
+
+<span class="n">FORCE_SCRIPT_NAME</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+<span class="c1"># FORCE_SCRIPT_NAME = &quot;/crate&quot;  # example for CherryPy or Apache non-root hosting  # noqa</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Site security</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># FOR SECURITY:</span>
+<span class="c1"># See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/</span>
+
+<span class="c1"># SECURITY WARNING: keep the secret key used in production secret!</span>
+<span class="n">SECRET_KEY</span> <span class="o">=</span> <span class="s1">&#39;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#39;</span>  <span class="c1"># CHANGE THIS!  # noqa</span>
+<span class="c1"># Run crate_generate_new_django_secret_key to generate a new one.</span>
+
+<span class="c1"># SECURITY WARNING: don&#39;t run with debug turned on in production!</span>
+<span class="n">DEBUG</span> <span class="o">=</span> <span class="bp">False</span>
+<span class="c1"># ... when False, note that static files must be served properly</span>
+
+
+<span class="c1"># noinspection PyUnusedLocal</span>
+<span class="k">def</span> <span class="nf">always_show_toolbar</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">True</span>  <span class="c1"># Always show toolbar, for debugging only.</span>
+
+<span class="k">if</span> <span class="n">DEBUG</span><span class="p">:</span>
+    <span class="n">ALLOWED_HOSTS</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">DEBUG_TOOLBAR_CONFIG</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;SHOW_TOOLBAR_CALLBACK&#39;</span><span class="p">:</span> <span class="n">always_show_toolbar</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">ALLOWED_HOSTS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;*&#39;</span><span class="p">]</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Celery configuration</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># Override BROKER_URL if you want.</span>
+<span class="c1"># This will allow you to use multiple virtual hosts, to host multiple</span>
+<span class="c1"># independent instances (in the unlikely event you&#39;d wat to!)</span>
+<span class="c1"># See</span>
+<span class="c1">#   http://stackoverflow.com/questions/12209652/multi-celery-projects-with-same-rabbitmq-broker-backend-process  # noqa</span>
+<span class="c1"># Similarly, override BROKER_URL to improve RabbitMQ security.</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Database configuration</span>
+<span class="c1"># =============================================================================</span>
+<span class="c1"># https://docs.djangoproject.com/en/1.8/ref/settings/#databases</span>
+
+<span class="n">DATABASES</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Django database for web site (inc. users, audit).</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="c1"># Quick SQLite example:</span>
+    <span class="c1"># &#39;default&#39;: {</span>
+    <span class="c1">#     &#39;ENGINE&#39;: &#39;django.db.backends.sqlite3&#39;,</span>
+    <span class="c1">#     &#39;NAME&#39;: &#39;/home/myuser/somewhere/crate_db.sqlite3&#39;,</span>
+    <span class="c1"># },</span>
+
+    <span class="c1"># Quick MySQL example:</span>
+    <span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s1">&#39;django.db.backends.mysql&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;HOST&#39;</span><span class="p">:</span> <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PORT&#39;</span><span class="p">:</span> <span class="mi">3306</span><span class="p">,</span>  <span class="c1"># local</span>
+        <span class="s1">&#39;NAME&#39;</span><span class="p">:</span> <span class="s1">&#39;crate_db&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;USER&#39;</span><span class="p">:</span> <span class="s1">&#39;someuser&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PASSWORD&#39;</span><span class="p">:</span> <span class="s1">&#39;somepassword&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Anonymised research database</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="s1">&#39;research&#39;</span><span class="p">:</span> <span class="p">{</span>
+
+        <span class="c1"># !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+        <span class="c1"># IT IS CRITICALLY IMPORTANT THAT THIS CONNECTION (i.e. its user&#39;s</span>
+        <span class="c1"># access) IS READ-ONLY FOR THE RESEARCH DATABASES [1] AND HAS NO</span>
+        <span class="c1"># ACCESS WHATSOEVER TO SECRET DATABASES (like the &#39;default&#39; or</span>
+        <span class="c1"># &#39;secret&#39; databases) [2]. RESEARCHERS ARE GIVEN FULL ABILITY TO</span>
+        <span class="c1"># EXECUTE SQL VIA THIS CONNECTION, AND CAN DO SO FOR ANY DATABASES</span>
+        <span class="c1"># THAT THE CONNECTION PERMITS, NOT JUST THE ONE YOU SPECIFY</span>
+        <span class="c1"># EXPLICITLY.</span>
+        <span class="c1">#</span>
+        <span class="c1"># [1] ... so researchers can&#39;t alter/delete research data</span>
+        <span class="c1"># [2] ... so researchers can&#39;t see secrets</span>
+        <span class="c1"># !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!</span>
+
+        <span class="s1">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s1">&#39;django.db.backends.mysql&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;HOST&#39;</span><span class="p">:</span> <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PORT&#39;</span><span class="p">:</span> <span class="mi">3306</span><span class="p">,</span>  <span class="c1"># local</span>
+        <span class="s1">&#39;NAME&#39;</span><span class="p">:</span> <span class="s1">&#39;anonymous_output&#39;</span><span class="p">,</span>  <span class="c1"># will be the default database; use None for no default database  # noqa</span>
+        <span class="s1">&#39;USER&#39;</span><span class="p">:</span> <span class="s1">&#39;researcher&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PASSWORD&#39;</span><span class="p">:</span> <span class="s1">&#39;somepassword&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Secret database for RID/PID mapping</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="s1">&#39;secret&#39;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s1">&#39;ENGINE&#39;</span><span class="p">:</span> <span class="s1">&#39;django.db.backends.mysql&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;HOST&#39;</span><span class="p">:</span> <span class="s1">&#39;127.0.0.1&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PORT&#39;</span><span class="p">:</span> <span class="mi">3306</span><span class="p">,</span>
+        <span class="s1">&#39;NAME&#39;</span><span class="p">:</span> <span class="s1">&#39;anonymous_mapping&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;USER&#39;</span><span class="p">:</span> <span class="s1">&#39;anonymiser_system&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;PASSWORD&#39;</span><span class="p">:</span> <span class="s1">&#39;somepassword&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+
+    <span class="c1"># -------------------------------------------------------------------------</span>
+    <span class="c1"># Others, for consent lookup</span>
+    <span class="c1"># -------------------------------------------------------------------------</span>
+
+    <span class="c1"># Optional: &#39;cpft_iapt&#39;</span>
+    <span class="c1"># Optional: &#39;cpft_crs&#39;</span>
+    <span class="c1"># Optional: &#39;cpft_rio_rcep&#39;</span>
+    <span class="c1"># Optional: &#39;cpft_rio_crate&#39;</span>
+    <span class="c1"># ... see attributes of PatientLookup in crate_anon/consent/models.py</span>
+<span class="p">}</span>
+
+<span class="c1"># Database title</span>
+<span class="n">RESEARCH_DB_TITLE</span> <span class="o">=</span> <span class="s2">&quot;My NHS Trust Research Database&quot;</span>
+
+<span class="c1"># Databases/schemas to provide database structure info for, and details on how</span>
+<span class="c1"># to join within/between them (for the query builder).</span>
+<span class="c1"># - Note that ALL these databases use the DATABASES[&#39;research&#39;] connection</span>
+<span class="c1">#   specified above.</span>
+<span class="c1"># - Under SQL Server, &quot;database&quot; and &quot;schema&quot; are different levels of</span>
+<span class="c1">#   organization. Specify a schema of &quot;dbo&quot; if you are unsure; this is the</span>
+<span class="c1">#   default.</span>
+<span class="c1"># - Under MySQL, &quot;database&quot; and &quot;schema&quot; mean the same thing. Here, we&#39;ll call</span>
+<span class="c1">#   this a SCHEMA.</span>
+<span class="c1"># - The first database/schema is the default selected in the query builder.</span>
+<span class="c1"># - WITHIN a schema, tables will be autojoined on the trid_field.</span>
+<span class="c1"># - ACROSS schemas, tables will be autojoined on the rid_field if they are in</span>
+<span class="c1">#   the same rid_family (a non-False Python value, e.g. integers starting at</span>
+<span class="c1">#   1), and on mrid_table.mrid_field otherwise.</span>
+<span class="c1"># - PostgreSQL can only query a single database via a single connection.</span>
+<span class="n">RESEARCH_DB_INFO</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span>
+        <span class="c1"># Database name:</span>
+        <span class="c1"># - BLANK, i.e. &#39;&#39;, for MySQL.</span>
+        <span class="c1"># - BLANK, i.e. &#39;&#39;, for PostgreSQL.</span>
+        <span class="c1"># - The database name, for SQL Server.</span>
+        <span class="s1">&#39;database&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="c1"># Schema name:</span>
+        <span class="c1"># - The database=schema name, for MySQL.</span>
+        <span class="c1"># - The schema name, for PostgreSQL (usual default: &#39;public&#39;).</span>
+        <span class="c1"># - The schema name, for SQL Server (usual default: &#39;dbo&#39;).</span>
+        <span class="s1">&#39;schema&#39;</span><span class="p">:</span> <span class="s1">&#39;dbo&#39;</span><span class="p">,</span>
+
+        <span class="s1">&#39;trid_field&#39;</span><span class="p">:</span> <span class="s1">&#39;trid&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;rid_field&#39;</span><span class="p">:</span> <span class="s1">&#39;brcid&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;rid_family&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;mrid_table&#39;</span><span class="p">:</span> <span class="s1">&#39;patients&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;mrid_field&#39;</span><span class="p">:</span> <span class="s1">&#39;nhshash&#39;</span><span class="p">,</span>
+
+        <span class="c1"># For the data finder: is there a standard date field for most patient</span>
+        <span class="c1"># tables?</span>
+        <span class="s1">&#39;default_date_field&#39;</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="c1"># {</span>
+    <span class="c1">#     &#39;database&#39;: &#39;similar_database&#39;,</span>
+    <span class="c1">#     &#39;schema&#39;: &#39;similar_schema&#39;,</span>
+    <span class="c1">#     &#39;trid_field&#39;: &#39;trid&#39;,</span>
+    <span class="c1">#     &#39;rid_field&#39;: &#39;same_rid&#39;,</span>
+    <span class="c1">#     &#39;rid_family&#39;: 1,</span>
+    <span class="c1">#     &#39;mrid_table&#39;: None,</span>
+    <span class="c1">#     &#39;mrid_field&#39;: None,</span>
+    <span class="c1">#     &#39;default_date_field&#39;: &#39;&#39;,</span>
+    <span class="c1"># },</span>
+    <span class="c1"># {</span>
+    <span class="c1">#     &#39;database&#39;: &#39;different_database&#39;,</span>
+    <span class="c1">#     &#39;schema&#39;: &#39;different_schema&#39;,</span>
+    <span class="c1">#     &#39;trid_field&#39;: &#39;trid&#39;,</span>
+    <span class="c1">#     &#39;rid_field&#39;: &#39;different_rid&#39;,</span>
+    <span class="c1">#     &#39;rid_family&#39;: 2,</span>
+    <span class="c1">#     &#39;mrid_table&#39;: &#39;hashed_nhs_numbers&#39;,</span>
+    <span class="c1">#     &#39;mrid_field&#39;: &#39;nhshash&#39;,</span>
+    <span class="c1">#     &#39;default_date_field&#39;: &#39;&#39;,</span>
+    <span class="c1"># },</span>
+<span class="p">]</span>
+
+<span class="c1"># For the automatic query generator, we need to know the underlying SQL dialect</span>
+<span class="c1"># Options are</span>
+<span class="c1"># - &#39;mysql&#39; =&gt; MySQL</span>
+<span class="c1"># - &#39;mssql&#39; =&gt; Microsoft SQL Server</span>
+<span class="n">RESEARCH_DB_DIALECT</span> <span class="o">=</span> <span class="s1">&#39;mysql&#39;</span>
+
+<span class="n">DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET</span> <span class="o">=</span> <span class="bp">True</span>
+
+<span class="c1"># Configuration of the secret mapping database (as set during initial</span>
+<span class="c1"># anonymisation)</span>
+<span class="n">SECRET_MAP</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># Table within &#39;secret&#39; mapping database containing PID/RID mapping</span>
+    <span class="s1">&#39;TABLENAME&#39;</span><span class="p">:</span> <span class="s2">&quot;secret_map&quot;</span><span class="p">,</span>
+    <span class="c1"># PID/RID fieldnames within that table</span>
+    <span class="s1">&#39;PID_FIELD&#39;</span><span class="p">:</span> <span class="s2">&quot;patient_id&quot;</span><span class="p">,</span>
+    <span class="s1">&#39;RID_FIELD&#39;</span><span class="p">:</span> <span class="s2">&quot;brcid&quot;</span><span class="p">,</span>
+    <span class="s1">&#39;MASTER_PID_FIELD&#39;</span><span class="p">:</span> <span class="s2">&quot;nhsnum&quot;</span><span class="p">,</span>
+    <span class="s1">&#39;MASTER_RID_FIELD&#39;</span><span class="p">:</span> <span class="s2">&quot;nhshash&quot;</span><span class="p">,</span>
+    <span class="s1">&#39;TRID_FIELD&#39;</span><span class="p">:</span> <span class="s1">&#39;trid&#39;</span><span class="p">,</span>
+    <span class="c1"># Maximum length of the RID fields (containing a hash in a VARCHAR field)</span>
+    <span class="s1">&#39;MAX_RID_LENGTH&#39;</span><span class="p">:</span> <span class="mi">255</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1"># Which of the databases defined above should be used for lookups?</span>
+<span class="c1"># Must (a) be a key of PatientLookup.DATABASES_CHOICES in consent/models.py;</span>
+<span class="c1">#      (b) be defined in DATABASES, above, UNLESS it is &#39;dummy_clinical&#39;</span>
+<span class="n">CLINICAL_LOOKUP_DB</span> <span class="o">=</span> <span class="s1">&#39;dummy_clinical&#39;</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Database extra help file</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># If specified, this must be a string that is an absolute filename of TRUSTED</span>
+<span class="c1"># HTML that will be included.</span>
+
+<span class="n">DATABASE_HELP_HTML_FILENAME</span> <span class="o">=</span> <span class="bp">None</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Local file storage (for PDFs etc).</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># Where should we store the files? Make this directory (and don&#39;t let it</span>
+<span class="c1"># be served by a generic web server that doesn&#39;t check permissions).</span>
+<span class="n">PRIVATE_FILE_STORAGE_ROOT</span> <span class="o">=</span> <span class="s1">&#39;/srv/crate_filestorage&#39;</span>
+
+<span class="c1"># Serve files via Django (inefficient but useful for testing) or via Apache</span>
+<span class="c1"># with mod_xsendfile (or other web server configured for the X-SendFile</span>
+<span class="c1"># directive)?</span>
+<span class="n">XSENDFILE</span> <span class="o">=</span> <span class="bp">False</span>
+
+<span class="c1"># How big will we accept?</span>
+<span class="n">MAX_UPLOAD_SIZE_BYTES</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span>  <span class="c1"># 10 Mb</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Outgoing e-mail</span>
+<span class="c1"># =============================================================================</span>
+<span class="c1"># General settings for sending e-mail from Django</span>
+<span class="c1"># https://docs.djangoproject.com/en/1.8/ref/settings/#email-backend</span>
+
+<span class="c1">#   default backend:</span>
+<span class="c1"># EMAIL_BACKEND = &#39;django.core.mail.backends.smtp.EmailBackend&#39;</span>
+<span class="c1">#   bugfix for servers that only support TLSv1:</span>
+<span class="c1"># EMAIL_BACKEND = &#39;crate_anon.crateweb.core.mail.SmtpEmailBackendTls1&#39;</span>
+
+<span class="n">EMAIL_HOST</span> <span class="o">=</span> <span class="s1">&#39;smtp.somewhere.nhs.uk&#39;</span>
+<span class="n">EMAIL_PORT</span> <span class="o">=</span> <span class="mi">587</span>  <span class="c1"># usually 25 (plain SMTP) or 587 (STARTTLS)</span>
+<span class="c1"># ... see https://www.fastmail.com/help/technical/ssltlsstarttls.html</span>
+<span class="n">EMAIL_HOST_USER</span> <span class="o">=</span> <span class="s1">&#39;myuser&#39;</span>
+<span class="n">EMAIL_HOST_PASSWORD</span> <span class="o">=</span> <span class="s1">&#39;mypassword&#39;</span>
+<span class="n">EMAIL_USE_TLS</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">EMAIL_USE_SSL</span> <span class="o">=</span> <span class="bp">False</span>
+
+<span class="c1"># Who will the e-mails appear to come from?</span>
+<span class="n">EMAIL_SENDER</span> <span class="o">=</span> <span class="s2">&quot;My NHS Trust Research Database - DO NOT REPLY &lt;noreply@somewhere.nhs.uk&gt;&quot;</span>  <span class="c1"># noqa</span>
+
+<span class="c1"># During development, we route all consent-related e-mails to the developer.</span>
+<span class="c1"># Switch SAFETY_CATCH_ON to False for production mode.</span>
+<span class="n">SAFETY_CATCH_ON</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">DEVELOPER_EMAIL</span> <span class="o">=</span> <span class="s2">&quot;testuser@somewhere.nhs.uk&quot;</span>
+
+<span class="n">VALID_RESEARCHER_EMAIL_DOMAINS</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="c1"># ... if empty, no checks are performed (any address is accepted)</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Research Database Manager (RDBM) details</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">RDBM_NAME</span> <span class="o">=</span> <span class="s2">&quot;John Doe&quot;</span>
+<span class="n">RDBM_TITLE</span> <span class="o">=</span> <span class="s2">&quot;Research Database Manager&quot;</span>
+<span class="n">RDBM_TELEPHONE</span> <span class="o">=</span> <span class="s2">&quot;01223-XXXXXX&quot;</span>
+<span class="n">RDBM_EMAIL</span> <span class="o">=</span> <span class="s2">&quot;research.database@somewhere.nhs.uk&quot;</span>
+<span class="n">RDBM_ADDRESS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;FREEPOST SOMEWHERE_HOSPITAL RESEARCH DATABASE MANAGER&quot;</span><span class="p">]</span>  <span class="c1"># a list  # noqa</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Administrators/managers to be notified of errors</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># Exceptions get sent to these people.</span>
+<span class="n">ADMINS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s1">&#39;Mr Administrator&#39;</span><span class="p">,</span> <span class="s1">&#39;mr_admin@somewhere.domain&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># Broken links get sent to these people</span>
+<span class="n">SEND_BROKEN_LINK_EMAILS</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">MANAGERS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="p">(</span><span class="s1">&#39;Mr Administrator&#39;</span><span class="p">,</span> <span class="s1">&#39;mr_admin@somewhere.domain&#39;</span><span class="p">),</span>
+<span class="p">)</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># PDF creation</span>
+<span class="c1"># =============================================================================</span>
+<span class="c1"># WKHTMLTOPDF_FILENAME: for the pdfkit PDF engine, specify a filename for</span>
+<span class="c1"># wkhtmltopdf that incorporates any need for an X Server (not the default</span>
+<span class="c1"># /usr/bin/wkhtmltopdf). See http://stackoverflow.com/questions/9604625/ .</span>
+<span class="c1"># Basically, you can try</span>
+<span class="c1">#   WKHTMLTOPDF_FILENAME = &#39;&#39;</span>
+<span class="c1"># and if it fails, try</span>
+<span class="c1">#   WKHTMLTOPDF_FILENAME = &#39;/usr/bin/wkhtmltopdf&#39;</span>
+<span class="c1"># but if that fails, use</span>
+<span class="c1">#   WKHTMLTOPDF_FILENAME = &#39;/path/to/wkhtmltopdf.sh&#39;</span>
+<span class="c1"># where wkhtmltopdf.sh is an executable script (chmod a+x ...) containing:</span>
+<span class="c1">#   #!/bin/bash</span>
+<span class="c1">#   xvfb-run --auto-servernum --server-args=&quot;-screen 0 640x480x16&quot; \</span>
+<span class="c1">#       /usr/bin/wkhtmltopdf &quot;$@&quot;</span>
+
+<span class="c1"># For a recent version, fetch one from http://wkhtmltopdf.org/, e.g.</span>
+<span class="c1"># v0.12.4 for your OS.</span>
+<span class="n">WKHTMLTOPDF_FILENAME</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="c1"># WKHTMLTOPDF_FILENAME = &#39;/usr/bin/wkhtmltopdf&#39;</span>
+
+<span class="n">PDF_LOGO_ABS_URL</span> <span class="o">=</span> <span class="s1">&#39;http://localhost/crate_logo&#39;</span>
+<span class="c1"># ... path on local machine, read by wkhtmltopdf</span>
+<span class="c1"># Examples:</span>
+<span class="c1">#   [if you&#39;re running a web server] &#39;http://localhost/crate_logo&#39;</span>
+<span class="c1">#   [Linux root path] file:///home/myuser/myfile.png</span>
+<span class="c1">#   [Windows root path] file:///c:/path/to/myfile.png</span>
+
+<span class="n">PDF_LOGO_WIDTH</span> <span class="o">=</span> <span class="s2">&quot;75%&quot;</span>
+<span class="c1"># ... must be suitable for an &lt;img&gt; tag, but &quot;150mm&quot; isn&#39;t working; &quot;75%&quot; is.</span>
+<span class="c1"># ... tune this to your logo file (see PDF_LOGO_ABS_URL)</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Consent-for-contact settings</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="c1"># For how long may we contact discharged patients without specific permission?</span>
+<span class="c1"># Use 0 for &quot;not at all&quot;.</span>
+<span class="n">PERMITTED_TO_CONTACT_DISCHARGED_PATIENTS_FOR_N_DAYS</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="mi">365</span>
+
+<span class="c1"># Donation to charity for clinician response (regardless of the decision):</span>
+<span class="n">CHARITY_AMOUNT_CLINICIAN_RESPONSE</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># in local currency, e.g. GBP</span>
+
+<span class="c1"># Note that using headers/footers requires a version of wkhtmltopdf built using</span>
+<span class="c1"># &quot;patched Qt&quot;. See above.</span>
+<span class="c1"># Fetch one from http://wkhtmltopdf.org/, e.g. v0.12.4 for your OS.</span>
+<span class="n">PDF_LETTER_HEADER_HTML</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="c1"># PDF_LETTER_HEADER_HTML = &#39;&#39;&#39;</span>
+<span class="c1"># &lt;!DOCTYPE html&gt;</span>
+<span class="c1"># &lt;head&gt;</span>
+<span class="c1">#     &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;</span>
+<span class="c1"># &lt;/head&gt;</span>
+<span class="c1"># &lt;html&gt;</span>
+<span class="c1">#     &lt;body&gt;</span>
+<span class="c1">#         &lt;div&gt;boo! header&lt;/div&gt;</span>
+<span class="c1">#     &lt;/body&gt;</span>
+<span class="c1"># &lt;/html&gt;</span>
+<span class="c1"># &#39;&#39;&#39;</span>
+
+<span class="n">PDF_LETTER_FOOTER_HTML</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+<span class="c1"># http://stackoverflow.com/questions/11948158/wkhtmltopdf-how-to-disable-header-on-the-first-page  # noqa</span>
+<span class="c1"># PDF_LETTER_FOOTER_HTML = &#39;&#39;&#39;</span>
+<span class="c1"># &lt;!DOCTYPE html&gt;</span>
+<span class="c1"># &lt;html&gt;</span>
+<span class="c1">#     &lt;head&gt;</span>
+<span class="c1">#         &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;</span>
+<span class="c1">#         &lt;script&gt;</span>
+<span class="c1"># function restrict_page_display() {</span>
+<span class="c1">#     var vars = {},</span>
+<span class="c1">#         kvp_list = document.location.search.substring(1).split(&#39;&amp;&#39;),</span>
+<span class="c1">#         key_value_pair,</span>
+<span class="c1">#         debug_element = document.getElementById(&quot;debug&quot;),</span>
+<span class="c1">#         i;</span>
+<span class="c1">#     for (i = 0; i &lt; kvp_list.length; ++i) {</span>
+<span class="c1">#         key_value_pair = kvp_list[i].split(&#39;=&#39;, 2);</span>
+<span class="c1">#         vars[key_value_pair[0]] = unescape(key_value_pair[1]);</span>
+<span class="c1">#     }</span>
+<span class="c1">#     // debug_element.textContent = kvp_list;</span>
+<span class="c1">#</span>
+<span class="c1">#     // Turn off footer except on first page</span>
+<span class="c1">#     if (vars[&#39;page&#39;] != 1) {</span>
+<span class="c1">#         document.getElementById(&quot;footer&quot;).style.display = &#39;none&#39;;</span>
+<span class="c1">#     }</span>
+<span class="c1"># }</span>
+<span class="c1">#         &lt;/script&gt;</span>
+<span class="c1">#         &lt;style&gt;</span>
+<span class="c1"># body {</span>
+<span class="c1">#     color: #005EB8;  /* NHS Blue */</span>
+<span class="c1">#     font-family: Arial, Helvetica, sans-serif;</span>
+<span class="c1">#     font-size: small;</span>
+<span class="c1">#     text-align: right;</span>
+<span class="c1"># }</span>
+<span class="c1">#         &lt;/style&gt;</span>
+<span class="c1">#     &lt;/head&gt;</span>
+<span class="c1">#     &lt;!-- &lt;body onload=&quot;restrict_page_display()&quot;&gt; --&gt;</span>
+<span class="c1">#     &lt;body&gt;</span>
+<span class="c1">#         &lt;div id=&quot;footer&quot;&gt;</span>
+<span class="c1">#             CPFT</span>
+<span class="c1">#             | HQ: Elizabeth House, Fulbourn Hospital, Fulbourn,</span>
+<span class="c1">#               Cambridge CB21 5EF</span>
+<span class="c1">#             | www.cpft.nhs.uk</span>
+<span class="c1">#         &lt;/div&gt;</span>
+<span class="c1">#         &lt;div id=&quot;debug&quot;&gt;&lt;/div&gt;</span>
+<span class="c1">#     &lt;/body&gt;</span>
+<span class="c1"># &lt;/html&gt;</span>
+<span class="c1"># &#39;&#39;&#39;</span>
+
+<span class="c1"># =============================================================================</span>
+<span class="c1"># Local information links</span>
+<span class="c1"># =============================================================================</span>
+
+<span class="n">CHARITY_URL</span> <span class="o">=</span> <span class="s2">&quot;http://www.cpft.nhs.uk/research.htm&quot;</span>
+<span class="n">CHARITY_URL_SHORT</span> <span class="o">=</span> <span class="s2">&quot;www.cpft.nhs.uk/research.htm&quot;</span>
+<span class="n">LEAFLET_URL_CPFTRD_CLINRES_SHORT</span> <span class="o">=</span> <span class="s2">&quot;www.cpft.nhs.uk/research.htm &gt; CPFT Research Database&quot;</span>  <span class="c1"># noqa</span>
+<span class="n">PUBLIC_RESEARCH_URL_SHORT</span> <span class="o">=</span> <span class="s2">&quot;www.cpft.nhs.uk/research.htm&quot;</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="django-secret-key">
+<h2>8.2.2. Django secret key<a class="headerlink" href="#django-secret-key" title="Permalink to this headline">¶</a></h2>
+<p>Use this command to generate a new random secret key:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>crate_generate_new_django_secret_key
+</pre></div>
+</div>
+<p>You can use the output for the <cite>SECRET_KEY</cite> variable in the config file.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Configuring the CRATE web interface</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Configuring the web front end</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.2. Web config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="django_manage.html">8.3. Manage the CRATE web server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_server.html">8.4. Launch the CRATE web server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apache.html">8.5. Configuring for Apache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_celery.html">8.6. Launch Celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows_service.html">8.7. CRATE Windows service</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="overview.html"
+                        title="previous chapter">8.1. Configuring the web front end</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="django_manage.html"
+                        title="next chapter">8.3. Manage the CRATE web server</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/website_config/web_config_file.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="django_manage.html" title="8.3. Manage the CRATE web server"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="8.1. Configuring the web front end"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >8. Configuring the CRATE web interface</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

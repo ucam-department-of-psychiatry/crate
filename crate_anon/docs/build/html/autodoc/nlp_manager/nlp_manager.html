@@ -1,0 +1,323 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.4.11. crate_anon.nlp_manager.nlp_manager &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="15.4.12. crate_anon.nlp_manager.number" href="number.html" />
+    <link rel="prev" title="15.4.10. crate_anon.nlp_manager.nlp_definition" href="nlp_definition.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="number.html" title="15.4.12. crate_anon.nlp_manager.number"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="nlp_definition.html" title="15.4.10. crate_anon.nlp_manager.nlp_definition"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.4. crate_anon.nlp_manager</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.nlp_manager.nlp_manager">
+<span id="crate-anon-nlp-manager-nlp-manager"></span><h1>15.4.11. crate_anon.nlp_manager.nlp_manager<a class="headerlink" href="#module-crate_anon.nlp_manager.nlp_manager" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p>Manage natural-language processing (NLP) via external tools.</p>
+<p>Speed testing:</p>
+<blockquote>
+<div><ul class="simple">
+<li>8 processes, extracting person, location from a mostly text database</li>
+<li>commit off during full (non-incremental) processing (much faster)</li>
+<li>needs lots of RAM; e.g. Java subprocess uses 1.4 Gb per process as an
+average (rises from ~250Mb to ~1.4Gb and falls; steady rise means memory
+leak!); tested on a 16 Gb machine. See also the max_external_prog_uses
+parameter.</li>
+</ul>
+</div></blockquote>
+<p>from __future__ import division
+test_size_mb = 1887
+n_person_tags_found =
+n_locations_tags_found =
+time_s = 10333  # 10333 s for main bit; 10465 including indexing; is 2.9 hours
+speed_mb_per_s = test_size_mb / time_s</p>
+<blockquote>
+<div><p>… 0.18 Mb/s
+… and note that’s 1.9 Gb of <em>text</em>, not of attachments</p>
+<ul>
+<li><dl class="first docutils">
+<dt>With incremental option, and nothing to do:</dt>
+<dd><p class="first last">same run took 18 s</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>During the main run, snapshot CPU usage:</dt>
+<dd><dl class="first docutils">
+<dt>java about 81% across all processes, everything else close to 0</dt>
+<dd><p class="first last">(using about 12 Gb RAM total)</p>
+</dd>
+</dl>
+<p class="last">… or 75-85% * 8 [from top]
+mysqld about 18% [from top]
+nlp_manager.py about 4-5% * 8 [from top]</p>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+<dl class="docutils">
+<dt>TO DO:</dt>
+<dd><ul class="first last simple">
+<li>comments for NLP output fields (in table definition, destfields)</li>
+</ul>
+</dd>
+</dl>
+<dl class="function">
+<dt id="crate_anon.nlp_manager.nlp_manager.delete_where_no_source">
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">delete_where_no_source</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>ifconfig: crate_anon.nlp_manager.input_field_config.InputFieldConfig</em>, <em>report_every: int = 100000</em>, <em>chunksize: int = 100000</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.delete_where_no_source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete destination records where source records no longer exist.</p>
+<ul class="simple">
+<li>Can’t do this in a single SQL command, since the engine can’t necessarily
+see both databases.</li>
+<li>Can’t use a single temporary table, since the progress database isn’t
+necessarily the same as any of the destination database(s).</li>
+<li>Can’t do this in a multiprocess way, because we’re trying to do a
+DELETE WHERE NOT IN.</li>
+<li>So we fetch all source PKs (which, by definition, do exist), stash them
+keep them in memory, and do a DELETE WHERE NOT IN based on those
+specified values (or, if there are no PKs in the source, delete
+everything from the destination).</li>
+</ul>
+<p>Problems:
+- This is IMPERFECT if we have string source PKs and there are hash</p>
+<blockquote>
+<div>collisions (e.g. PKs for records X and Y both hash to the same thing;
+record X is deleted; then its processed version might not be).</div></blockquote>
+<ul class="simple">
+<li>With massive tables, we might run out of memory or (much more likely)
+SQL parameter slots. – This is now happening; error looks like:
+pyodbc.ProgrammingError: (‘The SQL contains 30807 parameter parkers, but
+2717783 parameters were supplied’, ‘HY000’)</li>
+</ul>
+<p>A better way might be:
+- for each table, make a temporary table in the same database
+- populate that table with (source PK integer/hash, source PK string) pairs
+- delete where pairs don’t match – is that portable SQL?</p>
+<blockquote>
+<div><a class="reference external" href="http://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns">http://stackoverflow.com/questions/7356108/sql-query-for-deleting-rows-with-not-in-using-2-columns</a>  # noqa</div></blockquote>
+<ul class="simple">
+<li>More efficient would be to make one table per destination database.</li>
+</ul>
+<p>On the “delete where multiple fields don’t match”:
+- Single field syntax is</p>
+<blockquote>
+<div>DELETE FROM a WHERE a1 NOT IN (SELECT b1 FROM b)</div></blockquote>
+<ul>
+<li><dl class="first docutils">
+<dt>Multiple field syntax is</dt>
+<dd><dl class="first docutils">
+<dt>DELETE FROM a WHERE NOT EXISTS (</dt>
+<dd><p class="first last">SELECT 1 FROM b
+WHERE a.a1 = b.b1
+AND a.a2 = b.b2</p>
+</dd>
+</dl>
+<p class="last">)</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>In SQLAlchemy, exists():</dt>
+<dd><p class="first last"><a class="reference external" href="http://stackoverflow.com/questions/14600619">http://stackoverflow.com/questions/14600619</a>
+<a class="reference external" href="http://docs.sqlalchemy.org/en/latest/core/selectable.html">http://docs.sqlalchemy.org/en/latest/core/selectable.html</a></p>
+</dd>
+</dl>
+</li>
+<li><p class="first">Furthermore, in SQL NULL = NULL is false, and NULL &lt;&gt; NULL is also false,
+so we have to do an explicit null check.
+You do that with “field == None” (disable
+See <a class="reference external" href="http://stackoverflow.com/questions/21668606">http://stackoverflow.com/questions/21668606</a>
+We’re aiming, therefore, for:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>DELETE FROM a WHERE NOT EXISTS (</dt>
+<dd><p class="first">SELECT 1 FROM b
+WHERE a.a1 = b.b1
+AND (</p>
+<blockquote>
+<div><p>a.a2 = b.b2
+OR (a.a2 IS NULL AND b.b2 IS NULL)</p>
+</div></blockquote>
+<p class="last">)</p>
+</dd>
+</dl>
+<p>)</p>
+</div></blockquote>
+</li>
+</ul>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.nlp_manager.nlp_manager.drop_remake">
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">drop_remake</code><span class="sig-paren">(</span><em>progargs</em>, <em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>incremental: bool = False</em>, <em>skipdelete: bool = False</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.drop_remake" title="Permalink to this definition">¶</a></dt>
+<dd><p>Drop output tables and recreate them.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.nlp_manager.nlp_manager.main">
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Command-line entry point.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.nlp_manager.nlp_manager.process_nlp">
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">process_nlp</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em>, <em>incremental: bool = False</em>, <em>report_every: int = 500</em>, <em>tasknum: int = 0</em>, <em>ntasks: int = 1</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.process_nlp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main NLP processing function. Fetch text, send it to the GATE app
+(storing the results), and make a note in the progress database.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.nlp_manager.nlp_manager.show_dest_counts">
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">show_dest_counts</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.show_dest_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the number of records in all destination tables.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.nlp_manager.nlp_manager.show_source_counts">
+<code class="descclassname">crate_anon.nlp_manager.nlp_manager.</code><code class="descname">show_source_counts</code><span class="sig-paren">(</span><em>nlpdef: crate_anon.nlp_manager.nlp_definition.NlpDefinition</em><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.nlp_manager.nlp_manager.show_source_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Show the number of records in all source tables.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../anonymise/_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="nlp_definition.html"
+                        title="previous chapter">15.4.10. crate_anon.nlp_manager.nlp_definition</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="number.html"
+                        title="next chapter">15.4.12. crate_anon.nlp_manager.number</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/nlp_manager/nlp_manager.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="number.html" title="15.4.12. crate_anon.nlp_manager.number"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="nlp_definition.html" title="15.4.10. crate_anon.nlp_manager.nlp_definition"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.4. crate_anon.nlp_manager</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

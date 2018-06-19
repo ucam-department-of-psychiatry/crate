@@ -1,0 +1,270 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>8.5. Configuring for Apache &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="8.6. Launch Celery" href="launch_celery.html" />
+    <link rel="prev" title="8.4. Launch the CRATE web server" href="launch_server.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="launch_celery.html" title="8.6. Launch Celery"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="launch_server.html" title="8.4. Launch the CRATE web server"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">8. Configuring the CRATE web interface</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="configuring-for-apache">
+<h1>8.5. Configuring for Apache<a class="headerlink" href="#configuring-for-apache" title="Permalink to this headline">¶</a></h1>
+<p>Apache is a powerful but fairly complex web server. A suggested method of using
+it with CRATE under Windows is as follows:</p>
+<ul class="simple">
+<li>Note that Windows configuration files for Apache are typically
+<cite>C:Apache24confhttpd.conf</cite> (the master configuration file) and
+<cite>C:Apache24confextrahttpd-ssl.conf</cite> (included by the master file).</li>
+<li>Ensure you set up HTTPS correctly.</li>
+<li>Disable anything relating to CRATE on plain HTTP.</li>
+<li>Pick a URL stem such as <cite>/crate</cite> at which to serve CRATE.</li>
+<li>Route CRATE through an internal TCP port – let’s say 8999 – such that CRATE’s
+CherryPy server talks to port 8999 (via plain HTTP), the main Apache server
+talks to the world on the normal HTTPS port 443, and Apache talks to port
+8999 behind the scenes and encrypts the external traffic.</li>
+<li>This is slightly tricky. CherryPy needs to think it’s mounted at /, because
+Apache is going to strip off the prefix. It also needs to talk on the correct
+path. To get CherryPy to do this for CRATE, set the environment variable
+<code class="docutils literal notranslate"><span class="pre">CRATE_CHERRYPY_ARGS=--port</span> <span class="pre">8999</span> <span class="pre">--root_path</span> <span class="pre">/</span></code> before you launch the CRATE
+Windows service. The overview is like this:</li>
+</ul>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>User visits       https://mysite.mydomain/crate/XYZ
+
+Apache: public    (1) Receive request for https://mysite.mydomain/crate/XYZ
+Apache: internal  - decrypt from HTTPS (SSL)
+                  - take path as ‘/crate/XYZ’
+                  - notice that ‘/crate’ is being proxied
+                  - ProxyPass: send path ‘/XYZ’ to internal address of http://127.0.0.1:8999
+                  ... request goes to internal (e.g. CherryPy) web server and results come back...
+                  - ProxyPassReverse: rewrite URLs in headers going back to the user,
+                        e.g. ‘/login’ -&gt; ‘/crate/login’
+                  - encrypt to HTTPS (SSL) when returning to user
+
+CherryPy          “I am based at /, so interpret path /XYZ as being one of mine.”
+                  - The ‘/’ comes from the --root_path option to CherryPy.
+
+Django            “Do something with path /XYZ.”
+                  “If I need to send an absolute URL to the user, I need to prepend
+                      ‘https://mysite.mydomain/crate’ to it.”
+                  - This information comes from the DJANGO_SITE_ROOT_ABSOLUTE_URL
+                    and FORCE_SCRIPT_NAME settings for CRATE.
+
+And also, for static serving:
+
+Apache: public    (2) Receive request for https://mysite.mydomain/crate_static/PQR
+Apache: internal  - decrypt from HTTPS (SSL)
+                  - take path as ‘/crate_static/PQR’
+                  - notice that ‘/crate_static’ is being aliased to a directory full of static files
+                  - serve ‘PQR’ from the configured static directory
+                  - encrypt to HTTPS (SSL)
+</pre></div>
+</div>
+<p>So…</p>
+<ul>
+<li><p class="first">Ensure Apache has <cite>mod_proxy</cite> loaded. Under Windows, achieve this by
+uncommenting these lines from <cite>httpd.conf</cite>:</p>
+<blockquote>
+<div><div class="highlight-apacheconf notranslate"><div class="highlight"><pre><span></span><span class="nb">LoadModule</span> proxy_module modules/mod_proxy.so
+<span class="nb">LoadModule</span> proxy_http_module modules/mod_proxy_http.so
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p class="first">Add to your Apache SSL config section (NB: ONLY in the SSL/HTTPS section!)
+like this:</p>
+<blockquote>
+<div><div class="highlight-apacheconf notranslate"><div class="highlight"><pre><span></span>    <span class="c"># Definitions to make things clearer</span>
+<span class="nb">Define</span> CRATE_VISIBLE_PATH <span class="sx">/crate</span>
+<span class="nb">Define</span> CRATE_INTERNAL_URL http://127.0.0.1:8999
+<span class="nb">Define</span> CRATE_STATIC_PATH <span class="sx">/crate_static</span>
+<span class="nb">Define</span> CRATE_STATIC_ROOT “C:/srv/src/crate/crate_anon/crateweb/static_collected”
+    <span class="c"># ... for UNIX sockets, you might use this instead of CRATE_INTERNAL_URL:</span>
+<span class="nb">Define</span> CRATE_UNIX_SOCKET unix:/tmp/.crate_gunicorn.sock
+<span class="nb">Define</span> CRATE_DUMMY_HOST_URL http://cratedummy/
+
+    <span class="c"># Don’t ProxyPass the static files; serve them directly via Apache</span>
+<span class="nb">ProxyPassMatch</span> ^${CRATE_STATIC_PATH} !
+
+    <span class="c"># Set a timeout in seconds (default is the value of Timeout, whose default is 60)</span>
+    <span class="c"># If your users can run slow queries, increase this:</span>
+<span class="nb">ProxyTimeout</span> <span class="m">600</span>
+
+    <span class="c"># Proxy through to CRATE</span>
+    <span class="c"># (a) route the URLs</span>
+    <span class="c">#     ... “retry=0” prevents Apache disabling the connection for a while on failure</span>
+<span class="nb">ProxyPass</span> ${CRATE_VISIBLE_PATH} ${CRATE_INTERNAL_URL} retry=0
+<span class="nb">ProxyPassReverse</span> ${CRATE_VISIBLE_PATH} ${CRATE_INTERNAL_URL}
+    <span class="c">#     ... or to use UNIX sockets:</span>
+<span class="c"># ProxyPass ${CRATE_VISIBLE_PATH} ${CRATE_UNIX_SOCKET}|${CRATE_DUMMY_HOST_URL} retry=0</span>
+<span class="c"># ProxyPassReverse ${CRATE_VISIBLE_PATH} ${CRATE_UNIX_SOCKET}|${CRATE_DUMMY_HOST_URL}</span>
+    <span class="c">#     ... see the special methods for Unix Domain Sockets at</span>
+    <span class="c">#         https://httpd.apache.org/docs/trunk/mod/mod_proxy.html#proxypass</span>
+
+    <span class="c"># (b) provide permission</span>
+<span class="nt">&lt;Location</span> <span class="s">${CRATE_VISIBLE_PATH}</span><span class="nt">&gt;</span>
+    <span class="nb">Require</span> <span class="k">all</span> granted
+<span class="nt">&lt;/Location&gt;</span>
+
+    <span class="c"># Serve static files directly from Apache</span>
+    <span class="c"># (a) route the URL</span>
+<span class="nb">Alias</span> ${CRATE_STATIC_PATH} “${CRATE_STATIC_ROOT}”
+    <span class="c"># (b) provide permission</span>
+<span class="nt">&lt;Location</span> <span class="s">${CRATE_STATIC_PATH}</span><span class="nt">&gt;</span>
+    <span class="nb">Require</span> <span class="k">all</span> granted
+<span class="nt">&lt;/Location&gt;</span>
+<span class="nt">&lt;Directory</span> <span class="s">“${CRATE_STATIC_ROOT}”</span><span class="nt">&gt;</span>
+    <span class="nb">Require</span> <span class="k">all</span> granted
+<span class="nt">&lt;/Directory&gt;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p class="first">Tell CRATE where it’s been mounted (so it can offer URLs to itself
+correctly). In the Django <a class="reference internal" href="web_config_file.html#web-config-file"><span class="std std-ref">local settings</span></a> (q.v.):</p>
+<blockquote>
+<div><div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">DJANGO_SITE_ROOT_ABSOLUTE_URL</span> <span class="o">=</span> <span class="s2">&quot;https://myresearchdb.mysite.mydomain&quot;</span>  <span class="c1"># no “/crate” suffix here</span>
+<span class="n">FORCE_SCRIPT_NAME</span> <span class="o">=</span> <span class="s2">&quot;/crate&quot;</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p class="first">Restart Apache.</p>
+</li>
+<li><p class="first">For testing, run <a class="reference internal" href="launch_server.html#crate-launch-cherrypy-server"><span class="std std-ref">crate_launch_cherrypy_server</span></a> from the command line. You should see your
+access requests here.</p>
+</li>
+<li><p class="first">Test static serving with e.g.
+<a class="reference external" href="https://myresearchdb.mysite.mydomain/crate_static/yellow.png">https://myresearchdb.mysite.mydomain/crate_static/yellow.png</a>.</p>
+</li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Configuring the CRATE web interface</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Configuring the web front end</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_config_file.html">8.2. Web config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="django_manage.html">8.3. Manage the CRATE web server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_server.html">8.4. Launch the CRATE web server</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.5. Configuring for Apache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_celery.html">8.6. Launch Celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows_service.html">8.7. CRATE Windows service</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="launch_server.html"
+                        title="previous chapter">8.4. Launch the CRATE web server</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="launch_celery.html"
+                        title="next chapter">8.6. Launch Celery</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/website_config/apache.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="launch_celery.html" title="8.6. Launch Celery"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="launch_server.html" title="8.4. Launch the CRATE web server"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >8. Configuring the CRATE web interface</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

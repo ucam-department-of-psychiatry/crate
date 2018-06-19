@@ -1,0 +1,262 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>15.1.5. crate_anon.anonymise.config &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="15.1.6. crate_anon.anonymise.config_singleton" href="config_singleton.html" />
+    <link rel="prev" title="15.1.4. crate_anon.anonymise.anonymise_cli" href="anonymise_cli.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="config_singleton.html" title="15.1.6. crate_anon.anonymise.config_singleton"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="anonymise_cli.html" title="15.1.4. crate_anon.anonymise.anonymise_cli"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" accesskey="U">15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-crate_anon.anonymise.config">
+<span id="crate-anon-anonymise-config"></span><h1>15.1.5. crate_anon.anonymise.config<a class="headerlink" href="#module-crate_anon.anonymise.config" title="Permalink to this headline">¶</a></h1>
+<blockquote>
+<div><p>This file is part of CRATE.</p>
+<p>CRATE is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+<p>CRATE is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+<p>You should have received a copy of the GNU General Public License
+along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
+</div></blockquote>
+<hr class="docutils" />
+<p>Config class for CRATE anonymiser.</p>
+<p>Thoughts on configuration method</p>
+<ul>
+<li><p class="first">First version used a Config() class, which initializes with blank values.
+The anonymise_cli.py file creates a config singleton and passes it around.
+Then when its set() method is called, it reads a config file and
+instantiates its settings.
+An option exists to print a draft config without ever reading one from
+disk.</p>
+<dl class="docutils">
+<dt>Advantage: easy to start the program without a valid config file (e.g. to</dt>
+<dd><p class="first last">print one).</p>
+</dd>
+<dt>Disadvantage: modules can’t be sure that a config is properly instantiated</dt>
+<dd><p class="first last">before they are loaded, so you can’t easily define a class according to
+config settings (you’d have to have a class factory, which gets ugly).</p>
+</dd>
+</dl>
+</li>
+<li><p class="first">The Django method is to have a configuration file (e.g. settings.py, which
+can import from other things) that is read by Django and then becomes
+importable by anything at startup as “django.conf.settings”. (I’ve added
+local settings via an environment variable.) The way Django knows where
+to look is via this in manage.py:</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>os.environ.setdefault(“DJANGO_SETTINGS_MODULE”,</dt>
+<dd><p class="first last">“crate_anon.crateweb.config.settings”)</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="docutils">
+<dt>Advantage: setting the config file via an environment variable (read when</dt>
+<dd><p class="first last">the config file loads) allows guaranteed config existence as other
+modules start.</p>
+</dd>
+<dt>Further advantage: config filenames not on command line, therefore not</dt>
+<dd><p class="first last">visible to ps.</p>
+</dd>
+<dt>Disadvantage: how do you override with a command-line (argparse) setting?</dt>
+<dd><p class="first last">… though: who cares?</p>
+</dd>
+<dt>To print a config using that file: raise an exception on nonexistent</dt>
+<dd><p class="first last">config, and catch it with a special entry point script.</p>
+</dd>
+</dl>
+</li>
+<li><p class="first">See also
+<a class="reference external" href="http://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line">http://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line</a>  # noqa</p>
+</li>
+</ul>
+<dl class="class">
+<dt id="crate_anon.anonymise.config.Config">
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">Config</code><span class="sig-paren">(</span><em>open_databases: bool = True</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.config.Config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class representing the main configuration.</p>
+<dl class="method">
+<dt id="crate_anon.anonymise.config.Config.check_valid">
+<code class="descname">check_valid</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.config.Config.check_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise exception if config is invalid.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.config.Config.encrypt_master_pid">
+<code class="descname">encrypt_master_pid</code><span class="sig-paren">(</span><em>mpid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; Union[str, NoneType]<a class="headerlink" href="#crate_anon.anonymise.config.Config.encrypt_master_pid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encrypt a master PID, producing a master RID.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.config.Config.encrypt_primary_pid">
+<code class="descname">encrypt_primary_pid</code><span class="sig-paren">(</span><em>pid: Union[int, str]</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.config.Config.encrypt_primary_pid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encrypt a primary PID, producing a RID.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.config.Config.hash_object">
+<code class="descname">hash_object</code><span class="sig-paren">(</span><em>l: Any</em><span class="sig-paren">)</span> &#x2192; str<a class="headerlink" href="#crate_anon.anonymise.config.Config.hash_object" title="Permalink to this definition">¶</a></dt>
+<dd><p>Hashes a list with Python’s built-in hash function.</p>
+<p>We could use Python’s build-in hash() function, which produces a 64-bit
+unsigned integer (calculated from: sys.maxint).
+However, there is an outside chance that someone uses a single-field
+table and therefore that this is vulnerable to content discovery via a
+dictionary attack. Thus, we should use a better version.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="crate_anon.anonymise.config.Config.init_row_counts">
+<code class="descname">init_row_counts</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; None<a class="headerlink" href="#crate_anon.anonymise.config.Config.init_row_counts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize row counts for all source tables.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="crate_anon.anonymise.config.DatabaseSafeConfig">
+<em class="property">class </em><code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">DatabaseSafeConfig</code><span class="sig-paren">(</span><em>parser: crate_anon.common.extendedconfigparser.ExtendedConfigParser</em>, <em>section: str</em><span class="sig-paren">)</span><a class="headerlink" href="#crate_anon.anonymise.config.DatabaseSafeConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class representing non-sensitive configuration information about a
+source database.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="crate_anon.anonymise.config.get_extra_hasher">
+<code class="descclassname">crate_anon.anonymise.config.</code><code class="descname">get_extra_hasher</code><span class="sig-paren">(</span><em>parser: crate_anon.common.extendedconfigparser.ExtendedConfigParser</em>, <em>section: str</em><span class="sig-paren">)</span> &#x2192; cardinal_pythonlib.hash.GenericHasher<a class="headerlink" href="#crate_anon.anonymise.config.get_extra_hasher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read from a configparser section.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/overview.html">1. Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/package_elements.html">2. Package elements in brief</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">15. Automatic documentation of source code</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="_index.html">15.1. crate_anon.anonymise</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../common/_index.html">15.2. crate_anon.common</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../crateweb/_index.html">15.3. crate_anon.crateweb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../nlp_manager/_index.html">15.4. crate_anon.nlp_manager</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../preprocess/_index.html">15.5. crate_anon.preprocess</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../tools/_index.html">15.6. crate_anon.tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="anonymise_cli.html"
+                        title="previous chapter">15.1.4. crate_anon.anonymise.anonymise_cli</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="config_singleton.html"
+                        title="next chapter">15.1.6. crate_anon.anonymise.config_singleton</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/autodoc/anonymise/config.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="config_singleton.html" title="15.1.6. crate_anon.anonymise.config_singleton"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="anonymise_cli.html" title="15.1.4. crate_anon.anonymise.anonymise_cli"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >15. Automatic documentation of source code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="_index.html" >15.1. crate_anon.anonymise</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,281 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>2. Package elements in brief &#8212; CRATE  documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="3. Reference publications" href="publications.html" />
+    <link rel="prev" title="1. Overview" href="overview.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="publications.html" title="3. Reference publications"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="1. Overview"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">&lt;no title&gt;</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="package-elements-in-brief">
+<h1>2. Package elements in brief<a class="headerlink" href="#package-elements-in-brief" title="Permalink to this headline">¶</a></h1>
+<p>There are multiple stages between a clinical source database and a final
+research database. CRATE separates these stages.</p>
+<div class="section" id="terminology">
+<h2>2.1. Terminology<a class="headerlink" href="#terminology" title="Permalink to this headline">¶</a></h2>
+<p>I will refer to ‘anonymisation’ in this document, but sometimes as a shorthand
+for ‘pseudonymisation’, in which IDs are removed and replaced by a generated
+pseudonym.</p>
+</div>
+<div class="section" id="database-connections">
+<h2>2.2. Database connections<a class="headerlink" href="#database-connections" title="Permalink to this headline">¶</a></h2>
+<p>Most of the CRATE tools talk to one or more databases. They do this via
+<a class="reference external" href="https://www.sqlalchemy.org/">SQLAlchemy</a>, which uses a unified URL scheme to define a database connection.
+You will need to create a URL for every database you wish to use. In some cases
+you may need to install drivers. See “Internal database interfaces” below.</p>
+</div>
+<div class="section" id="preprocessing">
+<h2>2.3. Preprocessing<a class="headerlink" href="#preprocessing" title="Permalink to this headline">¶</a></h2>
+<p>Your data may need reshaping or adding to. For example, while you will want to
+remove addresses and postcodes from the raw data, you may want to add less
+specific but nonetheless useful UK Office of National Statistics (ONS)
+geographical information. It may also be that your source database is heavily
+normalised <a class="footnote-reference" href="#dbnormalization" id="id1">[1]</a> and you want to de-normalize it to make life
+easier for your researchers.</p>
+<p>CRATE provides the following optional pre-processing steps:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">crate_postcodes</span></code>: takes a downloaded UK ONS Postcode Database (ONS PD) file
+and inserts it into a database, for later linking to your source data.</li>
+<li><code class="docutils literal notranslate"><span class="pre">crate_preprocess_rio</span></code>: adds fields, indexes, and views to a Servelec RiO
+database (or a Servelec RiO CRIS Extract Program [RCEP] database) to apply
+some de-normalization of RiO Core and RiO Non-Core data to make it simpler
+for end users. This program also generates data dictionary options for the
+next step.</li>
+</ul>
+</div>
+<div class="section" id="data-dictionary-generation-and-editing">
+<h2>2.4. Data dictionary generation and editing<a class="headerlink" href="#data-dictionary-generation-and-editing" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>CRATE removes identifiable information as it copies a database based on a
+<strong>data dictionary,</strong> which is essentially a spreadsheet with one row for
+every column in the source database.</li>
+<li>You can create this data dictionary manually, and edit it manually, but CRATE
+also provides a way to autogenerate a draft of the data dictionary. Use the
+command <code class="docutils literal notranslate"><span class="pre">crate_anonymise</span> <span class="pre">--draftdd</span></code> to start a data dictionary, or
+<code class="docutils literal notranslate"><span class="pre">crate_anonymise</span> <span class="pre">--incrementaldd</span></code> to discover new database columns and add
+them to an existing data dictionary. Both these commands refer to a CRATE
+anonymiser configuration file, and that configuration file can contain
+guidance on how to draft the data dictionary, in the form of options named
+<code class="docutils literal notranslate"><span class="pre">ddgen...</span></code>.</li>
+</ul>
+<p>To be more helpful, preprocessors (including <code class="docutils literal notranslate"><span class="pre">crate_preprocess_rio</span></code>) can
+create these options for you; see the <code class="docutils literal notranslate"><span class="pre">--settings-filename</span></code> option above.
+These suggestions incorporate knowledge about the specific database (e.g. which
+fields contain patient IDs; which contain references to external document
+files; etc). You can take those suggestions, and add them to your CRATE
+configuration file. If you do that, the autogenerated data dictionary will (we
+hope) be much closer to what you want.</p>
+<p>However, you should always review your data dictionary by hand prior to
+anonymisation.</p>
+</div>
+<div class="section" id="anonymisation">
+<h2>2.5. Anonymisation<a class="headerlink" href="#anonymisation" title="Permalink to this headline">¶</a></h2>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">crate_anonymise</span></code> (or <code class="docutils literal notranslate"><span class="pre">crate_anonymise_multiprocess</span></code>)
+commands to perform the main anonymisation. This can be done in a “full” way,
+dropping existing tables and starting from scratch, or in an “incremental” way,
+looking for changes to the source database (with respect to the anonymised
+database) and changing the anonymised database accordingly.</p>
+<p>This tool uses a configuration file that you create and edit. Use
+<code class="docutils literal notranslate"><span class="pre">crate_anonymise</span> <span class="pre">--democonfig</span></code> to generate a demonstration file. (For some
+database, like RiO, you can mix in the suggested options from
+<code class="docutils literal notranslate"><span class="pre">crate_preprocess_rio</span></code>.)</p>
+</div>
+<div class="section" id="natural-language-processing-nlp">
+<h2>2.6. Natural language processing (NLP)<a class="headerlink" href="#natural-language-processing-nlp" title="Permalink to this headline">¶</a></h2>
+<p>You can use the <code class="docutils literal notranslate"><span class="pre">crate_nlp</span></code> (or <code class="docutils literal notranslate"><span class="pre">crate_nlp_multiprocess</span></code>) commands to pass
+text from one or more databases/tables/columns, to an external NLP tool, and
+the structured data back to a database table.</p>
+<p>CRATE includes some built-in natural language tools, including regular
+expression (regex) parsers for numerical results.</p>
+<p>The GATE NLP system is also supported, via a Java program. Use
+<code class="docutils literal notranslate"><span class="pre">crate_nlp_build_gate_java_interface</span></code> to build this before you use it for the
+first time.</p>
+<p>The MedEx-UIMA system is also supported, via a Java program. Use
+<code class="docutils literal notranslate"><span class="pre">crate_nlp_build_medex_java_interface</span></code> to build this before you use it for
+the first time.</p>
+<p>This tool uses a configuration file that you create and edit. Use <cite>crate_nlp
+–democonfig</cite> to generate a demonstration file.</p>
+</div>
+<div class="section" id="web-front-end">
+<h2>2.7. Web front end<a class="headerlink" href="#web-front-end" title="Permalink to this headline">¶</a></h2>
+<p>CRATE offers a web front end that supports researcher access to the data, and
+allows managers to operate a specific consent-to-contact process.</p>
+<p>It uses a configuration file. Use <code class="docutils literal notranslate"><span class="pre">crate_print_demo_crateweb_config</span></code> to
+create a starting config that you can edit, and
+<code class="docutils literal notranslate"><span class="pre">crate_generate_new_django_secret_key</span></code> to generate a random secret key for
+your site (which goes into the config).</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">crate_django_manage</span> <span class="pre">command</span></code> provides options for:</p>
+<ul class="simple">
+<li>building the structure of the admin database (<code class="docutils literal notranslate"><span class="pre">migrate</span></code>);</li>
+<li>collecting statically served files (<code class="docutils literal notranslate"><span class="pre">collectstatic</span></code>);</li>
+<li>creating a superuser (<code class="docutils literal notranslate"><span class="pre">createsuperuser</span></code>);</li>
+<li>manually changing a password (<code class="docutils literal notranslate"><span class="pre">changepassword</span></code>);</li>
+<li>populating a consent database (<code class="docutils literal notranslate"><span class="pre">populate</span></code>);</li>
+<li>testing the back-end messaging system by sending an e-mail (<code class="docutils literal notranslate"><span class="pre">test_email</span></code>);</li>
+</ul>
+<p>and a few other things that other scripts provide more convenient interfaces to.</p>
+<p>Other scripts include:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">crate_launch_django_server</span></code> for a test Django server;</li>
+<li><code class="docutils literal notranslate"><span class="pre">crate_launch_cherrypy_server</span></code> to launch a production-grade CherryPy
+server;</li>
+<li><code class="docutils literal notranslate"><span class="pre">crate_launch_celery</span></code> to launch the Celery message-handling backend;</li>
+<li><code class="docutils literal notranslate"><span class="pre">crate_launch_flower</span></code> for the Flower tool to monitor the Celery/RabbitMQ
+backend;</li>
+<li><code class="docutils literal notranslate"><span class="pre">crate_windows_service</span></code> to set up or test a Windows service for the web
+server system. (The CRATE Windows service does the equivalent of running both
+<code class="docutils literal notranslate"><span class="pre">crate_launch_cherrypy_server</span></code> and <code class="docutils literal notranslate"><span class="pre">crate_launch_celery</span></code>, in the
+background.)</li>
+</ul>
+</div>
+<div class="section" id="testing-and-additional-tools">
+<h2>2.8. Testing and additional tools<a class="headerlink" href="#testing-and-additional-tools" title="Permalink to this headline">¶</a></h2>
+<p>Other tools include:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">crate_make_demo_database</span></code>: creates a demonstration database for testing.</li>
+<li><code class="docutils literal notranslate"><span class="pre">crate_test_anonymisation</span></code>: fetches raw and anonymised data (from a source
+and a destination database), for a human to compare with a tool like <a class="reference external" href="http://meldmerge.org/">Meld</a> to
+verify the accuracy of anonymisation.</li>
+<li><code class="docutils literal notranslate"><span class="pre">crate_estimate_mysql_memory_usage</span></code>: estimates the memory footprint of
+<a class="reference external" href="https://www.mysql.com/">MySQL</a>.</li>
+</ul>
+<p class="rubric">Footnotes</p>
+<table class="docutils footnote" frame="void" id="dbnormalization" rules="none">
+<colgroup><col class="label" /><col /></colgroup>
+<tbody valign="top">
+<tr><td class="label"><a class="fn-backref" href="#id1">[1]</a></td><td><a class="reference external" href="https://en.wikipedia.org/wiki/Database_normalization">https://en.wikipedia.org/wiki/Database_normalization</a></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h3><a href="../index.html">Table Of Contents</a></h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">1. Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">2. Package elements in brief</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#terminology">2.1. Terminology</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-connections">2.2. Database connections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#preprocessing">2.3. Preprocessing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-dictionary-generation-and-editing">2.4. Data dictionary generation and editing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#anonymisation">2.5. Anonymisation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#natural-language-processing-nlp">2.6. Natural language processing (NLP)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#web-front-end">2.7. Web front end</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#testing-and-additional-tools">2.8. Testing and additional tools</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="publications.html">3. Reference publications</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/installation.html">4. Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../installation/database_drivers.html">5. Databases and database drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_config/index.html">8. Configuring the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/ancillary_tools.html">10. Ancillary tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/troubleshooting.html">11. Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/technical_notes.html">12. Technical notes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/upgrading.html">13. Upgrading CRATE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../autodoc/index.html">15. Automatic documentation of source code</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">16. Change log/history</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">18. Abbreviations and glossary</a></li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="overview.html"
+                        title="previous chapter">1. Overview</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="publications.html"
+                        title="next chapter">3. Reference publications</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/introduction/package_elements.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="publications.html" title="3. Reference publications"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="overview.html" title="1. Overview"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >&lt;no title&gt;</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, Rudolf Cardinal.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.5.
+    </div>
+  </body>
+</html>
