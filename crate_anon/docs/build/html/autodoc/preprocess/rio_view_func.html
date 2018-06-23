@@ -47,8 +47,10 @@
             
   <div class="section" id="module-crate_anon.preprocess.rio_view_func">
 <span id="crate-anon-preprocess-rio-view-func"></span><h1>15.5.8. crate_anon.preprocess.rio_view_func<a class="headerlink" href="#module-crate_anon.preprocess.rio_view_func" title="Permalink to this headline">¶</a></h1>
+<hr class="docutils" />
 <blockquote>
-<div><p>This file is part of CRATE.</p>
+<div><p>Copyright (C) 2015-2018 Rudolf Cardinal (<a class="reference external" href="mailto:rudolf&#37;&#52;&#48;pobox&#46;com">rudolf<span>&#64;</span>pobox<span>&#46;</span>com</a>).</p>
+<p>This file is part of CRATE.</p>
 <p>CRATE is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -76,38 +78,30 @@ rio_views.py). The LEFT JOIN was giving us duplicate rows. We want only
 the first match. See
 <a class="reference external" href="https://www.periscopedata.com/blog/4-ways-to-join-only-the-first-row-in-sql.html">https://www.periscopedata.com/blog/4-ways-to-join-only-the-first-row-in-sql.html</a></p>
 <p>We were doing the FROM component as:</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>LEFT JOIN {lookup_table} {aliased_lookup_table}</dt>
-<dd>ON {aliased_lookup_table}.{lookup_pk} = {basetable}.{basecolumn}</dd>
-</dl>
-</div></blockquote>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>LEFT JOIN {lookup_table} {aliased_lookup_table}
+    ON {aliased_lookup_table}.{lookup_pk} = {basetable}.{basecolumn}
+</pre></div>
+</div>
 <p>and we’ll replace that with</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>LEFT JOIN {lookup_table} {aliased_lookup_table}</dt>
-<dd><dl class="first docutils">
-<dt>ON {aliased_lookup_table}.{lookup_pk} = (</dt>
-<dd>SELECT {lookup_pk} FROM {lookup_table}
-WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}
-ORDER BY {lookup_table}.{lookup_pk}
-LIMIT 1</dd>
-</dl>
-<p class="last">)</p>
-</dd>
-</dl>
-</div></blockquote>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>LEFT JOIN {lookup_table} {aliased_lookup_table}
+    ON {aliased_lookup_table}.{lookup_pk} = (
+        SELECT {lookup_pk} FROM {lookup_table}
+        WHERE {lookup_table}.{lookup_pk} = {basetable}.{basecolumn}
+        ORDER BY {lookup_table}.{lookup_pk}
+        LIMIT 1
+    )
+</pre></div>
+</div>
 <p>… compare to the example of</p>
-<blockquote>
-<div><p>SELECT * FROM users
-JOIN widgets ON widgets.id = (</p>
-<blockquote>
-<div>SELECT id FROM widgets
-WHERE widgets.user_id = users.id
-ORDER BY created_at DESC
-LIMIT 1</div></blockquote>
-<p>)</p>
-</div></blockquote>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>SELECT * FROM users
+JOIN widgets ON widgets.id = (
+    SELECT id FROM widgets
+    WHERE widgets.user_id = users.id
+    ORDER BY created_at DESC
+    LIMIT 1
+)
+</pre></div>
+</div>
 <p>Note that SQL Server uses “SELECT TOP 1 …” not “SELECT … LIMIT 1”.</p>
 </dd></dl>
 

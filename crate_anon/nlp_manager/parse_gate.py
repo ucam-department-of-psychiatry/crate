@@ -3,6 +3,7 @@
 
 """
 ===============================================================================
+
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
@@ -19,6 +20,7 @@
 
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
 ===============================================================================
 
 The pipe encoding (Python -> Java stdin, Java stdout -> Python) is fixed at

@@ -3,6 +3,7 @@
 
 """
 ===============================================================================
+
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
@@ -19,6 +20,7 @@
 
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
 ===============================================================================
 """
 
@@ -34,8 +36,7 @@ DEST_DIRS = [
 ]
 
 # Remove anything old
-shutil.rmtree(BUILD_HTML_DIR, ignore_errors=True)
-for destdir in DEST_DIRS:
+for destdir in [BUILD_HTML_DIR] + DEST_DIRS:
     print("Deleting directory {!r}".format(destdir))
     shutil.rmtree(destdir, ignore_errors=True)
 

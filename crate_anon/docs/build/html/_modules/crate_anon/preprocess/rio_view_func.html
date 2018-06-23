@@ -42,6 +42,7 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">===============================================================================</span>
+
 <span class="sd">    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).</span>
 
 <span class="sd">    This file is part of CRATE.</span>
@@ -58,6 +59,7 @@
 
 <span class="sd">    You should have received a copy of the GNU General Public License</span>
 <span class="sd">    along with CRATE. If not, see &lt;http://www.gnu.org/licenses/&gt;.</span>
+
 <span class="sd">===============================================================================</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
@@ -113,11 +115,15 @@
 <span class="sd">    https://www.periscopedata.com/blog/4-ways-to-join-only-the-first-row-in-sql.html</span>
 
 <span class="sd">    We were doing the FROM component as:</span>
+<span class="sd">    </span>
+<span class="sd">    .. code-block:: none</span>
 
 <span class="sd">        LEFT JOIN {lookup_table} {aliased_lookup_table}</span>
 <span class="sd">            ON {aliased_lookup_table}.{lookup_pk} = {basetable}.{basecolumn}</span>
 
 <span class="sd">    and we&#39;ll replace that with</span>
+
+<span class="sd">    .. code-block:: none</span>
 
 <span class="sd">        LEFT JOIN {lookup_table} {aliased_lookup_table}</span>
 <span class="sd">            ON {aliased_lookup_table}.{lookup_pk} = (</span>
@@ -128,6 +134,8 @@
 <span class="sd">            )</span>
 
 <span class="sd">    ... compare to the example of</span>
+
+<span class="sd">    .. code-block:: none</span>
 
 <span class="sd">        SELECT * FROM users</span>
 <span class="sd">        JOIN widgets ON widgets.id = (</span>

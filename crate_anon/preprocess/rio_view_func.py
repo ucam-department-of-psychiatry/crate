@@ -3,6 +3,7 @@
 
 """
 ===============================================================================
+
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
@@ -19,6 +20,7 @@
 
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
 ===============================================================================
 """
 
@@ -74,11 +76,15 @@ def lookup_from_fragment_first_row(lookup_table: str,
     https://www.periscopedata.com/blog/4-ways-to-join-only-the-first-row-in-sql.html
 
     We were doing the FROM component as:
+    
+    .. code-block:: none
 
         LEFT JOIN {lookup_table} {aliased_lookup_table}
             ON {aliased_lookup_table}.{lookup_pk} = {basetable}.{basecolumn}
 
     and we'll replace that with
+
+    .. code-block:: none
 
         LEFT JOIN {lookup_table} {aliased_lookup_table}
             ON {aliased_lookup_table}.{lookup_pk} = (
@@ -89,6 +95,8 @@ def lookup_from_fragment_first_row(lookup_table: str,
             )
 
     ... compare to the example of
+
+    .. code-block:: none
 
         SELECT * FROM users
         JOIN widgets ON widgets.id = (

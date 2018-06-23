@@ -3,6 +3,7 @@
 
 r"""
 ===============================================================================
+
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
 
     This file is part of CRATE.
@@ -19,78 +20,94 @@ r"""
 
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
 ===============================================================================
 
 Run the CRATE web service as a Windows service.
 
-Details:
-    http://stackoverflow.com/questions/32404
-    http://www.chrisumbel.com/article/windows_services_in_python
-    http://code.activestate.com/recipes/551780-win-services-helper/
-    http://docs.activestate.com/activepython/2.4/pywin32/PyWin32.HTML
-        http://docs.activestate.com/activepython/2.4/pywin32/modules.html
-    source:
-        ...venv.../Lib/site-packages/win32/lib/win32serviceutil.py
-    http://docs.activestate.com/activepython/3.3/pywin32/servicemanager.html
-    http://timgolden.me.uk/pywin32-docs/contents.html
+**Details**
 
-Synopsis:
-    - INSTALL: run this script with "install" argument, as administrator
-    - RUN: use Windows service manager, or NET START CRATE
-    - STOP: use Windows service manager, or NET STOP CRATE
-    - STATUS: SC QUERY CRATE
-    - DEBUG: run this script with "debug" argument
-        Log messages are sent to the console.
-        Press CTRL-C to abort.
+- http://stackoverflow.com/questions/32404
+- http://www.chrisumbel.com/article/windows_services_in_python
+- http://code.activestate.com/recipes/551780-win-services-helper/
+- http://docs.activestate.com/activepython/2.4/pywin32/PyWin32.HTML
 
-If the debug script succeeds but the start command doesn't...
-    - Find the service in the Windows service manage.
-    - Right-click it and inspect its properties. You'll see the name of the
-      actual program being run, e.g.
-        D:\venvs\crate\Lib\site-packages\win32\pythonservice.exe
-    - Try running this from the command line (outside any virtual 
-      environment).
+  - http://docs.activestate.com/activepython/2.4/pywin32/modules.html
+  - source: ...venv.../Lib/site-packages/win32/lib/win32serviceutil.py
+
+- http://docs.activestate.com/activepython/3.3/pywin32/servicemanager.html
+- http://timgolden.me.uk/pywin32-docs/contents.html
+
+**Synopsis**
+
+- INSTALL: run this script with "install" argument, as administrator
+- RUN: use Windows service manager, or NET START CRATE
+- STOP: use Windows service manager, or NET STOP CRATE
+- STATUS: SC QUERY CRATE
+- DEBUG: run this script with "debug" argument
+
+  - Log messages are sent to the console.
+  - Press CTRL-C to abort.
+
+- If the debug script succeeds but the start command doesn't...
+
+  - Find the service in the Windows service manage.
+  - Right-click it and inspect its properties. You'll see the name of the
+    actual program being run, e.g.
+    ``D:\venvs\crate\Lib\site-packages\win32\pythonservice.exe``
+  - Try running this from the command line (outside any virtual 
+    environment).
      
-    - In my case this failed with:
+  - In my case this failed with:
+  
+    .. code-block:: none
+    
         pythonservice.exe - Unable to Locate Component
         This application has failed to start because pywintypes34.dll was not
         found. Re-installing the application may fix this problem.
-    - That DLL was in:
-        D:\venvs\crate\Lib\site-packages\pypiwin32_system32
-      ... so add that to the system PATH
-      ... and reboot
-      ... and then it's happy.
-    - However, that's not ideal for a virtual environment!
-    - Looking at win32serviceutil.py, it seems we could do better by
-      specifying _exe_name_ (to replace the default PythonService.exe) and
-      _exe_args_. The sequence 
-            myscript.py install
-            -> win32serviceutil.HandleCommandLine()
-                ... fishes things out of cls._exe_name_, etc.
-            -> win32serviceutil.InstallService()
-                ... builds a command line
-                ... by default:
-                "d:\venvs\crate\lib\site-packages\win32\PythonService.exe"
-            -> win32service.CreateService()
-    - So how, in the normal situation, does PythonService.exe find our
-      script?
-    - At this point, see also http://stackoverflow.com/questions/34696815
-    - Source code is:
-      https://github.com/tjguk/pywin32/blob/master/win32/src/PythonService.cpp
+        
+  - That DLL was in: ``D:\venvs\crate\Lib\site-packages\pypiwin32_system32``
+    ... so add that to the system PATH... and reboot... and then it's happy.
     
-    - Starting a service directly with PrepareToHostSingle:
-      https://mail.python.org/pipermail/python-win32/2008-April/007299.html
-      https://mail.python.org/pipermail/python-win32/2010-May/010487.html
+  - However, that's not ideal for a virtual environment!
+  - Looking at win32serviceutil.py, it seems we could do better by
+    specifying _exe_name_ (to replace the default PythonService.exe) and
+    _exe_args_. The sequence
+    
+    .. code-block:: none
+     
+        myscript.py install
+        -> win32serviceutil.HandleCommandLine()
+            ... fishes things out of cls._exe_name_, etc.
+        -> win32serviceutil.InstallService()
+            ... builds a command line
+            ... by default:
+            "d:\venvs\crate\lib\site-packages\win32\PythonService.exe"
+        -> win32service.CreateService()
+        
+  - So how, in the normal situation, does PythonService.exe find our script?
+  - At this point, see also http://stackoverflow.com/questions/34696815
+  - Source code is: 
+    https://github.com/tjguk/pywin32/blob/master/win32/src/PythonService.cpp
+    
+  - Starting a service directly with PrepareToHostSingle:
+  
+    - https://mail.python.org/pipermail/python-win32/2008-April/007299.html
+    - https://mail.python.org/pipermail/python-win32/2010-May/010487.html
       
-    - SUCCESS! Method is:
+  - SUCCESS! Method is:
     
-      In service class:
+    - In service class:
+    
+      .. code-block:: python
       
         _exe_name_ = sys.executable  # python.exe in the virtualenv
         _exe_args_ = '"{}"'.format(os.path.realpath(__file__))  # this script
 
-      In main:
+    -- In main:
 
+      .. code-block:: python
+      
         if len(sys.argv) == 1:
             try:
                 print("Trying to start service directly...")
@@ -107,18 +124,21 @@ If the debug script succeeds but the start command doesn't...
         else:
             win32serviceutil.HandleCommandLine(CratewebService)  # CLASS
             
-    - Now, if you run it directly with no arguments, from a command prompt, 
-      it will fail and print the usage message, but if you run it from the
-      service manager (with no arguments), it'll start the service. Everything
-      else seems to work. Continues to work when the PATH doesn't include the
-      virtual environment.
+  - Now, if you run it directly with no arguments, from a command prompt, 
+    it will fail and print the usage message, but if you run it from the
+    service manager (with no arguments), it'll start the service. Everything
+    else seems to work. Continues to work when the PATH doesn't include the
+    virtual environment.
 
-    - However, it breaks the "debug" option. The "debug" option reads the
-      registry about the INSTALLED service to establish the name of the program
-      that it runs. It assumes PythonService.exe.
+  - However, it breaks the "debug" option. The "debug" option reads the
+    registry about the INSTALLED service to establish the name of the program
+    that it runs. It assumes PythonService.exe.
 
-Script parameters:
-    If you run this script with no parameters, you'll see this:
+**Script parameters**
+
+If you run this script with no parameters, you'll see this:
+
+.. code-block:: none
 
     Usage: 'crate_windows_service-script.py [options] install|update|remove|start [...]|stop|restart [...]|debug [...]'
     Options for 'install' and 'update' commands only:
@@ -139,10 +159,11 @@ Script parameters:
         - CreateEvent: https://msdn.microsoft.com/en-us/library/windows/desktop/ms682396(v=vs.85).aspx
         - WaitForSingleObject: https://msdn.microsoft.com/en-us/library/windows/desktop/ms687032(v=vs.85).aspx
 
-Problems killing things
-===============================================================================
+**Problems killing things**
 
 We had this:
+
+  .. code-block:: python
 
     def terminate(self):
         if not self.running:
@@ -186,8 +207,10 @@ We had this:
 However, the CTRL-C/CTRL-BREAK method failed, and a hard kill left Celery
 stuff running (because it killed the root, not child, processes, I presume).
 Looked at django-windows-tools,
-    https://pypi.python.org/pypi/django-windows-tools
-    https://github.com/antoinemartin/django-windows-tools
+
+- https://pypi.python.org/pypi/django-windows-tools
+- https://github.com/antoinemartin/django-windows-tools
+
 but it crashed in a print statement -- Python 2 only at present (2016-05-11,
 version 0.1.1). However, its process management is instructive; it uses
 "multiprocessing", not "subprocess". The multiprocessing module calls Python
@@ -195,24 +218,30 @@ functions. And its docs explicitly note that terminate() leaves descendant
 processes orphaned.
 
 See in particular
-    http://stackoverflow.com/questions/7085604/sending-c-to-python-subprocess-objects-on-windows
-    http://stackoverflow.com/questions/140111/sending-an-arbitrary-signal-in-windows
+
+- http://stackoverflow.com/questions/7085604/sending-c-to-python-subprocess-objects-on-windows
+- http://stackoverflow.com/questions/140111/sending-an-arbitrary-signal-in-windows
 
 Python bug?
-    http://bugs.python.org/issue3905
-    http://bugs.python.org/issue13368
+
+- http://bugs.python.org/issue3905
+- http://bugs.python.org/issue13368
 
 Maybe a subprocess bug. Better luck with
-    ctypes.windll.kernel32.GenerateConsoleCtrlEvent
+``ctypes.windll.kernel32.GenerateConsoleCtrlEvent``.
 
 Current method tries a variety of things under Windows:
+
+.. code-block:: none
+
     CTRL-C -> CTRL-BREAK -> TASKKILL /T -> TASKKILL /T /F -> kill()
+    
 ... which are progressively less graceful in terms of child processes getting
 to clean up. Still, it works (usually at one of the two TASKKILL stages).
 
-"The specified service is marked for deletion"
-===============================================================================
-http://stackoverflow.com/questions/20561990
+**"The specified service is marked for deletion"**
+
+- http://stackoverflow.com/questions/20561990
 
 """  # noqa
 
