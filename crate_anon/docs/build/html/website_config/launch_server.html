@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>8.4. Launch the CRATE web server &#8212; CRATE  documentation</title>
+    <title>8.5. Launch the CRATE web server &#8212; CRATE  documentation</title>
     <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="../_static/css/crate_docs.css" type="text/css" />
@@ -16,8 +16,8 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="8.5. Configuring for Apache" href="apache.html" />
-    <link rel="prev" title="8.3. Manage the CRATE web server" href="django_manage.html" /> 
+    <link rel="next" title="8.6. Configuring for Apache" href="apache.html" />
+    <link rel="prev" title="8.4. Manage the CRATE web server" href="django_manage.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -29,10 +29,10 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="apache.html" title="8.5. Configuring for Apache"
+          <a href="apache.html" title="8.6. Configuring for Apache"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="django_manage.html" title="8.3. Manage the CRATE web server"
+          <a href="django_manage.html" title="8.4. Manage the CRATE web server"
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">8. Configuring the CRATE web interface</a> &#187;</li> 
@@ -45,9 +45,9 @@
           <div class="body" role="main">
             
   <div class="section" id="launch-the-crate-web-server">
-<h1>8.4. Launch the CRATE web server<a class="headerlink" href="#launch-the-crate-web-server" title="Permalink to this headline">¶</a></h1>
+<h1>8.5. Launch the CRATE web server<a class="headerlink" href="#launch-the-crate-web-server" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="crate-launch-cherrypy-server">
-<span id="id1"></span><h2>8.4.1. crate_launch_cherrypy_server<a class="headerlink" href="#crate-launch-cherrypy-server" title="Permalink to this headline">¶</a></h2>
+<span id="id1"></span><h2>8.5.1. crate_launch_cherrypy_server<a class="headerlink" href="#crate-launch-cherrypy-server" title="Permalink to this headline">¶</a></h2>
 <p>This is the standard cross-platform production server for CRATE, using
 <a class="reference external" href="https://cherrypy.org/">CherryPy</a>.</p>
 <p>Options as of 2016-07-21:</p>
@@ -105,7 +105,7 @@ optional arguments:
 </div>
 </div>
 <div class="section" id="crate-launch-django-server">
-<h2>8.4.2. crate_launch_django_server<a class="headerlink" href="#crate-launch-django-server" title="Permalink to this headline">¶</a></h2>
+<h2>8.5.2. crate_launch_django_server<a class="headerlink" href="#crate-launch-django-server" title="Permalink to this headline">¶</a></h2>
 <p>This is a lightweight test server, using <a class="reference external" href="https://www.djangoproject.com/">Django</a> itself.</p>
 <p>Options as of 2016-07-21:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: crate_launch_django_server runserver [-h] [--version] [-v {0,1,2,3}]
@@ -165,13 +165,14 @@ optional arguments:
 <li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">8. Configuring the CRATE web interface</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Configuring the web front end</a></li>
-<li class="toctree-l2"><a class="reference internal" href="web_config_file.html">8.2. Web config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="django_manage.html">8.3. Manage the CRATE web server</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">8.4. Launch the CRATE web server</a></li>
-<li class="toctree-l2"><a class="reference internal" href="apache.html">8.5. Configuring for Apache</a></li>
-<li class="toctree-l2"><a class="reference internal" href="launch_celery.html">8.6. Launch Celery</a></li>
-<li class="toctree-l2"><a class="reference internal" href="windows_service.html">8.7. CRATE Windows service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="components.html">8.1. Web site components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.2. Configuring the web front end</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_config_file.html">8.3. Web config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="django_manage.html">8.4. Manage the CRATE web server</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">8.5. Launch the CRATE web server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apache.html">8.6. Configuring for Apache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_celery.html">8.7. Launch Celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows_service.html">8.8. CRATE Windows service</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
@@ -188,10 +189,10 @@ optional arguments:
 
   <h4>Previous topic</h4>
   <p class="topless"><a href="django_manage.html"
-                        title="previous chapter">8.3. Manage the CRATE web server</a></p>
+                        title="previous chapter">8.4. Manage the CRATE web server</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="apache.html"
-                        title="next chapter">8.5. Configuring for Apache</a></p>
+                        title="next chapter">8.6. Configuring for Apache</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -225,10 +226,10 @@ optional arguments:
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="apache.html" title="8.5. Configuring for Apache"
+          <a href="apache.html" title="8.6. Configuring for Apache"
              >next</a> |</li>
         <li class="right" >
-          <a href="django_manage.html" title="8.3. Manage the CRATE web server"
+          <a href="django_manage.html" title="8.4. Manage the CRATE web server"
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">CRATE  documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >8. Configuring the CRATE web interface</a> &#187;</li> 

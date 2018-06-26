@@ -134,30 +134,48 @@
 <span class="n">DJANGO_PYODBC_AZURE_ENGINE</span> <span class="o">=</span> <span class="s1">&#39;sql_server.pyodbc&#39;</span>
 
 
-<span class="k">def</span> <span class="nf">replacement_sqlserver_pyodbc_cursorwrapper_fetchone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
-    <span class="c1"># To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py</span>
-    <span class="c1">#</span>
+<div class="viewcode-block" id="replacement_sqlserver_pyodbc_cursorwrapper_fetchone"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.replacement_sqlserver_pyodbc_cursorwrapper_fetchone">[docs]</a><span class="k">def</span> <span class="nf">replacement_sqlserver_pyodbc_cursorwrapper_fetchone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A function to replace ``CursorWrapper.fetchone()`` in</span>
+<span class="sd">    ``sql_server/pyodbc/base.py`` from ``django-pyodbc-azure``.</span>
+<span class="sd">    This replacement function does not call ``cursor.nextset()``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># log.critical(&quot;Using monkeypatched fetchone(); self: {}; self.cursor: &quot;</span>
     <span class="c1">#              &quot;{}&quot;.format(repr(self), repr(self.cursor)))</span>
     <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">format_row</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
     <span class="c1"># BUT DO NOT CALL self.cursor.nextset()</span>
-    <span class="k">return</span> <span class="n">row</span>
+    <span class="k">return</span> <span class="n">row</span></div>
 
 
-<span class="k">def</span> <span class="nf">hack_django_pyodbc_azure_cursorwrapper</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="c1"># I thought I wanted to modify an INSTANCE, not a CLASS.</span>
-    <span class="c1"># - https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/</span>
-    <span class="c1"># To modify a class, we do</span>
-    <span class="c1">#       SomeClass.method = newmethod</span>
-    <span class="c1"># But to modify an instance, we use</span>
-    <span class="c1">#       instance.method = types.MethodType(newmethod, instance)</span>
-    <span class="c1"># However, it turned out the instance was actually part of a long chain</span>
-    <span class="c1"># of cursor wrappers, including the Django debug toolbar; classes included</span>
-    <span class="c1">#       debug_toolbar.panels.sql.tracking.NormalCursorWrapper</span>
-    <span class="c1">#       django.db.backends.utils.CursorDebugWrapper</span>
-    <span class="c1"># and actually, modifying the class is a sensible thing.</span>
+<div class="viewcode-block" id="hack_django_pyodbc_azure_cursorwrapper"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.hack_django_pyodbc_azure_cursorwrapper">[docs]</a><span class="k">def</span> <span class="nf">hack_django_pyodbc_azure_cursorwrapper</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Monkey-patch part of the ``sql_server.pyodbc`` library from</span>
+<span class="sd">    ``django-pyodbc-azure``. It replaces the ``fetchone()`` method with a</span>
+<span class="sd">    version that doesn&#39;t call ``cursor.nextset()`` automatically.</span>
+
+<span class="sd">    **It looks like this becomes unnecessary in django-pyodbc-azure==2.0.6.1</span>
+<span class="sd">    or similar, because the call to ``cursor.nextset()`` is now only performed</span>
+<span class="sd">    ``if not self.connection.supports_mars``.**</span>
+
+<span class="sd">    *Notes*</span>
+
+<span class="sd">    - I thought I wanted to modify an *instance*, not a *class*</span>
+<span class="sd">      (https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/).</span>
+
+<span class="sd">    - To modify a class, we do ``SomeClass.method = newmethod``.</span>
+
+<span class="sd">    - But to modify an instance, we use ``instance.method =</span>
+<span class="sd">      types.MethodType(newmethod, instance)``.</span>
+
+<span class="sd">    - However, it turned out the instance was actually part of a long chain</span>
+<span class="sd">      of cursor wrappers, including the Django debug toolbar. Classes included</span>
+<span class="sd">      ``debug_toolbar.panels.sql.tracking.NormalCursorWrapper``;</span>
+<span class="sd">      ``django.db.backends.utils.CursorDebugWrapper``.</span>
+<span class="sd">      And in any case, modifying the class is a sensible thing.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># noinspection PyUnresolvedReferences</span>
         <span class="kn">from</span> <span class="nn">sql_server.pyodbc.base</span> <span class="k">import</span> <span class="n">CursorWrapper</span>
@@ -165,7 +183,7 @@
                  <span class="s2">&quot;fetchone to disable automatic call to cursor.nextset()&quot;</span><span class="p">)</span>
         <span class="n">CursorWrapper</span><span class="o">.</span><span class="n">fetchone</span> <span class="o">=</span> <span class="n">replacement_sqlserver_pyodbc_cursorwrapper_fetchone</span>  <span class="c1"># noqa</span>
     <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
-        <span class="k">return</span>
+        <span class="k">return</span></div>
 
 
 <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="s1">&#39;DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET&#39;</span><span class="p">,</span>
@@ -205,35 +223,55 @@
 
 <div class="viewcode-block" id="gen_excel_row_elements"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.gen_excel_row_elements">[docs]</a><span class="k">def</span> <span class="nf">gen_excel_row_elements</span><span class="p">(</span><span class="n">worksheet</span><span class="p">:</span> <span class="n">Worksheet</span><span class="p">,</span>
                            <span class="n">row</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given an Excel worksheet row, generate individual cell contents, cell by</span>
+<span class="sd">    cell.</span>
+
 <span class="sd">    Reasons for this function:</span>
 
 <span class="sd">    1.  Need a tuple/list/generator, as openpyxl checks its types manually.</span>
 
-<span class="sd">    - We want to have a Worksheet object from openpyxl, and say something like</span>
-<span class="sd">        ws.append(row)</span>
-<span class="sd">      where &quot;row&quot; has come from a database query.</span>
-<span class="sd">    - However, openpyxl doesn&#39;t believe in duck-typing; see Worksheet.append()</span>
-<span class="sd">      in openpyxl/worksheet/worksheet.py.</span>
-<span class="sd">      So sometimes the plain append works (e.g. from MySQL results), but</span>
-<span class="sd">      sometimes it fails, e.g. when the row is of type pyodbc.Row.</span>
-<span class="sd">    - So we must coerce it to a tuple, list, or generator.</span>
-<span class="sd">    - A generator will be the most efficient.</span>
+<span class="sd">      - We want to have a Worksheet object from openpyxl, and say something like</span>
+
+<span class="sd">        .. code-block:: python</span>
+
+<span class="sd">            ws.append(row)</span>
+
+<span class="sd">        where &quot;row&quot; has come from a database query.</span>
+
+<span class="sd">      - However, openpyxl doesn&#39;t believe in duck-typing; see</span>
+<span class="sd">        ``Worksheet.append()`` in ``openpyxl/worksheet/worksheet.py``. So</span>
+<span class="sd">        sometimes the plain append works (e.g. from MySQL results), but sometimes</span>
+<span class="sd">        it fails, e.g. when the row is of type ``pyodbc.Row``.</span>
+
+<span class="sd">      - So we must coerce it to a tuple, list, or generator.</span>
+
+<span class="sd">      - A generator will be the most efficient.</span>
 
 <span class="sd">    2.  If a string fails certain checks, openpyxl will raise an</span>
 <span class="sd">        IllegalCharacterError exception. We need to work around that. We&#39;ll use</span>
 <span class="sd">        the &quot;forgiveness, not permission&quot; maxim.</span>
 <span class="sd">        Specifically, it dislikes strings matching its ILLEGAL_CHARACTERS_RE,</span>
 <span class="sd">        which contains unprintable low characters matching this:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
 <span class="sd">            r&#39;[\000-\010]|[\013-\014]|[\016-\037]&#39;</span>
-<span class="sd">        ... note the use of octal; \037 is decimal 31.</span>
+
+<span class="sd">        Note the use of octal; ``\037`` is decimal 31.</span>
 
 <span class="sd">        openpyxl gets to its Cell.check_string() function for these types:</span>
+
+<span class="sd">        .. code-block:: python</span>
+
 <span class="sd">            STRING_TYPES = (basestring, unicode, bytes)</span>
-<span class="sd">        ... which in Python 3, means (str, str, bytes).</span>
+
+<span class="sd">        In Python 3, this means (str, str, bytes).</span>
 <span class="sd">        So we should check str and bytes. (For bytes, we&#39;ll follow its method</span>
 <span class="sd">        of converting to str in the encoding of the worksheet&#39;s choice.)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Docstring must be a raw string for Sphinx! See</span>
+    <span class="c1"># http://openalea.gforge.inria.fr/doc/openalea/doc/_build/html/source/sphinx/rest_syntax.html#text-syntax-bold-italic-verbatim-and-special-characters  # noqa</span>
     <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">row</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">):</span>
             <span class="c1"># Convert to str using the worksheet&#39;s encoding.</span>
@@ -1252,10 +1290,12 @@
 <div class="viewcode-block" id="PatientExplorer.get_xlsx_binary"><a class="viewcode-back" href="../../../../autodoc/crateweb/research/models.html#crate_anon.crateweb.core.admin.PatientExplorer.get_xlsx_binary">[docs]</a>    <span class="k">def</span> <span class="nf">get_xlsx_binary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Other notes:</span>
-<span class="sd">        - cell size</span>
+<span class="sd">        </span>
+<span class="sd">        - cell size:</span>
 <span class="sd">          http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust</span>
 <span class="sd">          ... and the &quot;auto_size&quot; / &quot;bestFit&quot; options don&#39;t really do the job,</span>
-<span class="sd">              according to the interweb</span>
+<span class="sd">          according to the interweb</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
         <span class="n">wb</span> <span class="o">=</span> <span class="n">Workbook</span><span class="p">()</span>
         <span class="n">wb</span><span class="o">.</span><span class="n">remove_sheet</span><span class="p">(</span><span class="n">wb</span><span class="o">.</span><span class="n">active</span><span class="p">)</span>  <span class="c1"># remove the autocreated blank sheet</span>
@@ -1395,7 +1435,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../autodoc/index.html">15. Automatic documentation of source code</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">16. Change log/history</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../to_do.html">17. Things to do</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../glossary.html">18. Abbreviations and glossary</a></li>
 </ul>
 

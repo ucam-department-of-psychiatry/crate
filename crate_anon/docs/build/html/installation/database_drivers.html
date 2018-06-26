@@ -616,13 +616,25 @@ you get odd effects – e.g. no data when you try to describe the database or
 view its structure.)</p>
 <p>If you are running as a service, you may have to specify the username/password,
 since the program will be running as a system account.</p>
-<p><strong>This generally works well. However, with django-pyodbc-azure==1.10.4.0,
-pyodbc==4.0.3, and Django==1.10.5, there appears to be a bug in using
-cursor.fetchone(), in that PyODBC automatically calls self.cursor.nextset(),
-and this can lead to crashes with errors like “No results. Previous SQL was not
-a query.”</strong> This can be fixed by hacking that call out of
-sql_server/pyodbc/base.py, in Cursor.fetchone(), and CRATE does this in a
-dynamic fashion. This proved easier than switching to django-mssql.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><code class="docutils literal notranslate"><span class="pre">django-pyodbc-azure</span></code> generally works well. However, with
+<code class="docutils literal notranslate"><span class="pre">django-pyodbc-azure==1.10.4.0</span></code>, <code class="docutils literal notranslate"><span class="pre">pyodbc==4.0.3</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">Django==1.10.5</span></code>, there appears to be a bug in using
+<code class="docutils literal notranslate"><span class="pre">cursor.fetchone()</span></code>, in that PyODBC automatically calls
+<code class="docutils literal notranslate"><span class="pre">self.cursor.nextset()</span></code>, and this can lead to crashes with errors like
+“No results. Previous SQL was not a query.” This can be fixed by hacking
+that call out of <code class="docutils literal notranslate"><span class="pre">sql_server/pyodbc/base.py</span></code>, in <code class="docutils literal notranslate"><span class="pre">Cursor.fetchone()</span></code>,
+and CRATE does this in a dynamic fashion if
+<code class="docutils literal notranslate"><span class="pre">DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET</span></code> is set (see
+<a class="reference internal" href="../website_config/web_config_file.html#web-config-file"><span class="std std-ref">Web config file</span></a>). This proved easier than switching to
+<code class="docutils literal notranslate"><span class="pre">django-mssql</span></code>.</p>
+</div>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">Upgrade to <code class="docutils literal notranslate"><span class="pre">django-pyodbc-azure==2.0.6.1</span></code>, which will require
+Django 2.0.6, pyodbc 3.0+.</p>
+</div>
 </div>
 <div class="section" id="psycopg2">
 <span id="id10"></span><h3>5.4.10. psycopg2<a class="headerlink" href="#psycopg2" title="Permalink to this headline">¶</a></h3>

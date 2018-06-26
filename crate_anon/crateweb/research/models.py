@@ -96,8 +96,11 @@ DJANGO_PYODBC_AZURE_ENGINE = 'sql_server.pyodbc'
 
 
 def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self) -> List[Any]:
-    # To replace CursorWrapper.fetchone() in sql_server/pyodbc/base.py
-    #
+    """
+    A function to replace ``CursorWrapper.fetchone()`` in
+    ``sql_server/pyodbc/base.py`` from ``django-pyodbc-azure``.
+    This replacement function does not call ``cursor.nextset()``.
+    """
     # log.critical("Using monkeypatched fetchone(); self: {}; self.cursor: "
     #              "{}".format(repr(self), repr(self.cursor)))
     row = self.cursor.fetchone()
@@ -108,17 +111,32 @@ def replacement_sqlserver_pyodbc_cursorwrapper_fetchone(self) -> List[Any]:
 
 
 def hack_django_pyodbc_azure_cursorwrapper() -> None:
-    # I thought I wanted to modify an INSTANCE, not a CLASS.
-    # - https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
-    # To modify a class, we do
-    #       SomeClass.method = newmethod
-    # But to modify an instance, we use
-    #       instance.method = types.MethodType(newmethod, instance)
-    # However, it turned out the instance was actually part of a long chain
-    # of cursor wrappers, including the Django debug toolbar; classes included
-    #       debug_toolbar.panels.sql.tracking.NormalCursorWrapper
-    #       django.db.backends.utils.CursorDebugWrapper
-    # and actually, modifying the class is a sensible thing.
+    """
+    Monkey-patch part of the ``sql_server.pyodbc`` library from
+    ``django-pyodbc-azure``. It replaces the ``fetchone()`` method with a
+    version that doesn't call ``cursor.nextset()`` automatically.
+
+    **It looks like this becomes unnecessary in django-pyodbc-azure==2.0.6.1
+    or similar, because the call to ``cursor.nextset()`` is now only performed
+    ``if not self.connection.supports_mars``.**
+
+    *Notes*
+
+    - I thought I wanted to modify an *instance*, not a *class*
+      (https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/).
+
+    - To modify a class, we do ``SomeClass.method = newmethod``.
+
+    - But to modify an instance, we use ``instance.method =
+      types.MethodType(newmethod, instance)``.
+
+    - However, it turned out the instance was actually part of a long chain
+      of cursor wrappers, including the Django debug toolbar. Classes included
+      ``debug_toolbar.panels.sql.tracking.NormalCursorWrapper``;
+      ``django.db.backends.utils.CursorDebugWrapper``.
+      And in any case, modifying the class is a sensible thing.
+
+    """
     try:
         # noinspection PyUnresolvedReferences
         from sql_server.pyodbc.base import CursorWrapper
@@ -166,35 +184,55 @@ ILLEGAL_CHARACTERS_REPLACED_WITH = ""
 
 def gen_excel_row_elements(worksheet: Worksheet,
                            row: Iterable) -> Generator[Any, None, None]:
-    """
+    r"""
+    Given an Excel worksheet row, generate individual cell contents, cell by
+    cell.
+
     Reasons for this function:
 
     1.  Need a tuple/list/generator, as openpyxl checks its types manually.
 
-    - We want to have a Worksheet object from openpyxl, and say something like
-        ws.append(row)
-      where "row" has come from a database query.
-    - However, openpyxl doesn't believe in duck-typing; see Worksheet.append()
-      in openpyxl/worksheet/worksheet.py.
-      So sometimes the plain append works (e.g. from MySQL results), but
-      sometimes it fails, e.g. when the row is of type pyodbc.Row.
-    - So we must coerce it to a tuple, list, or generator.
-    - A generator will be the most efficient.
+      - We want to have a Worksheet object from openpyxl, and say something like
+
+        .. code-block:: python
+
+            ws.append(row)
+
+        where "row" has come from a database query.
+
+      - However, openpyxl doesn't believe in duck-typing; see
+        ``Worksheet.append()`` in ``openpyxl/worksheet/worksheet.py``. So
+        sometimes the plain append works (e.g. from MySQL results), but sometimes
+        it fails, e.g. when the row is of type ``pyodbc.Row``.
+
+      - So we must coerce it to a tuple, list, or generator.
+
+      - A generator will be the most efficient.
 
     2.  If a string fails certain checks, openpyxl will raise an
         IllegalCharacterError exception. We need to work around that. We'll use
         the "forgiveness, not permission" maxim.
         Specifically, it dislikes strings matching its ILLEGAL_CHARACTERS_RE,
         which contains unprintable low characters matching this:
+
+        .. code-block:: python
+
             r'[\000-\010]|[\013-\014]|[\016-\037]'
-        ... note the use of octal; \037 is decimal 31.
+
+        Note the use of octal; ``\037`` is decimal 31.
 
         openpyxl gets to its Cell.check_string() function for these types:
+
+        .. code-block:: python
+
             STRING_TYPES = (basestring, unicode, bytes)
-        ... which in Python 3, means (str, str, bytes).
+
+        In Python 3, this means (str, str, bytes).
         So we should check str and bytes. (For bytes, we'll follow its method
         of converting to str in the encoding of the worksheet's choice.)
     """
+    # Docstring must be a raw string for Sphinx! See
+    # http://openalea.gforge.inria.fr/doc/openalea/doc/_build/html/source/sphinx/rest_syntax.html#text-syntax-bold-italic-verbatim-and-special-characters  # noqa
     for element in row:
         if isinstance(element, bytes):
             # Convert to str using the worksheet's encoding.
@@ -1213,10 +1251,12 @@ class PatientExplorer(models.Model):
     def get_xlsx_binary(self) -> bytes:
         """
         Other notes:
-        - cell size
+        
+        - cell size:
           http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust
           ... and the "auto_size" / "bestFit" options don't really do the job,
-              according to the interweb
+          according to the interweb
+
         """  # noqa
         wb = Workbook()
         wb.remove_sheet(wb.active)  # remove the autocreated blank sheet

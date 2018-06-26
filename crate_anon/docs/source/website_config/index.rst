@@ -23,6 +23,7 @@ Configuring the CRATE web interface
 ..  toctree::
     :maxdepth: 2
 
+    components.rst
     overview.rst
     web_config_file.rst
     django_manage.rst

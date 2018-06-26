@@ -71,6 +71,8 @@ Options as of 2016-07-21:
       --debug            Ask Celery to be verbose
 
 
+.. _crate_launch_flower:
+
 crate_launch_flower
 -------------------
 

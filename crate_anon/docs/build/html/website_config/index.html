@@ -16,7 +16,7 @@
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="8.1. Configuring the web front end" href="overview.html" />
+    <link rel="next" title="8.1. Web site components" href="components.html" />
     <link rel="prev" title="7.6. MedEx-UIMA drug NLP" href="../nlp/medex.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -29,7 +29,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="overview.html" title="8.1. Configuring the web front end"
+          <a href="components.html" title="8.1. Web site components"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="../nlp/medex.html" title="7.6. MedEx-UIMA drug NLP"
@@ -47,26 +47,27 @@
 <h1>8. Configuring the CRATE web interface<a class="headerlink" href="#configuring-the-crate-web-interface" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">8.1. Configuring the web front end</a></li>
-<li class="toctree-l1"><a class="reference internal" href="web_config_file.html">8.2. Web config file</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="web_config_file.html#specimen-config-file">8.2.1. Specimen config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="web_config_file.html#django-secret-key">8.2.2. Django secret key</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">8.1. Web site components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">8.2. Configuring the web front end</a></li>
+<li class="toctree-l1"><a class="reference internal" href="web_config_file.html">8.3. Web config file</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="web_config_file.html#specimen-config-file">8.3.1. Specimen config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_config_file.html#django-secret-key">8.3.2. Django secret key</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="django_manage.html">8.3. Manage the CRATE web server</a></li>
-<li class="toctree-l1"><a class="reference internal" href="launch_server.html">8.4. Launch the CRATE web server</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="launch_server.html#crate-launch-cherrypy-server">8.4.1. crate_launch_cherrypy_server</a></li>
-<li class="toctree-l2"><a class="reference internal" href="launch_server.html#crate-launch-django-server">8.4.2. crate_launch_django_server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="django_manage.html">8.4. Manage the CRATE web server</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch_server.html">8.5. Launch the CRATE web server</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="launch_server.html#crate-launch-cherrypy-server">8.5.1. crate_launch_cherrypy_server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_server.html#crate-launch-django-server">8.5.2. crate_launch_django_server</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="apache.html">8.5. Configuring for Apache</a></li>
-<li class="toctree-l1"><a class="reference internal" href="launch_celery.html">8.6. Launch Celery</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="launch_celery.html#crate-launch-celery">8.6.1. crate_launch_celery</a></li>
-<li class="toctree-l2"><a class="reference internal" href="launch_celery.html#crate-launch-flower">8.6.2. crate_launch_flower</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apache.html">8.6. Configuring for Apache</a></li>
+<li class="toctree-l1"><a class="reference internal" href="launch_celery.html">8.7. Launch Celery</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="launch_celery.html#crate-launch-celery">8.7.1. crate_launch_celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_celery.html#crate-launch-flower">8.7.2. crate_launch_flower</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="windows_service.html">8.7. CRATE Windows service</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="windows_service.html#id1">8.7.1. crate_windows_service</a></li>
+<li class="toctree-l1"><a class="reference internal" href="windows_service.html">8.8. CRATE Windows service</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="windows_service.html#id1">8.8.1. crate_windows_service</a></li>
 </ul>
 </li>
 </ul>
@@ -90,13 +91,14 @@
 <li class="toctree-l1"><a class="reference internal" href="../anonymisation/index.html">6. Anonymisation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../nlp/index.html">7. Natural language processing (NLP)</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">8. Configuring the CRATE web interface</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="overview.html">8.1. Configuring the web front end</a></li>
-<li class="toctree-l2"><a class="reference internal" href="web_config_file.html">8.2. Web config file</a></li>
-<li class="toctree-l2"><a class="reference internal" href="django_manage.html">8.3. Manage the CRATE web server</a></li>
-<li class="toctree-l2"><a class="reference internal" href="launch_server.html">8.4. Launch the CRATE web server</a></li>
-<li class="toctree-l2"><a class="reference internal" href="apache.html">8.5. Configuring for Apache</a></li>
-<li class="toctree-l2"><a class="reference internal" href="launch_celery.html">8.6. Launch Celery</a></li>
-<li class="toctree-l2"><a class="reference internal" href="windows_service.html">8.7. CRATE Windows service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="components.html">8.1. Web site components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html">8.2. Configuring the web front end</a></li>
+<li class="toctree-l2"><a class="reference internal" href="web_config_file.html">8.3. Web config file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="django_manage.html">8.4. Manage the CRATE web server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_server.html">8.5. Launch the CRATE web server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apache.html">8.6. Configuring for Apache</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch_celery.html">8.7. Launch Celery</a></li>
+<li class="toctree-l2"><a class="reference internal" href="windows_service.html">8.8. CRATE Windows service</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../website_using/index.html">9. Using the CRATE web interface</a></li>
@@ -115,8 +117,8 @@
   <p class="topless"><a href="../nlp/medex.html"
                         title="previous chapter">7.6. MedEx-UIMA drug NLP</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="overview.html"
-                        title="next chapter">8.1. Configuring the web front end</a></p>
+  <p class="topless"><a href="components.html"
+                        title="next chapter">8.1. Web site components</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -150,7 +152,7 @@
           <a href="../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="overview.html" title="8.1. Configuring the web front end"
+          <a href="components.html" title="8.1. Web site components"
              >next</a> |</li>
         <li class="right" >
           <a href="../nlp/medex.html" title="7.6. MedEx-UIMA drug NLP"

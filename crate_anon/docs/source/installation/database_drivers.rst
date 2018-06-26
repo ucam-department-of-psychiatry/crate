@@ -462,14 +462,23 @@ view its structure.)
 If you are running as a service, you may have to specify the username/password,
 since the program will be running as a system account.
 
-**This generally works well. However, with django-pyodbc-azure==1.10.4.0,
-pyodbc==4.0.3, and Django==1.10.5, there appears to be a bug in using
-cursor.fetchone(), in that PyODBC automatically calls self.cursor.nextset(),
-and this can lead to crashes with errors like “No results. Previous SQL was not
-a query.”** This can be fixed by hacking that call out of
-sql_server/pyodbc/base.py, in Cursor.fetchone(), and CRATE does this in a
-dynamic fashion. This proved easier than switching to django-mssql.
+.. note::
 
+    ``django-pyodbc-azure`` generally works well. However, with
+    ``django-pyodbc-azure==1.10.4.0``, ``pyodbc==4.0.3``, and
+    ``Django==1.10.5``, there appears to be a bug in using
+    ``cursor.fetchone()``, in that PyODBC automatically calls
+    ``self.cursor.nextset()``, and this can lead to crashes with errors like
+    “No results. Previous SQL was not a query.” This can be fixed by hacking
+    that call out of ``sql_server/pyodbc/base.py``, in ``Cursor.fetchone()``,
+    and CRATE does this in a dynamic fashion if
+    ``DISABLE_DJANGO_PYODBC_AZURE_CURSOR_FETCHONE_NEXTSET`` is set (see
+    :ref:`web_config_file`). This proved easier than switching to
+    ``django-mssql``.
+
+
+.. todo:: Upgrade to ``django-pyodbc-azure==2.0.6.1``, which will require
+   Django 2.0.6, pyodbc 3.0+.
 
 .. _psycopg2:
 

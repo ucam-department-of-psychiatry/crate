@@ -26,6 +26,7 @@ Abbreviation    Meaning
 =============== ===============================================================
 CPFT            Cambridgeshire & Peterborough NHS Foundation Trust
 CRATE           Clinical Records Anonymisation and Text Extraction (software)
+                [#crate]_
 CRIS            Clinical Records Interactive Search [#cris1]_ [#cris2]_
 CSV             comma-separated value (file)
 DD              data dictionary
@@ -58,12 +59,23 @@ UK              United Kingdom
 
 .. [#cris1]
     Stewart R et al. (2009). “The South London and Maudsley NHS Foundation
-    Trust Biomedical Research Centre (SLAM BRC) Case Register: Development and
-    Descriptive Data.” *BMC Psychiatry* 9: 51.
+    Trust Biomedical Research Centre (SLAM BRC) case register: development and
+    descriptive data.”
+    *BMC Psychiatry* 9: 51.
+    https://www.ncbi.nlm.nih.gov/pubmed/19674459;
     https://doi.org/10.1186/1471-244X-9-51.
 
 .. [#cris2]
-    Fernandes A et al. (2013). “Development and Evaluation of a
-    De-Identification Procedure for a Case Register Sourced from Mental Health
-    Electronic Records.” *BMC Medical Informatics and Decision Making* 13: 71.
+    Fernandes A et al. (2013). “Development and evaluation of a
+    de-identification procedure for a case register sourced from mental health
+    electronic records.”
+    *BMC Medical Informatics and Decision Making* 13: 71.
+    https://www.ncbi.nlm.nih.gov/pubmed/23842533;
     https://doi.org/10.1186/1472-6947-13-71.
+
+.. [#crate]
+    Cardinal RN (2017). "Clinical records anonymisation and text extraction
+    (CRATE): an open-source software system."
+    *BMC Medical Informatics and Decision Making* 17: 50.
+    https://www.ncbi.nlm.nih.gov/pubmed/28441940;
+    https://dx.doi.org/10.1186/s12911-017-0437-1.

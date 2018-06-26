@@ -45,7 +45,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     autodoc/index.rst
 
     changelog.rst
-    misc/to_do.rst
+    to_do.rst
     glossary.rst
 
 
