@@ -16,7 +16,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="17. Things to do" href="misc/to_do.html" />
+    <link rel="next" title="17. Things to do" href="to_do.html" />
     <link rel="prev" title="15.6.5. crate_anon.tools.winservice" href="autodoc/tools/winservice.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -29,7 +29,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="misc/to_do.html" title="17. Things to do"
+          <a href="to_do.html" title="17. Things to do"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="autodoc/tools/winservice.html" title="15.6.5. crate_anon.tools.winservice"
@@ -463,14 +463,19 @@ applications produce results just in one set, and some produce them twice
 (e.g. in the unnamed set, named “”, and in a specific named set).</li>
 <li>Medical eponym list.</li>
 </ul>
-<p><strong>v0.18.50, 2018-05-04, in progress</strong></p>
+<p><strong>v0.18.50 to v0.18.51, 2018-05-04 to 2018-06-28</strong></p>
 <ul class="simple">
 <li><cite>IllegalCharacterError</cite> possible from
-<cite>crate_anon.crateweb.research.models.make_excel()</cite>; was raised by <cite>openpyxl</cite>.
-The problem may be that the Excel file format itself prohibits some Unicode
-characters; certainly <cite>openpyxl</cite> does <a class="footnote-reference" href="#excelcharacters" id="id15">[15]</a>. See
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">crate_anon.crateweb.research.models.make_excel()</span></code>; was raised by
+<cite>openpyxl</cite>. The problem may be that the Excel file format itself prohibits
+some Unicode characters; certainly <cite>openpyxl</cite> does <a class="footnote-reference" href="#excelcharacters" id="id15">[15]</a>. See
 <cite>gen_excel_row_elements()</cite> for bugfix. Not all queries require this, but
 anything that allows unrestricted textual/binary content does.</li>
+<li>Change to CPFT-specific SQL in
+<a class="reference internal" href="autodoc/crateweb/consent/lookup_rio.html#crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic" title="crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic"><code class="xref py py-meth docutils literal notranslate"><span class="pre">crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic()</span></code></a>.</li>
+<li>Bugfix to <a class="reference internal" href="autodoc/crateweb/extra/pdf.html#crate_anon.crateweb.extra.pdf.CratePdfPlan" title="crate_anon.crateweb.extra.pdf.CratePdfPlan"><code class="xref py py-class docutils literal notranslate"><span class="pre">crate_anon.crateweb.extra.pdf.CratePdfPlan</span></code></a>; this failed
+to specify <code class="docutils literal notranslate"><span class="pre">wkhtmltopdf_filename</span></code>, so if <code class="docutils literal notranslate"><span class="pre">wkhtmltopdf</span></code> wasn’t found on
+the PATH (e.g. via a Celery task), PDFs were not generated properly.</li>
 </ul>
 <p class="rubric">Footnotes</p>
 <table class="docutils footnote" frame="void" id="f1" rules="none">
@@ -604,7 +609,7 @@ in particular, see check_string() in
 <li class="toctree-l1"><a class="reference internal" href="misc/tcpip_ports.html">14. Common relevant TCP/IP ports</a></li>
 <li class="toctree-l1"><a class="reference internal" href="autodoc/index.html">15. Automatic documentation of source code</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">16. Change log/history</a></li>
-<li class="toctree-l1"><a class="reference internal" href="misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="to_do.html">17. Things to do</a></li>
 <li class="toctree-l1"><a class="reference internal" href="glossary.html">18. Abbreviations and glossary</a></li>
 </ul>
 
@@ -612,7 +617,7 @@ in particular, see check_string() in
   <p class="topless"><a href="autodoc/tools/winservice.html"
                         title="previous chapter">15.6.5. crate_anon.tools.winservice</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="misc/to_do.html"
+  <p class="topless"><a href="to_do.html"
                         title="next chapter">17. Things to do</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
@@ -647,7 +652,7 @@ in particular, see check_string() in
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="misc/to_do.html" title="17. Things to do"
+          <a href="to_do.html" title="17. Things to do"
              >next</a> |</li>
         <li class="right" >
           <a href="autodoc/tools/winservice.html" title="15.6.5. crate_anon.tools.winservice"

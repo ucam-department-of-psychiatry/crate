@@ -70,43 +70,47 @@ def lookup_cpft_rio_crate_preprocessed(lookup: PatientLookup,
     processor has also done this for us for the lookup tables, so we
     don't need so many.
 
-    USE my_database_name;
+    .. code-block:: sql
 
-    CREATE INDEX _idx_cdd_nhs ON ClientIndex (NNN);  -- already in RiO source
+        USE my_database_name;
 
-    CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  -- already in RiO source  # noqa
-    CREATE INDEX _idx_cnh_eff ON ClientName (EffectiveDate);  -- ignored
-    CREATE INDEX _idx_cnh_end ON ClientName (EndDate);  -- ignored
+        CREATE INDEX _idx_cdd_nhs ON ClientIndex (NNN);  -- already in RiO source
 
-    CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  -- already in RiO source as part of composite index  # noqa
-    CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  -- ignored
-    CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  -- ignored
+        CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  -- already in RiO source  # noqa
+        CREATE INDEX _idx_cnh_eff ON ClientName (EffectiveDate);  -- ignored
+        CREATE INDEX _idx_cnh_end ON ClientName (EndDate);  -- ignored
 
-    CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  -- ignored
+        CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  -- ignored
 
-    CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source  # noqa
-    CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored  # noqa
-    CREATE INDEX _idx_cgh_to ON ClientHealthCareProvider (ToDate);  -- ignored
+        CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  -- already in RiO source as part of composite index  # noqa
 
-    CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  -- preprocessor adds this  # noqa
-    CREATE INDEX _idx_cc_start ON CPACareCoordinator (StartDate);  -- ignored
-    CREATE INDEX _idx_cc_end ON CPACareCoordinator (EndDate);  -- ignored
+        CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source  # noqa
+        CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored  # noqa
+        CREATE INDEX _idx_cgh_to ON ClientHealthCareProvider (ToDate);  -- ignored
 
-    CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  -- already in RiO source as part of composite index  # noqa
-    CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  -- ignored  # noqa
-    CREATE INDEX _idx_ref_removal ON AmsReferral (RemovalDateTime);  -- ignored
+        CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  -- preprocessor adds this  # noqa
+        CREATE INDEX _idx_cc_start ON CPACareCoordinator (StartDate);  -- ignored
+        CREATE INDEX _idx_cc_end ON CPACareCoordinator (EndDate);  -- ignored
 
-    CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  -- already in RiO source as part of composite index  # noqa
-    CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  -- ignored
-    CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  -- ignored
+        CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  -- ignored  # noqa
+        CREATE INDEX _idx_ref_removal ON AmsReferral (RemovalDateTime);  -- ignored
 
-    CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  -- already in RiO source as part of composite index  # noqa
-    CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  -- ignored
-    CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  -- ignored
+        CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  -- ignored
+        CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  -- ignored
+
+        CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  -- already in RiO source as part of composite index  # noqa
+        CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  -- ignored
+        CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  -- ignored
 
     ... or alternative RiO number indexes on CRATE_COL_RIO_NUMBER field.
 
     Then, the only field name differences from RCEP are:
+
+    .. code-block:: none
 
         Client_Name_History.End_Date  -- not End_Date_
     """
@@ -122,48 +126,50 @@ def lookup_cpft_rio_rcep(lookup: PatientLookup,
                          decisions: List[str],
                          secret_decisions: List[str]) -> None:
     """
-    ---------------------------------------------------------------------------
-    RiO notes, 2015-05-19
+    **RiO notes, 2015-05-19**
+
     ... ADDENDUM 2017-02-27: this is the RiO database as modified by Servelec's
-        RiO CRIS Extraction Program (RCEP). See also lookup_cpft_rio_raw().
-    ---------------------------------------------------------------------------
+    RiO CRIS Extraction Program (RCEP). See also lookup_cpft_rio_raw().
+
     For speed, RiO-RCEP needs these indexes:
 
-    USE my_database_name;
+    .. code-block:: sql
 
-    CREATE INDEX _idx_cdd_nhs ON Client_Demographic_Details (NHS_Number);
+        USE my_database_name;
 
-    CREATE INDEX _idx_cnh_id ON Client_Name_History (Client_ID);
-    CREATE INDEX _idx_cnh_eff ON Client_Name_History (Effective_Date);
-    CREATE INDEX _idx_cnh_end ON Client_Name_History (End_Date_);
+        CREATE INDEX _idx_cdd_nhs ON Client_Demographic_Details (NHS_Number);
 
-    CREATE INDEX _idx_cah_id ON Client_Address_History (Client_ID);
-    CREATE INDEX _idx_cah_from ON Client_Address_History (Address_From_Date);
-    CREATE INDEX _idx_cah_to ON Client_Address_History (Address_To_Date);
+        CREATE INDEX _idx_cnh_id ON Client_Name_History (Client_ID);
+        CREATE INDEX _idx_cnh_eff ON Client_Name_History (Effective_Date);
+        CREATE INDEX _idx_cnh_end ON Client_Name_History (End_Date_);
 
-    CREATE INDEX _idx_cch_id ON Client_Communications_History (Client_ID);
+        CREATE INDEX _idx_cah_id ON Client_Address_History (Client_ID);
+        CREATE INDEX _idx_cah_from ON Client_Address_History (Address_From_Date);
+        CREATE INDEX _idx_cah_to ON Client_Address_History (Address_To_Date);
 
-    CREATE INDEX _idx_cgh_id ON Client_GP_History (Client_ID);
-    CREATE INDEX _idx_cgh_from ON Client_GP_History (GP_From_Date);
-    CREATE INDEX _idx_cgh_to ON Client_GP_History (GP_To_Date);
+        CREATE INDEX _idx_cch_id ON Client_Communications_History (Client_ID);
 
-    CREATE INDEX _idx_cc_id ON CPA_CareCoordinator (Client_ID);
-    CREATE INDEX _idx_cc_start ON CPA_CareCoordinator (Start_Date);
-    CREATE INDEX _idx_cc_end ON CPA_CareCoordinator (End_Date);
+        CREATE INDEX _idx_cgh_id ON Client_GP_History (Client_ID);
+        CREATE INDEX _idx_cgh_from ON Client_GP_History (GP_From_Date);
+        CREATE INDEX _idx_cgh_to ON Client_GP_History (GP_To_Date);
 
-    CREATE INDEX _idx_ref_id ON Main_Referral_Data (Client_ID);
-    CREATE INDEX _idx_ref_recv ON Main_Referral_Data (Referral_Received_Date);
-    CREATE INDEX _idx_ref_removal ON Main_Referral_Data (Removal_DateTime);
+        CREATE INDEX _idx_cc_id ON CPA_CareCoordinator (Client_ID);
+        CREATE INDEX _idx_cc_start ON CPA_CareCoordinator (Start_Date);
+        CREATE INDEX _idx_cc_end ON CPA_CareCoordinator (End_Date);
 
-    CREATE INDEX _idx_rsh_id ON Referral_Staff_History (Client_ID);
-    CREATE INDEX _idx_rsh_start ON Referral_Staff_History (Start_Date);
-    CREATE INDEX _idx_rsh_end ON Referral_Staff_History (End_Date);
+        CREATE INDEX _idx_ref_id ON Main_Referral_Data (Client_ID);
+        CREATE INDEX _idx_ref_recv ON Main_Referral_Data (Referral_Received_Date);
+        CREATE INDEX _idx_ref_removal ON Main_Referral_Data (Removal_DateTime);
 
-    CREATE INDEX _idx_rth_id ON Referral_Team_History (Client_ID);
-    CREATE INDEX _idx_rth_start ON Referral_Team_History (Start_Date);
-    CREATE INDEX _idx_rth_end ON Referral_Team_History (End_Date);
+        CREATE INDEX _idx_rsh_id ON Referral_Staff_History (Client_ID);
+        CREATE INDEX _idx_rsh_start ON Referral_Staff_History (Start_Date);
+        CREATE INDEX _idx_rsh_end ON Referral_Staff_History (End_Date);
 
-    -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa
+        CREATE INDEX _idx_rth_id ON Referral_Team_History (Client_ID);
+        CREATE INDEX _idx_rth_start ON Referral_Team_History (Start_Date);
+        CREATE INDEX _idx_rth_end ON Referral_Team_History (End_Date);
+
+        -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa
     """
     lookup_cpft_rio_generic(lookup, decisions, secret_decisions,
                             as_crate_not_rcep=False)
@@ -180,6 +186,9 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
                             as_crate_not_rcep: bool) -> None:
     """
     Main:
+
+    .. code-block:: none
+
       Client_Demographic_Details
           Client_ID -- PK; RiO number; integer in VARCHAR(15) field
           Date_of_Birth -- DATETIME
@@ -191,6 +200,8 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
           Gender_Description -- 'Male', 'Female', ...
 
     Then, linked to it:
+
+    .. code-block:: none
 
       Client_Name_History
           Client_ID -- integer in VARCHAR(15)
@@ -240,6 +251,8 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
           ...
 
     CPFT clinician details/?discharged info appear to be here:
+
+    .. code-block:: none
 
       CPA_CareCoordinator
           Client_ID -- integer in VARCHAR(15)
@@ -296,10 +309,14 @@ def lookup_cpft_rio_generic(lookup: PatientLookup,
 
     Not obviously relevant:
 
+    .. code-block:: none
+
       Client_CPA -- records CPA start/end, etc.
       Client_Professional_Contacts -- empty table!
 
     Added 2017-02-27:
+
+    .. code-block:: none
 
       Client_Communications_History -- email/phone
           Client_ID -- integer in VARCHAR(15)
@@ -858,14 +875,14 @@ def get_latest_consent_mode_from_rio_generic(
     """
     Shared function as very similar for the various copies of RiO data.
 
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.
     This is processed regularly into the CPFT Data Warehouse, so that
     contains very fresh data and is a good choice.
 
     For CPFT's custom consent mode, built into RiO v6, the table copy in
     the Data Warehouse is:
+
+    .. code-block:: sql
 
         SELECT
             [ClientID]  -- VARCHAR(15) NOT NULL; RiO number as text
@@ -897,6 +914,8 @@ def get_latest_consent_mode_from_rio_generic(
     Note also: the CPFT_DATAMART database does not provide patient-
     identifiable information, except PatientOverview_RiO:
 
+    .. code-block:: sql
+
         SELECT
             [NHSNumber]     -- VARCHAR(15); NHS number as text
             ,[ClientID]     -- VARCHAR(15) NOT NULL; RiO number as text
@@ -915,9 +934,9 @@ def get_latest_consent_mode_from_rio_generic(
                 -- '; Unknown Consultant'
         FROM [CPFT_DATAMART].[dbo].[PatientOverviewRiO]
 
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
     In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.
+
+    .. code-block:: sql
 
         SELECT
             [ClientID]  -- VARCHAR(15); RiO number as text
@@ -943,6 +962,8 @@ def get_latest_consent_mode_from_rio_generic(
         FROM [dbo].[UserAssessconsentrd]
 
     The NHS number table is:
+
+    .. code-block:: sql
 
         SELECT
             [ClientID]  -- VARCHAR(15); RiO number as text
@@ -978,7 +999,8 @@ def get_latest_consent_mode_from_rio_generic(
                 cr.AssessmentDate DESC
         """
     elif cpft_datamart:
-        sql = """
+        # Old, discarded 2018-06-28:
+        _ = """
             SELECT TOP 1  -- guaranteed to be running SQL Server
                 po.NHSNumber AS nhs_number_text,
                 po.ClientID AS rio_number_text,
@@ -994,9 +1016,31 @@ def get_latest_consent_mode_from_rio_generic(
                 ConsentToResearch AS cr
             INNER JOIN
                 PatientOverviewRiO AS po
-                ON cr.ClientID = po.ClientID 
+                ON cr.ClientID = po.ClientID
             WHERE
                 po.NHSNumber = %s  -- string comparison
+            ORDER BY
+                cr.AssessmentDate DESC
+        """  # noqa
+        # BEWARE "%s" IN SQL COMMENTS! The database backend will crash because
+        # the number of substituted parameters will be wrong.
+        # New as of 2018-06-28:
+        sql = """
+            SELECT TOP 1  -- guaranteed to be running SQL Server
+                cr.NHSNumber AS nhs_number_text,
+                cr.ClientID AS rio_number_text,
+                cr.AssessmentDate AS decision_date,
+                cr.ResearchContact AS traffic_light,
+                    -- 'RED', 'YELLOW', 'GREEN', NULL
+                0 AS use_email,  -- not in CPFT data warehouse copy
+                cr.OptOut AS opt_out,  -- 1, 0 (possibly), NULL
+                cr.WhoMakesDecisionFor_Patient AS decision_method,
+                cr.PersonActingonBehalf_of_Patient AS representative_name,
+                cr.PersonActingonBehalf_of_Patient_Relation AS representative_relation
+            FROM
+                ConsentToResearch AS cr
+            WHERE
+                cr.NHSNumber = %s  -- string comparison
             ORDER BY
                 cr.AssessmentDate DESC
         """  # noqa

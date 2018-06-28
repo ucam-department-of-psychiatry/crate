@@ -149,11 +149,14 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns an absolute URL for the site, given a relative part.</span>
 <span class="sd">    Use like:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
 <span class="sd">        url = site_absolute_url(static(&#39;red.png&#39;))</span>
-<span class="sd">            ... determined in part by STATIC_URL.</span>
+<span class="sd">            # ... determined in part by STATIC_URL.</span>
 <span class="sd">        url = site_absolute_url(reverse(&#39;clinician_response&#39;, args=[self.id]))</span>
-<span class="sd">            ... determined by SCRIPT_NAME or FORCE_SCRIPT_NAME</span>
-<span class="sd">            ... which is context-dependent: see below</span>
+<span class="sd">            # ... determined by SCRIPT_NAME or FORCE_SCRIPT_NAME</span>
+<span class="sd">            # ... which is context-dependent: see below</span>
 
 <span class="sd">    We need to generate links to our site outside the request environment, e.g.</span>
 <span class="sd">    for inclusion in e-mails, even when we&#39;re generating the e-mails offline</span>
@@ -161,19 +164,22 @@
 <span class="sd">    information comes in only via requests), so we put it in the settings.</span>
 
 <span class="sd">    See also:</span>
-<span class="sd">        http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object  # noqa</span>
-<span class="sd">        https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/  # noqa</span>
 
-<span class="sd">    ---------------------------------------------------------------------------</span>
-<span class="sd">    IMPORTANT</span>
-<span class="sd">    ---------------------------------------------------------------------------</span>
+<span class="sd">    - http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object  # noqa</span>
+<span class="sd">    - https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/  # noqa</span>
+
+<span class="sd">    **IMPORTANT**</span>
+
 <span class="sd">    BEWARE: reverse() will produce something different inside a request and</span>
 <span class="sd">    outside it.</span>
-<span class="sd">        http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell  # noqa</span>
+
+<span class="sd">    - http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell  # noqa</span>
 
 <span class="sd">    So the only moderately clean way of doing this is to do this in the Celery</span>
 <span class="sd">    backend jobs, for anything that uses Django URLs (e.g. reverse) -- NOT</span>
 <span class="sd">    necessary for anything using only static URLs (e.g. pictures in PDFs).</span>
+
+<span class="sd">    .. code-block:: python</span>
 
 <span class="sd">        from django.conf import settings</span>
 <span class="sd">        from django.core.urlresolvers import set_script_prefix</span>

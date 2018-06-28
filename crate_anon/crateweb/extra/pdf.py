@@ -49,6 +49,10 @@ class CratePdfPlan(PdfPlan):
             kwargs['header_html'] = settings.PDF_LETTER_HEADER_HTML
         if 'footer_html' not in kwargs:
             kwargs['footer_html'] = settings.PDF_LETTER_FOOTER_HTML
+        if 'wkhtmltopdf_filename' not in kwargs:  # added 2018-06-28
+            kwargs['wkhtmltopdf_filename'] = settings.WKHTMLTOPDF_FILENAME
+        if 'wkhtmltopdf_options' not in kwargs:  # added 2018-06-28
+            kwargs['wkhtmltopdf_options'] = settings.WKHTMLTOPDF_OPTIONS
         super().__init__(*args, **kwargs)
 
 

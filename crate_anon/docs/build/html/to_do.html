@@ -56,6 +56,18 @@ Django 2.0.6, pyodbc 3.0+.</p>
 <p class="last">Write more documentation here!</p>
 </div>
 <p class="todo-source">(The <a class="reference internal" href="website_using/index.html#index-0"><em>original entry</em></a> is located in /home/rudolf/Documents/code/crate/crate_anon/docs/source/website_using/index.rst, line 28.)</p>
+<div class="admonition-todo admonition">
+<p class="first admonition-title">Todo</p>
+<p class="last">also: use celery beat to refresh regularly +/- trigger
+withdrawal of consent if consent mode changed;
+<a class="reference external" href="http://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html">http://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html</a></p>
+</div>
+<p class="todo-source">(The <a class="reference internal" href="autodoc/crateweb/consent/models.html#index-0"><em>original entry</em></a> is located in /home/rudolf/Documents/code/crate/crate_anon/crateweb/consent/models.py:docstring of crate_anon.crateweb.consent.models.ConsentMode.refresh_from_primary_clinical_record, line 18.)</p>
+<div class="admonition-todo admonition">
+<p class="first admonition-title">Todo</p>
+<p class="last">also make automatic opt-out list</p>
+</div>
+<p class="todo-source">(The <a class="reference internal" href="autodoc/crateweb/consent/models.html#index-1"><em>original entry</em></a> is located in /home/rudolf/Documents/code/crate/crate_anon/crateweb/consent/models.py:docstring of crate_anon.crateweb.consent.models.ConsentMode.refresh_from_primary_clinical_record, line 22.)</p>
 <div class="section" id="older-some-redundant">
 <h2>17.1. Older: some redundant?<a class="headerlink" href="#older-some-redundant" title="Permalink to this headline">¶</a></h2>
 <ul>
@@ -662,6 +674,8 @@ used on one system.</li>
 configured).</li>
 <li>More of JL’s ideas from 8 Jan 2018.</li>
 <li>XXX consent mode lookup</li>
+<li>When the Windows service stops, it is still failing to kill child processes.
+See <code class="docutils literal notranslate"><span class="pre">crate_anon/tools/winservice.py</span></code>.</li>
 </ul>
 </div>
 </div>

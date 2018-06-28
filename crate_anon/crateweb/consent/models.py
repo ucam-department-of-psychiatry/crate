@@ -124,9 +124,11 @@ TEST_ID_STR = str(TEST_ID)
 def study_details_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
     """
     Determines the filename used for study information PDF uploads.
-    instance = instance of Study (potentially unsaved)
-        ... and you can't call save(); it goes into infinite recursion
-    filename = uploaded filename
+
+    Args:
+        instance: instance of Study (potentially unsaved)
+            ... and you can't call save(); it goes into infinite recursion
+        filename: uploaded filename
     """
     extension = os.path.splitext(filename)[1]  # includes the '.' if present
     return os.path.join("study", "{}_details_{}{}".format(
@@ -139,8 +141,10 @@ def study_details_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
 def study_form_upload_to(instance: STUDY_FWD_REF, filename: str) -> str:
     """
     Determines the filename used for study clinician-form PDF uploads.
-    instance = instance of Study (potentially unsaved)
-    filename = uploaded filename
+
+    Args:
+        instance: instance of Study (potentially unsaved)
+        filename: uploaded filename
     """
     extension = os.path.splitext(filename)[1]
     return os.path.join("study", "{}_form_{}{}".format(
@@ -283,9 +287,11 @@ def auto_delete_study_files_on_change(sender: Type[Study],
 def leaflet_upload_to(instance: LEAFLET_FWD_REF, filename: str) -> str:
     """
     Determines the filename used for leaflet uploads.
-    instance = instance of Leaflet (potentially unsaved)
-        ... and you can't call save(); it goes into infinite recursion
-    filename = uploaded filename
+
+    Args:
+        instance: instance of Leaflet (potentially unsaved)
+            ... and you can't call save(); it goes into infinite recursion
+        filename: uploaded filename
     """
     extension = os.path.splitext(filename)[1]  # includes the '.' if present
     return os.path.join("leaflet", "{}_{}{}".format(
@@ -1122,15 +1128,18 @@ class ConsentMode(Decision):
         Returns a list of human-readable decisions.
 
         Internally, we do this:
+
         - Fetch the most recent record.
         - If its date is later than the most recent CRATE record:
+
           - create a new ConsentMode with (..., source=source_db)
           - save it
 
-        *** also: use celery beat to refresh regularly +/- trigger withdrawal
-            of consent if consent mode changed;
+        .. todo:: also: use celery beat to refresh regularly +/- trigger
+            withdrawal of consent if consent mode changed;
             http://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html
-        *** also make automatic opt-out list
+
+        .. todo:: also make automatic opt-out list
 
         """
         from crate_anon.crateweb.consent.lookup import lookup_consent  # delayed import  # noqa
@@ -1252,9 +1261,10 @@ class ConsentMode(Decision):
         Called upon saving.
         Will create a letter to patient.
         May create a withdrawal-of-consent letter to researcher.
-        -- Major Amendment 1 (Oct 2014) to 12/EE/0407: always withdraw consent
-           and tell researchers, i.e. "active cancellation" of ongoing
-           permission, where the researchers have not yet made contact.
+
+        **Major Amendment 1 (Oct 2014) to 12/EE/0407:** always withdraw consent
+        and tell researchers, i.e. "active cancellation" of ongoing permission,
+        where the researchers have not yet made contact.
         """
         # noinspection PyTypeChecker
         letter = Letter.create_consent_confirmation_to_patient(self)
@@ -1365,10 +1375,9 @@ class ContactRequest(models.Model):
 
     def process_request_main(self) -> None:
         """
-        =======================================================================
         Act on a contact request and store the decisions made.
-        CORE DECISION-MAKING FUNCTION FOR THE CONSENT-TO-CONTACT PROCESS.
-        =======================================================================
+        **CORE DECISION-MAKING FUNCTION FOR THE CONSENT-TO-CONTACT PROCESS.**
+
         The decisions parameter is a list that's appended to.
         """
         from crate_anon.crateweb.consent.lookup import lookup_patient  # delayed import  # noqa
@@ -1689,8 +1698,9 @@ class ContactRequest(models.Model):
 
         In this case, decision: since we are creating a ClinicianResponse, we
         should use its ModelForm.
-            - URL path for PK
-            - querystring for other parameters, with form-based validation
+
+        - URL path for PK
+        - querystring for other parameters, with form-based validation
         """
         clinician_response = ClinicianResponse.create(self, save=save)
         if not save:
@@ -2426,6 +2436,16 @@ class Email(models.Model):
     def send(self,
              user: settings.AUTH_USER_MODEL = None,
              resend: bool = False) -> Optional[EMAIL_TRANSMISSION_FWD_REF]:
+        """
+        Sends the e-mail.
+
+        Args:
+            user: the sender.
+            resend: say that it's OK to resend one that's already been sent.
+
+        Returns:
+            an EmailTransmission object.
+        """
         if self.has_been_sent() and not resend:
             log.error("Trying to send e-mail twice: ID={}".format(self.id))
             return None

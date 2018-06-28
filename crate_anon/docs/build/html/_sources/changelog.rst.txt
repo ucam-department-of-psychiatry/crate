@@ -486,14 +486,23 @@ Change log/history
 
 - Medical eponym list.
 
-**v0.18.50, 2018-05-04, in progress**
+**v0.18.50 to v0.18.51, 2018-05-04 to 2018-06-28**
 
 - `IllegalCharacterError` possible from
-  `crate_anon.crateweb.research.models.make_excel()`; was raised by `openpyxl`.
-  The problem may be that the Excel file format itself prohibits some Unicode
-  characters; certainly `openpyxl` does [#excelcharacters]_. See
+  :meth:`crate_anon.crateweb.research.models.make_excel`; was raised by
+  `openpyxl`. The problem may be that the Excel file format itself prohibits
+  some Unicode characters; certainly `openpyxl` does [#excelcharacters]_. See
   `gen_excel_row_elements()` for bugfix. Not all queries require this, but
   anything that allows unrestricted textual/binary content does.
+
+- Change to CPFT-specific SQL in
+  :meth:`crate_anon.crateweb.consent.lookup_rio.get_latest_consent_mode_from_rio_generic`.
+
+- Bugfix to :class:`crate_anon.crateweb.extra.pdf.CratePdfPlan`; this failed
+  to specify ``wkhtmltopdf_filename``, so if ``wkhtmltopdf`` wasn't found on
+  the PATH (e.g. via a Celery task), PDFs were not generated properly.
+
+
 
 
 

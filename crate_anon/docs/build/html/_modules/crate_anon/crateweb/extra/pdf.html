@@ -88,6 +88,10 @@
             <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;header_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">PDF_LETTER_HEADER_HTML</span>
         <span class="k">if</span> <span class="s1">&#39;footer_html&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
             <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;footer_html&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">PDF_LETTER_FOOTER_HTML</span>
+        <span class="k">if</span> <span class="s1">&#39;wkhtmltopdf_filename&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>  <span class="c1"># added 2018-06-28</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;wkhtmltopdf_filename&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">WKHTMLTOPDF_FILENAME</span>
+        <span class="k">if</span> <span class="s1">&#39;wkhtmltopdf_options&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>  <span class="c1"># added 2018-06-28</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;wkhtmltopdf_options&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">WKHTMLTOPDF_OPTIONS</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 

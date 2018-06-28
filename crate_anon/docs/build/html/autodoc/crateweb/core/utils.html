@@ -78,36 +78,37 @@ along with CRATE. If not, see &lt;<a class="reference external" href="http://www
 <code class="descclassname">crate_anon.crateweb.core.utils.</code><code class="descname">site_absolute_url</code><span class="sig-paren">(</span><em>path: str</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../../../_modules/crate_anon/crateweb/core/utils.html#site_absolute_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#crate_anon.crateweb.core.utils.site_absolute_url" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an absolute URL for the site, given a relative part.
 Use like:</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>url = site_absolute_url(static(‘red.png’))</dt>
-<dd>… determined in part by STATIC_URL.</dd>
-<dt>url = site_absolute_url(reverse(‘clinician_response’, args=[self.id]))</dt>
-<dd>… determined by SCRIPT_NAME or FORCE_SCRIPT_NAME
-… which is context-dependent: see below</dd>
-</dl>
-</div></blockquote>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">url</span> <span class="o">=</span> <span class="n">site_absolute_url</span><span class="p">(</span><span class="n">static</span><span class="p">(</span><span class="s1">&#39;red.png&#39;</span><span class="p">))</span>
+    <span class="c1"># ... determined in part by STATIC_URL.</span>
+<span class="n">url</span> <span class="o">=</span> <span class="n">site_absolute_url</span><span class="p">(</span><span class="n">reverse</span><span class="p">(</span><span class="s1">&#39;clinician_response&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">]))</span>
+    <span class="c1"># ... determined by SCRIPT_NAME or FORCE_SCRIPT_NAME</span>
+    <span class="c1"># ... which is context-dependent: see below</span>
+</pre></div>
+</div>
 <p>We need to generate links to our site outside the request environment, e.g.
 for inclusion in e-mails, even when we’re generating the e-mails offline
 via Celery. There’s no easy way to do this automatically (site path
 information comes in only via requests), so we put it in the settings.</p>
-<dl class="docutils">
-<dt>See also:</dt>
-<dd><a class="reference external" href="http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object">http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object</a>  # noqa
-<a class="reference external" href="https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/">https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/</a>  # noqa</dd>
-</dl>
+<p>See also:</p>
+<ul class="simple">
+<li><a class="reference external" href="http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object">http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object</a>  # noqa</li>
+<li><a class="reference external" href="https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/">https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/</a>  # noqa</li>
+</ul>
+<p><strong>IMPORTANT</strong></p>
 <p>BEWARE: reverse() will produce something different inside a request and
 outside it.</p>
-<blockquote>
-<div><a class="reference external" href="http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell">http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell</a>  # noqa</div></blockquote>
+<ul class="simple">
+<li><a class="reference external" href="http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell">http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell</a>  # noqa</li>
+</ul>
 <p>So the only moderately clean way of doing this is to do this in the Celery
 backend jobs, for anything that uses Django URLs (e.g. reverse) – NOT
 necessary for anything using only static URLs (e.g. pictures in PDFs).</p>
-<blockquote>
-<div><p>from django.conf import settings
-from django.core.urlresolvers import set_script_prefix</p>
-<p>set_script_prefix(settings.FORCE_SCRIPT_NAME)</p>
-</div></blockquote>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">django.core.urlresolvers</span> <span class="kn">import</span> <span class="n">set_script_prefix</span>
+
+<span class="n">set_script_prefix</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">FORCE_SCRIPT_NAME</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>But that does at least mean we can use the same method for static and
 Django URLs.</p>
 </dd></dl>
@@ -159,7 +160,7 @@ Django URLs.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">16. Change log/history</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../to_do.html">17. Things to do</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../glossary.html">18. Abbreviations and glossary</a></li>
 </ul>
 

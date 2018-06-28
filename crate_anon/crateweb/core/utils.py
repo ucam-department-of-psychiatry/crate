@@ -110,11 +110,14 @@ def site_absolute_url(path: str) -> str:
     """
     Returns an absolute URL for the site, given a relative part.
     Use like:
+
+    .. code-block:: python
+
         url = site_absolute_url(static('red.png'))
-            ... determined in part by STATIC_URL.
+            # ... determined in part by STATIC_URL.
         url = site_absolute_url(reverse('clinician_response', args=[self.id]))
-            ... determined by SCRIPT_NAME or FORCE_SCRIPT_NAME
-            ... which is context-dependent: see below
+            # ... determined by SCRIPT_NAME or FORCE_SCRIPT_NAME
+            # ... which is context-dependent: see below
 
     We need to generate links to our site outside the request environment, e.g.
     for inclusion in e-mails, even when we're generating the e-mails offline
@@ -122,19 +125,22 @@ def site_absolute_url(path: str) -> str:
     information comes in only via requests), so we put it in the settings.
 
     See also:
-        http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object  # noqa
-        https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/  # noqa
 
-    ---------------------------------------------------------------------------
-    IMPORTANT
-    ---------------------------------------------------------------------------
+    - http://stackoverflow.com/questions/4150258/django-obtaining-the-absolute-url-without-access-to-a-request-object  # noqa
+    - https://fragmentsofcode.wordpress.com/2009/02/24/django-fully-qualified-url/  # noqa
+
+    **IMPORTANT**
+
     BEWARE: reverse() will produce something different inside a request and
     outside it.
-        http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell  # noqa
+
+    - http://stackoverflow.com/questions/32340806/django-reverse-returns-different-values-when-called-from-wsgi-or-shell  # noqa
 
     So the only moderately clean way of doing this is to do this in the Celery
     backend jobs, for anything that uses Django URLs (e.g. reverse) -- NOT
     necessary for anything using only static URLs (e.g. pictures in PDFs).
+
+    .. code-block:: python
 
         from django.conf import settings
         from django.core.urlresolvers import set_script_prefix

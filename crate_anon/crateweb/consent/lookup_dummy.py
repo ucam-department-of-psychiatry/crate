@@ -43,6 +43,9 @@ from crate_anon.crateweb.consent.models import (
 def lookup_dummy_clinical(lookup: PatientLookup,
                           decisions: List[str],
                           secret_decisions: List[str]) -> None:
+    """
+    Looks up a patient from the fictional dummy database.
+    """
     try:
         dummylookup = DummyPatientSourceInfo.objects.get(
             nhs_number=lookup.nhs_number)

@@ -109,43 +109,47 @@
 <span class="sd">    processor has also done this for us for the lookup tables, so we</span>
 <span class="sd">    don&#39;t need so many.</span>
 
-<span class="sd">    USE my_database_name;</span>
+<span class="sd">    .. code-block:: sql</span>
 
-<span class="sd">    CREATE INDEX _idx_cdd_nhs ON ClientIndex (NNN);  -- already in RiO source</span>
+<span class="sd">        USE my_database_name;</span>
 
-<span class="sd">    CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  -- already in RiO source  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_cnh_eff ON ClientName (EffectiveDate);  -- ignored</span>
-<span class="sd">    CREATE INDEX _idx_cnh_end ON ClientName (EndDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cdd_nhs ON ClientIndex (NNN);  -- already in RiO source</span>
 
-<span class="sd">    CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  -- ignored</span>
-<span class="sd">    CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cnh_id ON ClientName (ClientID);  -- already in RiO source  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_cnh_eff ON ClientName (EffectiveDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cnh_end ON ClientName (EndDate);  -- ignored</span>
 
-<span class="sd">    CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_cah_id ON ClientAddress (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_cah_from ON ClientAddress (FromDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cah_to ON ClientAddress (ToDate);  -- ignored</span>
 
-<span class="sd">    CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_cgh_to ON ClientHealthCareProvider (ToDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cch_id ON ClientTelecom (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
 
-<span class="sd">    CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  -- preprocessor adds this  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_cc_start ON CPACareCoordinator (StartDate);  -- ignored</span>
-<span class="sd">    CREATE INDEX _idx_cc_end ON CPACareCoordinator (EndDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cgh_id ON ClientHealthCareProvider (ClientID);  -- already in RiO source  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_cgh_from ON ClientHealthCareProvider (FromDate);  -- ignored  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_cgh_to ON ClientHealthCareProvider (ToDate);  -- ignored</span>
 
-<span class="sd">    CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  -- ignored  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_ref_removal ON AmsReferral (RemovalDateTime);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cc_id ON CPACareCoordinator (ClientID);  -- preprocessor adds this  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_cc_start ON CPACareCoordinator (StartDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_cc_end ON CPACareCoordinator (EndDate);  -- ignored</span>
 
-<span class="sd">    CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  -- ignored</span>
-<span class="sd">    CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_ref_id ON AmsReferral (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_ref_recv ON AmsReferral (ReferralReceivedDate);  -- ignored  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_ref_removal ON AmsReferral (RemovalDateTime);  -- ignored</span>
 
-<span class="sd">    CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
-<span class="sd">    CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  -- ignored</span>
-<span class="sd">    CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_rsh_id ON AmsReferralAllocation (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_rsh_start ON AmsReferralAllocation (StartDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_rsh_end ON AmsReferralAllocation (EndDate);  -- ignored</span>
+
+<span class="sd">        CREATE INDEX _idx_rth_id ON AmsReferralTeam (ClientID);  -- already in RiO source as part of composite index  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_rth_start ON AmsReferralTeam (StartDate);  -- ignored</span>
+<span class="sd">        CREATE INDEX _idx_rth_end ON AmsReferralTeam (EndDate);  -- ignored</span>
 
 <span class="sd">    ... or alternative RiO number indexes on CRATE_COL_RIO_NUMBER field.</span>
 
 <span class="sd">    Then, the only field name differences from RCEP are:</span>
+
+<span class="sd">    .. code-block:: none</span>
 
 <span class="sd">        Client_Name_History.End_Date  -- not End_Date_</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -161,48 +165,50 @@
                          <span class="n">decisions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
                          <span class="n">secret_decisions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    ---------------------------------------------------------------------------</span>
-<span class="sd">    RiO notes, 2015-05-19</span>
+<span class="sd">    **RiO notes, 2015-05-19**</span>
+
 <span class="sd">    ... ADDENDUM 2017-02-27: this is the RiO database as modified by Servelec&#39;s</span>
-<span class="sd">        RiO CRIS Extraction Program (RCEP). See also lookup_cpft_rio_raw().</span>
-<span class="sd">    ---------------------------------------------------------------------------</span>
+<span class="sd">    RiO CRIS Extraction Program (RCEP). See also lookup_cpft_rio_raw().</span>
+
 <span class="sd">    For speed, RiO-RCEP needs these indexes:</span>
 
-<span class="sd">    USE my_database_name;</span>
+<span class="sd">    .. code-block:: sql</span>
 
-<span class="sd">    CREATE INDEX _idx_cdd_nhs ON Client_Demographic_Details (NHS_Number);</span>
+<span class="sd">        USE my_database_name;</span>
 
-<span class="sd">    CREATE INDEX _idx_cnh_id ON Client_Name_History (Client_ID);</span>
-<span class="sd">    CREATE INDEX _idx_cnh_eff ON Client_Name_History (Effective_Date);</span>
-<span class="sd">    CREATE INDEX _idx_cnh_end ON Client_Name_History (End_Date_);</span>
+<span class="sd">        CREATE INDEX _idx_cdd_nhs ON Client_Demographic_Details (NHS_Number);</span>
 
-<span class="sd">    CREATE INDEX _idx_cah_id ON Client_Address_History (Client_ID);</span>
-<span class="sd">    CREATE INDEX _idx_cah_from ON Client_Address_History (Address_From_Date);</span>
-<span class="sd">    CREATE INDEX _idx_cah_to ON Client_Address_History (Address_To_Date);</span>
+<span class="sd">        CREATE INDEX _idx_cnh_id ON Client_Name_History (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_cnh_eff ON Client_Name_History (Effective_Date);</span>
+<span class="sd">        CREATE INDEX _idx_cnh_end ON Client_Name_History (End_Date_);</span>
 
-<span class="sd">    CREATE INDEX _idx_cch_id ON Client_Communications_History (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_cah_id ON Client_Address_History (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_cah_from ON Client_Address_History (Address_From_Date);</span>
+<span class="sd">        CREATE INDEX _idx_cah_to ON Client_Address_History (Address_To_Date);</span>
 
-<span class="sd">    CREATE INDEX _idx_cgh_id ON Client_GP_History (Client_ID);</span>
-<span class="sd">    CREATE INDEX _idx_cgh_from ON Client_GP_History (GP_From_Date);</span>
-<span class="sd">    CREATE INDEX _idx_cgh_to ON Client_GP_History (GP_To_Date);</span>
+<span class="sd">        CREATE INDEX _idx_cch_id ON Client_Communications_History (Client_ID);</span>
 
-<span class="sd">    CREATE INDEX _idx_cc_id ON CPA_CareCoordinator (Client_ID);</span>
-<span class="sd">    CREATE INDEX _idx_cc_start ON CPA_CareCoordinator (Start_Date);</span>
-<span class="sd">    CREATE INDEX _idx_cc_end ON CPA_CareCoordinator (End_Date);</span>
+<span class="sd">        CREATE INDEX _idx_cgh_id ON Client_GP_History (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_cgh_from ON Client_GP_History (GP_From_Date);</span>
+<span class="sd">        CREATE INDEX _idx_cgh_to ON Client_GP_History (GP_To_Date);</span>
 
-<span class="sd">    CREATE INDEX _idx_ref_id ON Main_Referral_Data (Client_ID);</span>
-<span class="sd">    CREATE INDEX _idx_ref_recv ON Main_Referral_Data (Referral_Received_Date);</span>
-<span class="sd">    CREATE INDEX _idx_ref_removal ON Main_Referral_Data (Removal_DateTime);</span>
+<span class="sd">        CREATE INDEX _idx_cc_id ON CPA_CareCoordinator (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_cc_start ON CPA_CareCoordinator (Start_Date);</span>
+<span class="sd">        CREATE INDEX _idx_cc_end ON CPA_CareCoordinator (End_Date);</span>
 
-<span class="sd">    CREATE INDEX _idx_rsh_id ON Referral_Staff_History (Client_ID);</span>
-<span class="sd">    CREATE INDEX _idx_rsh_start ON Referral_Staff_History (Start_Date);</span>
-<span class="sd">    CREATE INDEX _idx_rsh_end ON Referral_Staff_History (End_Date);</span>
+<span class="sd">        CREATE INDEX _idx_ref_id ON Main_Referral_Data (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_ref_recv ON Main_Referral_Data (Referral_Received_Date);</span>
+<span class="sd">        CREATE INDEX _idx_ref_removal ON Main_Referral_Data (Removal_DateTime);</span>
 
-<span class="sd">    CREATE INDEX _idx_rth_id ON Referral_Team_History (Client_ID);</span>
-<span class="sd">    CREATE INDEX _idx_rth_start ON Referral_Team_History (Start_Date);</span>
-<span class="sd">    CREATE INDEX _idx_rth_end ON Referral_Team_History (End_Date);</span>
+<span class="sd">        CREATE INDEX _idx_rsh_id ON Referral_Staff_History (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_rsh_start ON Referral_Staff_History (Start_Date);</span>
+<span class="sd">        CREATE INDEX _idx_rsh_end ON Referral_Staff_History (End_Date);</span>
 
-<span class="sd">    -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa</span>
+<span class="sd">        CREATE INDEX _idx_rth_id ON Referral_Team_History (Client_ID);</span>
+<span class="sd">        CREATE INDEX _idx_rth_start ON Referral_Team_History (Start_Date);</span>
+<span class="sd">        CREATE INDEX _idx_rth_end ON Referral_Team_History (End_Date);</span>
+
+<span class="sd">        -- CREATE INDEX _idx_rth_teamdesc ON Referral_Team_History (Team_Description);  # noqa</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">lookup_cpft_rio_generic</span><span class="p">(</span><span class="n">lookup</span><span class="p">,</span> <span class="n">decisions</span><span class="p">,</span> <span class="n">secret_decisions</span><span class="p">,</span>
                             <span class="n">as_crate_not_rcep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
@@ -219,6 +225,9 @@
                             <span class="n">as_crate_not_rcep</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Main:</span>
+
+<span class="sd">    .. code-block:: none</span>
+
 <span class="sd">      Client_Demographic_Details</span>
 <span class="sd">          Client_ID -- PK; RiO number; integer in VARCHAR(15) field</span>
 <span class="sd">          Date_of_Birth -- DATETIME</span>
@@ -230,6 +239,8 @@
 <span class="sd">          Gender_Description -- &#39;Male&#39;, &#39;Female&#39;, ...</span>
 
 <span class="sd">    Then, linked to it:</span>
+
+<span class="sd">    .. code-block:: none</span>
 
 <span class="sd">      Client_Name_History</span>
 <span class="sd">          Client_ID -- integer in VARCHAR(15)</span>
@@ -279,6 +290,8 @@
 <span class="sd">          ...</span>
 
 <span class="sd">    CPFT clinician details/?discharged info appear to be here:</span>
+
+<span class="sd">    .. code-block:: none</span>
 
 <span class="sd">      CPA_CareCoordinator</span>
 <span class="sd">          Client_ID -- integer in VARCHAR(15)</span>
@@ -335,10 +348,14 @@
 
 <span class="sd">    Not obviously relevant:</span>
 
+<span class="sd">    .. code-block:: none</span>
+
 <span class="sd">      Client_CPA -- records CPA start/end, etc.</span>
 <span class="sd">      Client_Professional_Contacts -- empty table!</span>
 
 <span class="sd">    Added 2017-02-27:</span>
+
+<span class="sd">    .. code-block:: none</span>
 
 <span class="sd">      Client_Communications_History -- email/phone</span>
 <span class="sd">          Client_ID -- integer in VARCHAR(15)</span>
@@ -897,14 +914,14 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Shared function as very similar for the various copies of RiO data.</span>
 
-<span class="sd">    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
-
 <span class="sd">    In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.</span>
 <span class="sd">    This is processed regularly into the CPFT Data Warehouse, so that</span>
 <span class="sd">    contains very fresh data and is a good choice.</span>
 
 <span class="sd">    For CPFT&#39;s custom consent mode, built into RiO v6, the table copy in</span>
 <span class="sd">    the Data Warehouse is:</span>
+
+<span class="sd">    .. code-block:: sql</span>
 
 <span class="sd">        SELECT</span>
 <span class="sd">            [ClientID]  -- VARCHAR(15) NOT NULL; RiO number as text</span>
@@ -936,6 +953,8 @@
 <span class="sd">    Note also: the CPFT_DATAMART database does not provide patient-</span>
 <span class="sd">    identifiable information, except PatientOverview_RiO:</span>
 
+<span class="sd">    .. code-block:: sql</span>
+
 <span class="sd">        SELECT</span>
 <span class="sd">            [NHSNumber]     -- VARCHAR(15); NHS number as text</span>
 <span class="sd">            ,[ClientID]     -- VARCHAR(15) NOT NULL; RiO number as text</span>
@@ -954,9 +973,9 @@
 <span class="sd">                -- &#39;; Unknown Consultant&#39;</span>
 <span class="sd">        FROM [CPFT_DATAMART].[dbo].[PatientOverviewRiO]</span>
 
-<span class="sd">    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
-
 <span class="sd">    In raw RiO at CPFT, the traffic-light table is UserAssessConsentrd.</span>
+
+<span class="sd">    .. code-block:: sql</span>
 
 <span class="sd">        SELECT</span>
 <span class="sd">            [ClientID]  -- VARCHAR(15); RiO number as text</span>
@@ -982,6 +1001,8 @@
 <span class="sd">        FROM [dbo].[UserAssessconsentrd]</span>
 
 <span class="sd">    The NHS number table is:</span>
+
+<span class="sd">    .. code-block:: sql</span>
 
 <span class="sd">        SELECT</span>
 <span class="sd">            [ClientID]  -- VARCHAR(15); RiO number as text</span>
@@ -1017,7 +1038,8 @@
 <span class="s2">                cr.AssessmentDate DESC</span>
 <span class="s2">        &quot;&quot;&quot;</span>
     <span class="k">elif</span> <span class="n">cpft_datamart</span><span class="p">:</span>
-        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+        <span class="c1"># Old, discarded 2018-06-28:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">            SELECT TOP 1  -- guaranteed to be running SQL Server</span>
 <span class="s2">                po.NHSNumber AS nhs_number_text,</span>
 <span class="s2">                po.ClientID AS rio_number_text,</span>
@@ -1033,9 +1055,31 @@
 <span class="s2">                ConsentToResearch AS cr</span>
 <span class="s2">            INNER JOIN</span>
 <span class="s2">                PatientOverviewRiO AS po</span>
-<span class="s2">                ON cr.ClientID = po.ClientID </span>
+<span class="s2">                ON cr.ClientID = po.ClientID</span>
 <span class="s2">            WHERE</span>
 <span class="s2">                po.NHSNumber = </span><span class="si">%s</span><span class="s2">  -- string comparison</span>
+<span class="s2">            ORDER BY</span>
+<span class="s2">                cr.AssessmentDate DESC</span>
+<span class="s2">        &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+        <span class="c1"># BEWARE &quot;%s&quot; IN SQL COMMENTS! The database backend will crash because</span>
+        <span class="c1"># the number of substituted parameters will be wrong.</span>
+        <span class="c1"># New as of 2018-06-28:</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT TOP 1  -- guaranteed to be running SQL Server</span>
+<span class="s2">                cr.NHSNumber AS nhs_number_text,</span>
+<span class="s2">                cr.ClientID AS rio_number_text,</span>
+<span class="s2">                cr.AssessmentDate AS decision_date,</span>
+<span class="s2">                cr.ResearchContact AS traffic_light,</span>
+<span class="s2">                    -- &#39;RED&#39;, &#39;YELLOW&#39;, &#39;GREEN&#39;, NULL</span>
+<span class="s2">                0 AS use_email,  -- not in CPFT data warehouse copy</span>
+<span class="s2">                cr.OptOut AS opt_out,  -- 1, 0 (possibly), NULL</span>
+<span class="s2">                cr.WhoMakesDecisionFor_Patient AS decision_method,</span>
+<span class="s2">                cr.PersonActingonBehalf_of_Patient AS representative_name,</span>
+<span class="s2">                cr.PersonActingonBehalf_of_Patient_Relation AS representative_relation</span>
+<span class="s2">            FROM</span>
+<span class="s2">                ConsentToResearch AS cr</span>
+<span class="s2">            WHERE</span>
+<span class="s2">                cr.NHSNumber = </span><span class="si">%s</span><span class="s2">  -- string comparison</span>
 <span class="s2">            ORDER BY</span>
 <span class="s2">                cr.AssessmentDate DESC</span>
 <span class="s2">        &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>

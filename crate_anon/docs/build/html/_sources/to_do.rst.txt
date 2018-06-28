@@ -639,3 +639,6 @@ Newer
 - More of JL’s ideas from 8 Jan 2018.
 
 - XXX consent mode lookup
+
+- When the Windows service stops, it is still failing to kill child processes.
+  See ``crate_anon/tools/winservice.py``.

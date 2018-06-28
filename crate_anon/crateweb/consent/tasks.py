@@ -113,6 +113,12 @@ def add(x: float, y: float) -> float:
 # noinspection PyCallingNonCallable,PyPep8Naming
 @shared_task(ignore_result=True)
 def resend_email(email_id: int, user_id: int) -> None:
+    """
+    Celery task to resend a pre-existing e-mail.
+    Args:
+        email_id: ID of the e-mail
+        user_id: ID of the sending user
+    """
     User = get_user_model()
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.objects.get(pk=email_id)
@@ -123,6 +129,11 @@ def resend_email(email_id: int, user_id: int) -> None:
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def process_contact_request(contact_request_id: int) -> None:
+    """
+    Celery task to act on a contact request.
+    For example, might send an e-mail to a clinician, or generate a letter to
+    the researcher.
+    """
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
     contact_request = ContactRequest.objects.get(pk=contact_request_id)  # type: ContactRequest  # noqa
@@ -132,6 +143,11 @@ def process_contact_request(contact_request_id: int) -> None:
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def finalize_clinician_response(clinician_response_id: int) -> None:
+    """
+    Celery task to do the thinking associated with a clinician's response to
+    a contact request. For example, might generate letters to patients and
+    notify the Research Database Manager of work to be done.
+    """
     from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
     clinician_response = ClinicianResponse.objects.get(
         pk=clinician_response_id)
@@ -141,6 +157,10 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def process_consent_change(consent_mode_id: int) -> None:
+    """
+    Celery task to do the thinking associated with a change of consent mode
+    (e.g. might send a withdrawal letter to a researcher).
+    """
     from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
     consent_mode.process_change()
@@ -149,6 +169,10 @@ def process_consent_change(consent_mode_id: int) -> None:
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def process_patient_response(patient_response_id: int) -> None:
+    """
+    Celery task to do the thinking associated with a patient's decision.
+    For example, might send a letter to a researcher.
+    """
     from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
     patient_response.process_response()
@@ -157,6 +181,10 @@ def process_patient_response(patient_response_id: int) -> None:
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def test_email_rdbm_task() -> None:
+    """
+    Celery task to test the e-mail system by e-mailing the Research Database
+    Manager.
+    """
     subject = "TEST MESSAGE FROM RESEARCH DATABASE COMPUTER"
     text = (
         "Success! The CRATE framework can communicate via Celery with its "
@@ -169,6 +197,9 @@ def test_email_rdbm_task() -> None:
 # noinspection PyCallingNonCallable
 @shared_task(ignore_result=True)
 def email_rdbm_task(subject: str, text: str) -> None:
+    """
+    Celery task to e-mail the Research Database Manager.
+    """
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)
     et = email.send()

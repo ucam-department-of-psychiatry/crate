@@ -163,9 +163,11 @@
 <div class="viewcode-block" id="study_details_upload_to"><a class="viewcode-back" href="../../../../autodoc/crateweb/consent/models.html#crate_anon.crateweb.consent.models.study_details_upload_to">[docs]</a><span class="k">def</span> <span class="nf">study_details_upload_to</span><span class="p">(</span><span class="n">instance</span><span class="p">:</span> <span class="n">STUDY_FWD_REF</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Determines the filename used for study information PDF uploads.</span>
-<span class="sd">    instance = instance of Study (potentially unsaved)</span>
-<span class="sd">        ... and you can&#39;t call save(); it goes into infinite recursion</span>
-<span class="sd">    filename = uploaded filename</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        instance: instance of Study (potentially unsaved)</span>
+<span class="sd">            ... and you can&#39;t call save(); it goes into infinite recursion</span>
+<span class="sd">        filename: uploaded filename</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># includes the &#39;.&#39; if present</span>
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;study&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_details_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -178,8 +180,10 @@
 <div class="viewcode-block" id="study_form_upload_to"><a class="viewcode-back" href="../../../../autodoc/crateweb/consent/models.html#crate_anon.crateweb.consent.models.study_form_upload_to">[docs]</a><span class="k">def</span> <span class="nf">study_form_upload_to</span><span class="p">(</span><span class="n">instance</span><span class="p">:</span> <span class="n">STUDY_FWD_REF</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Determines the filename used for study clinician-form PDF uploads.</span>
-<span class="sd">    instance = instance of Study (potentially unsaved)</span>
-<span class="sd">    filename = uploaded filename</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        instance: instance of Study (potentially unsaved)</span>
+<span class="sd">        filename: uploaded filename</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;study&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_form_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -322,9 +326,11 @@
 <div class="viewcode-block" id="leaflet_upload_to"><a class="viewcode-back" href="../../../../autodoc/crateweb/consent/models.html#crate_anon.crateweb.consent.models.leaflet_upload_to">[docs]</a><span class="k">def</span> <span class="nf">leaflet_upload_to</span><span class="p">(</span><span class="n">instance</span><span class="p">:</span> <span class="n">LEAFLET_FWD_REF</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Determines the filename used for leaflet uploads.</span>
-<span class="sd">    instance = instance of Leaflet (potentially unsaved)</span>
-<span class="sd">        ... and you can&#39;t call save(); it goes into infinite recursion</span>
-<span class="sd">    filename = uploaded filename</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        instance: instance of Leaflet (potentially unsaved)</span>
+<span class="sd">            ... and you can&#39;t call save(); it goes into infinite recursion</span>
+<span class="sd">        filename: uploaded filename</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">extension</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">filename</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># includes the &#39;.&#39; if present</span>
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;leaflet&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -1161,15 +1167,18 @@
 <span class="sd">        Returns a list of human-readable decisions.</span>
 
 <span class="sd">        Internally, we do this:</span>
+
 <span class="sd">        - Fetch the most recent record.</span>
 <span class="sd">        - If its date is later than the most recent CRATE record:</span>
+
 <span class="sd">          - create a new ConsentMode with (..., source=source_db)</span>
 <span class="sd">          - save it</span>
 
-<span class="sd">        *** also: use celery beat to refresh regularly +/- trigger withdrawal</span>
-<span class="sd">            of consent if consent mode changed;</span>
+<span class="sd">        .. todo:: also: use celery beat to refresh regularly +/- trigger</span>
+<span class="sd">            withdrawal of consent if consent mode changed;</span>
 <span class="sd">            http://docs.celeryproject.org/en/latest/userguide/periodic-tasks.html</span>
-<span class="sd">        *** also make automatic opt-out list</span>
+
+<span class="sd">        .. todo:: also make automatic opt-out list</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">crate_anon.crateweb.consent.lookup</span> <span class="k">import</span> <span class="n">lookup_consent</span>  <span class="c1"># delayed import  # noqa</span>
@@ -1291,9 +1300,10 @@
 <span class="sd">        Called upon saving.</span>
 <span class="sd">        Will create a letter to patient.</span>
 <span class="sd">        May create a withdrawal-of-consent letter to researcher.</span>
-<span class="sd">        -- Major Amendment 1 (Oct 2014) to 12/EE/0407: always withdraw consent</span>
-<span class="sd">           and tell researchers, i.e. &quot;active cancellation&quot; of ongoing</span>
-<span class="sd">           permission, where the researchers have not yet made contact.</span>
+
+<span class="sd">        **Major Amendment 1 (Oct 2014) to 12/EE/0407:** always withdraw consent</span>
+<span class="sd">        and tell researchers, i.e. &quot;active cancellation&quot; of ongoing permission,</span>
+<span class="sd">        where the researchers have not yet made contact.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># noinspection PyTypeChecker</span>
         <span class="n">letter</span> <span class="o">=</span> <span class="n">Letter</span><span class="o">.</span><span class="n">create_consent_confirmation_to_patient</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -1404,10 +1414,9 @@
 
 <div class="viewcode-block" id="ContactRequest.process_request_main"><a class="viewcode-back" href="../../../../autodoc/crateweb/consent/models.html#crate_anon.crateweb.consent.models.ContactRequest.process_request_main">[docs]</a>    <span class="k">def</span> <span class="nf">process_request_main</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        =======================================================================</span>
 <span class="sd">        Act on a contact request and store the decisions made.</span>
-<span class="sd">        CORE DECISION-MAKING FUNCTION FOR THE CONSENT-TO-CONTACT PROCESS.</span>
-<span class="sd">        =======================================================================</span>
+<span class="sd">        **CORE DECISION-MAKING FUNCTION FOR THE CONSENT-TO-CONTACT PROCESS.**</span>
+
 <span class="sd">        The decisions parameter is a list that&#39;s appended to.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="kn">from</span> <span class="nn">crate_anon.crateweb.consent.lookup</span> <span class="k">import</span> <span class="n">lookup_patient</span>  <span class="c1"># delayed import  # noqa</span>
@@ -1728,8 +1737,9 @@
 
 <span class="sd">        In this case, decision: since we are creating a ClinicianResponse, we</span>
 <span class="sd">        should use its ModelForm.</span>
-<span class="sd">            - URL path for PK</span>
-<span class="sd">            - querystring for other parameters, with form-based validation</span>
+
+<span class="sd">        - URL path for PK</span>
+<span class="sd">        - querystring for other parameters, with form-based validation</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">clinician_response</span> <span class="o">=</span> <span class="n">ClinicianResponse</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="n">save</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">save</span><span class="p">:</span>
@@ -2462,9 +2472,19 @@
     <span class="k">def</span> <span class="nf">has_been_sent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">emailtransmission_set</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">sent</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Email.send"><a class="viewcode-back" href="../../../../autodoc/crateweb/consent/models.html#crate_anon.crateweb.consent.models.Email.send">[docs]</a>    <span class="k">def</span> <span class="nf">send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
              <span class="n">user</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
              <span class="n">resend</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">EMAIL_TRANSMISSION_FWD_REF</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sends the e-mail.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            user: the sender.</span>
+<span class="sd">            resend: say that it&#39;s OK to resend one that&#39;s already been sent.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            an EmailTransmission object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_been_sent</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">resend</span><span class="p">:</span>
             <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Trying to send e-mail twice: ID=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
             <span class="k">return</span> <span class="kc">None</span>
@@ -2511,7 +2531,7 @@
         <span class="n">emailtransmission</span> <span class="o">=</span> <span class="n">EmailTransmission</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">by</span><span class="o">=</span><span class="n">user</span><span class="p">,</span> <span class="n">sent</span><span class="o">=</span><span class="n">sent</span><span class="p">,</span>
                                               <span class="n">failure_reason</span><span class="o">=</span><span class="n">failure_reason</span><span class="p">)</span>
         <span class="n">emailtransmission</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">emailtransmission</span>
+        <span class="k">return</span> <span class="n">emailtransmission</span></div>
 
     <span class="k">def</span> <span class="nf">resend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">user</span><span class="p">,</span> <span class="n">resend</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>

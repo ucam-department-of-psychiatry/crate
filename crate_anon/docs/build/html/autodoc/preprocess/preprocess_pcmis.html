@@ -63,67 +63,55 @@ GNU General Public License for more details.</p>
 along with CRATE. If not, see &lt;<a class="reference external" href="http://www.gnu.org/licenses/">http://www.gnu.org/licenses/</a>&gt;.</p>
 </div></blockquote>
 <hr class="docutils" />
-<div class="section" id="pcmis-table-structure">
-<h2>15.5.3.1. PCMIS table structure<a class="headerlink" href="#pcmis-table-structure" title="Permalink to this headline">¶</a></h2>
+<p><strong>PCMIS table structure</strong></p>
 <p>No proper documentation, but the structure is clear.
 See pcmis_information_schema.ods</p>
-<ul>
-<li><p class="first">PatientDetails</p>
-<blockquote>
-<div><p>PatientID – PK; patient-defining field; VARCHAR(100)
-FirstName
-LastName
-NHSNumber – VARCHAR(100)
-…</p>
-</div></blockquote>
-</li>
-<li><p class="first">Other per-patient things: Patient*</p>
-</li>
-<li><p class="first">CasesAll</p>
-<blockquote>
-<div><p>CaseNumber – appears to be unique; same #records as ReferralDetails
-ReferralDate</p>
-</div></blockquote>
-</li>
-<li><p class="first">Many other per-case things: Case*</p>
-<blockquote>
-<div><p>CaseNumber – FK to CasesAll/ReferralDetails</p>
-</div></blockquote>
-</li>
-<li><p class="first">Group things: linked to cases via GroupMember</p>
-<blockquote>
-<div><p>IMPORTANTLY: there are only two, Groups and GroupSession
-and neither are identifiable.</p>
-</div></blockquote>
-</li>
-<li><p class="first">Carers: from PatientCarerDetails (CarerNumber, PatientID)</p>
-</li>
-<li><p class="first">Children: from PatientChildDetails (ChildNumber, PatientID)</p>
-</li>
-<li><p class="first">ReferralDetails</p>
-<blockquote>
-<div><p>CaseNumber – appears to be unique; same #records as CasesAll
-PatientID – not unique
-PrimaryDiagnosis (e.g. ‘F41.1’)</p>
-</div></blockquote>
-</li>
-<li><p class="first">Non-patient stuff we’ll filter out:</p>
-<blockquote>
-<div><p>pcmis_UserProfiles
-Users</p>
-</div></blockquote>
-</li>
-<li><p class="first">Then a lot of other things are index by ContactNumber, which probably
-cross-refers to CaseContacts, having</p>
-<blockquote>
-<div><p>ContactNumber INT
-CaseNumber VARCHAR(100)</p>
-</div></blockquote>
-</li>
-</ul>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- PatientDetails
+
+    PatientID -- PK; patient-defining field; VARCHAR(100)
+    FirstName
+    LastName
+    NHSNumber -- VARCHAR(100)
+    ...
+
+- Other per-patient things: Patient*
+
+- CasesAll
+
+    CaseNumber -- appears to be unique; same #records as ReferralDetails
+    ReferralDate
+
+- Many other per-case things: Case*
+
+    CaseNumber -- FK to CasesAll/ReferralDetails
+
+- Group things: linked to cases via GroupMember
+
+    IMPORTANTLY: there are only two, Groups and GroupSession
+    and neither are identifiable.
+
+- Carers: from PatientCarerDetails (CarerNumber, PatientID)
+- Children: from PatientChildDetails (ChildNumber, PatientID)
+
+- ReferralDetails
+
+    CaseNumber -- appears to be unique; same #records as CasesAll
+    PatientID -- not unique
+    PrimaryDiagnosis (e.g. &#39;F41.1&#39;)
+
+- Non-patient stuff we&#39;ll filter out:
+
+    pcmis_UserProfiles
+    Users
+
+- Then a lot of other things are index by ContactNumber, which probably
+  cross-refers to CaseContacts, having
+
+    ContactNumber INT
+    CaseNumber VARCHAR(100)
+</pre></div>
 </div>
-<div class="section" id="decisions-re-database-keys-and-anonymisation">
-<h2>15.5.3.2. Decisions re database keys and anonymisation<a class="headerlink" href="#decisions-re-database-keys-and-anonymisation" title="Permalink to this headline">¶</a></h2>
+<p><strong>Decisions re database keys and anonymisation</strong></p>
 <p>For RiO, we had integer patient IDs but mangled into a text format. So there
 were distinct performance advantages in making an integer version. For PCMIS,
 patient IDs look like ‘JC000001’, ‘SB000001’ (where the letters are unrelated
@@ -133,30 +121,31 @@ be inventing an arbitrary new key if we added one.</p>
 <p>So the tradeoff is simplicity (keep textual PK for patients) versus speed
 (parallel processing based on an integer operation). It’s natural to think of
 an integer hash of a string, but this hash has to operate in the SQL
-domain, be portable, and produce an integer (so SQL Server’s HASHBYTES is of 
+domain, be portable, and produce an integer (so SQL Server’s HASHBYTES is of
 no use. At present (2017-05-02), our PCMIS copy has ~53,000 patients in, and
 there are lots of tables with patients in.</p>
 <p>Therefore, DECISION: create an integer PK.</p>
 <p>However, we could do this deterministically. Since the length is fixed, and the
 numerical part goes up to 999999, and the letters are always upper case – ah,
 no, there are some like &lt;digit&gt;&lt;letter&gt;999999. But 0-99 would be fine.</p>
-<blockquote>
-<div><dl class="docutils">
-<dt>SELECT (</dt>
-<dd>(ASCII(SUBSTRING(PatientID, 1, 1))) * 100000000 +
-(ASCII(SUBSTRING(PatientID, 2, 1))) * 1000000 +
-CAST(SUBSTRING(PatientID, 3, 6) AS BIGINT)</dd>
-</dl>
-<p>) AS patient_id_int
-FROM PatientDetails</p>
-</div></blockquote>
+<div class="highlight-sql notranslate"><div class="highlight"><pre><span></span><span class="k">SELECT</span> <span class="p">(</span>
+    <span class="p">(</span><span class="n">ASCII</span><span class="p">(</span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">PatientID</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span> <span class="o">*</span> <span class="mi">100000000</span> <span class="o">+</span>
+    <span class="p">(</span><span class="n">ASCII</span><span class="p">(</span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">PatientID</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span> <span class="o">*</span> <span class="mi">1000000</span> <span class="o">+</span>
+    <span class="k">CAST</span><span class="p">(</span><span class="k">SUBSTRING</span><span class="p">(</span><span class="n">PatientID</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="k">AS</span> <span class="nb">BIGINT</span><span class="p">)</span>
+<span class="p">)</span> <span class="k">AS</span> <span class="n">patient_id_int</span>
+<span class="k">FROM</span> <span class="n">PatientDetails</span>
+</pre></div>
+</div>
 <p>If we’re using SQLAlchemy, then use things like func.substr instead, but it’s
 a reasonable compromise for now to say that a specific database like PCMIS is
 going to be hosted on SQL Server, since PCMIS uses that</p>
 <blockquote>
-<div>SQL Server      SQLAlchemy
+<div>————–  ——————-
+SQL Server      SQLAlchemy
+————–  ——————-
 SUBSTR          func.substr
-ASCII</div></blockquote>
+ASCII
+————–  ——————-</div></blockquote>
 <p>What about CaseNumber – is that identifying? If not, it can remain the
 internal key to identify cases. If it is, then we have to replace it.
 The first character is 1,9,A-Z except Q, X, Y (n=25).
@@ -167,38 +156,37 @@ So it does look more like an internal PK than something identifiable.</p>
 <p>Mind you, very often it is identical to CaseNumber. So, do we need a second
 hash?</p>
 <p>Our PCMIS copy certainly has free text (search the schema for text types).</p>
-</div>
-<div class="section" id="therefore-views-and-the-like">
-<h2>15.5.3.3. Therefore, views and the like<a class="headerlink" href="#therefore-views-and-the-like" title="Permalink to this headline">¶</a></h2>
-<p>MAIN SOFTWARE CHANGES
-- Support non-integer PIDs/MPIDs.
-- Add an AlterMethod that is hash=hash_config_key_name</p>
-<blockquote>
-<div><p>with e.g.</p>
-<blockquote>
-<div>[hash_config_key_name]
-method = hmacsha256
-key = somesecretkey</div></blockquote>
-</div></blockquote>
-<p>TABLES
-- If a table doesn’t have a PK, give it an AUTONUMBER integer PK (e.g.</p>
-<blockquote>
-<div>“crate_pk”). That looks to be true of ?all tables.</div></blockquote>
-<p>VIEWS
-- In general, not needed: we can use PatientId and CaseNumber as non-integer</p>
-<blockquote>
-<div>fields.</div></blockquote>
+<p><strong>Therefore, views and the like</strong></p>
+<p>MAIN SOFTWARE CHANGES</p>
 <ul class="simple">
+<li>Support non-integer PIDs/MPIDs.</li>
+<li>Add an AlterMethod that is hash=hash_config_key_name
+with e.g.</li>
+</ul>
+<div class="highlight-ini notranslate"><div class="highlight"><pre><span></span><span class="k">[hash_config_key_name]</span>
+<span class="na">method</span> <span class="o">=</span> <span class="s">hmacsha256</span>
+<span class="na">key</span> <span class="o">=</span> <span class="s">somesecretkey</span>
+</pre></div>
+</div>
+<p>TABLES</p>
+<ul class="simple">
+<li>If a table doesn’t have a PK, give it an AUTONUMBER integer PK (e.g.
+“crate_pk”). That looks to be true of ?all tables.</li>
+</ul>
+<p>VIEWS</p>
+<ul class="simple">
+<li>In general, not needed: we can use PatientId and CaseNumber as non-integer
+fields.</li>
 <li>We do need the geography views, though.</li>
 </ul>
-<p>DATA DICTIONARY AUTOGENERATIO
-- PatientId: always the PID.
-- NHSNumber: always the MPID.
-- CaseNumber: belongs in ddgen_extra_hash_fields, and users should give it the</p>
-<blockquote>
-<div>same hash key as for the PID-to-RID conversion, since it’s often the same
-code.</div></blockquote>
-</div>
+<p>DATA DICTIONARY AUTOGENERATIO</p>
+<ul class="simple">
+<li>PatientId: always the PID.</li>
+<li>NHSNumber: always the MPID.</li>
+<li>CaseNumber: belongs in ddgen_extra_hash_fields, and users should give it the
+same hash key as for the PID-to-RID conversion, since it’s often the same
+code.</li>
+</ul>
 </div>
 
 
@@ -234,7 +222,7 @@ code.</div></blockquote>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">16. Change log/history</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../misc/to_do.html">17. Things to do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../to_do.html">17. Things to do</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../glossary.html">18. Abbreviations and glossary</a></li>
 </ul>
 

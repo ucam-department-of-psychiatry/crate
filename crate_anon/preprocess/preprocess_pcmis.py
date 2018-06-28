@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# preprocess/preprocess_pcmis.py
+# crate_anon/preprocess/preprocess_pcmis.py
 
 """
 ===============================================================================
@@ -23,59 +23,58 @@
 
 ===============================================================================
 
-===============================================================================
-PCMIS table structure
-===============================================================================
+**PCMIS table structure**
+
 No proper documentation, but the structure is clear.
 See pcmis_information_schema.ods
 
-- PatientDetails
+.. code-block:: none
 
-    PatientID -- PK; patient-defining field; VARCHAR(100)
-    FirstName
-    LastName
-    NHSNumber -- VARCHAR(100)
-    ...
+    - PatientDetails
 
-- Other per-patient things: Patient*
+        PatientID -- PK; patient-defining field; VARCHAR(100)
+        FirstName
+        LastName
+        NHSNumber -- VARCHAR(100)
+        ...
 
-- CasesAll
+    - Other per-patient things: Patient*
 
-    CaseNumber -- appears to be unique; same #records as ReferralDetails
-    ReferralDate
+    - CasesAll
 
-- Many other per-case things: Case*
+        CaseNumber -- appears to be unique; same #records as ReferralDetails
+        ReferralDate
 
-    CaseNumber -- FK to CasesAll/ReferralDetails
-    
-- Group things: linked to cases via GroupMember
+    - Many other per-case things: Case*
 
-    IMPORTANTLY: there are only two, Groups and GroupSession
-    and neither are identifiable.
+        CaseNumber -- FK to CasesAll/ReferralDetails
 
-- Carers: from PatientCarerDetails (CarerNumber, PatientID)
-- Children: from PatientChildDetails (ChildNumber, PatientID)
+    - Group things: linked to cases via GroupMember
 
-- ReferralDetails
+        IMPORTANTLY: there are only two, Groups and GroupSession
+        and neither are identifiable.
 
-    CaseNumber -- appears to be unique; same #records as CasesAll
-    PatientID -- not unique
-    PrimaryDiagnosis (e.g. 'F41.1')
+    - Carers: from PatientCarerDetails (CarerNumber, PatientID)
+    - Children: from PatientChildDetails (ChildNumber, PatientID)
 
-- Non-patient stuff we'll filter out:
+    - ReferralDetails
 
-    pcmis_UserProfiles
-    Users
+        CaseNumber -- appears to be unique; same #records as CasesAll
+        PatientID -- not unique
+        PrimaryDiagnosis (e.g. 'F41.1')
 
-- Then a lot of other things are index by ContactNumber, which probably
-  cross-refers to CaseContacts, having
-  
-    ContactNumber INT
-    CaseNumber VARCHAR(100)
+    - Non-patient stuff we'll filter out:
 
-===============================================================================
-Decisions re database keys and anonymisation
-===============================================================================
+        pcmis_UserProfiles
+        Users
+
+    - Then a lot of other things are index by ContactNumber, which probably
+      cross-refers to CaseContacts, having
+
+        ContactNumber INT
+        CaseNumber VARCHAR(100)
+
+**Decisions re database keys and anonymisation**
 
 For RiO, we had integer patient IDs but mangled into a text format. So there
 were distinct performance advantages in making an integer version. For PCMIS,
@@ -97,6 +96,8 @@ However, we could do this deterministically. Since the length is fixed, and the
 numerical part goes up to 999999, and the letters are always upper case -- ah,
 no, there are some like <digit><letter>999999. But 0-99 would be fine.
 
+.. code-block:: sql
+
     SELECT (
         (ASCII(SUBSTRING(PatientID, 1, 1))) * 100000000 +
         (ASCII(SUBSTRING(PatientID, 2, 1))) * 1000000 +
@@ -107,9 +108,13 @@ no, there are some like <digit><letter>999999. But 0-99 would be fine.
 If we're using SQLAlchemy, then use things like func.substr instead, but it's
 a reasonable compromise for now to say that a specific database like PCMIS is
 going to be hosted on SQL Server, since PCMIS uses that
+
+    --------------  -------------------
     SQL Server      SQLAlchemy
+    --------------  -------------------
     SUBSTR          func.substr
     ASCII           
+    --------------  -------------------
 
 What about CaseNumber -- is that identifying? If not, it can remain the
 internal key to identify cases. If it is, then we have to replace it.
@@ -124,29 +129,33 @@ hash?
 
 Our PCMIS copy certainly has free text (search the schema for text types).
 
-===============================================================================
-Therefore, views and the like 
-===============================================================================
+**Therefore, views and the like**
 
 MAIN SOFTWARE CHANGES
+
 - Support non-integer PIDs/MPIDs.
 - Add an AlterMethod that is hash=hash_config_key_name
   with e.g.
+
+.. code-block:: ini
 
     [hash_config_key_name]
     method = hmacsha256
     key = somesecretkey
 
 TABLES
+
 - If a table doesn't have a PK, give it an AUTONUMBER integer PK (e.g.
   "crate_pk"). That looks to be true of ?all tables.
 
 VIEWS
+
 - In general, not needed: we can use PatientId and CaseNumber as non-integer
   fields.
 - We do need the geography views, though.
 
 DATA DICTIONARY AUTOGENERATIO
+
 - PatientId: always the PID.
 - NHSNumber: always the MPID.
 - CaseNumber: belongs in ddgen_extra_hash_fields, and users should give it the
