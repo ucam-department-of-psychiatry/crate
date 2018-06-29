@@ -444,10 +444,14 @@ e.g.: [#djangopyodbcazuremethod]_
         'OPTIONS': {
              'driver': 'SQL Server Native Client 11.0',
              # ... 'driver' is optional
+
              'dsn': 'RIO_TEST_SANDPIT',  # ODBC DSN
-             'MARS_Connection': True,
+             # ... note lower case key as of django-pyodbc-azure 2.0.6
+
+             # 'MARS_Connection': True,
+             # ... no longer in django-pyodbc-azure 2.0.6; automatic
         },
-        'USER': '',  # blank for M'soft Integrated Security
+        'USER': '',  # blank for Microsoft Integrated Security
         'PASSWORD': '',
     }
 

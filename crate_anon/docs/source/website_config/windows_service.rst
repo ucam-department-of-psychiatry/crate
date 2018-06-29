@@ -35,6 +35,10 @@ To create a Windows service for CRATE, use the ``crate_windows_service``
 command. You will need to run it from a command prompt with Administrator
 authority.
 
+Logs from the CRATE processes (Celery, CherryPy/Django) go to the normal disk
+logs. However, output from the service itself goes to the Windows logs: see
+:menuselection:`Event Viewer --> Windows Logs --> Application`.
+
 crate_windows_service
 ---------------------
 

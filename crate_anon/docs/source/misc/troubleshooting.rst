@@ -282,6 +282,7 @@ latter comes under the former, so Django says “it’s for me” then “it doe
 exist”. If you use `https://mysite/crate/` as your site root, with
 `https://mysite/crate_static/` as your static root, then the software is happy.
 
+
 I can’t restart the CRATE Windows Service cleanly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -290,6 +291,76 @@ when its service is stopped. You can manually kill leftover processes (which
 will appear as `python.exe` or `python.exe *32`) using taskmgr.
 
 This should be fixed now.
+
+
+CRATE service doesn't start... errors in Windows Event Log
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If your CRATE service doesn't start and you see this error in the Event
+Log:
+
+.. code-block:: none
+
+    Unable to read Server Queue performance data from the Server service.
+    The first four bytes (DWORD) of the Data section contains the status
+    code, the second four bytes contains the IOSB.Status and the next four
+    bytes contains the IOSB.Information.
+
+    Log Name: Application
+    Source: PerfNet
+    Event ID: 2006
+
+then consider first if this might be a bug relating to HP ProLiant servers. See
+https://support.hpe.com/hpsc/doc/public/display?docId=emr_na-a00041653en_us&docLocale=en_US
+and a fix at
+https://support.microsoft.com/en-in/help/4057142/windows-10-update-kb4057142.
+However, that is for Windows Server 2016.
+
+    The CPFT server from Dec 2016 is an HP ProLiant DL360 Gen9 server with 2 ×
+    12-core/24-thread Intel Xeon E5-2687WV4 3 GHz CPUs (48 effective CPUs),
+    with 96 Gb RAM later upgraded to 672 Gb RAM (in 2018), and 11.5 Tb SSD
+    storage in a RAID configuration (8.9 Tb available); it was about £15k inc.
+    VAT initially plus £8k for the extra RAM. It runs Windows Server 2008 R2.
+
+Other possible problems:
+
+- https://support.microsoft.com/en-my/help/2607486/windows-server-2008-r2-reports-perfnet-error-in-application-log-on-mac
+  ... but that relates to machines with >64 processors;
+
+- https://support.microsoft.com/en-us/help/2279566/32-bit-application-cannot-query-performance-server-work-queues-counter
+  ... that's more likely since it relates to machines with >32 processors,
+  and in turn this suggests that a 32-bit application is having trouble.
+  However, we have 64-bit Python installed.
+
+- As it turned out, s per the :ref:`CRATE Windows service <windows_service>`
+  help, we try ``crate_windows_service``, and it reported that the
+  ``servicemanager`` module was missing; that'd explain it! The virtual
+  environment had got messed up.
+
+So the general rescue method:
+
+- remove the old virtual environment
+- recreate the virtual environment and reinstall, e.g.
+
+    .. code-block:: none
+
+        cd \srv\crate
+        "\Program Files\Python35\python.exe" -m virtualenv crate_virtualenv
+        crate_virtualenv\Scripts\activate.bat
+        pip install crate_anon==0.18.51 pyodbc django-pyodbc-azure
+
+- remove and reinstall the CRATE service, using an Administrator command
+  prompt:
+
+    .. code-block:: none
+
+        crate_windows_service remove
+
+    ... reboot...
+
+    .. code-block:: none
+
+        crate_windows_service install
 
 
 “No connection could be made because the target machine actively refused it”
@@ -304,7 +375,9 @@ little more detail:
 
 .. code-block:: none
 
-    [2017-02-25 23:50:11,433: Error/MainProcess] consumer: Cannot connect to amqp://guest:**@127.0.0.1:5672//: [WinError 10061] No connection could be made because the target machine actively refused it.
+    [2017-02-25 23:50:11,433: Error/MainProcess] consumer: Cannot connect to
+    amqp://guest:**@127.0.0.1:5672//: [WinError 10061] No connection could be
+    made because the target machine actively refused it.
 
 This indicates that Celery (called by CRATE) is looking for RabbitMQ on port
 5672, finding it, but being refused access. Make sure RabbitMQ is installed and
@@ -445,7 +518,9 @@ Edit the MySQL configuration file.
   .. code-block:: none
 
     Default options are read from the following files in the given order:
-    C:\Windows\my.ini C:\Windows\my.cnf C:\my.ini C:\my.cnf C:\Program Files\MySQL\MySQL Server 5.7\my.ini C:\Program Files\MySQL\MySQL Server 5.7\my.cnf
+    C:\Windows\my.ini C:\Windows\my.cnf C:\my.ini C:\my.cnf C:\Program
+    Files\MySQL\MySQL Server 5.7\my.ini C:\Program Files\MySQL\MySQL Server
+    5.7\my.cnf
 
 - Note that on our main test system (Windows Server 2008 R2, MySQL 5.7) the
   only file existing was ``C:\ProgramData\MySQL\MySQL Server 5.7\my.ini``, but

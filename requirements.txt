@@ -18,7 +18,7 @@ clint==0.5.1
 colander==1.4
 colorlog==3.1.4
 coverage==4.2
--e git+https://github.com/RudolfCardinal/crate@15e587475e8d2fac1e97bd2145a5ab9c193c06b7#egg=crate_anon
+-e git+https://github.com/RudolfCardinal/crate@ddb0253d42f121c502b1eb8c3eca62ec226496fa#egg=crate_anon
 csvcat==2.0.2
 deform==2.0.4
 distro==1.3.0

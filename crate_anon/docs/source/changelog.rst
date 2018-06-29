@@ -557,15 +557,28 @@ Change log/history
   - Werkzeug from 0.11.15 to 0.14.1
   - xlrd from 1.0.0 to 1.1.0
   - (Windows) pypiwin32 from 219 to 223
+  - (Windows) servicemanager 1.3.0, as below
+  - (Windows) winerror
+
+  .. note::
+
+    If you are using SQL Server, you probably need to upgrade
+    ``django-pyodbc-azure`` (from e.g. 1.10.4.0 to 2.0.6.1, with the command
+    ``pip install django-pyodbc-azure==2.0.6.1``), or you may see errors from
+    ``...\sql_server\pyodbc\base.py`` like "Django 2.0.6 is not supported."
+
+    You may also need to update the database connection parameters; e.g. the
+    ``DSN`` key has become ``dsn``; see :ref:`django-pyodbc-azure
+    <django_pyodbc_azure>`.
 
 - New :ref:`crate_celery_status <crate_celery_status>` command.
 
-.. todo::
-    Trying Celery ``--concurrency=1`` (from ``launch_celery.py``) as this
-    should prevent multiple Celery threads doing the same work twice if you
-    call ``crate_django_manage resubmit_unprocessed_tasks`` more than once.
-    There's a risk that this breaks Flower or other Celery status monitoring
-    (as it did with Celery v3.1.23, but that was a long time ago).
+- Changed to using Celery ``--concurrency=1`` (formerly 4) from
+  ``launch_celery.py``, as this should prevent multiple Celery threads doing
+  the same work twice if you call ``crate_django_manage
+  resubmit_unprocessed_tasks`` more than once. There was a risk that this
+  breaks Flower or other Celery status monitoring (as it did with Celery
+  v3.1.23, but that was a long time ago, and it works fine now.
 
 
 .. rubric:: Footnotes

@@ -114,8 +114,8 @@ Install GATE, for NLP.
 - Download and install GATE from https://gate.ac.uk/download/
 
 
-Python virtual environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Python virtual environment and CRATE itself
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Create a Python virtual environment (an isolated set of Python programs
 that won’t interfere with any other Python things) and install CRATE.
@@ -282,6 +282,12 @@ Database and database drivers
 
 You'll want drivers for at least one database. See :ref:`Recommended database
 drivers <recommended_database_drivers>`.
+
+In the CPFT NHS environment, we use SQL Server and these:
+
+    .. code-block:: none
+
+        pip install pyodbc django-pyodbc-azure
 
 Build the CRATE Java NLP interfaces
 -----------------------------------
