@@ -27,10 +27,12 @@ Makes a giant test database for anonymisation testing.
 
 See also:
 
-    http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/
-    http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/table/T7/
+- http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/
+- http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3751474/table/T7/
 
 After anonymisation, check with:
+
+.. code-block:: sql
 
     SELECT * FROM anonymous_output.notes WHERE brcid IN (
         SELECT brcid
@@ -51,14 +53,14 @@ import subprocess
 
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.logs import configure_logger_for_colour
-from pendulum import Pendulum
+from pendulum import DateTime as Pendulum  # NB name clash with SQLAlchemy
 from sqlalchemy import (
     create_engine,
     BigInteger,
     Boolean,
     Column,
     Date,
-    DateTime,
+    DateTime,  # NB name clash with pendulum
     Enum,
     ForeignKey,
     Integer,
@@ -120,40 +122,48 @@ DEFAULT_DOCTEST_PDF = os.path.join(DEFAULT_DOCDIR, 'doctest.pdf')
 
 MAX_EXT_LENGTH_WITH_DOT = 10
 
+
 # =============================================================================
 # BLOB type
 # =============================================================================
-
-"""
-MySQL: http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html
-    TINYBLOB: up to 2^8 bytes
-    BLOB: up to 2^16 bytes = 64 KiB
-    MEDIUMBLOB: up to 2^24 bytes = 16 MiB  <-- minimum for docs
-    LONGBLOB: up to 2^32 bytes = 4 GiB
-
-    VARBINARY: up to 65535 = 64 KiB
-
-SQL Server: https://msdn.microsoft.com/en-us/library/ms188362.aspx
-    BINARY: up to 8000 bytes = 8 KB
-    VARBINARY(MAX): up to 2^31 - 1 bytes = 2 GiB <-- minimum for docs
-    IMAGE: deprecated; up to 2^31 - 1 bytes = 2 GiB
-        https://msdn.microsoft.com/en-us/library/ms187993.aspx
-
-SQL Alchemy:
-    _Binary: base class
-    LargeBinary: translates to BLOB in MySQL
-    VARBINARY, as an SQL base data type
-    dialects.mysql.base.LONGBLOB
-    dialects.mssql.base.VARBINARY
-
-Therefore, we can take the LargeBinary type and modify it:
-"""
-
 
 # http://docs.sqlalchemy.org/en/latest/core/custom_types.html
 # noinspection PyUnusedLocal
 @compiles(LargeBinary, 'mysql')
 def compile_blob_mysql(type_, compiler, **kw):
+    """
+    MySQL: http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html
+
+    .. code-block:: none
+
+        TINYBLOB: up to 2^8 bytes
+        BLOB: up to 2^16 bytes = 64 KiB
+        MEDIUMBLOB: up to 2^24 bytes = 16 MiB  <-- minimum for docs
+        LONGBLOB: up to 2^32 bytes = 4 GiB
+
+        VARBINARY: up to 65535 = 64 KiB
+
+    SQL Server: https://msdn.microsoft.com/en-us/library/ms188362.aspx
+
+    .. code-block:: none
+
+        BINARY: up to 8000 bytes = 8 KB
+        VARBINARY(MAX): up to 2^31 - 1 bytes = 2 GiB <-- minimum for docs
+        IMAGE: deprecated; up to 2^31 - 1 bytes = 2 GiB
+            https://msdn.microsoft.com/en-us/library/ms187993.aspx
+
+    SQL Alchemy:
+
+    .. code-block:: none
+
+        _Binary: base class
+        LargeBinary: translates to BLOB in MySQL
+        VARBINARY, as an SQL base data type
+        dialects.mysql.base.LONGBLOB
+        dialects.mssql.base.VARBINARY
+
+    Therefore, we can take the LargeBinary type and modify it:
+    """
     return "LONGBLOB"  # would have been "BLOB"
 
 
@@ -231,6 +241,7 @@ class BlobDoc(Base):
         _, extension = os.path.splitext(filename)
         with open(filename, 'rb') as f:
             contents = f.read()  # will be of type 'bytes'
+        # noinspection PyArgumentList
         super().__init__(patient=patient,
                          blob=contents,
                          extension=extension,

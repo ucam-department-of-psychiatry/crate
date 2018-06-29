@@ -59,7 +59,7 @@ class Migration(migrations.Migration):
                 ('colour', models.PositiveSmallIntegerField(verbose_name='Colour number')),  # noqa
                 ('text', models.CharField(max_length=255, verbose_name='Text to highlight')),  # noqa
                 ('active', models.BooleanField(default=True)),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('deleted', models.BooleanField(verbose_name="Deleted from the user's perspective. Audited queries are never properly deleted.", default=False)),  # noqa
                 ('audited', models.BooleanField(default=False)),
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -86,7 +86,7 @@ class Migration(migrations.Migration):
                 ('n_records', models.PositiveIntegerField(default=0)),
                 ('failed', models.BooleanField(default=False)),
                 ('fail_msg', models.TextField()),
-                ('query', models.ForeignKey(to='research.Query')),
+                ('query', models.ForeignKey(to='research.Query', on_delete=models.PROTECT)),  # noqa
             ],
         ),
     ]

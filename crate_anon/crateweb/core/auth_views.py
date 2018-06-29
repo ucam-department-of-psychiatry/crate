@@ -27,10 +27,10 @@
 import logging
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm
-from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.shortcuts import redirect, render
+from django.urls import reverse
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ def login_view(request: HttpRequest) -> HttpResponse:
     # noinspection PyCallByClass,PyTypeChecker
     nextpage = request.GET.get('next', reverse('home'))
     # log.debug("login_view: nextpage: {}".format(nextpage))
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         return HttpResponseRedirect(nextpage)
     form = AuthenticationForm(
         None, request.POST if request.method == 'POST' else None)

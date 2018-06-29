@@ -71,6 +71,14 @@ Options as of 2016-07-21:
       --debug            Ask Celery to be verbose
 
 
+.. _crate_celery_status:
+
+crate_celery_status
+-------------------
+
+This executes the command ``celery -A crate_anon.crateweb.consent status``.
+
+
 .. _crate_launch_flower:
 
 crate_launch_flower
@@ -80,3 +88,15 @@ This command has no options. It launches the Celery Flower_ tool, which is for
 monitoring Celery. It starts a local web server (by default on port 5555; see
 :ref:`TCP/IP ports <tcpip_ports>`); if you browse to http://localhost:5555/ or
 http://127.0.0.1:5555/, you can see what's happening on your Celery system.
+
+See also
+--------
+
+If Celery jobs are taken out of the queue and then crash inside CRATE, you may
+wish to resubmit unprocessed work. For this, use
+
+.. code-block:: bash
+
+    crate_django_manage resubmit_unprocessed_tasks
+
+See :ref:`crate_django_manage <crate_django_manage>`.

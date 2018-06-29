@@ -4,5 +4,5 @@ crate.png
 NLPRP_draft.pdf
 #... sometimes created from the .odt file
 
-build/doctrees
+build/
 

@@ -27,7 +27,7 @@
 import logging
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
-from django.core.urlresolvers import get_script_prefix
+from django.urls import get_script_prefix
 from django.utils.encoding import filepath_to_uri
 # noinspection PyUnresolvedReferences
 from django.utils.six.moves.urllib.parse import urljoin

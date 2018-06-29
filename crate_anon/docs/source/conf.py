@@ -25,6 +25,7 @@ from sphinx.application import Sphinx
 # -- Project information -----------------------------------------------------
 
 project = 'CRATE'
+# noinspection PyShadowingBuiltins
 copyright = '2018, Rudolf Cardinal'
 author = 'Rudolf Cardinal'
 

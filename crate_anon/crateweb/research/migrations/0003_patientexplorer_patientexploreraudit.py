@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ('n_records', models.IntegerField(default=0)),
                 ('failed', models.BooleanField(default=False)),
                 ('fail_msg', models.TextField()),
-                ('patient_explorer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='research.PatientExplorer')),  # noqa
+                ('patient_explorer', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='research.PatientExplorer')),  # noqa
             ],
         ),
     ]

@@ -91,7 +91,7 @@ class Migration(migrations.Migration):
                 ('other_requests', models.TextField(blank=True, verbose_name='Other special requests by patient')),  # noqa
                 ('prefers_email', models.BooleanField(default=False, verbose_name='Patient prefers e-mail contact?')),  # noqa
                 ('changed_by_clinician_override', models.BooleanField(default=False, verbose_name="Consent mode changed by clinician's override?")),  # noqa
-                ('created_by', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('created_by', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT)),  # noqa
             ],
             options={
                 'abstract': False,
@@ -116,7 +116,7 @@ class Migration(migrations.Migration):
                 ('clinician_involvement', models.PositiveSmallIntegerField(choices=[(0, 'No clinician involvement required or requested'), (1, 'Clinician involvement requested by researchers'), (2, 'Clinician involvement required by YELLOW consent mode'), (3, 'Clinician involvement required by UNKNOWN consent mode')], null=True)),  # noqa
                 ('consent_withdrawn', models.BooleanField(default=False)),
                 ('consent_withdrawn_at', models.DateTimeField(null=True, verbose_name='When consent withdrawn')),  # noqa
-                ('consent_mode', models.ForeignKey(to='consent.ConsentMode', null=True)),  # noqa
+                ('consent_mode', models.ForeignKey(to='consent.ConsentMode', on_delete=models.SET_NULL, null=True)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -187,7 +187,7 @@ class Migration(migrations.Migration):
                 ('to_clinician', models.BooleanField(default=False)),
                 ('to_researcher', models.BooleanField(default=False)),
                 ('to_patient', models.BooleanField(default=False)),
-                ('contact_request', models.ForeignKey(to='consent.ContactRequest', null=True)),  # noqa
+                ('contact_request', models.ForeignKey(to='consent.ContactRequest', on_delete=models.PROTECT, null=True)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -198,7 +198,7 @@ class Migration(migrations.Migration):
                 ('sent_filename', models.CharField(null=True, max_length=255)),
                 ('content_type', models.CharField(null=True, max_length=255)),
                 ('owns_file', models.BooleanField(default=False)),
-                ('email', models.ForeignKey(to='consent.Email')),
+                ('email', models.ForeignKey(to='consent.Email', on_delete=models.PROTECT)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -208,8 +208,8 @@ class Migration(migrations.Migration):
                 ('at', models.DateTimeField(auto_now_add=True, verbose_name='When sent')),  # noqa
                 ('sent', models.BooleanField(default=False)),
                 ('failure_reason', models.TextField(verbose_name='Reason sending failed')),  # noqa
-                ('by', models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='emailtransmissions', null=True)),  # noqa
-                ('email', models.ForeignKey(to='consent.Email')),
+                ('by', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='emailtransmissions', null=True)),  # noqa
+                ('email', models.ForeignKey(to='consent.Email', on_delete=models.PROTECT)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -231,7 +231,7 @@ class Migration(migrations.Migration):
                 ('to_patient', models.BooleanField(default=False)),
                 ('rdbm_may_view', models.BooleanField(default=False)),
                 ('sent_manually_at', models.DateTimeField(null=True)),
-                ('contact_request', models.ForeignKey(to='consent.ContactRequest', null=True)),  # noqa
+                ('contact_request', models.ForeignKey(to='consent.ContactRequest', on_delete=models.PROTECT, null=True)),  # noqa
             ],
         ),
         migrations.CreateModel(
@@ -308,8 +308,8 @@ class Migration(migrations.Migration):
                 ('decision_lack_capacity_signed_by_clinician', models.BooleanField(default=False, verbose_name='Patient lacked capacity and request countersigned by clinician?')),  # noqa
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='When created')),  # noqa
                 ('response', models.PositiveSmallIntegerField(choices=[(1, '1: Yes'), (2, '2: No')], null=True, verbose_name="Patient's response")),  # noqa
-                ('contact_request', models.OneToOneField(to='consent.ContactRequest', related_name='patient_response')),  # noqa
-                ('recorded_by', models.ForeignKey(to=settings.AUTH_USER_MODEL, null=True)),  # noqa
+                ('contact_request', models.OneToOneField(to='consent.ContactRequest', on_delete=models.PROTECT, related_name='patient_response')),  # noqa
+                ('recorded_by', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)),  # noqa
             ],
             options={
                 'abstract': False,
@@ -336,7 +336,7 @@ class Migration(migrations.Migration):
                 ('local_approval_at', models.DateTimeField(blank=True, null=True, verbose_name='When approved by local institution?')),  # noqa
                 ('study_details_pdf', ContentTypeRestrictedFileField(upload_to=consent_models.study_details_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
                 ('subject_form_template_pdf', ContentTypeRestrictedFileField(upload_to=consent_models.study_form_upload_to, blank=True, storage=consent_storage.CustomFileSystemStorage(base_url='download_privatestorage'))),  # noqa
-                ('lead_researcher', models.ForeignKey(to=settings.AUTH_USER_MODEL, related_name='studies_as_lead')),  # noqa
+                ('lead_researcher', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='studies_as_lead')),  # noqa
                 ('researchers', models.ManyToManyField(to=settings.AUTH_USER_MODEL, blank=True, related_name='studies_as_researcher')),  # noqa
             ],
             options={
@@ -348,7 +348,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.AutoField(auto_created=True, serialize=False, primary_key=True, verbose_name='ID')),  # noqa
                 ('team', models.CharField(choices=[('dummy_team_one', 'dummy_team_one'), ('dummy_team_two', 'dummy_team_two'), ('dummy_team_three', 'dummy_team_three')], verbose_name='Team description', unique=True, max_length=100)),  # noqa
-                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE)),  # noqa
             ],
             options={
                 'verbose_name_plural': 'clinical team representatives',
@@ -358,36 +358,36 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='letter',
             name='study',
-            field=models.ForeignKey(to='consent.Study', null=True),
+            field=models.ForeignKey(to='consent.Study', on_delete=models.PROTECT, null=True),  # noqa
         ),
         migrations.AddField(
             model_name='email',
             name='letter',
-            field=models.ForeignKey(to='consent.Letter', null=True),
+            field=models.ForeignKey(to='consent.Letter', on_delete=models.PROTECT, null=True),  # noqa
         ),
         migrations.AddField(
             model_name='email',
             name='study',
-            field=models.ForeignKey(to='consent.Study', null=True),
+            field=models.ForeignKey(to='consent.Study', on_delete=models.PROTECT, null=True),  # noqa
         ),
         migrations.AddField(
             model_name='contactrequest',
             name='patient_lookup',
-            field=models.ForeignKey(to='consent.PatientLookup', null=True),
+            field=models.ForeignKey(to='consent.PatientLookup', on_delete=models.SET_NULL, null=True),  # noqa
         ),
         migrations.AddField(
             model_name='contactrequest',
             name='request_by',
-            field=models.ForeignKey(to=settings.AUTH_USER_MODEL),
+            field=models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.PROTECT),  # noqa
         ),
         migrations.AddField(
             model_name='contactrequest',
             name='study',
-            field=models.ForeignKey(to='consent.Study'),
+            field=models.ForeignKey(to='consent.Study', on_delete=models.PROTECT),  # noqa
         ),
         migrations.AddField(
             model_name='clinicianresponse',
             name='contact_request',
-            field=models.OneToOneField(to='consent.ContactRequest', related_name='clinician_response'),  # noqa
+            field=models.OneToOneField(to='consent.ContactRequest', on_delete=models.PROTECT, related_name='clinician_response'),  # noqa
         ),
     ]

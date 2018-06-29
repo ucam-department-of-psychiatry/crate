@@ -89,7 +89,8 @@ def main():
             # and Windows 10, things like "celery -A myapp status" don't work
             # unless the concurrency flag is increased, e.g. to 4.
             # (Default is 1 under Windows.)
-            cmdargs += ["--concurrency=4"]
+            # cmdargs += ["--concurrency=4"]
+            cmdargs += ["--concurrency=1"]  # 2018-06-29
             
             # Without "--pool=solo", sod all happens: tasks go into the
             # Reserved queue, but aren't executed.

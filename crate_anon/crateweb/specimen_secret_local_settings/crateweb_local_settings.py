@@ -37,7 +37,7 @@ raise Exception(
     "However, you need to configure it for your institution's set-up, and "
     "remove this line.".format(os.path.abspath(__file__)))
 
-# noinspection PyPep8
+# noinspection PyPep8, PyUnreachableCode
 from crate_anon.crateweb.config.constants import ResearchDbInfoKeys as RDIKeys
 
 # =============================================================================

@@ -54,6 +54,7 @@ from crate_anon.crateweb.extra.salutation import (
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL,
                                 primary_key=True,
+                                on_delete=models.CASCADE,
                                 related_name="profile")
     # http://stackoverflow.com/questions/14345303/creating-a-profile-model-with-both-an-inlineadmin-and-a-post-save-signal-in-djan  # noqa
 
@@ -187,12 +188,12 @@ def user_saved_so_create_profile(sender: Type[settings.AUTH_USER_MODEL],
 
 
 def get_per_page(request: HttpRequest) -> Optional[int]:
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return None
     return request.user.profile.per_page
 
 
 def get_patients_per_page(request: HttpRequest) -> Optional[int]:
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return None
     return request.user.profile.patients_per_page

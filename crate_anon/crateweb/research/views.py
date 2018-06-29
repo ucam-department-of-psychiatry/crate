@@ -45,7 +45,6 @@ from django.core.exceptions import (
     ObjectDoesNotExist,
     ValidationError,
 )
-from django.core.urlresolvers import reverse
 # from django.db import connection
 from django.db import DatabaseError
 from django.db.models import Q, QuerySet
@@ -53,6 +52,7 @@ from django.http.response import HttpResponse, HttpResponseRedirect
 from django.http.request import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.html import escape
 from pyparsing import ParseException
 

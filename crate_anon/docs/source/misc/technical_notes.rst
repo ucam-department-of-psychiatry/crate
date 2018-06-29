@@ -642,7 +642,7 @@ webnotes.txt
     -------------------------------------------------------------------------------
 
     # If models have changed:
-    $CRATE_MANAGE makemigrations [appname]
+    $CRATE_MANAGE makemigrations [appname] --name MIGRATION_NAME
 
     # To see what it'll do, e.g.
     $CRATE_MANAGE sqlmigrate research 0001  # ... appname, migration_number

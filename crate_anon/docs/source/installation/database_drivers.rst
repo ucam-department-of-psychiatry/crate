@@ -611,19 +611,19 @@ To install FreeTDS 1.0, you have to get fairly low-level:
 
 .. code-block:: bash
 
-	# http://www.freetds.org/userguide/config.htm
-	# http://www.linuxforums.org/forum/applications/199305-wmvolman-2-0-1-install-problems.html
-	cd /tmp  # or somewhere
-	git clone https://github.com/FreeTDS/freetds.git
-	cd freetds
-	libtoolize --force
-	aclocal
-	autoheader
-	automake --force-missing --add-missing
-	autoconf
-	./configure --enable-mars=yes
-	make
-	sudo make install
+    # http://www.freetds.org/userguide/config.htm
+    # http://www.linuxforums.org/forum/applications/199305-wmvolman-2-0-1-install-problems.html
+    cd /tmp  # or somewhere
+    git clone https://github.com/FreeTDS/freetds.git
+    cd freetds
+    libtoolize --force
+    aclocal
+    autoheader
+    automake --force-missing --add-missing
+    autoconf
+    ./configure --enable-mars=yes
+    make
+    sudo make install
 
 Note in particular ``--enable-mars=yes``.
 
@@ -646,17 +646,17 @@ If this fails, edit ``/etc/odbc.ini`` to add a logfile, e.g.
 
 .. code-block:: ini
 
-	[crate_sqlserver_odbc]
-	description = "CRATE test SQL Server database on Wombat VMXP"
-	driver = FreeTDS
-	; this is looked up in /etc/odbcinst.ini
-	TDS_Version = 7.4
-	; see http://www.freetds.org/userguide/choosingtdsprotocol.htm
-	server = 192.168.1.13
-	port = 1433
-	Database = crate_test_src
-	MARS_Connection = Yes
-	DumpFile = /tmp/freedump.log
+    [crate_sqlserver_odbc]
+    description = "CRATE test SQL Server database on Wombat VMXP"
+    driver = FreeTDS
+    ; this is looked up in /etc/odbcinst.ini
+    TDS_Version = 7.4
+    ; see http://www.freetds.org/userguide/choosingtdsprotocol.htm
+    server = 192.168.1.13
+    port = 1433
+    Database = crate_test_src
+    MARS_Connection = Yes
+    DumpFile = /tmp/freedump.log
 
 to check the actual FreeTDS software version and TDS protocol version being
 used; the lines are near the top and look like
@@ -666,7 +666,7 @@ used; the lines are near the top and look like
     log.c:196:Starting log file for FreeTDS 0.91
                                             ^^^ bad; need higher FreeTDS version
     net.c:207:Connecting to 192.168.1.13 port 1433 (TDS version 7.1)
-	                                                            ^^^ bad; need TDS 7.2
+                                                                ^^^ bad; need TDS 7.2
 
 Note that a TDS_Version of “8.0” in ``/etc/odbc.ini`` will be converted to
 “7.1”; if you specify a version that exceeds your SQL Server (e.g. specify
@@ -682,23 +682,23 @@ installation of FreeTDS 0.91. Here’s a working version:
     # /etc/odbcinst.ini
 
 	[FreeTDS_v1_1]
-	Description = FreeTDS 1.1 (SQL Server protocol driver for Unix)
-	Driver = /usr/local/lib/libtdsodbc.so
+    Description = FreeTDS 1.1 (SQL Server protocol driver for Unix)
+    Driver = /usr/local/lib/libtdsodbc.so
 
 .. code-block:: ini
 
     # /etc/odbc.ini
 
-	[crate_sqlserver_odbc]
-	description = "CRATE test SQL Server database on Wombat VMXP"
-	driver = FreeTDS_v1_1
-	TDS_Version = 7.2
-	server = 192.168.1.13
-	port = 1433
-	Database = crate_test_src
-	MARS_Connection = Yes
-	DumpFile = /tmp/freedump.log
-	; remove this line after testing!
+    [crate_sqlserver_odbc]
+    description = "CRATE test SQL Server database on Wombat VMXP"
+    driver = FreeTDS_v1_1
+    TDS_Version = 7.2
+    server = 192.168.1.13
+    port = 1433
+    Database = crate_test_src
+    MARS_Connection = Yes
+    DumpFile = /tmp/freedump.log
+    ; remove this line after testing!
 
 This worked.
 

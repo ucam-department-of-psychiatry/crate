@@ -25,8 +25,10 @@
 """
 
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseForbidden, HttpRequest
+from django.urls import reverse
+from django.utils.deprecation import MiddlewareMixin
+
 from crate_anon.crateweb.core.utils import is_developer
 
 
@@ -36,7 +38,7 @@ from crate_anon.crateweb.core.utils import is_developer
 # See https://djangosnippets.org/snippets/2227/
 
 
-class RestrictAdminMiddleware(object):
+class RestrictAdminMiddleware(MiddlewareMixin):
     """
     A middleware that restricts different admin sites depending on user
     privileges.

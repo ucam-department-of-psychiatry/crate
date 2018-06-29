@@ -26,17 +26,25 @@
 crateweb URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/1.8/topics/http/urls/
+https://docs.djangoproject.com/en/1.8/topics/http/urls/
+
 Examples:
+
 Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  url(r'^$', views.home, name='home')
+
+    1. Add an import:  ``from my_app import views``
+    2. Add a URL to urlpatterns:  ``url(r'^$', views.home, name='home')``
+
 Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  url(r'^$', Home.as_view(), name='home')
+
+    1. Add an import:  ``from other_app.views import Home``
+    2. Add a URL to urlpatterns:  ``url(r'^$', Home.as_view(), name='home')``
+
 Including another URLconf
-    1. Add an import:  from blog import urls as blog_urls
-    2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
+
+    1. Add an import:  ``from blog import urls as blog_urls``
+    2. Add a URL to urlpatterns:  ``url(r'^blog/', include(blog_urls))``
+
 """
 
 from django.conf import settings
@@ -86,9 +94,9 @@ urlpatterns = [
     # Admin sites
     # -------------------------------------------------------------------------
     # ... obfuscate: p351 of Greenfeld_2015.
-    url(r'^mgr_admin/', include(mgr_admin_site.urls)),
-    url(r'^dev_admin/', include(dev_admin_site.urls)),
-    url(r'^res_admin/', include(res_admin_site.urls)),
+    url(r'^mgr_admin/', mgr_admin_site.urls),
+    url(r'^dev_admin/', dev_admin_site.urls),
+    url(r'^res_admin/', res_admin_site.urls),
     # ... namespace is defined in call to AdminSite(); see core/admin.py
 
     # -------------------------------------------------------------------------
@@ -146,7 +154,7 @@ urlpatterns = [
     # We don't offer the monster view in Excel; it'd be huge.
     url(r'^pe_table_browser/(?P<pe_id>[0-9]+)/$',
         research_views.pe_table_browser, name='pe_table_browser'),
-    url(r'^pe_one_table/(?P<pe_id>[0-9]+)/(?P<db>.+)/(?P<schema>.+)/(?P<table>.+)/$',  # noqa
+    url(r'^pe_one_table/(?P<pe_id>[0-9]+)/(?P<db>.*)/(?P<schema>.+)/(?P<table>.+)/$',  # noqa
         research_views.pe_one_table, name='pe_one_table'),
     url(r'^pe_one_table/(?P<pe_id>[0-9]+)/(?P<schema>.+)/(?P<table>.+)/$',  # noqa
         research_views.pe_one_table, name='pe_one_table'),

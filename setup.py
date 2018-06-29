@@ -102,6 +102,7 @@ DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
 # Files
 DOCMAKER = os.path.join(DOC_ROOT_DIR, "rebuild_docs.py")
 MANIFEST_FILE = os.path.join(THIS_DIR, 'MANIFEST.in')  # we will write this
+PIP_REQ_FILE = os.path.join(THIS_DIR, 'requirements.txt')
 
 # OS; setup.py is executed on the destination system at install time, so:
 RUNNING_WINDOWS = platform.system() == 'Windows'
@@ -122,8 +123,13 @@ SKIP_PATTERNS = ['*.pyc', '~*']
 
 EXTRAS_ARG = 'extras'
 parser = argparse.ArgumentParser()
-parser.add_argument('--' + EXTRAS_ARG, action='store_true',
-                    help="USE THIS TO CREATE PACKAGES. Copies extra info in.")
+parser.add_argument(
+    '--' + EXTRAS_ARG, action='store_true',
+    help=(
+        "USE THIS TO CREATE PACKAGES (e.g. 'python setup.py sdist --{}. "
+        "Copies extra info in.".format(EXTRAS_ARG)
+    )
+)
 our_args, leftover_args = parser.parse_known_args()
 sys.argv[1:] = leftover_args
 
@@ -150,6 +156,22 @@ if getattr(our_args, EXTRAS_ARG):
             "# This is an AUTOCREATED file, MANIFEST.in; see setup.py and DO "
             "NOT EDIT BY HAND"])
         manifest.write("\n\n" + "\n".join(manifest_lines) + "\n")
+
+    # Does autowriting requirements.txt help PyCharm?
+    # Old one was:
+    _ = """
+# use:
+#       pip install -r THISFILE
+# where pip is your virtualenv version of pip
+# Note also that this file can include others with "-r OTHERFILE".
+
+# refer to setup.py; see https://caremad.io/2013/07/setup-vs-requirement/
+--index-url https://pypi.python.org/simple/
+-e .
+    """
+    with open(PIP_REQ_FILE, "w") as req_file:
+        subprocess.run(["pip", "freeze"], stdout=req_file)
+
 
 # =============================================================================
 # setup args
@@ -247,49 +269,50 @@ setup(
 
     install_requires=[
 
-        'amqp==2.1.3',  # because 2.1.4 has a bug; see CRATE manual; amqp is used by Celery  # noqa
-        'arrow==0.10.0',  # better datetime
-        'beautifulsoup4==4.5.3',
-        'cardinal_pythonlib==1.0.15',
+        'amqp==2.3.2',  # amqp is used by Celery  # noqa
+        'arrow==0.12.1',  # better datetime
+        'beautifulsoup4==4.6.0',
+        'cardinal_pythonlib==1.0.18',
         'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
-        'chardet==3.0.2',  # character encoding detection for cardinal_pythonlib  # noqa
-        'cherrypy==10.0.0',  # Cross-platform
-        'colorlog==2.10.0',  # colour in logs
-        'distro==1.0.2',  # replaces platform.linux_distribution
-        'Django==1.10.5',  # "django" versus "Django": neither helps pycharm checking  # noqa
-        'django-debug-toolbar==1.6',
+        'chardet==3.0.4',  # character encoding detection for cardinal_pythonlib  # noqa
+        'cherrypy==16.0.2',  # Cross-platform web server
+        'colorlog==3.1.4',  # colour in logs
+        'distro==1.3.0',  # replaces platform.linux_distribution
+        'django==2.0.6',  # "django" versus "Django": neither helps pycharm checking  # noqa
+        'django-debug-toolbar==1.9.1',
         # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
-        'django-extensions==1.7.6',
-        'django-picklefield==0.3.2',  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
+        'django-extensions==2.0.7',
+        'django-picklefield==1.0.0',  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
         # 'django-silk==0.5.7',
-        'django-sslserver==0.19',
-        'flashtext==2.5',
-        'flower==0.9.1',  # debug Celery; web server; only runs explicitly
-        'gunicorn==19.6.0',  # UNIX only, though will install under Windows
-        'kombu==4.0.1',  # see above re amqp/celery
+        'django-sslserver==0.20',
+        'flashtext==2.7',
+        'flower==0.9.2',  # debug Celery; web server; only runs explicitly
+        'gunicorn==19.8.1',  # UNIX only, though will install under Windows
+        'kombu==4.1.0',
         # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
-        'openpyxl==2.4.2',  # for ONSPD
-        'pendulum==1.3.0',  # dates/times
+        'openpyxl==2.5.4',  # for ONSPD
+        'pendulum==2.0.2',  # dates/times
         'pdfkit==0.6.1',
         'prettytable==0.7.2',
-        'psutil==5.0.1',  # process management
+        'psutil==5.4.6',  # process management
         'pygments==2.2.0',  # syntax highlighting
         # REMOVED in version 0.18.42; needs Visual C++ under Windows  # 'pyhashxx==0.1.3',  # fast non-cryptographic hashing  # noqa
-        'pyparsing==2.1.10',  # generic grammar parser
+        'pyparsing==2.2.0',  # generic grammar parser
         'PyPDF2==1.26.0',
         # 'pytz==2016.10',
         'python-dateutil==2.6.0',
         # 'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
         # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-        'regex==2017.1.17',
-        'semver==2.7.5',  # comparing semantic versions
-        'sortedcontainers==1.5.7',
-        'SQLAlchemy==1.1.5',  # database access
-        'sqlparse==0.2.2',
-        'typing==3.5.3.0',  # part of stdlib in Python 3.5, but not 3.4
+        'regex==2018.6.21',
+        'semver==2.8.0',  # comparing semantic versions
+        'sphinx==1.7.5',  # documentation
+        'sortedcontainers==2.0.4',
+        'SQLAlchemy==1.2.8',  # database access
+        'sqlparse==0.2.4',
+        'typing==3.6.4',  # part of stdlib in Python 3.5, but not 3.4
         'unidecode==1.0.22',  # for removing accents
-        'Werkzeug==0.11.15',
-        'xlrd==1.0.0',  # for ONSPD
+        'Werkzeug==0.14.1',
+        'xlrd==1.1.0',  # for ONSPD
 
         # ---------------------------------------------------------------------
         # For database connections (see manual): install manually
@@ -311,7 +334,7 @@ setup(
     ] + (
         # Windows-specific stuff
         [
-            'pypiwin32==219',
+            'pypiwin32==223',
         ] if RUNNING_WINDOWS else []
     ),
 
@@ -351,6 +374,7 @@ setup(
 
             'crate_django_manage=crate_anon.crateweb.manage:main',  # will cope with argv  # noqa
             'crate_generate_new_django_secret_key=cardinal_pythonlib.django.tools.generate_new_django_secret_key:main',  # noqa
+            'crate_celery_status=crate_anon.tools.celery_status:main',
             'crate_launch_celery=crate_anon.tools.launch_celery:main',
             'crate_launch_cherrypy_server=crate_anon.tools.launch_cherrypy_server:main',  # noqa
             # ... a separate script with ":main" rather than

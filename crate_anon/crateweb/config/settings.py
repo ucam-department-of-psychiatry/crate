@@ -85,7 +85,7 @@ INSTALLED_APPS = (
     'crate_anon.crateweb.config.apps.CoreAppConfig',  # for e.g. the runcpserver command  # noqa
 )
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     # 'silk.middleware.SilkyMiddleware',
 
     # Last, when using the profiling panel? But actually breaks it...
@@ -100,7 +100,7 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
+    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',

@@ -1,5 +1,10 @@
 {# querybuilder_form.html #}
 
+{% comment %}
+    template parameters:
+        form_submit_url: str
+{% endcomment %}
+
 <div>
     <span id="id_current_column" class="titlecolour">Please choose a table and column:</span>
     <span id="id_comment"></span>
@@ -9,7 +14,7 @@
 
 <div id="id_warning" class="warning"></div>
 
-<form action="{% url "form_submit_url" %}" method="post" enctype="multipart/form-data">
+<form action="{% url form_submit_url %}" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <!-- name tags must match QueryBuilderForm -->
     <select id="id_database" name="database" title="Database"></select>

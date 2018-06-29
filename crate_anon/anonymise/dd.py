@@ -81,6 +81,7 @@ class DataDictionary(object):
         """
         self.config = config
         self.rows = []  # type: List[DataDictionaryRow]
+        # noinspection PyArgumentList
         self.cached_srcdb_table_pairs = SortedSet()
         self.n_definers = 0
 

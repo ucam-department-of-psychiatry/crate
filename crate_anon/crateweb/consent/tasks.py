@@ -23,10 +23,9 @@
 
 ===============================================================================
 
-See also celery.py, which defines the app
+See also :mod:`crate_anon.crateweb.consent.celery`, which defines the app
 
-If you get a "received unregistered task" error:
-===============================================================================
+**If you get a "received unregistered task" error:**
 
 1.  Restart the Celery worker. That may fix it.
 
@@ -38,8 +37,7 @@ If you get a "received unregistered task" error:
     http://docs.celeryq.org/en/latest/userguide/tasks.html#task-names
 
 
-Acknowledgement/not doing things more than once:
-===============================================================================
+**Acknowledgement/not doing things more than once:**
 
 - http://docs.celeryproject.org/en/latest/userguide/tasks.html
 
@@ -54,8 +52,7 @@ Acknowledgement/not doing things more than once:
   than once).
 
 
-Circular imports:
-===============================================================================
+**Circular imports:**
 
 - http://stackoverflow.com/questions/17313532/django-import-loop-between-celery-tasks-and-my-models  # noqa
 
@@ -69,14 +66,15 @@ Circular imports:
   imports here.
 
 
-Race condition:
-===============================================================================
+**Race condition:**
 
 - Django:
+
     (1) existing object
     (2) amend with form
     (3) save()
     (4) call function.delay(obj.id)
+
   Object is received by Celery in the state before save() at step 3.
 
 - http://celery.readthedocs.org/en/latest/userguide/tasks.html#database-transactions  # noqa
@@ -89,8 +87,12 @@ Race condition:
 
 - SOLUTION:
   https://docs.djangoproject.com/en/dev/topics/db/transactions/#django.db.transaction.on_commit  # noqa
+
+  .. code-block:: python
+
     from django.db import transaction
     transaction.on_commit(lambda: blah.delay(blah))
+
   Requires Django 1.9. As of 2015-11-21, that means 1.9rc1
 
 """
@@ -99,7 +101,7 @@ import logging
 from celery import shared_task
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.urlresolvers import set_script_prefix
+from django.urls import set_script_prefix
 
 log = logging.getLogger(__name__)
 
@@ -118,6 +120,12 @@ def resend_email(email_id: int, user_id: int) -> None:
     Args:
         email_id: ID of the e-mail
         user_id: ID of the sending user
+
+    Callers include
+    - :meth:`crate_anon.crateweb.core.admin.EmailDevAdmin.resend`
+
+    Creates/saves an
+    :class:`crate_anon.crateweb.consent.models.EmailTransmission`.
     """
     User = get_user_model()
     from crate_anon.crateweb.consent.models import Email  # delayed import
@@ -133,6 +141,12 @@ def process_contact_request(contact_request_id: int) -> None:
     Celery task to act on a contact request.
     For example, might send an e-mail to a clinician, or generate a letter to
     the researcher.
+
+    Callers include
+    - :meth:`crate_anon.crateweb.consent.models.ContactRequest.create`
+
+    Sets ``processed = True`` and ``processed_at`` for the
+    :class:`crate_anon.crateweb.consent.models.ContactRequest`.
     """
     from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
     set_script_prefix(settings.FORCE_SCRIPT_NAME)  # see site_absolute_url
@@ -147,7 +161,13 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
     Celery task to do the thinking associated with a clinician's response to
     a contact request. For example, might generate letters to patients and
     notify the Research Database Manager of work to be done.
-    """
+    
+    Callers include
+    - :meth:`crate_anon.crateweb.consent.views.finalize_clinician_response_in_background`
+    
+    Sets ``processed = True`` and ``processed_at`` for the
+    :class:`crate_anon.crateweb.consent.models.ClinicianResponse`.
+    """  # noqa
     from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
     clinician_response = ClinicianResponse.objects.get(
         pk=clinician_response_id)
@@ -160,6 +180,16 @@ def process_consent_change(consent_mode_id: int) -> None:
     """
     Celery task to do the thinking associated with a change of consent mode
     (e.g. might send a withdrawal letter to a researcher).
+
+    Callers include:
+    - :meth:`crate_anon.crateweb.core.admin.ConsentModeMgrAdmin.save_model`
+
+    Sets ``processed = True`` for the
+    :class:`crate_anon.crateweb.consent.models.ConsentMode`,
+    if ``current == True`` and ``needs_processing == True``.
+
+    .. todo: don't process twice
+
     """
     from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
     consent_mode = ConsentMode.objects.get(pk=consent_mode_id)
@@ -172,6 +202,9 @@ def process_patient_response(patient_response_id: int) -> None:
     """
     Celery task to do the thinking associated with a patient's decision.
     For example, might send a letter to a researcher.
+
+    Sets ``processed = True`` and ``processed_at`` for the
+    :class:`crate_anon.crateweb.consent.models.PatientResponse`.
     """
     from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
     patient_response = PatientResponse.objects.get(pk=patient_response_id)
@@ -199,6 +232,10 @@ def test_email_rdbm_task() -> None:
 def email_rdbm_task(subject: str, text: str) -> None:
     """
     Celery task to e-mail the Research Database Manager.
+
+    Creates/saves an
+    :class:`crate_anon.crateweb.consent.models.Email` and an
+    :class:`crate_anon.crateweb.consent.models.EmailTransmission`.
     """
     from crate_anon.crateweb.consent.models import Email  # delayed import
     email = Email.create_rdbm_text_email(subject, text)
@@ -210,3 +247,35 @@ def email_rdbm_task(subject: str, text: str) -> None:
         log.info(str(et))
     else:
         log.error(str(et))
+
+
+# noinspection PyCallingNonCallable
+@shared_task(ignore_result=True)
+def resubmit_unprocessed_tasks_task() -> None:
+    """
+    Celery task to finish up any outstanding work.
+    Use this with caution.
+
+    The idea is that if a previous Celery task crashed, it will have been
+    removed from the Celery queue, but not completed.
+    As of 2018-06-29, we make sure that we have completion flags. This task
+    then works through anything unprocessed, and tries to process it.
+
+    All work gets added to the Celery queue.
+    """
+    from crate_anon.crateweb.consent.models import ClinicianResponse  # delayed import  # noqa
+    from crate_anon.crateweb.consent.models import ConsentMode  # delayed import  # noqa
+    from crate_anon.crateweb.consent.models import ContactRequest  # delayed import  # noqa
+    from crate_anon.crateweb.consent.models import PatientResponse  # delayed import  # noqa
+
+    for patient_response in PatientResponse.get_unprocessed():
+        process_patient_response.delay(patient_response.id)
+
+    for clinician_response in ClinicianResponse.get_unprocessed():
+        finalize_clinician_response.delay(clinician_response.id)
+
+    for consent_mode in ConsentMode.get_unprocessed():
+        process_consent_change.delay(consent_mode.id)
+
+    for contact_request in ContactRequest.get_unprocessed():
+        process_contact_request.delay(contact_request.id)

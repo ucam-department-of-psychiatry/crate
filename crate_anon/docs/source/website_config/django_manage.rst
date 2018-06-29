@@ -23,6 +23,8 @@
 Manage the CRATE web server
 ===========================
 
+.. _crate_django_manage:
+
 The CRATE web front end uses Django_, which comes with a number of built-in
 management comments; to these, CRATE adds some more. All are available as
 subcommands of
@@ -31,7 +33,7 @@ subcommands of
 
     crate_django_manage
 
-As of 2016-07-21, the available commands are:
+As of 2018-06-29, the available commands are:
 
 .. code-block:: none
 
@@ -44,8 +46,15 @@ As of 2016-07-21, the available commands are:
         createsuperuser
 
     [consent]
+        fetch_optouts
+        lookup_consent
+        lookup_patient
         populate
+        resubmit_unprocessed_tasks
         test_email
+
+    [contenttypes]
+        remove_stale_contenttypes
 
     [core]
         runcpserver
@@ -87,20 +96,24 @@ As of 2016-07-21, the available commands are:
         create_command
         create_jobs
         create_template_tags
+        delete_squashed_migrations
         describe_form
         drop_test_database
         dumpscript
         export_emails
         find_template
+        generate_password
         generate_secret_key
         graph_models
         mail_debug
+        merge_model_instances
         notes
         passwd
         pipchecker
         print_settings
         print_user_for_session
         reset_db
+        reset_schema
         runjob
         runjobs
         runprofileserver
@@ -110,6 +123,7 @@ As of 2016-07-21, the available commands are:
         set_fake_emails
         set_fake_passwords
         shell_plus
+        show_template_tags
         show_templatetags
         show_urls
         sqlcreate

@@ -74,19 +74,31 @@ class PatientInfoConstants(object):
 class PatientInfo(AdminBase):
     """
     Design decision in this class:
+
     - It gets too complicated if you try to make the fieldnames arbitrary and
       determined by the config.
+
     - So we always use 'pid', 'rid', etc.
+
         - Older config settings that this decision removes:
+
+          .. code-block:: none
+
             mapping_patient_id_fieldname
             mapping_master_id_fieldname
+
         - Note that these are still actively used, as they can be used to
           set the names in the OUTPUT database (not the mapping database):
+
+          .. code-block:: none
+
             research_id_fieldname
             trid_fieldname
             master_research_id_fieldname
             source_hash_fieldname
+
     - The config is allowed to set three column types:
+
         - the source PID type (e.g. INT, BIGINT, VARCHAR)
         - the source MPID type (e.g. BIGINT)
         - the encrypted (RID, MRID) type (which is set by the encryption
@@ -182,6 +194,7 @@ class TridRecord(AdminBase):
             session.begin_nested()
             candidate = random.randint(1, MAX_TRID)
             log.debug("Trying candidate TRID: {}".format(candidate))
+            # noinspection PyArgumentList
             obj = cls(pid=pid, trid=candidate)
             try:
                 session.add(obj)
@@ -207,6 +220,7 @@ class OptOutPid(AdminBase):
     @classmethod
     def add(cls, session: Session, pid: Union[int, str]) -> None:
         log.debug("Adding opt-out for PID {}".format(pid))
+        # noinspection PyArgumentList
         newthing = cls(pid=pid)
         session.merge(newthing)
         # http://stackoverflow.com/questions/12297156/fastest-way-to-insert-object-if-it-doesnt-exist-with-sqlalchemy  # noqa
@@ -228,5 +242,6 @@ class OptOutMpid(AdminBase):
     @classmethod
     def add(cls, session: Session, mpid: Union[int, str]) -> None:
         log.debug("Adding opt-out for MPID {}".format(mpid))
+        # noinspection PyArgumentList
         newthing = cls(mpid=mpid)
         session.merge(newthing)

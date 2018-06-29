@@ -44,12 +44,12 @@ from django.contrib import admin
 from django.contrib.admin import SimpleListFilter
 from django.contrib.auth.models import User
 from django.contrib.auth.admin import UserAdmin
-from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.db.models import Q, QuerySet
 from django.http.request import HttpRequest
 from django.template.defaultfilters import yesno
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy
 
 from crate_anon.crateweb.extra.admin import (
@@ -577,7 +577,8 @@ class ConsentModeMgrAdmin(AddOnlyModelAdmin):
                    obj: ConsentMode,
                    form: forms.ModelForm,
                    change: bool) -> None:
-        obj.current = False  # NOT YET; set by process_change()
+        obj.current = True
+        obj.needs_processing = True
         obj.created_by = request.user
         obj.save()
         transaction.on_commit(

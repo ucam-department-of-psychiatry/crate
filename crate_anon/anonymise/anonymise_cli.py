@@ -31,7 +31,6 @@ import logging
 import os
 from typing import List
 
-from cardinal_pythonlib.debugging import pdb_run
 from cardinal_pythonlib.exceptions import die
 from cardinal_pythonlib.extract_text import is_text_extractor_available
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -45,6 +44,13 @@ from crate_anon.anonymise.constants import (
 from crate_anon.version import VERSION, VERSION_DATE
 
 log = logging.getLogger(__name__)
+
+DEBUG_RUN_WITH_PDB = False
+
+if DEBUG_RUN_WITH_PDB:
+    from cardinal_pythonlib.debugging import pdb_run
+else:
+    pdb_run = None
 
 
 # =============================================================================
@@ -185,7 +191,7 @@ def main() -> None:
 # =============================================================================
 
 if __name__ == '__main__':
-    if False:
+    if DEBUG_RUN_WITH_PDB:
         pdb_run(main)
     else:
         main()

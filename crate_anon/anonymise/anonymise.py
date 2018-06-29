@@ -338,13 +338,13 @@ def gen_patient_ids(tasknum: int = 0,
 
     # Otherwise do it properly:
     keeping_track = config.dd.n_definers > 1
-    if keeping_track:
-        processed_ids = set()  # POTENTIAL FOR MEMORY PROBLEM WITH V. BIG DB
-        # ... if we ever get near that limit (for a huge number of *patients*,
-        # which is much less likely than a huge number of other records), we'd
-        # need to generate the IDs and stash them in a temporary table, then
-        # work through that. However, a few million patients should be fine
-        # for a Python set on realistic computers.
+    processed_ids = set()  # used only if keeping_track is True
+    # ... POTENTIAL FOR MEMORY PROBLEM WITH V. BIG DB
+    # ... if we ever get near that limit (for a huge number of *patients*,
+    # which is much less likely than a huge number of other records), we'd
+    # need to generate the IDs and stash them in a temporary table, then
+    # work through that. However, a few million patients should be fine
+    # for a Python set on realistic computers.
     n_found = 0
     debuglimit = config.debug_max_n_patients
     for ddr in config.dd.rows:

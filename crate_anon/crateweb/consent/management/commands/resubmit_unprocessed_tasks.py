@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/management/commands/populate.py
+# crate_anon/crateweb/consent/management/commands/resubmit_unprocessed_tasks.py
 
 """
 ===============================================================================
@@ -24,14 +24,19 @@
 ===============================================================================
 """
 
+import logging
+
 from django.core.management.base import BaseCommand
 
-from crate_anon.crateweb.consent.models import Leaflet
+from crate_anon.crateweb.consent.tasks import resubmit_unprocessed_tasks_task
+
+log = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Populate the database with leaflet entries if necessary"
+    help = "Resubmit unprocessed tasks (in case Celery jobs have been lost)"
 
     def handle(self, *args, **options):
-        Leaflet.populate()
-        self.stdout.write("Successfully populated leaflets")
+        resubmit_unprocessed_tasks_task.delay()
+        log.info("Initial Celery task submitted; this will trigger "
+                 "more tasks for any unprocessed work.")

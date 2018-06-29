@@ -46,13 +46,13 @@ from django import forms
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.mail import EmailMessage, EmailMultiAlternatives
-from django.core.urlresolvers import reverse
 from django.core.validators import validate_email
 from django.db import models, transaction
 from django.db.models import Q, QuerySet
 from django.dispatch import receiver
 from django.http import QueryDict, Http404
 from django.http.request import HttpRequest
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.functional import cached_property
@@ -88,6 +88,7 @@ from crate_anon.crateweb.extra.salutation import (
 from crate_anon.crateweb.consent.storage import privatestorage
 from crate_anon.crateweb.consent.tasks import (
     email_rdbm_task,
+    process_consent_change,
     process_contact_request,
 )
 from crate_anon.crateweb.consent.teamlookup import get_teams
@@ -160,6 +161,7 @@ class Study(models.Model):
         unique=True)
     title = models.CharField(max_length=255, verbose_name="Study title")
     lead_researcher = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                        on_delete=models.PROTECT,
                                         related_name="studies_as_lead")
     researchers = models.ManyToManyField(settings.AUTH_USER_MODEL,
                                          related_name="studies_as_researcher",
@@ -966,7 +968,8 @@ class TeamRep(models.Model):
     team = models.CharField(max_length=LEN_NAME, unique=True,
                             choices=all_teams_info.team_choices,
                             verbose_name="Team description")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
 
     class Meta:
         verbose_name = "clinical team representative"
@@ -1013,7 +1016,8 @@ class ConsentMode(Decision):
     created_at = models.DateTimeField(
         verbose_name="When was this record created?",
         auto_now_add=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                   on_delete=models.PROTECT)
 
     exclude_entirely = models.BooleanField(
         default=False,
@@ -1042,6 +1046,11 @@ class ConsentMode(Decision):
         max_length=SOURCE_DB_NAME_MAX_LENGTH,
         default=SOURCE_USER_ENTRY,
         verbose_name="Source of information")
+
+    skip_letter_to_patient = models.BooleanField(default=False)  # added 2018-06-29  # noqa
+    needs_processing = models.BooleanField(default=False)  # added 2018-06-29
+    processed = models.BooleanField(default=False)  # added 2018-06-29
+    processed_at = models.DateTimeField(null=True)  # added 2018-06-29
 
     # class Meta:
     #     get_latest_by = "created_at"
@@ -1087,6 +1096,7 @@ class ConsentMode(Decision):
             consent_mode = cls(nhs_number=nhs_number,
                                created_by=created_by,
                                source=cls.SOURCE_AUTOCREATED,
+                               needs_processing=False,
                                current=True)
             consent_mode.save()
         except cls.MultipleObjectsReturned:
@@ -1095,6 +1105,7 @@ class ConsentMode(Decision):
             consent_mode = cls(nhs_number=nhs_number,
                                created_by=created_by,
                                source=cls.SOURCE_AUTOCREATED,
+                               needs_processing=False,
                                current=True)
             consent_mode.save()
         return consent_mode
@@ -1173,20 +1184,33 @@ class ConsentMode(Decision):
         latest.created_by = created_by
         latest.source = source_db
         latest.current = True
+        latest.needs_processing = True
+        latest.skip_letter_to_patient = True  # the patient already knows;
+        # they made the decision with the clinician who entered this into the
+        # primary clinical record.
         latest.save()  # This now becomes the current CRATE consent mode.
+        transaction.on_commit(
+            lambda: process_consent_change.delay(latest.id)
+        )  # Asynchronous
+        # Without transaction.on_commit, we get a RACE CONDITION:
+        # object is received in the pre-save() state.
         return decisions
 
     def consider_withdrawal(self) -> None:
         """
         If required, withdraw consent for other studies.
-        Call this before setting current=True and calling save().
+
         Note that as per Major Amendment 1 to 12/EE/0407, this happens
         automatically, rather than having a special flag to control it.
         """
         try:
-            previous = ConsentMode.objects.get(
-                nhs_number=self.nhs_number,
-                current=True)
+            previous = ConsentMode.objects\
+                .filter(nhs_number=self.nhs_number, current=False,
+                        created_at__isnull=False)\
+                .latest('created_at')
+            # ... https://docs.djangoproject.com/en/dev/ref/models/querysets/#latest  # noqa
+            if not previous:
+                return  # no previous ConsentMode; nothing to do
             if (previous.consent_mode == ConsentMode.GREEN and
                     self.consent_mode != ConsentMode.GREEN):
                 contact_requests = (
@@ -1256,6 +1280,14 @@ class ConsentMode(Decision):
         email = Email.create_rdbm_email(subject, html)
         email.send()
 
+    @staticmethod
+    def get_unprocessed() -> QuerySet:
+        return ConsentMode.objects.filter(
+            needs_processing=True,
+            current=True,
+            processed=False,
+        )
+
     def process_change(self) -> None:
         """
         Called upon saving.
@@ -1266,12 +1298,27 @@ class ConsentMode(Decision):
         and tell researchers, i.e. "active cancellation" of ongoing permission,
         where the researchers have not yet made contact.
         """
-        # noinspection PyTypeChecker
-        letter = Letter.create_consent_confirmation_to_patient(self)
-        # ... will save
-        self.notify_rdbm_of_work(letter, to_researcher=False)
+        if self.processed:
+            log.warning("ConsentMode #{}: already processed; "
+                        "not processing again".format(self.id))
+            return
+        if not self.needs_processing:
+            return
+        if not self.current:
+            # No point processing non-current things.
+            return
+
+        if not self.skip_letter_to_patient:
+            # noinspection PyTypeChecker
+            letter = Letter.create_consent_confirmation_to_patient(self)
+            # ... will save
+            self.notify_rdbm_of_work(letter, to_researcher=False)
+
         self.consider_withdrawal()
-        self.current = True  # will disable current flag for others
+
+        self.processed = True
+        self.needs_processing = False
+        self.processed_at = timezone.now()
         self.save()
 
 
@@ -1299,8 +1346,9 @@ class ContactRequest(models.Model):
     # Created initially:
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
-    request_by = models.ForeignKey(settings.AUTH_USER_MODEL)
-    study = models.ForeignKey(Study)  # type: Study
+    request_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                   on_delete=models.PROTECT)
+    study = models.ForeignKey(Study, on_delete=models.PROTECT)  # type: Study
     request_direct_approach = models.BooleanField(
         verbose_name="Request direct contact with patient if available"
                      " (not contact with clinician first)")
@@ -1316,13 +1364,18 @@ class ContactRequest(models.Model):
         verbose_name="Master research ID used for lookup")
 
     processed = models.BooleanField(default=False)
+    processed_at = models.DateTimeField(null=True)  # added 2018-06-29
     # Below: created during processing.
 
     # Those numbers translate to this:
     nhs_number = models.BigIntegerField(null=True, verbose_name="NHS number")
     # ... from which:
-    patient_lookup = models.ForeignKey(PatientLookup, null=True)
-    consent_mode = models.ForeignKey(ConsentMode, null=True)
+    patient_lookup = models.ForeignKey(PatientLookup,
+                                       on_delete=models.SET_NULL,
+                                       null=True)
+    consent_mode = models.ForeignKey(ConsentMode,
+                                     on_delete=models.SET_NULL,
+                                     null=True)
     # Now decisions:
     approaches_in_past_year = models.PositiveIntegerField(null=True)
     decisions = models.TextField(
@@ -1366,11 +1419,20 @@ class ContactRequest(models.Model):
         )  # Asynchronous
         return cr
 
+    @staticmethod
+    def get_unprocessed() -> QuerySet:
+        return ContactRequest.objects.filter(processed=False)
+
     def process_request(self) -> None:
+        if self.processed:
+            log.warning("ContactRequest #{}: already processed; "
+                        "not processing again".format(self.id))
+            return
         self.decisionlist = []
         self.process_request_main()
         self.decisions = " ".join(self.decisionlist)
         self.processed = True
+        self.processed_at = timezone.now()
         self.save()
 
     def process_request_main(self) -> None:
@@ -1982,6 +2044,7 @@ class ClinicianResponse(models.Model):
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
     contact_request = models.OneToOneField(ContactRequest,
+                                           on_delete=models.PROTECT,
                                            related_name="clinician_response")
     token = models.CharField(max_length=TOKEN_LENGTH_CHARS)
     responded = models.BooleanField(default=False, verbose_name="Responded?")
@@ -2004,6 +2067,9 @@ class ClinicianResponse(models.Model):
     charity_amount_due = models.DecimalField(max_digits=8, decimal_places=2,
                                              default=0)
     # ... set to settings.CHARITY_AMOUNT_CLINICIAN_RESPONSE upon response
+
+    processed = models.BooleanField(default=False)  # added 2018-06-29
+    processed_at = models.DateTimeField(null=True)  # added 2018-06-29
 
     def get_response_explanation(self) -> str:
         # log.debug("get_response_explanation: {}".format(self.response))
@@ -2065,11 +2131,19 @@ class ClinicianResponse(models.Model):
         self.charity_amount_due = settings.CHARITY_AMOUNT_CLINICIAN_RESPONSE
         self.save()
 
+    @staticmethod
+    def get_unprocessed() -> QuerySet:
+        return ClinicianResponse.objects.filter(processed=False)
+
     def finalize_b(self) -> None:
         """
         Call this when the clinician completes their response.
         Part B: background.
         """
+        if self.processed:
+            log.warning("ClinicianResponse #{}: already processed; "
+                        "not processing again".format(self.id))
+            return
         if self.response == ClinicianResponse.RESPONSE_R:
             # noinspection PyTypeChecker
             letter = Letter.create_request_to_patient(
@@ -2091,6 +2165,8 @@ class ClinicianResponse(models.Model):
                                ClinicianResponse.RESPONSE_C,
                                ClinicianResponse.RESPONSE_D):
             self.contact_request.notify_rdbm_of_bad_progress()
+        self.processed = True
+        self.processed_at = timezone.now()
         self.save()
 
 
@@ -2111,11 +2187,16 @@ class PatientResponse(Decision):
     created_at = models.DateTimeField(verbose_name="When created",
                                       auto_now_add=True)
     contact_request = models.OneToOneField(ContactRequest,
+                                           on_delete=models.PROTECT,
                                            related_name="patient_response")
-    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True)
+    recorded_by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                                    on_delete=models.PROTECT,
+                                    null=True)
     response = models.PositiveSmallIntegerField(
         null=True,
         choices=RESPONSES, verbose_name="Patient's response")
+    processed = models.BooleanField(default=False)  # added 2018-06-29
+    processed_at = models.DateTimeField(null=True)  # added 2018-06-29
 
     def __str__(self):
         if self.response:
@@ -2138,9 +2219,17 @@ class PatientResponse(Decision):
         patient_response.save()
         return patient_response
 
+    @staticmethod
+    def get_unprocessed() -> QuerySet:
+        return PatientResponse.objects.filter(processed=False)
+
     def process_response(self) -> None:
         # log.debug("process_response: PatientResponse: {}".format(
         #     modelrepr(self)))
+        if self.processed:
+            log.warning("PatientResponse #{}: already processed; "
+                        "not processing again".format(self.id))
+            return
         if self.response == PatientResponse.YES:
             contact_request = self.contact_request
             # noinspection PyTypeChecker
@@ -2153,6 +2242,9 @@ class PatientResponse(Decision):
             emailed = emailtransmission.sent
             if not emailed:
                 contact_request.notify_rdbm_of_work(letter, to_researcher=True)
+        self.processed = True
+        self.processed_at = timezone.now()
+        self.save()
 
 
 # =============================================================================
@@ -2168,8 +2260,9 @@ class Letter(models.Model):
     to_researcher = models.BooleanField(default=False)
     to_patient = models.BooleanField(default=False)
     rdbm_may_view = models.BooleanField(default=False)
-    study = models.ForeignKey(Study, null=True)
-    contact_request = models.ForeignKey(ContactRequest, null=True)
+    study = models.ForeignKey(Study, on_delete=models.PROTECT, null=True)
+    contact_request = models.ForeignKey(ContactRequest,
+                                        on_delete=models.PROTECT, null=True)
     sent_manually_at = models.DateTimeField(null=True)
 
     def __str__(self):
@@ -2329,9 +2422,10 @@ class Email(models.Model):
     to_clinician = models.BooleanField(default=False)
     to_researcher = models.BooleanField(default=False)
     to_patient = models.BooleanField(default=False)
-    study = models.ForeignKey(Study, null=True)
-    contact_request = models.ForeignKey(ContactRequest, null=True)
-    letter = models.ForeignKey(Letter, null=True)
+    study = models.ForeignKey(Study, on_delete=models.PROTECT, null=True)
+    contact_request = models.ForeignKey(ContactRequest,
+                                        on_delete=models.PROTECT, null=True)
+    letter = models.ForeignKey(Letter, on_delete=models.PROTECT, null=True)
     # Transmission attempts are in EmailTransmission.
     # Except that filtering in the admin
 
@@ -2505,7 +2599,7 @@ class EmailAttachment(models.Model):
     """E-mail attachment class that does NOT manage its own files, i.e. if
     the attachment object is deleted, the files won't be. Use this for
     referencing files already stored elsewhere in the database."""
-    email = models.ForeignKey(Email)
+    email = models.ForeignKey(Email, on_delete=models.PROTECT)
     file = models.FileField(storage=privatestorage)
     sent_filename = models.CharField(null=True, max_length=255)
     content_type = models.CharField(null=True, max_length=255)
@@ -2561,9 +2655,11 @@ def auto_delete_emailattachment_files_on_change(sender: Type[EmailAttachment],
 
 
 class EmailTransmission(models.Model):
-    email = models.ForeignKey(Email)
+    email = models.ForeignKey(Email, on_delete=models.PROTECT)
     at = models.DateTimeField(verbose_name="When sent", auto_now_add=True)
-    by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True,
+    by = models.ForeignKey(settings.AUTH_USER_MODEL,
+                           on_delete=models.PROTECT,
+                           null=True,
                            related_name="emailtransmissions")
     sent = models.BooleanField(default=False)
     failure_reason = models.TextField(verbose_name="Reason sending failed")

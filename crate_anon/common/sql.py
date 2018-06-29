@@ -460,8 +460,6 @@ def parser_add_from_tables(parsed: ParseResults,
                            join_info_list: List[JoinInfo],
                            grammar: SqlGrammar) -> ParseResults:
     """
-    joininfo: list of dictionaries with keys:
-        table, join_type, join_condition
     Presupposes at least one table already in the FROM clause.
     """
     # log.critical(parsed.dump())
@@ -1014,22 +1012,30 @@ def sql_fragment_cast_to_int(expr: str,
     """
     For Microsoft SQL Server.
     Conversion to INT:
+    
     - http://stackoverflow.com/questions/2000045
     - http://stackoverflow.com/questions/14719760  # this one
     - http://stackoverflow.com/questions/14692131
-      ... LIKE example.
-      ... ISNUMERIC()
-          https://msdn.microsoft.com/en-us/library/ms186272.aspx
-          ... but that includes non-integer numerics
+    
+      - see LIKE example.
+      - see ISNUMERIC();
+        https://msdn.microsoft.com/en-us/library/ms186272.aspx
+        ... but that includes non-integer numerics
+        
     - https://msdn.microsoft.com/en-us/library/ms174214(v=sql.120).aspx
       ... relates to the SQL Server Management Studio "Find and Replace"
-          dialogue box, not to SQL itself!
+      dialogue box, not to SQL itself!
+      
     - http://stackoverflow.com/questions/29206404/mssql-regular-expression
 
     Note that the regex-like expression supported by LIKE is extremely limited.
+    
     - https://msdn.microsoft.com/en-us/library/ms179859.aspx
+    
     The only things supported are:
 
+    .. code-block:: none
+    
         %   any characters
         _   any single character
         []  single character in range or set, e.g. [a-f], [abcdef]
@@ -1039,6 +1045,8 @@ def sql_fragment_cast_to_int(expr: str,
 
     So the best bet is to have the LIKE clause check for a non-integer:
 
+    .. code-block:: sql
+
         CASE
             WHEN something LIKE '%[^0-9]%' THEN NULL
             ELSE CAST(something AS BIGINT)
@@ -1046,6 +1054,8 @@ def sql_fragment_cast_to_int(expr: str,
 
     ... which doesn't deal with spaces properly, but there you go.
     Could also strip whitespace left/right:
+
+    .. code-block:: sql
 
         CASE
             WHEN LTRIM(RTRIM(something)) LIKE '%[^0-9]%' THEN NULL
@@ -1055,13 +1065,18 @@ def sql_fragment_cast_to_int(expr: str,
     Only works for positive integers.
     LTRIM/RTRIM are not ANSI SQL.
     Nor are unusual LIKE clauses; see
-        http://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
+    http://stackoverflow.com/questions/712580/list-of-special-characters-for-sql-like-clause
 
     The other, for SQL Server 2012 or higher, is TRY_CAST:
 
+    .. code-block:: sql
+
         TRY_CAST(something AS BIGINT)
-        ... returns NULL upon failure
-        ... https://msdn.microsoft.com/en-us/library/hh974669.aspx
+        
+        
+    ... which returns NULL upon failure; see
+    https://msdn.microsoft.com/en-us/library/hh974669.aspx
+        
     """  # noqa
     inttype = "BIGINT" if big else "INTEGER"
     if dialect is None and viewmaker is not None:
@@ -1322,6 +1337,7 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
     using like it.
 
     So:
+    
     - We use %s when using cursor.execute() directly, via Django.
     - We use ? when talking to users, and SqlGrammar objects, so that the
       visual appearance matches what they expect from their database.
@@ -1350,6 +1366,7 @@ _ = """
     _SQLTEST2 = "SELECT a FROM b WHERE c=%s AND d LIKE 'blah%%' AND e='?'"
     _SQLTEST3 = translate_sql_qmark_to_percent(_SQLTEST1)
 """
+
 
 # =============================================================================
 # Tests

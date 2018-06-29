@@ -56,13 +56,13 @@ def is_superuser(user: settings.AUTH_USER_MODEL) -> bool:
 
 
 def is_developer(user: settings.AUTH_USER_MODEL) -> bool:
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return False  # won't have a profile
     return user.profile.is_developer
 
 
 def is_clinician(user: settings.AUTH_USER_MODEL) -> bool:
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return False  # won't have a profile
     return user.profile.is_clinician
 
@@ -143,7 +143,7 @@ def site_absolute_url(path: str) -> str:
     .. code-block:: python
 
         from django.conf import settings
-        from django.core.urlresolvers import set_script_prefix
+        from django.urls import set_script_prefix
 
         set_script_prefix(settings.FORCE_SCRIPT_NAME)
 

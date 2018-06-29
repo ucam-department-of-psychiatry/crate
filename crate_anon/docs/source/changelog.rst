@@ -486,7 +486,7 @@ Change log/history
 
 - Medical eponym list.
 
-**v0.18.50 to v0.18.51, 2018-05-04 to 2018-06-28**
+**v0.18.50 to v0.18.51, 2018-05-04 to 2018-06-29**
 
 - `IllegalCharacterError` possible from
   :meth:`crate_anon.crateweb.research.models.make_excel`; was raised by
@@ -502,8 +502,70 @@ Change log/history
   to specify ``wkhtmltopdf_filename``, so if ``wkhtmltopdf`` wasn't found on
   the PATH (e.g. via a Celery task), PDFs were not generated properly.
 
+- Addition of ``processed_at`` to
+  :class:`crate_anon.crateweb.consent.models.ContactRequest`.
 
+- Addition of ``processed`` and ``processed_at`` to
+  :class:`crate_anon.crateweb.consent.models.ClinicianResponse`.
 
+- Addition of ``processed`` and ``processed_at`` to
+  :class:`crate_anon.crateweb.consent.models.ClinicianResponse`.
+
+- Addition of ``skip_letter_to_patient``, ``needs_processing`, ``processed``
+  and ``processed_at`` to
+  :class:`crate_anon.crateweb.consent.models.ClinicianResponse`.
+
+- Package version changes:
+
+  - amqp from 2.1.3 to 2.3.2;
+    https://github.com/celery/py-amqp/blob/master/Changelog
+  - arrow from 0.10.0 to 0.12.1;
+    https://pypi.org/project/arrow/
+  - beautifulsoup4 from 4.5.3 to 4.6.0;
+    https://github.com/newvem/beautifulsoup/blob/master/CHANGELOG
+  - cardinal_pythonlib from 1.0.15 to 1.0.16
+  - celery from 4.0.1 to 4.2.0 (no longer constrained by amqp);
+    http://docs.celeryproject.org/en/latest/history/
+  - chardet from 3.0.2 to 3.0.4
+  - cherrypy from 10.0.0 to 16.0.2;
+    https://docs.cherrypy.org/en/latest/history.html
+  - colorlog from 2.10.0 to 3.1.4
+  - distro from 1.0.2 to 1.3.0
+  - django from 1.10.5 to 2.0.6;
+    https://docs.djangoproject.com/en/2.0/releases/2.0/
+  - django-debug-toolbar from 1.6 to 1.9.1
+  - django-extensions from 1.7.6 to 2.0.7
+  - django-picklefield from 0.3.2 to 1.0.0
+  - django-sslserver from 0.19 to 0.20
+  - flashtext from 2.5 to 2.7
+  - flower from 0.9.1 to 0.9.2
+  - gunicorn from 19.6.0 to 19.8.1
+  - kombu from 4.0.1 to 4.1.0 (no longer constrained by amqp, but kombu 4.2.1
+    is broken: https://github.com/celery/kombu/issues/870)
+  - openpyxl from 2.4.2 to 2.5.4
+  - pendulum from 1.3.0 to 2.0.2; see
+    https://pendulum.eustace.io/history/
+  - psutil from 5.0.1 to 5.4.6
+  - pyparsing from 2.1.10 to 2.2.0
+  - python-dateutil from 2.6.0 to 2.7.3
+  - regex from 2017.1.17 to 2018.6.21
+  - semver from 2.7.5 to 2.8.0
+  - sortedcontainers from 1.5.7 to 2.0.4
+  - SQLAlchemy from 1.1.5 to 1.2.8
+  - sqlparse from 0.2.2 to 0.2.4
+  - typing from 3.5.3.0 to 3.6.4
+  - Werkzeug from 0.11.15 to 0.14.1
+  - xlrd from 1.0.0 to 1.1.0
+  - (Windows) pypiwin32 from 219 to 223
+
+- New :ref:`crate_celery_status <crate_celery_status>` command.
+
+.. todo::
+    Trying Celery ``--concurrency=1`` (from ``launch_celery.py``) as this
+    should prevent multiple Celery threads doing the same work twice if you
+    call ``crate_django_manage resubmit_unprocessed_tasks`` more than once.
+    There's a risk that this breaks Flower or other Celery status monitoring
+    (as it did with Celery v3.1.23, but that was a long time ago).
 
 
 .. rubric:: Footnotes

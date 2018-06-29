@@ -30,7 +30,6 @@ from typing import Generator, List, Optional, Tuple
 from cardinal_pythonlib.dbfunc import (
     dictfetchall,
     dictfetchone,
-    fetchallfirstvalues,
     genrows,
 )
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist

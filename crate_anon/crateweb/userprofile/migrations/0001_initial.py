@@ -39,7 +39,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='UserProfile',
             fields=[
-                ('user', models.OneToOneField(related_name='profile', to=settings.AUTH_USER_MODEL, serialize=False, primary_key=True)),  # noqa
+                ('user', models.OneToOneField(related_name='profile', to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, serialize=False, primary_key=True)),  # noqa
                 ('per_page', models.PositiveSmallIntegerField(default=50, choices=[(10, '10'), (20, '20'), (50, '50'), (100, '100'), (200, '200'), (500, '500'), (1000, '1000')], verbose_name='Number of items to show per page')),  # noqa
                 ('line_length', models.PositiveSmallIntegerField(default=80, verbose_name='Characters to word-wrap text at in results display (0 for no wrap)')),  # noqa
                 ('collapse_at', models.PositiveSmallIntegerField(default=400, verbose_name='Number of characters beyond which results field starts collapsed (0 for none)')),  # noqa

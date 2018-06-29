@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/management/commands/populate.py
+# crate_anon/tools/celery_status.py
 
 """
 ===============================================================================
@@ -24,14 +24,25 @@
 ===============================================================================
 """
 
-from django.core.management.base import BaseCommand
+import argparse
+import subprocess
 
-from crate_anon.crateweb.consent.models import Leaflet
+from crate_anon.crateweb.config.constants import CELERY_APP_NAME
 
 
-class Command(BaseCommand):
-    help = "Populate the database with leaflet entries if necessary"
+def main():
+    parser = argparse.ArgumentParser(
+        description="Show status of CRATE Celery processes, by calling Celery."
+    )
+    parser.parse_args()
 
-    def handle(self, *args, **options):
-        Leaflet.populate()
-        self.stdout.write("Successfully populated leaflets")
+    cmdargs = [
+        "celery",
+        "status",
+        "-A", CELERY_APP_NAME,
+    ]
+    subprocess.call(cmdargs)
+
+
+if __name__ == '__main__':
+    main()

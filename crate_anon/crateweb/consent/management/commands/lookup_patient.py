@@ -57,6 +57,7 @@ class Command(BaseCommand):
             translation.activate(settings.LANGUAGE_CODE)
         except AttributeError:
             pass
+        # noinspection PyBroadException,PyPep8
         try:
             # noinspection PyTypeChecker
             cli_lookup_patient(opts)

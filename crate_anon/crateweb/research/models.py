@@ -192,7 +192,8 @@ def gen_excel_row_elements(worksheet: Worksheet,
 
     1.  Need a tuple/list/generator, as openpyxl checks its types manually.
 
-      - We want to have a Worksheet object from openpyxl, and say something like
+      - We want to have a Worksheet object from openpyxl, and say something
+        like
 
         .. code-block:: python
 
@@ -202,8 +203,8 @@ def gen_excel_row_elements(worksheet: Worksheet,
 
       - However, openpyxl doesn't believe in duck-typing; see
         ``Worksheet.append()`` in ``openpyxl/worksheet/worksheet.py``. So
-        sometimes the plain append works (e.g. from MySQL results), but sometimes
-        it fails, e.g. when the row is of type ``pyodbc.Row``.
+        sometimes the plain append works (e.g. from MySQL results), but
+        sometimes it fails, e.g. when the row is of type ``pyodbc.Row``.
 
       - So we must coerce it to a tuple, list, or generator.
 
@@ -258,7 +259,8 @@ class Highlight(models.Model):
     Represents the highlighting of a query.
     """
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
     colour = models.PositiveSmallIntegerField(verbose_name="Colour number")
     text = models.CharField(max_length=255, verbose_name="Text to highlight")
     active = models.BooleanField(default=True)
@@ -309,7 +311,8 @@ class Query(models.Model):
         app_label = "research"
 
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
 
     sql = models.TextField(verbose_name='SQL query')
     sql_hash = models.BigIntegerField(
@@ -354,7 +357,7 @@ class Query(models.Model):
     @staticmethod
     def get_active_query_or_none(request: HttpRequest) \
             -> Optional[QUERY_FWD_REF]:
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return None
         try:
             return Query.objects.get(user=request.user, active=True)
@@ -363,7 +366,7 @@ class Query(models.Model):
 
     @staticmethod
     def get_active_query_id_or_none(request: HttpRequest) -> Optional[int]:
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return None
         try:
             query = Query.objects.get(user=request.user, active=True)
@@ -526,7 +529,7 @@ class QueryAudit(models.Model):
     Audit log for a query.
     """
     id = models.AutoField(primary_key=True)  # automatic
-    query = models.ForeignKey('Query')
+    query = models.ForeignKey('Query', on_delete=models.PROTECT)
     when = models.DateTimeField(auto_now_add=True)
     count_only = models.BooleanField(default=False)
     n_records = models.IntegerField(default=0)
@@ -1097,7 +1100,8 @@ class PatientExplorer(models.Model):
         app_label = "research"
 
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
     patient_multiquery = JsonClassField(
         verbose_name='PatientMultiQuery as JSON',
         null=True)  # type: PatientMultiQuery
@@ -1142,7 +1146,7 @@ class PatientExplorer(models.Model):
     @staticmethod
     def get_active_pe_or_none(request: HttpRequest) \
             -> Optional[PATIENT_EXPLORER_FWD_REF]:
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return None
         try:
             return PatientExplorer.objects.get(user=request.user, active=True)
@@ -1151,7 +1155,7 @@ class PatientExplorer(models.Model):
 
     @staticmethod
     def get_active_pe_id_or_none(request: HttpRequest) -> Optional[int]:
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return None
         try:
             pe = PatientExplorer.objects.get(user=request.user, active=True)
@@ -1360,7 +1364,8 @@ class PatientExplorerAudit(models.Model):
     Audit log for a PatientExplorer.
     """
     id = models.AutoField(primary_key=True)  # automatic
-    patient_explorer = models.ForeignKey('PatientExplorer')
+    patient_explorer = models.ForeignKey('PatientExplorer',
+                                         on_delete=models.PROTECT)
     when = models.DateTimeField(auto_now_add=True)
     count_only = models.BooleanField(default=False)
     n_records = models.IntegerField(default=0)

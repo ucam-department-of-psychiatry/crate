@@ -34,6 +34,7 @@ crate_anon.crateweb
     consent/management/commands/lookup_consent.rst
     consent/management/commands/lookup_patient.rst
     consent/management/commands/populate.rst
+    consent/management/commands/resubmit_unprocessed_tasks.rst
     consent/management/commands/test_email.rst
 
     consent/celery.rst
