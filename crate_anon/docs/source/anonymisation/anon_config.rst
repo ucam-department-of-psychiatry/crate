@@ -38,7 +38,7 @@ You should save this, then edit it to your own needs.
 For convenience, you may want the `CRATE_ANON_CONFIG` environment variable to
 point to this file. (Otherwise you must specify it each time.)
 
-Here's the specimen config as of 2018-06-09:
+Here's the specimen anonymiser config as of 2018-06-09:
 
 .. code-block:: ini
 

@@ -280,6 +280,11 @@ class BaseNlpParser(object):
 
     def process(self, text: str,
                 starting_fields_values: Dict[str, Any]) -> None:
+        """
+        The core function that takes a single piece of text and feeds it
+        through a single NLP processor, yielding zero, one, or many output
+        records.
+        """
         if not text:
             return
         starting_fields_values[FN_NLPDEF] = self._nlpdef.get_name()

@@ -40,12 +40,14 @@ from cardinal_pythonlib.sqlalchemy.schema import (
     table_or_view_exists,
 )
 from cardinal_pythonlib.timing import MultiTimerContext, timer
-from sqlalchemy import BigInteger, Column, Index, String, Table
-from sqlalchemy.sql import and_, column, exists, or_, select, table
+from sqlalchemy import BigInteger, Column, DateTime, Index, String, Table
+from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 
 from crate_anon.nlp_manager.constants import (
     FN_NLPDEF,
     FN_PK,
+    FN_SRCDATETIMEFIELD,
+    FN_SRCDATETIMEVAL,
     FN_SRCDB,
     FN_SRCTABLE,
     FN_SRCPKFIELD,
@@ -54,7 +56,7 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCFIELD,
     MAX_STRING_PK_LENGTH,
 )
-from crate_anon.common.parallel import is_my_job_by_hash
+from crate_anon.common.parallel import is_my_job_by_hash_prehashed
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
 
@@ -83,8 +85,8 @@ class InputFieldConfig(object):
         """
         Read config from a configparser section.
         """
-        def opt_str(option: str) -> str:
-            return nlpdef.opt_str(section, option, required=True)
+        def opt_str(option: str, required: bool = True) -> str:
+            return nlpdef.opt_str(section, option, required=required)
 
         def opt_strlist(option: str,
                         required: bool = False,
@@ -104,6 +106,8 @@ class InputFieldConfig(object):
         self._srctable = opt_str('srctable')
         self._srcpkfield = opt_str('srcpkfield')
         self._srcfield = opt_str('srcfield')
+        self._srcdatetimefield = opt_str('srcdatetimefield',
+                                         required=False)  # new in v0.18.52
         # Make these case-sensitive to avoid our failure in renaming SQLA
         # Column objects to be lower-case:
         self._copyfields = opt_strlist('copyfields', lower=False)  # fieldnames
@@ -115,6 +119,8 @@ class InputFieldConfig(object):
         ensure_valid_table_name(self._srctable)
         ensure_valid_field_name(self._srcpkfield)
         ensure_valid_field_name(self._srcfield)
+        if self._srcdatetimefield:
+            ensure_valid_field_name(self._srcdatetimefield)
 
         if len(set(self._indexed_copyfields)) != len(self._indexed_copyfields):
             raise ValueError("Redundant indexed_copyfields: {}".format(
@@ -151,6 +157,9 @@ class InputFieldConfig(object):
     def get_srcfield(self) -> str:
         return self._srcfield
 
+    def get_srcdatetimefield(self) -> str:  # new in v0.18.52
+        return self._srcdatetimefield
+
     def get_source_session(self):
         return self._db.session
 
@@ -165,8 +174,9 @@ class InputFieldConfig(object):
 
     @staticmethod
     def get_core_columns_for_dest() -> List[Column]:
-        """Core columns in destination tables, primarily referring to the
-        source."""
+        """
+        Core columns in destination tables, primarily referring to the source.
+        """
         return [
             Column(FN_PK, BigInteger, primary_key=True,
                    autoincrement=True,
@@ -179,6 +189,10 @@ class InputFieldConfig(object):
                    doc="Source table name"),
             Column(FN_SRCPKFIELD, SqlTypeDbIdentifier,
                    doc="PK field (column) name in source table"),
+            Column(FN_SRCDATETIMEFIELD, SqlTypeDbIdentifier,
+                   doc="Date/time field (column) name in source table"),
+            Column(FN_SRCDATETIMEVAL, DateTime, nullable=True,
+                   doc="Date/time of source field"),
             Column(FN_SRCPKVAL, BigInteger,
                    doc="PK of source record (or integer hash of PK if the PK "
                        "is a string)"),
@@ -204,6 +218,8 @@ class InputFieldConfig(object):
                   FN_SRCTABLE,
                   FN_SRCDB,
                   FN_SRCPKSTR),
+            Index('_idx_srcdate',
+                  FN_SRCDATETIMEVAL),
             Index('_idx_deletion',
                   # We sometimes delete just using the following; see
                   # BaseNlpParser.delete_where_srcpk_not
@@ -295,25 +311,50 @@ class InputFieldConfig(object):
         if 1 < ntasks <= tasknum:
             raise Exception("Invalid tasknum {}; must be <{}".format(
                 tasknum, ntasks))
+
+        # ---------------------------------------------------------------------
+        # Values that are constant to all items we will generate
+        # (i.e. database/field *names*)
+        # ---------------------------------------------------------------------
         base_dict = {
             FN_SRCDB: self._srcdb,
             FN_SRCTABLE: self._srctable,
             FN_SRCPKFIELD: self._srcpkfield,
             FN_SRCFIELD: self._srcfield,
+            FN_SRCDATETIMEFIELD: self._srcdatetimefield,
         }
+
+        # ---------------------------------------------------------------------
+        # Build a query
+        # ---------------------------------------------------------------------
         session = self.get_source_session()
         pkcol = column(self._srcpkfield)
         # ... don't use is_sqlatype_integer with this; it's a column clause,
         # not a full column definition.
         pk_is_integer = self.is_pk_integer()
 
-        selectcols = [pkcol, column(self._srcfield)]
+        # Core columns
+        colindex_pk = 0
+        colindex_text = 1
+        colindex_datetime = 2
+        colindex_remainder_start = 3
+        selectcols = [
+            pkcol,
+            column(self._srcfield),
+            column(self._srcdatetimefield) if self._srcdatetimefield else null()  # noqa
+        ]
+        # User-specified extra columns
         for extracol in self._copyfields:
             selectcols.append(column(extracol))
+
         query = select(selectcols).select_from(table(self._srctable))
         # not ordered...
         # if self._fetch_sorted:
         #     query = query.order_by(pkcol)
+
+        # ---------------------------------------------------------------------
+        # Plan our parallel-processing approach
+        # ---------------------------------------------------------------------
         distribute_by_hash = False
         if ntasks > 1:
             if pk_is_integer:
@@ -322,17 +363,29 @@ class InputFieldConfig(object):
                 query = query.where(pkcol % ntasks == tasknum)
             else:
                 distribute_by_hash = True
+
+        # ---------------------------------------------------------------------
+        # Execute the query
+        # ---------------------------------------------------------------------
         nrows_returned = 0
-        hashed_pk = None  # remove warning about reference before assignment
         with MultiTimerContext(timer, TIMING_GEN_TEXT_SQL_SELECT):
             result = session.execute(query)
             for row in result:  # ... a generator itself
                 with MultiTimerContext(timer, TIMING_PROCESS_GEN_TEXT):
-                    pkval = row[0]
-                    if (distribute_by_hash and
-                            not is_my_job_by_hash(pkval, tasknum, ntasks)):
-                        continue
+                    # Get PK value
+                    pkval = row[colindex_pk]
 
+                    # Deal with non-integer PKs
+                    if pk_is_integer:
+                        hashed_pk = None  # remove warning about reference before assignment  # noqa
+                    else:
+                        hashed_pk = hash64(pkval)
+                        if (distribute_by_hash and
+                                not is_my_job_by_hash_prehashed(
+                                    hashed_pk, tasknum, ntasks)):
+                            continue
+
+                    # Optional debug limit on the number of rows
                     if 0 < self._debug_row_limit <= nrows_returned:
                         log.warning(
                             "Table {}.{}: not fetching more than {} rows (in "
@@ -342,17 +395,24 @@ class InputFieldConfig(object):
                         result.close()  # http://docs.sqlalchemy.org/en/latest/core/connections.html  # noqa
                         return
 
-                    text = row[1]
+                    # Get text
+                    text = row[colindex_text]
                     if not text:
                         continue
-                    other_values = dict(zip(self._copyfields, row[2:]))
+
+                    # Get everything else
+                    other_values = dict(zip(self._copyfields,
+                                            row[colindex_remainder_start:]))
                     if pk_is_integer:
-                        other_values[FN_SRCPKVAL] = pkval
+                        other_values[FN_SRCPKVAL] = pkval  # an integer
                         other_values[FN_SRCPKSTR] = None
                     else:  # hashed_pk will have been set above
-                        other_values[FN_SRCPKVAL] = hashed_pk
-                        other_values[FN_SRCPKSTR] = pkval
+                        other_values[FN_SRCPKVAL] = hashed_pk  # an integer
+                        other_values[FN_SRCPKSTR] = pkval  # a string etc.
+                    other_values[FN_SRCDATETIMEVAL] = row[colindex_datetime]
                     other_values.update(base_dict)
+
+                    # Yield the result
                     yield text, other_values
                     nrows_returned += 1
 

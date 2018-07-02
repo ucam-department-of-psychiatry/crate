@@ -581,6 +581,23 @@ Change log/history
   v3.1.23, but that was a long time ago, and it works fine now.
 
 
+**v0.18.52, 2018-07-02**
+
+- NLP fields now support a standard ``_srcdatetime`` field; this can be NULL,
+  but it's normally specified as a defining ``DATETIME`` field from the source
+  database (since most NLP needs an associated date and it's far more
+  convenient if this is in the destination database, along with patient ID).
+  It's specified directly to the
+  :class:`crate_anon.nlp_manager.input_field_config.InputFieldConfig` rather
+  than via the ``copyfields``, since we want a consistent date/time field name
+  in the NLP output even if there is a lack of naming consistency in the
+  source. Search for "new in v0.18.52".
+
+- Possibly a bug fixed within the NLP manager, in relation to recording of
+  hashed PKs from tables with non-integer PKs; see
+  :meth:`crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_text`.
+
+
 .. rubric:: Footnotes
 
 .. [#f1]

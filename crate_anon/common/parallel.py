@@ -54,3 +54,13 @@ def is_my_job_by_hash(value: Any, tasknum: int, ntasks: int) -> bool:
     if ntasks == 1:
         return True
     return hash64(value) % ntasks == tasknum
+
+
+def is_my_job_by_hash_prehashed(hashed_value: Any,
+                                tasknum: int,
+                                ntasks: int) -> bool:
+    """
+    A version of ``is_my_job_by_hash()`` for use when you have pre-hashed
+    the value, and ntasks is guaranteed to be >1.
+    """
+    return hashed_value % ntasks == tasknum

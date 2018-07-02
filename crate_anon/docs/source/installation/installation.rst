@@ -44,6 +44,9 @@ To install CRATE and all its dependencies, download the Debian package and use
 Manual installation
 -------------------
 
+Installing CRATE itself is very easy, but you probably want a lot of supporting
+tools. Here's a logical sequence.
+
 Python
 ~~~~~~
 
@@ -58,6 +61,59 @@ Install Python 3.4 or higher. If it's not already installed:
 **Windows**
 
 - https://www.python.org/ → Downloads
+
+
+Python virtual environment and CRATE itself
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create a Python virtual environment (an isolated set of Python programs
+that won’t interfere with any other Python things) and install CRATE.
+Choose your own directory names.
+
+**Linux**
+
+.. code-block:: bash
+
+    python3.4 -m virtualenv ~/venvs/crate
+    source ~/venvs/crate/bin/activate
+    python -m pip install --upgrade pip
+    pip install crate-anon
+
+**Windows**
+
+.. code-block:: bat
+
+    C:\Python34\python.exe -m ensurepip
+    C:\Python34\python.exe -m pip install --upgrade pip
+    C:\Python34\python.exe -m pip install --upgrade virtualenv
+    C:\Python34\python.exe -m virtualenv C:\venvs\crate
+    C:\venvs\crate\Scripts\activate
+    pip install crate-anon
+
+
+.. _activate_venv:
+
+Activating your virtual environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+**Every time you want to work within your virtual environment, you should
+activate it, by running (Windows) or sourcing (Linux) the ``activate`` script
+within it, as above.**
+
+Once activated,
+
+- the PATHs are set up for the programs in the virtual environment;
+
+- when you run Python, you will run the copy in the virtual environment;
+
+- the Python package installation tool, ``pip``, will be the one in the virtual
+  environment and will modify the virtual environment (not the whole system).
+
+See:
+
+- https://docs.python.org/3/tutorial/venv.html
+
+- https://realpython.com/python-virtual-environments-a-primer/
 
 
 RabbitMQ
@@ -114,59 +170,6 @@ Install GATE, for NLP.
 - Download and install GATE from https://gate.ac.uk/download/
 
 
-Python virtual environment and CRATE itself
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Create a Python virtual environment (an isolated set of Python programs
-that won’t interfere with any other Python things) and install CRATE.
-Choose your own directory names.
-
-**Linux**
-
-.. code-block:: bash
-
-    python3.4 -m virtualenv ~/venvs/crate
-    source ~/venvs/crate/bin/activate
-    python -m pip install --upgrade pip
-    pip install crate-anon
-
-**Windows**
-
-.. code-block:: bat
-
-    C:\Python34\python.exe -m ensurepip
-    C:\Python34\python.exe -m pip install --upgrade pip
-    C:\Python34\python.exe -m pip install --upgrade virtualenv
-    C:\Python34\python.exe -m virtualenv C:\venvs\crate
-    C:\venvs\crate\Scripts\activate
-    pip install crate-anon
-
-
-.. _activate_venv:
-
-Activating your virtual environment
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**Every time you want to work within your virtual environment, you should
-activate it, by running (Windows) or sourcing (Linux) the ``activate`` script
-within it, as above.**
-
-Once activated,
-
-- the PATHs are set up for the programs in the virtual environment;
-
-- when you run Python, you will run the copy in the virtual environment;
-
-- the Python package installation tool, ``pip``, will be the one in the virtual
-  environment and will modify the virtual environment (not the whole system).
-
-See:
-
-- https://docs.python.org/3/tutorial/venv.html
-
-- https://realpython.com/python-virtual-environments-a-primer/
-
-
 Third-party text extractors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -206,6 +209,7 @@ PATH. Pass any extensions for which you want to see a report.
 .. code-block:: bash
 
     crate_anonymise --checkextractor .doc .docx .odt .pdf .rtf .txt None
+
 
 C/C++ compiler
 ~~~~~~~~~~~~~~
@@ -266,6 +270,7 @@ present the necessary dependencies do not work cleanly.
     http://stackoverflow.com/questions/2676763. For more detail see
     http://stackoverflow.com/questions/2817869.
 
+
 Fast MurmurHash3
 ~~~~~~~~~~~~~~~~
 
@@ -276,6 +281,7 @@ Fast MurmurHash3
 .. code-block:: bash
 
     pip install mmh3  # C version of MurmurHash3
+
 
 Database and database drivers
 -----------------------------
@@ -288,6 +294,7 @@ In the CPFT NHS environment, we use SQL Server and these:
     .. code-block:: none
 
         pip install pyodbc django-pyodbc-azure
+
 
 Build the CRATE Java NLP interfaces
 -----------------------------------
@@ -308,6 +315,7 @@ For example, on Windows:
 Once built, you can run the script again with an additional ``--launch``
 parameter to launch the GATE framework in an interactive demonstration mode
 (using GATE’s supplied “people and places” app).
+
 
 Configure CRATE for your system
 -------------------------------

@@ -155,7 +155,7 @@ You can use both strategies simultaneously.
 Specimen config
 ~~~~~~~~~~~~~~~
 
-Here's the specimen config as of 2017-02-08:
+Here's the specimen NLP config as of 2017-07-02:
 
 .. code-block:: ini
 

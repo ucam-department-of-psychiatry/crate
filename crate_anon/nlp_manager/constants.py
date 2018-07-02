@@ -45,6 +45,8 @@ FN_SRCPKFIELD = '_srcpkfield'
 FN_SRCPKVAL = '_srcpkval'
 FN_SRCPKSTR = '_srcpkstr'
 FN_SRCFIELD = '_srcfield'
+FN_SRCDATETIMEFIELD = '_srcdatetimefield'  # new in v0.18.52
+FN_SRCDATETIMEVAL = '_srcdatetimeval'  # new in v0.18.52
 
 GATE_PIPELINE_CLASSNAME = 'CrateGatePipeline'
 MEDEX_PIPELINE_CLASSNAME = 'CrateMedexPipeline'
@@ -803,6 +805,7 @@ OS_PATHSEP = :
 # =============================================================================
 # - Referred to within the NLP definition, and cross-referencing database
 #   definitions.
+# - The 'srcdatetimefield' is optional (but advisable).
 # - The 'copyfields' are optional.
 # - The 'indexed_copyfields' are an optional subset of 'copyfields'; they'll be
 #   indexed.
@@ -813,6 +816,7 @@ srcdb = SOURCE_DATABASE
 srctable = EXTRACTED_CLINICAL_DOCUMENTS
 srcpkfield = DOCUMENT_PK
 srcfield = DOCUMENT_TEXT
+srcdatetimefield = DOCUMENT_DATE
 copyfields = RID_FIELD
     TRID_FIELD
 indexed_copyfields = RID_FIELD
@@ -828,6 +832,7 @@ srcdb = SOURCE_DATABASE
 srctable = PROGRESS_NOTES
 srcpkfield = PN_PK
 srcfield = PN_TEXT
+srcdatetimefield = PN_DATE
 copyfields = RID_FIELD
     TRID_FIELD
 indexed_copyfields = RID_FIELD
