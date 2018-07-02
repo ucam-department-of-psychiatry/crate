@@ -370,6 +370,14 @@ whitelist_filenames =
     #     /some/path/common_surnames.txt
 blacklist_filenames =
 
+    # Alternatives for common words. These will be used to find alternative
+    # phrases which will be scrubbed. The files specified should be in comma
+    # separated variable (CSV) form.
+    #
+    # Examples of alternative words include street types:
+    # https://en.wikipedia.org/wiki/Street_suffix
+phrase_alternative_word_filenames =
+
     # Nonspecific scrubbing of numbers of a certain length?
     # For example, scrubbing all 11-digit numbers will remove modern UK
     # telephone numbers in conventional format. To do this, specify

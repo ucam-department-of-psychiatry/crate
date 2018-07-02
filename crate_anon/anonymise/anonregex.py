@@ -329,14 +329,40 @@ def get_string_regex_elements(
 def get_phrase_regex_elements(
         phrase: str,
         at_word_boundaries_only: bool = True,
-        max_errors: int = 0) -> List[str]:
+        max_errors: int = 0,
+        alternatives: List[List[str]] = None) -> List[str]:
     """
-    phrase: e.g. '4 Privet Drive'
+    Args:
+        phrase: e.g. '4 Privet Drive'
+        at_word_boundaries_only: apply regex only at word boundaries
+        max_errors: maximum number of typos, as defined by the regex module
+        alternatives: list of lists of equivalents; see get_word_alternatives()
+
+    Returns:
+        A list of regex fragments.
     """
     strings = get_anon_fragments_from_string(phrase)
     if not strings:
         return []
     strings = [escape_literal_string_for_regex(x) for x in strings]
+    if alternatives:
+        for i, string in enumerate(strings):
+            upperstring = string.upper()
+            found_equivalents = False
+            for equivalent_words in alternatives:
+                if upperstring in equivalent_words:
+                    strings[i] = (
+                        "(?:" +
+                        "|".join(escape_literal_string_for_regex(x)
+                                 for x in equivalent_words)
+                        + ")"
+                    )
+                    found_equivalents = True
+                    break
+            if not found_equivalents:
+                strings[i] = escape_literal_string_for_regex(string)
+    else:
+        strings = [escape_literal_string_for_regex(x) for x in strings]
     s = AT_LEAST_ONE_NONWORD.join(strings)
     if max_errors > 0:
         s = "(" + s + "){e<" + str(max_errors + 1) + "}"

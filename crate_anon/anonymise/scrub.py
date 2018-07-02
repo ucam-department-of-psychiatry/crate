@@ -308,6 +308,7 @@ class PersonalizedScrubber(ScrubberBase):
                  scrub_string_suffixes: List[str] = None,
                  string_max_regex_errors: int = 0,
                  whitelist: WordList = None,
+                 alternatives: List[List[str]] = None,
                  nonspecific_scrubber: NonspecificScrubber = None,
                  debug: bool = False) -> None:
         scrub_string_suffixes = scrub_string_suffixes or []
@@ -330,6 +331,7 @@ class PersonalizedScrubber(ScrubberBase):
         self.scrub_string_suffixes = scrub_string_suffixes
         self.string_max_regex_errors = string_max_regex_errors
         self.whitelist = whitelist
+        self.alternatives = alternatives
         self.nonspecific_scrubber = nonspecific_scrubber
         self.debug = debug
 
@@ -466,7 +468,8 @@ class PersonalizedScrubber(ScrubberBase):
             value,
             max_errors=max_errors,
             at_word_boundaries_only=(
-                self.anonymise_strings_at_word_boundaries_only)
+                self.anonymise_strings_at_word_boundaries_only),
+            alternatives=self.alternatives
         )
 
     def get_elements_numeric(self, value: Any) -> List[str]:

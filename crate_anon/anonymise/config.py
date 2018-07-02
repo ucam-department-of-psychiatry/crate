@@ -72,7 +72,7 @@ import fnmatch
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, Set
 
 from cardinal_pythonlib.hash import GenericHasher, make_hasher
 from cardinal_pythonlib.logs import remove_all_logger_handlers
@@ -303,6 +303,59 @@ def get_extra_hasher(parser: ExtendedConfigParser,
 
 
 # =============================================================================
+# WordAlternatives
+# =============================================================================
+
+def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
+    """
+    Reads in a list of word alternatives, from one or more
+    comma-separated-value (CSV) text files (also accepting comment lines
+    starting with #, and allowing different numbers of columns on different
+    lines).
+
+    All entries on one line will be substituted for each other, if alternatives
+    are enabled.
+
+    Produces a list of equivalent-word lists.
+
+    Arbitrarily, uses upper case internally. (All CRATE regex replacements are
+    case-insensitive.)
+
+    An alternatives file might look like this:
+
+    .. code-block:: none
+
+        # Street types
+        # https://en.wikipedia.org/wiki/Street_suffix
+
+        avenue, circus, close, crescent, drive, gardens, grove, hill, lane, mead, mews, place, rise, road, row, square, street, vale, way, wharf
+
+    """  # noqa
+    alternatives = []  # type: List[List[str]]
+    all_words_seen = set()  # type: Set[str]
+    for filename in filenames:
+        with open(filename, "r") as alt_file:
+            for line in alt_file:
+                line = line.strip()
+                if not line:  # blank line
+                    continue
+                if line.startswith("#"):  # comment line
+                    continue
+                equivalent_words = [w.strip().upper() for w in line.split(",")]
+                equivalent_words = [w for w in equivalent_words if w]  # remove empties  # noqa
+                if len(equivalent_words) < 2:
+                    continue
+                for w in equivalent_words:
+                    if w in all_words_seen:
+                        raise ValueError("Word {!r} appears twice in alternatives"
+                                         "list! Invalid".format(w))
+                    all_words_seen.add(w)
+                alternatives.append(equivalent_words)
+    return alternatives
+
+
+
+# =============================================================================
 # Config
 # =============================================================================
 
@@ -485,6 +538,8 @@ class Config(object):
         self.scrub_string_suffixes = opt_multiline('scrub_string_suffixes')
         self.whitelist_filenames = opt_multiline('whitelist_filenames')
         self.blacklist_filenames = opt_multiline('blacklist_filenames')
+        self.phrase_alternative_word_filenames = opt_multiline(
+            'phrase_alternative_word_filenames')
         self.scrub_all_numbers_of_n_digits = opt_multiline_int(
             'scrub_all_numbers_of_n_digits', minimum=1)
 
@@ -494,7 +549,7 @@ class Config(object):
             self.extract_text_extensions_permitted = [
                 x.upper() for x in self.extract_text_extensions_permitted]
 
-        # Whitelist, blacklist, nonspecific scrubber
+        # Whitelist, blacklist, nonspecific scrubber, alternative words
         self.whitelist = WordList(
             filenames=self.whitelist_filenames,
             hasher=self.change_detection_hasher,
@@ -518,6 +573,8 @@ class Config(object):
             scrub_all_numbers_of_n_digits=self.scrub_all_numbers_of_n_digits,
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
         )
+        self.phrase_alternative_words = get_word_alternatives(
+            phrase_alternative_word_filenames)
 
         # ---------------------------------------------------------------------
         # Output fields and formatting

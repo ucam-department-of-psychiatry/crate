@@ -132,6 +132,7 @@ class Patient(object):
             scrub_string_suffixes=config.scrub_string_suffixes,
             string_max_regex_errors=config.string_max_regex_errors,
             whitelist=config.whitelist,
+            alternatives=config.phrase_alternative_words,
         )
         # Database
         # Construction. We go through all "scrub-from" fields in the data
