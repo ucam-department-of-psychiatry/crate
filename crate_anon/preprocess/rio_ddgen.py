@@ -253,6 +253,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     ClientIndex.Surname  # superseded by view Client_Demographic_Details
     ClientName.GivenName*  # superseded by view Client_Name_History
     ClientName.Surname  # superseded by view Client_Name_History
+    ClientOtherDetail.NINumber
     ClientTelecom.Detail  # superseded by view Client_Communications_History
     ImsEvent.DischargeAddressLine*  # superseded by view Inpatient_Stay
     ImsEvent.DischargePostCode*  # superseded by view Inpatient_Stay
@@ -271,6 +272,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     Client_Demographic_Details.Firstname
     Client_Demographic_Details.Surname
     Client_Demographic_Details.Date_of_Birth
+    Client_Demographic_Details.National_Insurance_Number
     Client_Demographic_Details.*Phone
     Client_Demographic_Details.Superseding_NHS_Number
     Client_Name_History.Given_Name_*

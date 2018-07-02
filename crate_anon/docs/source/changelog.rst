@@ -598,6 +598,18 @@ Change log/history
   :meth:`crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_text`.
 
 
+**v0.18.32, IN PROGRESS**
+
+- Added ``Client_Demographic_Details.National_Insurance_Number`` and
+  ``ClientOtherDetail.NINumber`` to RiO automatic data dictionary generator as
+  a sensitive (scrub-source) field; they were marked for code anonymisation but
+  not flagged as scrub-source automatically.
+
+
+
+
+
+
 .. rubric:: Footnotes
 
 .. [#f1]
