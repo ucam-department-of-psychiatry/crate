@@ -574,7 +574,7 @@ class Config(object):
             scrub_all_uk_postcodes=self.scrub_all_uk_postcodes,
         )
         self.phrase_alternative_words = get_word_alternatives(
-            phrase_alternative_word_filenames)
+            self.phrase_alternative_word_filenames)
 
         # ---------------------------------------------------------------------
         # Output fields and formatting
