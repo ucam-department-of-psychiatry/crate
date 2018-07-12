@@ -598,14 +598,17 @@ Change log/history
   :meth:`crate_anon.nlp_manager.input_field_config.InputFieldConfig.gen_text`.
 
 
-**v0.18.32, IN PROGRESS**
+**v0.18.53, IN PROGRESS**
 
 - Added ``Client_Demographic_Details.National_Insurance_Number`` and
   ``ClientOtherDetail.NINumber`` to RiO automatic data dictionary generator as
   a sensitive (scrub-source) field; they were marked for code anonymisation but
   not flagged as scrub-source automatically.
 
-
+- Removed full stop from end of sentence in ``email_clinician.html`` beginning
+  "If you’d like help, please telephone the Research Database Manager...",
+  since some users copied/pasted the full stop as part of the final e-mail
+  address, which bounced. Clarity more important than grammar in this case.
 
 
 

@@ -347,12 +347,12 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
                     continue
                 for w in equivalent_words:
                     if w in all_words_seen:
-                        raise ValueError("Word {!r} appears twice in alternatives"
-                                         "list! Invalid".format(w))
+                        raise ValueError(
+                            "Word {!r} appears twice in alternatives"
+                            "list! Invalid".format(w))
                     all_words_seen.add(w)
                 alternatives.append(equivalent_words)
     return alternatives
-
 
 
 # =============================================================================
