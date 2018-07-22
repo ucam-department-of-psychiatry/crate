@@ -89,6 +89,7 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
     Takes a complex string, such as a name or address with its components
     separated by spaces, commas, etc., and returns a list of substrings to be
     used for anonymisation.
+    
     - For example, from "John Smith", return ["John", "Smith"];
       from "John D'Souza", return ["John", "D", "Souza"];
       from "42 West Street", return ["42", "West", "Street"].
@@ -199,6 +200,9 @@ def get_code_regex_elements(
     regex strings for scrubbing.
 
     We allow all sorts of separators. For example, 0123456789 might appear as
+    
+    .. code-block: none
+    
         (01234) 56789
         0123 456 789
         01234-56789
@@ -206,6 +210,9 @@ def get_code_regex_elements(
 
     This can also be used for postcodes, which should have whitespace
     prestripped, so e.g. PE123AB might appear as
+
+    .. code-block: none
+
         PE123AB
         PE12 3AB
         PE 12 3 AB
@@ -293,10 +300,11 @@ def get_string_regex_elements(
     """
     Takes a string and returns a list of regex strings with which to scrub.
     Options:
+    
     - list of suffixes to permit, typically ["s"]
     - typographical errors
     - whether to constrain to word boundaries or not
-        ... if false: will scrub ANN from bANNed
+      (... if false: will scrub ANN from bANNed)
     """
     if not s:
         return []

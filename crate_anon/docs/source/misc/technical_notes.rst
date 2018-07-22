@@ -2100,3 +2100,79 @@ old notes.txt
     - Now, base_email.html and base_pdf.html have CSS passed to them by the
       convenience functions (extracted in Python). The web one, base.html, uses
       links to static files.
+
+    ===============================================================================
+    7. AUDITING ACCESS TO THE RESEARCH DATABASE
+    ===============================================================================
+
+    a)  MYSQL RAW ACCESS.
+
+      - You need an auditing tool, so we've provided one; see the contents of the
+        "mysql_auditor" directory.
+      - Download and install mysql-proxy, at least version 0.8.5, from
+            https://dev.mysql.com/downloads/mysql-proxy/
+        Install its files somewhere sensible.
+      - Configure (by editing) mysql_auditor.sh
+      - Run it. By default it's configured for daemon mode. So you can do this:
+            sudo ./mysql_auditor.sh CONFIGFILE start
+      - By default the logs go in /var/log/mysql_auditor; the audit*.log files
+        contain the queries, and the mysqlproxy*.log files contain information from
+        the mysql-proxy program.
+      - The audit log is a comma-separated value (CSV) file with these columns:
+            - date/time, in ISO-8601 format with local timezone information,
+              e.g. "2015-06-24T12:58:29+0100";
+            - client IP address/port, e.g. "127.0.0.1:52965";
+            - MySQL username, e.g. "root";
+            - current schema (database), e.g. "test";
+            - query, e.g. "SELECT * FROM mytable"
+        Query results (or result success/failure status) are not shown.
+
+      - To open fresh log files daily, run
+            sudo FULLPATH/mysql_auditor.sh CONFIGFILE restart
+        daily (e.g. from your /etc/crontab, just after midnight). Logs are named
+        e.g. audit_2015_06_24.log, for their creation date.
+
+    b)  FRONT END.
+
+        The nascent front end will also audit queries.
+        (Since this runs a web service that in principle can have access to proper
+        data, it's probably better to run a username system rather than rely on
+        MySQL usernames alone. Therefore, it can use a single username, and a
+        database-based auditing system. The administrator could also pipe its MySQL
+        connection via the audit proxy, but doesn't have to.)
+
+
+
+    ===============================================================================
+    - functools.lru_cache is not thread-safe
+    ===============================================================================
+
+      .. code-block:: none
+
+        - Symptom:
+            KeyError at /pe_df_results/4/
+            (<crate_anon.crateweb.research.research_db_info.ResearchDatabaseInfo object at ...>,
+            <TableId<db='RiO', schema='dbo', table='GenSENFunctionTest') at ...>)
+
+            at get_mrid_linkable_patient_tables():
+
+                if self.table_contains_rid(table):
+
+            which is defined as:
+
+                @lru_cache(maxsize=1000)
+                def table_contains_rid(self, table: TableId):
+
+        - https://bugs.python.org/issue28969
+
+        - Thus:
+          https://noamkremen.github.io/a-simple-threadsafe-caching-decorator.html
+          http://codereview.stackexchange.com/questions/91656/thread-safe-memoizer
+          https://pythonhosted.org/cachetools/#
+          http://stackoverflow.com/questions/213455/python-threadsafe-object-cache
+          http://codereview.stackexchange.com/questions/91656/thread-safe-memoizer
+
+        - Then, also, the Django cache system:
+          https://docs.djangoproject.com/en/1.10/topics/cache/
+          https://github.com/rchrd2/django-cache-decorator
+          https://gist.github.com/tuttle/9190308

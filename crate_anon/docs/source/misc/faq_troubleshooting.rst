@@ -1,4 +1,4 @@
-.. crate_anon/docs/source/misc/troubleshooting.rst
+.. crate_anon/docs/source/misc/faq_troubleshooting.rst
 
 ..  Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
     .
@@ -21,8 +21,24 @@
 .. _Celery: http://www.celeryproject.org/
 .. _RabbitMQ: https://www.rabbitmq.com/
 
-Troubleshooting
-===============
+FAQs and troubleshooting
+========================
+
+Known bugs elsewhere affecting CRATE
+------------------------------------
+
+- wkhtmltopdf font size bug
+
+  - See notes next to PATIENT_FONTSIZE in config/settings.py
+  - https://github.com/wkhtmltopdf/wkhtmltopdf/issues/2505
+
+- If you try to use django-debug-toolbar when proxying via a Unix domain
+  socket, you need to use a custom INTERNAL_IPS setting; see the specimen
+  config file.
+
+- SQL Server returns a rowcount of -1; this is normal.
+  See https://code.google.com/p/pyodbc/wiki/Cursor.
+
 
 General
 -------
@@ -109,6 +125,14 @@ That’s what happens when you pipe the tool through ``tee``.
 
 CRATE anonymiser
 ----------------
+
+Anonymisation is slow
+~~~~~~~~~~~~~~~~~~~~~
+
+Make sure you have indexes created on all patient_id fields, because the tool
+will use this to find (a) values for scrubbing, and (b) records for
+anonymisation. Indexing here makes a huge difference!
+
 
 CRATE uses lots of memory
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -640,6 +664,140 @@ System Variables`; search for ``max_allowed_packet``).
 If you can’t get this working, reduce the ``--chunksize`` parameter to the
 CRATE anonymiser.
 
+How do I hot-swap two MySQL databases?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Since anonymisation is slow, you may want a live research database and another
+that you can update offline. When you're ready to swap, you'll want to
+
+- create DEFUNCT
+- rename LIVE -> DEFUNCT
+- rename OFFLINE -> LIVE
+
+then either revert:
+
+- rename LIVE -> OFFLINE
+- rename DEFUNCT -> LIVE
+
+or commit:
+
+- drop DEFUNCT
+
+How?
+
+- http://stackoverflow.com/questions/67093/how-do-i-quickly-rename-a-mysql-database-change-schema-name
+- https://gist.github.com/michaelmior/1173781
+
+"MySQL server has gone away"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+One possibility is that you are processing a big binary field, and MySQL's
+``max_allowed_packet`` parameter is too small. Try increasing it (e.g. from 16M
+to 32M). See also
+https://egret.psychol.cam.ac.uk/camcops/documentation/server/server_troubleshooting.html?highlight=max_allowed_packet#mysql-server-has-gone-away
+
+
+How to convert a database from SQL Server to MySQL?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This facility is provided by MySQL Workbench, which will connect to an SQL
+Server instance. Use the "ODBC via connection string" option if other methods
+aren't working: ``DSN=XXX;UID=YYY;PWD=ZZZ``.
+
+If the schema definitions are not seen, it's a permissions issue
+(http://stackoverflow.com/questions/17038716), in which case you can also copy
+copy the database using CRATE's anonymiser, treating all tables as non-patient
+tables (i.e. doing no actual anonymisation).
+
+
+What settings do I need in /etc/mysql/my.cnf?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Probably these:
+
+    .. code-block:: ini
+
+        [mysqld]
+        max_allowed_packet = 32M
+
+        innodb_strict_mode = 1
+        innodb_file_per_table = 1
+        innodb_file_format = Barracuda
+
+        # Only for MySQL prior to 5.7.5 (http://dev.mysql.com/doc/relnotes/mysql/5.6/en/news-5-6-20.html):
+        innodb_log_file_size = 320M
+
+        # For more performance, less safety:
+        innodb_flush_log_at_trx_commit = 2
+
+        # To save memory?
+        # Default is 8; suggestion is ncores * 2
+        # innodb_thread_concurrency = ...
+
+        [mysqldump]
+        max_allowed_packet = 32M
+
+"_mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126)"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In full, the error is:
+
+    .. code-block:: none
+
+        _mysql_exceptions.OperationalError: (1118, 'Row size too large (> 8126).
+        Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or
+        ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768
+        bytes is stored inline.')
+
+See above. If you need to change the log file size, FOLLOW THIS PROCEDURE:
+https://dev.mysql.com/doc/refman/5.0/en/innodb-data-log-reconfiguration.html
+
+
+"Segmentation fault (core dumped)..."
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This error can be seen when using the Microsoft ODBC driver for Linux, which is
+buggy. In this situation, use the Microsoft JDBC driver instead.
+
+
+"Killed."
+~~~~~~~~~
+
+You may be out of memory, on a small computer. Try reducing MySQL's memory
+footprint. (Steps have already been taken to reduce memory usage by the
+anonymiser itself.)
+
+Can't create FULLTEXT index(es)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MySQL v5.6 is required to use FULLTEXT indexes with InnoDB tables (as opposed
+to MyISAM tables, which don't support transactions).
+
+On Ubuntu 14.04, the default MySQL version is 5.5, so use:
+
+    .. code-block:: bash
+
+        sudo apt-get install mysql-server-5.6 mysql-server-core-5.6 \
+            mysql-client-5.6 mysql-client-core-5.6
+
+
+How to search with FULLTEXT indexes?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In conventional SQL, you would use:
+
+    .. code-block:: none
+        ... WHERE field LIKE '%word%'
+
+In a field having a MySQL FULLTEXT index, you can use:
+
+    .. code-block:: none
+        ... WHERE MATCH(field) AGAINST ('word')
+
+There are several variants. See
+https://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html
+
+
 SQL Server
 ----------
 
@@ -650,6 +808,8 @@ If you see this with Microsoft SQL Server via ODBC/pyodbc, you need to enable
 Multiple Active Result Sets (MARS), because for some reason Microsoft think
 it’s unusual to want more than one cursor open (more than one simultaneous
 query) to a single database at once. There are several ways:
+
+**Windows**
 
 - (DOESN’T WORK.) Append ``;MultipleActiveResultSets=True`` to the connection
   URL, e.g. ``mssql+pyodbc://@MYDSN;MultipleActiveResultSets=True``. However,
@@ -667,6 +827,19 @@ query) to a single database at once. There are several ways:
   “No” to “Yes”.
 
 - There’s also a registry hack [#marsregistry]_.
+
+**Linux**
+
+- Under Linux, in ``/etc/odbc.ini``, for that DSN, set
+  ``MARS_Connection = yes``. See
+
+    - https://msdn.microsoft.com/en-us/library/cfa084cz(v=vs.110).aspx
+    - https://msdn.microsoft.com/en-us/library/h32h3abf(v=vs.110).aspx
+    - Rationale: We use gen_patient_ids() to iterate through patients, but then
+      we fetch data for that patient via the same connection to the source
+      database(s). Therefore, we're operating multiple result sets through one
+      connection.
+
 
 "The data types nvarchar(max) and ntext are incompatible..."
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -612,7 +612,6 @@ Change log/history
 
 
 
-
 .. rubric:: Footnotes
 
 .. [#f1]

@@ -53,6 +53,14 @@ from crate_anon.nlp_manager.output_user_config import OutputUserConfig
 
 log = logging.getLogger(__name__)
 
+# These match KEY_* strings in CrateGatePipeline.java:
+FN_SET = '_set'
+FN_TYPE = '_type'
+FN_ID = '_id'
+FN_STARTPOS = '_start'
+FN_ENDPOS = '_end'
+FN_CONTENT = '_content'
+
 
 # =============================================================================
 # Process handling
@@ -296,24 +304,24 @@ class Gate(BaseNlpParser):
     @staticmethod
     def _standard_columns() -> List[Column]:
         return [
-            Column('_set', SqlTypeDbIdentifier,
+            Column(FN_SET, SqlTypeDbIdentifier,
                    doc="GATE output set name"),
-            Column('_type', SqlTypeDbIdentifier,
+            Column(FN_TYPE, SqlTypeDbIdentifier,
                    doc="GATE annotation type name"),
-            Column('_id', Integer,
+            Column(FN_ID, Integer,
                    doc="GATE annotation ID (not clear this is very useful)"),
-            Column('_start', Integer,
+            Column(FN_STARTPOS, Integer,
                    doc="Start position in the content"),
-            Column('_end', Integer,
+            Column(FN_ENDPOS, Integer,
                    doc="End position in the content"),
-            Column('_content', Text,
+            Column(FN_CONTENT, Text,
                    doc="Full content marked as relevant."),
         ]
 
     @staticmethod
     def _standard_indexes() -> List[Index]:
         return [
-            Index('_idx__set', '_set', mysql_length=MAX_SQL_FIELD_LEN),
+            Index('_idx__set', FN_SET, mysql_length=MAX_SQL_FIELD_LEN),
         ]
 
     def dest_tables_columns(self) -> Dict[str, List[Column]]:

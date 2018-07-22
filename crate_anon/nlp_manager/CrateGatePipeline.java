@@ -147,6 +147,14 @@ public class CrateGatePipeline {
     private CorpusController m_controller = null;
     private Corpus m_corpus = null;
 
+    // Output keys
+    private static final String KEY_SET = "_set";
+    private static final String KEY_TYPE = "_type";
+    private static final String KEY_ID = "_id";
+    private static final String KEY_STARTPOS = "_start";
+    private static final String KEY_ENDPOS = "_end";
+    private static final String KEY_CONTENT = "_content";
+
     // ========================================================================
     // Constructor
     // ========================================================================
@@ -964,13 +972,13 @@ public class CrateGatePipeline {
         // It's a Serializable, I think, not a string. Anyway, this works.
 
         Map<String, String> outputmap = new HashMap<String, String>();
-        outputmap.put("_set", setname);
-        outputmap.put("_type", type);
-        outputmap.put("_id", "" + id);
+        outputmap.put(KEY_SET, setname);
+        outputmap.put(KEY_TYPE, type);
+        outputmap.put(KEY_ID, "" + id);
         // ... http://stackoverflow.com/questions/5071040
-        outputmap.put("_start", "" + start);
-        outputmap.put("_end", "" + end);
-        outputmap.put("_content", content);
+        outputmap.put(KEY_STARTPOS, "" + start);
+        outputmap.put(KEY_ENDPOS, "" + end);
+        outputmap.put(KEY_CONTENT, content);
         for (Map.Entry<Object, Object> entry : featuremap.entrySet()) {
             outputmap.put("" + entry.getKey(), "" + entry.getValue());
         }

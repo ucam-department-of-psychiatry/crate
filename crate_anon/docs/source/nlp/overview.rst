@@ -45,27 +45,40 @@ Standard NLP output columns
 
 All CRATE NLP processors use the following output columns:
 
-=============== =============== ===============================================
-Column          SQL type        Description
-=============== =============== ===============================================
-_pk             BIGINT          Arbitrary PK of output record
+=================== =============== ===========================================
+Column              SQL type        Description
+=================== =============== ===========================================
+_pk                 BIGINT          Arbitrary PK of output record
 
-_nlpdef         VARCHAR(64)     Name of the NLP definition producing this row
+_nlpdef             VARCHAR(64)     Name of the NLP definition producing this
+                                    row
 
-_srcdb          VARCHAR(64)     Source database name (from CRATE NLP config)
+_srcdb              VARCHAR(64)     Source database name (from CRATE NLP
+                                    config)
 
-_srctable       VARCHAR(64)     Source table name
+_srctable           VARCHAR(64)     Source table name
 
-_srcpkfield     VARCHAR(64)     PK field (column) name in source table
+_srcpkfield         VARCHAR(64)     PK field (column) name in source table
 
-_srcpkval       BIGINT          PK of source record (or integer hash of PK if
-                                the PK is a string)
+_srcpkval           BIGINT          PK of source record (or integer hash of PK
+                                    if the PK is a string)
 
-_srcpkstr       VARCHAR(64)     NULL if the table has an integer PK, but the PK
-                                itself if the PK was a string, to deal with
-                                hash collisions.
+_srcpkstr           VARCHAR(64)     NULL if the table has an integer PK, but
+                                    the PK itself if the PK was a string, to
+                                    deal with hash collisions.
 
-_srcfield       VARCHAR(64)     Field (column) name of source text
-=============== =============== ===============================================
+_srcfield           VARCHAR(64)     Field (column) name of source text
+
+_srcdatetimefield   DATETIME        Field (column) name containing the source
+                                    date/time.
+
+_srcdatetimeval     DATETIME        Date/time of the source field.
+=================== =============== ===========================================
 
 The length of the VARCHAR field is set by the `MAX_SQL_FIELD_LEN` constant.
+
+These default output columns are prefixed with an underscore to reduce the
+risk of name clashes (for example, with :ref:`GATE NLP applications <gate_nlp>`
+that can themselves generate arbitrary column names). Columns beginning with an
+underscore are a nuisance for R, though; one has to refer to them in data
+tables as e.g. ``dt$`_myfield``` rather than ``dt$myfield``.

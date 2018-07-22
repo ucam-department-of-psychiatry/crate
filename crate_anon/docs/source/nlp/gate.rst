@@ -65,6 +65,20 @@ _content        TEXT            Full content marked as relevant. (Not the
                                 entire content of the source field.)
 =============== =============== ===============================================
 
+These default output columns are prefixed with an underscore to reduce the risk
+of name clashes, since GATE applications can themselves generate arbitrary
+column names. For example, the demonstration GATE Person app generates these:
+
+.. code-block:: none
+
+    rule
+    firstname
+    surname
+    gender
+    kind
+
+You tell CRATE about the specific fields produced by a GATE application using
+the ``destfields`` option; see the :ref:`NLP config file <nlp_config>`.
 
 KConnect (Bio-YODIE)
 ~~~~~~~~~~~~~~~~~~~~

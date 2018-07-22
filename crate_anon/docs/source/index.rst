@@ -37,7 +37,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     website_using/index.rst
 
     misc/ancillary_tools.rst
-    misc/troubleshooting.rst
+    misc/faq_troubleshooting.rst
     misc/technical_notes.rst
     misc/upgrading.rst
     misc/tcpip_ports.rst
