@@ -25,14 +25,18 @@ Things to do
 - BENCHMARK name blacklisting (with forenames + surnames – English words –
   eponyms): speed, precision, recall. Share results with MB.
 
-- Should privileged clinical queries be in any way integrated with CRATE?
-  Advantages would include allowing the receiving user to run the query
-  themselves without RDBM intervention and RDBM-to-recipient data transfer
-  considerations, while ensuring the receiving user doesn’t have unrestricted
-  access (e.g. via SQL Server Management Studio). Plus there may be a UI
-  advantage. Implementation would be by letting that query use the privileged
-  connection (see get_executed_researchdb_cursor; see also
-  DJANGO_DEFAULT_CONNECTION constant, currently unused).
+- CHECK clinician views are easy and work OK:
+  ``crate_anon.crateweb.research.views.all_text_from_pid``;
+  ``crate_anon.crateweb.research.views.ridlookup``.
+
+  - Rationale: Should privileged clinical queries be in any way integrated
+    with CRATE? Advantages would include allowing the receiving user to run
+    the query themselves without RDBM intervention and RDBM-to-recipient data
+    transfer considerations, while ensuring the receiving user doesn’t have
+    unrestricted access (e.g. via SQL Server Management Studio). Plus there may
+    be a UI advantage. Implementation would be by letting that query use the
+    privileged connection (see get_executed_researchdb_cursor; see also
+    DJANGO_DEFAULT_CONNECTION constant, currently unused).
 
 - restrict anonymiser to specific patient IDs (for subset generation +/- custom
   pseudonym)
@@ -100,9 +104,6 @@ Things to do
 
 - When the Windows service stops, it is still failing to kill child processes.
   See ``crate_anon/tools/winservice.py``.
-
-- Rename NLP fields to remove leading underscore (better for R); see
-  ``crate_anon/nlp_manager/constants.py``.
 
 - Notes to work into documentation properly:
 

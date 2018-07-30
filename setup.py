@@ -59,6 +59,10 @@ from crate_anon.version import VERSION
 # Helper functions
 # =============================================================================
 
+# Files not to bundle
+SKIP_PATTERNS = ['*.pyc', '~*']
+
+
 def add_all_files(root_dir: str,
                   filelist: List[str],
                   absolute: bool = False,
@@ -93,9 +97,12 @@ def add_all_files(root_dir: str,
 # Constants
 # =============================================================================
 
+# Arguments
+EXTRAS_ARG = 'extras'
+
 # Directories
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))  # .../crate
-CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate_anon/
+CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
 DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
 DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
 
@@ -111,8 +118,84 @@ RUNNING_WINDOWS = platform.system() == 'Windows'
 with open(os.path.join(THIS_DIR, 'README.rst'), encoding='utf-8') as f:
     LONG_DESCRIPTION = f.read()
 
-# Files not to bundle
-SKIP_PATTERNS = ['*.pyc', '~*']
+# Package dependencies
+INSTALL_REQUIRES = [
+    'amqp==2.3.2',  # amqp is used by Celery  # noqa
+    'arrow==0.12.1',  # better datetime
+    'beautifulsoup4==4.6.0',
+    'cardinal_pythonlib==1.0.18',
+    'celery==4.0.1',
+    # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
+    'chardet==3.0.4',
+    # character encoding detection for cardinal_pythonlib  # noqa
+    'cherrypy==16.0.2',  # Cross-platform web server
+    'colorlog==3.1.4',  # colour in logs
+    'distro==1.3.0',  # replaces platform.linux_distribution
+    'django==2.0.6',
+    # "django" versus "Django": neither helps pycharm checking  # noqa
+    'django-debug-toolbar==1.9.1',
+    # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
+    'django-extensions==2.0.7',
+    'django-picklefield==1.0.0',
+    # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
+    # 'django-silk==0.5.7',
+    'django-sslserver==0.20',
+    'flashtext==2.7',
+    'flower==0.9.2',
+    # debug Celery; web server; only runs explicitly
+    'gunicorn==19.8.1',
+    # UNIX only, though will install under Windows
+    'kombu==4.1.0',
+    # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
+    'openpyxl==2.5.4',  # for ONSPD
+    'pendulum==2.0.2',  # dates/times
+    'pdfkit==0.6.1',
+    'prettytable==0.7.2',
+    'psutil==5.4.6',  # process management
+    'pygments==2.2.0',  # syntax highlighting
+    # REMOVED in version 0.18.42; needs Visual C++ under Windows  # 'pyhashxx==0.1.3',  # fast non-cryptographic hashing  # noqa
+    'pyparsing==2.2.0',  # generic grammar parser
+    'PyPDF2==1.26.0',
+    # 'pytz==2016.10',
+    'python-dateutil==2.6.0',
+    # 'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
+    # ... https://python-docx.readthedocs.org/en/latest/user/install.html
+    'regex==2018.6.21',
+    'semver==2.8.0',  # comparing semantic versions
+    'sphinx==1.7.5',  # documentation
+    'sortedcontainers==2.0.4',
+    'SQLAlchemy==1.2.8',  # database access
+    'sqlparse==0.2.4',
+    'typing==3.6.4',
+    # part of stdlib in Python 3.5, but not 3.4
+    'unidecode==1.0.22',  # for removing accents
+    'Werkzeug==0.14.1',
+    'xlrd==1.1.0',  # for ONSPD
+
+    # ---------------------------------------------------------------------
+    # For database connections (see manual): install manually
+    # ---------------------------------------------------------------------
+    # MySQL: one of:
+    #   'PyMySQL',
+    #   'mysqlclient',
+    # SQL Server / ODBC route:
+    #   'django-pyodbc-azure',
+    #   'pyodbc',  # has C prerequisites
+    #   'pypyodbc==1.3.3',
+    # SQL Server / Embedded FreeTDS route:
+    #   'django-pymssql',
+    #   'django-mssql',
+    #   'pymssql',
+    # PostgreSQL:
+    #   'psycopg2',  # has prerequisites (e.g. pg_config executable)
+
+]
+
+if RUNNING_WINDOWS:
+    INSTALL_REQUIRES += [
+        # Windows-specific stuff
+        'pypiwin32==223',
+    ]
 
 
 # =============================================================================
@@ -121,7 +204,6 @@ SKIP_PATTERNS = ['*.pyc', '~*']
 # absent.)
 # =============================================================================
 
-EXTRAS_ARG = 'extras'
 parser = argparse.ArgumentParser()
 parser.add_argument(
     '--' + EXTRAS_ARG, action='store_true',
@@ -170,7 +252,9 @@ if getattr(our_args, EXTRAS_ARG):
 -e .
     """
     with open(PIP_REQ_FILE, "w") as req_file:
-        subprocess.run(["pip", "freeze"], stdout=req_file)
+        # subprocess.run(["pip", "freeze"], stdout=req_file)
+        for line in INSTALL_REQUIRES:
+            req_file.write(line + "\n")
 
 
 # =============================================================================
@@ -230,7 +314,7 @@ setup(
     packages=find_packages(),  # finds all the .py files in subdirectories
     package_data={
         '': [
-            'README.md'
+            'README.rst'
         ],
         'crate_anon': extra_files,
         'crate_anon.crateweb': [
@@ -268,76 +352,7 @@ setup(
     },
     include_package_data=True,  # use MANIFEST.in during install?
 
-    install_requires=[
-
-        'amqp==2.3.2',  # amqp is used by Celery  # noqa
-        'arrow==0.12.1',  # better datetime
-        'beautifulsoup4==4.6.0',
-        'cardinal_pythonlib==1.0.18',
-        'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
-        'chardet==3.0.4',  # character encoding detection for cardinal_pythonlib  # noqa
-        'cherrypy==16.0.2',  # Cross-platform web server
-        'colorlog==3.1.4',  # colour in logs
-        'distro==1.3.0',  # replaces platform.linux_distribution
-        'django==2.0.6',  # "django" versus "Django": neither helps pycharm checking  # noqa
-        'django-debug-toolbar==1.9.1',
-        # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
-        'django-extensions==2.0.7',
-        'django-picklefield==1.0.0',  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
-        # 'django-silk==0.5.7',
-        'django-sslserver==0.20',
-        'flashtext==2.7',
-        'flower==0.9.2',  # debug Celery; web server; only runs explicitly
-        'gunicorn==19.8.1',  # UNIX only, though will install under Windows
-        'kombu==4.1.0',
-        # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
-        'openpyxl==2.5.4',  # for ONSPD
-        'pendulum==2.0.2',  # dates/times
-        'pdfkit==0.6.1',
-        'prettytable==0.7.2',
-        'psutil==5.4.6',  # process management
-        'pygments==2.2.0',  # syntax highlighting
-        # REMOVED in version 0.18.42; needs Visual C++ under Windows  # 'pyhashxx==0.1.3',  # fast non-cryptographic hashing  # noqa
-        'pyparsing==2.2.0',  # generic grammar parser
-        'PyPDF2==1.26.0',
-        # 'pytz==2016.10',
-        'python-dateutil==2.6.0',
-        # 'python-docx==0.8.5',  # needs lxml, which has Visual C++ dependencies under Windows  # noqa
-        # ... https://python-docx.readthedocs.org/en/latest/user/install.html
-        'regex==2018.6.21',
-        'semver==2.8.0',  # comparing semantic versions
-        'sphinx==1.7.5',  # documentation
-        'sortedcontainers==2.0.4',
-        'SQLAlchemy==1.2.8',  # database access
-        'sqlparse==0.2.4',
-        'typing==3.6.4',  # part of stdlib in Python 3.5, but not 3.4
-        'unidecode==1.0.22',  # for removing accents
-        'Werkzeug==0.14.1',
-        'xlrd==1.1.0',  # for ONSPD
-
-        # ---------------------------------------------------------------------
-        # For database connections (see manual): install manually
-        # ---------------------------------------------------------------------
-        # MySQL: one of:
-        #   'PyMySQL',
-        #   'mysqlclient',
-        # SQL Server / ODBC route:
-        #   'django-pyodbc-azure',
-        #   'pyodbc',  # has C prerequisites
-        #   'pypyodbc==1.3.3',
-        # SQL Server / Embedded FreeTDS route:
-        #   'django-pymssql',
-        #   'django-mssql',
-        #   'pymssql',
-        # PostgreSQL:
-        #   'psycopg2',  # has prerequisites (e.g. pg_config executable)
-
-    ] + (
-        # Windows-specific stuff
-        [
-            'pypiwin32==223',
-        ] if RUNNING_WINDOWS else []
-    ),
+    install_requires=INSTALL_REQUIRES,
 
     entry_points={
         'console_scripts': [
