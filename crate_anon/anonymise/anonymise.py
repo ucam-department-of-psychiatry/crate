@@ -44,7 +44,7 @@ from cardinal_pythonlib.sqlalchemy.schema import (
 )
 from sortedcontainers import SortedSet
 from sqlalchemy.schema import Column, Index, MetaData, Table
-from sqlalchemy.sql import column, func, or_, select, table
+from sqlalchemy.sql import column, func, or_, select, table, text
 
 from crate_anon.anonymise.config_singleton import config
 from crate_anon.anonymise.constants import (
@@ -339,6 +339,7 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
     tablename = db_parts[1]
     # Field name
     fieldname = db_parts[2]
+    pid_from_other_table = None
     try:
         session = config.sources[db].session
     except:
@@ -347,13 +348,16 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
               "or be 'pid'.".format(db))
     fieldcol = column(fieldname)
     for ddr in config.dd.rows:
+        # Check if this is the pid column for the specified table
+        if ddr.src_table == tablename and "P" in ddr.src_flags:
+            pid_from_other_table = ddr.src_field
         if ddr.src_db != db or not ddr.defines_primary_pids:
             continue
-        pidcol = column(ddr.src_field)
-        session = config.sources[ddr.src_db].session
         # Check if the field given is in the table with the pids
         if fieldname in config.dd.get_fieldnames_for_src_table(db,
                                                                ddr.src_table):
+            pidcol = column(ddr.src_field)
+            session = config.sources[ddr.src_db].session
             # Find pids corresponding to the given values of specified field
             query = (
                 select([pidcol]).
@@ -363,6 +367,48 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
             )
             result = session.execute(query)
             pids.extend([x[0] for x in result])
+            # As there is only one relavant database here, we return pids  
+            return pids
+        else:
+            # Mark out row of dd with primary pid for relavant database
+            row = ddr
+
+    ####### Doesn't work! Trying in plain SQL #########
+    ## Deal with case where the field specified isn't in the table
+    ## with the primary pid
+    #session = config.sources[db].session
+    #pidcol = column(row.src_field)
+    #session = config.sources[ddr.src_db].session
+    #chosen_table = table(tablename)
+    #ddr_table = table(row.src_table)
+    #join_obj = ddr_table.join(chosen_table, chosen_table.c.fieldcol == ddr_table.c.pidcol)
+    #query = (
+    #    select([pidcol]).
+    #    select_from(join_obj).
+    #    where((chosen_table.fieldcol.in_(field_elements)) &
+    #               (ddr_table.pidcol is not None)).
+    #    distinct()
+    #)
+
+    ## Deal with case where the field specified isn't in the table
+    ## with the primary pid
+    session = config.sources[db].session
+    source_field = row.src_field
+    source_table = row.src_table
+    # Convert list to string in correct form for query
+    txt_elements = ", ".join(field_elements)
+    txt_elements = "(" + txt_elements + ")"
+
+    txt = "SELECT {}.{} FROM {} ".format(source_table,source_field,
+               source_table)
+    txt += "JOIN {} ON {}.{}={}.{} ".format(tablename, source_table,
+               source_field, tablename, fieldname)
+    txt += "WHERE {}.{} IN {}".format(tablename, fieldname, txt_elements)
+    txt += "AND {}.{} IS NOT NULL".format(source_table, source_field)
+    sql = text(txt)
+
+    result = session.execute(sql)
+    pids.extend([x[0] for x in result])
 
     return pids
 
@@ -455,11 +501,11 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[int]:
     for ddr in config.dd.rows:
         if ddr.src_db != db or not ddr.defines_primary_pids:
             continue
-        pidcol = column(ddr.src_field)
-        session = config.sources[ddr.src_db].session
         # Check if the field given is in the table with the pids
         if fieldname in config.dd.get_fieldnames_for_src_table(ddr.src_db,
                 ddr.src_table):
+            pidcol = column(ddr.src_field)
+            session = config.sources[ddr.src_db].session
             # Find pids corresponding to the given values of specified field
             query = (
                 select([pidcol]).
@@ -469,6 +515,29 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[int]:
             )
             result = session.execute(query)
             pids.extend([x[0] for x in result])
+            # As there is only one relavant database here, we return pids  
+            return pids
+        else:
+            # Mark out row of dd with primary pid for relavant database
+            row = ddr
+
+    ## Deal with case where the field specified isn't in the table
+    ## with the primary pid
+    session = config.sources[db].session
+    source_field = row.src_field
+    source_table = row.src_table
+    txt = "SELECT {}.{} FROM {} ".format(source_table,source_field,
+               source_table)
+    txt += "JOIN {} ON {}.{}={}.{} ".format(tablename, source_table,
+               source_field, tablename, fieldname)
+    txt += "WHERE ({}.{} BETWEEN {} AND {}) ".format(tablename, fieldname,
+                                                  low, high)
+    txt += "AND {}.{} IS NOT NULL".format(source_table, source_field)
+    sql = text(txt)
+
+    result = session.execute(sql)
+    pids.extend([x[0] for x in result])
+
     return pids
 
 
