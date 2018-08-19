@@ -296,12 +296,201 @@ def gen_optout_rids() -> Generator[str, None, None]:
 
 
 # =============================================================================
+# Functions for getting pids from restricted set
+# =============================================================================
+
+def get_valid_pid_subset(given_pids: List[any]) -> List[any]:
+    """
+    Takes a list of pids and returns those in the list which
+    are also in the database.
+    """
+    pids = []
+    for ddr in config.dd.rows:
+        if not ddr.defines_primary_pids:
+            continue
+        pidcol = column(ddr.src_field)
+        session = config.sources[ddr.src_db].session
+        query = (
+            select([pidcol]).
+            select_from(table(ddr.src_table)).
+            where(pidcol is not None).
+            distinct()
+        )
+        result = session.execute(query)
+        real_pids = [str(x[0]) for x in result]
+        for pid in real_pids:
+            if pid in given_pids:
+                pids.append(pid)
+
+    return pids
+
+
+def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
+    """
+    Takes a field name and elements from that field and queries the database
+    to find the pids associated with these values.
+    """
+    pids = []
+    # Get database, table and field from 'field'
+    db_parts = field.split(".")
+    # Database name
+    db = db_parts[0]
+    # Table name
+    tablename = db_parts[1]
+    # Field name
+    fieldname = db_parts[2]
+    try:
+        session = config.sources[db].session
+    except:
+        print("Unable to connect to database {}. Remember argument to "
+              "'--restrict' must be of the form 'database.table.field', "
+              "or be 'pid'.".format(db))
+    fieldcol = column(fieldname)
+    for ddr in config.dd.rows:
+        if ddr.src_db != db or not ddr.defines_primary_pids:
+            continue
+        pidcol = column(ddr.src_field)
+        session = config.sources[ddr.src_db].session
+        # Check if the field given is in the table with the pids
+        if fieldname in config.dd.get_fieldnames_for_src_table(db,
+                                                               ddr.src_table):
+            # Find pids corresponding to the given values of specified field
+            query = (
+                select([pidcol]).
+                select_from(table(ddr.src_table)).
+                where((fieldcol.in_(field_elements)) & (pidcol is not None)).
+                distinct()
+            )
+            result = session.execute(query)
+            pids.extend([x[0] for x in result])
+
+    return pids
+
+
+def fieldname_is_pid(field: str) -> bool:
+    """
+    Checks if a field name is 'pid' or, if in the form 'database.table.field',
+    is the name of a primary pid field.
+    """ 
+    field_is_pid = False
+    if field == 'pid':
+        field_is_pid = True
+        return field_is_pid
+    for ddr in config.dd.rows:
+        if ddr.defines_primary_pids:
+            if ddr.src_db + "." + ddr.src_field == field:
+                field_is_pid = True
+                return field_is_pid
+    return field_is_pid
+
+
+def get_pids_from_file(field: str, filename: str) -> List[int]:
+    """"
+    Takes a field name, and a filename of values of that field, and returns
+    a list of pids associated with them.
+    """
+    field_is_pid = fieldname_is_pid(field)
+    pid_is_integer = config.pidtype_is_integer
+    if field_is_pid:
+        # If the chosen field is a pid field, just make sure all pids in the
+        # file are valid
+        if pid_is_integer:
+            given_pids = [x for x in gen_integers_from_file(filename)]
+        else:
+            given_pids = [x for x in gen_words_from_file(filename)]
+        pids = get_valid_pid_subset(given_pids)
+    else:
+        field_elements = [x for x in gen_words_from_file(filename)]
+        pids = get_subset_from_field(field, field_elements)
+
+    return pids
+
+
+def get_pids_from_list(field: str, list_elements: List[any]) -> List[int]:
+    field_is_pid = fieldname_is_pid(field)
+    if field_is_pid:
+        pids = get_valid_pid_subset(list_elements)
+    else:
+        pids = get_subset_from_field(field, list_elements)
+
+    return pids
+
+
+def get_pids_from_limits(low: int, high: int) -> List[int]:
+    pids = []
+    for ddr in config.dd.rows:
+        if not ddr.defines_primary_pids:
+            continue
+        pidcol = column(ddr.src_field)
+        session = config.sources[ddr.src_db].session
+        query = (
+            select([pidcol]).
+            select_from(table(ddr.src_table)).
+            where((pidcol.between(low, high)) & (pidcol is not None)).
+            distinct()
+        )
+        result = session.execute(query)
+        pids.extend([x[0] for x in result])
+
+    return pids
+
+
+def get_pids_query_field_limits(field: str, low: int, high: int) -> List[int]:
+    pids = []
+    # Get database, table and field from 'field'
+    db_parts = field.split(".")
+    # Database name
+    db = db_parts[0]
+    # Table name
+    tablename = db_parts[1]
+    # Field name
+    fieldname = db_parts[2]
+    try:
+        session = config.sources[db].session
+    except:
+        print("Unable to connect to database {}. Remember argument to "
+              "'--restrict' must be of the form 'database.table.field', "
+              "or be 'pid'.".format(db))
+    fieldcol = column(fieldname)
+    for ddr in config.dd.rows:
+        if ddr.src_db != db or not ddr.defines_primary_pids:
+            continue
+        pidcol = column(ddr.src_field)
+        session = config.sources[ddr.src_db].session
+        # Check if the field given is in the table with the pids
+        if fieldname in config.dd.get_fieldnames_for_src_table(ddr.src_db,
+                ddr.src_table):
+            # Find pids corresponding to the given values of specified field
+            query = (
+                select([pidcol]).
+                select_from(table(ddr.src_table)).
+                where((fieldcol.between(low, high)) & (pidcol is not None)).
+                distinct()
+            )
+            result = session.execute(query)
+            pids.extend([x[0] for x in result])
+    return pids
+
+
+def get_pids_from_field_limits(field: str, low: int, high: int) -> List[int]:
+    field_is_pid = fieldname_is_pid(field)
+    if field_is_pid:
+        pids = get_pids_from_limits(low, high)
+    else:
+        pids = get_pids_query_field_limits(field, low, high)
+
+    return pids
+
+
+# =============================================================================
 # Generators. Anything reading the main database should use a generator, so the
 # script can scale to databases of arbitrary size.
 # =============================================================================
 
-def gen_patient_ids(tasknum: int = 0,
-                    ntasks: int = 1) -> Generator[int, None, None]:
+def gen_patient_ids(
+        tasknum: int = 0,
+        ntasks: int = 1,
+        specified_pids: List[int] = None) -> Generator[int, None, None]:
     """
     Generate patient IDs.
 
@@ -334,6 +523,13 @@ def gen_patient_ids(tasknum: int = 0,
             else:
                 if is_my_job_by_hash(pid, tasknum=tasknum, ntasks=ntasks):
                     yield pid
+        return
+
+    # Subset specified?
+    if specified_pids is not None:
+        for i, pid in enumerate(specified_pids):
+            if i % ntasks == tasknum:
+                yield pid
         return
 
     # Otherwise do it properly:
@@ -748,7 +944,8 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
 
 def patient_processing_fn(tasknum: int = 0,
                           ntasks: int = 1,
-                          incremental: bool = False) -> None:
+                          incremental: bool = False,
+                          specified_pids: List[int] = None) -> None:
     """
     Iterate through patient IDs;
         build the scrubber for each patient;
@@ -757,7 +954,8 @@ def patient_processing_fn(tasknum: int = 0,
     """
     n_patients = estimate_count_patients() // ntasks
     i = 0
-    for pid in gen_patient_ids(tasknum, ntasks):
+    for pid in gen_patient_ids(tasknum, ntasks,
+                               specified_pids=specified_pids):
         # gen_patient_ids() assigns the work to the appropriate thread/process
         # Check for an abort signal once per patient processed
         i += 1
@@ -1050,7 +1248,8 @@ def process_nonpatient_tables(tasknum: int = 0,
 
 def process_patient_tables(tasknum: int = 0,
                            ntasks: int = 1,
-                           incremental: bool = False) -> None:
+                           incremental: bool = False,
+                           specified_pids: List[int] = None) -> None:
     """
     Process all patient tables, optionally in a parallel-processing fashion.
     """
@@ -1062,7 +1261,8 @@ def process_patient_tables(tasknum: int = 0,
         log.info("PROCESS {} (numbered from zero) OF {} PROCESSES".format(
             tasknum, ntasks))
     patient_processing_fn(tasknum=tasknum, ntasks=ntasks,
-                          incremental=incremental)
+                          incremental=incremental,
+                          specified_pids=specified_pids)
 
     if ntasks > 1:
         log.info("Process {}: FINISHED ANONYMISATION".format(tasknum))
@@ -1146,6 +1346,22 @@ def anonymise(args: Any) -> None:
         show_dest_counts()
         return
 
+    pids = None
+    if args.restrict:
+        if args.file:
+            pids = get_pids_from_file(args.restrict, args.file)
+        elif args.limits:
+            pids = get_pids_from_field_limits(args.restrict, args.limits[0],
+                                        args.limits[1])
+        elif args.list:
+            pids = get_pids_from_list(args.restrict, args.list)
+            print(args.list)
+        else:
+            raise ValueError("'--restrict' option requires one of "
+                             "'--file', '--limits' or '--list'")
+        if not pids:
+            log.warning("No valid patient ids found for the conditions given")
+
     # random number seed
     random.seed(args.seed)
 
@@ -1169,7 +1385,8 @@ def anonymise(args: Any) -> None:
     if args.patienttables or everything:
         process_patient_tables(tasknum=args.process,
                                ntasks=args.nprocesses,
-                               incremental=args.incremental)
+                               incremental=args.incremental,
+                               specified_pids=pids)
 
     # 4. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
     if args.nonpatienttables or everything:

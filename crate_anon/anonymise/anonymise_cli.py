@@ -119,6 +119,20 @@ def main() -> None:
                         help="Create indexes only")
     parser.add_argument("--skip_dd_check", action="store_true",
                         help="Skip data dictionary validity check")
+    parser.add_argument("--restrict",
+                        help="Restrict which patients are processed. Specify "
+                             "which field to base the restriction on. (Currently "
+                             "only works with '--full' but will be corrected "
+                             "shortly.)")
+    parser.add_argument("--limits", nargs=2,
+                        help="Specify upper and lower limits of the field "
+                             "specified in '--restrict'")
+    parser.add_argument("--file",
+                        help="Specify a file with a list of values for the "
+                             "field specified in '--restrict'")
+    parser.add_argument("--list", nargs="+",
+                        help="Specify a list of values for the field "
+                             "specified in '--restrict'")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(

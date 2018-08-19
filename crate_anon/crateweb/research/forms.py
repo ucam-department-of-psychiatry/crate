@@ -44,7 +44,7 @@ from django.forms import (
     ModelForm,
 )
 
-from crate_anon.crateweb.research.models import Highlight, Query
+from crate_anon.crateweb.research.models import Highlight, Query, SitewideQuery
 from crate_anon.crateweb.research.research_db_info import SingleResearchDatabase  # noqa
 from crate_anon.common.sql import (
     SQL_OPS_MULTIPLE_VALUES,

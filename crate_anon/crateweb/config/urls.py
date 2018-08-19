@@ -125,6 +125,14 @@ urlpatterns = [
     # url(r'^tsv/(?P<query_id>[0-9]+)/$', research_views.query_tsv, name='tsv'),
     url(r'^query_excel/(?P<query_id>[0-9]+)/$',
         research_views.query_excel, name='query_excel'),
+    url(r'^sitewide_queries/$', research_views.query_add_sitewide,
+        name='sitewide_queries'),
+    url(r'^delete_sitewide_query/(?P<query_id>[0-9]+)/$',
+        research_views.sitewide_query_delete, name='delete_sitewide_query'),
+    url(r'^standard_queries/$', research_views.show_sitewide_queries,
+        name='standard_queries'),
+    url(r'^process_standard_query/(?P<query_id>[0-9]+)/$',
+        research_views.sitewide_query_process, name='process_standard_query'),
 
     # -------------------------------------------------------------------------
     # Patient Explorer views

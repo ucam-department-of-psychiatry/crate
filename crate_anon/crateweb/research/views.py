@@ -97,6 +97,7 @@ from crate_anon.crateweb.research.models import (
     PatientExplorer,
     PatientMultiQuery,
     Query,
+    SitewideQuery,
 )
 from crate_anon.crateweb.research.research_db_info import (
     research_database_info,
@@ -386,8 +387,17 @@ def get_all_queries(request: HttpRequest) -> QuerySet:
                         .order_by('-active', '-created')
 
 
-def get_identical_queries(request: HttpRequest, sql: str) -> List[Query]:
-    all_queries = get_all_queries(request)
+def get_all_sitewide_queries(request: HttpRequest) -> QuerySet:
+    return SitewideQuery.objects.filter(deleted=False)\
+                                .order_by('-created')
+
+
+def get_identical_queries(request: HttpRequest, sql: str,
+                          sitewide: bool = False) -> List[Query]:
+    if sitewide:
+        all_queries = get_all_sitewide_queries(request)
+    else:
+        all_queries = get_all_queries(request)
 
     # identical_queries = all_queries.filter(sql=sql)
     #
@@ -468,7 +478,8 @@ def get_identical_queries(request: HttpRequest, sql: str) -> List[Query]:
 
 def query_submit(request: HttpRequest,
                  sql: str,
-                 run: bool = False) -> HttpResponse:
+                 run: bool = False,
+                 from_sitewide: bool = False) -> HttpResponse:
     """
     Ancillary function to add a query, and redirect to the editing or
     run page.
@@ -485,6 +496,8 @@ def query_submit(request: HttpRequest,
     # redirect to a new URL:
     if run:
         return redirect('results', query_id)
+    elif from_sitewide:
+        return redirect('standard_queries')
     else:
         return redirect('query')
 
@@ -544,6 +557,59 @@ def query_edit_select(request: HttpRequest) -> HttpResponse:
     return render(request, 'query_edit_select.html', context)
 
 
+@user_passes_test(is_superuser)
+def query_add_sitewide(request: HttpRequest) -> HttpResponse:
+    """
+    Superuser can add or edit sitewide queries and their descriptions.
+    """
+    if 'submit_add' in request.POST:
+        sql = request.POST['sql']
+        description = request.POST['description']
+        identical_queries = get_identical_queries(request, sql, sitewide=True)
+        descriptions = [query.description for query in identical_queries]
+        if not identical_queries:
+            query = SitewideQuery(sql=sql, description=description,
+                                  raw=True)
+            query.save()
+        elif description not in descriptions:
+            identical_queries[0].description = description
+            identical_queries[0].save()
+    all_queries = get_all_sitewide_queries(request)
+    queries = paginate(request, all_queries)
+    profile = request.user.profile
+    element_counter = HtmlElementCounter()
+    for q in queries:
+        q.formatted_query_safe = make_collapsible_sql_query(
+            q.get_original_sql(),
+            element_counter=element_counter,
+            collapse_at_n_lines=profile.collapse_at_n_lines,
+        )
+    if 'edit' in request.POST:
+        query_id = request.POST['query_id']
+        query = SitewideQuery.objects.get(id=query_id)
+        selected_sql = query.sql
+        selected_description = query.description
+    else:
+        selected_sql = ""
+        selected_description = ""
+    context =  {
+        'queries': queries,
+        'selected_sql': selected_sql,
+        'selected_description': selected_description,
+    }
+    return render(request, 'query_add_sitewide.html', context)
+
+
+def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
+    queries = get_all_sitewide_queries(request)
+    for query in queries:
+        query.get_sql_chunks()
+    context = {
+        'queries': queries,
+    }
+    return render(request, 'show_sitewide_queries.html', context)
+
+
 def query_activate(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(Query, id=query_id)  # type: Query
@@ -556,6 +622,46 @@ def query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
     query = get_object_or_404(Query, id=query_id)  # type: Query
     query.delete_if_permitted()
     return redirect('query')
+
+
+@user_passes_test(is_superuser)
+def sitewide_query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
+    validate_blank_form(request)
+    query = get_object_or_404(SitewideQuery, id=query_id)
+    query.delete_if_permitted()
+    return redirect('sitewide_queries')
+
+
+def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
+    """
+    Takes a sitewide query id and receives through POST replacements for the
+    placeholders. Then adds the code to user's personal library or runs and
+    adds it.
+    """
+    validate_blank_form(request)
+    cmd_add = 'submit_add' in request.POST
+    cmd_run = 'submit_run' in request.POST
+    if cmd_add or cmd_run:
+        query = get_object_or_404(SitewideQuery, id=query_id)
+        #if query.sql_chunks is null:
+        query.get_sql_chunks()
+        sql = ""
+        for i, chunk in enumerate(query.sql_chunks):
+            if i%2 == 0:
+                # add the original sql - the even numbered chunks
+                sql += chunk
+            else:
+                # add sql to replace the placeholders
+                chunknum = "chunk{}".format(i+1)
+                if chunknum in request.POST:
+                    replacement = request.POST[chunknum]
+                else:
+                    replacement = ""
+                sql += replacement
+        return query_submit(request, sql, run=cmd_run,
+                            from_sitewide=True)
+    else:
+        return redirect('standard_queries')
 
 
 def no_query_selected(request: HttpRequest) -> HttpResponse:

@@ -1,0 +1,65 @@
+{# query_add_sitewide.html #}
+
+{% extends "base.html" %}
+
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
+{% block content %}
+    <h1>Create or edit sitewide SQL queries</h1>
+    <p><strong>SQL query:</strong><p>
+    <form action="{% url 'sitewide_queries' %}" method="post">
+        {% csrf_token %}
+        <textarea name="sql" rows="10" cols="70" required>{{ selected_sql }}</textarea>
+        <div style="display: block;">
+            <p><strong>Description:</strong></p>
+            <input type="text" name="description" size="50" value="{{ selected_description }}"></input>
+        </div>
+        <input style="display: block;" type="submit" name="submit_add"
+               value="Save to sitewide library" />
+    </form>
+    {% if queries %}
+    <table>
+        <tr>
+            <th>Created at</th>
+            <th>Delete query</th>
+            <th>SQL</th>
+            <th>Description</th>
+            <th>Edit</th>
+        </tr>
+        {% for query in queries %}
+            <tr>
+                <td>{{ query.created }}</td>
+                <td>
+                    <form action="{% url 'delete_sitewide_query' query.id %}" method="post">
+                        {% csrf_token %}
+                        <input type="submit" value="Delete" />
+                    </form>
+                </td>
+                <td>{{ query.formatted_query_safe|safe }}</td>
+                <td>{{ query.description }}</td>
+                <td>
+                    <form action="{% url 'sitewide_queries' %}" method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="query_id" value="{{ query.id }}">
+                        <input type="submit" name="edit" value="Edit" />
+                    </form>
+                </td>
+        {% endfor %}
+    </table>
+    {% include "page_nav.html" with page=queries %}
+    {% else %}
+        <div>None yet.</div>
+    {% endif %}
+
+    <ul>
+        <li>
+            Enter the SQL you want to add, with placeholders in double square brackets eg:<br />
+            SELECT * FROM [[table]] WHERE brcid="[[brcid]]";
+        </li>
+        <li>The placeholders act as hints for the user.</li>
+        <li>Remember to put quotes around placeholders if they're needed.</li>
+    </ul>
+
+{% endblock %}

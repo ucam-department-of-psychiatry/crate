@@ -297,22 +297,21 @@ class Highlight(models.Model):
 
 
 # =============================================================================
-# Query class
+# Query classes
 # =============================================================================
 
 QUERY_FWD_REF = "Query"
 
 
-class Query(models.Model):
+class QueryBase(models.Model):
     """
-    Class to query the research database.
+    Abstract base class for the two query classes.
     """
     class Meta:
+        abstract = True
         app_label = "research"
 
     id = models.AutoField(primary_key=True)  # automatic
-    user = models.ForeignKey(settings.AUTH_USER_MODEL,
-                             on_delete=models.CASCADE)
 
     sql = models.TextField(verbose_name='SQL query')
     sql_hash = models.BigIntegerField(
@@ -325,7 +324,7 @@ class Query(models.Model):
         default=True,
         verbose_name='Parameter-substituted SQL uses ?, not %s, '
         'as placeholders')
-    active = models.BooleanField(default=True)  # see save() below
+    #active = models.BooleanField(default=True)  # see save() below
     created = models.DateTimeField(auto_now_add=True)
     deleted = models.BooleanField(
         default=False,
@@ -336,19 +335,6 @@ class Query(models.Model):
     def __repr__(self) -> str:
         return simple_repr(self, ['id', 'user', 'sql', 'args', 'raw', 'qmark',
                                   'active', 'created', 'deleted', 'audited'])
-
-    def save(self, *args, **kwargs) -> None:
-        """
-        Custom save method.
-        Ensures that only one Query has active == True for a given user.
-        Also sets the hash.
-        """
-        # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
-        if self.active:
-            Query.objects.filter(user=self.user, active=True)\
-                         .update(active=False)
-        self.sql_hash = hash64(self.sql)
-        super().save(*args, **kwargs)
 
     # -------------------------------------------------------------------------
     # Fetching
@@ -378,9 +364,9 @@ class Query(models.Model):
     # Activating, deleting, auditing
     # -------------------------------------------------------------------------
 
-    def activate(self) -> None:
-        self.active = True
-        self.save()
+    #def activate(self) -> None:
+    #    self.active = True
+    #    self.save()
 
     def mark_audited(self) -> None:
         if self.audited:
@@ -393,7 +379,7 @@ class Query(models.Model):
             # log.debug("pointless")
             return
         self.deleted = True
-        self.active = False
+        #self.active = False
         # log.debug("about to save")
         self.save()
         # log.debug("saved")
@@ -518,6 +504,111 @@ class Query(models.Model):
         """Generates all results as a list of OrderedDicts."""
         with self.get_executed_cursor() as cursor:
             return dictfetchall(cursor)
+
+
+class Query(QueryBase):
+    """
+    Class to query the research database.
+    """
+    user = models.ForeignKey(settings.AUTH_USER_MODEL,
+                             on_delete=models.CASCADE)
+
+    active = models.BooleanField(default=True)  # see save() below
+
+    def activate(self) -> None:
+        self.active = True
+        self.save()
+
+    def mark_deleted(self) -> None:
+        self.active = False
+        super().mark_deleted()
+
+    def save(self, *args, **kwargs) -> None:
+        """
+        Custom save method.
+        Ensures that only one Query has active == True for a given user.
+        Also sets the hash.
+        """
+        # http://stackoverflow.com/questions/1455126/unique-booleanfield-value-in-django  # noqa
+        if self.active:
+            Query.objects.filter(user=self.user, active=True)\
+                         .update(active=False)
+        self.sql_hash = hash64(self.sql)
+        super().save(*args, **kwargs)
+
+    # -------------------------------------------------------------------------
+    # Fetching
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def get_active_query_or_none(request: HttpRequest) \
+            -> Optional[QUERY_FWD_REF]:
+        if not request.user.is_authenticated:
+            return None
+        try:
+            return Query.objects.get(user=request.user, active=True)
+        except Query.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_active_query_id_or_none(request: HttpRequest) -> Optional[int]:
+        if not request.user.is_authenticated:
+            return None
+        try:
+            query = Query.objects.get(user=request.user, active=True)
+            return query.id
+        except Query.DoesNotExist:
+            return None
+
+
+class SitewideQuery(QueryBase):
+    """
+    Class to query the research database. Queries are not attatched
+    to any particular user.
+    """
+
+    description = models.TextField(verbose_name='query description',
+                                   default="")
+
+    def get_sql_chunks(self) -> List[List[str]]:
+        """
+        Finds a list of sql chunks and placeholders made from the original sql
+        and sets sql_chunks to this value. E.g., if the sql is
+        'SELECT * FROM [[table]] WHERE brcid="[[brcid]]";' sql_chunks will be
+        set to: ['SELECT * FROM ', 'table', ' WHERE brcid="', 'brcid', '";']
+        Note that the fist elements (and all even ones) are sql - not
+        placeholders.
+        """
+        sql_string = self.sql
+        first = "[["
+        last = "]]"
+        sql_chunks = []
+        index1 = sql_string.find(first)
+        index2 = sql_string.find(last)
+        while index1 != -1 and index2 != -1:
+            # get bit of sql up to next '[['
+            chunk = sql_string[:index1]
+            # get bit of sql between '[[' and ']]'
+            placeholder = sql_string[index1+2: index2]
+            sql_chunks.append(chunk)
+            sql_chunks.append(placeholder)
+            # get bit of sql after '[[' - this forms new substring to check
+            sql_string = sql_string[index2+2:]
+            index1 = sql_string.find(first)
+            index2 = sql_string.find(last)
+        if sql_string:
+            sql_chunks.append(sql_string)
+
+        self.sql_chunks = sql_chunks
+
+
+    def save(self, *args, **kwargs) -> None:
+        """
+        Custom save method.
+        Sets the hash.
+        """
+        self.sql_hash = hash64(self.sql)
+        super().save(*args, **kwargs)
 
 
 # =============================================================================

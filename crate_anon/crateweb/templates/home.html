@@ -32,6 +32,8 @@
                 </ul>
             </li>
 
+            <li><a href="{% url 'standard_queries' %}">Standard queries</a></li>
+
             <li>
                 View research database structure:
                 <ul>
@@ -57,6 +59,12 @@
 
             <li><a href="{%  url 'structure_help' %}">Help on
             local database structure</a></li>
+
+            {% if user.is_superuser %}
+                <li><a href="{% url 'sitewide_queries' %}">Sitewide
+                library</a></li>
+            {% endif %}
+
         </ul>
 
         <h2>Contacting patients</h2>

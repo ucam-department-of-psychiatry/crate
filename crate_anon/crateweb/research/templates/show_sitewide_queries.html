@@ -1,0 +1,47 @@
+{# show_sitewide_queries.html #}
+
+{% extends "base.html" %}
+
+{% block extrahead %}
+    <style type="text/css">{{ sql_highlight_css }}</style>
+{% endblock %}
+
+{% block content %}
+
+    <h1>Standard Queries</h1>
+
+    {% if queries %}
+        <table>
+            <tr>
+                <th>Description</th>
+                <th>SQL</th>
+                <th>Add</th>
+                <th>Run</th>
+            </tr>
+            {% for query in queries %}
+                <tr>
+                    <form action="{% url 'process_standard_query' query.id %}" method="post">
+                        {% csrf_token %}
+                        <td>{{ query.description }}</td>
+                        <td>
+                        {% for chunk in query.sql_chunks %}
+                            {% if forloop.counter|divisibleby:2 %}
+                                <input type="text" name="chunk{{ forloop.counter }}"
+                                       placeholder="{{ chunk }}"></input>
+                            {% else %}
+                                {{ chunk }}
+                            {% endif %}
+                        {% endfor %}
+                         </td>
+                        <td>
+                            <input type="submit" name="submit_add" value="Add">
+                        </td>
+                        <td>
+                            <input type="submit" name="submit_run" value="Run">
+                        </td>
+                    </form>
+                </tr>
+            {% endfor %}
+    {% endif %}
+
+{% endblock %}
