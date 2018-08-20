@@ -121,9 +121,8 @@ def main() -> None:
                         help="Skip data dictionary validity check")
     parser.add_argument("--restrict",
                         help="Restrict which patients are processed. Specify "
-                             "which field to base the restriction on. (Currently "
-                             "only works with '--full' but will be corrected "
-                             "shortly.)")
+                             "which field to base the restriction on or "
+                             "'pid' for patient ids.")
     parser.add_argument("--limits", nargs=2,
                         help="Specify upper and lower limits of the field "
                              "specified in '--restrict'")

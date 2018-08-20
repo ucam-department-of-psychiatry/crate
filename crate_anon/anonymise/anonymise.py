@@ -436,14 +436,11 @@ def get_pids_from_file(field: str, filename: str) -> List[int]:
     a list of pids associated with them.
     """
     field_is_pid = fieldname_is_pid(field)
-    pid_is_integer = config.pidtype_is_integer
+    #pid_is_integer = config.pidtype_is_integer
     if field_is_pid:
         # If the chosen field is a pid field, just make sure all pids in the
         # file are valid
-        if pid_is_integer:
-            given_pids = [x for x in gen_integers_from_file(filename)]
-        else:
-            given_pids = [x for x in gen_words_from_file(filename)]
+        given_pids = [x for x in gen_words_from_file(filename)]
         pids = get_valid_pid_subset(given_pids)
     else:
         field_elements = [x for x in gen_words_from_file(filename)]
