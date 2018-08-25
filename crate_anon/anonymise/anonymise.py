@@ -299,11 +299,22 @@ def gen_optout_rids() -> Generator[str, None, None]:
 # Functions for getting pids from restricted set
 # =============================================================================
 
-def get_valid_pid_subset(given_pids: List[any]) -> List[any]:
+def get_valid_pid_subset(given_pids: List[any]) -> List[str]:
     """
     Takes a list of pids and returns those in the list which
     are also in the database.
     """
+    pid_is_integer = config.pidtype_is_integer
+    if pid_is_integer:
+        # Remove non-integer values of pid if pids are supposed to be integer
+        orig_pids = given_pids
+        for i, pid in enumerate(orig_pids):
+            try:
+                int(pid)
+            except:
+                print("pid '{}' should be in integer form. ".format(pid), end="")
+                print("Excluding value.")
+                del given_pids[i]
     pids = []
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
@@ -430,7 +441,7 @@ def fieldname_is_pid(field: str) -> bool:
     return field_is_pid
 
 
-def get_pids_from_file(field: str, filename: str) -> List[int]:
+def get_pids_from_file(field: str, filename: str) -> List[str]:
     """"
     Takes a field name, and a filename of values of that field, and returns
     a list of pids associated with them.
@@ -449,7 +460,7 @@ def get_pids_from_file(field: str, filename: str) -> List[int]:
     return pids
 
 
-def get_pids_from_list(field: str, list_elements: List[any]) -> List[int]:
+def get_pids_from_list(field: str, list_elements: List[any]) -> List[str]:
     field_is_pid = fieldname_is_pid(field)
     if field_is_pid:
         pids = get_valid_pid_subset(list_elements)
@@ -459,7 +470,7 @@ def get_pids_from_list(field: str, list_elements: List[any]) -> List[int]:
     return pids
 
 
-def get_pids_from_limits(low: int, high: int) -> List[int]:
+def get_pids_from_limits(low: int, high: int) -> List[any]:
     pids = []
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
@@ -478,7 +489,7 @@ def get_pids_from_limits(low: int, high: int) -> List[int]:
     return pids
 
 
-def get_pids_query_field_limits(field: str, low: int, high: int) -> List[int]:
+def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
     pids = []
     # Get database, table and field from 'field'
     db_parts = field.split(".")
@@ -538,7 +549,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[int]:
     return pids
 
 
-def get_pids_from_field_limits(field: str, low: int, high: int) -> List[int]:
+def get_pids_from_field_limits(field: str, low: int, high: int) -> List[any]:
     field_is_pid = fieldname_is_pid(field)
     if field_is_pid:
         pids = get_pids_from_limits(low, high)
@@ -556,7 +567,7 @@ def get_pids_from_field_limits(field: str, low: int, high: int) -> List[int]:
 def gen_patient_ids(
         tasknum: int = 0,
         ntasks: int = 1,
-        specified_pids: List[int] = None) -> Generator[int, None, None]:
+        specified_pids: List[any] = None) -> Generator[int, None, None]:
     """
     Generate patient IDs.
 
@@ -823,7 +834,8 @@ def process_table(sourcedbname: str,
                   incremental: bool = False,
                   intpkname: str = None,
                   tasknum: int = 0,
-                  ntasks: int = 1) -> None:
+                  ntasks: int = 1,
+                  free_text_limit: int = None) -> None:
     """
     Process a table. This can either be a patient table (in which case the
     patient's scrubber is applied and only rows for that patient are processed)
@@ -922,6 +934,15 @@ def process_table(sourcedbname: str,
         skip_row = False
         for i, ddr in enumerate(ddrows):
             value = row[i]
+            # Filter out free text over specified length
+            if free_text_limit is not None and len(str(value)) > free_text_limit:
+                datatype = ddr.src_datatype
+                if (datatype == "TEXT" or datatype.startswith("CHAR") or
+                        datatype.startswith("VARCHAR")):
+                    # This is safe because no destination fields are nullable
+                    # except id columns?
+                    destvalues[ddr.dest_field] = None
+                    continue
             if ddr.skip_row_by_value(value):
                 # log.debug("skipping row based on inclusion/exclusion values")
                 skip_row = True
@@ -1011,7 +1032,8 @@ def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
 def patient_processing_fn(tasknum: int = 0,
                           ntasks: int = 1,
                           incremental: bool = False,
-                          specified_pids: List[int] = None) -> None:
+                          specified_pids: List[int] = None,
+                          free_text_limit: int = None) -> None:
     """
     Iterate through patient IDs;
         build the scrubber for each patient;
@@ -1068,7 +1090,8 @@ def patient_processing_fn(tasknum: int = 0,
                     pid, d, t))
                 process_table(d, t,
                               patient=patient,
-                              incremental=(incremental and patient_unchanged))
+                              incremental=(incremental and patient_unchanged),
+                              free_text_limit=free_text_limit)
 
     commit_destdb()
 
@@ -1282,7 +1305,8 @@ def setup_opt_out(incremental: bool = False) -> None:
 
 def process_nonpatient_tables(tasknum: int = 0,
                               ntasks: int = 1,
-                              incremental: bool = False) -> None:
+                              incremental: bool = False,
+                              free_text_limit: int = None) -> None:
     """
     Copies all non-patient tables.
     If they have an integer PK, the work may be parallelized.
@@ -1295,7 +1319,8 @@ def process_nonpatient_tables(tasknum: int = 0,
         # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
-                      intpkname=pkname, tasknum=tasknum, ntasks=ntasks)
+                      intpkname=pkname, tasknum=tasknum, ntasks=ntasks,
+                      free_text_limit=free_text_limit)
         commit_destdb()
     log.info(SEP + "Non-patient tables: (b) without integer PK")
     for (d, t) in gen_nonpatient_tables_without_int_pk(tasknum=tasknum,
@@ -1308,14 +1333,16 @@ def process_nonpatient_tables(tasknum: int = 0,
         # noinspection PyTypeChecker
         process_table(d, t, patient=None,
                       incremental=incremental,
-                      intpkname=None, tasknum=0, ntasks=1)
+                      intpkname=None, tasknum=0, ntasks=1,
+                      free_text_limit=free_text_limit)
         commit_destdb()
 
 
 def process_patient_tables(tasknum: int = 0,
                            ntasks: int = 1,
                            incremental: bool = False,
-                           specified_pids: List[int] = None) -> None:
+                           specified_pids: List[int] = None,
+                           free_text_limit: int = None) -> None:
     """
     Process all patient tables, optionally in a parallel-processing fashion.
     """
@@ -1328,7 +1355,8 @@ def process_patient_tables(tasknum: int = 0,
             tasknum, ntasks))
     patient_processing_fn(tasknum=tasknum, ntasks=ntasks,
                           incremental=incremental,
-                          specified_pids=specified_pids)
+                          specified_pids=specified_pids,
+                          free_text_limit=free_text_limit)
 
     if ntasks > 1:
         log.info("Process {}: FINISHED ANONYMISATION".format(tasknum))
@@ -1421,7 +1449,6 @@ def anonymise(args: Any) -> None:
                                         args.limits[1])
         elif args.list:
             pids = get_pids_from_list(args.restrict, args.list)
-            print(args.list)
         else:
             raise ValueError("'--restrict' option requires one of "
                              "'--file', '--limits' or '--list'")
@@ -1452,13 +1479,15 @@ def anonymise(args: Any) -> None:
         process_patient_tables(tasknum=args.process,
                                ntasks=args.nprocesses,
                                incremental=args.incremental,
-                               specified_pids=pids)
+                               specified_pids=pids,
+                               free_text_limit=args.filtertext)
 
     # 4. Tables without any patient ID (e.g. lookup tables). Process PER TABLE.
     if args.nonpatienttables or everything:
         process_nonpatient_tables(tasknum=args.process,
                                   ntasks=args.nprocesses,
-                                  incremental=args.incremental)
+                                  incremental=args.incremental,
+                                  free_text_limit=args.filtertext)
 
     # 5. Indexes. ALWAYS FASTEST TO DO THIS LAST. Process PER TABLE.
     if args.index or everything:

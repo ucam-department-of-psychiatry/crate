@@ -132,6 +132,9 @@ def main() -> None:
     parser.add_argument("--list", nargs="+",
                         help="Specify a list of values for the field "
                              "specified in '--restrict'")
+    parser.add_argument("--filtertext", type=int, default=None,
+                        help="Filter out all free text over the specified "
+                             "length")
 
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
