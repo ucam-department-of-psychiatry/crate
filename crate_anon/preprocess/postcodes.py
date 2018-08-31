@@ -24,26 +24,34 @@
 ===============================================================================
 
 Code-Point Open, CSV, GB
+
 - https://www.ordnancesurvey.co.uk/business-and-government/products/opendata-products.html
 - https://www.ordnancesurvey.co.uk/business-and-government/products/code-point-open.html
 - https://www.ordnancesurvey.co.uk/opendatadownload/products.html
 - http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/
 
 Office for National Statistics Postcode Database (ONSPD):
+
 - https://geoportal.statistics.gov.uk/geoportal/catalog/content/filelist.page
 - e.g. ONSPD_MAY_2016_csv.zip
 - http://www.ons.gov.uk/methodology/geography/licences
 
 Background:
+
 - OA = Output Area
-    ... smallest: >=40 households, >=100 people
-    ... 181,408 OAs in England & Wales
+  ... smallest: >=40 households, >=100 people
+  ... 181,408 OAs in England & Wales
+  
 - LSOA = Lower Layer Super Output Area
-    ... 34,753 LSOAs in England & Wales
+  ... 34,753 LSOAs in England & Wales
+  
 - MSOA = Middle Layer Super Output Area
-    ... 7,201 MSOAs in England & Wales
+  ... 7,201 MSOAs in England & Wales
+  
 - WZ = Workplace Zone
-    - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#workplace-zone-wz
+
+  - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#workplace-zone-wz
+  
 - https://www.ons.gov.uk/methodology/geography/ukgeographies/censusgeography#output-area-oa
 """  # noqa
 

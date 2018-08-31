@@ -297,8 +297,8 @@ class NumericalResultParser(BaseNlpParser):
             verbose: bool = False) -> None:
         """
         test_expected_list: list of tuples of (a) test string and
-         (b) list of expected numerical (float) results, which can be an
-         empty list
+        (b) list of expected numerical (float) results, which can be an
+        empty list
         Returne: none; will assert on failure
         """
         print("Testing parser: {}".format(type(self).__name__))
@@ -642,8 +642,9 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
             verbose: bool = False) -> None:
         """
         test_expected_list: list of tuples of (a) test string and
-         (b) list of expected numerical (numerator, denominator) results, which
-         can be an empty list
+        (b) list of expected numerical (numerator, denominator) results, which
+        can be an empty list
+
         Returns: none; will assert on failure
         """
         print("Testing parser: {}".format(type(self).__name__))
@@ -671,76 +672,101 @@ class NumeratorOutOfDenominatorParser(BaseNlpParser):
 # =============================================================================
 
 class ValidatorBase(BaseNlpParser):
-    """DO NOT USE DIRECTLY. Base class for validating regex parser sensitivity.
+    """
+    DO NOT USE DIRECTLY. Base class for validating regex parser sensitivity.
     The validator will find fields that refer to the variable, whether or not
     they meet the other criteria of the actual NLP processors (i.e. whether or
     not they contain a valid value). More explanation below.
 
     Suppose we're validating C-reactive protein (CRP). Key concepts:
-        - source (true state of the world): Pr present, Ab absent
-        - software decision: Y yes, N no
-        - signal detection theory classification:
-            hit = Pr & Y = true positive
-            miss = Pr & N = false negative
-            false alarm = Ab & Y = false positive
-            correct rejection = Ab & N = true negative
-        - common SDT metrics:
-            positive predictive value, PPV = P(Pr | Y) = precision (*)
-            negative predictive value, NPV = P(Ab | N)
-            sensitivity = P(Y | Pr) = recall (*) = true positive rate
-            specificity = P(N | Ab) = true negative rate
-            (*) common names used in the NLP context.
-        - other common classifier metric:
-            F_beta score = (1 + beta^2) * precision * recall /
-                           ((beta^2 * precision) + recall)
-            ... which measures performance when you value recall beta times as
-            much as precision; e.g. the F1 score when beta = 1. See
-            https://en.wikipedia.org/wiki/F1_score
+
+    - source (true state of the world): Pr present, Ab absent
+    - software decision: Y yes, N no
+    - signal detection theory classification:
+
+        hit = Pr & Y = true positive
+        miss = Pr & N = false negative
+        false alarm = Ab & Y = false positive
+        correct rejection = Ab & N = true negative
+
+    - common SDT metrics:
+
+        positive predictive value, PPV = P(Pr | Y) = precision (*)
+        negative predictive value, NPV = P(Ab | N)
+        sensitivity = P(Y | Pr) = recall (*) = true positive rate
+        specificity = P(N | Ab) = true negative rate
+        (*) common names used in the NLP context.
+
+    - other common classifier metric:
+
+        F_beta score = (1 + beta^2) * precision * recall /
+                       ((beta^2 * precision) + recall)
+
+        ... which measures performance when you value recall beta times as
+        much as precision; e.g. the F1 score when beta = 1. See
+        https://en.wikipedia.org/wiki/F1_score
 
     Working from source to NLP, we can see there are a few types of "absent":
-        - X. unselected database field containing text
-            - Q. field contains "CRP", "C-reactive protein", etc.; something
-                that a human (or as a proxy: a machine) would judge as
-                containing a textual reference to CRP.
-                - Pr. Present: a human would judge that a CRP value is present,
-                    e.g. "today her CRP is 7, which I am not concerned about."
-                    - H.  Hit: software reports the value.
-                    - M.  Miss: software misses the value.
-                        (maybe: "his CRP was twenty-one".)
-                - Ab1. Absent: reference to CRP, but no numerical information,
-                    e.g. "her CRP was normal".
-                    - FA1. False alarm: software reports a numerical value.
-                        (maybe: "my CRP was 7 hours behind my boss's deadline")
-                    - CR1. Correct rejection: software doesn't report a value.
-            - Ab2. field contains no reference to CRP at all.
-                    - FA2. False alarm: software reports a numerical value.
-                        (a bit hard to think of examples...)
-                    - CR2. Correct rejection: software doesn't report a value.
+
+    - X. unselected database field containing text
+
+        - Q. field contains "CRP", "C-reactive protein", etc.; something
+          that a human (or as a proxy: a machine) would judge as
+          containing a textual reference to CRP.
+
+            - Pr. Present: a human would judge that a CRP value is present,
+                e.g. "today her CRP is 7, which I am not concerned about."
+
+                - H.  Hit: software reports the value.
+                - M.  Miss: software misses the value.
+                  (maybe: "his CRP was twenty-one".)
+
+            - Ab1. Absent: reference to CRP, but no numerical information,
+              e.g. "her CRP was normal".
+
+                - FA1. False alarm: software reports a numerical value.
+                  (maybe: "my CRP was 7 hours behind my boss's deadline")
+                - CR1. Correct rejection: software doesn't report a value.
+
+        - Ab2. field contains no reference to CRP at all.
+
+                - FA2. False alarm: software reports a numerical value.
+                  (a bit hard to think of examples...)
+
+                - CR2. Correct rejection: software doesn't report a value.
 
     From NLP backwards to source:
-        - Y. Software says value present.
-            - H. Hit: value is present.
-            - FA. False alarm: value is absent.
-        - N. Software says value absent.
-            - CR. Correct rejection: value is absent.
-            - M. Miss: value is present.
+
+    - Y. Software says value present.
+
+        - H. Hit: value is present.
+        - FA. False alarm: value is absent.
+
+    - N. Software says value absent.
+
+        - CR. Correct rejection: value is absent.
+        - M. Miss: value is present.
 
     The key metrics are:
-        - precision = positive predictive value = P(Pr | Y)
-            ... relatively easy to check; find all the "Y" records and check
-            manually that they're correct.
-        - sensitivity = recall = P(Y | Pr)
-            ... Here, we want a sample that is enriched for "symptom actually
-            present", for human reasons. For example, if 0.1% of text entries
-            refer to CRP, then to assess 100 "Pr" samples we would have to
-            review 100,000 text records, 99,900 of which are completely
-            irrelevant. So we want an automated way of finding "Pr" records.
-            That's what the validator classes do.
+
+    - precision = positive predictive value = P(Pr | Y)
+      ... relatively easy to check; find all the "Y" records and check
+      manually that they're correct.
+
+    - sensitivity = recall = P(Y | Pr)
+      ... Here, we want a sample that is enriched for "symptom actually
+      present", for human reasons. For example, if 0.1% of text entries
+      refer to CRP, then to assess 100 "Pr" samples we would have to
+      review 100,000 text records, 99,900 of which are completely
+      irrelevant. So we want an automated way of finding "Pr" records.
+      That's what the validator classes do.
 
     You can enrich for "Pr" records with SQL, e.g.
+
         SELECT textfield FROM sometable WHERE (
             textfield LIKE '%CRP%'
             OR textfield LIKE '%C-reactive protein%');
+
     or similar, but really we want the best "CRP detector" possible. That is
     probably to use a regex, either in SQL (... "WHERE textfield REGEX
     'myregex'") or using these validator classes. (The main NLP regexes don't
@@ -816,7 +842,8 @@ class ValidatorBase(BaseNlpParser):
         """
         The 'bool' part of test_expected_list is: should it match any?
         ... noting that "match anywhere" is the "search" function, whereas
-            "match" matches at the beginning:
+        "match" matches at the beginning:
+
             https://docs.python.org/3/library/re.html#re.regex.match
         """
         print("Testing validator: {}".format(type(self).__name__))

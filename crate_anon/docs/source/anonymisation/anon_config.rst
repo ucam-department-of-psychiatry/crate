@@ -38,6 +38,85 @@ You should save this, then edit it to your own needs.
 For convenience, you may want the `CRATE_ANON_CONFIG` environment variable to
 point to this file. (Otherwise you must specify it each time.)
 
+
+
+Minimal anonymiser config
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here's an extremely minimal version for a hypothetical test database.
+Many options are not shown and most comments have been removed.
+See the :ref:`specimen config <specimen_anonymiser_config>` below.
+
+.. code-block:: ini
+
+    # Configuration file for CRATE anonymiser (crate_anonymise).
+
+    # =============================================================================
+    # Main settings
+    # =============================================================================
+
+    [main]
+
+    data_dictionary_filename = testdd.tsv
+
+    hash_method = HMAC_MD5
+    per_table_patient_id_encryption_phrase = SOME_PASSPHRASE_REPLACE_ME
+    master_patient_id_encryption_phrase = SOME_OTHER_PASSPHRASE_REPLACE_ME
+    change_detection_encryption_phrase = YETANOTHER
+
+    replace_patient_info_with = [XXXXXX]
+    replace_third_party_info_with = [QQQQQQ]
+    replace_nonspecific_info_with = [~~~~~~]
+
+    research_id_fieldname = rid
+    trid_fieldname = trid
+    master_research_id_fieldname = mrid
+
+    source_hash_fieldname = _src_hash
+
+    temporary_tablename = _temp_table
+
+    source_databases =
+        mysourcedb1
+
+    destination_database = my_destination_database
+
+    admin_database = my_admin_database
+
+    # =============================================================================
+    # Destination database details. User should have WRITE access.
+    # =============================================================================
+
+    [my_destination_database]
+
+    url = mysql+mysqldb://username:password@127.0.0.1:3306/output_databasename?charset=utf8
+
+    # =============================================================================
+    # Administrative database. User should have WRITE access.
+    # =============================================================================
+
+    [my_admin_database]
+
+    url = mysql+mysqldb://username:password@127.0.0.1:3306/admin_databasename?charset=utf8
+
+    # =============================================================================
+    # Source database. (Just one in this example.)
+    # User should have READ access only for safety.
+    # =============================================================================
+
+    [mysourcedb1]
+
+    url = mysql+mysqldb://username:password@127.0.0.1:3306/source_databasename?charset=utf8
+
+
+.. todo:: Check minimal anonymiser config example works.
+
+
+.. _specimen_anonymiser_config:
+
+Specimen anonymiser config
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Here's the specimen anonymiser config as of 2018-06-09:
 
 .. code-block:: ini

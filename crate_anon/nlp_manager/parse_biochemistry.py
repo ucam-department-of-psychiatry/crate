@@ -56,18 +56,24 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class Crp(SimpleNumericalResultParser):
-    """C-reactive protein.
+    """
+    C-reactive protein.
 
     CRP units:
+
     - mg/L is commonest in the UK (or at least standard at Addenbrooke's,
       Hinchingbrooke, and Dundee)
+
     - values of <=6 mg/L or <10 mg/L are normal, and e.g. 70-250 mg/L in
       pneumonia.
+
     - Refs include:
-            http://www.ncbi.nlm.nih.gov/pubmed/7705110
-            http://emedicine.medscape.com/article/2086909-overview
+      - http://www.ncbi.nlm.nih.gov/pubmed/7705110
+      - http://emedicine.medscape.com/article/2086909-overview
+
     - 1 mg/dL = 10 mg/L
-        ... so normal in mg/dL is <=1 roughly.
+      ... so normal in mg/dL is <=1 roughly.
+
     """
 
     CRP = r"""

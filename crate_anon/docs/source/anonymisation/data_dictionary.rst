@@ -406,3 +406,66 @@ comment
 ~~~~~~~
 
 Field (column) comment, stored in the destination database.
+
+
+Minimal data dictionary example
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This illustrates a data dictionary for a fictional database.
+
+Some more specialist columns (``inclusion_values``, ``exclusion_values``) are
+not shown for clarity. Comments are added (lines beginning with #) that
+wouldn't be permitted in the real file.
+
+.. code-block:: none
+
+    src_db  src_table  src_field    src_datatype  src_flags  scrub_src  scrub_method  decision  alter_method     dest_table  dest_field  dest_datatype  index  indexlen  comment
+    ------- ---------- ------------ ------------- ---------- ---------- ------------- --------- ---------------- ----------- ----------- -------------- ------ --------- ----------------------------------------------------
+
+    # The source table "patients" defines and describes our patients.
+    # This is a primary source of information that is used to build our scrubbers.
+    # Most information shouldn't come through to the destination database, but some (e.g. DOB) is helpful in a truncated form.
+
+    mydb    patients   patientnum   INTEGER(11)   K*H        patient    number        OMIT                                                                               Local patient ID (PID); will be replaced by RID+TRID
+    mydb    patients   nhsnum       INTEGER(11)   M          patient    number        OMIT                                                                               NHS number (MPID); will be replaced by MRID
+    mydb    patients   dob          DATE                     patient    date          include   truncate_date    patients    dob         DATE                            Date of birth (truncated to first of month)
+    mydb    patients   dod          DATE                                              include                    patients    dod         DATE                            Date of death
+    mydb    patients   forename     VARCHAR(255)             patient    words         OMIT
+    mydb    patients   surname      VARCHAR(255)             patient    words         OMIT
+    mydb    patient    telephone    VARCHAR(255)             patient    number        OMIT                                                                               A phone number.
+
+    # The "address" table gives (potentially several) addresses per patient.
+
+    mydb    addresses  pk           INTEGER(11)   K                                   include                    addresses   pk          INTEGER(11)     U               Arbitrary address PK.
+    mydb    addresses  patientnum   INTEGER(11)   P                                   OMIT
+    mydb    addresses  line1        VARCHAR(255)             patient    phrase        OMIT
+    mydb    addresses  line2        VARCHAR(255)             patient    phrase        OMIT
+    mydb    addresses  line3        VARCHAR(255)             patient    phrase        OMIT
+    mydb    addresses  line4        VARCHAR(255)             patient    phrase        OMIT
+    mydb    addresses  line5        VARCHAR(255)             patient    phrase        OMIT
+    mydb    addresses  postcode     VARCHAR(10)              patient    code          OMIT                                                                               UK postcode.
+    mydb    addresses  lsoa         VARCHAR(10)                                       include                                                                            Lower Super Output Area, added by CRATE preprocessor (calculated from postcode).
+    mydb    addresses  imd          INTEGER                                           include                                                                            UK Index of Multiple Deprivation, added by CRATE preprocessor.
+
+    # The "relatives" table gives us some third-party information to add to our scrubbers.
+
+    mydb    relatives  pk           INTEGER(11)   K                                   OMIT
+    mydb    relatives  relationship INTEGER(11)   P                                   OMIT
+    mydb    relatives  forename     VARCHAR(255)             thirdparty words         OMIT
+    mydb    relatives  surname      VARCHAR(255)             thirdparty words         OMIT
+
+    # The "notes" table contains simple text that needs scrubbing.
+
+    mydb    notes      pk           INTEGER(11)   K                                   include                    notes       pk          INTEGER(11)      U
+    mydb    notes      patientnum   INTEGER(11)   P                                   OMIT
+    mydb    notes      when         DATETIME                                          include                    notes       when        DATETIME
+    mydb    notes      note         VARCHAR(MAX)                                      include   scrub            notes       note        LONGTEXT                        Gives the scrubbed note.
+
+    # The "documents" table uses filenames to refer to binary documents on disk, which needs scrubbing.
+
+    mydb    documents  doc_id       INTEGER(11)   K                                   include                    documents   doc_id      INTEGER(11)     U               Document PK
+    mydb    documents  patientnum   INTEGER(11)   P                                   OMIT                       documents   patientnum                                  Patient ID will be replaced by RID+TRID
+    mydb    documents  filename     VARCHAR(255)                                      include   filename_to_text documents   contents    LONGTEXT        F               Becomes scrubbed document contents with FULLTEXT index.
+
+
+.. todo:: Check minimal data dictionary example works.
