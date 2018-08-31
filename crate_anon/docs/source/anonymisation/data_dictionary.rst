@@ -81,11 +81,11 @@ Character   Meaning
               field).
 
             - If set, a field is added to the destination table, with field
-              name as set by the config's source_hash_fieldname variable,
+              name as set by the config's ``source_hash_fieldname`` variable,
               containing a hash of the contents of the source record -- all
               fields that are not omitted, OR contain scrubbing information
-              (scrub_src). The field is of type VARCHAR and its length is
-              determined by the hash_method parameter (see below).
+              (``scrub_src``). The field is of type VARCHAR and its length is
+              determined by the ``hash_method`` parameter (see below).
 
             - This table is then capable of incremental updates.
 
@@ -94,9 +94,9 @@ Character   Meaning
 
             - An alternative to ``H``. Can't be used with it.
 
-            - The flag can be set only on src_pk fields, which can't be omitted
-              in the destination, and which have the same index requirements as
-              the ``H`` flag.
+            - The flag can be set only on ``src_pk`` fields, which can't be
+              omitted in the destination, and which have the same index
+              requirements as the ``H`` flag.
 
             - If set, no hash is added to the destination, but the destination
               contents are assumed to exist and not to have changed.
@@ -143,12 +143,13 @@ Character   Meaning
               entirely. It must be in a table that also has a primary patient
               ID field (because that's the ID that will be omitted). If the
               opt-out field contains a value that's defined in the
-              optout_col_values setting (see below), that patient will be opted
-              out entirely from the anonymised database.
+              ``optout_col_values`` setting (see :ref:`config file
+              <anon_config_file>`), that patient will be opted out entirely
+              from the anonymised database.
 
 ``R``       | **REQUIRED SCRUBBER.**
-            | If this field is a scrub_src field (see below), and this flag is
-              set, then at least one non-NULL value for this field must be
+            | If this field is a ``scrub_src`` field (see below), and this flag
+              is set, then at least one non-NULL value for this field must be
               present for each patient, or no information will be processed for
               this patient. (Typical use: where you have a master patient index
               separate from the patient name table, and data might have been
@@ -415,57 +416,65 @@ This illustrates a data dictionary for a fictional database.
 
 Some more specialist columns (``inclusion_values``, ``exclusion_values``) are
 not shown for clarity. Comments are added (lines beginning with #) that
-wouldn't be permitted in the real file.
+wouldn't be permitted in the real TSV file.
 
 .. code-block:: none
 
     src_db  src_table  src_field    src_datatype  src_flags  scrub_src  scrub_method  decision  alter_method     dest_table  dest_field  dest_datatype  index  indexlen  comment
     ------- ---------- ------------ ------------- ---------- ---------- ------------- --------- ---------------- ----------- ----------- -------------- ------ --------- ----------------------------------------------------
 
-    # The source table "patients" defines and describes our patients.
-    # This is a primary source of information that is used to build our scrubbers.
+    # The source table "patients" defines our patients.
+    # This is also a primary source of information that is used to build our scrubbers.
     # Most information shouldn't come through to the destination database, but some (e.g. DOB) is helpful in a truncated form.
+    # This table also includes our master opt-out switch.
 
     mydb    patients   patientnum   INTEGER(11)   K*H        patient    number        OMIT                                                                               Local patient ID (PID); will be replaced by RID+TRID
     mydb    patients   nhsnum       INTEGER(11)   M          patient    number        OMIT                                                                               NHS number (MPID); will be replaced by MRID
     mydb    patients   dob          DATE                     patient    date          include   truncate_date    patients    dob         DATE                            Date of birth (truncated to first of month)
-    mydb    patients   dod          DATE                                              include                    patients    dod         DATE                            Date of death
+    mydb    patients   dod          DATE                                              include                    patients    dod         DATE                            Date of death, or NULL if alive
     mydb    patients   forename     VARCHAR(255)             patient    words         OMIT
     mydb    patients   surname      VARCHAR(255)             patient    words         OMIT
-    mydb    patient    telephone    VARCHAR(255)             patient    number        OMIT                                                                               A phone number.
+    mydb    patients   telephone    VARCHAR(255)             patient    number        OMIT                                                                               A phone number.
+    mydb    patients   opt_out_anon BIT           O
 
-    # The "address" table gives (potentially several) addresses per patient.
+    # The "addresses" table gives (potentially several) addresses per patient.
 
-    mydb    addresses  pk           INTEGER(11)   K                                   include                    addresses   pk          INTEGER(11)     U               Arbitrary address PK.
+    mydb    addresses  pk           INTEGER(11)   KH                                  include                    addresses   pk          INTEGER(11)     U               Arbitrary address PK.
     mydb    addresses  patientnum   INTEGER(11)   P                                   OMIT
+    mydb    addresses  from_date    DATE                                              include                    addresses   from_date                   I
+    mydb    addresses  to_date      DATE                                              include                    addresses   to_date                     I
     mydb    addresses  line1        VARCHAR(255)             patient    phrase        OMIT
     mydb    addresses  line2        VARCHAR(255)             patient    phrase        OMIT
     mydb    addresses  line3        VARCHAR(255)             patient    phrase        OMIT
     mydb    addresses  line4        VARCHAR(255)             patient    phrase        OMIT
     mydb    addresses  line5        VARCHAR(255)             patient    phrase        OMIT
     mydb    addresses  postcode     VARCHAR(10)              patient    code          OMIT                                                                               UK postcode.
-    mydb    addresses  lsoa         VARCHAR(10)                                       include                                                                            Lower Super Output Area, added by CRATE preprocessor (calculated from postcode).
-    mydb    addresses  imd          INTEGER                                           include                                                                            UK Index of Multiple Deprivation, added by CRATE preprocessor.
+    mydb    addresses  lsoa         VARCHAR(10)                                       include                    addresses   lsoa                                        Lower Super Output Area, added by CRATE preprocessor (calculated from postcode).
+    mydb    addresses  imd          INTEGER                                           include                    addresses   imd                                         UK Index of Multiple Deprivation, added by CRATE preprocessor.
 
     # The "relatives" table gives us some third-party information to add to our scrubbers.
 
-    mydb    relatives  pk           INTEGER(11)   K                                   OMIT
-    mydb    relatives  relationship INTEGER(11)   P                                   OMIT
+    mydb    relatives  pk           INTEGER(11)   KH                                  OMIT
+    mydb    relatives  patientnum   INTEGER(11)   P                                   OMIT
+    mydb    relatives  relationship VARCHAR(255)                                      OMIT
     mydb    relatives  forename     VARCHAR(255)             thirdparty words         OMIT
     mydb    relatives  surname      VARCHAR(255)             thirdparty words         OMIT
 
     # The "notes" table contains simple text that needs scrubbing.
 
-    mydb    notes      pk           INTEGER(11)   K                                   include                    notes       pk          INTEGER(11)      U
-    mydb    notes      patientnum   INTEGER(11)   P                                   OMIT
-    mydb    notes      when         DATETIME                                          include                    notes       when        DATETIME
+    mydb    notes      pk           INTEGER(11)   KH                                  include                    notes       pk          INTEGER(11)      U
+    mydb    notes      patientnum   INTEGER(11)   P                                   OMIT                                                                               Patient ID will be replaced by RID+TRID
+    mydb    notes      when         DATETIME                                          include                    notes       when        DATETIME         I
     mydb    notes      note         VARCHAR(MAX)                                      include   scrub            notes       note        LONGTEXT                        Gives the scrubbed note.
 
-    # The "documents" table uses filenames to refer to binary documents on disk, which needs scrubbing.
+    # The "documents" table uses filenames to refer to binary documents on disk, which need scrubbing.
+    # (If binary documents won't change once added, you might want to set the "C" flag on "doc_id", instead of "H", for efficiency.)
 
-    mydb    documents  doc_id       INTEGER(11)   K                                   include                    documents   doc_id      INTEGER(11)     U               Document PK
-    mydb    documents  patientnum   INTEGER(11)   P                                   OMIT                       documents   patientnum                                  Patient ID will be replaced by RID+TRID
-    mydb    documents  filename     VARCHAR(255)                                      include   filename_to_text documents   contents    LONGTEXT        F               Becomes scrubbed document contents with FULLTEXT index.
+    mydb    documents  doc_id       INTEGER(11)   KH                                  include                    documents   doc_id      INTEGER(11)      U              Document PK
+    mydb    documents  patientnum   INTEGER(11)   P                                   OMIT                                                                               Patient ID will be replaced by RID+TRID
+    mydb    documents  when_added   DATETIME                                          include                    documents   when_added  DATETIME         I
+    mydb    documents  filename     VARCHAR(255)                                      include   filename_to_text documents   contents    LONGTEXT         F              Becomes scrubbed document contents with FULLTEXT index.
+
 
 
 .. todo:: Check minimal data dictionary example works.
