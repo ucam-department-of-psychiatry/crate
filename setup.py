@@ -52,7 +52,7 @@ import subprocess
 import sys
 from typing import List
 
-from crate_anon.version import VERSION
+from crate_anon.version import CRATE_VERSION
 
 
 # =============================================================================
@@ -264,7 +264,7 @@ if getattr(our_args, EXTRAS_ARG):
 setup(
     name='crate-anon',  # 'crate' is taken
 
-    version=VERSION,
+    version=CRATE_VERSION,
 
     description='CRATE: clinical records anonymisation and text extraction',
     long_description=LONG_DESCRIPTION,

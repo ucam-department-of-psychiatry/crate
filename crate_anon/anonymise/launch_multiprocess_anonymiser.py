@@ -53,7 +53,7 @@ from cardinal_pythonlib.subproc import (
     run_multiple_processes,
 )
 
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ CPUCOUNT = multiprocessing.cpu_count()
 # =============================================================================
 
 def main() -> None:
-    version = "Version {} ({})".format(VERSION, VERSION_DATE)
+    version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
     description = (
         "Runs the CRATE anonymiser in parallel. {}. Note that all arguments "
         "not specified here are passed to the underlying script "

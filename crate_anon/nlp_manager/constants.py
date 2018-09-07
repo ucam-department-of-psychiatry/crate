@@ -31,7 +31,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_MAX_BYTES_BEFORE_COMMIT,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
 )
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 DEFAULT_REPORT_EVERY_NLP = 500  # low values slow down processing
 
@@ -47,6 +47,8 @@ FN_SRCPKSTR = '_srcpkstr'
 FN_SRCFIELD = '_srcfield'
 FN_SRCDATETIMEFIELD = '_srcdatetimefield'  # new in v0.18.52
 FN_SRCDATETIMEVAL = '_srcdatetimeval'  # new in v0.18.52
+FN_CRATE_VERSION_FIELD = '_crate_version'  # new in v0.18.53
+FN_WHEN_FETCHED = '_when_fetched_utc'  # new in v0.18.53
 
 GATE_PIPELINE_CLASSNAME = 'CrateGatePipeline'
 MEDEX_PIPELINE_CLASSNAME = 'CrateMedexPipeline'
@@ -60,9 +62,12 @@ MAX_STRING_PK_LENGTH = 64  # trade-off; space versus capability
 
 MAX_SQL_FIELD_LEN = 64
 # ... http://dev.mysql.com/doc/refman/5.0/en/identifiers.html
+
+MAX_SEMANTIC_VERSION_STRING_LENGTH = 147  # https://github.com/mojombo/semver/issues/79  # noqa
+
+
 SqlTypeDbIdentifier = String(MAX_SQL_FIELD_LEN)  # text field used for database
 # names, table names, and field names
-
 HashClass = HmacMD5Hasher
 
 
@@ -861,6 +866,6 @@ url = mysql+mysqldb://anontest:XXX@127.0.0.1:3306/anonymous_output?charset=utf8
     DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
     MAX_STRING_PK_LENGTH=MAX_STRING_PK_LENGTH,
-    VERSION=VERSION,
-    VERSION_DATE=VERSION_DATE,
+    VERSION=CRATE_VERSION,
+    VERSION_DATE=CRATE_VERSION_DATE,
 ))

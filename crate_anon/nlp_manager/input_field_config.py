@@ -28,6 +28,7 @@ import logging
 # import sys
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
+from cardinal_pythonlib.datetimefunc import get_now_utc_notz_datetime
 from cardinal_pythonlib.hash import hash64
 from cardinal_pythonlib.rnc_db import (
     ensure_valid_field_name,
@@ -44,6 +45,8 @@ from sqlalchemy import BigInteger, Column, DateTime, Index, String, Table
 from sqlalchemy.sql import and_, column, exists, null, or_, select, table
 
 from crate_anon.nlp_manager.constants import (
+    FN_CRATE_VERSION_FIELD,
+    FN_WHEN_FETCHED,
     FN_NLPDEF,
     FN_PK,
     FN_SRCDATETIMEFIELD,
@@ -54,15 +57,16 @@ from crate_anon.nlp_manager.constants import (
     FN_SRCPKVAL,
     FN_SRCPKSTR,
     FN_SRCFIELD,
+    MAX_SEMANTIC_VERSION_STRING_LENGTH,
     MAX_STRING_PK_LENGTH,
 )
 from crate_anon.common.parallel import is_my_job_by_hash_prehashed
 from crate_anon.nlp_manager.constants import SqlTypeDbIdentifier
 from crate_anon.nlp_manager.models import NlpRecord
-
 # if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
 #     from crate_anon.nlp_manager import nlp_definition  # see PEP0484
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
+from crate_anon.version import CRATE_VERSION
 
 log = logging.getLogger(__name__)
 
@@ -175,7 +179,8 @@ class InputFieldConfig(object):
     @staticmethod
     def get_core_columns_for_dest() -> List[Column]:
         """
-        Core columns in destination tables, primarily referring to the source.
+        Core columns in NLP destination tables, primarily referring to the
+        source.
         """
         return [
             Column(FN_PK, BigInteger, primary_key=True,
@@ -202,6 +207,12 @@ class InputFieldConfig(object):
                        "Max length: {}".format(MAX_STRING_PK_LENGTH)),
             Column(FN_SRCFIELD, SqlTypeDbIdentifier,
                    doc="Field (column) name of source text"),
+            Column(FN_CRATE_VERSION_FIELD,
+                   String(MAX_SEMANTIC_VERSION_STRING_LENGTH), nullable=True,
+                   doc="Version of CRATE that generated this NLP record."),
+            Column(FN_WHEN_FETCHED, DateTime, nullable=True,
+                   doc="Date/time that the NLP processor fetched the record "
+                       "from the source database."),
         ]
 
     @staticmethod
@@ -314,7 +325,7 @@ class InputFieldConfig(object):
 
         # ---------------------------------------------------------------------
         # Values that are constant to all items we will generate
-        # (i.e. database/field *names*)
+        # (i.e. database/field *names*, plus CRATE version info)
         # ---------------------------------------------------------------------
         base_dict = {
             FN_SRCDB: self._srcdb,
@@ -322,6 +333,7 @@ class InputFieldConfig(object):
             FN_SRCPKFIELD: self._srcpkfield,
             FN_SRCFIELD: self._srcfield,
             FN_SRCDATETIMEFIELD: self._srcdatetimefield,
+            FN_CRATE_VERSION_FIELD: CRATE_VERSION,
         }
 
         # ---------------------------------------------------------------------
@@ -369,6 +381,7 @@ class InputFieldConfig(object):
         # ---------------------------------------------------------------------
         nrows_returned = 0
         with MultiTimerContext(timer, TIMING_GEN_TEXT_SQL_SELECT):
+            when_fetched = get_now_utc_notz_datetime()
             result = session.execute(query)
             for row in result:  # ... a generator itself
                 with MultiTimerContext(timer, TIMING_PROCESS_GEN_TEXT):
@@ -410,6 +423,7 @@ class InputFieldConfig(object):
                         other_values[FN_SRCPKVAL] = hashed_pk  # an integer
                         other_values[FN_SRCPKSTR] = pkval  # a string etc.
                     other_values[FN_SRCDATETIMEVAL] = row[colindex_datetime]
+                    other_values[FN_WHEN_FETCHED] = when_fetched
                     other_values.update(base_dict)
 
                     # Yield the result

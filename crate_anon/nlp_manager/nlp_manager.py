@@ -106,7 +106,7 @@ from crate_anon.nlp_manager.input_field_config import (
 )
 from crate_anon.nlp_manager.models import NlpRecord
 from crate_anon.nlp_manager.nlp_definition import NlpDefinition
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
@@ -505,7 +505,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    version = "Version {} ({})".format(VERSION, VERSION_DATE)
+    version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
     description = "NLP manager. {version}. By Rudolf Cardinal.".format(
         version=version)
 

@@ -41,7 +41,7 @@ from crate_anon.anonymise.constants import (
     DEFAULT_REPORT_EVERY,
     DEMO_CONFIG,
 )
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def main() -> None:
     """
     Command-line entry point.
     """
-    version = "Version {} ({})".format(VERSION, VERSION_DATE)
+    version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
     description = "Database anonymiser. {version}. By Rudolf Cardinal.".format(
         version=version,
     )

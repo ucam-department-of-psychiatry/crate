@@ -31,7 +31,7 @@ from enum import unique
 from sqlalchemy import Integer
 from cardinal_pythonlib.enumlike import StrEnum
 
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 
 # =============================================================================
 # Logging
@@ -930,8 +930,8 @@ ddgen_binary_to_text_field_pairs =
     DEFAULT_MAX_ROWS_BEFORE_COMMIT=DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT=DEFAULT_MAX_BYTES_BEFORE_COMMIT,
     DECISION=DECISION,
-    VERSION=VERSION,
-    VERSION_DATE=VERSION_DATE,
+    VERSION=CRATE_VERSION,
+    VERSION_DATE=CRATE_VERSION_DATE,
 )
 
 # For the style:

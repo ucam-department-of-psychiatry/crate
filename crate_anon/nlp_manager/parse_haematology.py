@@ -259,6 +259,7 @@ class Wbc(WbcBase):
             ("white cells 9800 cell/mm3", [9.8]),
             ("white cells 9800 cells/mm3", [9.8]),
             ("white cells 9800 per cubic mm", [9.8]),
+            ("white cells 9800 per cmm", [9.8]),
             ("white cells 17,600/mm3", [17.6]),
             ("WBC – 6", [6]),  # en dash
             ("WBC—6", [6]),  # em dash
@@ -319,6 +320,7 @@ class Neutrophils(WbcBase):
             ("n0 9800/mm3", [9.8]),
             ("absolute neutrophils 9800 cell/mm3", [9.8]),
             ("neutrophils count 9800 cells/mm3", [9.8]),
+            ("neuts 9800 per cmm", [9.8]),
             ("n0 9800 per cubic mm", [9.8]),
             ("n0 17,600/mm3", [17.6]),
             ("neuts-17", [17]),
@@ -376,9 +378,12 @@ class Lymphocytes(WbcBase):
             ("lymphos 9800/mm3", [9.8]),
             ("absolute lymphocytes 9800 cell/mm3", [9.8]),
             ("lymphocytes count 9800 cells/mm3", [9.8]),
-            ("l0 9800 per cubic mm (should fail)", []),
-            ("l0 17,600/mm3 (should fail)", []),
+            ("lymphocytes 9800 per cmm", [9.8]),
             ("lymphs-6.3", [6.3]),
+            # We are not supporting "L0":
+            ("l0 9800 per cubic mm (should fail)", []),
+            ("l0 9800 per cmm (should fail)", []),
+            ("l0 17,600/mm3 (should fail)", []),
         ], verbose=verbose)
 
 
@@ -432,9 +437,11 @@ class Monocytes(WbcBase):
             ("monos 9800/mm3", [9.8]),
             ("absolute mono 9800 cell/mm3", [9.8]),
             ("monocytes count 9800 cells/mm3", [9.8]),
+            ("monocytes 9800 per cmm", [9.8]),
+            ("monocytes-5.2", [5.2]),
+            # We are not supporting "M0":
             ("m0 9800 per cubic mm (should fail)", []),
             ("m0 17,600/mm3 (should fail)", []),
-            ("monocytes-5.2", [5.2]),
         ], verbose=verbose)
 
 
@@ -488,9 +495,11 @@ class Basophils(WbcBase):
             ("basos 9800/mm3", [9.8]),
             ("absolute basophil 9800 cell/mm3", [9.8]),
             ("basophils count 9800 cells/mm3", [9.8]),
+            ("basophils 9800 per cmm", [9.8]),
+            ("basophils-5.2", [5.2]),
+            # We are not supporting "B0":
             ("b0 9800 per cubic mm (should fail)", []),
             ("b0 17,600/mm3 (should fail)", []),
-            ("basophils-5.2", [5.2]),
         ], verbose=verbose)
 
 
@@ -544,9 +553,11 @@ class Eosinophils(WbcBase):
             ("eosinos 9800/mm3", [9.8]),
             ("absolute eosinophil 9800 cell/mm3", [9.8]),
             ("eosinophils count 9800 cells/mm3", [9.8]),
+            ("eosinophils 9800 per cmm", [9.8]),
+            ("eosinophils-5.3", [5.3]),
+            # We are not supporting "E0":
             ("e0 9800 per cubic mm (should fail)", []),
             ("e0 17,600/mm3 (should fail)", []),
-            ("eosinophils-5.3", [5.3]),
         ], verbose=verbose)
 
 

@@ -610,6 +610,12 @@ Change log/history
   since some users copied/pasted the full stop as part of the final e-mail
   address, which bounced. Clarity more important than grammar in this case.
 
+- NLP adds CRATE version column, ``_crate_version``.
+
+- NLP adds "when fetched from database" column, ``_when_fetched_utc``.
+
+- NLP supports "cmm" as an abbreviation for cubic mm (seen in CPFT and as
+  per https://medical-dictionary.thefreedictionary.com/cmm).
 
 
 .. rubric:: Footnotes

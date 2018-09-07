@@ -38,7 +38,7 @@ from cardinal_pythonlib.file_io import (
 )
 from cardinal_pythonlib.fileops import copy_tree_root, mkdir_p
 
-from crate_anon.version import VERSION, VERSION_DATE
+from crate_anon.version import CRATE_VERSION, CRATE_VERSION_DATE
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
 if sys.version_info[0] < 3:
@@ -239,14 +239,14 @@ WORK_ROOT = workpath(DEST_ROOT)
 # Version number etc.
 # -----------------------------------------------------------------------------
 
-DEBVERSION = '{}-1'.format(VERSION)
+DEBVERSION = '{}-1'.format(CRATE_VERSION)
 PACKAGENAME = join(
     PACKAGE_DIR,
     '{PACKAGE}_{DEBVERSION}_all.deb'.format(PACKAGE=PACKAGE_FOR_DEB,
                                             DEBVERSION=DEBVERSION))
 print("Building .deb package for {} version {} ({})".format(
-    PACKAGE_FOR_DEB, VERSION, VERSION_DATE))
-CRATE_PIPFILE = '{}-{}.tar.gz'.format(PACKAGE_FOR_PYPI, VERSION)
+    PACKAGE_FOR_DEB, CRATE_VERSION, CRATE_VERSION_DATE))
+CRATE_PIPFILE = '{}-{}.tar.gz'.format(PACKAGE_FOR_PYPI, CRATE_VERSION)
 
 # -----------------------------------------------------------------------------
 # Files

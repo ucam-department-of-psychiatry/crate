@@ -141,11 +141,13 @@ STONES = r"(?: stones? | st\.? )"  # stone(s), st, st.
 L = r"(?: lit(?:re|er)s? | L )"  # L, litre(s), liter(s)
 DL = r"(?: d(?:eci)?{L} )".format(L=L)
 ML = r"(?: m(?:illi)?{L} )".format(L=L)
-CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(
+# CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} | (?: \b cmm \b ) )""".format(  # noqa
+CUBIC_MM = r"""(?: (?:\b cubic \s+ {mm}) | {mm_cubed} )""".format(  # noqa
     mm=MM,
     mm_cubed=power(MM, 3, allow_no_operator=True)
 )
-# cubic mm, etc. | mm^3, mm3, mm 3, etc.
+# cubic mm, etc. | mm^3, mm3, mm 3, etc. | cmm
+# "cmm" added 2018-09-07 having seen this in the wild (albeit urinary results).
 
 # -----------------------------------------------------------------------------
 # Inverse volume

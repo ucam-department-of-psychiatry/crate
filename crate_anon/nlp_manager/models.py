@@ -125,7 +125,8 @@ class NlpRecord(ProgressBase):
     )
     whenprocessedutc = Column(
         'whenprocessedutc', DateTime,
-        doc="Time that NLP record was processed")
+        doc="Time that NLP record was processed (batch time that the run was "
+            "commenced for that NLP definition; UTC)")
     srchash = Column(
         'srchash', SqlTypeHash,
         doc='Secure hash of source field contents at the time of processing')
