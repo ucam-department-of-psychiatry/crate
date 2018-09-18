@@ -21,6 +21,9 @@
 Technical notes
 ===============
 
+.. contents::
+   :local:
+
 Resolved bugs elsewhere, previously affecting CRATE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

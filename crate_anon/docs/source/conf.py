@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-#
+#!/usr/bin/env python
+# crate_anon/docs/source/conf.py
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file does only contain a selection of the most common options. For a

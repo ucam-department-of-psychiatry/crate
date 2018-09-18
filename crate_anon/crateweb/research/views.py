@@ -227,7 +227,7 @@ def query_build(request: HttpRequest) -> HttpResponse:
     # NOTES FOR FIRST METHOD, with lots (and lots) of forms.
     # - In what follows, we want a normal template but we want to include a
     #   large chunk of raw HTML. I was doing this with
-    #   {{ builder_html | safe }} within the template, but it was very slow
+    #   {{ builder_html  | safe }} within the template, but it was very slow
     #   (e.g. 500ms on my machine; 50s on the CPFT "sandpit" server,
     #   2016-06-28). The delay was genuinely in the template rendering, it
     #   seems, based on profiling and manual log calls.

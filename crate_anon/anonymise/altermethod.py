@@ -35,7 +35,10 @@ from cardinal_pythonlib.datetimefunc import (
     coerce_to_datetime,
     truncate_date_to_first_of_month,
 )
-from cardinal_pythonlib.extract_text import document_to_text
+from cardinal_pythonlib.extract_text import (
+    document_to_text,
+    TextProcessingConfig,
+)
 import regex
 
 # don't import config: circular dependency would have to be sorted out
@@ -346,11 +349,14 @@ class AlterMethod(object):
 
         # Extract text from the file (given its filename), or from a BLOB.
         try:
+            textconfig = TextProcessingConfig(
+                plain=self.config.extract_text_plain,
+                width=self.config.extract_text_width,
+            )
             value = document_to_text(filename=filename,
                                      blob=blob,
                                      extension=extension,
-                                     plain=self.config.extract_text_plain,
-                                     width=self.config.extract_text_width)
+                                     config=textconfig)
         except Exception as e:
             # Runtime error
             traceback.print_exc()  # full details, please

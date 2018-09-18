@@ -27,6 +27,9 @@ Package elements in brief
 There are multiple stages between a clinical source database and a final
 research database. CRATE separates these stages.
 
+.. contents::
+   :local:
+
 Terminology
 -----------
 

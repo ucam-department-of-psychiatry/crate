@@ -24,6 +24,9 @@
 FAQs and troubleshooting
 ========================
 
+.. contents::
+   :local:
+
 Known bugs elsewhere affecting CRATE
 ------------------------------------
 
@@ -786,13 +789,15 @@ How to search with FULLTEXT indexes?
 
 In conventional SQL, you would use:
 
-    .. code-block:: none
-        ... WHERE field LIKE '%word%'
+.. code-block:: none
+
+    ... WHERE field LIKE '%word%'
 
 In a field having a MySQL FULLTEXT index, you can use:
 
-    .. code-block:: none
-        ... WHERE MATCH(field) AGAINST ('word')
+.. code-block:: none
+
+    ... WHERE MATCH(field) AGAINST ('word')
 
 There are several variants. See
 https://dev.mysql.com/doc/refman/5.0/en/fulltext-search.html

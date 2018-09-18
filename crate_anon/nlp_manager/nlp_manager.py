@@ -27,34 +27,36 @@ Manage natural-language processing (NLP) via external tools.
 
 Speed testing:
 
-    - 8 processes, extracting person, location from a mostly text database
-    - commit off during full (non-incremental) processing (much faster)
-    - needs lots of RAM; e.g. Java subprocess uses 1.4 Gb per process as an
-      average (rises from ~250Mb to ~1.4Gb and falls; steady rise means memory
-      leak!); tested on a 16 Gb machine. See also the max_external_prog_uses
-      parameter.
+- 8 processes, extracting person, location from a mostly text database
+- commit off during full (non-incremental) processing (much faster)
+- needs lots of RAM; e.g. Java subprocess uses 1.4 Gb per process as an
+  average (rises from ~250Mb to ~1.4Gb and falls; steady rise means memory
+  leak!); tested on a 16 Gb machine. See also the ``max_external_prog_uses``
+  parameter.
 
-from __future__ import division
-test_size_mb = 1887
-n_person_tags_found =
-n_locations_tags_found =
-time_s = 10333  # 10333 s for main bit; 10465 including indexing; is 2.9 hours
-speed_mb_per_s = test_size_mb / time_s
+.. code-block:: python
 
-    ... 0.18 Mb/s
-    ... and note that's 1.9 Gb of *text*, not of attachments
+    from __future__ import division
+    test_size_mb = 1887
+    n_person_tags_found =
+    n_locations_tags_found =
+    time_s = 10333  # 10333 s for main bit; 10465 including indexing; is 2.9 hours
+    speed_mb_per_s = test_size_mb / time_s
 
-    - With incremental option, and nothing to do:
-        same run took 18 s
-    - During the main run, snapshot CPU usage:
+... gives 0.18 Mb/s, and note that's 1.9 Gb of *text*, not of attachments.
+
+- With incremental option, and nothing to do: same run took 18 s.
+- During the main run, snapshot CPU usage:
+
+  .. code-block:: none
+
         java about 81% across all processes, everything else close to 0
             (using about 12 Gb RAM total)
         ... or 75-85% * 8 [from top]
         mysqld about 18% [from top]
         nlp_manager.py about 4-5% * 8 [from top]
 
-TO DO:
-    - comments for NLP output fields (in table definition, destfields)
+.. todo:: comments for NLP output fields (in table definition, destfields)
 
 """
 
@@ -138,6 +140,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
       everything from the destination).
 
     Problems:
+
     - This is IMPERFECT if we have string source PKs and there are hash
       collisions (e.g. PKs for records X and Y both hash to the same thing;
       record X is deleted; then its processed version might not be).
@@ -147,6 +150,7 @@ def delete_where_no_source(nlpdef: NlpDefinition,
       2717783 parameters were supplied', 'HY000')
 
     A better way might be:
+
     - for each table, make a temporary table in the same database
     - populate that table with (source PK integer/hash, source PK string) pairs
     - delete where pairs don't match -- is that portable SQL?
@@ -154,22 +158,35 @@ def delete_where_no_source(nlpdef: NlpDefinition,
     - More efficient would be to make one table per destination database.
 
     On the "delete where multiple fields don't match":
+
     - Single field syntax is
+
+      .. code-block:: sql
+
         DELETE FROM a WHERE a1 NOT IN (SELECT b1 FROM b)
+
     - Multiple field syntax is
+
+      .. code-block:: sql
+
         DELETE FROM a WHERE NOT EXISTS (
             SELECT 1 FROM b
             WHERE a.a1 = b.b1
             AND a.a2 = b.b2
         )
+
     - In SQLAlchemy, exists():
-        http://stackoverflow.com/questions/14600619
-        http://docs.sqlalchemy.org/en/latest/core/selectable.html
-    - Furthermore, in SQL NULL = NULL is false, and NULL <> NULL is also false,
-      so we have to do an explicit null check.
-      You do that with "field == None" (disable
-      See http://stackoverflow.com/questions/21668606
+      - http://stackoverflow.com/questions/14600619
+      - http://docs.sqlalchemy.org/en/latest/core/selectable.html
+
+    - Furthermore, in SQL ``NULL = NULL`` is false, and ``NULL <> NULL`` is
+      also false, so we have to do an explicit null check.
+      You do that with ``field == None``. See
+      http://stackoverflow.com/questions/21668606.
       We're aiming, therefore, for:
+
+      .. code-block:: sql
+
         DELETE FROM a WHERE NOT EXISTS (
             SELECT 1 FROM b
             WHERE a.a1 = b.b1

@@ -21,6 +21,9 @@
 Installation
 ============
 
+.. contents::
+   :local:
+
 URLs for CRATE source code
 --------------------------
 

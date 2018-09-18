@@ -20,6 +20,9 @@
 Ancillary tools
 ===============
 
+.. contents::
+   :local:
+
 crate_docs
 ~~~~~~~~~~
 

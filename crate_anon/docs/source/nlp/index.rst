@@ -29,3 +29,4 @@ Natural language processing (NLP)
     crate_python_regex.rst
     gate.rst
     medex.rst
+    nlprp.rst

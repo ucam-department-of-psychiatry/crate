@@ -617,6 +617,9 @@ Change log/history
 - NLP supports "cmm" as an abbreviation for cubic mm (seen in CPFT and as
   per https://medical-dictionary.thefreedictionary.com/cmm).
 
+- ``cardinal_pythonlib==1.0.25`` with updates to :func:`document_to_text`
+  parameter handling
+
 
 .. rubric:: Footnotes
 

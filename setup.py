@@ -42,7 +42,7 @@ More reasoning is in the setup.py file for CamCOPS.
 # http://jtushman.github.io/blog/2013/06/17/sharing-code-across-applications-with-python/  # noqa
 
 import argparse
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from codecs import open
 import fnmatch
 import os
@@ -123,7 +123,7 @@ INSTALL_REQUIRES = [
     'amqp==2.3.2',  # amqp is used by Celery  # noqa
     'arrow==0.12.1',  # better datetime
     'beautifulsoup4==4.6.0',
-    'cardinal_pythonlib==1.0.18',
+    'cardinal_pythonlib==1.0.25',
     'celery==4.0.1',
     # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
     'chardet==3.0.4',
@@ -312,6 +312,7 @@ setup(
     keywords='anonymisation',
 
     packages=find_packages(),  # finds all the .py files in subdirectories
+
     package_data={
         '': [
             'README.rst'
@@ -350,6 +351,7 @@ setup(
             'nonascii.odt',
         ],
     },
+
     include_package_data=True,  # use MANIFEST.in during install?
 
     install_requires=INSTALL_REQUIRES,

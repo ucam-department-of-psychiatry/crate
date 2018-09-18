@@ -30,7 +30,10 @@ Anonymise multiple SQL-based databases using a data dictionary.
 import argparse
 import os
 
-from cardinal_pythonlib.extract_text import document_to_text
+from cardinal_pythonlib.extract_text import (
+    document_to_text,
+    TextProcessingConfig,
+)
 
 from crate_anon.common.stringfunc import uprint
 
@@ -49,11 +52,14 @@ def main():
     args = parser.parse_args()
 
     extension = os.path.splitext(args.filename)[1]
+    config = TextProcessingConfig(
+        plain=args.plain,
+        width=args.width
+    )
     result = document_to_text(filename=args.filename,
                               blob=None,
                               extension=extension,
-                              plain=args.plain,
-                              width=args.width)
+                              config=config)
     uprint(result)
 
 

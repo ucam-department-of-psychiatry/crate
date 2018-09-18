@@ -17,3 +17,14 @@ cite {
     /* https://stackoverflow.com/questions/38781089/font-family-monospace-monospace */
     font-style: normal;
 }
+
+.nlprprequest,
+        .nlprprequest .highlight,
+        .nlprprequest .highlight pre {
+    background-color: #c3e6fc;  /* https://www.color-hex.com/color/87cefa */
+}
+.nlprpresponse,
+        .nlprpresponse .highlight,
+        .nlprpresponse .highlight pre {
+    background-color: #ffcfbc;  /* https://www.color-hex.com/color/ffa07a */
+}

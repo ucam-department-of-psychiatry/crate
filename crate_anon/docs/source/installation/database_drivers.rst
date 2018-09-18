@@ -35,6 +35,9 @@
 Databases and database drivers
 ==============================
 
+.. contents::
+   :local:
+
 Database engines
 ----------------
 
