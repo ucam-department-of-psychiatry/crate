@@ -105,6 +105,8 @@ Things to do
 - When the Windows service stops, it is still failing to kill child processes.
   See ``crate_anon/tools/winservice.py``.
 
+- Notes to readthedocs.org (when "source" links are working properly?).
+
 - Notes to work into documentation properly:
 
     .. code-block:: none

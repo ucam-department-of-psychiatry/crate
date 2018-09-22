@@ -162,7 +162,6 @@ INSTALL_REQUIRES = [
     # ... https://python-docx.readthedocs.org/en/latest/user/install.html
     'regex==2018.6.21',
     'semver==2.8.0',  # comparing semantic versions
-    'sphinx==1.7.5',  # documentation
     'sortedcontainers==2.0.4',
     'SQLAlchemy==1.2.8',  # database access
     'sqlparse==0.2.4',
@@ -197,6 +196,9 @@ if RUNNING_WINDOWS:
         'pypiwin32==223',
     ]
 
+DEVELOPMENT_ONLY_REQUIRES = [
+    'sphinx==1.7.5',  # documentation
+]
 
 # =============================================================================
 # If we run this with "python setup.py sdist --extras", we *BUILD* the package
@@ -221,12 +223,12 @@ if getattr(our_args, EXTRAS_ARG):
     # Here's where we do the extra stuff.
 
     # New Sphinx documentation
-    print("Building and copying documentation...")
-    subprocess.call([DOCMAKER])
+    # print("Building and copying documentation...")
+    # subprocess.call([DOCMAKER])
 
     # Add files to the distribution
-    add_all_files(DOC_HTML_DIR, extra_files,
-                  absolute=False, include_n_parents=4)
+    # add_all_files(DOC_HTML_DIR, extra_files,
+    #               absolute=False, include_n_parents=4)
     # ... magic number! Means that "crate_anon/docs/build/html" is included.
 
     # Write the manifest.

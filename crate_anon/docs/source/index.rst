@@ -41,6 +41,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     misc/technical_notes.rst
     misc/upgrading.rst
     misc/tcpip_ports.rst
+    misc/external_dependencies.rst
 
     autodoc/index.rst
 

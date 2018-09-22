@@ -32,8 +32,7 @@ import subprocess
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 BUILD_HTML_DIR = os.path.join(THIS_DIR, "build", "html")
 
-DEST_DIRS = [
-]
+DEST_DIRS = []
 
 if __name__ == '__main__':
     # Remove anything old
