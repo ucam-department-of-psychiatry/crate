@@ -29,15 +29,17 @@ import os
 from cardinal_pythonlib.process import launch_external_file
 
 
-THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-DOCS_INDEX = os.path.abspath(os.path.join(
-    THIS_DIR,  # crate_anon/tools
-    os.pardir,  # crate_anon
-    "docs",
-    "build",
-    "html",
-    "index.html"
-))
+# THIS_DIR = os.path.abspath(os.path.dirname(__file__))
+# DOCS_INDEX = os.path.abspath(os.path.join(
+#     THIS_DIR,  # crate_anon/tools
+#     os.pardir,  # crate_anon
+#     "docs",
+#     "build",
+#     "html",
+#     "index.html"
+# ))
+
+DOCS_INDEX = "https://crateanon.readthedocs.io/"
 
 
 def main():
