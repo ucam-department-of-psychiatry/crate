@@ -89,7 +89,7 @@ pygments_style = 'sphinx'
 
 # See http://www.sphinx-doc.org/en/master/theming.html
 # html_theme = 'alabaster'  # elegant but monochrome
-html_theme = 'classic'  # like the Python docs. GOOD. CHOSEN.
+# html_theme = 'classic'  # like the Python docs. GOOD. CHOSEN. Then sphinx_rtd_theme  # noqa
 # html_theme = 'sphinxdoc'  # OK; TOC on right
 # html_theme = 'scrolls'  # ugly
 # html_theme = 'agogo'  # nice, but a bit big-print; TOC on right; justified
@@ -98,6 +98,7 @@ html_theme = 'classic'  # like the Python docs. GOOD. CHOSEN.
 # html_theme = 'haiku'  # dosen't do sidebar
 # html_theme = 'pyramid'  # Once inline code customized, GOOD.
 # html_theme = 'bizstyle'  # OK
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
