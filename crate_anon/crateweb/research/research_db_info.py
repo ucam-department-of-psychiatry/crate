@@ -909,6 +909,7 @@ class ResearchDatabaseInfo(object):
             if table_id not in table_to_colinfolist:
                 table_to_colinfolist[table_id] = []
             table_to_colinfolist[table_id].append(c)
+        # noinspection PyTypeChecker
         return OrderedDict(sorted(table_to_colinfolist.items()))
 
     @django_cache_function(timeout=None)
@@ -922,6 +923,7 @@ class ResearchDatabaseInfo(object):
             if schema not in schema_to_colinfolist:
                 schema_to_colinfolist[schema] = []
             schema_to_colinfolist[schema].append(c)
+        # noinspection PyTypeChecker
         return OrderedDict(sorted(schema_to_colinfolist.items()))
 
     def tables_containing_field(self, fieldname: str) -> List[TableId]:

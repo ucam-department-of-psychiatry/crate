@@ -156,6 +156,7 @@ def study_details(request: HttpRequest, study_id: str) -> HttpResponseBase:
         study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.study_details_pdf:
         raise Http404("No details")
+    # noinspection PyUnresolvedReferences
     return serve_file(study.study_details_pdf.path,
                       content_type=ContentType.PDF,
                       as_inline=True)
@@ -169,6 +170,7 @@ def study_form(request: HttpRequest, study_id: str) -> HttpResponseBase:
     study = get_object_or_404(Study, pk=study_id)  # type: Study
     if not study.subject_form_template_pdf:
         raise Http404("No study form for clinicians to complete")
+    # noinspection PyUnresolvedReferences
     return serve_file(study.subject_form_template_pdf.path,
                       content_type=ContentType.PDF,
                       as_inline=True)
@@ -180,6 +182,7 @@ study_form.login_required = False
 # noinspection PyUnusedLocal
 def study_pack(request: HttpRequest, study_id: str) -> HttpResponseBase:
     study = get_object_or_404(Study, pk=study_id)  # type: Study
+    # noinspection PyUnresolvedReferences
     filenames = filter(None, [
         study.study_details_pdf.path
         if study.study_details_pdf else None,
@@ -276,6 +279,7 @@ def view_leaflet(request: HttpRequest, leaflet_name: str) -> HttpResponseBase:
     leaflet = get_object_or_404(Leaflet, name=leaflet_name)  # type: Leaflet
     if not leaflet.pdf:
         raise Http404("Missing leaflet")
+    # noinspection PyUnresolvedReferences
     return serve_file(leaflet.pdf.path,
                       content_type=ContentType.PDF,
                       as_inline=True)

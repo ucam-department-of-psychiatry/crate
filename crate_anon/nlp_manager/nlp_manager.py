@@ -58,7 +58,7 @@ Speed testing:
 
 .. todo:: comments for NLP output fields (in table definition, destfields)
 
-"""
+"""  # noqa
 
 
 # =============================================================================
@@ -448,8 +448,10 @@ def drop_remake(progargs,
     progengine = nlpdef.get_progdb_engine()
     if not incremental:
         log.debug("Dropping progress tables")
+        # noinspection PyUnresolvedReferences
         NlpRecord.__table__.drop(progengine, checkfirst=True)
     log.info("Creating progress table (with index)")
+    # noinspection PyUnresolvedReferences
     NlpRecord.__table__.create(progengine, checkfirst=True)
 
     # -------------------------------------------------------------------------

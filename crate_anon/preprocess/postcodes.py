@@ -1251,6 +1251,7 @@ def populate_postcode_table(filename: str,
                             args: Any,
                             commit: bool = True) -> None:
     tablename = Postcode.__tablename__
+    # noinspection PyUnresolvedReferences
     table = Postcode.__table__
     if not args.replace:
         engine = session.bind
@@ -1264,8 +1265,7 @@ def populate_postcode_table(filename: str,
     n = 0
     n_inserted = 0
     extra_fields = []
-    db_fields = sorted(k for k in Postcode.__table__.columns.keys()
-                       if k != 'pcd_nospace')
+    db_fields = sorted(k for k in table.columns.keys() if k != 'pcd_nospace')
     with open(filename) as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -1395,7 +1395,9 @@ def populate_generic_lookup_table(sa_class: Any,  # Type[Base], Type[BASETYPE] f
 # =============================================================================
 
 def show_docs() -> None:
-    columns = sorted(Postcode.__table__.columns.keys())
+    # noinspection PyUnresolvedReferences
+    table = Postcode.__table__
+    columns = sorted(table.columns.keys())
     pt = prettytable.PrettyTable(
         ["postcode field", "Description"],
         # header=False,

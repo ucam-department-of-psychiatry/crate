@@ -566,12 +566,14 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
         sql = request.POST['sql']
         description = request.POST['description']
         identical_queries = get_identical_queries(request, sql, sitewide=True)
+        # noinspection PyUnresolvedReferences
         descriptions = [query.description for query in identical_queries]
         if not identical_queries:
             query = SitewideQuery(sql=sql, description=description,
                                   raw=True)
             query.save()
         elif description not in descriptions:
+            # noinspection PyUnresolvedReferences
             identical_queries[0].description = description
             identical_queries[0].save()
     all_queries = get_all_sitewide_queries(request)
@@ -592,7 +594,7 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
     else:
         selected_sql = ""
         selected_description = ""
-    context =  {
+    context = {
         'queries': queries,
         'selected_sql': selected_sql,
         'selected_description': selected_description,
@@ -643,11 +645,11 @@ def sitewide_query_process(request: HttpRequest, query_id: str) -> HttpResponse:
     cmd_run = 'submit_run' in request.POST
     if cmd_add or cmd_run:
         query = get_object_or_404(SitewideQuery, id=query_id)
-        #if query.sql_chunks is null:
+        # if query.sql_chunks is null:
         query.get_sql_chunks()
         sql = ""
         for i, chunk in enumerate(query.sql_chunks):
-            if i%2 == 0:
+            if i % 2 == 0:
                 # add the original sql - the even numbered chunks
                 sql += chunk
             else:

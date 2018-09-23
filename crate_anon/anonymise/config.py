@@ -69,6 +69,7 @@ Thoughts on configuration method
 
 import codecs
 import fnmatch
+from io import StringIO
 import logging
 import os
 import sys
@@ -101,12 +102,17 @@ from crate_anon.anonymise.constants import (
     DEFAULT_REPORT_EVERY,
     DEFAULT_MAX_ROWS_BEFORE_COMMIT,
     DEFAULT_MAX_BYTES_BEFORE_COMMIT,
+    DEMO_CONFIG,
     SEP,
 )
 from crate_anon.anonymise.dd import DataDictionary
 from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
     WordList,
+)
+from crate_anon.common.constants import (
+    ENVVAR_RUN_WITHOUT_CONFIG,
+    LOWER_CASE_STRINGS_MEANING_TRUE,
 )
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.common.sql import TransactionSizeLimiter
@@ -366,23 +372,31 @@ class Config(object):
         """
         Read config from file
         """
+        parser = ExtendedConfigParser()
+        section = "main"
+
         # Get filename
         try:
             self.config_filename = os.environ[CONFIG_ENV_VAR]
             assert self.config_filename
+            # Read config from file.
+            log.info("Reading config file: {}".format(self.config_filename))
+            fileobj = codecs.open(self.config_filename, "r", "utf8")
         except (KeyError, AssertionError):
-            print(
-                "You must set the {} environment variable to point to a CRATE "
-                "anonymisation config file, or specify it on the command "
-                "line. Run crate_print_demo_anon_config "
-                "to see a specimen config.".format(CONFIG_ENV_VAR))
-            sys.exit(1)
+            if (ENVVAR_RUN_WITHOUT_CONFIG in os.environ and
+                    os.environ[ENVVAR_RUN_WITHOUT_CONFIG].lower() in
+                    LOWER_CASE_STRINGS_MEANING_TRUE):
+                # Running in a mock environment; no config required
+                fileobj = StringIO(DEMO_CONFIG)
+            else:
+                print(
+                    "You must set the {} environment variable to point to a "
+                    "CRATE anonymisation config file, or specify it on the "
+                    "command line. Run crate_print_demo_anon_config "
+                    "to see a specimen config.".format(CONFIG_ENV_VAR))
+                sys.exit(1)
 
-        # Read config from file.
-        parser = ExtendedConfigParser()
-        log.info("Reading config file: {}".format(self.config_filename))
-        parser.read_file(codecs.open(self.config_filename, "r", "utf8"))
-        section = "main"
+        parser.read_file(fileobj)
 
         def opt_str(option: str) -> str:
             return parser.get(section, option, fallback=None)

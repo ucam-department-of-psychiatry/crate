@@ -311,8 +311,9 @@ def get_valid_pid_subset(given_pids: List[any]) -> List[str]:
         for i, pid in enumerate(orig_pids):
             try:
                 int(pid)
-            except:
-                print("pid '{}' should be in integer form. ".format(pid), end="")
+            except (TypeError, ValueError):
+                print("pid '{}' should be in integer form. ".format(pid),
+                      end="")
                 print("Excluding value.")
                 del given_pids[i]
     pids = []
@@ -384,25 +385,26 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
             # Mark out row of dd with primary pid for relavant database
             row = ddr
 
-    ####### Doesn't work! Trying in plain SQL #########
-    ## Deal with case where the field specified isn't in the table
-    ## with the primary pid
-    #session = config.sources[db].session
-    #pidcol = column(row.src_field)
-    #session = config.sources[ddr.src_db].session
-    #chosen_table = table(tablename)
-    #ddr_table = table(row.src_table)
-    #join_obj = ddr_table.join(chosen_table, chosen_table.c.fieldcol == ddr_table.c.pidcol)
-    #query = (
-    #    select([pidcol]).
-    #    select_from(join_obj).
-    #    where((chosen_table.fieldcol.in_(field_elements)) &
-    #               (ddr_table.pidcol is not None)).
-    #    distinct()
-    #)
+    # ###### Doesn't work! Trying in plain SQL #########
+    # # Deal with case where the field specified isn't in the table
+    # # with the primary pid
+    # session = config.sources[db].session
+    # pidcol = column(row.src_field)
+    # session = config.sources[ddr.src_db].session
+    # chosen_table = table(tablename)
+    # ddr_table = table(row.src_table)
+    # join_obj = ddr_table.join(chosen_table,
+    #                           chosen_table.c.fieldcol == ddr_table.c.pidcol)
+    # query = (
+    #     select([pidcol]).
+    #     select_from(join_obj).
+    #     where((chosen_table.fieldcol.in_(field_elements)) &
+    #                (ddr_table.pidcol is not None)).
+    #     distinct()
+    # )
 
-    ## Deal with case where the field specified isn't in the table
-    ## with the primary pid
+    # # Deal with case where the field specified isn't in the table
+    # # with the primary pid
     session = config.sources[db].session
     source_field = row.src_field
     source_table = row.src_table
@@ -410,10 +412,10 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
     txt_elements = ", ".join(field_elements)
     txt_elements = "(" + txt_elements + ")"
 
-    txt = "SELECT {}.{} FROM {} ".format(source_table,source_field,
-               source_table)
+    txt = "SELECT {}.{} FROM {} ".format(source_table, source_field,
+                                         source_table)
     txt += "JOIN {} ON {}.{}={}.{} ".format(tablename, source_table,
-               source_field, tablename, fieldname)
+                                            source_field, tablename, fieldname)
     txt += "WHERE {}.{} IN {}".format(tablename, fieldname, txt_elements)
     txt += "AND {}.{} IS NOT NULL".format(source_table, source_field)
     sql = text(txt)
@@ -447,7 +449,7 @@ def get_pids_from_file(field: str, filename: str) -> List[str]:
     a list of pids associated with them.
     """
     field_is_pid = fieldname_is_pid(field)
-    #pid_is_integer = config.pidtype_is_integer
+    # pid_is_integer = config.pidtype_is_integer
     if field_is_pid:
         # If the chosen field is a pid field, just make sure all pids in the
         # file are valid
@@ -511,7 +513,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
             continue
         # Check if the field given is in the table with the pids
         if fieldname in config.dd.get_fieldnames_for_src_table(ddr.src_db,
-                ddr.src_table):
+                                                               ddr.src_table):
             pidcol = column(ddr.src_field)
             session = config.sources[ddr.src_db].session
             # Find pids corresponding to the given values of specified field
@@ -529,17 +531,17 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
             # Mark out row of dd with primary pid for relavant database
             row = ddr
 
-    ## Deal with case where the field specified isn't in the table
-    ## with the primary pid
+    # Deal with case where the field specified isn't in the table
+    # with the primary pid
     session = config.sources[db].session
     source_field = row.src_field
     source_table = row.src_table
     txt = "SELECT {}.{} FROM {} ".format(source_table,source_field,
-               source_table)
+                                         source_table)
     txt += "JOIN {} ON {}.{}={}.{} ".format(tablename, source_table,
-               source_field, tablename, fieldname)
+                                            source_field, tablename, fieldname)
     txt += "WHERE ({}.{} BETWEEN {} AND {}) ".format(tablename, fieldname,
-                                                  low, high)
+                                                     low, high)
     txt += "AND {}.{} IS NOT NULL".format(source_table, source_field)
     sql = text(txt)
 
@@ -935,7 +937,8 @@ def process_table(sourcedbname: str,
         for i, ddr in enumerate(ddrows):
             value = row[i]
             # Filter out free text over specified length
-            if free_text_limit is not None and len(str(value)) > free_text_limit:
+            if (free_text_limit is not None and
+                    len(str(value)) > free_text_limit):
                 datatype = ddr.src_datatype
                 if (datatype == "TEXT" or datatype.startswith("CHAR") or
                         datatype.startswith("VARCHAR")):
@@ -1193,12 +1196,19 @@ def drop_remake(incremental: bool = False,
     if not incremental:
         log.info("Dropping admin tables except opt-out")
         # not OptOut
+
+        # noinspection PyUnresolvedReferences
         PatientInfo.__table__.drop(engine, checkfirst=True)
+        # noinspection PyUnresolvedReferences
         TridRecord.__table__.drop(engine, checkfirst=True)
     log.info("Creating admin tables")
+    # noinspection PyUnresolvedReferences
     OptOutPid.__table__.create(engine, checkfirst=True)
+    # noinspection PyUnresolvedReferences
     OptOutMpid.__table__.create(engine, checkfirst=True)
+    # noinspection PyUnresolvedReferences
     PatientInfo.__table__.create(engine, checkfirst=True)
+    # noinspection PyUnresolvedReferences
     TridRecord.__table__.create(engine, checkfirst=True)
 
     wipe_and_recreate_destination_db(incremental=incremental)
@@ -1227,18 +1237,18 @@ def gen_words_from_file(filename: str) -> Generator[str, None, None]:
 def gen_opt_out_pids_from_file(mpid: bool = False) -> Generator[int,
                                                                 None, None]:
     if mpid:
-        text = "MPID"
+        txt = "MPID"
         filenames = config.optout_mpid_filenames
         as_int = config.mpidtype_is_integer
     else:
-        text = "PID"
+        txt = "PID"
         filenames = config.optout_pid_filenames
         as_int = config.pidtype_is_integer
     if not filenames:
-        log.info("... no opt-out {} disk files in use".format(text))
+        log.info("... no opt-out {} disk files in use".format(txt))
     else:
         for filename in filenames:
-            log.info("... {} file: {}".format(text, filename))
+            log.info("... {} file: {}".format(txt, filename))
             if as_int:
                 yield(gen_integers_from_file(filename))
             else:
@@ -1247,7 +1257,7 @@ def gen_opt_out_pids_from_file(mpid: bool = False) -> Generator[int,
 
 def gen_opt_out_pids_from_database(mpid: bool = False) -> Generator[int, None,
                                                                     None]:
-    text = "MPID" if mpid else "PID"
+    txt = "MPID" if mpid else "PID"
     found_one = False
     defining_fields = config.dd.get_optout_defining_fields()
     for t in defining_fields:
@@ -1258,7 +1268,7 @@ def gen_opt_out_pids_from_database(mpid: bool = False) -> Generator[int, None,
         found_one = True
         session = config.sources[src_db].session
         log.info("... {}.{}.{} ({}={})".format(
-            src_db, src_table, optout_colname, text, id_colname))
+            src_db, src_table, optout_colname, txt, id_colname))
         sqla_table = table(src_table)
         optout_defining_col = column(optout_colname)
         idcol = column(id_colname)
@@ -1275,7 +1285,7 @@ def gen_opt_out_pids_from_database(mpid: bool = False) -> Generator[int, None,
             yield pid
     if not found_one:
         log.info("... no opt-out-defining {} fields in data "
-                 "dictionary".format(text))
+                 "dictionary".format(txt))
         return
 
 
@@ -1446,7 +1456,7 @@ def anonymise(args: Any) -> None:
             pids = get_pids_from_file(args.restrict, args.file)
         elif args.limits:
             pids = get_pids_from_field_limits(args.restrict, args.limits[0],
-                                        args.limits[1])
+                                              args.limits[1])
         elif args.list:
             pids = get_pids_from_list(args.restrict, args.list)
         else:

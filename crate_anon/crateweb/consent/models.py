@@ -216,6 +216,7 @@ class Study(models.Model):
         verbose_name_plural = "studies"
 
     def __str__(self):
+        # noinspection PyUnresolvedReferences
         return "[Study {}] {}: {} / {}".format(
             self.id,
             self.institutional_id,
@@ -224,12 +225,14 @@ class Study(models.Model):
         )
 
     def get_lead_researcher_name_address(self) -> List[str]:
+        # noinspection PyUnresolvedReferences
         return (
             [self.lead_researcher.profile.get_title_forename_surname()] +
             self.lead_researcher.profile.get_address_components()
         )
 
     def get_lead_researcher_salutation(self) -> str:
+        # noinspection PyUnresolvedReferences
         return self.lead_researcher.profile.get_salutation()
 
     def get_involves_lack_of_capacity(self) -> str:
@@ -501,6 +504,8 @@ class PatientLookupBase(models.Model):
     Base class for PatientLookup and DummyPatientSourceInfo.
     Must be able to be instantiate with defaults, for the "not found"
     situation.
+
+    Note that derived classes must implement ``nhs_number`` as a column.
     """
 
     MALE = 'M'
@@ -684,6 +689,8 @@ class PatientLookupBase(models.Model):
         ] + self.pt_address_components()
 
     def get_id_numbers_html_bold(self) -> str:
+        # Note that self.nhs_number must be implemented by derived classes:
+        # noinspection PyUnresolvedReferences
         idnums = ["NHS#: {}".format(self.nhs_number)]
         if self.pt_local_id_description:
             idnums.append("{}: {}".format(self.pt_local_id_description,
@@ -1556,6 +1563,7 @@ class ContactRequest(models.Model):
                 ContactRequest.CLINICIAN_INVOLVEMENT_NONE)
             self.decide("GREEN: Researchers prefer direct approach and patient"
                         " has chosen green mode: send approval to researcher.")
+            # noinspection PyUnresolvedReferences
             researcher_emailaddr = self.study.lead_researcher.email
             try:
                 validate_email(researcher_emailaddr)
@@ -1688,6 +1696,7 @@ class ContactRequest(models.Model):
         self.save()
         # noinspection PyTypeChecker
         letter = Letter.create_researcher_withdrawal(self)  # will save
+        # noinspection PyUnresolvedReferences
         researcher_emailaddr = self.study.lead_researcher.email
         email_succeeded = False
         try:
@@ -1941,6 +1950,7 @@ class ContactRequest(models.Model):
         )]
         # Study details
         if self.study.study_details_pdf:
+            # noinspection PyUnresolvedReferences
             pdf_plans.append(CratePdfPlan(
                 is_filename=True,
                 filename=self.study.study_details_pdf.path
@@ -1953,6 +1963,7 @@ class ContactRequest(models.Model):
         # Additional form for this study
         if self.is_extra_form():
             if self.study.subject_form_template_pdf:
+                # noinspection PyUnresolvedReferences
                 pdf_plans.append(CratePdfPlan(
                     is_filename=True,
                     filename=self.study.subject_form_template_pdf.path
@@ -2436,6 +2447,7 @@ class Email(models.Model):
     def create_clinician_email(cls, contact_request: ContactRequest) \
             -> EMAIL_FWD_REF:
         recipient = contact_request.patient_lookup.clinician_email
+        # noinspection PyUnresolvedReferences
         subject = (
             "RESEARCH REQUEST on behalf of {researcher}, contact request "
             "code {contact_req_code}".format(
@@ -2459,6 +2471,7 @@ class Email(models.Model):
             cls,
             contact_request: ContactRequest,
             letter: Letter) -> EMAIL_FWD_REF:
+        # noinspection PyUnresolvedReferences
         recipient = contact_request.study.lead_researcher.email
         subject = (
             "APPROVAL TO CONTACT PATIENT: contact request "
@@ -2486,6 +2499,7 @@ class Email(models.Model):
             cls,
             contact_request: ContactRequest,
             letter: Letter) -> EMAIL_FWD_REF:
+        # noinspection PyUnresolvedReferences
         recipient = contact_request.study.lead_researcher.email
         subject = (
             "WITHDRAWAL OF APPROVAL TO CONTACT PATIENT: contact request "

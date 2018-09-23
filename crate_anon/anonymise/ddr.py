@@ -118,12 +118,19 @@ class DataDictionaryRow(object):
         self.src_table = None
         self.src_field = None
         self.src_datatype = None  # in SQL string format
-        self._src_sqla_coltype = None
         # src_flags: a property; see below
+
+        self._src_sqla_coltype = None
+
         self.scrub_src = None
         self.scrub_method = None
+
+        # decision: a property; see below
         self.omit = False  # in the DD file, this is 'decision'
+        # inclusion_values: a property; see below
+        # exclusion_values: a property; see below
         # alter_method: a property; see below
+
         self.dest_table = None
         self.dest_field = None
         self.dest_datatype = None
@@ -377,14 +384,19 @@ class DataDictionaryRow(object):
         self.src_table = valuedict['src_table']
         self.src_field = valuedict['src_field']
         self.src_datatype = valuedict['src_datatype'].upper()
+        # noinspection PyAttributeOutsideInit
         self.src_flags = valuedict['src_flags']  # a property
         self.scrub_src = SCRUBSRC.lookup(valuedict['scrub_src'],
                                          allow_none=True)
         self.scrub_method = SCRUBMETHOD.lookup(valuedict['scrub_method'],
                                                allow_none=True)
+        # noinspection PyAttributeOutsideInit
         self.decision = valuedict['decision']  # a property; sets self.omit
+        # noinspection PyAttributeOutsideInit
         self.inclusion_values = valuedict['inclusion_values']  # a property
+        # noinspection PyAttributeOutsideInit
         self.exclusion_values = valuedict['exclusion_values']  # a property
+        # noinspection PyAttributeOutsideInit
         self.alter_method = valuedict['alter_method']  # a property
         self.dest_table = valuedict['dest_table']
         self.dest_field = valuedict['dest_field']

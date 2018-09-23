@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# crate_anon/tools/launch_docs.py
+# crate_anon/common/constants.py
 
 """
 ===============================================================================
@@ -24,26 +24,6 @@
 ===============================================================================
 """
 
-from cardinal_pythonlib.process import launch_external_file
 
-
-# THIS_DIR = os.path.abspath(os.path.dirname(__file__))
-# DOCS_INDEX = os.path.abspath(os.path.join(
-#     THIS_DIR,  # crate_anon/tools
-#     os.pardir,  # crate_anon
-#     "docs",
-#     "build",
-#     "html",
-#     "index.html"
-# ))
-
-DOCS_INDEX = "https://crateanon.readthedocs.io/"
-
-
-def main():
-    print("Launching help: {}".format(DOCS_INDEX))
-    launch_external_file(DOCS_INDEX)
-
-
-if __name__ == '__main__':
-    main()
+ENVVAR_RUN_WITHOUT_CONFIG = "CRATE_RUN_WITHOUT_LOCAL_SETTINGS"
+LOWER_CASE_STRINGS_MEANING_TRUE = ['true', '1', 't', 'y', 'yes']

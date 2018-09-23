@@ -160,16 +160,17 @@ class UserProfile(models.Model):
                             self.address_7]))
 
     def get_title_forename_surname(self) -> str:
-        # noinspection PyTypeChecker
+        # noinspection PyTypeChecker,PyUnresolvedReferences
         return title_forename_surname(self.title, self.user.first_name,
                                       self.user.last_name)
 
     def get_salutation(self) -> str:
-        # noinspection PyTypeChecker
+        # noinspection PyTypeChecker,PyUnresolvedReferences
         return salutation(self.title, self.user.first_name,
                           self.user.last_name, assume_dr=True)
 
     def get_forename_surname(self) -> str:
+        # noinspection PyUnresolvedReferences
         return forename_surname(self.user.first_name, self.user.last_name)
 
 

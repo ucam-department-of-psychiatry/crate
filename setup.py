@@ -48,7 +48,7 @@ import fnmatch
 import os
 import platform
 from pprint import pformat
-import subprocess
+# import subprocess
 import sys
 from typing import List
 
@@ -103,7 +103,8 @@ EXTRAS_ARG = 'extras'
 # Directories
 THIS_DIR = os.path.abspath(os.path.dirname(__file__))  # .../crate
 CRATE_ROOT_DIR = os.path.join(THIS_DIR, "crate_anon")  # .../crate/crate_anon/
-DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
+# DOC_ROOT_DIR = os.path.join(CRATE_ROOT_DIR, "docs")
+DOC_ROOT_DIR = os.path.join(THIS_DIR, "docs")
 DOC_HTML_DIR = os.path.join(DOC_ROOT_DIR, "build", "html")
 
 # Files

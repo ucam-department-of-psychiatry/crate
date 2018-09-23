@@ -89,7 +89,7 @@ Base = declarative_base(metadata=metadata)
 
 CONSOLE_ENCODING = 'utf8'
 REPORT_EVERY = 50
-BASE_DOB = datetime.datetime(day=1, month=10, year=1980)
+BASE_DOB = datetime.date(day=1, month=10, year=1980)
 DT_FORMATS = [
     "%d %b %Y",  # e.g. 24 Jul 2013
     "%d %B %Y",  # e.g. 24 July 2013
@@ -373,7 +373,7 @@ def main() -> None:
         patient_id=1,
         forename="Ronald Gibbet",
         surname="MacDonald",
-        dob=datetime.datetime(day=11, month=11, year=1911),
+        dob=datetime.date(day=11, month=11, year=1911),
         nhsnum=123456,
         phone="(01223)-123456",
         postcode="CB2 3EB",
@@ -427,7 +427,7 @@ basophils 0.6.
         patient_id=2,
         forename="Bob D'Souza",
         surname="",
-        dob=datetime.datetime(day=11, month=11, year=1911),
+        dob=datetime.date(day=11, month=11, year=1911),
         nhsnum=234567,
         phone="(01223)-234567",
         postcode="CB2 3EB",

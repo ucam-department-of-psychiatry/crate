@@ -324,7 +324,7 @@ class QueryBase(models.Model):
         default=True,
         verbose_name='Parameter-substituted SQL uses ?, not %s, '
         'as placeholders')
-    #active = models.BooleanField(default=True)  # see save() below
+    # active = models.BooleanField(default=True)  # see save() below
     created = models.DateTimeField(auto_now_add=True)
     deleted = models.BooleanField(
         default=False,
@@ -364,9 +364,9 @@ class QueryBase(models.Model):
     # Activating, deleting, auditing
     # -------------------------------------------------------------------------
 
-    #def activate(self) -> None:
-    #    self.active = True
-    #    self.save()
+    # def activate(self) -> None:
+    #     self.active = True
+    #     self.save()
 
     def mark_audited(self) -> None:
         if self.audited:
@@ -379,7 +379,7 @@ class QueryBase(models.Model):
             # log.debug("pointless")
             return
         self.deleted = True
-        #self.active = False
+        # self.active = False
         # log.debug("about to save")
         self.save()
         # log.debug("saved")
@@ -600,7 +600,6 @@ class SitewideQuery(QueryBase):
             sql_chunks.append(sql_string)
 
         self.sql_chunks = sql_chunks
-
 
     def save(self, *args, **kwargs) -> None:
         """

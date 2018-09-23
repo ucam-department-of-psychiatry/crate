@@ -22,6 +22,11 @@ import os
 import django
 from sphinx.application import Sphinx
 
+from crate_anon.common.constants import (
+    ENVVAR_RUN_WITHOUT_CONFIG,
+    LOWER_CASE_STRINGS_MEANING_TRUE,
+)
+
 
 # -- Project information -----------------------------------------------------
 
@@ -220,6 +225,7 @@ autodoc_mock_imports = [
 
 # sys.path.insert(0, os.path.join(os.path.abspath('.'), '../../myproj'))
 
-os.environ['CRATE_RUN_WITHOUT_LOCAL_SETTINGS'] = "True"  # see crate_anon/crateweb/config/settings.py  # noqa
+os.environ[ENVVAR_RUN_WITHOUT_CONFIG] = LOWER_CASE_STRINGS_MEANING_TRUE[0]
+# ... see crate_anon/crateweb/config/settings.py  # noqa
 os.environ['DJANGO_SETTINGS_MODULE'] = 'crate_anon.crateweb.config.settings'
 django.setup()
