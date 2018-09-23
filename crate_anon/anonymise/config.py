@@ -629,34 +629,43 @@ class Config(object):
             raise ValueError("Admin database mustn't be listed as a "
                              "source database")
 
-        self.destdb = get_database(destination_database_cfg_section,
-                                   name=destination_database_cfg_section,
-                                   with_session=open_databases,
-                                   with_conn=False,
-                                   reflect=False)
-        if not self.destdb:
-            raise ValueError("Destination database misconfigured")
-        if open_databases:
-            self.dest_dialect = self.destdb.engine.dialect
-        else:  # in context of web framework, some sort of default
+        if RUNNING_WITHOUT_CONFIG:
+            self.destdb = None
             self.dest_dialect = mysql_dialect
-        self._destdb_transaction_limiter = TransactionSizeLimiter(
-            session=self.destdb.session,
-            max_bytes_before_commit=self.max_bytes_before_commit,
-            max_rows_before_commit=self.max_rows_before_commit
-        )
+        else:
+            self.destdb = get_database(destination_database_cfg_section,
+                                       name=destination_database_cfg_section,
+                                       with_session=open_databases,
+                                       with_conn=False,
+                                       reflect=False)
+            if not self.destdb:
+                raise ValueError("Destination database misconfigured")
+            if open_databases:
+                self.dest_dialect = self.destdb.engine.dialect
+            else:  # in context of web framework, some sort of default
+                self.dest_dialect = mysql_dialect
+            self._destdb_transaction_limiter = TransactionSizeLimiter(
+                session=self.destdb.session,
+                max_bytes_before_commit=self.max_bytes_before_commit,
+                max_rows_before_commit=self.max_rows_before_commit
+            )
 
-        self.admindb = get_database(admin_database_cfg_section,
-                                    name=admin_database_cfg_section,
-                                    with_session=open_databases,
-                                    with_conn=False,
-                                    reflect=open_databases)
-        if not self.admindb:
-            raise ValueError("Admin database misconfigured")
+        if RUNNING_WITHOUT_CONFIG:
+            self.admindb = None
+        else:
+            self.admindb = get_database(admin_database_cfg_section,
+                                        name=admin_database_cfg_section,
+                                        with_session=open_databases,
+                                        with_conn=False,
+                                        reflect=open_databases)
+            if not self.admindb:
+                raise ValueError("Admin database misconfigured")
 
         self.sources = {}
         self.src_dialects = {}
         for sourcedb_name in source_database_cfg_sections:
+            if RUNNING_WITHOUT_CONFIG:
+                continue
             log.info("Adding source database: {}".format(sourcedb_name))
             srccfg = DatabaseSafeConfig(parser, sourcedb_name)
             srcdb = get_database(sourcedb_name,
