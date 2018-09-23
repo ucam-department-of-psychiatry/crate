@@ -1,8 +1,6 @@
-crate.png
+# crate.png
 # ... autocreated from the .pdf file
-
-NLPRP_draft.pdf
-#... sometimes created from the .odt file
+# ... but we need it in the repository for readthedocs
 
 build/
 
