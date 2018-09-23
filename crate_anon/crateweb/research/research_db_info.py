@@ -49,6 +49,7 @@ from django.db.backends.base.base import BaseDatabaseWrapper
 from django.conf import settings
 from openpyxl import Workbook
 
+from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
 from crate_anon.common.sql import (
     ColumnId,
     is_sql_column_type_textual,
@@ -689,49 +690,56 @@ class ResearchDatabaseInfo(object):
     # class without Django configured.
 
     def __init__(self) -> None:
-        self.dialect = settings.RESEARCH_DB_DIALECT
-        assert self.dialect in SUPPORTED_DIALECTS, (
-            "Unsupported dialect: {!r}".format(self.dialect)
-        )
-
-        self.grammar = make_grammar(self.dialect)  # not expensive
-
-        connection = self._connection()
-        vendor = connection.vendor
-
         self.dbinfolist = []  # type: List[SingleResearchDatabase]
-        for index in range(len(settings.RESEARCH_DB_INFO)):
-            self.dbinfolist.append(SingleResearchDatabase(
-                index=index,
-                grammar=self.grammar,
-                rdb_info=self,
-                connection=connection,
-                vendor=vendor
-            ))
-        assert len(self.dbinfolist) > 0, (
-            "No research databases configured in RESEARCH_DB_INFO"
-        )
-        names = [x.name for x in self.dbinfolist]
-        assert len(names) == len(set(names)), (
-            "Duplicate database names in {!r}".format(names)
-        )
 
-        try:
-            self.dbinfo_for_contact_lookup = self.get_dbinfo_by_name(
-                settings.RESEARCH_DB_FOR_CONTACT_LOOKUP)
-        except ValueError:
-            raise ValueError(
-                "In your settings, RESEARCH_DB_FOR_CONTACT_LOOKUP specifies "
-                "{!r} but there is no database with that name in "
-                "RESEARCH_DB_INFO".format(
-                    settings.RESEARCH_DB_FOR_CONTACT_LOOKUP))
-        assert self.dbinfo_for_contact_lookup.secret_lookup_db, (
-            "Research database {!r} is set as your "
-            "RESEARCH_DB_FOR_CONTACT_LOOKUP but has no {!r} attribute".format(
-                self.dbinfo_for_contact_lookup.name,
-                ResearchDbInfoKeys.SECRET_LOOKUP_DB
+        if RUNNING_WITHOUT_CONFIG:
+            self.dialect = ""
+            self.grammar = None
+            self.dbinfo_for_contact_lookup = None
+
+        else:
+            self.dialect = settings.RESEARCH_DB_DIALECT
+            assert self.dialect in SUPPORTED_DIALECTS, (
+                "Unsupported dialect: {!r}".format(self.dialect)
             )
-        )
+
+            self.grammar = make_grammar(self.dialect)  # not expensive
+
+            connection = self._connection()
+            vendor = connection.vendor
+
+            for index in range(len(settings.RESEARCH_DB_INFO)):
+                self.dbinfolist.append(SingleResearchDatabase(
+                    index=index,
+                    grammar=self.grammar,
+                    rdb_info=self,
+                    connection=connection,
+                    vendor=vendor
+                ))
+            assert len(self.dbinfolist) > 0, (
+                "No research databases configured in RESEARCH_DB_INFO"
+            )
+            names = [x.name for x in self.dbinfolist]
+            assert len(names) == len(set(names)), (
+                "Duplicate database names in {!r}".format(names)
+            )
+
+            try:
+                self.dbinfo_for_contact_lookup = self.get_dbinfo_by_name(
+                    settings.RESEARCH_DB_FOR_CONTACT_LOOKUP)
+            except ValueError:
+                raise ValueError(
+                    "In your settings, RESEARCH_DB_FOR_CONTACT_LOOKUP specifies "
+                    "{!r} but there is no database with that name in "
+                    "RESEARCH_DB_INFO".format(
+                        settings.RESEARCH_DB_FOR_CONTACT_LOOKUP))
+            assert self.dbinfo_for_contact_lookup.secret_lookup_db, (
+                "Research database {!r} is set as your "
+                "RESEARCH_DB_FOR_CONTACT_LOOKUP but has no {!r} attribute".format(
+                    self.dbinfo_for_contact_lookup.name,
+                    ResearchDbInfoKeys.SECRET_LOOKUP_DB
+                )
+            )
 
     # -------------------------------------------------------------------------
     # Classmethods, staticmethods

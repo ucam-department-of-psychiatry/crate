@@ -38,10 +38,7 @@ import importlib.machinery
 import logging
 import os
 
-from crate_anon.common.constants import (
-    ENVVAR_RUN_WITHOUT_CONFIG,
-    LOWER_CASE_STRINGS_MEANING_TRUE,
-)
+from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
 from crate_anon.crateweb.config.constants import CRATEWEB_CONFIG_ENV_VAR
 
 # http://stackoverflow.com/questions/2636536/how-to-make-django-work-with-unsupported-mysql-drivers-such-as-gevent-mysql-or-c  # noqa
@@ -433,9 +430,7 @@ RESEARCHER_FONTSIZE = "10pt"
 #       from crate_local_settings import *  # noqa
 # Better: import a file named in an environment variable.
 
-if (ENVVAR_RUN_WITHOUT_CONFIG in os.environ and
-        os.environ[ENVVAR_RUN_WITHOUT_CONFIG].lower() in
-        LOWER_CASE_STRINGS_MEANING_TRUE):
+if RUNNING_WITHOUT_CONFIG:
     log.info("Running without local settings")
     # We will only get here for the collectstatic command in the Debian
     # postinst file, so we just need the minimum specified.

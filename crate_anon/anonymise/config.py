@@ -110,10 +110,7 @@ from crate_anon.anonymise.scrub import (
     NonspecificScrubber,
     WordList,
 )
-from crate_anon.common.constants import (
-    ENVVAR_RUN_WITHOUT_CONFIG,
-    LOWER_CASE_STRINGS_MEANING_TRUE,
-)
+from crate_anon.common.constants import RUNNING_WITHOUT_CONFIG
 from crate_anon.common.extendedconfigparser import ExtendedConfigParser
 from crate_anon.common.sql import TransactionSizeLimiter
 
@@ -383,9 +380,7 @@ class Config(object):
             log.info("Reading config file: {}".format(self.config_filename))
             fileobj = codecs.open(self.config_filename, "r", "utf8")
         except (KeyError, AssertionError):
-            if (ENVVAR_RUN_WITHOUT_CONFIG in os.environ and
-                    os.environ[ENVVAR_RUN_WITHOUT_CONFIG].lower() in
-                    LOWER_CASE_STRINGS_MEANING_TRUE):
+            if RUNNING_WITHOUT_CONFIG:
                 # Running in a mock environment; no config required
                 fileobj = StringIO(DEMO_CONFIG)
             else:

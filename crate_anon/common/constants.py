@@ -24,6 +24,17 @@
 ===============================================================================
 """
 
+import os
+
 
 ENVVAR_RUN_WITHOUT_CONFIG = "CRATE_RUN_WITHOUT_LOCAL_SETTINGS"
 LOWER_CASE_STRINGS_MEANING_TRUE = ['true', '1', 't', 'y', 'yes']
+
+ON_READTHEDOCS = os.environ.get('READTHEDOCS') == 'True'
+
+RUNNING_WITHOUT_CONFIG = (
+    ON_READTHEDOCS or
+    (ENVVAR_RUN_WITHOUT_CONFIG in os.environ and
+     os.environ[ENVVAR_RUN_WITHOUT_CONFIG].lower() in
+     LOWER_CASE_STRINGS_MEANING_TRUE)
+)
