@@ -27,41 +27,46 @@ Config class for CRATE anonymiser.
 
 Thoughts on configuration method
 
--   First version used a Config() class, which initializes with blank values.
-    The anonymise_cli.py file creates a config singleton and passes it around.
-    Then when its set() method is called, it reads a config file and
-    instantiates its settings.
-    An option exists to print a draft config without ever reading one from
-    disk.
+-   First version used a ``Config()`` class, which initializes with blank
+    values. The ``anonymise_cli.py`` file creates a config singleton and passes
+    it around. Then when its ``set()`` method is called, it reads a config file
+    and instantiates its settings. An option exists to print a draft config
+    without ever reading one from disk.
 
     Advantage: easy to start the program without a valid config file (e.g. to
-        print one).
-    Disadvantage: modules can't be sure that a config is properly instantiated
-        before they are loaded, so you can't easily define a class according to
-        config settings (you'd have to have a class factory, which gets ugly).
+    print one).
 
--   The Django method is to have a configuration file (e.g. settings.py, which
-    can import from other things) that is read by Django and then becomes
-    importable by anything at startup as "django.conf.settings". (I've added
-    local settings via an environment variable.) The way Django knows where
-    to look is via this in manage.py:
+    Disadvantage: modules can't be sure that a config is properly instantiated
+    before they are loaded, so you can't easily define a class according to
+    config settings (you'd have to have a class factory, which gets ugly).
+
+-   The Django method is to have a configuration file (e.g. ``settings.py``,
+    which can import from other things) that is read by Django and then becomes
+    importable by anything at startup as ``django.conf.settings``. (I've added
+    local settings via an environment variable.) The way Django knows where to
+    look is via this in ``manage.py``:
+
+    .. code-block:: python
 
         os.environ.setdefault("DJANGO_SETTINGS_MODULE",
                               "crate_anon.crateweb.config.settings")
 
     Advantage: setting the config file via an environment variable (read when
-        the config file loads) allows guaranteed config existence as other
-        modules start.
+    the config file loads) allows guaranteed config existence as other modules
+    start.
+
     Further advantage: config filenames not on command line, therefore not
-        visible to ps.
+    visible to ``ps``.
+
     Disadvantage: how do you override with a command-line (argparse) setting?
-        ... though: who cares?
+    .. though: who cares?
+
     To print a config using that file: raise an exception on nonexistent
-        config, and catch it with a special entry point script.
+    config, and catch it with a special entry point script.
 
 -   See also
-    http://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line  # noqa
-"""
+    http://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line
+"""  # noqa
 
 # =============================================================================
 # Imports

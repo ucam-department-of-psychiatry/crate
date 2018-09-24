@@ -22,6 +22,8 @@ import os
 import django
 from sphinx.application import Sphinx
 
+from crate_anon.version import CRATE_VERSION
+
 
 # -- Project information -----------------------------------------------------
 
@@ -31,9 +33,9 @@ copyright = '2018, Rudolf Cardinal'
 author = 'Rudolf Cardinal'
 
 # The short X.Y version
-version = ''
+version = CRATE_VERSION
 # The full version, including alpha/beta/rc tags
-release = ''
+release = CRATE_VERSION
 
 
 # -- General configuration ---------------------------------------------------
@@ -46,11 +48,12 @@ release = ''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.viewcode',
-    'sphinx.ext.todo',
-    'sphinx.ext.githubpages',
     'sphinx.ext.autodoc',
+    'sphinx.ext.githubpages',
+    'sphinx.ext.imgmath',
     'sphinx.ext.napoleon',
+    'sphinx.ext.todo',
+    'sphinx.ext.viewcode',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

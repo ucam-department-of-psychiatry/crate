@@ -24,58 +24,64 @@ r"""
 ===============================================================================
 
 - MedEx-UIMA
-  ... can't find Python version of MedEx (which preceded MedEx-UIMA)
-  ... paper on Python version is https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2995636/
-        ... uses Python NLTK
-  ... see notes in Documents/CRATE directory
-  ... MedEx-UIMA is in Java, and resolutely uses a file-based processing
-      system; Main.java calls MedTagger.java (MedTagger.run_batch_medtag), and
-      even in its core MedTagger.medtagging() function it's making files in
-      directories; that's deep in the core of its NLP thinking so we can't
-      change that behaviour without creating a fork.
-      So the obvious way to turn this into a proper "live" pipeline would be
-      for the calling code to
-            fire up a receiving process - Python launching custom Java
-            create its own temporary directory - Python
-            receive data - Python
-            stash it on disk - Python
-            call the MedEx function - Python -> stdout -> custom Java -> MedEx
-            return the results - custom Java signals "done" -> Python reads stdin?
-            and clean up - Python
-      Not terribly elegant, but might be fast enough (and almost certainly
-      much faster than reloading Java regularly!).
-  ... output comes from its MedTagger.print_result() function
-  ... would need a per-process-unique temporary directory, since it scans all
-      files in the input directory (and similarly one output directory); would
-      do that in Python
 
+  - can't find Python version of MedEx (which preceded MedEx-UIMA)
+  - paper on Python version is
+    https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2995636/; uses Python NLTK
+  - see notes in Documents/CRATE directory
+  - MedEx-UIMA is in Java, and resolutely uses a file-based processing system;
+    ``Main.java`` calls ``MedTagger.java`` (``MedTagger.run_batch_medtag``),
+    and even in its core ``MedTagger.medtagging()`` function it's making files
+    in directories; that's deep in the core of its NLP thinking so we can't
+    change that behaviour without creating a fork. So the obvious way to turn
+    this into a proper "live" pipeline would be for the calling code to
+    
+    - fire up a receiving process - Python launching custom Java
+    - create its own temporary directory - Python
+    - receive data - Python
+    - stash it on disk - Python
+    - call the MedEx function - Python -> stdout -> custom Java -> MedEx
+    - return the results - custom Java signals "done" -> Python reads stdin?
+    - and clean up - Python
+    
+    Not terribly elegant, but might be fast enough (and almost certainly much
+    faster than reloading Java regularly!).
+
+  - output comes from its ``MedTagger.print_result()`` function
+  - would need a per-process-unique temporary directory, since it scans all
+    files in the input directory (and similarly one output directory); would do
+    that in Python
 
 MedEx-UIMA is firmly (and internally) wedded to a file-based processing
 system. So we need to:
 
-    - create a process-specific pair of temporary directories;
-    - fire up a receiving process
-    - pass data (1) to file and (2) signal that there's data available;
-    - await a "data ready" reply and read the data from disk;
-    - clean up (delete files) in readiness for next data chunk.
+- create a process-specific pair of temporary directories;
+- fire up a receiving process
+- pass data (1) to file and (2) signal that there's data available;
+- await a "data ready" reply and read the data from disk;
+- clean up (delete files) in readiness for next data chunk.
 
-NOTE ALSO that MedEx's MedTagger class writes to stdout (though not
-stderr). Option 1: move our logs to stdout and use stderr for signalling.
-Option 2: keep things as they are and just use a stdout signal that's
-not used by MedEx. Went with option 2; simpler and more consistent esp.
+NOTE ALSO that MedEx's ``MedTagger`` class writes to ``stdout`` (though not
+``stderr``). Option 1: move our logs to ``stdout`` and use ``stderr`` for
+signalling. Option 2: keep things as they are and just use a ``stdout`` signal
+that's not used by MedEx. Went with option 2; simpler and more consistent esp.
 for logging.
 
 How do we clean up the temporary directories?
-- __del__ is not the opposite of __init__
+
+- ``__del__`` is not the opposite of ``__init__``;
   http://www.algorithm.co.il/blogs/programming/python-gotchas-1-__del__-is-not-the-opposite-of-__init__/
 - http://eli.thegreenplace.net/2009/06/12/safely-using-destructors-in-python  # noqa
 
 PROBLEMS:
--   NLP works fine, but UK-style abbreviations e.g. "qds" not recognized where
-    "q.i.d." is. US abbreviations: e.g.
-    http://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html
 
-    Places to look, and things to try adding:
+- NLP works fine, but UK-style abbreviations e.g. "qds" not recognized where
+  "q.i.d." is. US abbreviations: e.g.
+  http://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html
+
+  - Places to look, and things to try adding:
+  
+    .. code-block:: none
 
         resources/TIMEX/norm_patterns/NormFREQword
 
@@ -96,37 +102,46 @@ PROBLEMS:
     ... not there yet.
     Probably need to recompile. See MedEx's Readme.txt
 
-    reference to expression/val (as in frequency_rules)
-    TIMEX.Rule._add_rule()
-        ... from TIMEX.Rule.Rule via a directory walker
-        ... from TIMEX.ProcessingEngine.ProcessingEngine()
-            ... via semi-hardcoded file location relative to class's location
-                ... via rule_dir, set to .../TIMEX/rules
+  - reference to expression/val (as in frequency_rules):
+  
+    .. code-block:: none
+    
+        TIMEX.Rule._add_rule()
+            ... from TIMEX.Rule.Rule via a directory walker
+            ... from TIMEX.ProcessingEngine.ProcessingEngine()
+                ... via semi-hardcoded file location relative to class's location
+                    ... via rule_dir, set to .../TIMEX/rules
 
-    Detect a file being accessed:
+  - Detect a file being accessed:
+  
+    .. code-block:: bash
 
         sudo apt install inotify-tools
         inotifywait -m FILE
 
     ... frequency_rules IS opened.
 
-    OVERALL SEQUENCE:
+  - OVERALL SEQUENCE:
+  
+    .. code-block:: none
 
-    org.apache.medex.Main [OR: CrateNedexPipeline.java]
-    org.apache.medex.MedTagger.run_batch_medtag
-    ... creeates an org.apache.NLPTools.Document
-        ... not obviously doing frequency stuff, or drug recognition
-    ... then runs org.apache.medex.MedTagger.medtagging(doc)
-        ... this does most of the heavy lifting, I think
-        ... uses ProcessingEngine freq_norm_engine
-            ... org.apache.TIMEX.ProcessingEngine
-            ... but it may be that this just does frequency NORMALIZATION, not frequency finding
-        ... uses SemanticRuleEngine rule_engine
-            ... which is org.apache.medex.SemanticRuleEngine
-            ... see all the regexlist.put(..., "FREQ") calls
-            ... note double-escaping \\ for Java's benefit
+        org.apache.medex.Main [OR: CrateNedexPipeline.java]
+        org.apache.medex.MedTagger.run_batch_medtag
+        ... creeates an org.apache.NLPTools.Document
+            ... not obviously doing frequency stuff, or drug recognition
+        ... then runs org.apache.medex.MedTagger.medtagging(doc)
+            ... this does most of the heavy lifting, I think
+            ... uses ProcessingEngine freq_norm_engine
+                ... org.apache.TIMEX.ProcessingEngine
+                ... but it may be that this just does frequency NORMALIZATION, not frequency finding
+            ... uses SemanticRuleEngine rule_engine
+                ... which is org.apache.medex.SemanticRuleEngine
+                ... see all the regexlist.put(..., "FREQ") calls
+                ... note double-escaping \\ for Java's benefit
 
--   Rebuilding MedEx:
+- Rebuilding MedEx:
+
+  .. code-block:; bash
 
     export MEDEX_HOME=~/dev/MedEx_UIMA_1.3.6  # or similar
     cd ${MEDEX_HOME}
@@ -138,15 +153,19 @@ PROBLEMS:
 
     # ... will also compile dependencies
 
-    See build_medex_itself.py
+  See build_medex_itself.py
 
--   YES. If you add to org.apache.medex.SemanticRuleEngine, with extra entries
-    in the "regexlist.put(...)" sequence, new frequencies appear in the output.
+- YES. If you add to ``org.apache.medex.SemanticRuleEngine``, with extra
+  entries in the ``regexlist.put(...)`` sequence, new frequencies appear in the
+  output.
 
-    To get them normalized as well, add them to frequency_rules.
+  To get them normalized as well, add them to frequency_rules.
 
-    Specifics:
-    (a) SemanticRuleEngine.java
+  Specifics:
+
+  (a) SemanticRuleEngine.java
+  
+      .. code-block:: java
 
         // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
         // NB case-insensitive regexes in SemanticRuleEngine.java, so ignore case here
@@ -166,43 +185,47 @@ PROBLEMS:
         // NECESSITY, NOT FREQUENCY: prn (pro re nata)
         // TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
 
-    (b) frequency_rules
+  (b) frequency_rules
+  
+      .. code-block:: none
 
-// EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
-// NB case-sensitive regexes in Rule.java, so offer upper- and lower-case alternatives here
-// qqh, quarta quaque hora (RNC)
-expression="\b[Qq]\.?[Qq]\.?[Hh]\.?\b",val="R1P4H"
-// qds, quater die sumendum (RNC); MUST BE BEFORE COMPETING "qd" (= per day) expression: expression="[Qq]\.?[ ]?[Dd]\.?",val="R1P24H"
-expression="\b[Qq]\.?[Dd]\.?[Ss]\.?\b",val="R1P6H"
-// tds, ter die sumendum (RNC)
-expression="\b[Tt]\.?[Dd]\.?[Ss]\.?\b",val="R1P8H"
-// bd, bis die (RNC)
-expression="\b[Bb]\.?[Dd]\.?\b",val="R1P12H"
-// od, omni die (RNC)
-expression="\b[Oo]\.?[Dd]\.?\b",val="R1P24H"
-// mane (RNC)
-expression="\b[Mm][Aa][Nn][Ee]\b",val="R1P24H"
-// om, omni mane (RNC)
-expression="\b[Oo]\.?[Mm]\.?\b",val="R1P24H"
-// nocte (RNC)
-expression="\b[Nn][Oo][Cc][Tt][Ee]\b",val="R1P24H"
-// on, omni nocte (RNC)
-expression="\b[Oo]\.?[Nn]\.?\b",val="R1P24H"
-// fortnightly and variants (RNC); unsure if TIMEX3 format is right
-expression="\b[Ff][Oo][Rr][Tt][Nn][Ii][Gg][Hh][Tt][Ll][Yy]\b",val="R1P2WEEK"
-expression="\b(?:2|[Tt][Ww][Oo])\s+[Ww][Ee][Ee][Kk][Ll][Yy]\b",val="R1P2WEEK"
-// monthly (RNC)
-expression="\b[Mm][Oo][Nn][Tt][Hh][Ll][Yy]\b",val="R1P1MONTH"
-//
-// ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
-// NECESSITY, NOT FREQUENCY: prn (pro re nata)
-// TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
+        // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
+        // NB case-sensitive regexes in Rule.java, so offer upper- and lower-case alternatives here
+        // qqh, quarta quaque hora (RNC)
+        expression="\b[Qq]\.?[Qq]\.?[Hh]\.?\b",val="R1P4H"
+        // qds, quater die sumendum (RNC); MUST BE BEFORE COMPETING "qd" (= per day) expression: expression="[Qq]\.?[ ]?[Dd]\.?",val="R1P24H"
+        expression="\b[Qq]\.?[Dd]\.?[Ss]\.?\b",val="R1P6H"
+        // tds, ter die sumendum (RNC)
+        expression="\b[Tt]\.?[Dd]\.?[Ss]\.?\b",val="R1P8H"
+        // bd, bis die (RNC)
+        expression="\b[Bb]\.?[Dd]\.?\b",val="R1P12H"
+        // od, omni die (RNC)
+        expression="\b[Oo]\.?[Dd]\.?\b",val="R1P24H"
+        // mane (RNC)
+        expression="\b[Mm][Aa][Nn][Ee]\b",val="R1P24H"
+        // om, omni mane (RNC)
+        expression="\b[Oo]\.?[Mm]\.?\b",val="R1P24H"
+        // nocte (RNC)
+        expression="\b[Nn][Oo][Cc][Tt][Ee]\b",val="R1P24H"
+        // on, omni nocte (RNC)
+        expression="\b[Oo]\.?[Nn]\.?\b",val="R1P24H"
+        // fortnightly and variants (RNC); unsure if TIMEX3 format is right
+        expression="\b[Ff][Oo][Rr][Tt][Nn][Ii][Gg][Hh][Tt][Ll][Yy]\b",val="R1P2WEEK"
+        expression="\b(?:2|[Tt][Ww][Oo])\s+[Ww][Ee][Ee][Kk][Ll][Yy]\b",val="R1P2WEEK"
+        // monthly (RNC)
+        expression="\b[Mm][Oo][Nn][Tt][Hh][Ll][Yy]\b",val="R1P1MONTH"
+        //
+        // ALREADY IMPLEMENTED BY MedEx: tid (ter in die)
+        // NECESSITY, NOT FREQUENCY: prn (pro re nata)
+        // TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
 
-    (c) source:
+  (c) source:
 
-        http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations
+      - http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations
 
--   How about routes of administration?
+- How about routes of administration?
+
+  .. code-block:: none
 
         MedTagger.printResult()
             route is in FStr_list[5]
@@ -299,20 +322,27 @@ expression="\b[Mm][Oo][Nn][Tt][Hh][Ll][Yy]\b",val="R1P1MONTH"
             trans	RUT
             with spacer	RUT
 
-    Looks like these are not using synonyms. Note also format is route\tRUT
-    Note also that the first element is always forced to lower case (in
-        Lexicon.Lexicon()), so presumably it's case-insensitive.
-    There's no specific comment format (though any line that doesn't resolve
-        to two items when split on a tab looks like it's ignored).
-    So we might want to add more; use
+  Looks like these are not using synonyms. Note also format is ``route\tRUT``
+  
+  Note also that the first element is always forced to lower case (in
+  Lexicon.Lexicon()), so presumably it's case-insensitive.
+  
+  There's no specific comment format (though any line that doesn't resolve to
+  two items when split on a tab looks like it's ignored).
+  
+  So we might want to add more; use
+  
+  .. code-block:: bash
 
         build_medex_itself.py --extraroutes >> lexicon.cfg
 
--   Note that all frequencies and routes must be in the lexicon.
-    And all frequencies must be in SemanticRuleEngine.java (and, to be
-    normalized, frequency_rules).
+- Note that all frequencies and routes must be in the lexicon.
+  And all frequencies must be in ``SemanticRuleEngine.java`` (and, to be
+  normalized, frequency_rules).
 
--   USEFUL BIT FOR CHECKING RESULTS:
+- USEFUL BIT FOR CHECKING RESULTS:
+
+  .. code-block:: sql
 
     SELECT
         sentence_text,
@@ -322,31 +352,38 @@ expression="\b[Mm][Oo][Nn][Tt][Hh][Ll][Yy]\b",val="R1P1MONTH"
         duration, necessity
     FROM anonymous_output.drugs;
 
--   ENCODING
-    - Pipe encoding (to Java's stdin, from Java's stdout) encoding is the less
-      important as we're only likely to send/receive ASCII. It's hard-coded
-      to UTF-8.
-    - File encoding is vital and is hard-coded to UTF-8 here and in the
-      receiving Java.
+- ENCODING
 
-    - We have no direct influence over the MedTagger code for output (unless we
-      modify it). The output function is MedTagger.print_result(), which
-      (line 2040 of MedTagger.java) calls out.write(stuff).
-      The out variable is set by
-      			this.out = new BufferedWriter(new FileWriter(output_dir
-					+ File.separator + doc.fname()));
-      That form of the FileWriter constructor, FileWriter(String fileName),
-      uses the "default character encoding", as per
-        https://docs.oracle.com/javase/7/docs/api/java/io/FileWriter.html
-      That default is given by System.getProperty("file.encoding").
-      However, we don't have to do something daft like asking the Java to
-      report its file encoding to Python through a pipe; instead, we can set
-      the Java default encoding. It can't be done dynamically, but it can be
-      done at JVM launch:
-        http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding
-      Therefore, we should have a Java parameter specified in the config file
-      as
-            -Dfile.encoding=UTF-8
+  - Pipe encoding (to Java's ``stdin``, from Java's ``stdout``) encoding is the
+    less important as we're only likely to send/receive ASCII. It's hard-coded
+    to UTF-8.
+
+  - File encoding is vital and is hard-coded to UTF-8 here and in the
+    receiving Java.
+
+  - We have no direct influence over the MedTagger code for output (unless we
+    modify it). The output function is ``MedTagger.print_result()``, which
+    (line 2040 of ``MedTagger.java``) calls ``out.write(stuff)``.
+    
+    The out variable is set by
+    
+    .. code-block:: java
+    
+        this.out = new BufferedWriter(new FileWriter(output_dir
+                + File.separator + doc.fname()));
+                
+    That form of the FileWriter constructor, ``FileWriter(String fileName)``,
+    uses the "default character encoding", as per
+    https://docs.oracle.com/javase/7/docs/api/java/io/FileWriter.html
+
+    That default is given by ``System.getProperty("file.encoding")``. However,
+    we don't have to do something daft like asking the Java to report its file
+    encoding to Python through a pipe; instead, we can set the Java default
+    encoding. It can't be done dynamically, but it can be done at JVM launch:
+    http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding.
+    
+    Therefore, we should have a Java parameter specified in the config file as
+    ``-Dfile.encoding=UTF-8``.
 
 """  # noqa
 

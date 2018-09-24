@@ -24,9 +24,11 @@
 ===============================================================================
 
 Eponyms from 2018-03-27 snapshot of:
-    https://en.wikipedia.org/wiki/List_of_eponymously_named_diseases
+
+- https://en.wikipedia.org/wiki/List_of_eponymously_named_diseases
 
 Remember the following:
+
 - Patient names should be removed using their identifiable information.
   This is just an additional experimental safety measure.
 - The eponyms are removed from the name lists, before the name lists are

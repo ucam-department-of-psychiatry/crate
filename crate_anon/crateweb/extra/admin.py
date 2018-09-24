@@ -58,7 +58,11 @@ class ReadOnlyModelAdmin(ModelAdmin):
     Allows view ("change"), but not add/edit/delete.
 
     You also need to do this:
+
+    .. code-block:: none
+
         my_admin_site.index_template = 'admin/viewchange_admin_index.html'
+
     ... to give a modified admin/index.html that says "View/change" not
     "Change".
 

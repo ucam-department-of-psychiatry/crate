@@ -43,7 +43,7 @@ By Rudolf Cardinal <rudolf@pobox.com>.
     misc/tcpip_ports.rst
     misc/external_dependencies.rst
 
-    autodoc/index.rst
+    autodoc/_index.rst
 
     changelog.rst
     to_do.rst

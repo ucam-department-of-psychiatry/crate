@@ -39,9 +39,13 @@ def title_forename_surname(title: Optional[str],
                            assume_dr: bool = False) -> str:
     """
     When reporting names:
+
+    .. code-block:: none
+
         Prof. John Smith
         John Smith
         Prof. Smith
+
     etc.
     """
     if always_title and not title:

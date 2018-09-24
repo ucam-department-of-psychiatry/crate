@@ -26,6 +26,9 @@
 Test the anonymisation for specific databases.
 
 From the output, we have:
+
+.. code-block:: none
+
     n_replacements (POSITIVE)
     word_count (N)
     true_positive_confidential_masked (TP)
@@ -34,13 +37,20 @@ From the output, we have:
     confidential_visible_but_unknown_to_source
 
 Therefore, having summed across documents:
+
+.. code-block:: none
+
     TP + FP = POSITIVE
     NEGATIVE = N - POSITIVE
     TN = NEGATIVE - FN
 
 and then we have everything we need. For all identifiers, we make FN equal to
+
+.. code-block:: none
+
     false_negative_confidential_visible_known_to_source
         + not_false_negative_confidential_visible_but_unknown_to_source
+
 instead.
 """
 

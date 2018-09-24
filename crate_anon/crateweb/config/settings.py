@@ -412,7 +412,7 @@ WKHTMLTOPDF_OPTIONS = {
 PATIENT_FONTSIZE = "11pt"
 # "12.4pt" fails, see below; 11.5pt is pretty big; 11pt is fairly common
 # for NHS letters.
-"""
+_ = """
     NB strange wkhtmltopdf bug: word wrap goes awry with font sizes of
       11.6pt to 12.3pt inclusive
     but is fine with

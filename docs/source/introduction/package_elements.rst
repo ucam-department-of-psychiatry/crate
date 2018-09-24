@@ -125,8 +125,8 @@ The MedEx-UIMA system is also supported, via a Java program. Use
 ``crate_nlp_build_medex_java_interface`` to build this before you use it for
 the first time.
 
-This tool uses a configuration file that you create and edit. Use `crate_nlp
---democonfig` to generate a demonstration file.
+This tool uses a configuration file that you create and edit. Use ``crate_nlp
+--democonfig`` to generate a demonstration file.
 
 Web front end
 -------------

@@ -23,16 +23,16 @@
 
 ===============================================================================
 
-Django management command framework for CherryPy based on:
-    https://lincolnloop.com/blog/2008/mar/25/serving-django-cherrypy/
-    Idea and code snippets borrowed from
-        http://www.xhtml.net/scripts/Django-CherryPy-server-DjangoCerise
-    Adapted to run as a management command.
-Some bugs fixed by RNC.
-Then rewritten by RNC.
-Then modified to serve CRATE, with static files, etc.
-Then daemonizing code removed:
-    https://code.djangoproject.com/ticket/4996
+Django management command framework for CherryPy.
+
+- Based on https://lincolnloop.com/blog/2008/mar/25/serving-django-cherrypy/
+- Idea and code snippets borrowed from 
+  http://www.xhtml.net/scripts/Django-CherryPy-server-DjangoCerise
+- Adapted to run as a management command.
+- Some bugs fixed by RNC.
+- Then rewritten by RNC.
+- Then modified to serve CRATE, with static files, etc.
+- Then daemonizing code removed: https://code.djangoproject.com/ticket/4996
 
 TEST COMMAND:
 ./manage.py runcpserver --port 8080 --ssl_certificate /etc/ssl/certs/ssl-cert-snakeoil.pem --ssl_private_key /etc/ssl/private/ssl-cert-snakeoil.key

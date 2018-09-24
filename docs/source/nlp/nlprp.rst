@@ -811,11 +811,11 @@ the queue ID.
   collection.
 
 In this context, note in particular that the ``echo`` parameter is used for the
-same request* (so if you run a queued process command echoing ``"echo1"``, then
-a ``fetch_from_queue`` command echoing ``"echo2"``, you will get ``"echo2"``
-back with the ``fetch_from_queue`` command), but the per-text *metadata* is
-preserved from initial queueing to final retrieval (so that’s the place to put
-information you require to file your results!).
+*same request* (so if you run a queued process command echoing ``"echo1"``,
+then a ``fetch_from_queue`` command echoing ``"echo2"``, you will get
+``"echo2"`` back with the ``fetch_from_queue`` command), but the per-text
+*metadata* is preserved from initial queueing to final retrieval (so that’s the
+place to put information you require to file your results!).
 
 
 delete_from_queue

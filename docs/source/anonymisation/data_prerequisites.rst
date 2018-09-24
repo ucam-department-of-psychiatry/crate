@@ -33,7 +33,7 @@ Source database(s)
   the work in part by PK). However, this is not obligatory.
 
 **Summary:** all tables should be indexed on an integer PK. All patient tables
-*should also be indexed on an integer patient number.
+should also be indexed on an integer patient number.
 
 If you are working with a RiO database, the preprocessor will do this for you.
 See below.
