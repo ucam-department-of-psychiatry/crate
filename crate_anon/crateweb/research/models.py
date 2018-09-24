@@ -330,82 +330,10 @@ class QueryBase(models.Model):
         default=False,
         verbose_name="Deleted from the user's perspective. "
                      "Audited queries are never properly deleted.")
-    audited = models.BooleanField(default=False)
 
     def __repr__(self) -> str:
-        return simple_repr(self, ['id', 'user', 'sql', 'args', 'raw', 'qmark',
-                                  'active', 'created', 'deleted', 'audited'])
-
-    # -------------------------------------------------------------------------
-    # Fetching
-    # -------------------------------------------------------------------------
-
-    @staticmethod
-    def get_active_query_or_none(request: HttpRequest) \
-            -> Optional[QUERY_FWD_REF]:
-        if not request.user.is_authenticated:
-            return None
-        try:
-            return Query.objects.get(user=request.user, active=True)
-        except Query.DoesNotExist:
-            return None
-
-    @staticmethod
-    def get_active_query_id_or_none(request: HttpRequest) -> Optional[int]:
-        if not request.user.is_authenticated:
-            return None
-        try:
-            query = Query.objects.get(user=request.user, active=True)
-            return query.id
-        except Query.DoesNotExist:
-            return None
-
-    # -------------------------------------------------------------------------
-    # Activating, deleting, auditing
-    # -------------------------------------------------------------------------
-
-    # def activate(self) -> None:
-    #     self.active = True
-    #     self.save()
-
-    def mark_audited(self) -> None:
-        if self.audited:
-            return
-        self.audited = True
-        self.save()
-
-    def mark_deleted(self) -> None:
-        if self.deleted:
-            # log.debug("pointless")
-            return
-        self.deleted = True
-        # self.active = False
-        # log.debug("about to save")
-        self.save()
-        # log.debug("saved")
-
-    def delete_if_permitted(self) -> None:
-        """If a query has been audited, it isn't properly deleted."""
-        if self.deleted:
-            log.debug("already flagged as deleted")
-            return
-        if self.audited:
-            log.debug("marking as deleted")
-            self.mark_deleted()
-        else:
-            # actually delete
-            log.debug("actually deleting")
-            self.delete()
-
-    def audit(self, count_only: bool = False, n_records: int = 0,
-              failed: bool = False, fail_msg: str = "") -> None:
-        a = QueryAudit(query=self,
-                       count_only=count_only,
-                       n_records=n_records,
-                       failed=failed,
-                       fail_msg=fail_msg)
-        a.save()
-        self.mark_audited()
+        return simple_repr(self, ['id', 'sql', 'args', 'raw', 'qmark',
+                                  'created', 'deleted'])
 
     # -------------------------------------------------------------------------
     # SQL queries
@@ -515,13 +443,15 @@ class Query(QueryBase):
 
     active = models.BooleanField(default=True)  # see save() below
 
+    audited = models.BooleanField(default=False)
+
     def activate(self) -> None:
         self.active = True
         self.save()
 
-    def mark_deleted(self) -> None:
-        self.active = False
-        super().mark_deleted()
+    def __repr__(self) -> str:
+        return simple_repr(self, ['id', 'user', 'sql', 'args', 'raw', 'qmark',
+                                  'active', 'created', 'deleted', 'audited'])
 
     def save(self, *args, **kwargs) -> None:
         """
@@ -560,6 +490,51 @@ class Query(QueryBase):
         except Query.DoesNotExist:
             return None
 
+    # -------------------------------------------------------------------------
+    # Activating, deleting, auditing
+    # -------------------------------------------------------------------------
+
+    # This isn't needed in the base class because it only applies to
+    # audited queries
+    def mark_deleted(self) -> None:
+        if self.deleted:
+            # log.debug("pointless")
+            return
+        self.deleted = True
+        self.active = False
+        # log.debug("about to save")
+        self.save()
+        # log.debug("saved")
+
+    def mark_audited(self) -> None:
+        if self.audited:
+            return
+        self.audited = True
+        self.save()
+
+    def audit(self, count_only: bool = False, n_records: int = 0,
+              failed: bool = False, fail_msg: str = "") -> None:
+        a = QueryAudit(query=self,
+                       count_only=count_only,
+                       n_records=n_records,
+                       failed=failed,
+                       fail_msg=fail_msg)
+        a.save()
+        self.mark_audited()
+
+    def delete_if_permitted(self) -> None:
+        """If a query has been audited, it isn't properly deleted."""
+        if self.deleted:
+            log.debug("already flagged as deleted")
+            return
+        if self.audited:
+            log.debug("marking as deleted")
+            self.mark_deleted()
+        else:
+            # actually delete
+            log.debug("actually deleting")
+            self.delete()
+
 
 class SitewideQuery(QueryBase):
     """
@@ -570,7 +545,7 @@ class SitewideQuery(QueryBase):
     description = models.TextField(verbose_name='query description',
                                    default="")
 
-    def get_sql_chunks(self) -> List[List[str]]:
+    def get_sql_chunks(self):
         """
         Finds a list of sql chunks and placeholders made from the original sql
         and sets sql_chunks to this value. E.g., if the sql is

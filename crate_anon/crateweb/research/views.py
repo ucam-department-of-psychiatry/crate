@@ -387,7 +387,7 @@ def get_all_queries(request: HttpRequest) -> QuerySet:
                         .order_by('-active', '-created')
 
 
-def get_all_sitewide_queries(request: HttpRequest) -> QuerySet:
+def get_all_sitewide_queries() -> QuerySet:
     return SitewideQuery.objects.filter(deleted=False)\
                                 .order_by('-created')
 
@@ -395,7 +395,7 @@ def get_all_sitewide_queries(request: HttpRequest) -> QuerySet:
 def get_identical_queries(request: HttpRequest, sql: str,
                           sitewide: bool = False) -> List[Query]:
     if sitewide:
-        all_queries = get_all_sitewide_queries(request)
+        all_queries = get_all_sitewide_queries()
     else:
         all_queries = get_all_queries(request)
 
@@ -576,7 +576,7 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
             # noinspection PyUnresolvedReferences
             identical_queries[0].description = description
             identical_queries[0].save()
-    all_queries = get_all_sitewide_queries(request)
+    all_queries = get_all_sitewide_queries()
     queries = paginate(request, all_queries)
     profile = request.user.profile
     element_counter = HtmlElementCounter()
@@ -603,7 +603,7 @@ def query_add_sitewide(request: HttpRequest) -> HttpResponse:
 
 
 def show_sitewide_queries(request: HttpRequest) -> HttpResponse:
-    queries = get_all_sitewide_queries(request)
+    queries = get_all_sitewide_queries()
     for query in queries:
         query.get_sql_chunks()
     context = {
@@ -630,7 +630,7 @@ def query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
 def sitewide_query_delete(request: HttpRequest, query_id: str) -> HttpResponse:
     validate_blank_form(request)
     query = get_object_or_404(SitewideQuery, id=query_id)
-    query.delete_if_permitted()
+    query.delete()
     return redirect('sitewide_queries')
 
 
