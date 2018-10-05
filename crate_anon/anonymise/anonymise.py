@@ -351,18 +351,15 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
     tablename = db_parts[1]
     # Field name
     fieldname = db_parts[2]
-    pid_from_other_table = None
     try:
         session = config.sources[db].session
-    except:
+    except (KeyError, AttributeError):
         print("Unable to connect to database {}. Remember argument to "
               "'--restrict' must be of the form 'database.table.field', "
               "or be 'pid'.".format(db))
+        return pids
     fieldcol = column(fieldname)
     for ddr in config.dd.rows:
-        # Check if this is the pid column for the specified table
-        if ddr.src_table == tablename and "P" in ddr.src_flags:
-            pid_from_other_table = ddr.src_field
         if ddr.src_db != db or not ddr.defines_primary_pids:
             continue
         # Check if the field given is in the table with the pids
@@ -405,7 +402,6 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
 
     # # Deal with case where the field specified isn't in the table
     # # with the primary pid
-    session = config.sources[db].session
     source_field = row.src_field
     source_table = row.src_table
     # Convert list to string in correct form for query
@@ -503,10 +499,11 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
     fieldname = db_parts[2]
     try:
         session = config.sources[db].session
-    except:
+    except (KeyError, AttributeError):
         print("Unable to connect to database {}. Remember argument to "
               "'--restrict' must be of the form 'database.table.field', "
               "or be 'pid'.".format(db))
+        return pids
     fieldcol = column(fieldname)
     for ddr in config.dd.rows:
         if ddr.src_db != db or not ddr.defines_primary_pids:
@@ -533,10 +530,9 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
 
     # Deal with case where the field specified isn't in the table
     # with the primary pid
-    session = config.sources[db].session
     source_field = row.src_field
     source_table = row.src_table
-    txt = "SELECT {}.{} FROM {} ".format(source_table,source_field,
+    txt = "SELECT {}.{} FROM {} ".format(source_table, source_field,
                                          source_table)
     txt += "JOIN {} ON {}.{}={}.{} ".format(tablename, source_table,
                                             source_field, tablename, fieldname)
