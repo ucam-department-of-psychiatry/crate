@@ -618,8 +618,9 @@ Change log/history
   per https://medical-dictionary.thefreedictionary.com/cmm).
 
 - ``cardinal_pythonlib==1.0.25`` with updates to :func:`document_to_text`
-  parameter handling
+  parameter handling, then to ``1.0.27``.
 
+- NLPRP draft to 0.1.0.
 
 .. rubric:: Footnotes
 

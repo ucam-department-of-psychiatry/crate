@@ -299,7 +299,7 @@ def gen_optout_rids() -> Generator[str, None, None]:
 # Functions for getting pids from restricted set
 # =============================================================================
 
-def get_valid_pid_subset(given_pids: List[any]) -> List[str]:
+def get_valid_pid_subset(given_pids: List[Any]) -> List[str]:
     """
     Takes a list of pids and returns those in the list which
     are also in the database.
@@ -337,7 +337,7 @@ def get_valid_pid_subset(given_pids: List[any]) -> List[str]:
     return pids
 
 
-def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
+def get_subset_from_field(field: str, field_elements: List[Any]) -> List[Any]:
     """
     Takes a field name and elements from that field and queries the database
     to find the pids associated with these values.
@@ -359,6 +359,7 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
               "or be 'pid'.".format(db))
         return pids
     fieldcol = column(fieldname)
+    row = None  # for type checker
     for ddr in config.dd.rows:
         if ddr.src_db != db or not ddr.defines_primary_pids:
             continue
@@ -378,9 +379,11 @@ def get_subset_from_field(field: str, field_elements: List[any]) -> List[any]:
             pids.extend([x[0] for x in result])
             # As there is only one relavant database here, we return pids  
             return pids
-        else:
-            # Mark out row of dd with primary pid for relavant database
-            row = ddr
+        # Mark out row of dd with primary pid for relavant database
+        row = ddr
+    if row is None:
+        # Didn't find one
+        return []
 
     # ###### Doesn't work! Trying in plain SQL #########
     # # Deal with case where the field specified isn't in the table
@@ -458,7 +461,7 @@ def get_pids_from_file(field: str, filename: str) -> List[str]:
     return pids
 
 
-def get_pids_from_list(field: str, list_elements: List[any]) -> List[str]:
+def get_pids_from_list(field: str, list_elements: List[Any]) -> List[str]:
     field_is_pid = fieldname_is_pid(field)
     if field_is_pid:
         pids = get_valid_pid_subset(list_elements)
@@ -468,7 +471,7 @@ def get_pids_from_list(field: str, list_elements: List[any]) -> List[str]:
     return pids
 
 
-def get_pids_from_limits(low: int, high: int) -> List[any]:
+def get_pids_from_limits(low: int, high: int) -> List[Any]:
     pids = []
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
@@ -487,7 +490,7 @@ def get_pids_from_limits(low: int, high: int) -> List[any]:
     return pids
 
 
-def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
+def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
     pids = []
     # Get database, table and field from 'field'
     db_parts = field.split(".")
@@ -505,6 +508,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
               "or be 'pid'.".format(db))
         return pids
     fieldcol = column(fieldname)
+    row = None
     for ddr in config.dd.rows:
         if ddr.src_db != db or not ddr.defines_primary_pids:
             continue
@@ -524,9 +528,11 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
             pids.extend([x[0] for x in result])
             # As there is only one relavant database here, we return pids  
             return pids
-        else:
-            # Mark out row of dd with primary pid for relavant database
-            row = ddr
+        # Mark out row of dd with primary pid for relavant database
+        row = ddr
+    if row is None:
+        # Didn't find one
+        return []
 
     # Deal with case where the field specified isn't in the table
     # with the primary pid
@@ -547,7 +553,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[any]:
     return pids
 
 
-def get_pids_from_field_limits(field: str, low: int, high: int) -> List[any]:
+def get_pids_from_field_limits(field: str, low: int, high: int) -> List[Any]:
     field_is_pid = fieldname_is_pid(field)
     if field_is_pid:
         pids = get_pids_from_limits(low, high)
@@ -565,7 +571,7 @@ def get_pids_from_field_limits(field: str, low: int, high: int) -> List[any]:
 def gen_patient_ids(
         tasknum: int = 0,
         ntasks: int = 1,
-        specified_pids: List[any] = None) -> Generator[int, None, None]:
+        specified_pids: List[Any] = None) -> Generator[int, None, None]:
     """
     Generate patient IDs.
 
