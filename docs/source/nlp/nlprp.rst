@@ -1128,14 +1128,7 @@ NLPRP things to do and potential future requirements
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. todo::
-    NLPRP: Any package/module/function naming convention not worked out fully;
-    ?required or not.
-
-.. todo::
-    NLPRP: What’s the standard for GATE app version control / libraries?
-
-.. todo::
-    NLPRP: should all NVP processors offer up a database schema (or something
+    NLPRP: should all NLP processors offer up a database schema (or something
     similar)?
 
 .. todo::
@@ -1185,6 +1178,9 @@ NLPRP history
   the queued processing mode, so it can add many requests to the same job and
   retrieve this data as part of ``show_queue``. Similar argument to
   delete_from_queue_.
+- Consideration of processor version control and how this is managed in
+  practice (e.g. Python modules; GATE apps) isn't part of the API; removed
+  from "to-do" list.
 
 - CURRENT WORKING VERSION.
 

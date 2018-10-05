@@ -125,29 +125,22 @@ INSTALL_REQUIRES = [
     'arrow==0.12.1',  # better datetime
     'beautifulsoup4==4.6.0',
     'cardinal_pythonlib==1.0.27',
-    'celery==4.0.1',
-    # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
-    'chardet==3.0.4',
-    # character encoding detection for cardinal_pythonlib  # noqa
+    'celery==4.0.1',  # 4.0.1 is the highest that'll accept kombu 4.0.1 and thus amqp 2.1.3  # noqa
+    'chardet==3.0.4',  # character encoding detection for cardinal_pythonlib  # noqa
     'cherrypy==16.0.2',  # Cross-platform web server
     'colorlog==3.1.4',  # colour in logs
     'distro==1.3.0',  # replaces platform.linux_distribution
-    'django==2.0.6',
-    # "django" versus "Django": neither helps pycharm checking  # noqa
-    'django-debug-toolbar==1.9.1',
+    'django==2.1.2',
+    'django-debug-toolbar==1.10.1',
     # 'django-debug-toolbar-template-profiler==1.0.1',  # removed 2017-01-30: division by zero when rendering time is zero  # noqa
     'django-extensions==2.0.7',
-    'django-picklefield==1.0.0',
-    # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
+    'django-picklefield==1.0.0',  # NO LONGER USED - dangerous to use pickle - but kept for migrations  # noqa
     # 'django-silk==0.5.7',
     'django-sslserver==0.20',
     'flashtext==2.7',
-    'flower==0.9.2',
-    # debug Celery; web server; only runs explicitly
-    'gunicorn==19.8.1',
-    # UNIX only, though will install under Windows
-    'kombu==4.1.0',
-    # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
+    'flower==0.9.2',  # debug Celery; web server; only runs explicitly
+    'gunicorn==19.8.1',  # UNIX only, though will install under Windows
+    'kombu==4.1.0',  # requires VC++ under Windows # 'mmh3==2.2',  # MurmurHash, for fast non-cryptographic hashing  # noqa
     'openpyxl==2.5.4',  # for ONSPD
     'pendulum==2.0.2',  # dates/times
     'pdfkit==0.6.1',
@@ -166,8 +159,7 @@ INSTALL_REQUIRES = [
     'sortedcontainers==2.0.4',
     'SQLAlchemy==1.2.8',  # database access
     'sqlparse==0.2.4',
-    'typing==3.6.4',
-    # part of stdlib in Python 3.5, but not 3.4
+    'typing==3.6.4',  # part of stdlib in Python 3.5, but not 3.4
     'unidecode==1.0.22',  # for removing accents
     'Werkzeug==0.14.1',
     'xlrd==1.1.0',  # for ONSPD

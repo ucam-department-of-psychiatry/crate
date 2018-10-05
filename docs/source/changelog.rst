@@ -622,6 +622,11 @@ Change log/history
 
 - NLPRP draft to 0.1.0.
 
+- ``django==2.0.6`` to ``django==2.1.2`` given security vulnerabilities
+  reported in Django versions [2.0, 2.0.8).
+
+- ``django-debug-toolbar==1.9.1`` to ``django-debug-toolbar==1.10.1``
+
 .. rubric:: Footnotes
 
 .. [#f1]
