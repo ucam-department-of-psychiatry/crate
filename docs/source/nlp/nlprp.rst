@@ -17,16 +17,28 @@
     You should have received a copy of the GNU General Public License
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
+.. _authentication: https://en.wikipedia.org/wiki/Authentication
+.. _authorization: https://en.wikipedia.org/wiki/Authorization
+.. _GATE: https://gate.ac.uk/
+.. _Grails: https://grails.org/
+.. _HTTP: https://tools.ietf.org/html/rfc2616.html
+.. _HTTP Accept-Encoding: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Accept-Encoding
+.. _HTTP basic access authentication: https://en.wikipedia.org/wiki/Basic_access_authentication
+.. _HTTP Content-Encoding: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Encoding
+.. _HTTP digest access authentication: https://en.wikipedia.org/wiki/Digest_access_authentication
+.. _ISO-8601: https://en.wikipedia.org/wiki/ISO_8601
 .. _JSON: https://www.json.org/
+.. _OAuth: https://en.wikipedia.org/wiki/OAuth
 .. _RESTful: https://en.wikipedia.org/wiki/Representational_state_transfer
 .. _Semantic Versioning: http://www.semver.org/
-.. _ISO-8601: https://en.wikipedia.org/wiki/ISO_8601
+.. _URL query string: https://en.wikipedia.org/wiki/Query_string
+.. _UTC: https://en.wikipedia.org/wiki/Coordinated_Universal_Time
 
 
 Natural Language Processing Request Protocol (NLPRP): DRAFT
 -----------------------------------------------------------
 
-**Version 0.0.2**
+**Version 0.1.0**
 
 .. contents::
    :local:
@@ -34,9 +46,13 @@ Natural Language Processing Request Protocol (NLPRP): DRAFT
 Authors
 ~~~~~~~
 
-- Rudolf Cardinal, University of Cambridge
-- [and all others welcome!]
+In alphabetical order:
 
+- Rudolf N. Cardinal (RNC), University of Cambridge
+- Joe Kearney (JK), University of Cambridge
+- Angus Roberts (AR), King's College London
+- Ian Roberts (IR), University of Sheffield
+- Francesca Spivack (FS), University of Cambridge
 
 Rationale
 ~~~~~~~~~
@@ -61,7 +77,8 @@ the notion of queued requests.
 Communications stack
 ~~~~~~~~~~~~~~~~~~~~
 
-The underlying application layer is HTTPS (encrypted HTTP), over TCP/IP.
+The underlying application layer is HTTP_ (and HTTPS, encrypted HTTP, is
+strongly encouraged), over TCP/IP.
 
 Request
 ~~~~~~~
@@ -90,6 +107,17 @@ encoding can be specified, and will be assumed to be UTF-8 if not specified.
   under many programming languages. Other formats such as XML require
   considerably more complex parsing and are slower [#soap]_.
 
+- Consideration: denial-of-service attacks in which large quantities of
+  nonsense are sent. We considered using XML instead of JSON as XML is
+  intrinsically ordered; we could enforce a constraint of having call arguments
+  such as parameter lists preceding textual content, and abandoning processing
+  if the request is malformed. Instead, we elected to keep JSON but move
+  authentication to the HTTP level (so non-authenticated requests can be thrown
+  away earlier) and allow the server to impose its own choice of maximum
+  request size. With that done, all requests coming through will be from
+  authenticated users and of a reasonable request size. At that point, JSON
+  continues to look simpler.
+
 Note the JSON terminology:
 
 - *Value:* one of:
@@ -115,7 +143,56 @@ format. Semantic versions are strings using a particular format
 
 Where date/time values are passed, they are in `ISO-8601`_ format
 and must include all three of: date, time, timezone. (The choice of timezone is
-immaterial; servers may choose to use UTC throughout.)
+immaterial; servers may choose to use UTC_ throughout.)
+
+Authentication at HTTP/HTTPS level
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Servers are free to require an authentication_ method using a standard HTTP
+  mechanism, such as `HTTP basic access authentication`_, `HTTP digest access
+  authentication`_, a `URL query string`_, or `OAuth`_. The mechanism for
+  doing so is not part of the API.
+
+- It is expected that the HTTP front end would make the identity of an
+  authenticated user available to the NLPRP server, e.g. so the server can
+  check that a user is `authorized <authorization>`_ for a specific NLP
+  processor or to impose volume/rate limits, but the mechanism for doing so is
+  not part of the API specification.
+
+
+Compression at HTTP/HTTPS level
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Clients may compress requests by setting the HTTP header ``Content-Encoding:
+  gzip`` (see `HTTP Content-Encoding`_) and compressing the POST body
+  accordingly. Servers should accept requests compressed with ``gzip``.
+
+- If the client sets the ``Accept-Encoding`` header (see `HTTP
+  Accept-Encoding`_), the server may return a suitably compressed response
+  (indicated via the ``Content-Encoding`` header in its reply).
+
+
+Rejection of unauthorized or malformed responses
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Servers may reject invalid responses with an HTTP error. Typical reasons
+  might include failed authentication_ or authorization_; overly large
+  requests; requests that exceed a user's quota; syntactically invalid NLPRP
+  requests; syntactically valid requests that are invalid for this server (such
+  as requests that include invalid processors).
+
+- Clients must accept HTTP errors either with a NLPRP response or without.
+
+  - If the body of the server's reply includes valid JSON where
+    ``json_object["protocol"]["name"] == "nlprp"``, it is an NLPRP reply.
+
+- If an error is returned via the NLP protocol, the ``status`` field in the
+  response_ must match the HTTP status code.
+
+- The rationale for this is to reduce the effect of denial-of-service attacks
+  by preprocessing HTTP requests without the need to parse the NLPRP request
+  content, and to allow NLPRP server software to operate within a broader
+  institutional authentication, authorization, and/or accounting framework.
 
 Request JSON structure
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -142,21 +219,6 @@ The top-level structure of a request is a JSON object with the following keys.
         - ``version`` (string): The Version of the NLPRP protocol that the
           client is using.
 
-    * - ``authentication``
-      - Object
-      - Optional
-      - Authentication details, for hosts not supporting anonymous requests.
-        Keys for username/password authentication:
-
-        - ``username`` (string): Username.
-        - ``password`` (string): Password.
-
-    * - ``echo_request``
-      - Value
-      - Optional
-      - If present, the value of this field will be part of the reply as the
-        echo value.
-
     * - ``command``
       - String
       - Mandatory
@@ -169,6 +231,8 @@ The top-level structure of a request is a JSON object with the following keys.
 
 JSON does not care about whitespace in formatting, and neither the client nor
 the server are under any obligation as to how they format their JSON.
+
+.. _response:
 
 Response
 ~~~~~~~~
@@ -230,12 +294,6 @@ The top-level structure of a response is a JSON object with the following keys.
         - ``name`` (string): Name of the NLPRP server software in use.
         - ``version`` (string): The Version of the NLPRP server software.
 
-    * - ``echo``
-      - Value
-      - Optional
-      - If the ``echorequest`` key was present in the request, its associated
-        value is returned as the value for ``echo``.
-
 
 NLPRP commands
 ~~~~~~~~~~~~~~
@@ -272,6 +330,9 @@ The relevant part of the response is:
         - ``name`` (string): the server’s name for the processor.
         - ``title`` (string): generally, the processor’s name for itself.
         - ``version`` (string): the Version of the processor.
+        - ``is_default_version`` (Boolean): indicates that this processor is
+          the default version for the given name. May be ``true`` for zero or
+          one versions for a given processor name.
         - ``description`` (string): a description of the processor.
 
 *Request example*
@@ -291,15 +352,7 @@ A full request as sent over TCP/IP might be as follows, being sent to
     {
         "protocol": {
             "name": "nlprp",
-            "version": "0.0.1"
-        },
-        "authentication": {
-            "username": "myuser",
-            "password": "mypassword"
-        },
-        "echorequest": {
-            "my_request_reference": 12347,
-            "some_other_data_as_list": [3, 6]
+            "version": "0.1.0"
         },
         "command":  "list_processors"
     }
@@ -324,27 +377,25 @@ this:
         "status": 200,
         "protocol": {
             "name": "nlprp",
-            "version": "0.0.1"
+            "version": "0.1.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.0.1"
-        },
-        "echo": {
-            "my_request_reference": 12347,
-            "some_other_data_as_list": [3, 6]
+            "version": "0.1.0"
         },
         "processors": [
             {
                 "name": "gate_medication",
                 "title": "SLAM BRC GATE-based medication finder",
                 "version": "1.2.0",
+                "is_default_version": true,
                 "description": "Finds drug names"
             },
             {
                 "name": "python_c_reactive_protein",
                 "title": "Cardinal RN (2017) CRATE CRP finder",
                 "version": "0.1.3",
+                "is_default_version": true,
                 "description": "Finds C-reactive protein (CRP) values"
             }
         ]
@@ -379,7 +430,10 @@ the following structure:
 
         - ``name`` (string): the name of an NLP processor to apply to the text
           (matching one of the names given by the server via the
-          list_processors command).
+          list_processors_ command).
+        - ``version`` (optional string): the version of the named NLP processor
+          to use. If a version is not specified explicitly, and there is a
+          default version (see list_processors_), the server will use that.
         - ``args``: optional key whose value is a JSON value considered to be
           arguments to the processor (for future expansion).
 
@@ -398,6 +452,15 @@ the following structure:
         (Note, however, that the server can refuse to serve either immediate or
         delayed results depending on its preference.)
 
+    * - ``client_job_id``
+      - String, of maximum length 150 characters
+      - Optional (if absent, an empty string will be used)
+      - This is for queued processing. It is a string that the server will
+        store alongside the queue request, to aid the client in identifying
+        requests belonging to the same job (if it splits work across many
+        requests). It is returned by the show_queue_ and fetch_from_queue_
+        commands.
+
     * - ``include_text``
       - Boolean value (``true`` or ``false``)
       - Optional (default ``false``)
@@ -412,6 +475,8 @@ the following structure:
         - ``text`` (string, mandatory): The actual text to parse.
         - ``metadata`` (value, optional): The metadata will be returned
           verbatim with the results.
+
+.. _immediate_response:
 
 **Immediate processing**
 
@@ -429,11 +494,17 @@ format (on top of the basic response structure):
       - Required?
       - Description
 
+    * - ``client_job_id``
+      - String
+      - Mandatory
+      - The same ``client_job_id`` as the client provided (or a blank string
+        if none was provided).
+
     * - ``results``
       - Array
       - Mandatory
-      - An array of objects in the same order as content, with each object
-        having the following format:
+      - An array of objects of the same length as ``content``, but in arbitrary
+        order, with each object having the following format:
 
         - ``metadata`` (optional): a copy of the text-specific ``metadata``
           provided in the request
@@ -448,8 +519,28 @@ format (on top of the basic response structure):
             list_processors_)
           - ``version`` (string): Version of the processor (as per
             list_processors_)
+          - ``success`` (Boolean): ``true`` for success, ``false`` for failure.
+            This allows for the possibility of text-specific failure, e.g. a
+            document that crashes the NLP parser or otherwise fails
+            dynamically.
+          - ``errors`` (Array, optional): if ``success`` is ``false``,
+            this should be present and describe the reason(s) for failure. It
+            is an array of error objects, where each error is an object with at
+            least the following keys:
+
+            - ``code`` (integer or null): error code
+            - ``message`` (string): brief textual description of the error
+            - ``description`` (string): more detail
+
           - ``results``: array of objects (typically one per NLP result) each
-            with a format defined by the processor itself.
+            with a format defined by the processor itself. For a failed
+            request, this should be an empty array. (Note that it may also be
+            an empty array following success, meaning that the processor found
+            nothing of interest to it).
+
+        Note that it is strongly advisable for clients to specify ``metadata``
+        as this will be necessary for them to recover order information
+        whenever ``content`` has more than one item.
 
 Remember that a single piece of source text can generate zero, one, or many NLP
 matches from each processor; and that a single NLP “match” can involve highly
@@ -471,27 +562,22 @@ them. (Neither processor takes any arguments.)
     {
         "protocol": {
             "name": "nlprp",
-            "version": "0.0.1"
-        },
-        "authentication": {
-            "username": "myuser",
-            "password": "mypassword"
-        },
-        "echorequest": {
-            "my_request_reference": 7171,
-            "some_other_data": "hello",
+            "version": "0.1.0"
         },
         "command":  "process",
         "args": {
             "processors": [
                 {
                     "name": "gate_medication",
+                    "version": "1.2.0",
                 },
                 {
                     "name": "python_c_reactive_protein",
+                    # no version specified; default will be used
                 },
             ],
             "queue": false,
+            "client_job_id": "My NLP job 57 for depression/CRP",
             "include_text": false,
             "content": [
                 {
@@ -528,16 +614,13 @@ generates a hit for ‘CRP’ and two drugs.
         "status": 200,
         "protocol": {
             "name": "nlprp",
-            "version": "0.0.1"
+            "version": "0.1.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.0.1"
+            "version": "0.1.0"
         },
-        "echo": {
-            "my_request_reference": 7171,
-            "some_other_data": "hello",
-        },
+        "client_job_id": "My NLP job 57 for depression/CRP",
         "results": [
             {
                 "metadata": {"myfield": "progress_notes", "pk": 12345},
@@ -546,12 +629,14 @@ generates a hit for ‘CRP’ and two drugs.
                         "name": "gate_medication",
                         "title": "SLAM BRC GATE-based medication finder",
                         "version": "1.2.0",
+                        "success": true,
                         "results": []
                     },
                     {
                         "name": "python_c_reactive_protein",
                         "title": "Cardinal RN (2017) CRATE CRP finder",
                         "version": "0.1.3",
+                        "success": true,
                         "results": []
                     },
                 ]
@@ -563,6 +648,7 @@ generates a hit for ‘CRP’ and two drugs.
                         "name": "gate_medication",
                         "title": "SLAM BRC GATE-based medication finder",
                         "version": "1.2.0",
+                        "success": true,
                         "results": [
                             {
                                 "drug": "aripiprazole",
@@ -581,6 +667,7 @@ generates a hit for ‘CRP’ and two drugs.
                         "name": "python_c_reactive_protein",
                         "title": "Cardinal RN (2017) CRATE CRP finder",
                         "version": "0.1.3",
+                        "success": true,
                         "results": []
                     },
                 ]
@@ -684,15 +771,11 @@ key of ``queue_id``, whose value is a string. Like this:
         "status": 202,
         "protocol": {
             "name": "nlprp",
-            "version": "0.0.1"
+            "version": "0.1.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.0.1"
-        },
-        "echo": {
-            "my_request_reference": 7171,
-            "some_other_data": "hello",
+            "version": "0.1.0"
         },
         "queue_id": "7586876b-49cb-447b-9db3-b640e02f4f9b"
     }
@@ -704,7 +787,27 @@ show_queue
 ^^^^^^^^^^
 
 The ``show_queue`` command allows the client to view its queue status. It has
-no arguments.
+one optional argument:
+
+
+.. rst-class:: nlprprequest
+
+  .. list-table::
+    :widths: 15 15 15 55
+    :header-rows: 1
+
+    * - Key
+      - JSON type
+      - Required?
+      - Description
+
+    * - ``client_job_id``
+      - String
+      - Optional
+      - An optional client job ID (see process_). If absent, all queue entries
+        for this client are shown. If present, only queue entries for the
+        specified ``client_job_id`` are shown.
+
 
 The reply contains this extra information:
 
@@ -726,6 +829,7 @@ The reply contains this extra information:
         following keys/values:
 
         - ``queue_id``: queue ID, as returned from the process_ command
+        - ``client_job_id``: the client's job ID (see process_).
         - ``status``: a string; one of: ``ready``, ``busy``.
         - ``datetime_submitted``: date/time submitted, in ISO-8601 format.
         - ``datetime_completed``: date/time completed, in ISO-8601 format, or
@@ -745,11 +849,7 @@ Specimen request:
     {
         "protocol": {
             "name": "nlprp",
-            "version": "0.0.1"
-        },
-        "authentication": {
-            "username": "myuser",
-            "password": "mypassword"
+            "version": "0.1.0"
         },
         "command":  "show_queue"
     }
@@ -770,24 +870,26 @@ and corresponding response:
         "status": 200,
         "protocol": {
             "name": "nlprp",
-            "version": "0.0.1"
+            "version": "0.1.0"
         },
         "server_info": {
             "name": "My NLPRP server software",
-            "version": "0.0.1"
+            "version": "0.1.0"
         },
         "queue": [
             {
                 "queue_id": "7586876b-49cb-447b-9db3-b640e02f4f9b",
+                "client_job_id": "My NLP job 57 for depression/CRP",
                 "status": "ready",
                 "datetime_submitted": "2017-11-13T09:49:38.578474Z",
-                "datetime_completed": "2017-11-13T09:50:00.817611Z",
+                "datetime_completed": "2017-11-13T09:50:00.817611Z"
             }
             {
                 "queue_id": "6502b94a-2332-4f51-b2a3-337dc5d36ca0",
+                "client_job_id": "My NLP job 57 for depression/CRP",
                 "status": "busy",
                 "datetime_submitted": "2017-11-13T09:49:39.717170Z",
-                "datetime_completed": null,
+                "datetime_completed": null
             }
         ]
     }
@@ -810,13 +912,8 @@ the queue ID.
   for an “immediate” process request. The queue entry will be deleted upon
   collection.
 
-In this context, note in particular that the ``echo`` parameter is used for the
-*same request* (so if you run a queued process command echoing ``"echo1"``,
-then a ``fetch_from_queue`` command echoing ``"echo2"``, you will get
-``"echo2"`` back with the ``fetch_from_queue`` command), but the per-text
-*metadata* is preserved from initial queueing to final retrieval (so that’s the
-place to put information you require to file your results!).
 
+.. _delete_from_queue:
 
 delete_from_queue
 ^^^^^^^^^^^^^^^^^
@@ -840,6 +937,12 @@ keys:
       - Optional
       - An array of strings, each representing a queue ID to be deleted.
 
+    * - ``client_job_ids``
+      - Array
+      - Optional
+      - An array of strings, each representing a client job ID for which all
+        queue IDs should be deleted.
+
     * - ``delete_all``
       - Boolean value (``true`` or ``false``)
       - Optional (default ``false``)
@@ -860,6 +963,7 @@ Very briefly, run ``pip install requests``, and then you can do:
     import json
     import logging
     import requests
+    from requests.auth import HTTPBasicAuth
     from typing import Dict, Any
 
     log = logging.getLogger(__name__)
@@ -867,37 +971,44 @@ Very briefly, run ``pip install requests``, and then you can do:
     def get_response(url: str, command: str, username: str = "", password: str = "",
                      command_args: Any = None) -> Dict[str, Any]:
         """
-        Illustrate sending to/receiving from an NLPRP server.
+        Illustrate sending to/receiving from an NLPRP server, using HTTP basic
+        authentication.
         """
+        # -------------------------------------------------------------------------
+        # How we fail
+        # -------------------------------------------------------------------------
+        def fail(msg: str) -> None:
+            log.warning(msg)
+            raise ValueError(msg)
         # -------------------------------------------------------------------------
         # Build request and send it
         # -------------------------------------------------------------------------
         request_dict = {
             "protocol": {
                 "name": "nlprp",
-                "version": "0.0.1"
-            },
-            "authentication": {
-                "username": username,
-                "password": password
+                "version": "0.1.0"
             },
             "command": command,
             "args": json.dumps(command_args),
         }
         request_json = json.dumps(request_dict)
-        log.debug("Sending to {!r}:\n{}".format(url, request_json))
-        r = requests.post(url, json=request_json)
+        log.debug("Sending to {!r}: {}".format(url, request_json))
+        r = requests.post(url, json=request_json,
+                          auth=HTTPBasicAuth(username, password))
         # -------------------------------------------------------------------------
         # Process response
         # -------------------------------------------------------------------------
-        log.debug("Reply had status code {} and was:\n{}".format(
+        log.debug("Reply had status code {} and was: {!r}".format(
             r.status_code, r.text))
         try:
             response_dict = r.json()
-        except json.decoder.JSONDecodeError:
-            log.warning("Reply was not JSON")
-            raise
+        except ValueError:  # includes simplejson.errors.JSONDecodeError, json.decoder.JSONDecodeError  # noqa
+            fail("Reply was not JSON")
         log.debug("Response JSON decoded to: {!r}".format(response_dict))
+        try:
+            assert response_dict["protocol"]["name"].lower() == "nlprp"
+        except (AssertionError, AttributeError, KeyError):
+            fail("Reply was not in the NLPRP protocol")
         return response_dict
 
 
@@ -932,10 +1043,9 @@ fetch_from_queue_  Entry still in queue and being processed  102 Processing [#ht
 Python internal NLP interface
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The NLPRP server should manage per-request metadata (``echorequest``/``echo``)
-and per-text metadata (from the process_ command) internally. We define a very
-generic Python interface for the NLPRP server to request NLP results from a
-specific Python NLP processor:
+The NLPRP server should manage per-text metadata (from the process_ command)
+internally. We define a very generic Python interface for the NLPRP server to
+request NLP results from a specific Python NLP processor:
 
 .. rst-class:: nlprpresponse
 
@@ -971,13 +1081,6 @@ should allow easy installation of Python NLP managers (by Python package name
 and version). The NLPRP server should be able to import a ``nlp_process`` or
 equivalent function from the top-level package.
 
-.. todo::
-    NLPRP: Any package/module/function naming convention not worked out fully;
-    ?required or not.
-
-.. todo::
-    NLPRP: What’s the standard for GATE app version control / libraries?
-
 Existing code of relevance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -986,6 +1089,16 @@ including GATE and other Java-based tools, and piping text to them; similarly
 for its internal Python code. From the Cambridge perspective we are likely to
 extend and use CRATE to send data to the NLP API/service and manage results,
 but it is also potentially extensible to serve as the NLP API server.
+
+Aspects of server function that are not part of the NLPRP specification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following are implementation details that are at the server's discretion:
+
+- authentication_
+- authorization_
+- accounting (logging, billing, size/frequency restrictions)
+- containerization, parallel processing, message queue details 
 
 Abbreviations used in this section
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1011,17 +1124,29 @@ UTF-8   Unicode Transformation Format, 8-bit
 XML     Extensible Markup Language
 ======= =======================================================================
 
-NLPRP things to do
-~~~~~~~~~~~~~~~~~~
+NLPRP things to do and potential future requirements
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. todo:: NLPRP: remove echo; pointless (it’s metadata that we want)
-.. todo:: NLPRP: (not part of API) potentially containerization (Docker etc.) on the server side
-.. todo:: NLPRP: (not part of API) CPU time logs/billing/security on the server side
-.. todo:: NLPRP: add ‘limits’ part to server info (e.g. max_texts_per_request, max_processors_per_request, max_texts_times_processors_per_request) and a failing code for “too much work requested”
-.. todo:: NLPRP: … rename list_processors to server_info, and add limits there?
-.. todo:: NLPRP: build in cardinal_pythonlib.nvprp
-.. todo:: NLPRP: should all NVP processors offer up a database schema (or something similar)?
+.. todo::
+    NLPRP: Any package/module/function naming convention not worked out fully;
+    ?required or not.
 
+.. todo::
+    NLPRP: What’s the standard for GATE app version control / libraries?
+
+.. todo::
+    NLPRP: should all NVP processors offer up a database schema (or something
+    similar)?
+
+.. todo::
+    NLPRP: consider supra-document processing requirements
+
+Corpus (supra-document) processing:
+
+- There may be future use cases where the NLP processor must simultaneously
+  consider more than one document (a "corpus" of documents, in GATE_
+  terminology). This is not currently supported. However, batch processing is
+  currently supported.
 
 NLPRP history
 ~~~~~~~~~~~~~
@@ -1032,8 +1157,38 @@ NLPRP history
 
 **v0.0.2**
 
+- RNC
 - Minor changes 18 July 2018 following discussion with SLAM/KCL team.
+
+**v0.1.0**
+
+- Amendments 4 Oct 2018, RNC/IR/FS/JK/AR.
+- Authentication moved out of the API.
+- Authorization moved out of the API.
+- The server may "fail" requests at the HTTP level or at the subsequent NLPRP
+  processing stage (i.e. failures may or may not include an NLPRP response
+  object).
+- Compression at HTTP level discussed; servers should accept ``gzip``
+  compression from the client.
+- Order of ``results`` object changed to arbitrary (to facilitate parallel
+  processing).
+- ``echorequest``/``echo`` parameters removed; this was pointless as all HTTP
+  calls have an associated reply, so the client should never fail to know what
+  was echoed back.
+- ``is_default_version`` argument to the list_processors_ reply, and
+  ``version`` argument to process_.
+- Comment re future potential use case for corpus-level processing
+- Signalling mechanism for dynamic failure via the ``success`` and
+  ``errors`` parameters to the response (see `immediate response
+  <immediate_response>`_).
+- Ability for the client to pass a ``client_job_id`` to
+  the queued processing mode, so it can add many requests to the same job and
+  retrieve this data as part of ``show_queue``. Similar argument to
+  delete_from_queue_.
+
 - CURRENT WORKING VERSION.
+
+
 
 .. rubric:: Footnotes
 
