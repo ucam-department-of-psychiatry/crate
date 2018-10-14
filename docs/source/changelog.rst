@@ -21,6 +21,15 @@
 Change log/history
 ==================
 
+Contributors
+------------
+
+- Rudolf Cardinal, 2015–.
+- Francesca Spivack, 2018–.
+
+Changes
+-------
+
 **2015-02-18**
 
 - Started.
@@ -626,6 +635,9 @@ Change log/history
   reported in Django versions [2.0, 2.0.8).
 
 - ``django-debug-toolbar==1.9.1`` to ``django-debug-toolbar==1.10.1``
+
+
+
 
 .. rubric:: Footnotes
 
