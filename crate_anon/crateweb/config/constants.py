@@ -2,6 +2,8 @@
 # crate_anon/crateweb/config/constants.py
 
 """
+..
+
 ===============================================================================
 
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
@@ -22,6 +24,8 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+..
 """
 
 CRATEWEB_CONFIG_ENV_VAR = 'CRATE_WEB_LOCAL_SETTINGS'

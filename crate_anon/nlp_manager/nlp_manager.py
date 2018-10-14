@@ -2,6 +2,8 @@
 # crate_anon/nlp_manager/nlp_manager.py
 
 """
+..
+
 ===============================================================================
 
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).

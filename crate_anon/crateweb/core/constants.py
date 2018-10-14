@@ -2,6 +2,8 @@
 # crate_anon/crateweb/core/constants.py
 
 """
+..
+
 ===============================================================================
 
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
@@ -22,6 +24,8 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+..
 """
 
 DJANGO_DEFAULT_CONNECTION = 'default'  # key to django.db.connections

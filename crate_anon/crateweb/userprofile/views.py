@@ -2,6 +2,8 @@
 # crate_anon/crateweb/userprofile/views.py
 
 """
+..
+
 ===============================================================================
 
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
@@ -22,6 +24,8 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+..
 """
 
 from django.http import HttpResponse

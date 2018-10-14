@@ -2,6 +2,8 @@
 # crate_anon/crateweb/specimen_secret_local_settings/__init__.py
 
 """
+..
+
 ===============================================================================
 
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
@@ -22,5 +24,7 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+..
 """
 

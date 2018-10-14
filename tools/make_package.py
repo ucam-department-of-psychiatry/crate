@@ -2,6 +2,8 @@
 # crate/tools/make_package.py
 
 """
+..
+
 ===============================================================================
 
     Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
@@ -22,6 +24,8 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
+
+..
 """
 
 from html import escape
@@ -636,6 +640,8 @@ print("Creating " + INSTRUCTIONS)
 with open(workpath(INSTRUCTIONS), 'w') as outfile:
     # noinspection PyPep8
     print("""
+..
+
 ===============================================================================
 Your system's CRATE configuration
 ===============================================================================
