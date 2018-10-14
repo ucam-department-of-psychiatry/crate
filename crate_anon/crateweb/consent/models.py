@@ -170,6 +170,9 @@ class Study(models.Model):
         null=True, blank=True,
         verbose_name="When was the study registered?")
     summary = models.TextField(verbose_name="Summary of study")
+    p_summary = models.TextField(
+        default=None,
+        verbose_name="Summary of study with paragraph tags")
     search_methods_planned = models.TextField(
         blank=True,
         verbose_name="Search methods planned")
@@ -262,6 +265,25 @@ class Study(models.Model):
         return queryset.filter(Q(lead_researcher=user) |
                                Q(researchers__in=[user]))\
                        .distinct()
+
+    def add_p_tags(self) -> str:
+        # Check if summary exists and if not return the empty string
+        summary_or_empty = getattr(self, 'summary', "")
+        if not summary_or_empty:
+            return ""
+        else:
+            summary_list = summary_or_empty.splitlines()
+            summary_list = [x for x in summary_list if x]
+            p_summary = "</p><p>".join(summary_list)
+            p_summary = "<p>" + p_summary + "</p>"
+            return p_summary
+
+    def save(self, *args, **kwargs) -> None:
+        """
+        Custom save method. Sets p_summary based on summary.
+        """
+        self.p_summary = self.add_p_tags()
+        super().save(*args, **kwargs)
 
 
 # noinspection PyUnusedLocal

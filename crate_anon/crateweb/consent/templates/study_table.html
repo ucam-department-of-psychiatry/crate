@@ -39,7 +39,11 @@
         {% if to_clinician or include_summary %}
             <tr>
                 <td>Summary</td>
-                <td><b>{{ study.summary }}</b></td>
+                {% if study.p_summary %}
+                    <td><b>{{ study.p_summary|safe }}</b></td>
+                {% else %}
+                    <td><b>{{ study.summary }}</b></td>
+                {% endif %}
             </tr>
         {% endif %}
         {% if to_clinician or include_capacity %}
