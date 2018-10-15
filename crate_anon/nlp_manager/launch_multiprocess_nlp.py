@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/lanuch_multiprocess_nlp.py
 
 """
-..
+crate_anon/nlp_manager/launch_multiprocess_nlp.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 # Launch nlp_manager.py in multiprocess mode.

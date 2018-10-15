@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/lookup_rio.py
 
 """
-..
+crate_anon/crateweb/consent/lookup_rio.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from operator import attrgetter
@@ -984,7 +982,7 @@ def get_latest_consent_mode_from_rio_generic(
                 ci.NNN AS nhs_number_text,
                 ci.ClientID AS rio_number_text,
                 cr.AssessmentDate AS decision_date,
-                cr.ResearchContact AS traffic_light, 
+                cr.ResearchContact AS traffic_light,
                     -- 'RED', 'YELLOW', 'GREEN', NULL
                 cr.useemail AS use_email,
                 cr.optout AS opt_out,  -- 1, 0 (possibly), NULL
@@ -995,7 +993,7 @@ def get_latest_consent_mode_from_rio_generic(
                 UserAssessconsentrd AS cr
             INNER JOIN
                 ClientIndex AS ci
-                ON cr.ClientID = ci.ClientID 
+                ON cr.ClientID = ci.ClientID
             WHERE
                 ci.NNN = %s  -- string comparison
             ORDER BY
@@ -1170,7 +1168,7 @@ def gen_opt_out_pids_mpids_rio_generic(
                 UserAssessconsentrd AS cr
             INNER JOIN
                 ClientIndex AS ci
-                ON cr.ClientID = ci.ClientID 
+                ON cr.ClientID = ci.ClientID
             WHERE
                 cr.optout = 1
             ORDER BY
@@ -1185,7 +1183,7 @@ def gen_opt_out_pids_mpids_rio_generic(
                 ConsentToResearch AS cr
             INNER JOIN
                 PatientOverviewRiO AS po
-                ON cr.ClientID = po.ClientID 
+                ON cr.ClientID = po.ClientID
             WHERE
                 cr.OptOut = 1
             ORDER BY

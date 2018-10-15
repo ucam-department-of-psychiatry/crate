@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/parse_biochemistry.py
 
 """
-..
+crate_anon/nlp_manager/parse_biochemistry.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import logging

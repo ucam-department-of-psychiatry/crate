@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/launch_multiprocess_anonymiser.py
 
 """
-..
+crate_anon/anonymise/launch_multiprocess_anonymiser.py
 
 ===============================================================================
 

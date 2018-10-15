@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/userprofile/forms.py
 
 """
-..
+crate_anon/crateweb/userprofile/forms.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from django.forms import ModelForm

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/core/management/commands/runcpserver.py
 
 """
-..
+crate_anon/crateweb/core/management/commands/runcpserver.py
 
 ===============================================================================
 
@@ -28,7 +27,7 @@
 Django management command framework for CherryPy.
 
 - Based on https://lincolnloop.com/blog/2008/mar/25/serving-django-cherrypy/
-- Idea and code snippets borrowed from 
+- Idea and code snippets borrowed from
   http://www.xhtml.net/scripts/Django-CherryPy-server-DjangoCerise
 - Adapted to run as a management command.
 - Some bugs fixed by RNC.

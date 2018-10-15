@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/altermethod.py
 
 """
-..
+crate_anon/anonymise/altermethod.py
 
 ===============================================================================
 
@@ -384,10 +383,10 @@ class AlterMethod(object):
             self, value: Any, row: List[Any],
             ddrows: List["DataDictionaryRow"]) -> Tuple[Optional[str], bool]:
         """
-        Take a field's value and return extracted text, for file-related 
+        Take a field's value and return extracted text, for file-related
         fields, where the DD row indicated that this field contains a filename
         or a BLOB.
-    
+
         Args:
             value: source field contents
             row: all values in the same source row

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/constants.py
 
 """
-..
+crate_anon/nlp_manager/constants.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from cardinal_pythonlib.hash import HmacMD5Hasher
@@ -241,10 +239,10 @@ max_bytes_before_commit = {DEFAULT_MAX_BYTES_BEFORE_COMMIT}
 # B. NLP processor definitions
 #
 #    These control the behaviour of individual NLP processors.
-#    In the case of CRATE's built-in processors, the only configuration needed 
-#    is the destination database/table, but for some, like GATE applications, 
-#    you need to define more -- such as how to run the external program, and 
-#    what sort of table structure should be created to receive the results.  
+#    In the case of CRATE's built-in processors, the only configuration needed
+#    is the destination database/table, but for some, like GATE applications,
+#    you need to define more -- such as how to run the external program, and
+#    what sort of table structure should be created to receive the results.
 # =============================================================================
 # - You're likely to have to modify the destination databases these point to,
 #   but otherwise you can probably leave them as they are.
@@ -489,7 +487,7 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     # Define the output tables used by this GATE processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    # (This is an additional thing we need for GATE applications, since CRATE 
+    # (This is an additional thing we need for GATE applications, since CRATE
     # doesn't automatically know what sort of output they will produce.)
 
 [output_person]
@@ -631,7 +629,7 @@ output_terminator = END_OF_NLP_OUTPUT_RECORD
     # Define the output tables used by this GATE processor
     # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Note new "renames" option, because the names of the annotations are not 
+# Note new "renames" option, because the names of the annotations are not
 # always valid SQL column names.
 
 [output_prescription]
@@ -699,13 +697,13 @@ indexdefs =
 
 [procdef_gate_kcl_lbda]
 
-    # "cDiagnosis" is the "confirmed diagnosis" field, as d/w Jyoti Jyoti 
+    # "cDiagnosis" is the "confirmed diagnosis" field, as d/w Jyoti Jyoti
     # 2018-03-20; see also README.md. This appears in the "Automatic" and the
     # unnamed set. There is also a near-miss one, "DiagnosisAlmost", which
     # appears in the unnamed set.
     #   "Mr Jones has Lewy body dementia."
     #       -> DiagnosisAlmost
-    #   "Mr Jones has a diagnosis of Lewy body dementia." 
+    #   "Mr Jones has a diagnosis of Lewy body dementia."
     #       -> DiagnosisAlmost, cDiagnosis
     # Note that we must use lower case in the outputtypemap.
 
@@ -743,20 +741,20 @@ null_literals =
 destfields =
     # Found by
     # (a) manual inspection of output from the GATE Developer console:
-    # - e.g. {{rule=Includefin, text=Lewy body dementia}} 
+    # - e.g. {{rule=Includefin, text=Lewy body dementia}}
     # (b) inspection of contents:
     # - run a Cygwin shell
     # - find . -type f -exec grep cDiagnosis -l {{}} \;
     # - 3 hits:
     #       ./application-resources/jape/DiagnosisExclude2.jape
-    #           ... part of the "Lewy"-detection apparatus               
+    #           ... part of the "Lewy"-detection apparatus
     #       ./application-resources/jape/text-feature.jape
     #           ... adds "text" annotation to cDiagnosis Token
     #       ./application.xgapp
     #           ... in annotationTypes
     # On that basis:
-    rule            VARCHAR(100)  # 
-    text            VARCHAR(200)  # 
+    rule            VARCHAR(100)  #
+    text            VARCHAR(200)  #
 indexdefs =
     rule    100
     text    200
@@ -784,10 +782,10 @@ progenvsection = MY_ENV_SECTION
 # C. Environment variable definitions
 #
 #    We define environment variable groups here, with one group per section.
-#    When a section is selected (e.g. by a "progenvsection" command in an NLP 
-#    processor definition), these variables can be substituted into the 
-#    "progargs" part of the NLP definition (for when external programs are 
-#    called) and are available in the operating system environment for those 
+#    When a section is selected (e.g. by a "progenvsection" command in an NLP
+#    processor definition), these variables can be substituted into the
+#    "progargs" part of the NLP definition (for when external programs are
+#    called) and are available in the operating system environment for those
 #    programs themselves.
 # =============================================================================
 # - The environment will start by inheriting the parent environment, then add
@@ -809,7 +807,7 @@ OS_PATHSEP = :
 #
 #    These define database "inputs" in more detail, including the database,
 #    table, and field (column) containing the input, the associated primary key
-#    field, and fields that should be copied to the destination to make 
+#    field, and fields that should be copied to the destination to make
 #    subsequent work easier (e.g. patient research IDs).
 # =============================================================================
 # - Referred to within the NLP definition, and cross-referencing database

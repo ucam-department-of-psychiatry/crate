@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/config/wsgi.py
 
 """
-..
+crate_anon/crateweb/config/wsgi.py
 
 ===============================================================================
 

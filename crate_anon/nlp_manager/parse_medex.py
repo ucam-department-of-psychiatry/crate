@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/parse_medex.py
 
 r"""
-..
+crate_anon/nlp_manager/parse_medex.py
 
 ===============================================================================
 
@@ -37,7 +36,7 @@ r"""
     in directories; that's deep in the core of its NLP thinking so we can't
     change that behaviour without creating a fork. So the obvious way to turn
     this into a proper "live" pipeline would be for the calling code to
-    
+
     - fire up a receiving process - Python launching custom Java
     - create its own temporary directory - Python
     - receive data - Python
@@ -45,7 +44,7 @@ r"""
     - call the MedEx function - Python -> stdout -> custom Java -> MedEx
     - return the results - custom Java signals "done" -> Python reads stdin?
     - and clean up - Python
-    
+
     Not terribly elegant, but might be fast enough (and almost certainly much
     faster than reloading Java regularly!).
 
@@ -82,7 +81,7 @@ PROBLEMS:
   http://www.d.umn.edu/medweb/Modules/Prescription/Abbreviations.html
 
   - Places to look, and things to try adding:
-  
+
     .. code-block:: none
 
         resources/TIMEX/norm_patterns/NormFREQword
@@ -105,9 +104,9 @@ PROBLEMS:
     Probably need to recompile. See MedEx's Readme.txt
 
   - reference to expression/val (as in frequency_rules):
-  
+
     .. code-block:: none
-    
+
         TIMEX.Rule._add_rule()
             ... from TIMEX.Rule.Rule via a directory walker
             ... from TIMEX.ProcessingEngine.ProcessingEngine()
@@ -115,7 +114,7 @@ PROBLEMS:
                     ... via rule_dir, set to .../TIMEX/rules
 
   - Detect a file being accessed:
-  
+
     .. code-block:: bash
 
         sudo apt install inotify-tools
@@ -124,7 +123,7 @@ PROBLEMS:
     ... frequency_rules IS opened.
 
   - OVERALL SEQUENCE:
-  
+
     .. code-block:: none
 
         org.apache.medex.Main [OR: CrateNedexPipeline.java]
@@ -166,7 +165,7 @@ PROBLEMS:
   Specifics:
 
   (a) SemanticRuleEngine.java
-  
+
       .. code-block:: java
 
         // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
@@ -188,7 +187,7 @@ PROBLEMS:
         // TIMING, NOT FREQUENCY: ac (ante cibum); pc (post cibum)
 
   (b) frequency_rules
-  
+
       .. code-block:: none
 
         // EXTRA FOR UK FREQUENCIES (see http://www.evidence.nhs.uk/formulary/bnf/current/general-reference/latin-abbreviations)
@@ -325,15 +324,15 @@ PROBLEMS:
             with spacer    RUT
 
   Looks like these are not using synonyms. Note also format is ``route\tRUT``
-  
+
   Note also that the first element is always forced to lower case (in
   Lexicon.Lexicon()), so presumably it's case-insensitive.
-  
+
   There's no specific comment format (though any line that doesn't resolve to
   two items when split on a tab looks like it's ignored).
-  
+
   So we might want to add more; use
-  
+
   .. code-block:: bash
 
         build_medex_itself.py --extraroutes >> lexicon.cfg
@@ -366,14 +365,14 @@ PROBLEMS:
   - We have no direct influence over the MedTagger code for output (unless we
     modify it). The output function is ``MedTagger.print_result()``, which
     (line 2040 of ``MedTagger.java``) calls ``out.write(stuff)``.
-    
+
     The out variable is set by
-    
+
     .. code-block:: java
-    
+
         this.out = new BufferedWriter(new FileWriter(output_dir
                 + File.separator + doc.fname()));
-                
+
     That form of the FileWriter constructor, ``FileWriter(String fileName)``,
     uses the "default character encoding", as per
     https://docs.oracle.com/javase/7/docs/api/java/io/FileWriter.html
@@ -383,7 +382,7 @@ PROBLEMS:
     encoding to Python through a pipe; instead, we can set the Java default
     encoding. It can't be done dynamically, but it can be done at JVM launch:
     http://stackoverflow.com/questions/361975/setting-the-default-java-character-encoding.
-    
+
     Therefore, we should have a Java parameter specified in the config file as
     ``-Dfile.encoding=UTF-8``.
 

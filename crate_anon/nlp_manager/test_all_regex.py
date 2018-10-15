@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/test_all_regex.py
 
 """
-..
+crate_anon/nlp_manager/test_all_regex.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import argparse

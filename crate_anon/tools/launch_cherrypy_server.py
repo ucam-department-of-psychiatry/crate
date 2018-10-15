@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/tools/launch_cherrypy_server.py
 
 """
-..
+crate_anon/tools/launch_cherrypy_server.py
 
 ===============================================================================
 
@@ -37,7 +36,7 @@ def main():
     Command-line entry point.
     """
     runcpserver()
-    
+
 
 if __name__ == '__main__':
     main()

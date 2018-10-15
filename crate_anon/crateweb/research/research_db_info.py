@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/research/research_db_info.py
 
 """
-..
+crate_anon/crateweb/research/research_db_info.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from collections import OrderedDict
@@ -195,7 +193,7 @@ class SingleResearchDatabase(object):
 
         assert isinstance(self.name, str) and self.name  # no blanks
         assert re.match(r'^\w+$', self.name), (
-            "Database name {!r} should contain only alphanumeric/underscore " 
+            "Database name {!r} should contain only alphanumeric/underscore "
             "characters".format(self.name)
         )
         assert isinstance(self.description, str) and self.description  # no blanks  # noqa

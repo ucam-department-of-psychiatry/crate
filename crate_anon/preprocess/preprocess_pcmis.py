@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/preprocess/preprocess_pcmis.py
 
 """
-..
+crate_anon/preprocess/preprocess_pcmis.py
 
 ===============================================================================
 
@@ -88,7 +87,7 @@ be inventing an arbitrary new key if we added one.
 So the tradeoff is simplicity (keep textual PK for patients) versus speed
 (parallel processing based on an integer operation). It's natural to think of
 an integer hash of a string, but this hash has to operate in the SQL
-domain, be portable, and produce an integer (so SQL Server's HASHBYTES is of 
+domain, be portable, and produce an integer (so SQL Server's HASHBYTES is of
 no use. At present (2017-05-02), our PCMIS copy has ~53,000 patients in, and
 there are lots of tables with patients in.
 
@@ -115,7 +114,7 @@ going to be hosted on SQL Server, since PCMIS uses that
     SQL Server      SQLAlchemy
     --------------  -------------------
     SUBSTR          func.substr
-    ASCII           
+    ASCII
     --------------  -------------------
 
 What about CaseNumber -- is that identifying? If not, it can remain the
@@ -320,7 +319,7 @@ ddgen_scrubsrc_patient_fields = # several of these:
     # ----------------------------------------------------------------------
     # Original PCMIS tables (some may be superseded by views; list both here;
     # if the table is blacklisted anyway, it doesn't matter).
-    # We achieve "list both" by using *. 
+    # We achieve "list both" by using *.
     # ----------------------------------------------------------------------
     CaseContactDetails*.CaseNumber
     CaseContactDetails*.FirstName

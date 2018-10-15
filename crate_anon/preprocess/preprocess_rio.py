@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/preprocess/preprocess_rio.py
 
 """
-..
+crate_anon/preprocess/preprocess_rio.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import argparse

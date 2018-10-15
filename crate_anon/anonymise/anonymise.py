@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/anonymise.py
 
 """
-..
+crate_anon/anonymise/anonymise.py
 
 ===============================================================================
 
@@ -379,7 +378,7 @@ def get_subset_from_field(field: str, field_elements: List[Any]) -> List[Any]:
             )
             result = session.execute(query)
             pids.extend([x[0] for x in result])
-            # As there is only one relavant database here, we return pids  
+            # As there is only one relavant database here, we return pids
             return pids
         # Mark out row of dd with primary pid for relavant database
         row = ddr
@@ -431,7 +430,7 @@ def fieldname_is_pid(field: str) -> bool:
     """
     Checks if a field name is 'pid' or, if in the form 'database.table.field',
     is the name of a primary pid field.
-    """ 
+    """
     field_is_pid = False
     if field == 'pid':
         field_is_pid = True
@@ -528,7 +527,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
             )
             result = session.execute(query)
             pids.extend([x[0] for x in result])
-            # As there is only one relavant database here, we return pids  
+            # As there is only one relavant database here, we return pids
             return pids
         # Mark out row of dd with primary pid for relavant database
         row = ddr

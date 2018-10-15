@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate/tools/make_package.py
 
 """
-..
+tools/make_package.py
 
 ===============================================================================
 
@@ -129,7 +128,7 @@ running_centos()
 service_exists()
 {
     # arguments: $1 is the service being tested
-    
+
     # Older Ubuntu:
     if service $1 status 2>&1 | grep "unrecognized service" >/dev/null ; then
         return 1  # false

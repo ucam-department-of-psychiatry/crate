@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/core/management/commands/__init__.py
 
 """
-..
+crate_anon/crateweb/core/management/commands/__init__.py
 
 ===============================================================================
 
@@ -25,6 +24,5 @@
 
 ===============================================================================
 
-..
 """
 

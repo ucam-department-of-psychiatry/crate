@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/tools/celery_status.py
 
 """
-..
+crate_anon/tools/celery_status.py
 
 ===============================================================================
 

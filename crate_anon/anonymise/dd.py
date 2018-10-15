@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/dd.py
 
 """
-..
+crate_anon/anonymise/dd.py
 
 ===============================================================================
 
@@ -358,7 +357,7 @@ class DataDictionary(object):
                                 p=expected_pidfield))
 
         log.debug("... source tables checked.")
-        
+
     def check_valid(self,
                     prohibited_fieldnames: List[str] = None,
                     check_against_source_db: bool = True) -> None:

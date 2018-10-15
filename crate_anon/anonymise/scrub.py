@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/scrub.py
 
 """
-..
+crate_anon/anonymise/scrub.py
 
 ===============================================================================
 

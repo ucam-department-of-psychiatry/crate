@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/regex_test.py
 
 """
-..
+crate_anon/nlp_manager/regex_test.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from typing import List, Pattern, Tuple

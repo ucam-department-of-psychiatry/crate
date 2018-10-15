@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/build_medex_java_interface.py
 
 """
-..
+crate_anon/nlp_manager/build_medex_java_interface.py
 
 ===============================================================================
 

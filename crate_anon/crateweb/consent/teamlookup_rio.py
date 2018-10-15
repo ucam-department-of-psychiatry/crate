@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/teamlookup_rio.py
 
 """
-..
+crate_anon/crateweb/consent/teamlookup_rio.py
 
 ===============================================================================
 

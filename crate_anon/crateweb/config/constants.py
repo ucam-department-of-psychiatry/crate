@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/config/constants.py
 
 """
-..
+crate_anon/crateweb/config/constants.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 CRATEWEB_CONFIG_ENV_VAR = 'CRATE_WEB_LOCAL_SETTINGS'

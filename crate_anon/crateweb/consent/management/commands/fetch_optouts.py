@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/core/management/commands/fetch_optous.py
 
 """
-..
+crate_anon/crateweb/consent/management/commands/fetch_optouts.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from argparse import ArgumentParser, Namespace

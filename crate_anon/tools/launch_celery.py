@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/tools/launch_celery.py
 
 """
-..
+crate_anon/tools/launch_celery.py
 
 ===============================================================================
 
@@ -82,7 +81,7 @@ def main():
     parser.add_argument("--debug", action="store_true",
                         help="Ask Celery to be verbose")
     args, leftovers = parser.parse_known_args()
-    
+
     # print("Changing to directory: {}".format(DJANGO_ROOT))
     # os.chdir(DJANGO_ROOT)
     cmdargs = [
@@ -99,7 +98,7 @@ def main():
             # (Default is 1 under Windows.)
             # cmdargs += ["--concurrency=4"]
             cmdargs += ["--concurrency=1"]  # 2018-06-29
-            
+
             # Without "--pool=solo", sod all happens: tasks go into the
             # Reserved queue, but aren't executed.
             # See:

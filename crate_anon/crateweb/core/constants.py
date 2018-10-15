@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/core/constants.py
 
 """
-..
+crate_anon/crateweb/core/constants.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 DJANGO_DEFAULT_CONNECTION = 'default'  # key to django.db.connections

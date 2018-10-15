@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/extra/salutation.py
 
 """
-..
+crate_anon/crateweb/extra/salutation.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from typing import Optional, Tuple

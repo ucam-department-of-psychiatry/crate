@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/fetch_wordlists.py
 
 """
-..
+crate_anon/anonymise/eponyms.py
 
 ===============================================================================
 

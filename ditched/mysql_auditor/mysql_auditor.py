@@ -1,42 +1,55 @@
 #!/usr/bin/env python
 
 """
-Script to run an instance of mysql-proxy
+ditched/mysql_auditor/mysql_auditor.py
 
+===============================================================================
+
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+
+Script to run an instance of mysql-proxy
 Author: Rudolf Cardinal
 Copyright (C) 2015-2016 Rudolf Cardinal.
 License: http://www.apache.org/licenses/LICENSE-2.0
-
 The mysql-proxy version must be at least 0.8.5; see
       http://dev.mysql.com/doc/mysql-proxy/en/
 and downloads are at
       https://dev.mysql.com/downloads/mysql-proxy/
-
 The tee problem:
     http://stackoverflow.com/questions/616645
-
 General daemon problem:
-
 - UNIX and Windows work differently. In Windows, you run a Windows service;
   under UNIX, you start a daemon. Daemons are processes that dissociate from
   terminals, etc. Services are standalone processes. (It's common to wrap a
   daemon in a service wrapper, e.g. "service mything start" starts a daemon.)
-
 - Daemons/services don't have terminals, so don't have stdout.
-
 - The mysql-proxy tool supports daemonizing itself (e.g. --daemon, --keepalive,
   --pid-file), but if you do this, its output becomes limited; it runs its
   own log (--log-file), but doesn't do anything with its stdout, so the log
   ends up as just, or containing, its own status messages, not our audit log.
-
 - So, let's create a framework that does whatever we want. At its core will be
   a Python function that runs mysql-proxy (ignoring its --daemon option), takes
   its stdout/stderr, and does something useful (like writing to a Python log).
-
 - This function will then be wrapped in a UNIX daemon, with a DaemonRunner
   (undocumented but useful code from the python-daemon library), or wrapped in
   a Windows service.
-
 - The DaemonRunner() code doesn't work on Python 3 because it does things like
     # app.stdout_path = "/dev/tty"
     ... = open(app.stdout_path, 'w+t')  # daemon/runner.py, line 111
@@ -45,9 +58,6 @@ General daemon problem:
   ... https://bugs.python.org/issue20074
   Anyway, DaemonRunner() is undocumented/unsupported and we have to hack it a
   bit anyway, so let's just rewrite it.
-
-
-
         echo "... appending stdout (audit information) to $OUTLOG"
         if $STDOUT_PLUS_LOG ; then
             echo "... keeping stdout as well"
@@ -78,9 +88,6 @@ General daemon problem:
         fi
         chmod -v 600 $OUTLOG
         chmod -v 600 $ERRLOG
-
-
-
 """
 
 import argparse

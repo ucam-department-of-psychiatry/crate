@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/config/urls.py
 
 """
-..
+crate_anon/crateweb/config/urls.py
 
 ===============================================================================
 

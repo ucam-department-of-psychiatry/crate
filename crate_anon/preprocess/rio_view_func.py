@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/preprocess/rio_view_func.py
 
 """
-..
+crate_anon/preprocess/rio_view_func.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from typing import Dict, Iterable, Union
@@ -80,7 +78,7 @@ def lookup_from_fragment_first_row(lookup_table: str,
     https://www.periscopedata.com/blog/4-ways-to-join-only-the-first-row-in-sql.html
 
     We were doing the FROM component as:
-    
+
     .. code-block:: none
 
         LEFT JOIN {lookup_table} {aliased_lookup_table}

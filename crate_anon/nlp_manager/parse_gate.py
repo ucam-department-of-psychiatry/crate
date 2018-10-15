@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/parse_gate.py
 
 """
-..
+crate_anon/nlp_manager/parse_gate.py
 
 ===============================================================================
 

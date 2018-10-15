@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/common/sql.py
 
 """
-..
+crate_anon/common/sql.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import argparse
@@ -1016,30 +1014,30 @@ def sql_fragment_cast_to_int(expr: str,
     """
     For Microsoft SQL Server.
     Conversion to INT:
-    
+
     - http://stackoverflow.com/questions/2000045
     - http://stackoverflow.com/questions/14719760  # this one
     - http://stackoverflow.com/questions/14692131
-    
+
       - see LIKE example.
       - see ISNUMERIC();
         https://msdn.microsoft.com/en-us/library/ms186272.aspx
         ... but that includes non-integer numerics
-        
+
     - https://msdn.microsoft.com/en-us/library/ms174214(v=sql.120).aspx
       ... relates to the SQL Server Management Studio "Find and Replace"
       dialogue box, not to SQL itself!
-      
+
     - http://stackoverflow.com/questions/29206404/mssql-regular-expression
 
     Note that the regex-like expression supported by LIKE is extremely limited.
-    
+
     - https://msdn.microsoft.com/en-us/library/ms179859.aspx
-    
+
     The only things supported are:
 
     .. code-block:: none
-    
+
         %   any characters
         _   any single character
         []  single character in range or set, e.g. [a-f], [abcdef]
@@ -1076,11 +1074,11 @@ def sql_fragment_cast_to_int(expr: str,
     .. code-block:: sql
 
         TRY_CAST(something AS BIGINT)
-        
-        
+
+
     ... which returns NULL upon failure; see
     https://msdn.microsoft.com/en-us/library/hh974669.aspx
-        
+
     """  # noqa
     inttype = "BIGINT" if big else "INTEGER"
     if dialect is None and viewmaker is not None:
@@ -1341,7 +1339,7 @@ def translate_sql_qmark_to_percent(sql: str) -> str:
     using like it.
 
     So:
-    
+
     - We use %s when using cursor.execute() directly, via Django.
     - We use ? when talking to users, and SqlGrammar objects, so that the
       visual appearance matches what they expect from their database.

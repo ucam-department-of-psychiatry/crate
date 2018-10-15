@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/tools/launch_docs.py
 
 """
-..
+crate_anon/tools/launch_docs.py
 
 ===============================================================================
 

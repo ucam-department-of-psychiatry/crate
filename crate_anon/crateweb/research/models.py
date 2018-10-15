@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/research/models.py
 
 """
-..
+crate_anon/crateweb/research/models.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from collections import OrderedDict
@@ -1324,7 +1322,7 @@ class PatientExplorer(models.Model):
     def get_xlsx_binary(self) -> bytes:
         """
         Other notes:
-        
+
         - cell size:
           http://stackoverflow.com/questions/13197574/python-openpyxl-column-width-size-adjust
           ... and the "auto_size" / "bestFit" options don't really do the job,

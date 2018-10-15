@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/preprocess/rio_ddgen.py
 
 """
-..
+crate_anon/preprocess/rio_ddgen.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from crate_anon.preprocess.ddhint import DDHint

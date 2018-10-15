@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/tasks.py
 
 """
-..
+crate_anon/crateweb/consent/tasks.py
 
 ===============================================================================
 
@@ -163,10 +162,10 @@ def finalize_clinician_response(clinician_response_id: int) -> None:
     Celery task to do the thinking associated with a clinician's response to
     a contact request. For example, might generate letters to patients and
     notify the Research Database Manager of work to be done.
-    
+
     Callers include
     - :meth:`crate_anon.crateweb.consent.views.finalize_clinician_response_in_background`
-    
+
     Sets ``processed = True`` and ``processed_at`` for the
     :class:`crate_anon.crateweb.consent.models.ClinicianResponse`.
     """  # noqa

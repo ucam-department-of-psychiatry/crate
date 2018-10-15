@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/make_demo_database.py
 
 """
-..
+crate_anon/anonymise/make_demo_database.py
 
 ===============================================================================
 

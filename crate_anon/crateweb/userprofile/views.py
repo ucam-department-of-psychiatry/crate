@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/userprofile/views.py
 
 """
-..
+crate_anon/crateweb/userprofile/views.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from django.http import HttpResponse

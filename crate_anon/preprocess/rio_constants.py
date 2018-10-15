@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/preprocess/rio_constants.py
 
 """
-..
+crate_anon/preprocess/rio_constants.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 # Tables in RiO v6.2 Core:

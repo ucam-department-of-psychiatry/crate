@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/regex_func.py
 
 """
-..
+crate_anon/nlp_manager/regex_func.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from typing import Any, Dict, Optional, Pattern, Tuple

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/storage.py
 
 """
-..
+crate_anon/crateweb/consent/storage.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import logging

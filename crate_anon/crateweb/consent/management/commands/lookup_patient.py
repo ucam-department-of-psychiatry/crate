@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/core/management/commands/lookup_patient.py
 
 """
-..
+crate_anon/crateweb/consent/management/commands/lookup_patient.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from argparse import ArgumentParser, Namespace

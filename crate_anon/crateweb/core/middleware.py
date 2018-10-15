@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/core/middleware.py
 
 """
-..
+crate_anon/crateweb/core/middleware.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from django.core.exceptions import ImproperlyConfigured

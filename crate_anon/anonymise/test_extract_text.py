@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/test_extract_text.py
 
 """
-..
+crate_anon/anonymise/test_extract_text.py
 
 ===============================================================================
 

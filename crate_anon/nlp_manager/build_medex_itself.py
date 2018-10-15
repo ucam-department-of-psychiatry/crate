@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/build_medex_itself.py
 
 """
-..
+crate_anon/nlp_manager/build_medex_itself.py
 
 ===============================================================================
 
@@ -369,7 +368,7 @@ Exception in thread "main" java.lang.StringIndexOutOfBoundsException: String ind
             "changes": [
                 {
                     "comment": """
-        
+
 java.lang.StringIndexOutOfBoundsException: String index out of range: 1
     at java.lang.String.charAt(Unknown Source)
     at org.apache.algorithms.SuffixArray.construct_tree_word(SuffixArray.java:375)
@@ -389,9 +388,9 @@ Offending code in SuffixArray.java:
             this.insert_SF_tree(this.SA[i], 0, 0); //# 0 denote the root in __SA;
         }
     }
-    
+
 The bug may relate to what's in SA[i]... but as a simple fix:
-        
+
                     """,  # noqa
                     "wrong": r"if (this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){",  # noqa
                     "right": r"if (pos < this.otext.length() && this.otext.charAt(pos) != ' ' && this.otext.charAt(pos) != '\n' && this.otext.charAt(pos) != this.end_char && (pos == 0 || (this.otext.charAt(pos-1) == ' ' || this.otext.charAt(pos-1) == '\n'))){"  # noqa

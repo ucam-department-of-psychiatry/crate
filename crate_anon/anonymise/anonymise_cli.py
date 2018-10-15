@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/anonymise_cli.py
 
 """
-..
+crate_anon/anonymise/anonymise_cli.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 # Uses a delayed import (see below), so we can set up logging before
@@ -188,7 +186,7 @@ def main() -> None:
             print("Text extractor for extension {} present: {}".format(
                 ext, available))
         return
-    
+
     if args.config:
         os.environ[CONFIG_ENV_VAR] = args.config
 

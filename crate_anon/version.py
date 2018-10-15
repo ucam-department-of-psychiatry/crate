@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/version.py
 
 """
-..
+crate_anon/version.py
 
 ===============================================================================
 

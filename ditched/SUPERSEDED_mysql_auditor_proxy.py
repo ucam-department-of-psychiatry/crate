@@ -1,29 +1,43 @@
-#!/usr/bin/python2.7
+#!/usr/bin/env python
 
 """
+ditched/SUPERSEDED_mysql_auditor_proxy.py
+
+===============================================================================
+
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+
 Author: Rudolf Cardinal
 Created at: 23 June 2015
 Last update: 23 June 2015
-
 Copyright/licensing:
-
     Copyright (C) 2015-2016 Rudolf Cardinal (rudolf@pobox.com).
-
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
-
         http://www.apache.org/licenses/LICENSE-2.0
-
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-
-===============================================================================
-Purpose
-===============================================================================
 To sit between MySQL clients and a MySQL server and capture queries for audit.
 
 ===============================================================================

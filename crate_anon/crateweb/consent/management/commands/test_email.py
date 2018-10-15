@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/management/commands/test_email.py
 
 """
-..
+crate_anon/crateweb/consent/management/commands/test_email.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from django.conf import settings

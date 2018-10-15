@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/common/formatting.py
 
 """
-..
+crate_anon/common/formatting.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from typing import List, Tuple

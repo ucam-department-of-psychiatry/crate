@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/management/commands/resubmit_unprocessed_tasks.py
 
 """
-..
+crate_anon/crateweb/consent/management/commands/resubmit_unprocessed_tasks.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import logging

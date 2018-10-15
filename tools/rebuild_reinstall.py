@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate/tools/rebuild_reinstall.py
 
 """
-..
+tools/rebuild_reinstall.py
 
 ===============================================================================
 

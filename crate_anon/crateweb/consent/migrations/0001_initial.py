@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/migrations/0001_initial.py
 
 """
-..
+crate_anon/crateweb/consent/migrations/0001_initial.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from __future__ import unicode_literals

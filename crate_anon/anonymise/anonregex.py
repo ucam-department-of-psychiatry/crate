@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/anonregex.py
 
 """
-..
+crate_anon/anonymise/anonregex.py
 
 ===============================================================================
 
@@ -94,7 +93,7 @@ def get_anon_fragments_from_string(s: str) -> List[str]:
     Takes a complex string, such as a name or address with its components
     separated by spaces, commas, etc., and returns a list of substrings to be
     used for anonymisation.
-    
+
     - For example, from ``"John Smith"``, return ``["John", "Smith"]``;
       from ``"John D'Souza"``, return ``["John", "D", "Souza"]``;
       from ``"42 West Street"``, return ``["42", "West", "Street"]``.
@@ -235,9 +234,9 @@ def get_code_regex_elements(
     of regex strings for scrubbing.
 
     We allow all sorts of separators. For example, 0123456789 might appear as
-    
+
     .. code-block:: none
-    
+
         (01234) 56789
         0123 456 789
         01234-56789

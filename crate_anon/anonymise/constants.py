@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/anon_constants.py
 
 """
-..
+crate_anon/anonymise/constants.py
 
 ===============================================================================
 
@@ -703,7 +702,7 @@ ddgen_skip_row_if_extract_text_fails_fields =
     # (Typical use: you make a view with a suffix "_x" as a working step, then
     # you want the suffix removed for users.)
 ddgen_rename_tables_remove_suffixes =
-    
+
     # Fields that are used as patient opt-out fields:
 ddgen_patient_opt_out_fields =
 

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/models.py
 
 """
-..
+crate_anon/anonymise/models.py
 
 ===============================================================================
 

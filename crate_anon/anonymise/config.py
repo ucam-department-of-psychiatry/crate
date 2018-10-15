@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/config.py
 
 """
-..
+crate_anon/anonymise/config.py
 
 ===============================================================================
 
@@ -720,7 +719,7 @@ class Config(object):
         self.chunksize = DEFAULT_CHUNKSIZE
         self.debug_scrubbers = False
         self.save_scrubbers = False
-        
+
         self._src_bytes_read = 0
         self._dest_bytes_written = 0
         self._echo = False

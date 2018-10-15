@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/models.py
 
 """
-..
+crate_anon/nlp_manager/models.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from sqlalchemy.ext.declarative import declarative_base

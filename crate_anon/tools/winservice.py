@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/tools/winservice.py
 
 r"""
-..
+crate_anon/tools/winservice.py
 
 ===============================================================================
 

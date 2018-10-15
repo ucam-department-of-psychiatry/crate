@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/regex_parser.py
 
 """
-..
+crate_anon/nlp_manager/regex_parser.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 # Shared elements for regex-based NLP work.

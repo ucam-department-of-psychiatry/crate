@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/preprocess/rio_views.py
 
 """
-..
+crate_anon/preprocess/rio_views.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from collections import OrderedDict

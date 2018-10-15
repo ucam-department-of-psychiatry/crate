@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/tools/launch_flower.py
 
 """
-..
+crate_anon/tools/launch_flower.py
 
 ===============================================================================
 

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/nlp_manager.py
 
 """
-..
+crate_anon/nlp_manager/nlp_manager.py
 
 ===============================================================================
 

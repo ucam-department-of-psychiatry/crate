@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/extra/admin.py
 
 """
-..
+crate_anon/crateweb/extra/admin.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import logging
@@ -96,7 +94,7 @@ class ReadOnlyModelAdmin(ModelAdmin):
     # def has_change_permission(self, request, obj=None):
     #     return False
 
-    def save_model(self, request: HttpRequest, obj, 
+    def save_model(self, request: HttpRequest, obj,
                    form: ModelForm, change: bool):
         # Return nothing to make sure user can't update any data
         pass
@@ -107,10 +105,10 @@ class ReadOnlyModelAdmin(ModelAdmin):
         return ReadOnlyChangeList
 
     # Make single object view say "View [model]", not "Change [model]"
-    def change_view(self, 
-                    request: HttpRequest, 
-                    object_id: int, 
-                    form_url: str = '', 
+    def change_view(self,
+                    request: HttpRequest,
+                    object_id: int,
+                    form_url: str = '',
                     extra_context: Dict[str, Any] = None) -> HttpResponse:
         extra_context = extra_context or {}
         # noinspection PyProtectedMember
@@ -165,10 +163,10 @@ class AddOnlyModelAdmin(ModelAdmin):
         return self.__class__.fields
 
     # Make single object view say "View [model]", not "Change [model]"
-    def change_view(self, 
-                    request: HttpRequest, 
-                    object_id: int, 
-                    form_url: str = '', 
+    def change_view(self,
+                    request: HttpRequest,
+                    object_id: int,
+                    form_url: str = '',
                     extra_context: Dict[str, Any] = None) -> HttpResponse:
         extra_context = extra_context or {}
         # noinspection PyProtectedMember

@@ -1,13 +1,35 @@
 #!/usr/bin/env python
 
 """
+ditched/test_daemon_2.py
+
+===============================================================================
+
+    Copyright (C) 2015-2018 Rudolf Cardinal (rudolf@pobox.com).
+
+    This file is part of CRATE.
+
+    CRATE is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    CRATE is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with CRATE. If not, see <http://www.gnu.org/licenses/>.
+
+===============================================================================
+
 python-daemon
 - https://pypi.python.org/pypi/python-daemon/
 - https://www.python.org/dev/peps/pep-3143/
 - http://stackoverflow.com/questions/4637420/efficient-python-daemon
 - http://www.gavinj.net/2012/06/building-python-daemon-process.html
 - http://stackoverflow.com/questions/30408589/how-do-you-use-python-daemon-the-way-that-its-documentation-dictates  # noqa
-
 Note that:
 - failures are silent
 - success is also silent

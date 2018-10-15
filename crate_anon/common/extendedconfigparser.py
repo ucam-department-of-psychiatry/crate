@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/anonymise/crateconfigparser.py
 
 """
-..
+crate_anon/common/extendedconfigparser.py
 
 ===============================================================================
 

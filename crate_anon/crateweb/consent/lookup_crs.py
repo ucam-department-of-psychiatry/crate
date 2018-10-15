@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/lookup_crs.py
 
 """
-..
+crate_anon/crateweb/consent/lookup_crs.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from cardinal_pythonlib.dbfunc import dictfetchall, dictfetchone

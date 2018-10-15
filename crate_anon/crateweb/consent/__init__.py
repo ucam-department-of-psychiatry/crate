@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/__init__.py
 
 """
-..
+crate_anon/crateweb/consent/__init__.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 # This will make sure the app is always imported when

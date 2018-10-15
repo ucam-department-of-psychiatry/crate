@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/consent/celery.py
 
 """
-..
+crate_anon/crateweb/consent/celery.py
 
 ===============================================================================
 
@@ -24,7 +23,6 @@
     along with CRATE. If not, see <http://www.gnu.org/licenses/>.
 
 ===============================================================================
-
 
 **To test:**
 

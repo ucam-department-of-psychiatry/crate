@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/config/apps.py
 
 """
-..
+crate_anon/crateweb/config/apps.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 from django.apps import AppConfig

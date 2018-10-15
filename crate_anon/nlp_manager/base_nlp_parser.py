@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/nlp_manager/base_nlp_parser.py
 
 """
-..
+crate_anon/nlp_manager/base_nlp_parser.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 # Simple base class for all our NLP parsers (GATE, regex, ...)

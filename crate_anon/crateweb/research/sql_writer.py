@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/crateweb/research/sql_writer.py
 
 """
-..
+crate_anon/crateweb/research/sql_writer.py
 
 ===============================================================================
 
@@ -25,7 +24,6 @@
 
 ===============================================================================
 
-..
 """
 
 import logging

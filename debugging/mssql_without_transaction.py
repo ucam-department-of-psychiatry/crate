@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# crate_anon/debugging/mssql_without_transaction.py
 
 """
-..
+debugging/mssql_without_transaction.py
 
 ===============================================================================
 
@@ -83,10 +82,10 @@ In the pyodbc source, a connect() call goes like this:
 - pyodbcmodule.cpp / mod_connect()
   sets fAutoCommit as Python boolean value from "autocommit" parameter
   calls Connection_New()
-  
+
 - connection.cpp / Connection_New()
   sets cnxn->nAutoCommit = fAutoCommit ? SQL_AUTOCOMMIT_ON : SQL_AUTOCOMMIT_OFF;
-  
+
   (cnxn is of type Connection, defined in connection.h)
 
   then, the start-of-transaction stuff is controlled by this function calling
