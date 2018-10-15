@@ -24,11 +24,19 @@
 
 ===============================================================================
 
-Once installed from a Debian package, wkhtmltopdf will show up in "dpkg --list"
-as "wkhtmltox". So you can remove it with
+Installs wkhtmltopdf.
+
+Once installed from a Debian package, wkhtmltopdf will show up in ``dpkg
+--list`` as ``wkhtmltox``. So you can remove it with
+
+.. code-block:: bash
+
     sudo dpkg --remove wkhtmltox  # Debian
 
-Examples of platform.linux_distribution():
+Examples of ``platform.linux_distribution()`` results:
+
+.. code-block:: none
+
     ('Ubuntu', '14.04', 'trusty')
     ('CentOS', '6.5', 'Final')
 """

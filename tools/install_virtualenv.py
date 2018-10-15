@@ -24,7 +24,8 @@
 
 ===============================================================================
 
-..
+Installs a virtual environment.
+
 """
 
 import argparse
@@ -64,13 +65,19 @@ PIP_REQ_FILE = os.path.join(PROJECT_BASE_DIR, 'requirements.txt')
 SEP = "=" * 79
 
 
-def title(msg):
+def title(msg: str) -> None:
+    """
+    Prints a title.
+    """
     print(SEP)
     print(msg)
     print(SEP)
 
 
-def cmd_returns_zero_success(cmdargs):
+def cmd_returns_zero_success(cmdargs: List[str]) -> bool:
+    """
+    Runs a command; returns True if it succeeded and False if it failed.
+    """
     print("Checking result of command: {}".format(cmdargs))
     try:
         subprocess.check_call(cmdargs)
@@ -79,31 +86,18 @@ def cmd_returns_zero_success(cmdargs):
         return False
 
 
-def check_call(cmdargs):
+def check_call(cmdargs: List[str]) -> None:
+    """
+    Displays its intent, executes a command, and checks that it succeeded.
+    """
     print("Command: {}".format(cmdargs))
     subprocess.check_call(cmdargs)
 
 
-# def require_deb(package):
-#     if cmd_returns_zero_success(['dpkg', '-l', package]):
-#         return
-#     print("You must install the package {package}. On Ubuntu, use the command:"  # noqa
-#           "\n"
-#           "    sudo apt-get install {package}".format(package=package))
-#     sys.exit(1)
-
-
-# def require_rpm(package):
-#     # PROBLEM: can't call yum inside yum. See --skippackagechecks option.
-#     if cmd_returns_zero_success(['yum', 'list', 'installed', package]):
-#         return
-#     print("You must install the package {package}. On CentOS, use the command:"  # noqa
-#           "\n"
-#           "    sudo yum install {package}".format(package=package))
-#     sys.exit(1)
-
-
-if __name__ == '__main__':
+def main() -> None:
+    """
+    Create a virtual environment. See DESCRIPTION.
+    """
     if not LINUX:
         raise AssertionError("Installation requires Linux.")
     parser = argparse.ArgumentParser(
@@ -119,10 +113,10 @@ if __name__ == '__main__':
     #                          "example).")
     args = parser.parse_args()
 
-    VENV_TOOL = 'virtualenv'
-    VENV_PYTHON = os.path.join(args.virtualenv, 'bin', 'python')
-    VENV_PIP = os.path.join(args.virtualenv, 'bin', 'pip')
-    ACTIVATE = "source " + os.path.join(args.virtualenv, 'bin', 'activate')
+    venv_tool = 'virtualenv'
+    venv_python = os.path.join(args.virtualenv, 'bin', 'python')
+    venv_pip = os.path.join(args.virtualenv, 'bin', 'pip')
+    activate = "source " + os.path.join(args.virtualenv, 'bin', 'activate')
 
     print("XDG_CACHE_HOME: {}".format(os.environ.get('XDG_CACHE_HOME',
                                                      None)))
@@ -148,23 +142,27 @@ if __name__ == '__main__':
     print('OK')
 
     title("Using system Python ({}) and virtualenv ({}) to make {}".format(
-          PYTHON, VENV_TOOL, args.virtualenv))
-    check_call([PYTHON, '-m', VENV_TOOL, args.virtualenv])
+          PYTHON, venv_tool, args.virtualenv))
+    check_call([PYTHON, '-m', venv_tool, args.virtualenv])
     print('OK')
 
     title("Upgrading virtualenv pip, if required")
-    check_call([VENV_PIP, 'install', '--upgrade', 'pip'])
+    check_call([venv_pip, 'install', '--upgrade', 'pip'])
 
     title("Checking version of tools within new virtualenv")
-    print(VENV_PYTHON)
-    check_call([VENV_PYTHON, '--version'])
-    print(VENV_PIP)
-    check_call([VENV_PIP, '--version'])
+    print(venv_python)
+    check_call([venv_python, '--version'])
+    print(venv_pip)
+    check_call([venv_pip, '--version'])
 
     title("Use pip within the new virtualenv to install package")
-    check_call([VENV_PIP, 'install', args.package])
+    check_call([venv_pip, 'install', args.package])
     print('OK')
     print('--- Virtual environment installed successfully')
 
     print("To activate the virtual environment, use\n"
-          "    {ACTIVATE}\n\n".format(ACTIVATE=ACTIVATE))
+          "    {activate}\n\n".format(activate=activate))
+
+
+if __name__ == '__main__':
+    main()

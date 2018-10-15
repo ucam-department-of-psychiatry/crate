@@ -965,9 +965,9 @@ def rio_add_audit_info(viewmaker: ViewMaker) -> None:
     # CREATE NONCLUSTERED INDEX [_dta_index_AuditTrail_blahblah]
     #     ON [dbo].[AuditTrail]
     # (
-    # 	[AuditAction] ASC,
-    # 	[RowID] ASC,
-    # 	[TableNumber] ASC
+    #   [AuditAction] ASC,
+    #   [RowID] ASC,
+    #   [TableNumber] ASC
     # )
     # INCLUDE ( [ActionDateTime]) WITH (SORT_IN_TEMPDB = OFF,
     #     IGNORE_DUP_KEY = OFF, DROP_EXISTING = OFF, ONLINE = OFF) ON [PRIMARY]

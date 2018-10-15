@@ -25,13 +25,17 @@
 
 ===============================================================================
 
-..
+**Launch the CRATE web service via CherryPy.**
+
 """
 
 from crate_anon.crateweb.manage import runcpserver
 
 
 def main():
+    """
+    Command-line entry point.
+    """
     runcpserver()
     
 

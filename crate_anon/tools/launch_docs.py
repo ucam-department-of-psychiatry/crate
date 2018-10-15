@@ -25,7 +25,8 @@
 
 ===============================================================================
 
-..
+**Launch the CRATE docs.**
+
 """
 
 from cardinal_pythonlib.process import launch_external_file
@@ -45,6 +46,9 @@ DOCS_INDEX = "https://crateanon.readthedocs.io/"
 
 
 def main():
+    """
+    Command-line entry point.
+    """
     print("Launching help: {}".format(DOCS_INDEX))
     launch_external_file(DOCS_INDEX)
 

@@ -25,7 +25,8 @@
 
 ===============================================================================
 
-..
+**Show the status of CRATE Celery processes.**
+
 """
 
 import argparse
@@ -35,6 +36,9 @@ from crate_anon.crateweb.config.constants import CELERY_APP_NAME
 
 
 def main():
+    """
+    Command-line parser. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         description="Show status of CRATE Celery processes, by calling Celery."
     )

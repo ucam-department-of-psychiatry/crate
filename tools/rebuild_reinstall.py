@@ -25,7 +25,10 @@
 
 ===============================================================================
 
-..
+1. Rebuild the package.
+2. Remove the CRATE Debian package.
+3. Reinstall the package.
+
 """
 
 import os
@@ -42,6 +45,6 @@ PACKAGEFILE = os.path.join(
     '{PACKAGE}_{DEBVERSION}_all.deb'.format(PACKAGE=PACKAGE,
                                             DEBVERSION=DEBVERSION))
 
-subprocess.check_call(['sudo', 'apt-get', '--yes', 'remove', PACKAGE])
 subprocess.check_call([os.path.join(THIS_DIR, 'make_package.py')])
+subprocess.check_call(['sudo', 'apt-get', '--yes', 'remove', PACKAGE])
 subprocess.check_call(['sudo', 'gdebi', '--non-interactive', PACKAGEFILE])

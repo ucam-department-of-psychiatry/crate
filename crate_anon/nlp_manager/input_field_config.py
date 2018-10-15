@@ -1,4 +1,4 @@
-##!/usr/bin/env python
+#!/usr/bin/env python
 # crate_anon/nlp_manager/input_field_config.py
 
 """

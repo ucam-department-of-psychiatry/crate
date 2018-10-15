@@ -1,8 +1,7 @@
 # (Don't use a shebang; Lintian will complain "script-not-executable".)
-# crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py
 
 """
-..
+crate_anon/crateweb/specimen_secret_local_settings/crateweb_local_settings.py
 
 ===============================================================================
 
@@ -25,7 +24,8 @@
 
 ===============================================================================
 
-Site-specific Django settings for CRATE web front end.
+**Site-specific Django settings for CRATE web front end.**
+
 Put the secret stuff here.
 
 SPECIMEN FILE ONLY - edit to your own requirements.

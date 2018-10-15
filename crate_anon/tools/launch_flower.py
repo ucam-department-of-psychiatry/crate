@@ -25,7 +25,8 @@
 
 ===============================================================================
 
-..
+**Launch Flower, the Celery monitoring tool.**
+
 """
 
 import subprocess
@@ -34,6 +35,9 @@ from crate_anon.crateweb.config.constants import CELERY_APP_NAME
 
 
 def main():
+    """
+    Command-line entry point.
+    """
     cmdargs = [
         "celery",
         "-A", CELERY_APP_NAME,

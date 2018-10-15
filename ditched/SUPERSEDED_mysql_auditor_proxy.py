@@ -1,5 +1,4 @@
 #!/usr/bin/python2.7
-# -*- encoding: utf8 -*-
 
 """
 Author: Rudolf Cardinal

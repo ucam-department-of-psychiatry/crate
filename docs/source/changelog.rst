@@ -627,7 +627,7 @@ Changes
   per https://medical-dictionary.thefreedictionary.com/cmm).
 
 - ``cardinal_pythonlib==1.0.25`` with updates to :func:`document_to_text`
-  parameter handling, then to ``1.0.27``.
+  parameter handling, then to ``1.0.31``.
 
 - NLPRP draft to 0.1.0.
 
@@ -636,7 +636,7 @@ Changes
 
 - ``django-debug-toolbar==1.9.1`` to ``django-debug-toolbar==1.10.1``
 
-
+- Improved docstrings.
 
 
 .. rubric:: Footnotes

@@ -25,7 +25,8 @@
 
 ===============================================================================
 
-..
+Make CRATE Python package.
+
 """
 
 from html import escape
@@ -80,29 +81,23 @@ BG_GREY = '\033[2;47m'
 NO_COLOUR = '\033[0m'
 
 
-def error(msg):
+def error(msg: str) -> None:
+    """
+    Prints an error with ANSI colour.
+    """
     print(FG_RED, BG_GREY, msg, NO_COLOUR, sep="")
 
 
-def workpath(destpath, *args):
-    """Suppose
-        workdir == '/home/myuser/debianbuilding'
-        destpath == '/usr/lib/mylib'
-    then returns:
-        '/home/myuser/debianbuilding/usr/lib/mylib'
+def workpath(destpath: str, *args: str) -> str:
+    """
+    Creates a workpath by embedding destpath (and any args) within WORK_DIR.
     """
     workdir = WORK_DIR
     assert workdir
-    if destpath[0] == os.sep:
+    if destpath[0] == os.sep:  # destpath begins with "/"; remove that
         return join(workdir, destpath[1:], *args)
     else:
         return join(workdir, destpath, *args)
-
-
-def webify_file(srcfilename, destfilename):
-    with open(srcfilename) as infile, open(destfilename, 'w') as outfile_:
-        for line in infile:
-            outfile_.write(escape(line))
 
 
 BASHFUNC = r"""

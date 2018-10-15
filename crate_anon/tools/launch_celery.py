@@ -25,7 +25,8 @@
 
 ===============================================================================
 
-..
+**Launch CRATE Celery processes.**
+
 """
 
 import argparse
@@ -70,6 +71,9 @@ WINDOWS = platform.system() == 'Windows'
 
 
 def main():
+    """
+    Command-line parser. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         description="Launch CRATE Celery processes. (Any leftover arguments "
                     "will be passed to Celery.)")

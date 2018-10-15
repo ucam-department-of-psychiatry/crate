@@ -25,7 +25,7 @@ r"""
 
 ===============================================================================
 
-Run the CRATE web service as a Windows service.
+**Run the CRATE web service as a Windows service.**
 
 See notes in ``cardinal_pythonlib/winservice.py``.
 
@@ -52,6 +52,9 @@ ENVVAR = 'CRATE_WINSERVICE_LOGDIR'
 # =============================================================================
 
 class CratewebService(WindowsService):
+    """
+    Windows service class for CRATE.
+    """
     # you can NET START/STOP the service by the following name
     _svc_name_ = "CRATE"
     # this text shows up as the service name in the Service
@@ -109,6 +112,9 @@ class CratewebService(WindowsService):
 # =============================================================================
 
 def main():
+    """
+    Command-line entry point.
+    """
     # Called as an entry point (see setup.py).
     logging.basicConfig(level=logging.DEBUG)
     generic_service_main(CratewebService, 'CratewebService')

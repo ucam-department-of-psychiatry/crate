@@ -25,13 +25,17 @@
 
 ===============================================================================
 
-..
+**Print a demonstration CRATE web (Django) config file.**
+
 """
 
 import os
 
 
 def main():
+    """
+    Command-line entry point.
+    """
     this_dir = os.path.abspath(os.path.dirname(__file__))
     filename = os.path.abspath(os.path.join(
         this_dir, "..", "crateweb", "specimen_secret_local_settings",

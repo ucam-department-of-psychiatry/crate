@@ -261,68 +261,68 @@ PROBLEMS:
 
         ... aha! There it is. If a line in lexicon.cfg has a RUT tag, it'll
             appear as a route. So:
-                grep "RUT$" lexicon.cfg | sort
+                grep "RUT$" lexicon.cfg | sort  # and replace tabs with spaces
 
-            bedside	RUT
-            by mouth	RUT
-            drip	RUT
-            gt	RUT
-            g tube	RUT
-            g-tube	RUT
-            gtube	RUT
-            im injection	RUT
-            im	RUT
-            inhalation	RUT
-            inhalatn	RUT
-            inhaled	RUT
-            intramuscular	RUT
-            intravenously	RUT
-            intravenous	RUT
-            iv	RUT
-            j tube	RUT
-            j-tube	RUT
-            jtube	RUT
-            nare	RUT
-            nares	RUT
-            naris	RUT
-            neb	RUT
-            nostril	RUT
-            orally	RUT
-            oral	RUT
-            ou	RUT
-            patch	DDF-DOSEUNIT-RUT
-            per gt	RUT
-            per mouth	RUT
-            per os	RUT
-            per rectum	RUT
-            per tube	RUT
-            p. g	RUT
-            pgt	RUT
-            png	RUT
-            pnj	RUT
-            p.o	RUT
-            po	RUT
-            sc	RUT
-            sl	RUT
-            sq	RUT
-            subc	RUT
-            subcu	RUT
-            subcutaneously	RUT
-            subcutaneous	RUT
-            subcut	RUT
-            subling	RUT
-            sublingual	RUT
-            sub q	RUT
-            subq	RUT
-            swallow	RUT
-            swish and spit	RUT
-            sw&spit	RUT
-            sw&swall	RUT
-            topically	RUT
-            topical	RUT
-            topical tp	RUT
-            trans	RUT
-            with spacer	RUT
+            bedside    RUT
+            by mouth    RUT
+            drip    RUT
+            gt    RUT
+            g tube    RUT
+            g-tube    RUT
+            gtube    RUT
+            im injection    RUT
+            im    RUT
+            inhalation    RUT
+            inhalatn    RUT
+            inhaled    RUT
+            intramuscular    RUT
+            intravenously    RUT
+            intravenous    RUT
+            iv    RUT
+            j tube    RUT
+            j-tube    RUT
+            jtube    RUT
+            nare    RUT
+            nares    RUT
+            naris    RUT
+            neb    RUT
+            nostril    RUT
+            orally    RUT
+            oral    RUT
+            ou    RUT
+            patch    DDF-DOSEUNIT-RUT
+            per gt    RUT
+            per mouth    RUT
+            per os    RUT
+            per rectum    RUT
+            per tube    RUT
+            p. g    RUT
+            pgt    RUT
+            png    RUT
+            pnj    RUT
+            p.o    RUT
+            po    RUT
+            sc    RUT
+            sl    RUT
+            sq    RUT
+            subc    RUT
+            subcu    RUT
+            subcutaneously    RUT
+            subcutaneous    RUT
+            subcut    RUT
+            subling    RUT
+            sublingual    RUT
+            sub q    RUT
+            subq    RUT
+            swallow    RUT
+            swish and spit    RUT
+            sw&spit    RUT
+            sw&swall    RUT
+            topically    RUT
+            topical    RUT
+            topical tp    RUT
+            trans    RUT
+            with spacer    RUT
 
   Looks like these are not using synonyms. Note also format is ``route\tRUT``
   

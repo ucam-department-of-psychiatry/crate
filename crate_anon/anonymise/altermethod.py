@@ -25,7 +25,8 @@
 
 ===============================================================================
 
-..
+**The AlterMethod class.**
+
 """
 
 import datetime
@@ -69,6 +70,10 @@ HTML_TAG_RE = regex.compile('<[^>]*>')
 # =============================================================================
 
 class AlterMethod(object):
+    """
+    Controls the way in which a source field is transformed on its way to the
+    destination database.
+    """
     def __init__(self,
                  config: "Config",
                  text_value: str = None,
@@ -85,6 +90,48 @@ class AlterMethod(object):
                  # html_escape: bool = False,
                  html_unescape: bool = False,
                  html_untag: bool = False) -> None:
+        """
+        Args:
+            config:
+                a :class:`crate_anon.anonymise.config.Config`
+            text_value:
+                string (from the data dictionary) to parse via
+                :func:`set_from_text`; may set many of the other attributes
+            scrub:
+                Boolean; "the source field contains sensitive text; scrub it"
+            truncate_date:
+                Boolean; "the source is a date; truncate it to the first of the
+                month"
+            extract_from_filename:
+                Boolean; "the source is a filename; extract the text from it"
+            extract_from_file_format:
+                Boolean; "the source is a partial filename; combine it with
+                ``file_format_str`` to calculate the full filename, then
+                extract the text from it"
+            file_format_str:
+                format string for use with ``extract_from_file_format``
+            extract_from_blob:
+                Boolean; "the source is binary (the database contains a BLOB);
+                extract text from it". See also ``extract_ext_field``.
+            skip_if_text_extract_fails:
+                Boolean: "if text extraction fails, skip the record entirely"
+            extract_ext_field:
+                For when the database contains a BLOB: this parameter indicates
+                a database column (field) name, in the same row, that contains
+                the file's extension, to help identify the BLOB.
+            hash_:
+                Boolean. If true, transform the source by hashing it.
+            hash_config_section:
+                If ``hash_`` is true, this specifies the config section in
+                which the hash is defined.
+            html_unescape:
+                Boolean: "transform the source by HTML-unescaping it". For
+                example, this would convert ``&le;`` to ``<``.
+            html_untag:
+                Boolean: "transform the source by removing HTML tags". For
+                example, this would convert ``hello <b>bold</b> world`` to
+                ``hello bold world``.
+        """
         self.config = config
         self.scrub = scrub
         self.truncate_date = truncate_date
@@ -113,8 +160,10 @@ class AlterMethod(object):
 
     def set_from_text(self, value: str) -> None:
         """
-        Convert the alter_method field (from the data dictionary) to a bunch of
-        boolean/simple fields.
+        Take the string from the ``alter_method`` field of the data dictionary,
+        and use it to set a bunch of internal attributes.
+
+        To get the configuration string back, see :func:`get_text`.
         """
         self.scrub = False
         self.truncate_date = False
@@ -174,7 +223,8 @@ class AlterMethod(object):
 
     def get_text(self) -> str:
         """
-        Return the alter_method fragment from the working fields.
+        Return the ``alter_method`` fragment from the working fields;
+        effectively the reverse of :func:`set_from_text`.
         """
         def two_part(altermethod: str, parameter: str):
             return altermethod + "=" + parameter
@@ -206,15 +256,46 @@ class AlterMethod(object):
         return ""
 
     def alter(self,
-              value: Any,  # value of interest
+              value: Any,
               ddr: "DataDictionaryRow",  # corresponding DataDictionaryRow
               row: List[Any],  # all values in row
               ddrows: List["DataDictionaryRow"],  # all of them
               patient: "Patient" = None) -> Tuple[Any, bool]:
         """
         Performs the alteration.
+
+        Args:
+            value:
+                source value of interest
+            ddr:
+                corresponding
+                :class:`crate_anon.anonymise.ddr.DataDictionaryRow`
+            row:
+                all values in the same source row
+            ddrows:
+                all data dictionary rows
+            patient:
+                :class:`crate_anon.anonymise.patient.Patient` object
+
         Returns:
-            Tuple[newvalue: Any, skiprow: bool]
+            tuple: ``newvalue, skiprow``
+
+        If multiple transformations are specified within one
+        :class:`AlterMethod`, only one is performed, and in the following
+        order:
+
+        #. scrub
+        #. truncate_date
+        #. extract_text
+        #. hash
+        #. html_unescape
+        #. html_untag
+        #. skip_if_text_extract_fails
+
+        However, multiple alteration methods can be specified for one field.
+        See :func:`crate_anon.anonymise.anonymise.process_table` and
+        :class:`crate_anon.anonymise.ddr.DataDictionaryRow`.
+
         """
 
         if self.scrub:
@@ -248,14 +329,29 @@ class AlterMethod(object):
             return value, True
 
     @staticmethod
-    def _scrub_func(value: Any, patient: "Patient") -> Any:
+    def _scrub_func(value: Any, patient: "Patient") -> Optional[str]:
+        """
+        Takes a source value and scrubs it.
+
+        **Main point of anonymisation within CRATE.**
+
+        Args:
+            value: source data
+            patient: :class:`crate_anon.anonymise.patient.Patient` object
+
+        Returns:
+            scrubbed data
+
+        """
         if value is None:
             return None
-        # Main point of anonymisation!
-        return patient.scrub(value)
+        return patient.scrub(str(value))
 
     @staticmethod
     def _truncate_date_func(value: Any) -> Optional[datetime.datetime]:
+        """
+        Truncates a date-like object to the first of the month.
+        """
         try:
             value = coerce_to_datetime(value)
             return truncate_date_to_first_of_month(value)
@@ -268,6 +364,9 @@ class AlterMethod(object):
 
     @staticmethod
     def _html_untag_func(text: str) -> str:
+        """
+        Removes HTML tags.
+        """
         # Lots of ways...
         # -- xml.etree, for well-formed XML
         #    http://stackoverflow.com/questions/9662346
@@ -286,10 +385,17 @@ class AlterMethod(object):
             ddrows: List["DataDictionaryRow"]) -> Tuple[Optional[str], bool]:
         """
         Take a field's value and return extracted text, for file-related 
-        fields, where the DD row indicates that this field contains a filename 
+        fields, where the DD row indicated that this field contains a filename
         or a BLOB.
     
-        Returns tuple: value, extracted
+        Args:
+            value: source field contents
+            row: all values in the same source row
+            ddrows: all data dictionary rows
+
+        Returns:
+            tuple: ``value, extracted``
+
         """
         filename = None
         blob = None
