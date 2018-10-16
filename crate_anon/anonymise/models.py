@@ -24,14 +24,19 @@ crate_anon/anonymise/models.py
 
 ===============================================================================
 
+**SQLAlchemy ORM models for the CRATE anonymiser, representing information it
+stores in its admin database.**
+
 To create a SQLAlchemy Table programmatically:
-    http://docs.sqlalchemy.org/en/latest/core/schema.html
-    http://stackoverflow.com/questions/5424942/sqlalchemy-model-definition-at-execution  # noqa
-    http://stackoverflow.com/questions/2580497/database-on-the-fly-with-scripting-languages/2580543#2580543  # noqa
+
+- http://docs.sqlalchemy.org/en/latest/core/schema.html
+- http://stackoverflow.com/questions/5424942/sqlalchemy-model-definition-at-execution
+- http://stackoverflow.com/questions/2580497/database-on-the-fly-with-scripting-languages/2580543#2580543
 
 To create a SQLAlchemy ORM programmatically:
-    http://stackoverflow.com/questions/2574105/sqlalchemy-dynamic-mapping/2575016#2575016  # noqa
-"""
+
+- http://stackoverflow.com/questions/2574105/sqlalchemy-dynamic-mapping/2575016#2575016
+"""  # noqa
 
 import logging
 import random
@@ -74,6 +79,8 @@ class PatientInfoConstants(object):
 
 class PatientInfo(AdminBase):
     """
+    Represent patient information in the secret admin database.
+
     Design decision in this class:
 
     - It gets too complicated if you try to make the fieldnames arbitrary and
@@ -137,12 +144,23 @@ class PatientInfo(AdminBase):
         doc="Raw third-party scrubber (for debugging only)")
 
     def ensure_rid(self) -> None:
+        """
+        Ensure that :attribute:`rid` is a hashed version of :attribute:`pid`.
+        """
         assert self.pid is not None
         if self.rid is not None:
             return
         self.rid = config.encrypt_primary_pid(self.pid)
 
     def ensure_trid(self, session: Session) -> None:
+        """
+        Ensure that :attribute:`trid` is a suitable transient research ID
+        (TRID): the TRID we have already generated for this PID, or a fresh
+        random integer that we'll remember.
+
+        Args:
+            session: SQLAlchemy database session for the secret admin database
+        """
         assert self.pid is not None
         if self.trid is not None:
             return
@@ -150,10 +168,28 @@ class PatientInfo(AdminBase):
         self.trid = TridRecord.get_trid(session, self.pid)
 
     def set_mpid(self, mpid: Union[int, str]) -> None:
+        """
+        Sets the MPID, and at the same time, the MRID (a hashed version of the
+        MPID).
+
+        Args:
+            mpid: master patient ID (MPID) value
+        """
         self.mpid = mpid
         self.mrid = config.encrypt_master_pid(self.mpid)
 
     def set_scrubber_info(self, scrubber: "PersonalizedScrubber") -> None:
+        """
+        Sets our :attribute:`scrubber_hash` to be the hash of the scrubber
+        passed as a parameter.
+
+        If our :class:`crate_anon.anonymise.config.Config` has its
+        ``save_scrubbers`` flag set, then we also save the textual regex
+        string for the patient scrubber and the third-party scrubber.
+
+        Args:
+            scrubber: :class:`crate_anon.anonymise.scrub.PersonalizedScrubber`
+        """
         self.scrubber_hash = scrubber.get_hash()
         if config.save_scrubbers:
             self.patient_scrubber_text = scrubber.get_patient_regex_string()
@@ -164,6 +200,10 @@ class PatientInfo(AdminBase):
 
 
 class TridRecord(AdminBase):
+    """
+    Records the mapping from patient ID (PID) to integer transient research ID
+    (TRID), and makes new TRIDs as required.
+    """
     __tablename__ = 'secret_trid_cache'
     __table_args__ = TABLE_KWARGS
 
@@ -178,6 +218,19 @@ class TridRecord(AdminBase):
 
     @classmethod
     def get_trid(cls, session: Session, pid: Union[int, str]) -> int:
+        """
+        Looks up the PID in the database and returns its corresponding TRID.
+        If there wasn't one, make a new one, store the mapping, and return the
+        new TRID.
+
+        Args:
+            session: SQLAlchemy database session for the secret admin database
+            pid: patient ID (PID) value
+
+        Returns:
+            integer TRID
+
+        """
         try:
             obj = session.query(cls).filter(cls.pid == pid).one()
             return obj.trid
@@ -187,6 +240,9 @@ class TridRecord(AdminBase):
     @classmethod
     def new_trid(cls, session: Session, pid: Union[int, str]) -> int:
         """
+        Creates a new TRID: a random integer that's not yet been used as a
+        TRID.
+
         We check for existence by inserting and asking the database if it's
         happy, not by asking the database if it exists (since other processes
         may be doing the same thing at the same time).
@@ -206,6 +262,9 @@ class TridRecord(AdminBase):
 
 
 class OptOutPid(AdminBase):
+    """
+    Records the PID values of patients opting out of the anonymised database.
+    """
     __tablename__ = 'opt_out_pid'
     __table_args__ = TABLE_KWARGS
 
@@ -216,10 +275,28 @@ class OptOutPid(AdminBase):
 
     @classmethod
     def opting_out(cls, session: Session, pid: Union[int, str]) -> bool:
+        """
+        Is this patient opting out?
+
+        Args:
+            session: SQLAlchemy database session for the secret admin database
+            pid: PID of the patient to test
+
+        Returns:
+            opting out?
+
+        """
         return exists_orm(session, cls, cls.pid == pid)
 
     @classmethod
     def add(cls, session: Session, pid: Union[int, str]) -> None:
+        """
+        Add a record of a patient who wishes to opt out.
+
+        Args:
+            session: SQLAlchemy database session for the secret admin database
+            pid: PID of the patient who is opting out
+        """
         log.debug("Adding opt-out for PID {}".format(pid))
         # noinspection PyArgumentList
         newthing = cls(pid=pid)
@@ -228,6 +305,9 @@ class OptOutPid(AdminBase):
 
 
 class OptOutMpid(AdminBase):
+    """
+    Records the MPID values of patients opting out of the anonymised database.
+    """
     __tablename__ = 'opt_out_mpid'
     __table_args__ = TABLE_KWARGS
 
@@ -238,10 +318,28 @@ class OptOutMpid(AdminBase):
 
     @classmethod
     def opting_out(cls, session: Session, mpid: Union[int, str]) -> bool:
+        """
+        Is this patient opting out?
+
+        Args:
+            session: SQLAlchemy database session for the secret admin database
+            mpid: MPID of the patient to test
+
+        Returns:
+            opting out?
+
+        """
         return exists_orm(session, cls, cls.mpid == mpid)
 
     @classmethod
     def add(cls, session: Session, mpid: Union[int, str]) -> None:
+        """
+        Add a record of a patient who wishes to opt out.
+
+        Args:
+            session: SQLAlchemy database session for the secret admin database
+            mpid: MPID of the patient who is opting out
+        """
         log.debug("Adding opt-out for MPID {}".format(mpid))
         # noinspection PyArgumentList
         newthing = cls(mpid=mpid)

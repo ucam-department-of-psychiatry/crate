@@ -111,8 +111,10 @@ Character   Meaning
             - Does not imply that the whole table cannot change!
 
 ``A``       | **ADDITION ONLY.**
-            | Addition only. It is assumed that records can only be added, not
-              deleted.
+            | Marks an addition-only table. It is assumed that records can only
+              be added to this table, not deleted.
+
+            - The field is permitted only for PK (``K``) fields.
 
 ``P``       | **PRIMARY PID.**
             | Primary patient ID field. If set,

@@ -731,13 +731,14 @@ class ResearchDatabaseInfo(object):
                     settings.RESEARCH_DB_FOR_CONTACT_LOOKUP)
             except ValueError:
                 raise ValueError(
-                    "In your settings, RESEARCH_DB_FOR_CONTACT_LOOKUP specifies "
-                    "{!r} but there is no database with that name in "
-                    "RESEARCH_DB_INFO".format(
+                    "In your settings, RESEARCH_DB_FOR_CONTACT_LOOKUP "
+                    "specifies {!r} but there is no database with that name "
+                    "in RESEARCH_DB_INFO".format(
                         settings.RESEARCH_DB_FOR_CONTACT_LOOKUP))
             assert self.dbinfo_for_contact_lookup.secret_lookup_db, (
                 "Research database {!r} is set as your "
-                "RESEARCH_DB_FOR_CONTACT_LOOKUP but has no {!r} attribute".format(
+                "RESEARCH_DB_FOR_CONTACT_LOOKUP but has no {!r} "
+                "attribute".format(
                     self.dbinfo_for_contact_lookup.name,
                     ResearchDbInfoKeys.SECRET_LOOKUP_DB
                 )

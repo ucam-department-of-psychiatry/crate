@@ -971,11 +971,27 @@ class TransactionSizeLimiter(object):
 # =============================================================================
 
 def _matches_tabledef(table: str, tabledef: str) -> bool:
+    """
+    Does the table name match the wildcard-based table definition?
+
+    Args:
+        table: tablename
+        tabledef: ``fnmatch``-style pattern (e.g.
+            ``"patient_address_table_*"``)
+    """
     tr = get_spec_match_regex(tabledef)
-    return tr.match(table)
+    return bool(tr.match(table))
 
 
 def matches_tabledef(table: str, tabledef: Union[str, List[str]]) -> bool:
+    """
+    Does the table name match the wildcard-based table definition?
+
+    Args:
+        table: table name
+        tabledef: ``fnmatch``-style pattern (e.g.
+            ``"patient_address_table_*"``), or list of them
+    """
     if isinstance(tabledef, str):
         return _matches_tabledef(table, tabledef)
     elif not tabledef:
@@ -985,16 +1001,38 @@ def matches_tabledef(table: str, tabledef: Union[str, List[str]]) -> bool:
 
 
 def _matches_fielddef(table: str, field: str, fielddef: str) -> bool:
+    """
+    Does the table/field name match the wildcard-based field definition?
+
+    Args:
+        table: tablename
+        field: fieldname
+        fielddef: ``fnmatch``-style pattern (e.g. ``"system_table.*"``,
+            ``"*.nhs_number"``)
+    """
     column_id = split_db_schema_table_column(fielddef)
     cr = get_spec_match_regex(column_id.column)
     if not column_id.table:
-        return cr.match(field)
+        # Table not specified in the wildcard.
+        # It's a match if the field matches.
+        return bool(cr.match(field))
+    # Table specified in the wildcard.
+    # Both the table and the field parts have to match.
     tr = get_spec_match_regex(column_id.table)
-    return tr.match(table) and cr.match(field)
+    return bool(tr.match(table)) and bool(cr.match(field))
 
 
 def matches_fielddef(table: str, field: str,
                      fielddef: Union[str, List[str]]) -> bool:
+    """
+    Does the table/field name match the wildcard-based field definition?
+
+    Args:
+        table: table name
+        field: fieldname
+        fielddef: ``fnmatch``-style pattern (e.g. ``"system_table.*"`` or
+            ``"*.nhs_number"``), or list of them
+    """
     if isinstance(fielddef, str):
         return _matches_fielddef(table, field, fielddef)
     elif not fielddef:

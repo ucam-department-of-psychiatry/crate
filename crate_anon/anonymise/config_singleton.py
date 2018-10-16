@@ -24,6 +24,12 @@ crate_anon/anonymise/config_singleton.py
 
 ===============================================================================
 
+**Singleton CRATE anonymiser config object.***
+
+A singleton class here is messy. The reason we use it is that class
+definitions, such as :class:`crate_anon.anonymise.models.PatientInfo`, depend
+on things set in the config, even before instances are created.
+
 """
 
 from crate_anon.anonymise.config import Config
@@ -35,6 +41,3 @@ from crate_anon.anonymise.config import Config
 
 config = Config()
 
-# A singleton class here is messy.
-# The reason we use it is that class definitions, such as PatientInfo,
-# depend on things set in the config, even before instances are created.

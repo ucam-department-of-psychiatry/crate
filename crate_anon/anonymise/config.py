@@ -24,7 +24,7 @@ crate_anon/anonymise/config.py
 
 ===============================================================================
 
-Config class for CRATE anonymiser.
+**Config class for CRATE anonymiser.**
 
 Thoughts on configuration method
 
@@ -67,6 +67,7 @@ Thoughts on configuration method
 
 -   See also
     http://stackoverflow.com/questions/7443366/argument-passing-strategy-environment-variables-vs-command-line
+
 """  # noqa
 
 # =============================================================================
@@ -100,6 +101,7 @@ from sqlalchemy import BigInteger, create_engine, String
 from sqlalchemy.dialects.mssql.base import dialect as mssql_dialect
 from sqlalchemy.dialects.mysql.base import dialect as mysql_dialect
 from sqlalchemy.engine.base import Engine
+from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.sqltypes import TypeEngine
 
 from crate_anon.anonymise.constants import (
@@ -136,11 +138,19 @@ hack_in_mssql_xml_type()  # support XML type under SQL Server
 # =============================================================================
 
 class DatabaseSafeConfig(object):
-    """Class representing non-sensitive configuration information about a
-    source database."""
+    """
+    Class representing non-sensitive configuration information about a
+    source database.
+    """
 
     def __init__(self, parser: ExtendedConfigParser, section: str) -> None:
-        """Read from a configparser section."""
+        """
+        Read from a configparser section.
+
+        Args:
+            parser: configparser object
+            section: section name
+        """
         if not parser.has_section(section):
             raise ValueError("config missing section: " + section)
 
@@ -257,6 +267,9 @@ class DatabaseSafeConfig(object):
         self.mpidtype = BigInteger()
 
     def is_table_blacklisted(self, table: str) -> bool:
+        """
+        Is the table name blacklisted (and not also whitelisted)?
+        """
         for white in self.ddgen_table_whitelist:
             r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
             if r.match(table):
@@ -268,6 +281,9 @@ class DatabaseSafeConfig(object):
         return False
 
     def is_field_blacklisted(self, field: str) -> bool:
+        """
+        Is the field name blacklisted (and not also whitelisted)?
+        """
         for white in self.ddgen_field_whitelist:
             r = regex.compile(fnmatch.translate(white), regex.IGNORECASE)
             if r.match(field):
@@ -279,6 +295,20 @@ class DatabaseSafeConfig(object):
         return False
 
     def does_table_fail_minimum_fields(self, colnames: List[str]) -> bool:
+        """
+        For use when creating a data dictionary automatically:
+
+        Does a table with the specified column names fail our minimum
+        requirements? These requirements are set by our
+        ``ddgen_table_require_field_absolute`` and
+        ``ddgen_table_require_field_conditional`` configuration parameters.
+
+        Args:
+            colnames: list of column names for the table
+
+        Returns:
+            does it fail?
+        """
         for abs_req in self.ddgen_table_require_field_absolute:
             if abs_req not in colnames:
                 log.debug("Table fails minimum field requirements: no column "
@@ -299,7 +329,17 @@ class DatabaseSafeConfig(object):
 
 def get_extra_hasher(parser: ExtendedConfigParser,
                      section: str) -> GenericHasher:
-    """Read from a configparser section."""
+    """
+    Read hasher configuration from a configparser section, and return the
+    hasher.
+
+    Args:
+        parser: configparser object
+        section: section name
+
+    Returns:
+        the hasher
+    """
     if not parser.has_section(section):
         raise ValueError("config missing section: " + section)
 
@@ -339,6 +379,12 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
 
         avenue, circus, close, crescent, drive, gardens, grove, hill, lane, mead, mews, place, rise, road, row, square, street, vale, way, wharf
 
+    Args:
+        filenames: filenames to read from 
+
+    Returns:
+        a list of lists of equivalent words
+
     """  # noqa
     alternatives = []  # type: List[List[str]]
     all_words_seen = set()  # type: Set[str]
@@ -369,11 +415,17 @@ def get_word_alternatives(filenames: List[str]) -> List[List[str]]:
 # =============================================================================
 
 class Config(object):
-    """Class representing the main configuration."""
+    """
+    Class representing the main CRATE anonymiser configuration.
+    """
 
     def __init__(self, open_databases: bool = True) -> None:
         """
-        Read config from file
+        Read the config from the file specified in the ``CRATE_ANON_CONFIG``
+        environment variable.
+
+        Args:
+            open_databases: open SQLAlchemy connections to the databases?
         """
         parser = ExtendedConfigParser()
         section = "main"
@@ -726,20 +778,49 @@ class Config(object):
 
     def get_destdb_engine_outside_transaction(
             self, encoding: str = 'utf-8') -> Engine:
+        """
+        Get a standalone SQLAlchemy Engine for the destination database, and
+        configure itself so transactions aren't used (equivalently:
+        ``autocommit`` is True; equivalently, the database commits after every
+        statement).
+        
+        See
+        https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management
+
+        Args:
+            encoding: passed to the SQLAlchemy :func:`create_engine` function
+
+        Returns:
+            the Engine
+        """  # noqa
         url = self._destination_database_url
         return create_engine(
             url,
             encoding=encoding,
             echo=self._echo,
-            connect_args={'autocommit': True})  # for pyodbc
-        # https://github.com/mkleehammer/pyodbc/wiki/Database-Transaction-Management  # noqa
+            connect_args={'autocommit': True}  # for pyodbc
+        )
 
     def overall_progress(self) -> str:
+        """
+        Returns a formatted description of the number of bytes read from the
+        source database(s) and written to the destination database.
+
+        (The Config is used to keep track of progress, via
+        :func:`notify_src_bytes_read` and :func:`notify_dest_db_transaction`.)
+        """
         return "{} read, {} written".format(
             sizeof_fmt(self._src_bytes_read),
             sizeof_fmt(self._dest_bytes_written))
 
     def load_dd(self, check_against_source_db: bool = True) -> None:
+        """
+        Loads the data dictionary (DD) into the config.
+
+        Args:
+            check_against_source_db:
+                check DD validity against the source database?
+        """
         log.info(SEP + "Loading data dictionary: {}".format(
             self.data_dictionary_filename))
         self.dd.read_from_file(self.data_dictionary_filename)
@@ -750,14 +831,19 @@ class Config(object):
         self.init_row_counts()
 
     def init_row_counts(self) -> None:
-        """Initialize row counts for all source tables."""
+        """
+        Initialize the "number of rows inserted" counts to zero for all source
+        tables.
+        """
         self.rows_inserted_per_table = {}
         for db_table_tuple in self.dd.get_src_db_tablepairs():
             self.rows_inserted_per_table[db_table_tuple] = 0
             self.warned_re_limits[db_table_tuple] = False
 
     def check_valid(self) -> None:
-        """Raise exception if config is invalid."""
+        """
+        Raise :exc:`ValueError` if the config is invalid.
+        """
 
         # Destination databases
         if not self.destdb:
@@ -837,14 +923,18 @@ class Config(object):
         log.debug("Config validated.")
 
     def encrypt_primary_pid(self, pid: Union[int, str]) -> str:
-        """Encrypt a primary PID, producing a RID."""
+        """
+        Encrypt a primary patient ID (PID), producing a research ID (RID).
+        """
         if pid is None:  # this is very unlikely!
             raise ValueError("Trying to hash NULL PID!")
             # ... see encrypt_master_pid() below
         return self.primary_pid_hasher.hash(pid)
 
     def encrypt_master_pid(self, mpid: Union[int, str]) -> Optional[str]:
-        """Encrypt a master PID, producing a master RID."""
+        """
+        Encrypt a master PID, producing a master RID (MRID).
+        """
         if mpid is None:
             return None
             # potentially: risk of revealing the hash
@@ -854,17 +944,29 @@ class Config(object):
 
     def hash_object(self, l: Any) -> str:
         """
-        Hashes a list with Python's built-in hash function.
+        Hashes an object using our ``change_detection_hasher``.
 
-        We could use Python's build-in hash() function, which produces a 64-bit
-        unsigned integer (calculated from: sys.maxint).
-        However, there is an outside chance that someone uses a single-field
-        table and therefore that this is vulnerable to content discovery via a
-        dictionary attack. Thus, we should use a better version.
+        We could use Python's build-in :func:`hash` function, which produces a
+        64-bit unsigned integer (calculated from: ``sys.maxint``). However,
+        there is an outside chance that someone uses a single-field table and
+        therefore that this is vulnerable to content discovery via a dictionary
+        attack. Thus, we should use a better version.
         """
         return self.change_detection_hasher.hash(repr(l))
 
     def get_extra_hasher(self, hasher_name: str) -> GenericHasher:
+        """
+        Return a named hasher from our ``extra_hashers`` dictionary.
+
+        Args:
+            hasher_name: name of the hasher
+
+        Returns:
+            the hasher
+
+        Raises:
+            :exc:`ValueError` if it doesn't exist
+        """
         if hasher_name not in self.extra_hashers.keys():
             raise ValueError(
                 "Extra hasher {} requested but doesn't exist; check you have "
@@ -873,9 +975,18 @@ class Config(object):
         return self.extra_hashers[hasher_name]
 
     def get_source_db_names(self) -> List[str]:
+        """
+        Get all source database names.
+        """
         return self.source_db_names
 
     def set_echo(self, echo: bool) -> None:
+        """
+        Sets the "echo" property for all our SQLAlchemy database connections.
+
+        Args:
+            echo: show SQL?
+        """
         self._echo = echo
         self.admindb.engine.echo = echo
         self.destdb.engine.echo = echo
@@ -889,24 +1000,68 @@ class Config(object):
             # log.critical(logger.__dict__)
             remove_all_logger_handlers(logger)
 
-    def get_src_dialect(self, src_db) -> Any:
+    def get_src_dialect(self, src_db: str) -> Dialect:
+        """
+        Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
+        the specified source database.
+        """
         return self.src_dialects[src_db]
 
-    def get_dest_dialect(self) -> Any:
+    def get_dest_dialect(self) -> Dialect:
+        """
+        Returns the SQLAlchemy :class:`Dialect` (e.g. MySQL, SQL Server...) for
+        the destination database.
+        """
         return self.dest_dialect
 
     def commit_dest_db(self) -> None:
+        """
+        Executes a ``COMMIT`` on the destination database.
+        """
         self._destdb_transaction_limiter.commit()
 
     def notify_src_bytes_read(self, n_bytes: int) -> None:
+        """
+        Use this function to tell the config how many bytes have been read
+        from the source database. See, for example, :func:`overall_progress`.
+
+        Args:
+            n_bytes: the number of bytes read
+        """
         self._src_bytes_read += n_bytes
 
     def notify_dest_db_transaction(self, n_rows: int, n_bytes: int) -> None:
+        """
+        Use this function to tell the config how many rows and bytes have been
+        written to the source database. See, for example,
+        :func:`overall_progress`.
+
+        Note that this may trigger a ``COMMIT``, via our
+        :class:`crate_anon.common.sql.TransactionSizeLimiter`.
+
+        Args:
+            n_rows: the number of rows written
+            n_bytes: the number of bytes written
+        """
         self._destdb_transaction_limiter.notify(n_rows=n_rows, n_bytes=n_bytes)
         # ... may trigger a commit
         self._dest_bytes_written += n_bytes
 
     def extract_text_extension_permissible(self, extension: str) -> bool:
+        """
+        Is this file extension (e.g. ``.doc``, ``.txt``) one that the config
+        permits to use for text extraction?
+
+        See the config options ``extract_text_extensions_permitted`` and
+        ``extract_text_extensions_prohibited``.
+
+        Args:
+            extension: file extension, beginning with ``.``
+
+        Returns:
+            permitted?
+
+        """
         if not self.extract_text_extensions_case_sensitive:
             extension = extension.upper()
         if self.extract_text_extensions_permitted:

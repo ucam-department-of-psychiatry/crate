@@ -24,7 +24,8 @@ crate_anon/anonymise/constants.py
 
 ===============================================================================
 
-Shared constants for CRATE anonymiser.
+**Shared constants for CRATE anonymiser.**
+
 """
 
 from enum import unique

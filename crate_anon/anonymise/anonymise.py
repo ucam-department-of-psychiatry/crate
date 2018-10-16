@@ -24,7 +24,8 @@ crate_anon/anonymise/anonymise.py
 
 ===============================================================================
 
-Anonymise multiple SQL-based databases using a data dictionary.
+**Anonymise one or more SQL-based source databases into a destination database
+using a data dictionary.**
 
 """
 
@@ -82,6 +83,12 @@ def identical_record_exists_by_hash(dest_table: str,
     """
     For a given PK in a given destination table, is there a record with the
     specified value for its source hash?
+
+    Args:
+        dest_table: name of the destination table
+        pkfield: name of the primary key (PK) column in the destination table
+        pkvalue: integer value of the PK in the destination table
+        hashvalue: hash of the source
     """
     return exists_plain(config.destdb.session,
                         dest_table,
@@ -94,6 +101,11 @@ def identical_record_exists_by_pk(dest_table: str,
                                   pkvalue: int) -> bool:
     """
     For a given PK in a given destination table, does a record exist?
+
+    Args:
+        dest_table: name of the destination table
+        pkfield: name of the primary key (PK) column in the destination table
+        pkvalue: integer value of the PK in the destination table
     """
     return exists_plain(config.destdb.session,
                         dest_table,
@@ -108,6 +120,9 @@ def wipe_and_recreate_destination_db(incremental: bool = False) -> None:
     """
     Drop and recreate all destination tables (as specified in the DD) in the
     destination database.
+
+    Args:
+        incremental: don't drop the tables first
     """
     log.info("Rebuilding destination database (incremental={})".format(
         incremental))
@@ -150,11 +165,17 @@ def delete_dest_rows_with_no_src_row(
     - Can't do this in a single SQL command, since the engine can't
       necessarily see both databases.
     - Can't do this in a multiprocess way, because we're trying to do a
-      DELETE WHERE NOT IN.
-    - However, we can get stupidly long query lists if we try to SELECT all
-      the values and use a DELETE FROM x WHERE y NOT IN (v1, v2, v3, ...)
+      ``DELETE WHERE NOT IN``.
+    - However, we can get stupidly long query lists if we try to ``SELECT`` all
+      the values and use a ``DELETE FROM x WHERE y NOT IN (v1, v2, v3, ...)``
       query. This crashes the MySQL connection, etc.
     - Therefore, we need a temporary table in the destination.
+
+    Args:
+        srcdbname: name (as per the data dictionary) of the source database
+        src_table: name of the source table
+        report_every: report to the Python log every *n* records
+        chunksize: insert records every *n* records
     """
     if not config.dd.has_active_destination(srcdbname, src_table):
         return
@@ -249,14 +270,14 @@ def delete_dest_rows_with_no_src_row(
 
 def commit_destdb() -> None:
     """
-    Execute a COMMIT on the destination database, and reset row counts.
+    Execute a ``COMMIT`` on the destination database, and reset row counts.
     """
     config.commit_dest_db()
 
 
 def commit_admindb() -> None:
     """
-    Execute a COMMIT on the admin database, which is using ORM sessions.
+    Execute a ``COMMIT`` on the admin database, which is using ORM sessions.
     """
     config.admindb.session.commit()
 
@@ -266,22 +287,37 @@ def commit_admindb() -> None:
 # =============================================================================
 
 def opting_out_pid(pid: Union[int, str]) -> bool:
-    """Does this patient wish to opt out?"""
+    """
+    Does this patient wish to opt out?
+
+    Args:
+        pid: patient identifier (PID)
+    """
     if pid is None:
         return False
     return OptOutPid.opting_out(config.admindb.session, pid)
 
 
 def opting_out_mpid(mpid: Union[int, str]) -> bool:
-    """Does this patient wish to opt out?"""
+    """
+    Does this patient wish to opt out?
+
+    Args:
+        mpid: master patient identifier (MPID)
+    """
     if mpid is None:
         return False
     return OptOutMpid.opting_out(config.admindb.session, mpid)
 
 
 def gen_optout_rids() -> Generator[str, None, None]:
-    # If a patient opts out, we need to be able to wipe their information from
-    # the database, and hence look up their RID for that purpose.
+    """
+    Generates RIDs for patients who opt out (which we can use to wipe their
+    information from the destination database).
+
+    Yields:
+        string: research ID (RID)
+    """
     session = config.admindb.session
     result = (
         session.query(PatientInfo.rid).
@@ -297,26 +333,29 @@ def gen_optout_rids() -> Generator[str, None, None]:
 
 
 # =============================================================================
-# Functions for getting pids from restricted set
+# Functions for getting PIDs from restricted set
 # =============================================================================
 
 def get_valid_pid_subset(given_pids: List[Any]) -> List[str]:
     """
-    Takes a list of pids and returns those in the list which
-    are also in the database.
+    Takes a list of PIDs and returns those in the list which are also in the
+    database.
     """
     pid_is_integer = config.pidtype_is_integer
     if pid_is_integer:
         # Remove non-integer values of pid if pids are supposed to be integer
-        orig_pids = given_pids
-        for i, pid in enumerate(orig_pids):
+        final_given_pids = []
+        for pid in enumerate(given_pids):
             try:
                 int(pid)
+                final_given_pids.append(pid)
             except (TypeError, ValueError):
                 print("pid '{}' should be in integer form. ".format(pid),
                       end="")
                 print("Excluding value.")
-                del given_pids[i]
+    else:
+        final_given_pids = given_pids
+
     pids = []
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
@@ -332,26 +371,58 @@ def get_valid_pid_subset(given_pids: List[Any]) -> List[str]:
         result = session.execute(query)
         real_pids = [str(x[0]) for x in result]
         for pid in real_pids:
-            if pid in given_pids:
+            if pid in final_given_pids:
                 pids.append(pid)
 
     return pids
 
 
-def get_subset_from_field(field: str, field_elements: List[Any]) -> List[Any]:
+def get_pid_subset_from_field(field: str,
+                              values_to_find: List[Any]) -> List[Any]:
     """
-    Takes a field name and elements from that field and queries the database
-    to find the pids associated with these values.
+    Takes a field name and elements from that field (values present in that
+    field) and queries the database to find the PIDs associated with these
+    values.
+
+    Args:
+        field: field name in the format ``database.table.field``
+        values_to_find: values to look for
+
+    Returns:
+        list of PIDs
+
+    For example, suppose you have a source table called
+    ``mydb.mystudyinfo`` like this:
+
+        =============== ============================
+        pid (INTEGER)   include_in_extract (VARCHAR)
+        =============== ============================
+        1               no
+        2               0
+        3               yes
+        4               1
+        5               definitely
+        =============== ============================
+
+    then a call like
+
+    .. code-block:: python:
+
+        get_subset_from_field("mydb.mystudyinfo.include_in_extract",
+                              ["yes", "1", "definitely"])
+
+    should return ``[3, 4, 5]``, assuming that ``pid`` has been correctly
+    marked as the PID column in the data dictionary.
+
     """
     pids = []
+
     # Get database, table and field from 'field'
     db_parts = field.split(".")
-    # Database name
-    db = db_parts[0]
-    # Table name
-    tablename = db_parts[1]
-    # Field name
-    fieldname = db_parts[2]
+    assert len(db_parts) == 3, (
+        "field parameter must be of the form 'db.table.field'")
+    db, tablename, fieldname = db_parts
+
     try:
         session = config.sources[db].session
     except (KeyError, AttributeError):
@@ -359,6 +430,7 @@ def get_subset_from_field(field: str, field_elements: List[Any]) -> List[Any]:
               "'--restrict' must be of the form 'database.table.field', "
               "or be 'pid'.".format(db))
         return pids
+
     fieldcol = column(fieldname)
     row = None  # for type checker
     for ddr in config.dd.rows:
@@ -373,7 +445,7 @@ def get_subset_from_field(field: str, field_elements: List[Any]) -> List[Any]:
             query = (
                 select([pidcol]).
                 select_from(table(ddr.src_table)).
-                where((fieldcol.in_(field_elements)) & (pidcol is not None)).
+                where((fieldcol.in_(values_to_find)) & (pidcol is not None)).
                 distinct()
             )
             result = session.execute(query)
@@ -409,7 +481,7 @@ def get_subset_from_field(field: str, field_elements: List[Any]) -> List[Any]:
     source_field = row.src_field
     source_table = row.src_table
     # Convert list to string in correct form for query
-    txt_elements = ", ".join(field_elements)
+    txt_elements = ", ".join(values_to_find)
     txt_elements = "(" + txt_elements + ")"
 
     txt = "SELECT {}.{} FROM {} ".format(source_table, source_field,
@@ -428,51 +500,104 @@ def get_subset_from_field(field: str, field_elements: List[Any]) -> List[Any]:
 
 def fieldname_is_pid(field: str) -> bool:
     """
-    Checks if a field name is 'pid' or, if in the form 'database.table.field',
-    is the name of a primary pid field.
+    Checks if a field name is the literal ``'pid'`` or, if in the form
+    ``'database.table.field'``, is the name of a primary PID field in the
+    source database. If either of those conditions is met, return ``True``;
+    otherwise, ``False``.
     """
-    field_is_pid = False
     if field == 'pid':
-        field_is_pid = True
-        return field_is_pid
+        return True
     for ddr in config.dd.rows:
         if ddr.defines_primary_pids:
-            if ddr.src_db + "." + ddr.src_field == field:
-                field_is_pid = True
-                return field_is_pid
-    return field_is_pid
+            if field == ddr.get_signature():
+                return True
+    return False
 
 
 def get_pids_from_file(field: str, filename: str) -> List[str]:
     """"
     Takes a field name, and a filename of values of that field, and returns
-    a list of pids associated with them.
+    a list of PIDs associated with them.
+
+    Args:
+        field:
+            a fieldname of the format ``database.table.field``, or the literal
+            ``pid``
+        filename:
+            A file containing words that represent values to look for, as
+            follows.
+
+            - If ``field`` is the string literal ``'pid'``, or is the name of
+              a source database field containing PIDs, then the values in the
+              file should be PIDs. We check that they are valid.
+            - If it's another kind of field, look for values (from the file)
+              in this field, and return the value of the PID column from the
+              same row of the table. (See :func:`get_pid_subset_from_field`.)
+
+    Returns:
+        list of PIDs
     """
     field_is_pid = fieldname_is_pid(field)
     # pid_is_integer = config.pidtype_is_integer
     if field_is_pid:
-        # If the chosen field is a pid field, just make sure all pids in the
+        # If the chosen field is a PID field, just make sure all PIDs in the
         # file are valid
-        given_pids = [x for x in gen_words_from_file(filename)]
+        given_pids = list(gen_words_from_file(filename))
         pids = get_valid_pid_subset(given_pids)
     else:
-        field_elements = [x for x in gen_words_from_file(filename)]
-        pids = get_subset_from_field(field, field_elements)
+        field_elements = list(gen_words_from_file(filename))
+        pids = get_pid_subset_from_field(field, field_elements)
 
     return pids
 
 
-def get_pids_from_list(field: str, list_elements: List[Any]) -> List[str]:
+def get_pids_from_list(field: str, values: List[Any]) -> List[str]:
+    """
+    Takes a field name and a list of values, and returns a list of PIDs
+    associated with them.
+
+    Args:
+        field:
+            a fieldname of the format ``database.table.field``, or the literal
+            ``pid``
+        values:
+            Values to look for, as follows.
+
+            - If ``field`` is the string literal ``'pid'``, or is the name of
+              a source database field containing PIDs, then the values in the
+              should be PIDs. We check that they are valid.
+            - If it's another kind of field, look for the values in this field,
+              and return the value of the PID column from the same row of the
+              table. (See :func:`get_pid_subset_from_field`.)
+
+    Returns:
+        list of PIDs
+
+    """
     field_is_pid = fieldname_is_pid(field)
     if field_is_pid:
-        pids = get_valid_pid_subset(list_elements)
+        pids = get_valid_pid_subset(values)
     else:
-        pids = get_subset_from_field(field, list_elements)
+        pids = get_pid_subset_from_field(field, values)
 
     return pids
 
 
 def get_pids_from_limits(low: int, high: int) -> List[Any]:
+    """
+    Finds PIDs from the source database that are between ``low`` and ``high``
+    inclusive.
+
+    - The SQL ``BETWEEN`` operator is inclusive
+      (https://www.w3schools.com/sql/sql_between.asp).
+
+    Args:
+        low: lower (inclusive) limit
+        high: upper (inclusive) limit
+
+    Returns:
+        list of PIDs in this range
+    """
     pids = []
     for ddr in config.dd.rows:
         if not ddr.defines_primary_pids:
@@ -492,15 +617,47 @@ def get_pids_from_limits(low: int, high: int) -> List[Any]:
 
 
 def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
+    """
+    Takes a field name and queries the database to find the PIDs associated
+    with records where ``field`` is in the range ``low`` to ``high`` inclusive.
+
+    Args:
+        field: field name in the format ``database.table.field``
+        low: lower (inclusive) limit
+        high: upper (inclusive) limit
+
+    Returns:
+        list of PIDs
+
+    For example, suppose you have a source table called ``mydb.myoptouts`` like
+    this:
+
+        =============== ==========================
+        pid (INTEGER)   opt_out_level (INTEGER)
+        =============== ==========================
+        1               0
+        2               1
+        3               2
+        4               3
+        5               4
+        =============== ==========================
+
+    then a call like
+
+    .. code-block:: python:
+
+        get_subset_from_field("mydb.myoptouts.opt_out_level", 2, 3)
+
+    should return ``[3, 4]``, assuming that ``pid`` has been correctly marked
+    as the PID column in the data dictionary.
+    """
     pids = []
     # Get database, table and field from 'field'
     db_parts = field.split(".")
-    # Database name
-    db = db_parts[0]
-    # Table name
-    tablename = db_parts[1]
-    # Field name
-    fieldname = db_parts[2]
+    assert len(db_parts) == 3, (
+        "field parameter must be of the form 'db.table.field'")
+    db, tablename, fieldname = db_parts
+
     try:
         session = config.sources[db].session
     except (KeyError, AttributeError):
@@ -508,6 +665,7 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
               "'--restrict' must be of the form 'database.table.field', "
               "or be 'pid'.".format(db))
         return pids
+
     fieldcol = column(fieldname)
     row = None
     for ddr in config.dd.rows:
@@ -555,6 +713,32 @@ def get_pids_query_field_limits(field: str, low: int, high: int) -> List[Any]:
 
 
 def get_pids_from_field_limits(field: str, low: int, high: int) -> List[Any]:
+    """
+    Takes a field name and a lower/upper limit, and returns a list of
+    associated PIDs.
+
+    Args:
+        field:
+            a fieldname of the format ``database.table.field``, or the literal
+            ``pid``
+        low:
+            lower (inclusive) limit
+        high:
+            upper (inclusive) limit
+
+    The range is used as follows.
+
+    - If ``field`` is the string literal ``'pid'``, or is the name of
+      a source database field containing PIDs, then fetch PIDs in the specified
+      range and check that they are valid.
+    - If it's another kind of field, look for rows where this field is in the
+      specified range, and return the value of the PID column from the same row
+      of the table. (See :func:`get_pids_query_field_limits`.)
+
+    Returns:
+        list of PIDs
+
+    """
     field_is_pid = fieldname_is_pid(field)
     if field_is_pid:
         pids = get_pids_from_limits(low, high)
@@ -576,12 +760,17 @@ def gen_patient_ids(
     """
     Generate patient IDs.
 
-        sources: dictionary
-            key: db name
-            value: rnc_db database object
+    Args:
+        tasknum: task number of this process (for dividing up work)
+        ntasks: total number of processes (for dividing up work)
+        specified_pids: optional list of PIDs to restrict ourselves to
+
+    Yields:
+        integer patient IDs (PIDs)
+
+    - Assigns work to threads/processes, via the simple expedient of processing
+      only those patient ID numbers where ``patientnum % ntasks == tasknum``.
     """
-    # ASSIGNS WORK TO THREADS/PROCESSES, via the simple expedient of processing
-    # only those patient ID numbers where patientnum % ntasks == tasknum.
 
     assert ntasks >= 1
     assert 0 <= tasknum < ntasks
@@ -682,11 +871,13 @@ def gen_patient_ids(
 
 def estimate_count_patients() -> int:
     """
+    Estimate the number of patients in the source database.
+
     We can't easily and quickly get the total number of patients, because they
     may be defined in multiple tables across multiple databases. We shouldn't
     fetch them all into Python in case there are billions, and it's a waste of
     effort to stash them in a temporary table and count unique rows, because
-    this is all only for a progress indicator. So we approximate:
+    this is all only for a progress indicator. So we approximate.
     """
     count = 0
     for ddr in config.dd.rows:
@@ -707,14 +898,28 @@ def gen_rows(dbname: str,
              ntasks: int = 1,
              debuglimit: int = 0) -> Generator[List[Any], None, None]:
     """
-    Generates rows from a source table
-    ... each row being a list of values
-    ... each value corresponding to a field in sourcefields.
-
-    ... optionally restricted to a single patient
+    Generates rows from a source table:
+    - ... each row being a list of values
+    - ... each value corresponding to a field in sourcefields.
+    - ... optionally restricted to a single patient
 
     If the table has a PK and we're operating in a multitasking situation,
     generate just the rows for this task (thread/process).
+
+    Args:
+        dbname: name (as per the data dictionary) of the source database
+        sourcetable: name of the source table
+        sourcefields: names of fields in the source table
+        pid: patient ID (PID)
+        intpkname: name of the integer PK column in the source table, if one
+            exists
+        tasknum: task number of this process (for dividing up work)
+        ntasks: total number of processes (for dividing up work)
+        debuglimit: if specified, the maximum number of rows to process
+
+    Yields:
+        lists, each representing one row and containing values for each of the
+        ``sourcefields``
     """
     t = config.sources[dbname].metadata.tables[sourcetable]
     q = select([column(c) for c in sourcefields]).select_from(t)
@@ -753,6 +958,18 @@ def gen_rows(dbname: str,
 def count_rows(dbname: str,
                sourcetable: str,
                pid: Union[int, str] = None) -> int:
+    """
+    Count the number of rows in a table for a given PID.
+
+    Args:
+        dbname: name (as per the data dictionary) of the source database
+        sourcetable: name of the source table
+        pid: patient ID (PID)
+
+    Returns:
+        the number of records
+
+    """
     # Count function to match gen_rows()
     session = config.sources[dbname].session
     query = select([func.count()]).select_from(table(sourcetable))
@@ -767,8 +984,17 @@ def gen_index_row_sets_by_table(
         ntasks: int = 1) -> Generator[Tuple[str, List[DataDictionaryRow]],
                                       None, None]:
     """
-    Generate (table, list-of-DD-rows-for-indexed-fields) tuples for all tables
-    requiring indexing.
+    Generate ``table, list_of_dd_rows_for_indexed_fields`` tuples for all
+    tables requiring indexing.
+
+    Args:
+        tasknum: task number of this process (for dividing up work)
+        ntasks: total number of processes (for dividing up work)
+
+    Yields:
+        tuple: ``table, list_of_dd_rows_for_indexed_fields`` for each table
+        as above
+
     """
     indexrows = [ddr for ddr in config.dd.rows
                  if ddr.index and not ddr.omit]
@@ -785,9 +1011,18 @@ def gen_nonpatient_tables_without_int_pk(
         tasknum: int = 0,
         ntasks: int = 1) -> Generator[Tuple[str, str], None, None]:
     """
-    Generate (source db name, source table) tuples for all tables that
+    Generate ``(source db name, source table)`` tuples for all tables that
+
     (a) don't contain patient information and
     (b) don't have an integer PK.
+
+    Args:
+        tasknum: task number of this process (for dividing up work)
+        ntasks: total number of processes (for dividing up work)
+
+    Yields:
+        tuple: ``source_db_name, source_table`` for each table as above
+
     """
     db_table_pairs = config.dd.get_src_dbs_tables_with_no_pt_info_no_pk()
     # ... returns a SortedSet, so safe to divide parallel processing like this:
@@ -800,7 +1035,9 @@ def gen_nonpatient_tables_without_int_pk(
 def gen_nonpatient_tables_with_int_pk() -> Generator[Tuple[str, str, str],
                                                      None, None]:
     """
-    Generate (source db name, source table, PK name) tuples for all tables that
+    Generate ``source_db_name, source_table, pk_name`` tuples for all tables
+    that
+
     (a) don't contain patient information and
     (b) do have an integer PK.
     """
@@ -817,6 +1054,14 @@ def gen_pks(srcdbname: str,
             pkname: str) -> Generator[int, None, None]:
     """
     Generate PK values from a table.
+
+    Args:
+        srcdbname: name (as per the data dictionary) of the database
+        tablename: name of the table
+        pkname: name of the PK column
+
+    Yields:
+        int: each primary key
     """
     db = config.sources[srcdbname]
     t = db.metadata.tables[tablename]
@@ -845,6 +1090,27 @@ def process_table(sourcedbname: str,
     Process a table. This can either be a patient table (in which case the
     patient's scrubber is applied and only rows for that patient are processed)
     or not (in which case the table is just copied).
+
+    Args:
+        sourcedbname:
+            name (as per the data dictionary) of the source database
+        sourcetable:
+            name of the source table
+        patient:
+            :class:`crate_anon.anonymise.patient.Patient` object, or ``None``
+            for non-patient tables
+        incremental:
+            perform an incremental update, rather than a full run?
+        intpkname:
+            name of the integer PK column in the source table
+        tasknum:
+            task number of this process (for dividing up work)
+        ntasks:
+            total number of processes (for dividing up work)
+        free_text_limit:
+            If specified, any text field that contains content longer than this
+            many characters will be wiped (set to ``NULL``) as it's sent to the
+            destination database.
     """
     start = "process_table: {}.{}: ".format(sourcedbname, sourcetable)
     pid = None if patient is None else patient.get_pid()
@@ -999,6 +1265,10 @@ def process_table(sourcedbname: str,
 def create_indexes(tasknum: int = 0, ntasks: int = 1) -> None:
     """
     Create indexes for the destination tables.
+
+    Args:
+        tasknum: task number of this process (for dividing up work)
+        ntasks: total number of processes (for dividing up work)
     """
     log.info(SEP + "Create indexes")
     engine = config.get_destdb_engine_outside_transaction()
@@ -1041,10 +1311,19 @@ def patient_processing_fn(tasknum: int = 0,
                           specified_pids: List[int] = None,
                           free_text_limit: int = None) -> None:
     """
-    Iterate through patient IDs;
-        build the scrubber for each patient;
-        process source data for that patient, scrubbing it;
-        insert the patient into the mapping table in the admin database.
+    Main function to anonymise patient data.
+
+    - Iterate through patient IDs;
+    - build the scrubber for each patient;
+    - process source data for that patient, scrubbing it;
+    - insert the patient into the mapping table in the admin database.
+
+    Args:
+        tasknum: task number of this process (for dividing up work)
+        ntasks: total number of processes (for dividing up work)
+        incremental: perform an incremental update, rather than a full run?
+        specified_pids: if specified, restrict to specific PIDs
+        free_text_limit: as per :func:`process_table`
     """
     n_patients = estimate_count_patients() // ntasks
     i = 0
@@ -1102,14 +1381,19 @@ def patient_processing_fn(tasknum: int = 0,
     commit_destdb()
 
 
-def wipe_opt_out_patients(report_every: int = 1000,
-                          chunksize: int = 10000) -> None:
+def wipe_destination_data_for_opt_out_patients(report_every: int = 1000,
+                                               chunksize: int = 10000) -> None:
     """
     Delete any data from patients that have opted out (after their data was
     processed on a previous occasion).
+
     (Slightly complicated by the fact that the destination database can't
     necessarily 'see' the mapping database, so we need to cache the RID keys in
     the destination database temporarily.)
+
+    Args:
+        report_every: report logging information every *n* records
+        chunksize: insert records every *n* records
     """
     start = "wipe_opt_out_patients"
     log.info(start)
@@ -1191,8 +1475,14 @@ def drop_remake(incremental: bool = False,
                 skipdelete: bool = False) -> None:
     """
     Drop and rebuild (a) mapping table, (b) destination tables.
-    If incremental is True, doesn't drop tables; just deletes destination
-    information where source information no longer exists.
+
+    Args:
+        incremental:
+            doesn't drop tables; just deletes destination information where
+            source information no longer exists.
+        skipdelete:
+            For incremental updates, skip deletion of rows present in the
+            destination but not the source
     """
     log.info(SEP + "Creating database structure +/- deleting dead data")
     engine = config.admindb.engine
@@ -1224,21 +1514,53 @@ def drop_remake(incremental: bool = False,
                 chunksize=config.chunksize)
 
 
-def gen_integers_from_file(filename: str) -> Generator[int, None, None]:
-    for line in open(filename):
-        pids = [int(x) for x in line.split() if x.isdigit()]
-        for pid in pids:
-            yield pid
-
-
 def gen_words_from_file(filename: str) -> Generator[str, None, None]:
+    """
+    Generate words from a file.
+
+    Args:
+        filename:
+
+    Yields:
+        each word
+    """
     for line in open(filename):
-        for pid in line.split():
+        for word in line.split():
+            yield word
+
+
+def gen_integers_from_file(filename: str) -> Generator[int, None, None]:
+    """
+    Generates integers from a file.
+
+    Args:
+        filename: filename to parse
+
+    Yields:
+        all valid integers from words in the file
+    """
+    for word in gen_words_from_file(filename):
+        if word.isdigit():
+            pid = int(word)
             yield pid
 
 
-def gen_opt_out_pids_from_file(mpid: bool = False) -> Generator[int,
-                                                                None, None]:
+def gen_opt_out_pids_from_file(mpid: bool = False) \
+        -> Generator[Union[int, str], None, None]:
+    """
+    Generate opt-out PIDs (or MPIDs) from a file.
+
+    Args:
+        mpid:
+            generate MPIDs, not PIDs (and therefore use
+            ``config.optout_mpid_filenames``, not
+            ``config.optout_pid_filenames``, as the set of filenames to read)
+
+    Yields:
+        each PID (or MPID), which will be either ``str`` or ``int`` depending
+        on the value of ``config.mpidtype_is_integer`` or
+        ``config.pidtype_is_integer``.
+    """
     if mpid:
         txt = "MPID"
         filenames = config.optout_mpid_filenames
@@ -1253,18 +1575,30 @@ def gen_opt_out_pids_from_file(mpid: bool = False) -> Generator[int,
         for filename in filenames:
             log.info("... {} file: {}".format(txt, filename))
             if as_int:
-                yield(gen_integers_from_file(filename))
+                for pid in gen_integers_from_file(filename):
+                    yield pid
             else:
-                yield(gen_words_from_file(filename))
+                for pid in gen_words_from_file(filename):
+                    yield pid
 
 
-def gen_opt_out_pids_from_database(mpid: bool = False) -> Generator[int, None,
-                                                                    None]:
+def gen_opt_out_pids_from_database(mpid: bool = False) \
+        -> Generator[Any, None, None]:
+    """
+    Generate opt-out PIDs (or MPIDs) from a database.
+
+    Args:
+        mpid: generate MPIDs, not PIDs
+
+    Yields:
+        each PID (or MPID)
+
+    """
     txt = "MPID" if mpid else "PID"
     found_one = False
     defining_fields = config.dd.get_optout_defining_fields()
     for t in defining_fields:
-        (src_db, src_table, optout_colname, pid_colname, mpid_colname) = t
+        src_db, src_table, optout_colname, pid_colname, mpid_colname = t
         id_colname = mpid_colname if mpid else pid_colname
         if not id_colname:
             continue
@@ -1289,10 +1623,24 @@ def gen_opt_out_pids_from_database(mpid: bool = False) -> Generator[int, None,
     if not found_one:
         log.info("... no opt-out-defining {} fields in data "
                  "dictionary".format(txt))
-        return
 
 
 def setup_opt_out(incremental: bool = False) -> None:
+    """
+    - Hunts far and wide through its sources for PID/MPID values of patients
+      who wish to opt out.
+    - Adds them to the admin tables for
+      :class:`crate_anon.anonymise.models.OptOutPid` and
+      :class:`crate_anon.anonymise.models.OptOutMpid`.
+
+    Args:
+        incremental:
+            after adding opt-out patients, delete any data for them found
+            in the destination database. (Unnecessary for "full" rather than
+            "incremental" runs, since "full" runs delete all the destination
+            tables and start again.)
+
+    """
     log.info(SEP + "Managing opt-outs")
     adminsession = config.admindb.session
 
@@ -1311,9 +1659,9 @@ def setup_opt_out(incremental: bool = False) -> None:
         OptOutMpid.add(adminsession, mpid)
 
     adminsession.commit()
-    if not incremental:
-        return
-    wipe_opt_out_patients()
+
+    if incremental:
+        wipe_destination_data_for_opt_out_patients()
 
 
 def process_nonpatient_tables(tasknum: int = 0,
@@ -1322,8 +1670,23 @@ def process_nonpatient_tables(tasknum: int = 0,
                               free_text_limit: int = None) -> None:
     """
     Copies all non-patient tables.
-    If they have an integer PK, the work may be parallelized.
-    If not, whole tables are assigned to different processes in parallel mode.
+
+    - If they have an integer PK, the work may be parallelized.
+    - If not, whole tables are assigned to different processes in parallel
+      mode.
+
+    Args:
+        tasknum:
+            task number of this process (for dividing up work)
+        ntasks:
+            total number of processes (for dividing up work)
+        incremental:
+            perform an incremental update, rather than a full run?
+        free_text_limit:
+            If specified, any text field that contains content longer than this
+            many characters will be wiped (set to ``NULL``) as it's sent to the
+            destination database.
+
     """
     log.info(SEP + "Non-patient tables: (a) with integer PK")
     for (d, t, pkname) in gen_nonpatient_tables_with_int_pk():
@@ -1358,6 +1721,23 @@ def process_patient_tables(tasknum: int = 0,
                            free_text_limit: int = None) -> None:
     """
     Process all patient tables, optionally in a parallel-processing fashion.
+
+    All the work is done via :func:`patient_processing_fn`.
+
+    Args:
+        tasknum:
+            task number of this process (for dividing up work)
+        ntasks:
+            total number of processes (for dividing up work)
+        incremental:
+            perform an incremental update, rather than a full run?
+        specified_pids:
+            if specified, restrict to specific PIDs
+        free_text_limit:
+            If specified, any text field that contains content longer than this
+            many characters will be wiped (set to ``NULL``) as it's sent to the
+            destination database.
+
     """
     # We'll use multiple destination tables, so commit right at the end.
     log.info(SEP + "Patient tables")
@@ -1382,7 +1762,7 @@ def process_patient_tables(tasknum: int = 0,
 
 def show_source_counts() -> None:
     """
-    Show the number of records in all source tables.
+    Show (print to stdout) the number of records in all source tables.
     """
     print("SOURCE TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
@@ -1396,7 +1776,7 @@ def show_source_counts() -> None:
 
 def show_dest_counts() -> None:
     """
-    Show the number of records in all destination tables.
+    Show (print to stout) the number of records in all destination tables.
     """
     print("DESTINATION TABLE RECORD COUNTS:")
     counts = []  # type: List[Tuple[str, int]]
@@ -1413,7 +1793,12 @@ def show_dest_counts() -> None:
 
 def anonymise(args: Any) -> None:
     """
-    Main entry point.
+    Main entry point for anonymisation.
+
+    Args:
+        args:
+            argparse arguments, from
+            :func:`crate_anon.anonymise.anonymise_cli.main`
     """
     # Validate args
     if args.nprocesses < 1:

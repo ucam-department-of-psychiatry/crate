@@ -24,23 +24,23 @@ crate_anon/anonymise/launch_multiprocess_anonymiser.py
 
 ===============================================================================
 
-Launch anonymise.py in multiprocess mode.
+**Launch the CRATE anonymiser in multiprocess mode.**
 
 Previous bash version: see
 
-    http://stackoverflow.com/questions/356100
-    http://stackoverflow.com/questions/1644856
-    http://stackoverflow.com/questions/8903239
-    http://stackoverflow.com/questions/1951506
-    Note: $! is the process ID of last process launched in background
-    http://stackoverflow.com/questions/59895
+- http://stackoverflow.com/questions/356100
+- http://stackoverflow.com/questions/1644856
+- http://stackoverflow.com/questions/8903239
+- http://stackoverflow.com/questions/1951506
+- Note: ``$!`` is the process ID of last process launched in background
+- http://stackoverflow.com/questions/59895
 
 Python version: see
 
-    http://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel  # noqa
-    http://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program  # noqa
-    http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python  # noqa
-"""
+- http://stackoverflow.com/questions/23611396/python-execute-cat-subprocess-in-parallel
+- http://stackoverflow.com/questions/320232/ensuring-subprocesses-are-dead-on-exiting-python-program
+- http://stackoverflow.com/questions/641420/how-should-i-log-while-using-multiprocessing-in-python
+"""  # noqa
 
 import argparse
 import logging
@@ -68,6 +68,9 @@ CPUCOUNT = multiprocessing.cpu_count()
 # =============================================================================
 
 def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
     version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
     description = (
         "Runs the CRATE anonymiser in parallel. {}. Note that all arguments "

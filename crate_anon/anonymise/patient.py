@@ -24,7 +24,9 @@ crate_anon/anonymise/patient.py
 
 ===============================================================================
 
-Patient class for CRATE anonymiser.
+**Patient class for CRATE anonymiser. Represents patient-specific information
+like ID values and scrubbers.**
+
 """
 
 import logging
@@ -50,20 +52,23 @@ def gen_all_values_for_patient(
         fields: List[str],
         pid: Union[int, str]) -> Generator[List[Any], None, None]:
     """
-    Generate all sensitive (scrub_src) values for a given patient, from a given
-    source table. Used to build the scrubber.
+    Generate all sensitive (``scrub_src``) values for a given patient, from a
+    given source table. Used to build the scrubber.
+
+    Args:
 
         dbname: source database name
-        table: source table
-        fields: source fields containing scrub_src information
+        tablename: source table
+        fields: list of source fields containing ``scrub_src`` information
         pid: patient ID
 
-    Yields rows, where each row is a list of values that matches "fields".
+    Yields:
+         rows, where each row is a list of values that matches ``fields``.
     """
     cfg = config.sources[dbname].srccfg
     if not cfg.ddgen_per_table_pid_field:
         return
-        # http://stackoverflow.com/questions/13243766
+        # return in a generator: http://stackoverflow.com/questions/13243766
     log.debug(
         "gen_all_values_for_patient: PID {p}, table {d}.{t}, "
         "fields: {f}".format(
@@ -85,17 +90,19 @@ def gen_all_values_for_patient(
 # =============================================================================
 
 class Patient(object):
-    """Class representing a patient-specific information, such as PIDs, RIDs,
-    and scrubbers."""
+    """
+    Class representing a patient-specific information, such as PIDs, RIDs, and
+    scrubbers.
+    """
 
     def __init__(self, pid: Union[int, str], debug: bool = False) -> None:
         """
-        Build the scrubber based on data dictionary information.
+        Build the scrubber based on data dictionary information, found via
+        our singleton :class:`crate_anon.anonymise.config.Config`.
 
-            sources: dictionary
-                key: db name
-                value: rnc_db database object
-            pid: (usually integer) patient identifier
+        Args:
+            pid: integer or string (usually integer) patient identifier
+            debug: turn on scrubber debugging?
         """
         self.pid = pid
         self.session = config.admindb.session
@@ -157,11 +164,30 @@ class Patient(object):
                         pid: Union[int, str],
                         depth: int,
                         max_depth: int) -> None:
+        """
+        Build the scrubber for this patient.
+
+        We do this by finding all this patient's values within the "scrub from"
+        columns of the source database, and adding them to our patient scrubber
+        (or third-party scrubber as the case may be, for information about
+        relatives etc.), according to the scrub method defined in the data
+        dictionary row.
+
+        Args:
+            pid: integer or string (usually integer) patient identifier
+            depth: current recursion depth for third-party information
+            max_depth: maximum recursion depth for third-party information
+        """
         if depth > 0:
             log.debug("Building scrubber recursively: depth = {}".format(
                 depth))
+        # ---------------------------------------------------------------------
+        # For all source tables...
+        # ---------------------------------------------------------------------
         for (src_db, src_table) in self._db_table_pair_list:
-            # Build a list of fields for this table.
+            # -----------------------------------------------------------------
+            # Build a list of scrub-from fields for this table.
+            # -----------------------------------------------------------------
             ddrows = config.dd.get_scrub_from_rows(src_db, src_table)
             fields = [ddr.src_field for ddr in ddrows]
             # Precalculate things; we might being going through a lot of values
@@ -178,10 +204,15 @@ class Patient(object):
                        for ddr in ddrows]
             required_scrubber = [ddr.required_scrubber for ddr in ddrows]
             sigs = [ddr.get_signature() for ddr in ddrows]
+            # -----------------------------------------------------------------
             # Collect the actual patient-specific values for this table.
+            # -----------------------------------------------------------------
             for values in gen_all_values_for_patient(src_db, src_table,
                                                      fields, pid):
                 for i, val in enumerate(values):
+                    # ---------------------------------------------------------
+                    # Add a value to the scrubber
+                    # ---------------------------------------------------------
                     self.scrubber.add_value(val, scrub_method[i],
                                             patient=is_patient[i])
 
@@ -190,9 +221,11 @@ class Patient(object):
                         self.set_mpid(val)
 
                     if recurse[i]:
+                        # -----------------------------------------------------
                         # We've come across a patient ID of another patient,
                         # whose information should be trawled and treated
                         # as third-party information
+                        # -----------------------------------------------------
                         try:
                             related_pid = int(val)
                         except (ValueError, TypeError):
@@ -206,35 +239,68 @@ class Patient(object):
 
     @property
     def mandatory_scrubbers_unfulfilled(self) -> AbstractSet[str]:
+        """
+        Returns a set of strings (each of the format ``db.table.column``) for
+        all "required scrubber" fields that have not yet had information seen
+        for them (for this patient), and are therefore unfulfilled.
+
+        See also
+        :meth:`crate_anon.anonymise.dd.DataDictionary.get_mandatory_scrubber_sigs`.
+        """  # noqa
         return self._mandatory_scrubbers_unfulfilled
 
     def get_pid(self) -> Union[int, str]:
-        """Return the patient ID (PID)."""
+        """
+        Return the patient ID (PID).
+        """
         return self.info.pid
 
     def get_mpid(self) -> Union[int, str]:
-        """Return the master patient ID (MPID)."""
+        """
+        Return the master patient ID (MPID).
+        """
         return self.info.mpid
 
     def set_mpid(self, mpid: Union[int, str]) -> None:
+        """
+        Set the patient MPID.
+        """
         self.info.set_mpid(mpid)
 
     def get_rid(self) -> str:
-        """Returns the RID (encrypted PID)."""
+        """
+        Returns the RID (encrypted PID).
+        """
         return self.info.rid
 
     def get_mrid(self) -> str:
-        """Returns the master RID (encrypted MPID)."""
+        """
+        Returns the master RID (encrypted MPID).
+        """
         return self.info.mrid
 
     def get_trid(self) -> int:
-        """Returns the transient integer RID (TRID)."""
+        """
+        Returns the transient integer RID (TRID).
+        """
         return self.info.trid
 
     def get_scrubber_hash(self) -> str:
+        """
+        Return the hash of our scrubber (for change detection).
+        """
         return self.scrubber.get_hash()
 
     def scrub(self, text: str) -> str:
+        """
+        Use our scrubber to scrub text.
+
+        Args:
+            text: the raw text, potentially containing sensitive information
+
+        Returns:
+            the de-identified text
+        """
         return self.scrubber.scrub(text)
 
     def unchanged(self) -> bool:

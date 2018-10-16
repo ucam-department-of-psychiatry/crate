@@ -24,6 +24,8 @@ crate_anon/common/formatting.py
 
 ===============================================================================
 
+**Ancillary formatting functions.**
+
 """
 
 from typing import List, Tuple
@@ -35,6 +37,13 @@ from operator import itemgetter
 # =============================================================================
 
 def print_record_counts(counts: List[Tuple[str, int]]) -> None:
+    """
+    Prints (to stdout) record counts for tables, firstly in alphabetical
+    order of table name, then in numerical order of record count.
+
+    Args:
+        counts: list of ``table_name, n_record`` tuples
+    """
     alphabetical = sorted(counts, key=itemgetter(0))
     numerical = sorted(counts, key=itemgetter(1))
     print("\n-- ALPHABETICALLY\n")

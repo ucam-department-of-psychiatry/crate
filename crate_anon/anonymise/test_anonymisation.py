@@ -24,7 +24,7 @@ crate_anon/anonymise/test_anonymisation.py
 
 ===============================================================================
 
-Test the anonymisation for specific databases.
+**Test anonymisation for specific databases.**
 
 From the output, we have:
 
@@ -53,6 +53,7 @@ and then we have everything we need. For all identifiers, we make FN equal to
         + not_false_negative_confidential_visible_but_unknown_to_source
 
 instead.
+
 """
 
 # =============================================================================

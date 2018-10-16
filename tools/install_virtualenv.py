@@ -33,6 +33,7 @@ import os
 import platform
 import subprocess
 import sys
+from typing import List
 
 
 if sys.version_info[0] < 3:

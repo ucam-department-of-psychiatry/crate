@@ -452,7 +452,7 @@ def get_phrase_regex_elements(
             maximum number of typos, as defined by the regex module
         alternatives:
             This allows words to be substituted by equivalents; such as
-            ``St`` for ``Street`` or ``Rd`` for ``Road``. The paramater is a
+            ``St`` for ``Street`` or ``Rd`` for ``Road``. The parameter is a
             list of lists of equivalents; see
             :func:`crate_anon.anonymise.config.get_word_alternatives`
 

@@ -24,11 +24,14 @@ crate_anon/common/stringfunc.py
 
 ===============================================================================
 
+**Simple string functions.**
+
 """
 
 import fnmatch
 from functools import lru_cache
 import sys
+from typing import Any, Pattern, TextIO
 
 import regex
 
@@ -40,7 +43,8 @@ import regex
 def get_digit_string_from_vaguely_numeric_string(s: str) -> str:
     """
     Strips non-digit characters from a string.
-    For example, converts "(01223) 123456" to "01223123456".
+
+    For example, converts ``"(01223) 123456"`` to ``"01223123456"``.
     """
     return "".join([d for d in s if d.isdigit()])
 
@@ -48,7 +52,8 @@ def get_digit_string_from_vaguely_numeric_string(s: str) -> str:
 def reduce_to_alphanumeric(s: str) -> str:
     """
     Strips non-alphanumeric characters from a string.
-    For example, converts "PE12 3AB" to "PE12 3AB".
+
+    For example, converts ``"PE12 3AB"`` to ``"PE12 3AB"``.
     """
     return "".join([d for d in s if d.isalnum()])
 
@@ -65,7 +70,18 @@ def remove_whitespace(s: str) -> str:
 # =============================================================================
 
 @lru_cache(maxsize=None)
-def get_spec_match_regex(spec):
+def get_spec_match_regex(spec: str) -> Pattern:
+    """
+    Returns a compiled, case-insensitive regular expression representing a
+    shell-style pattern (using ``*``, ``?`` and similar wildcards; see
+    https://docs.python.org/3.5/library/fnmatch.html).
+
+    Args:
+        spec: the pattern to pass to ``fnmatch``, e.g. ``"patient_addr*"``.
+
+    Returns:
+        the compiled regular expression
+    """
     return regex.compile(fnmatch.translate(spec), regex.IGNORECASE)
 
 
@@ -73,12 +89,23 @@ def get_spec_match_regex(spec):
 # Printing/encoding
 # =============================================================================
 
-def uprint(*objects, sep=' ', end='\n', file=sys.stdout):
+def uprint(*objects: Any,
+           sep: str = ' ',
+           end: str = '\n',
+           file: TextIO = sys.stdout) -> None:
     """
     Prints strings to outputs that support UTF-8 encoding, but also to those
     that do not (e.g. Windows stdout).
-    """
-    # http://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined  # noqa
+
+    Args:
+        *objects: things to print
+        sep: separator between those objects
+        end: print this at the end
+        file: file-like object to print to
+
+    See
+    http://stackoverflow.com/questions/14630288/unicodeencodeerror-charmap-codec-cant-encode-character-maps-to-undefined
+    """  # noqa
     enc = file.encoding
     if enc == 'UTF-8':
         print(*objects, sep=sep, end=end, file=file)

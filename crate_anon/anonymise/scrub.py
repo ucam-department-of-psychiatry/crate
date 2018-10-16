@@ -24,7 +24,8 @@ crate_anon/anonymise/scrub.py
 
 ===============================================================================
 
-Scrubber classes for CRATE anonymiser.
+**Scrubber classes for CRATE anonymiser.**
+
 """
 
 from collections import OrderedDict
@@ -68,30 +69,47 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 class ScrubberBase(object):
-    """Scrubber base class."""
+    """
+    Scrubber base class.
+    """
 
     def __init__(self, hasher: GenericHasher) -> None:
         """
-        :param hasher: object implementing GenericHasher interface
+        Args:
+            hasher: object implementing :class:`GenericHasher` interface
         """
         self.hasher = hasher
 
     def scrub(self, text: str) -> str:
-        """Returns a scrubbed version of the text."""
+        """
+        Returns a scrubbed version of the text.
+
+        Args:
+            text: the raw text, potentially containing sensitive information
+
+        Returns:
+            the de-identified text
+        """
         raise NotImplementedError()
 
     def get_hash(self) -> str:
-        """Returns a hash of the scrubber itself."""
+        """
+        Returns a hash of our scrubber -- so we can store it, and later see if
+        it's changed. In an incremental update, if the scrubber has changed, we
+        should re-anonymise all data for this patient.
+        """
         raise NotImplementedError()
 
 
 # =============================================================================
-# WordList -- this serves a dual function as a whitelist (is a word in the
-# list?) and a blacklist (scrub text using the wordlist).
+# WordList
 # =============================================================================
 
 def lower_case_words_from_file(fileobj: Iterable[str]) -> Generator[str, None,
                                                                     None]:
+    """
+    Generates lower-case words from a file.
+    """
     for line in fileobj:
         for word in line.split():
             yield word.lower()
@@ -108,6 +126,13 @@ FLASHTEXT_WORD_CHARACTERS = set(
 
 
 class WordList(ScrubberBase):
+    """
+    A scrubber that removes all words in a wordlist, in case-insensitive
+    fashion.
+
+    This serves a dual function as a whitelist (is a word in the list?) and a
+    blacklist (scrub text using the wordlist).
+    """
     def __init__(self,
                  filenames: Iterable[str] = None,
                  words: Iterable[str] = None,
@@ -117,6 +142,31 @@ class WordList(ScrubberBase):
                  at_word_boundaries_only: bool = True,
                  max_errors: int = 0,
                  regex_method: bool = False) -> None:
+        """
+        Args:
+            filenames:
+                filenames to read words from
+            words:
+                additional words to add
+            replacement_text:
+                replace sensitive content with this string
+            hasher:
+                :class:`GenericHasher` to use to hash this scrubber (for
+                change-detection purposes)
+            suffixes:
+                append each of these suffixes to each word
+            at_word_boundaries_only:
+                Boolean. If set, ensure that the regex begins and ends with a
+                word boundary requirement. (If false: will scrub ``ANN`` from
+                ``bANNed``, for example.)
+            max_errors:
+                The maximum number of typographical insertion / deletion /
+                substitution errors to permit. Applicable only if
+                ``regex_method`` is true.
+            regex_method:
+                Use regular expressions? Best not to; the alternative is
+                FlashText, which is much faster.
+        """
         filenames = filenames or []
         words = words or []
 
@@ -143,13 +193,23 @@ class WordList(ScrubberBase):
         # log.debug("Created wordlist with {} words".format(len(self.words)))
 
     def clear_cache(self) -> None:
-        """Clear cached information."""
+        """
+        Clear cached information (e.g. the compiled regex, the cached hash of
+        this scrubber).
+        """
         self._built = False
         self._regex = None
         self._processor = None
         self._cached_hash = None
 
     def add_word(self, word: str, clear_cache: bool = True) -> None:
+        """
+        Add a word to our wordlist.
+
+        Args:
+            word: word to add
+            clear_cache: also clear our cache?
+        """
         if not word:
             return
         self.words.add(word.lower())
@@ -157,6 +217,13 @@ class WordList(ScrubberBase):
             self.clear_cache()
 
     def add_file(self, filename: str, clear_cache: bool = True) -> None:
+        """
+        Add all words from a file.
+
+        Args:
+            filename: file to read
+            clear_cache: also clear our cache?
+        """
         with open(filename) as f:
             wordgen = lower_case_words_from_file(f)
             for w in wordgen:
@@ -165,6 +232,9 @@ class WordList(ScrubberBase):
             self.clear_cache()
 
     def contains(self, word: str) -> bool:
+        """
+        Does our wordlist contain this word?
+        """
         return word.lower() in self.words
 
     def get_hash(self) -> str:
@@ -188,6 +258,10 @@ class WordList(ScrubberBase):
             return self._processor.replace_keywords(text)
 
     def build(self) -> None:
+        """
+        Compiles a high-speed scrubbing device, be it a regex or a FlashText
+        processor. Called only when we have collected all our words.
+        """
         if self.regex_method:
             elements = []
             for w in self.words:
@@ -216,11 +290,13 @@ class WordList(ScrubberBase):
 
 # =============================================================================
 # NonspecificScrubber
-# Scrubs a bunch of things that are independent of any patient-specific data,
-# such as removing all UK postcodes, or numbers of a certain length.
 # =============================================================================
 
 class NonspecificScrubber(ScrubberBase):
+    """
+    Scrubs a bunch of things that are independent of any patient-specific data,
+    such as removing all UK postcodes, or numbers of a certain length.
+    """
     def __init__(self,
                  replacement_text: str,
                  hasher: GenericHasher,
@@ -230,7 +306,26 @@ class NonspecificScrubber(ScrubberBase):
                  scrub_all_numbers_of_n_digits: List[int] = None,
                  scrub_all_uk_postcodes: bool = False) -> None:
         """
-        scrub_all_numbers_of_n_digits: list of values of n
+        Args:
+            replacement_text:
+                replace sensitive content with this string
+            hasher:
+                :class:`GenericHasher` to use to hash this scrubber (for
+                change-detection purposes)
+            anonymise_codes_at_word_boundaries_only:
+                For codes: Boolean. Ensure that the regex begins and ends with
+                a word boundary requirement.
+            anonymise_numbers_at_word_boundaries_only:
+               For numbers: Boolean. If set, ensure that the regex begins and
+               ends with a word boundary requirement. If not set, the regex
+               must be surrounded by non-digits. (If it were surrounded by more
+               digits, it wouldn't be an n-digit number!)
+            blacklist:
+                words to scrub
+            scrub_all_numbers_of_n_digits:
+                list of values of n; number lengths to scrub
+            scrub_all_uk_postcodes:
+                scrub all UK postcodes?
         """
         scrub_all_numbers_of_n_digits = scrub_all_numbers_of_n_digits or []
 
@@ -271,6 +366,9 @@ class NonspecificScrubber(ScrubberBase):
         return self._regex.sub(self.replacement_text, text)
 
     def build_regex(self) -> None:
+        """
+        Compile our high-speed regex.
+        """
         elements = []
         if self.scrub_all_uk_postcodes:
             elements.extend(
@@ -293,8 +391,10 @@ class NonspecificScrubber(ScrubberBase):
 # =============================================================================
 
 class PersonalizedScrubber(ScrubberBase):
-    """Accepts patient-specific (patient and third-party) information, and
-    uses that to scrub text."""
+    """
+    Accepts patient-specific (patient and third-party) information, and uses
+    that to scrub text.
+    """
     def __init__(self,
                  replacement_text_patient: str,
                  replacement_text_third_party: str,
@@ -312,6 +412,57 @@ class PersonalizedScrubber(ScrubberBase):
                  alternatives: List[List[str]] = None,
                  nonspecific_scrubber: NonspecificScrubber = None,
                  debug: bool = False) -> None:
+        """
+        Args:
+            replacement_text_patient:
+                replace sensitive "patient" content with this string
+            replacement_text_third_party:
+                replace sensitive "third party" content with this string
+            hasher:
+                :class:`GenericHasher` to use to hash this scrubber (for
+                change-detection purposes)
+            anonymise_codes_at_word_boundaries_only:
+                For codes: Boolean. Ensure that the regex begins and ends with
+                a word boundary requirement.
+            anonymise_dates_at_word_boundaries_only:
+                For dates: Boolean. Ensure that the regex begins and ends with
+                a word boundary requirement.
+            anonymise_numbers_at_word_boundaries_only:
+                For numbers: Boolean. Ensure that the regex begins and ends
+                with a word boundary requirement. See
+                :func:`crate_anon.anonymise.anonregex.get_code_regex_elements`.
+            anonymise_numbers_at_numeric_boundaries_only:
+                For numbers: Boolean. Ensure that the number/code is only
+                recognized when surrounded by non-numbers; that is, only at the
+                boundaries of numbers (at numeric boundaries). See
+                :func:`crate_anon.anonymise.anonregex.get_code_regex_elements`.
+            anonymise_strings_at_word_boundaries_only:
+                For strings: Boolean. Ensure that the regex begins and ends
+                with a word boundary requirement.
+            min_string_length_for_errors:
+                For strings: minimum string length at which typographical
+                errors will be permitted.
+            min_string_length_to_scrub_with:
+                For strings: minimum string length at which the string will be
+                permitted to be scrubbed with.
+            scrub_string_suffixes:
+                a list of suffixes to permit on strings
+            string_max_regex_errors:
+                the maximum number of typographical insertion / deletion /
+                substitution errors to permit
+            whitelist:
+                :class:`WordList` of words to whitelist (not to scrub)
+            alternatives:
+                This allows words to be substituted by equivalents; such as
+                ``St`` for ``Street`` or ``Rd`` for ``Road``. The parameter is
+                a list of lists of equivalents; see
+                :func:`crate_anon.anonymise.config.get_word_alternatives`
+            nonspecific_scrubber:
+                :class:`NonspecificScrubber` to apply (after the more specific
+                scrubbers) to remove information that is generic
+            debug:
+                show the final scrubber regex text as we compile our regexes
+        """
         scrub_string_suffixes = scrub_string_suffixes or []
 
         super().__init__(hasher)
@@ -350,14 +501,25 @@ class PersonalizedScrubber(ScrubberBase):
         self.clear_cache()
 
     def clear_cache(self) -> None:
+        """
+        Clear the internal cache (the compiled regex).
+        """
         self.regexes_built = False
 
     @staticmethod
     def get_scrub_method(datatype_long: str,
                          scrub_method: Optional[SCRUBMETHOD]) -> SCRUBMETHOD:
         """
-        Return the default scrub method for a given SQL datatype,
-        unless overridden.
+        Return the default scrub method for a given SQL datatype, unless
+        overridden. For example, dates are scrubbed via a date method; numbers
+        by a numeric method.
+
+        Args:
+            datatype_long: SQL datatype as a string
+            scrub_method: optional method to enforce
+
+        Returns:
+             :class:`crate_anon.anonymise.constants.SCRUBMETHOD` value
         """
         if scrub_method is not None:
             return scrub_method
@@ -376,8 +538,16 @@ class PersonalizedScrubber(ScrubberBase):
         """
         Add a specific value via a specific scrub_method.
 
-        The patient flag controls whether it's treated as a patient value or
-        a third-party value.
+        Args:
+            value:
+                value to add to the scrubber
+            scrub_method:
+                :class:`crate_anon.anonymise.constants.SCRUBMETHOD` value
+            patient:
+                Boolean; controls whether it's treated as a patient value or a
+                third-party value.
+            clear_cache:
+                also clear our cache?
         """
         if value is None:
             return
@@ -407,7 +577,9 @@ class PersonalizedScrubber(ScrubberBase):
     def get_elements_date(self,
                           value: Union[datetime.datetime,
                                        datetime.date]) -> Optional[List[str]]:
-        # Source is a date.
+        """
+        Returns a list of regex elements for a given date value.
+        """
         try:
             value = coerce_to_datetime(value)
         except Exception as e:
@@ -423,7 +595,10 @@ class PersonalizedScrubber(ScrubberBase):
         )
 
     def get_elements_words(self, value: str) -> List[str]:
-        # Source is a string containing textual words.
+        """
+        Returns a list of regex elements for a given string that contains
+        textual words.
+        """
         elements = []
         for s in get_anon_fragments_from_string(str(value)):
             length = len(s)
@@ -452,7 +627,9 @@ class PersonalizedScrubber(ScrubberBase):
         return elements
 
     def get_elements_phrase(self, value: Any) -> List[str]:
-        # value = unicode(value)  # Python 2
+        """
+        Returns a list of regex elements for a given phrase.
+        """
         value = str(value)
         if not value:
             return []
@@ -474,9 +651,18 @@ class PersonalizedScrubber(ScrubberBase):
         )
 
     def get_elements_numeric(self, value: Any) -> List[str]:
-        # Source is a text field containing a number, or an actual number.
-        # Remove everything but the digits
-        # Particular examples: phone numbers, e.g. "(01223) 123456".
+        """
+        Start with a number. Remove everything but the digits. Build a regex
+        that scrubs the number.
+
+        Particular examples: phone numbers, e.g. ``"(01223) 123456"``.
+
+        Args:
+            value: a string containing a number, or an actual number.
+
+        Returns:
+            a list of regex elements
+        """
         return get_code_regex_elements(
             get_digit_string_from_vaguely_numeric_string(str(value)),
             at_word_boundaries_only=(
@@ -486,9 +672,18 @@ class PersonalizedScrubber(ScrubberBase):
         )
 
     def get_elements_code(self, value: Any) -> List[str]:
-        # Source is a text field containing an alphanumeric code.
-        # Remove whitespace.
-        # Particular examples: postcodes, e.g. "PE12 3AB".
+        """
+        Start with an alphanumeric code. Remove whitespace. Build a regex that
+        scrubs the code.
+
+        Particular examples: postcodes, e.g. ``"PE12 3AB"``.
+
+        Args:
+            value: a string containing containing an alphanumeric code
+
+        Returns:
+            a list of regex elements
+        """
         return get_code_regex_elements(
             reduce_to_alphanumeric(str(value)),
             at_word_boundaries_only=(
@@ -496,14 +691,21 @@ class PersonalizedScrubber(ScrubberBase):
         )
 
     def get_patient_regex_string(self) -> str:
-        """Return the string version of the patient regex, sorted."""
+        """
+        Return the string version of the patient regex, sorted.
+        """
         return get_regex_string_from_elements(self.re_patient_elements)
 
     def get_tp_regex_string(self) -> str:
-        """Return the string version of the third-party regex, sorted."""
+        """
+        Return the string version of the third-party regex, sorted.
+        """
         return get_regex_string_from_elements(self.re_tp_elements)
 
     def build_regexes(self) -> None:
+        """
+        Compile our regexes.
+        """
         self.re_patient = get_regex_from_elements(self.re_patient_elements)
         self.re_tp = get_regex_from_elements(self.re_tp_elements)
         self.regexes_built = True
@@ -516,7 +718,6 @@ class PersonalizedScrubber(ScrubberBase):
                 self.get_tp_regex_string()))
 
     def scrub(self, text: str) -> Optional[str]:
-        """Scrub some text and return the scrubbed result."""
         if text is None:
             return None
         if not self.regexes_built:
@@ -534,11 +735,13 @@ class PersonalizedScrubber(ScrubberBase):
         return self.hasher.hash(self.get_raw_info())
 
     def get_raw_info(self) -> Dict[str, Any]:
-        # This is both a summary for debugging and the basis for our
-        # change-detection hash (and for the latter reason we need order etc.
-        # to be consistent). For anything we put in here, changes will cause
-        # data to be re-scrubbed.
-        # We use a list of tuples to make the OrderedDict:
+        """
+        This is both a summary for debugging and the basis for our
+        change-detection hash (and for the latter reason we need order etc. to
+        be consistent). For any information we put in here, changes will cause
+        data to be re-scrubbed.
+        """
+        # We use a list of tuples to make an OrderedDict.
         d = (
             ('anonymise_codes_at_word_boundaries_only',
              self.anonymise_codes_at_word_boundaries_only),

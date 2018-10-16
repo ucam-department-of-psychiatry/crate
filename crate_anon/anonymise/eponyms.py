@@ -24,6 +24,8 @@ crate_anon/anonymise/eponyms.py
 
 ===============================================================================
 
+**Medical eponym handling.**
+
 Eponyms from 2018-03-27 snapshot of:
 
 - https://en.wikipedia.org/wiki/List_of_eponymously_named_diseases
@@ -61,6 +63,19 @@ EPONYM_DICT = {}  # type: Dict[str, Optional[EponymInfo]]
 
 
 def get_plain_eponyms(add_unaccented_versions: bool = True) -> List[str]:
+    """
+    Returns a list of all names to be used as medical eponyms -- that is,
+    people who've had syndromes named after them.
+
+    Args:
+        add_unaccented_versions:
+            Add unaccented (mangled) versions of names, too? For example, do
+            you want Sjogren as well as Sjögren?
+
+    Returns:
+        alphabetically sorted list of strings
+
+    """
     eponyms = list(EPONYM_DICT.keys())
     if add_unaccented_versions:
         ep_set = set(eponyms)
@@ -72,7 +87,23 @@ def get_plain_eponyms(add_unaccented_versions: bool = True) -> List[str]:
         return sorted(eponyms)
 
 
-def _add_eponym(composite: str, sep="–", info: EponymInfo = None) -> None:
+def _add_eponym(composite: str,
+                sep: str = "–",
+                info: EponymInfo = None) -> None:
+    """
+    Adds an eponym to the global eponym dictionary.
+    If a composite eponym is supplied, adds each part of it.
+
+    Args:
+        composite:
+            an eponym like ``"Parkinson"``, or a composite eponym like
+            ``"Beckwith–Wiedemann"``
+        sep:
+            the string that separates parts of a composite eponym
+        info:
+            optional :class:`EponymInfo` instance; reserved for future
+            functionality
+    """
     global EPONYM_DICT
     for name in composite.split(sep):
         if name not in EPONYM_DICT:
@@ -960,7 +991,7 @@ SIMPLE_EPONYM_LIST = [
     # Paget–Schroetter disease (a.k.a. Paget–Schroetter syndrome and Paget–von Schrötter disease) – James Paget, Leopold von Schrötter
     "Paget–Schroetter",
     # Parkinson's disease – James Parkinson
-    "Paget–Schroetter",
+    "Parkinson",
     # Patau syndrome – Klaus Patau
     "Patau",
     # Pearson syndrome – Howard Pearson

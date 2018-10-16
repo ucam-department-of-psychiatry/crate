@@ -24,6 +24,11 @@ crate_anon/anonymise/anonymise_cli.py
 
 ===============================================================================
 
+**Command-line entry point for anonymisation.**
+
+Split from the anonymisation functions so we can respond quickly to
+command-line input; uses a delayed import when starting anonymisation.
+
 """
 
 # Uses a delayed import (see below), so we can set up logging before
@@ -61,7 +66,9 @@ else:
 
 def main() -> None:
     """
-    Command-line entry point.
+    Command-line entry point. See command-line help.
+
+    Calls :func:`crate_anon.anonymise.anonymise.anonymise`.
     """
     version = "Version {} ({})".format(CRATE_VERSION, CRATE_VERSION_DATE)
     description = "Database anonymiser. {version}. By Rudolf Cardinal.".format(
@@ -126,7 +133,7 @@ def main() -> None:
                              "which field to base the restriction on or "
                              "'pid' for patient ids.")
     parser.add_argument("--limits", nargs=2,
-                        help="Specify upper and lower limits of the field "
+                        help="Specify lower and upper limits of the field "
                              "specified in '--restrict'")
     parser.add_argument("--file",
                         help="Specify a file with a list of values for the "

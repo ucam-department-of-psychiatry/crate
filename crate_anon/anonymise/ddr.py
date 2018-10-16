@@ -24,6 +24,8 @@ crate_anon/anonymise/ddr.py
 
 ===============================================================================
 
+**Data dictionary rows.**
+
 """
 
 # =============================================================================
@@ -86,7 +88,7 @@ DATABASE_SAFE_CONFIG_FWD_REF = "DatabaseSafeConfig"
 
 class DataDictionaryRow(object):
     """
-    Class representing a single row of a data dictionary.
+    Class representing a single row of a data dictionary (a DDR).
     """
     ROWNAMES = [
         "src_db",
@@ -114,6 +116,9 @@ class DataDictionaryRow(object):
     def __init__(self, config: "Config") -> None:
         """
         Set up basic defaults.
+
+        Args:
+            config: :class:`crate_anon.anonymise.config.Config`
         """
         self.config = config
         self.src_db = None
@@ -164,50 +169,102 @@ class DataDictionaryRow(object):
 
     @property
     def src_db_lowercase(self) -> str:
+        """
+        Returns the source database name, in lower case.
+        """
         return self.src_db.lower()
 
     @property
     def src_table_lowercase(self) -> str:
+        """
+        Returns the source table name, in lower case.
+        """
         return self.src_table.lower()
 
     @property
     def src_field_lowercase(self) -> str:
+        """
+        Returns the source field (column) name, in lower case.
+        """
         return self.src_field.lower()
 
     @property
     def pk(self) -> bool:
+        """
+        Is the source field (and the destination field, for that matter) a
+        primary key (PK)?
+        """
         return self._pk
 
     @property
     def add_src_hash(self) -> bool:
+        """
+        Should we add a column to the destination that contains a hash of the
+        contents of the whole source row (all fields)?
+        """
         return self._add_src_hash
 
     @property
     def primary_pid(self) -> bool:
+        """
+        Does the source field contain the primary patient ID (PID)?
+
+        (A typical example of a PID: "hospital number".)
+        """
         return self._primary_pid
 
     @property
     def defines_primary_pids(self) -> bool:
+        """
+        Is this the field -- usually one in the entire source database -- that
+        *defines* primary PIDs? Usually this is true for the "ID" column of
+        the master patient table.
+        """
         return self._defines_primary_pids
 
     @property
     def master_pid(self) -> bool:
+        """
+        Does this field contain the master patient ID (MPID)?
+
+        (A typical example of an MPID: "NHS number".)
+        """
         return self._master_pid
 
     @property
     def constant(self) -> bool:
+        """
+        Is the source field guaranteed not to change (for a given PK)?
+        """
         return self._constant
 
     @property
     def addition_only(self) -> bool:
+        """
+        May we assume that records can only be added to this table, not
+        deleted?
+
+        This is a flag that may be applied to a PK row only.
+        """
         return self._addition_only
 
     @property
     def opt_out_info(self) -> bool:
+        """
+        Does the field contain information about whether the patient wishes
+        to opt out entirely from the anonymised database?
+
+        (Whether the contents of the field means "opt out" or "don't opt out"
+        depends on ``optout_col_values`` in the
+        :class:`crate_anon.anonymise.config.Config`.)
+        """
         return self._opt_out_info
 
     @property
     def src_flags(self) -> str:
+        """
+        Returns a string representation of the source flags.
+        """
         return ''.join(str(x) for x in (
             SRCFLAG.PK if self._pk else '',
             SRCFLAG.ADD_SRC_HASH if self._add_src_hash else '',
@@ -222,6 +279,10 @@ class DataDictionaryRow(object):
 
     @src_flags.setter
     def src_flags(self, value: str) -> None:
+        """
+        Takes a string representation of the source flags, and sets our
+        internal flags accordingly.
+        """
         self._pk = SRCFLAG.PK.value in value
         self._add_src_hash = SRCFLAG.ADD_SRC_HASH.value in value
         self._primary_pid = SRCFLAG.PRIMARY_PID.value in value
@@ -234,10 +295,32 @@ class DataDictionaryRow(object):
 
     @property
     def inclusion_values(self) -> List[Any]:
+        """
+        Returns a list of inclusion values (or an empty string if there are
+        no such values).
+
+        This slightly curious output format is used to create a TSV row (see
+        :func:`get_tsv`) or to check in a "truthy" way whether we have
+        inclusion values (see
+        :func:`crate_anon.anonymise.anonymise.process_table`).
+        """
         return self._inclusion_values or ''  # for TSV output
 
     @inclusion_values.setter
     def inclusion_values(self, value: str) -> None:
+        """
+        Set the inclusion values.
+
+        Args:
+            value:
+                either something that is "falsy" (to set the inclusion values
+                to an empty list) or something that evaluates to a Python
+                iterable (e.g. list or tuple) via :func:`ast.literal_eval`.
+
+                For example: ``[None, 0]``, or ``[True, 1, 'yes', 'true',
+                'Yes', 'True']``.
+
+        """
         if value:
             self._inclusion_values = ast.literal_eval(value) or []
         else:
@@ -245,32 +328,62 @@ class DataDictionaryRow(object):
 
     @property
     def exclusion_values(self) -> List[Any]:
+        """
+        Returns a list of exclusion values (or an empty string if there are
+        no such values).
+
+        This slightly curious output format is used to create a TSV row (see
+        :func:`get_tsv`) or to check in a "truthy" way whether we have
+        exclusion values (see
+        :func:`crate_anon.anonymise.anonymise.process_table`).
+        """
         return self._exclusion_values or ''  # for TSV output
 
     @exclusion_values.setter
     def exclusion_values(self, value: str) -> None:
+        """
+        Set the exclusion values.
+
+        Args:
+            value:
+                either something that is "falsy" (to set the inclusion values
+                to an empty list) or something that evaluates to a Python
+                iterable (e.g. list or tuple) via :func:`ast.literal_eval`.
+
+                For example: ``[None, 0]``, or ``[True, 1, 'yes', 'true',
+                'Yes', 'True']``.
+
+        """
         if value:
             self._exclusion_values = ast.literal_eval(value) or []
         else:
             self._exclusion_values = []
 
     @property
+    def required_scrubber(self) -> bool:
+        """
+        Is this a "required scrubber" field?
+
+        A "required scrubber" is a field that must provide at least one
+        non-NULL value for each patient, or the patient won't get processed.
+        (For example, you might want to omit a patient if you can't be certain
+        about their surname for anonymisation.)
+        """
+        return self._required_scrubber
+
+    @property
     def alter_method(self) -> str:
         """
-        Return the alter_method field from the working fields.
+        Return the ``alter_method`` string from the working fields.
         """
         return ",".join(filter(
             None, (x.get_text() for x in self._alter_methods)))
 
-    @property
-    def required_scrubber(self) -> bool:
-        return self._required_scrubber
-
     @alter_method.setter
     def alter_method(self, value: str) -> None:
         """
-        Convert the alter_method field (from the data dictionary) to a bunch of
-        boolean/simple fields.
+        Convert the ``alter_method`` string (from the data dictionary) to a
+        bunch of Boolean/simple fields internally.
         """
         # Get the list of elements in the user's order.
         self._alter_methods = []
@@ -306,14 +419,31 @@ class DataDictionaryRow(object):
 
     @property
     def from_file(self) -> bool:
+        """
+        Was this DDR loaded from a file (rather than, say, autogenerated from
+        a database)?
+        """
         return self._from_file
 
     @property
     def decision(self) -> str:
+        """
+        Should we include the field in the destination?
+
+        Returns:
+            ``"OMIT"`` or ``"include``.
+        """
         return DECISION.OMIT.value if self.omit else DECISION.INCLUDE.value
 
     @decision.setter
     def decision(self, value: str) -> None:
+        """
+        Sets the internal ``omit`` flag from the input (usually taken from the
+        data dictionary file).
+
+        Args:
+            value: ``"OMIT"`` or ``"include``.
+        """
         try:
             e = DECISION.lookup(value)
             self.omit = e is DECISION.OMIT
@@ -326,12 +456,29 @@ class DataDictionaryRow(object):
     # -------------------------------------------------------------------------
 
     def __lt__(self, other: DDR_FWD_REF) -> bool:
+        """
+        Defines an order of DDRs based on their source field's signature.
+        """
         return self.get_signature() < other.get_signature()
 
     def matches_tabledef(self, tabledef: Union[str, List[str]]) -> bool:
+        """
+        Does our source table match the wildcard-based table definition?
+
+        Args:
+            tabledef: ``fnmatch``-style pattern (e.g.
+                ``"patient_address_table_*"``), or list of them
+        """
         return crate_anon.common.sql.matches_tabledef(self.src_table, tabledef)
 
     def matches_fielddef(self, fielddef: Union[str, List[str]]) -> bool:
+        """
+        Does our source table/field match the wildcard-based field definition?
+
+        Args:
+            fielddef: ``fnmatch``-style pattern (e.g. ``"system_table.*"`` or
+                ``"*.nhs_number"``), or list of them
+        """
         return crate_anon.common.sql.matches_fielddef(
             self.src_table, self.src_field, fielddef)
 
@@ -341,21 +488,30 @@ class DataDictionaryRow(object):
 
     def __str__(self) -> str:
         """
-        Return a string representation.
+        Returns a string representation of the DDR.
         """
         return ", ".join(["{}: {}".format(a, getattr(self, a))
                           for a in DataDictionaryRow.ROWNAMES])
 
     def get_signature(self) -> str:
         """
-        Return a signature based on the source database/table/field.
+        Returns a signature based on the source database/table/field, in the
+        format ``db.table.column``.
         """
         return "{}.{}.{}".format(self.src_db, self.src_table, self.src_field)
 
     def get_dest_signature(self) -> str:
+        """
+        Returns a signature based on the destination table/field, in the format
+        ``table.column``.
+        """
         return "{}.{}".format(self.dest_table, self.dest_field)
 
     def get_offender_description(self) -> str:
+        """
+        Get a string used to describe this DDR (in terms of its
+        source/destination fields) if it does something wrong.
+        """
         offenderdest = "" if not self.omit else " -> {}".format(
             self.get_dest_signature())
         return "{}{}".format(self.get_signature(), offenderdest)
@@ -413,19 +569,48 @@ class DataDictionaryRow(object):
     # -------------------------------------------------------------------------
 
     def being_scrubbed(self) -> bool:
+        """
+        Is the field being scrubbed as it passes from source to destination?
+        """
         return any(am.scrub for am in self._alter_methods)
 
     def contains_patient_info(self) -> bool:
+        """
+        Does the field contain patient information? That means any of:
+
+        - primary PID
+        - MPID
+        - scrub-source (sensitive) information
+        """
         return self._primary_pid or self._master_pid or bool(self.scrub_src)
 
     def contains_vital_patient_info(self) -> bool:
+        """
+        Does the field contain vital patient information? That means:
+
+        - scrub-source (sensitive) information
+        """
         return bool(self.scrub_src)
 
     def required(self) -> bool:
+        """
+        Is the field required? That means any of:
+
+        - chosen by the user to be translated into the destination
+        - contains vital patient information (scrub-source information)
+        """
         # return not self.omit or self.contains_patient_info()
         return not self.omit or self.contains_vital_patient_info()
 
     def skip_row_by_value(self, value: Any) -> bool:
+        """
+        Should we skip this row, because the value is one of the row's
+        exclusion values, or the row has inclusion values and the value isn't
+        one of them?
+
+        Args:
+            value: value to test
+        """
         if self._inclusion_values and value not in self._inclusion_values:
             # log.debug("skipping row based on inclusion_values")
             return True
@@ -435,15 +620,38 @@ class DataDictionaryRow(object):
         return False
 
     def get_alter_methods(self) -> List[AlterMethod]:
+        """
+        Return all alteration methods to be applied.
+
+        Returns:
+            list of :class:`crate_anon.anonymise.altermethod.AlterMethod`
+            objects
+
+        """
         return self._alter_methods
 
     def skip_row_if_extract_text_fails(self) -> bool:
+        """
+        Should we skip the row if processing the row involves extracting text
+        and that process fails?
+        """
         return any(x.skip_if_text_extract_fails for x in self._alter_methods)
 
     def get_extracting_text_altermethods(self) -> List[AlterMethod]:
+        """
+        Return all alteration methods that involve text extraction.
+
+        Returns:
+            list of :class:`crate_anon.anonymise.altermethod.AlterMethod`
+            objects
+        """
         return [am for am in self._alter_methods if am.extract_text]
 
     def remove_scrub_from_alter_methods(self) -> None:
+        """
+        Prevent this row from being scrubbed, by removing any "scrub" method
+        from among its alteration methods.
+        """
         log.debug(
             "remove_scrub_from_alter_methods "
             "[used for non-patient tables]: {}".format(
@@ -456,6 +664,9 @@ class DataDictionaryRow(object):
     # -------------------------------------------------------------------------
 
     def using_fulltext_index(self) -> bool:
+        """
+        Should the destination field have a full-text index?
+        """
         return self.index is INDEX.FULLTEXT
 
     # -------------------------------------------------------------------------
@@ -463,13 +674,22 @@ class DataDictionaryRow(object):
     # -------------------------------------------------------------------------
 
     def get_src_sqla_coltype(self) -> TypeEngine:
+        """
+        Returns the SQLAlchemy column type of the source column.
+        """
         return self._src_sqla_coltype or get_sqla_coltype_from_dialect_str(
             self.src_datatype, self.config.get_src_dialect(self.src_db))
 
     def set_src_sqla_coltype(self, sqla_coltype: TypeEngine) -> None:
+        """
+        Sets the SQLAlchemy column type of the source column.
+        """
         self._src_sqla_coltype = sqla_coltype
 
     def get_dest_sqla_coltype(self) -> TypeEngine:
+        """
+        Returns the SQLAlchemy column type of the destination column.
+        """
         dialect = self.config.get_dest_dialect()
         if self.dest_datatype:
             # User (or our autogeneration process) wants to override
@@ -487,6 +707,10 @@ class DataDictionaryRow(object):
                 expand_for_scrubbing=self.being_scrubbed())
 
     def get_dest_sqla_column(self) -> Column:
+        """
+        Returns an SQLAlchemy :class:`sqlalchemy.sql.schema.Column` for the
+        destination column.
+        """
         name = self.dest_field
         coltype = self.get_dest_sqla_coltype()
         comment = self.comment or ''
@@ -511,6 +735,9 @@ class DataDictionaryRow(object):
         """
         Check internal validity and complain if invalid, showing the source
         of the problem.
+
+        Raises:
+            :exc:`AssertionError`, :exc:`ValueError`
         """
         try:
             self._check_valid()
@@ -520,8 +747,19 @@ class DataDictionaryRow(object):
                     self.get_offender_description(), str(self)))
             raise
 
-    def check_prohibited_fieldnames(self, fieldnames: Iterable[str]) -> None:
-        if self.dest_field in fieldnames:
+    def check_prohibited_fieldnames(
+            self, prohibited_fieldnames: Iterable[str]) -> None:
+        """
+        Check that the destination field isn't a prohibited one.
+
+        Args:
+            prohibited_fieldnames: list of prohibited fieldnames
+
+        Raises:
+            :exc:`ValueError` if there's a problem.
+
+        """
+        if self.dest_field in prohibited_fieldnames:
             log.exception(
                 "Offending DD row [{}]: {}".format(
                     self.get_offender_description(), str(self)))
@@ -530,6 +768,9 @@ class DataDictionaryRow(object):
     def _check_valid(self) -> None:
         """
         Check internal validity and complain if invalid.
+
+        Raises:
+            :exc:`AssertionError`, :exc:`ValueError`
         """
         assert self.src_db, "Need src_db"
         assert self.src_table, "Need src_table"
@@ -634,6 +875,14 @@ class DataDictionaryRow(object):
                         SRCFLAG.CONSTANT,
                         INDEX.UNIQUE))
 
+        if self._addition_only:
+            if not self._pk:
+                raise ValueError(
+                    "src_flags={} can only be set on "
+                    "src_flags={} fields".format(
+                        SRCFLAG.ADDITION_ONLY,
+                        SRCFLAG.PK))
+
         if self.omit:
             return
 
@@ -730,9 +979,18 @@ class DataDictionaryRow(object):
                              datatype_sqltext: str,
                              sqla_coltype: TypeEngine,
                              dbconf: DATABASE_SAFE_CONFIG_FWD_REF,
-                             comment=None) -> None:
+                             comment: str = None) -> None:
         """
-        Create a draft data dictionary row from a field in the source database.
+        Set up this DDR from a field in the source database.
+
+        Args:
+            db: source database name
+            table: source table name
+            field: source field (column) name
+            datatype_sqltext: string SQL type, e.g. ``"VARCHAR(100)"``
+            sqla_coltype: SQLAlchemy column type, e.g. ``Integer()``
+            dbconf: :class:`crate_anon.anonymise.config.DatabaseSafeConfig`
+            comment: textual comment
         """
         self.src_db = db
         self.src_table = table

@@ -24,7 +24,7 @@ crate_anon/anonymise/make_demo_database.py
 
 ===============================================================================
 
-Makes a giant test database for anonymisation testing.
+**Makes a test database (from tiny to large) for anonymisation testing.**
 
 See also:
 
@@ -51,6 +51,7 @@ import logging
 import os
 import random
 import subprocess
+from typing import TYPE_CHECKING
 
 from cardinal_pythonlib.datetimefunc import pendulum_to_datetime
 from cardinal_pythonlib.logs import configure_logger_for_colour
@@ -79,6 +80,10 @@ from crate_anon.anonymise.constants import (
     CHARSET,
     TABLE_KWARGS,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.sql.type_api import TypeEngine
+    from sqlalchemy.sql.compiler import SQLCompiler
 
 log = logging.getLogger(__name__)
 metadata = MetaData()
@@ -131,8 +136,12 @@ MAX_EXT_LENGTH_WITH_DOT = 10
 # http://docs.sqlalchemy.org/en/latest/core/custom_types.html
 # noinspection PyUnusedLocal
 @compiles(LargeBinary, 'mysql')
-def compile_blob_mysql(type_, compiler, **kw):
+def compile_blob_mysql(type_: "TypeEngine",
+                       compiler: "SQLCompiler", **kw) -> str:
     """
+    Provides a custom type for the SQLAlchemy ``LargeBinary`` type under MySQL,
+    by using ``LONGBLOB`` (which overrides the default of ``BLOB``).
+
     MySQL: http://dev.mysql.com/doc/refman/5.7/en/storage-requirements.html
 
     .. code-block:: none
@@ -163,7 +172,7 @@ def compile_blob_mysql(type_, compiler, **kw):
         dialects.mysql.base.LONGBLOB
         dialects.mssql.base.VARBINARY
 
-    Therefore, we can take the LargeBinary type and modify it:
+    Therefore, we can take the LargeBinary type and modify it.
     """
     return "LONGBLOB"  # would have been "BLOB"
 
@@ -179,6 +188,9 @@ def compile_blob_mysql(type_, compiler, **kw):
 # =============================================================================
 
 class EnumColours(enum.Enum):
+    """
+    A silly enum, for testing.
+    """
     red = 1
     green = 2
     blue = 3
@@ -189,6 +201,9 @@ class EnumColours(enum.Enum):
 # =============================================================================
 
 def coin(p: float = 0.5) -> bool:
+    """
+    Biased coin toss. Returns ``True`` with probability ``p``.
+    """
     return random.random() < p
 
 
@@ -197,6 +212,9 @@ def coin(p: float = 0.5) -> bool:
 # =============================================================================
 
 class Patient(Base):
+    """
+    SQLAlchemy ORM class for fictional patients.
+    """
     __tablename__ = 'patient'
     __table_args__ = TABLE_KWARGS
 
@@ -214,6 +232,9 @@ class Patient(Base):
 
 
 class Note(Base):
+    """
+    SQLAlchemy ORM class for fictional notes.
+    """
     __tablename__ = 'note'
     __table_args__ = TABLE_KWARGS
 
@@ -226,6 +247,9 @@ class Note(Base):
 
 
 class BlobDoc(Base):
+    """
+    SQLAlchemy ORM class for fictional binary documents.
+    """
     __tablename__ = 'blobdoc'
     __table_args__ = TABLE_KWARGS
 
@@ -239,6 +263,13 @@ class BlobDoc(Base):
 
     def __init__(self, patient: Patient, filename: str,
                  blob_datetime: datetime.datetime) -> None:
+        """
+        Args:
+            patient: corresponding :class:`Patient` object
+            filename: filename containing the binary document to load and
+                store in the database
+            blob_datetime: date/time value to give this BLOB
+        """
         _, extension = os.path.splitext(filename)
         with open(filename, 'rb') as f:
             contents = f.read()  # will be of type 'bytes'
@@ -250,6 +281,10 @@ class BlobDoc(Base):
 
 
 class FilenameDoc(Base):
+    """
+    SQLAlchemy ORM class for a table containing the filenames of binary
+    documents.
+    """
     __tablename__ = 'filenamedoc'
     __table_args__ = TABLE_KWARGS
 
@@ -263,6 +298,9 @@ class FilenameDoc(Base):
 
 # noinspection PyPep8Naming
 def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
     default_size = 0
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter

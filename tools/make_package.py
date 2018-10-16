@@ -28,7 +28,6 @@ Make CRATE Python package.
 
 """
 
-from html import escape
 import os
 from os.path import join
 import shutil

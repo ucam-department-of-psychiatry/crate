@@ -638,6 +638,11 @@ Changes
 
 - Improved docstrings.
 
+- Minor bugfixes in ``anonymise.py`` for fetching values from files.
+
+- ``_addition_only`` DDR flag only permitted on PK fields. (Was only attended
+  to for them in any case!)
+
 
 .. rubric:: Footnotes
 

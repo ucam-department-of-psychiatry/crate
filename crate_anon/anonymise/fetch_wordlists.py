@@ -24,6 +24,9 @@ crate_anon/anonymise/fetch_wordlists.py
 
 ===============================================================================
 
+**Script to fetch wordlists from Internet sources, such as lists of forenames
+and surnames.**
+
 See:
 
     https://stackoverflow.com/questions/1803628/raw-list-of-person-names
@@ -74,6 +77,13 @@ log = logging.getLogger(__name__)
 # =============================================================================
 
 def write_words_to_file(filename: str, words: Iterable[str]) -> None:
+    """
+    Write all the words to a file, one per line.
+
+    Args:
+        filename: filename to open (or ``'-'`` for stdout)
+        words: iterable of words
+    """
     log.info("Writing to: {}".format(filename))
     with smart_open(filename, "w") as f:
         for word in words:
@@ -90,6 +100,23 @@ def gen_valid_words_from_words(words: Iterable[str],
                                min_word_length: int = 1,
                                show_rejects: bool = False) -> \
         Generator[str, None, None]:
+    """
+    Generates valid words from an iterable of words.
+
+    Args:
+        words:
+            source iterable of words
+        valid_word_regex_text:
+            regular expression text; every word must match this regex
+        min_word_length:
+            minimum word length; all words must be at least this long
+        show_rejects:
+            report rejected words to the Python debug log
+
+    Yields:
+        valid words
+
+    """
     valid_word = regex.compile(valid_word_regex_text)
     for word in words:
         if len(word) >= min_word_length and valid_word.match(word):
@@ -103,6 +130,21 @@ def fetch_english_words(url: str, filename: str,
                         valid_word_regex_text: str,
                         min_word_length: int = 1,
                         show_rejects: bool = False) -> None:
+    """
+    Fetch English words and write them to a file.
+
+    Args:
+        url:
+            URL to fetch file from
+        filename:
+            filename to write to
+        valid_word_regex_text:
+            regular expression text; every word must match this regex
+        min_word_length:
+            minimum word length; all words must be at least this long
+        show_rejects:
+            report rejected words to the Python debug log
+    """
     pipeline = gen_valid_words_from_words(
         words=gen_lines_from_binary_files(
             gen_binary_files_from_urls([url])
@@ -121,8 +163,17 @@ def fetch_english_words(url: str, filename: str,
 # =============================================================================
 
 class NameInfo(object):
+    """
+    Information about a human name.
+    """
     def __init__(self, name: str, freq_pct: float = None,
                  cumfreq_pct: float = None) -> None:
+        """
+        Args:
+            name: the name
+            freq_pct: frequency (%)
+            cumfreq_pct: cumulative frequency (%)
+        """
         self.name = name
         self.freq_pct = freq_pct
         self.cumfreq_pct = cumfreq_pct
@@ -132,6 +183,9 @@ class NameInfo(object):
             self.name, self.freq_pct, self.cumfreq_pct)
 
     def assert_freq_info(self) -> None:
+        """
+        Assert that the frequences are reasonable numbers.
+        """
         assert (
             isinstance(self.freq_pct, float) and
             isinstance(self.cumfreq_pct, float)
@@ -143,6 +197,25 @@ def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
                                     max_cumfreq_pct: float = 100,
                                     show_rejects: bool = False) -> \
         Generator[NameInfo, None, None]:
+    """
+    Generate names of a chosen kind of frequency.
+
+    Args:
+        infolist:
+            iterable of :class:`NameInfo` objects
+        min_cumfreq_pct:
+            minimum cumulative frequency (%): 0 for no limit, or above 0 to
+            exclude common names
+        max_cumfreq_pct:
+            maximum cumulative frequency (%): 100 for no limit, or below 100 to
+            exclude rare names
+        show_rejects:
+            report rejected words to the Python debug log
+
+    Yields:
+        :class:`NameInfo` objects
+
+    """
     assert min_cumfreq_pct <= max_cumfreq_pct
     if min_cumfreq_pct > 0 or max_cumfreq_pct < 100:
         log.info("Restricting to surnames with {} <= cumfreq_pct <= {}".format(
@@ -162,6 +235,19 @@ def gen_sufficiently_frequent_names(infolist: Iterable[NameInfo],
 def gen_name_from_name_info(infolist: Iterable[NameInfo],
                             min_word_length: int = 1) -> \
         Generator[str, None, None]:
+    """
+    Generates names from :class:`NameInfo` objects.
+
+    Args:
+        infolist:
+            iterable of :class:`NameInfo` objects
+        min_word_length:
+            minimum word length; all words must be at least this long
+
+    Yields:
+        names as strings
+
+    """
     for info in infolist:
         if len(info.name) >= min_word_length:
             yield info.name
@@ -172,7 +258,17 @@ def gen_name_from_name_info(infolist: Iterable[NameInfo],
 # =============================================================================
 
 class UsForenameInfo(NameInfo):
+    """
+    Information about a forename in the United States of America.
+    """
     def __init__(self, name: str, sex: str, frequency: str) -> None:
+        """
+        Args:
+            name: the name
+            sex: the sex, as ``"M"`` or ``"F"``
+            frequency: a string version of an integer giving the number of
+                times the name appeared in a certain time period
+        """
         super().__init__(name)
         self.sex = sex
         self.frequency = int(frequency)
@@ -180,6 +276,23 @@ class UsForenameInfo(NameInfo):
 
 def gen_us_forename_info(lines: Iterable[str]) -> \
         Generator[UsForenameInfo, None, None]:
+    """
+    Generate US forenames from an iterable of lines in a specific textfile
+    format, where each line looks like:
+
+    .. code-block:: none
+
+        Mary,F,7065
+
+    representing name, sex, frequency (count).
+
+    Args:
+        lines: iterable of lines
+
+    Yields:
+        :class:`UsForenameInfo` objects
+
+    """
     # We need to calculate cumulative frequencies manually.
     # So this needs to accumulate all the instances before yielding any.
     seen = dict()  # type: Dict[str, UsForenameInfo]
@@ -210,6 +323,25 @@ def fetch_us_forenames(url: str, filename: str,
                        max_cumfreq_pct: float = 100,
                        min_word_length: int = 1,
                        show_rejects: bool = False) -> None:
+    """
+    Fetch US forenames and store them in a file, one per line.
+
+    Args:
+        url:
+            URL to fetch file from
+        filename:
+            filename to write to
+        min_cumfreq_pct:
+            minimum cumulative frequency (%): 0 for no limit, or above 0 to
+            exclude common names
+        max_cumfreq_pct:
+            maximum cumulative frequency (%): 100 for no limit, or below 100 to
+            exclude rare names
+        min_word_length:
+            minimum word length; all words must be at least this long
+        show_rejects:
+            report rejected words to the Python debug log
+    """
     pipeline = (
         gen_name_from_name_info(
             gen_sufficiently_frequent_names(
@@ -239,8 +371,18 @@ def fetch_us_forenames(url: str, filename: str,
 # =============================================================================
 
 class UsSurname1990Info(NameInfo):
+    """
+    Represents US surnames from the 1990 census.
+    """
     def __init__(self, name: str, freq_pct: str, cumfreq_pct: str,
                  rank: int) -> None:
+        """
+        Args:
+            name: the name
+            freq_pct: frequency (%) in string form
+            cumfreq_pct: cumulative frequency (%) in string form
+            rank: integer rank of frequency, in string form
+        """
         super().__init__(name=name,
                          freq_pct=float(freq_pct),
                          cumfreq_pct=float(cumfreq_pct))
@@ -248,6 +390,21 @@ class UsSurname1990Info(NameInfo):
 
 
 def float_or_na_for_us_surnames(x: Union[float, str]) -> Optional[float]:
+    """
+    The US surname data replaces low-frequency numbers with ``"(S)"`` for
+    suppressed. Return a float representation of our input, but convert the
+    suppression marker to ``None``.
+
+    Args:
+        x: input
+
+    Returns:
+        float version of input, or ``None``
+
+    Raises:
+        :exc:`ValueError` for bad input
+
+    """
     try:
         return float(x)
     except ValueError:
@@ -258,10 +415,45 @@ def float_or_na_for_us_surnames(x: Union[float, str]) -> Optional[float]:
 
 
 class UsSurname2010Info(NameInfo):
+    """
+    Represents US surnames from the 2010 census.
+    """
     def __init__(self, name: str, rank: str, count: str, prop100k: str,
                  cum_prop100k: str, pct_white: str, pct_black: str,
                  pct_api: str, pct_aian: str, pct_2prace: str,
                  pct_hispanic: str) -> None:
+        """
+        Args:
+            name:
+                the name
+            rank:
+                integer rank of frequency, in string form
+            count:
+                frequency/count of the number of uses nationally
+            prop100k:
+                "proportion per 100,000 population", in string format, or a
+                percentage times 1000
+            cum_prop100k:
+                cumulative "proportion per 100,000 population" [1]
+            pct_white:
+                "Percent Non-Hispanic White Alone" [1, 2]
+            pct_black:
+                "Percent Non-Hispanic Black or African American Alone"  [1, 2]
+            pct_api:
+                "Percent Non-Hispanic Asian and Native Hawaiian and Other
+                Pacific Islander Alone" [1, 2]
+            pct_aian:
+                "Percent Non-Hispanic American Indian and Alaska Native Alone"
+                 [1, 2]
+            pct_2prace:
+                "Percent Non-Hispanic Two or More Races" [1, 2]
+            pct_hispanic:
+                "Percent Hispanic or Latino origin" [1, 2]
+
+        [1] will be filtered through :func:`float_or_na_for_us_surnames`.
+        [2] these mean "of people with this name, the percentage who are X
+            race"
+        """
         self.rank = int(rank)
         self.count = int(count)
         self.prop100k = float(prop100k)  # "proportion per 100,000 population"
@@ -281,15 +473,43 @@ class UsSurname2010Info(NameInfo):
 
 def gen_us_surname_1990_info(lines: Iterable[str]) -> \
         Generator[UsSurname1990Info, None, None]:
+    """
+    Process a series of lines from a textfile and generate US surname
+    information from the 1990 census data.
+    
+    Args:
+        lines: iterable of lines, with this format:
+        
+        .. code-block:: none
+            # Format is e.g.
+            SMITH          1.006  1.006      1
+            # which is:
+            # name, frequency (%), cumulative frequency (%), rank
+
+    Yields:
+        :class:`UsSurname1990Info` objects
+
+    """
     for line in lines:
-        # Format is e.g. "SMITH          1.006  1.006      1",
-        # which is: name, frequency (%), cumulative frequency (%), rank
         parts = line.split()
         yield UsSurname1990Info(*parts)
 
 
 def gen_us_surname_2010_info(rows: Iterable[Iterable[str]]) -> \
         Generator[UsSurname2010Info, None, None]:
+    """
+    Process a series of rows and generate US surname information from the 2010
+    census data.
+    
+    Args:
+        rows:
+            iterable giving "row" objects, where each row is an iterable of
+            strings
+
+    Yields:
+        :class:`UsSurname2010Info` objects
+
+    """
     for row in rows:
         yield UsSurname2010Info(*row)
 
@@ -299,6 +519,28 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
                       max_cumfreq_pct: float = 100,
                       min_word_length: int = 1,
                       show_rejects: bool = False) -> None:
+    """
+    Fetches US surnames from the 1990 and 2010 census data. Writes them to a
+    file.
+    
+    Args:
+        url_1990:
+            URL for 1990 US census data
+        url_2010:
+            URL for 2010 US census data 
+        filename:
+            filename to write to
+        min_cumfreq_pct:
+            minimum cumulative frequency (%): 0 for no limit, or above 0 to
+            exclude common names
+        max_cumfreq_pct:
+            maximum cumulative frequency (%): 100 for no limit, or below 100 to
+            exclude rare names
+        min_word_length:
+            minimum word length; all words must be at least this long
+        show_rejects:
+            report rejected words to the Python debug log
+    """
     p1 = (
         gen_name_from_name_info(
             gen_sufficiently_frequent_names(
@@ -346,6 +588,16 @@ def fetch_us_surnames(url_1990: str, url_2010: str, filename: str,
 # =============================================================================
 
 def fetch_eponyms(filename: str, add_unaccented_versions: bool) -> None:
+    """
+    Writes medical eponyms to a file.
+    
+    Args:
+        filename:
+            filename to write to
+        add_unaccented_versions:
+            Add unaccented (mangled) versions of names, too? For example, do
+            you want Sjogren as well as Sjögren?
+    """
     names = get_plain_eponyms(add_unaccented_versions=add_unaccented_versions)
     write_words_to_file(filename, names)
 
@@ -358,6 +610,19 @@ def filter_files(input_filenames: List[str],  # "A"
                  exclusion_filenames: List[str],  # "B"
                  output_filename: str,  # "OUT"
                  min_line_length: int = 0) -> None:
+    """
+    Provides an "A-not-B" file filtering function.
+    
+    Finds all lines in files defined by ``input_filenames`` (A) that are not
+    present in any files defined by ``exclusion_filenames`` (B). Writes them
+    to ``output_filename`` (OUT).
+    
+    Args:
+        input_filenames: a list of "A" filenames
+        exclusion_filenames: a list of "B" filenames
+        output_filename: the "OUT" file
+        min_line_length: skip any A lines that are shorter than this value
+    """
     # Check inputs
     input_output_overlap = set(input_filenames).intersection(
         set(exclusion_filenames))
@@ -480,6 +745,9 @@ crate_fetch_wordlists \
 
 
 def main() -> None:
+    """
+    Command-line processor. See command-line help.
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )

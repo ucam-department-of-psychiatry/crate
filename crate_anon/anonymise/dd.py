@@ -24,10 +24,11 @@ crate_anon/anonymise/dd.py
 
 ===============================================================================
 
-Data dictionary classes for CRATE anonymiser.
+**Data dictionary classes for CRATE anonymiser.**
 
-Data dictionary as a TSV file, for ease of editing by multiple authors, rather
-than a database table.
+The data dictionary is a TSV file, for ease of editing by multiple authors,
+rather than a database table.
+
 """
 
 # =============================================================================
@@ -79,6 +80,9 @@ class DataDictionary(object):
     def __init__(self, config: "Config") -> None:
         """
         Set defaults.
+
+        Args:
+            config: :class:`crate_anon.anonymise.config.Config`
         """
         self.config = config
         self.rows = []  # type: List[DataDictionaryRow]
@@ -89,6 +93,9 @@ class DataDictionary(object):
     def read_from_file(self, filename: str) -> None:
         """
         Read DD from file.
+
+        Args:
+            filename: filename to read
         """
         self.rows = []  # type: List[DataDictionaryRow]
         log.debug("Opening data dictionary: {}".format(filename))
@@ -123,6 +130,9 @@ class DataDictionary(object):
     def read_from_source_databases(self, report_every: int = 100) -> None:
         """
         Create a draft DD from a source database.
+
+        Args:
+            report_every: report to the Python log every *n* columns
         """
         log.info("Reading information for draft data dictionary")
         existing_signatures = set(ddr.get_signature() for ddr in self.rows)
@@ -225,6 +235,9 @@ class DataDictionary(object):
         self.sort()
 
     def sort(self) -> None:
+        """
+        Sorts the data dictionary.
+        """
         log.info("Sorting data dictionary")
         self.rows = sorted(
             self.rows,
@@ -235,8 +248,9 @@ class DataDictionary(object):
 
     def check_against_source_db(self) -> None:
         """
-        Check DD validity against the source database.
-        Also caches SQLAlchemy source column type
+        Check DD validity against the source database(s).
+
+        Also caches SQLAlchemy source column types.
         """
         def ensure_no_type_mismatch(ddr: DataDictionaryRow,
                                     config_sqlatype: Union[TypeEngine, String],
@@ -362,7 +376,16 @@ class DataDictionary(object):
                     prohibited_fieldnames: List[str] = None,
                     check_against_source_db: bool = True) -> None:
         """
-        Check DD validity, internally +/- against the source database.
+        Check DD validity, internally ± against the source database(s).
+
+        Args:
+            prohibited_fieldnames:
+                list of prohibited destination fieldnames
+            check_against_source_db:
+                check validity against the source database(s)?
+
+        Raises:
+            :exc:`ValueError` if the DD is invalid
         """
         if prohibited_fieldnames is None:
             prohibited_fieldnames = []  # type: List[str]
@@ -482,7 +505,9 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_source_databases(self) -> AbstractSet[str]:
-        """Return a SortedSet of source database names."""
+        """
+        Return a SortedSet of source database names.
+        """
         return SortedSet([
              ddr.src_db
              for ddr in self.rows
@@ -491,8 +516,10 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_scrub_from_db_table_pairs(self) -> AbstractSet[Tuple[str, str]]:
-        """Return a SortedSet of (source database name, source table) tuples
-        where those fields contain scrub_src (scrub-from) information."""
+        """
+        Return a SortedSet of ``source_database_name, source_table`` tuples
+        where those fields contain ``scrub_src`` (scrub-from) information.
+        """
         return SortedSet([
             (ddr.src_db, ddr.src_table)
             for ddr in self.rows
@@ -502,7 +529,9 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_src_db_tablepairs(self) -> AbstractSet[Tuple[str, str]]:
-        """Return a SortedSet of (source database name, source table) tuples.
+        """
+        Return a SortedSet of all ``source_database_name, source_table``
+        tuples.
         """
         return SortedSet([
             (ddr.src_db, ddr.src_table)
@@ -511,7 +540,9 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_src_db_tablepairs_w_pt_info(self) -> AbstractSet[Tuple[str, str]]:
-        """Return a SortedSet of (source database name, source table) tuples.
+        """
+        Return a SortedSet of ``source_database_name, source_table`` tuples
+        for tables that contain patient information.
         """
         return SortedSet([
             (ddr.src_db, ddr.src_table)
@@ -521,7 +552,9 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_src_db_tablepairs_w_int_pk(self) -> AbstractSet[Tuple[str, str]]:
-        """Return a SortedSet of (source database name, source table) tuples.
+        """
+        Return a SortedSet of ``source_database_name, source_table`` tuples
+        for tables that have an integer PK.
         """
         return SortedSet([
             (ddr.src_db, ddr.src_table)
@@ -532,8 +565,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_src_dbs_tables_with_no_pt_info_no_pk(self) \
             -> AbstractSet[Tuple[str, str]]:
-        """Return a SortedSet of (source database name, source table) tuples
-        where the table has no patient information and no integer PK."""
+        """
+        Return a SortedSet of ``source_database_name, source_table`` tuples
+        where the table has no patient information and no integer PK.
+        """
         return (
             self.get_src_db_tablepairs() -
             self.get_src_db_tablepairs_w_pt_info() -
@@ -543,8 +578,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_src_dbs_tables_with_no_pt_info_int_pk(self) \
             -> AbstractSet[Tuple[str, str]]:
-        """Return a SortedSet of (source database name, source table) tuples
-        where the table has no patient information and has an integer PK."""
+        """
+        Return a SortedSet of ``source_database_name, source_table`` tuples
+        where the table has no patient information and has an integer PK.
+        """
         return (
             (self.get_src_db_tablepairs() -
                 self.get_src_db_tablepairs_w_pt_info()) &  # & is intersection
@@ -553,7 +590,9 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_dest_tables(self) -> AbstractSet[str]:
-        """Return a SortedSet of all destination tables."""
+        """
+        Return a SortedSet of all destination table names.
+        """
         return SortedSet([
             ddr.dest_table
             for ddr in self.rows
@@ -562,8 +601,10 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_dest_tables_with_patient_info(self) -> AbstractSet[str]:
-        """Return a SortedSet of destination table names that have patient
-        information."""
+        """
+        Return a SortedSet of destination table names that have patient
+        information.
+        """
         return SortedSet([
             ddr.dest_table
             for ddr in self.rows
@@ -573,8 +614,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_optout_defining_fields(self) \
             -> AbstractSet[Tuple[str, str, str, str, str]]:
-        """Return a SortedSet of (src_db, src_table, src_field, pidfield,
-        mpidfield) tuples."""
+        """
+        Return a SortedSet of ``src_db, src_table, src_field, pidfield,
+        mpidfield`` tuples for rows that define opt-out information.
+        """
         return SortedSet([
             (ddr.src_db, ddr.src_table, ddr.src_field,
                 self.get_pid_name(ddr.src_db, ddr.src_table),
@@ -585,6 +628,12 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_mandatory_scrubber_sigs(self) -> AbstractSet[str]:
+        """
+        Return a set of field signatures (strings of the format
+        ``db.table.column``) for all rows representing "required scrubber"
+        fields -- that is, rows that must have at least one non-NULL value for
+        each patient, or the patient won't get processed.
+        """
         return set([ddr.get_signature() for ddr in self.rows
                     if ddr.required_scrubber])
 
@@ -594,8 +643,11 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_src_tables(self, src_db: str) -> AbstractSet[str]:
-        """For a given source database name, return a SortedSet of source
-        tables."""
+        """
+        For a given source database name, return a SortedSet of all source
+        tables that are required (that is, ones being copied and ones providing
+        vital patient information).
+        """
         return SortedSet([
             ddr.src_table
             for ddr in self.rows
@@ -604,8 +656,10 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_src_tables_with_active_dest(self, src_db: str) -> AbstractSet[str]:
-        """For a given source database name, return a SortedSet of source
-        tables."""
+        """
+        For a given source database name, return a SortedSet of its source
+        tables that have an active destination.
+        """
         return SortedSet([
             ddr.src_table
             for ddr in self.rows
@@ -614,8 +668,10 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_src_tables_with_patient_info(self, src_db: str) -> AbstractSet[str]:
-        """For a given source database name, return a SortedSet of source
-        tables that have patient information."""
+        """
+        For a given source database name, return a SortedSet of source tables
+        that have patient information.
+        """
         return SortedSet([
             ddr.src_table
             for ddr in self.rows
@@ -625,8 +681,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_patient_src_tables_with_active_dest(self, src_db: str) \
             -> AbstractSet[str]:
-        """For a given source database name, return a SortedSet of source
-        tables that have an active destination table."""
+        """
+        For a given source database name, return a SortedSet of source tables
+        that contain patient information and have an active destination table.
+        """
         return (
             self.get_src_tables_with_active_dest(src_db) &
             self.get_src_tables_with_patient_info(src_db)
@@ -639,8 +697,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_dest_tables_for_src_db_table(
             self, src_db: str, src_table: str) -> AbstractSet[str]:
-        """For a given source database/table, return a SortedSet of destination
-        tables."""
+        """
+        For a given source database/table, return a SortedSet of destination
+        tables.
+        """
         return SortedSet([
             ddr.dest_table
             for ddr in self.rows
@@ -652,16 +712,19 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_dest_table_for_src_db_table(
             self, src_db: str, src_table: str) -> str:
-        """For a given source database/table, return the single or the first
-        destination table."""
+        """
+        For a given source database/table, return the single or the first
+        destination table.
+        """
         return list(
             self.get_dest_tables_for_src_db_table(src_db, src_table))[0]
 
     @lru_cache(maxsize=None)
     def get_rows_for_src_table(self, src_db: str, src_table: str) \
             -> AbstractSet[DataDictionaryRow]:
-        """For a given source database name/table, return a SortedSet of DD
-        rows."""
+        """
+        For a given source database name/table, return a SortedSet of DD rows.
+        """
         return SortedSet([
             ddr
             for ddr in self.rows
@@ -671,8 +734,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_fieldnames_for_src_table(self, src_db: str, src_table: str) \
             -> AbstractSet[DataDictionaryRow]:
-        """For a given source database name/table, return a SortedSet of source
-        fields."""
+        """
+        For a given source database name/table, return a SortedSet of source
+        fields.
+        """
         return SortedSet([
             ddr.src_field
             for ddr in self.rows
@@ -682,8 +747,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_scrub_from_rows(self, src_db: str, src_table: str) \
             -> AbstractSet[DataDictionaryRow]:
-        """Return a SortedSet of DD rows for all fields containing scrub_src
-        (scrub-from) information."""
+        """
+        Return a SortedSet of DD rows for all fields containing ``scrub_src``
+        (scrub-from) information.
+        """
         return SortedSet([
             ddr
             for ddr in self.rows
@@ -696,10 +763,11 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_pk_ddr(self, src_db: str, src_table: str) \
             -> Optional[DataDictionaryRow]:
-        """For a given source database name and table, return the DD row
-        for the PK for that table, whether integer or not.
+        """
+        For a given source database name and table, return the DD row for the
+        PK for that table, whether integer or not.
 
-        Will return None if no such data dictionary row.
+        Will return ``None`` if no such data dictionary row exists.
         """
         for ddr in self.rows:
             if (ddr.src_db == src_db and
@@ -711,10 +779,11 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_int_pk_ddr(self, src_db: str, src_table: str) \
             -> Optional[DataDictionaryRow]:
-        """For a given source database name and table, return the DD row
-        for the integer PK for that table.
+        """
+        For a given source database name and table, return the DD row for the
+        integer PK for that table.
 
-        Will return None if no such data dictionary row.
+        Will return ``None`` if no such data dictionary row exists.
         """
         for ddr in self.rows:
             if (ddr.src_db == src_db and
@@ -726,8 +795,10 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_int_pk_name(self, src_db: str, src_table: str) -> Optional[str]:
-        """For a given source database name and table, return the field name
-        of the integer PK for that table."""
+        """
+        For a given source database name and table, return the field name of
+        the integer PK for that table (or ``None`` if there isn't one).
+        """
         ddr = self.get_int_pk_ddr(src_db, src_table)
         if ddr is None:
             return None
@@ -735,8 +806,10 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def has_active_destination(self, src_db: str, src_table: str) -> bool:
-        """For a given source database name and table: does it have an active
-        destination?"""
+        """
+        For a given source database name and table: does it have an active
+        destination?
+        """
         for ddr in self.rows:
             if (ddr.src_db == src_db and
                     ddr.src_table == src_table and
@@ -746,6 +819,11 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_pid_name(self, src_db: str, src_table: str) -> Optional[str]:
+        """
+        For a given source database name and table: return the field name of
+        the field providing primary PID information (or ``None`` if there isn't
+        one).
+        """
         for ddr in self.rows:
             if (ddr.src_db == src_db and
                     ddr.src_table == src_table and
@@ -755,6 +833,11 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_mpid_name(self, src_db: str, src_table: str) -> Optional[str]:
+        """
+        For a given source database name and table: return the field name of
+        the field providing master PID (MPID) information (or ``None`` if there
+        isn't one).
+        """
         for ddr in self.rows:
             if (ddr.src_db == src_db and
                     ddr.src_table == src_table and
@@ -769,8 +852,10 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_src_dbs_tables_for_dest_table(
             self, dest_table: str) -> AbstractSet[Tuple[str, str]]:
-        """For a given destination table, return a SortedSet of (dbname, table)
-        tuples."""
+        """
+        For a given destination table, return a SortedSet of ``dbname, table``
+        tuples.
+        """
         return SortedSet([
             (ddr.src_db, ddr.src_table)
             for ddr in self.rows
@@ -780,7 +865,9 @@ class DataDictionary(object):
     @lru_cache(maxsize=None)
     def get_rows_for_dest_table(
             self, dest_table: str) -> AbstractSet[DataDictionaryRow]:
-        """For a given destination table, return a SortedSet of DD rows."""
+        """
+        For a given destination table, return a SortedSet of DD rows.
+        """
         return SortedSet([
             ddr
             for ddr in self.rows
@@ -793,6 +880,11 @@ class DataDictionary(object):
 
     @lru_cache(maxsize=None)
     def get_dest_sqla_table(self, tablename: str) -> Table:
+        """
+        For a given destination table name, return an
+        :class:`sqlalchemy.sql.schema.Table` object for the destination table
+        (which we will create).
+        """
         metadata = self.config.destdb.metadata
         columns = []  # type: List[Column]
         for ddr in self.get_rows_for_dest_table(tablename):
@@ -804,6 +896,11 @@ class DataDictionary(object):
         return Table(tablename, metadata, *columns, **TABLE_KWARGS)
 
     def _get_srchash_sqla_column(self) -> Column:
+        """
+        Returns a :class:`sqlalchemy.sql.schema.Column` object for the
+        "source hash" column (which is inserted into many destination tables
+        so they can record the hash of their source, for change detection).
+        """
         return Column(
             self.config.source_hash_fieldname,
             self.config.SqlTypeEncryptedPid,
@@ -811,6 +908,12 @@ class DataDictionary(object):
         )
 
     def _get_trid_sqla_column(self) -> Column:
+        """
+        Returns a :class:`sqlalchemy.sql.schema.Column` object for the "TRID"
+        column. This is inserted into all patient-related destination tables as
+        a high-speed (integer) but impermanent research ID -- a transient
+        research ID (TRID).
+        """
         return Column(
             self.config.trid_fieldname,
             TridType,
@@ -823,6 +926,10 @@ class DataDictionary(object):
     # =========================================================================
 
     def cached_funcs(self) -> List[Any]:
+        """
+        Returns a list of our methods that are cached. See
+        :func:`clear_caches`.
+        """
         return [
             self.get_source_databases,
             self.get_scrub_from_db_table_pairs,
@@ -860,9 +967,15 @@ class DataDictionary(object):
         ]
 
     def clear_caches(self) -> None:
+        """
+        Clear all our cached information.
+        """
         for func in self.cached_funcs():
             func.cache_clear()
 
     def debug_cache_hits(self) -> None:
+        """
+        Report cache hit information for our caches, to the Python log.
+        """
         for func in self.cached_funcs():
             log.debug("{}: {}".format(func.__name__, func.cache_info()))

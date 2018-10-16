@@ -24,6 +24,8 @@ crate_anon/anonymise/dbholder.py
 
 ===============================================================================
 
+**Database "holder".**
+
 """
 
 import logging
@@ -31,7 +33,7 @@ from typing import List
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.schema import MetaData
+from sqlalchemy.sql.schema import MetaData
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +46,9 @@ DB_SAFE_CONFIG_FWD_REF = "DatabaseSafeConfig"
 
 
 class DatabaseHolder(object):
+    """
+    Object to represent a connection to a database.
+    """
     def __init__(self,
                  name: str,
                  url: str,
@@ -52,6 +57,16 @@ class DatabaseHolder(object):
                  with_conn: bool = True,
                  reflect: bool = True,
                  encoding: str = 'utf-8') -> None:
+        """
+        Args:
+            name: internal database name
+            url: SQLAlchemy URL
+            srccfg: :class:`crate_anon.anonymise.config.DatabaseSafeConfig`
+            with_session: create an SQLAlchemy Session?
+            with_conn: create an SQLAlchemy connection (via an Engine)?
+            reflect: read the database structure (when required)?
+            encoding: passed to SQLAlchemy's :func:`create_engine`
+        """
         self.name = name
         self.srccfg = srccfg
         self.engine = create_engine(url, encoding=encoding)
@@ -68,8 +83,12 @@ class DatabaseHolder(object):
         if with_session:  # for ORM
             self.session = sessionmaker(bind=self.engine)()  # for ORM
 
-    def _reflect(self):
-        # Reflection is expensive, so we defer unless required
+    def _reflect(self) -> None:
+        """
+        Perform the database reflection.
+
+        Reflection is expensive, so we defer unless required
+        """
         if not self._reflect_on_request:
             return
         log.info("Reflecting database: {}".format(self.name))
@@ -79,13 +98,21 @@ class DatabaseHolder(object):
         self._reflected = True
 
     @property
-    def metadata(self):
+    def metadata(self) -> MetaData:
+        """
+        Returns the SQLAlchemy :class:`MetaData`. If reflection is enabled,
+        ensure the database has been reflected first.
+        """
         if not self._reflected:
             self._reflect()
         return self._metadata
 
     @property
-    def table_names(self):
+    def table_names(self) -> List[str]:
+        """
+        Returns the table names from the database, if reflection is enabled.
+        (Otherwise returns an empty list.)
+        """
         if not self._reflected:
             self._reflect()
         return self._table_names
